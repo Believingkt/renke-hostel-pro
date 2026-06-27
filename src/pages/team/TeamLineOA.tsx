@@ -834,7 +834,7 @@ const ROLE_BADGE_CLASS: Record<string, string> = {
 };
 
 // ============== Members Tab ==============
-function MembersTab() {
+function MembersTab({ selfUserId = null }: { selfUserId?: string | null }) {
   const [members, setMembers] = useState<
     (MemberProfile & { roles: string[]; notificationRoles: string[] })[]
   >([]);
