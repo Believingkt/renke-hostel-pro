@@ -1290,6 +1290,7 @@ export default function TeamOrders() {
                           teamCommissionPrice: tcp,
                           finalPrice: fp,
                           confirmedBy,
+                          lastConfirmedCommissionPrice: form.last_confirmed_commission_price ?? null,
                         });
                         if (status === "locked") {
                           return (
