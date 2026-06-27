@@ -2265,6 +2265,23 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [externalRates, setExternalRates] = useState<Record<string, ExternalRates>>({});
+  const [memberOptions, setMemberOptions] = useState<Array<{ id: string; display_name: string }>>([]);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("team_member_profiles")
+        .select("id, display_name")
+        .eq("is_active", true)
+        .order("display_name", { ascending: true });
+      setMemberOptions((data ?? []) as Array<{ id: string; display_name: string }>);
+    })();
+  }, []);
+  const memberById = useMemo(() => {
+    const m = new Map<string, string>();
+    memberOptions.forEach((o) => m.set(o.id, o.display_name));
+    return m;
+  }, [memberOptions]);
 
   const load = async () => {
     const [ordersRes, ratesRes] = await Promise.all([
