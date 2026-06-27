@@ -769,6 +769,37 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
+      (scoutPayouts ?? []).forEach((r: any) => {
+        const scout = r.scout_id ? profileByUserId.get(r.scout_id) : undefined;
+        const periodLabel = r.period === 10 ? "10日期" : "25日期";
+        const detail = `${r.year}/${String(r.month).padStart(2, "0")} ${periodLabel}`;
+        const breakdown = (r.bonus_breakdown ?? {}) as Record<string, unknown>;
+        const rarityBonus = Number(breakdown.rarity_bonus ?? 0);
+        const paid = r.payout_status === "paid";
+        const baseItems: Array<[string, string, number]> = [
+          ["base", SOURCE_LABEL.scout_base, Number(r.base_salary ?? 0)],
+          ["rarity", SOURCE_LABEL.scout_rarity, rarityBonus],
+          ["kol", SOURCE_LABEL.scout_kol, Number(r.kol_commission ?? 0)],
+          ["team", SOURCE_LABEL.scout_team, Number(r.team_bonus ?? 0)],
+        ];
+        baseItems.forEach(([roleKey, label, amount]) => {
+          if (!amount || amount === 0) return;
+          items.push({
+            key: `scout_monthly_payouts:${r.id}:${roleKey}`,
+            source_table: "scout_monthly_payouts",
+            source_id: r.id,
+            role_key: roleKey,
+            member_id: scout?.id ?? null,
+            source_label: label,
+            detail,
+            amount,
+            paid,
+            payout_date: r.payout_date ?? null,
+          });
+        });
+      });
+
+
       // 3. 撈取已標記紀錄
       const sourceIds = Array.from(new Set(items.map((i) => i.source_id)));
       if (sourceIds.length > 0) {
