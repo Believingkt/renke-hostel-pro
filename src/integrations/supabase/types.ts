@@ -1892,6 +1892,56 @@ export type Database = {
           },
         ]
       }
+      commission_payout_marks: {
+        Row: {
+          created_at: string
+          id: string
+          marked_at: string
+          marked_by: string | null
+          member_id: string | null
+          payout_date: string
+          payout_status: string
+          role_key: string
+          source_id: string
+          source_table: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          member_id?: string | null
+          payout_date?: string
+          payout_status?: string
+          role_key: string
+          source_id: string
+          source_table: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          member_id?: string | null
+          payout_date?: string
+          payout_status?: string
+          role_key?: string
+          source_id?: string
+          source_table?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payout_marks_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_payout_rules: {
         Row: {
           commission_type: string
