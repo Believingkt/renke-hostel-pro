@@ -288,15 +288,55 @@ Deno.serve(async (req) => {
         };
 
         // ── General booking metrics ────────────────────────
-        // Today orders (non-cancelled) — order_date is timestamptz, use Taipei-day UTC range
-        const { data: todayOrders } = await applyTiansongExclusions(
-          supabase
-            .from("orders")
-            .select("final_price, order_status")
-            .eq("accommodation_id", accId)
-            .gte("order_date", todayStartUtc)
-            .lt("order_date", tomorrowStartUtc)
-            .neq("order_status", "cancelled"),
+        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 COALESCE(confirmed_at, order_date) 為準，
+        //          並排除「保留單」與 final_price <= 0 的訂單；
+        // 天送：維持既有 order_date 區間 + 團媽/票卷訂房排除（獨立邏輯，不修改）。
+        const applyBookingFilters = <T extends any>(qb: T): T => {
+          let q: any = applyTiansongExclusions(qb as any);
+          if (!isTiansong) {
+            q = q.neq("guest_name", "保留單").gt("final_price", 0);
+          }
+          return q as T;
+        };
+        const applyPeriodFilter = <T extends any>(qb: T, startDay: string, endDay: string): T => {
+          let q: any = qb;
+          if (isTiansong) {
+            // 維持以 order_date timestamptz UTC 區間為準
+            const startUtc = new Date(`${startDay}T00:00:00+08:00`).toISOString();
+            // endDay 為「結束日（含）」，轉成隔日 00:00 為 exclusive 上界
+            const [ey, em, ed] = endDay.split("-").map(Number);
+            const endUtc = new Date(Date.UTC(ey, em - 1, ed + 1, -8, 0, 0)).toISOString();
+            q = q.gte("order_date", startUtc).lt("order_date", endUtc);
+          } else {
+            // COALESCE(confirmed_at, order_date) 落在 [startDay, endDay]
+            q = q.or(
+              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`,
+            );
+          }
+          return q as T;
+        };
+
+        // 期間字串（YYYY-MM-DD，含頭含尾）
+        const todayStr = today;
+        const monthStartStr = taipeiDateStr(tp.y, tp.m, 1);
+        const monthEndStr = taipeiDateStr(tp.y, tp.m + 1, 0); // 上個月加一個月的「第 0 天」= 本月最後一天
+        const prevMonthStartStr = taipeiDateStr(tp.y, tp.m - 1, 1);
+        const prevMonthEndStr = taipeiDateStr(tp.y, tp.m, 0);
+        const yearStartStr = `${tp.y}-01-01`;
+        const yearEndStr = `${tp.y}-12-31`;
+
+        // Today orders (non-cancelled)
+        const { data: todayOrders } = await applyPeriodFilter(
+          applyBookingFilters(
+            supabase
+              .from("orders")
+              .select("final_price, order_status")
+              .eq("accommodation_id", accId)
+              .neq("order_status", "cancelled"),
+          ),
+          todayStr,
+          todayStr,
         );
         const todayCount = (todayOrders ?? []).length;
         const todaySales = (todayOrders ?? []).reduce(
@@ -304,8 +344,8 @@ Deno.serve(async (req) => {
           0,
         );
 
-        // Today cancellations (by updated_at within Taipei day)
-        const { data: cancelOrders } = await applyTiansongExclusions(
+        // Today cancellations (by updated_at within Taipei day — 保留 updated_at 觸發口徑)
+        const { data: cancelOrders } = await applyBookingFilters(
           supabase
             .from("orders")
             .select("final_price")
@@ -320,15 +360,17 @@ Deno.serve(async (req) => {
           0,
         );
 
-        // Month accumulated (Taipei month → UTC range)
-        const { data: monthOrders } = await applyTiansongExclusions(
-          supabase
-            .from("orders")
-            .select("final_price")
-            .eq("accommodation_id", accId)
-            .neq("order_status", "cancelled")
-            .gte("order_date", monthStartUtc)
-            .lt("order_date", monthEndUtc),
+        // Month accumulated
+        const { data: monthOrders } = await applyPeriodFilter(
+          applyBookingFilters(
+            supabase
+              .from("orders")
+              .select("final_price")
+              .eq("accommodation_id", accId)
+              .neq("order_status", "cancelled"),
+          ),
+          monthStartStr,
+          monthEndStr,
         );
         const monthSales = (monthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
@@ -336,14 +378,16 @@ Deno.serve(async (req) => {
         );
 
         // Previous month accumulated
-        const { data: prevMonthOrders } = await applyTiansongExclusions(
-          supabase
-            .from("orders")
-            .select("final_price")
-            .eq("accommodation_id", accId)
-            .neq("order_status", "cancelled")
-            .gte("order_date", prevMonthStartUtc)
-            .lt("order_date", prevMonthEndUtc),
+        const { data: prevMonthOrders } = await applyPeriodFilter(
+          applyBookingFilters(
+            supabase
+              .from("orders")
+              .select("final_price")
+              .eq("accommodation_id", accId)
+              .neq("order_status", "cancelled"),
+          ),
+          prevMonthStartStr,
+          prevMonthEndStr,
         );
         const prevMonthSales = (prevMonthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
@@ -351,14 +395,16 @@ Deno.serve(async (req) => {
         );
 
         // Year accumulated
-        const { data: yearOrders } = await applyTiansongExclusions(
-          supabase
-            .from("orders")
-            .select("final_price")
-            .eq("accommodation_id", accId)
-            .neq("order_status", "cancelled")
-            .gte("order_date", yearStartUtc)
-            .lt("order_date", yearEndUtc),
+        const { data: yearOrders } = await applyPeriodFilter(
+          applyBookingFilters(
+            supabase
+              .from("orders")
+              .select("final_price")
+              .eq("accommodation_id", accId)
+              .neq("order_status", "cancelled"),
+          ),
+          yearStartStr,
+          yearEndStr,
         );
         const yearSales = (yearOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
