@@ -842,10 +842,13 @@ function MembersTab() {
   const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [targetsByLineId, setTargetsByLineId] = useState<Record<string, PushTarget>>({});
+  const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [editingAmId, setEditingAmId] = useState<string | null>(null);
+  const [editingAmIds, setEditingAmIds] = useState<string[]>([]);
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
 
   const load = async () => {
-    const [{ data: profiles }, { data: chans }, { data: evts }] = await Promise.all([
+    const [{ data: profiles }, { data: chans }, { data: evts }, { data: accs }] = await Promise.all([
       supabase
         .from("team_member_profiles")
         .select("id, user_id, display_name, line_user_id")
@@ -861,11 +864,13 @@ function MembersTab() {
         .select("*")
         .eq("is_active", true)
         .order("label"),
+      supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
     ]);
 
     setOaId((chans?.[0] as any)?.line_oa_id ?? null);
     setDefaultChannelId((chans?.[0] as any)?.id ?? null);
     setEventTypes((evts ?? []) as EventType[]);
+    setAccommodations(((accs ?? []) as AccommodationOption[]));
 
     const userIds = (profiles ?? [])
       .map((p: any) => p.user_id)
@@ -963,6 +968,71 @@ function MembersTab() {
 
   const evtMap = new Map(eventTypes.map((e) => [e.code, e.label]));
 
+  const saveAmSubscription = async (
+    m: MemberProfile & { roles: string[] },
+    accommodationIds: string[],
+  ) => {
+    const lineId = m.line_user_id;
+    if (!lineId) {
+      toast.error("此成員尚未綁定 LINE");
+      return;
+    }
+    const existing = targetsByLineId[lineId];
+    const eventsWithout = (existing?.event_types ?? []).filter((e) => e !== "daily_performance");
+
+    if (accommodationIds.length === 0) {
+      // 視為未訂閱
+      if (!existing) {
+        setEditingAmId(null);
+        return;
+      }
+      if (eventsWithout.length === 0) {
+        const { error } = await supabase
+          .from("line_push_targets")
+          .delete()
+          .eq("id", existing.id);
+        if (error) return toast.error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("line_push_targets")
+          .update({ event_types: eventsWithout, accommodation_ids: [] })
+          .eq("id", existing.id);
+        if (error) return toast.error(error.message);
+      }
+    } else {
+      const newEvents = Array.from(new Set([...eventsWithout, "daily_performance"]));
+      if (existing) {
+        const { error } = await supabase
+          .from("line_push_targets")
+          .update({
+            event_types: newEvents,
+            accommodation_ids: accommodationIds,
+          })
+          .eq("id", existing.id);
+        if (error) return toast.error(error.message);
+      } else {
+        const { error } = await supabase.from("line_push_targets").insert({
+          channel_id: defaultChannelId,
+          target_type: "user",
+          target_id: lineId,
+          display_name: m.display_name,
+          roles: m.roles,
+          team_member_id: m.id,
+          is_active: true,
+          event_types: ["daily_performance"],
+          accommodation_ids: accommodationIds,
+          custom_venue_names: [],
+        });
+        if (error) return toast.error(error.message);
+      }
+    }
+    toast.success("已更新訂閱館別");
+    setEditingAmId(null);
+    await load();
+  };
+
+
+
 
   return (
     <Card>
@@ -1051,20 +1121,92 @@ function MembersTab() {
                             if (m.notificationRoles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
                             if (m.notificationRoles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
                           }
-                          if (caps.length === 0) {
+                          const isAm = bound && m.roles.includes("am");
+                          const target = m.line_user_id ? targetsByLineId[m.line_user_id] : undefined;
+                          const subscribed =
+                            !!target &&
+                            (target.event_types ?? []).includes("daily_performance");
+                          const subscribedIds = subscribed
+                            ? (target?.accommodation_ids ?? [])
+                            : [];
+                          const editing = isAm && editingAmId === m.id;
+
+                          if (caps.length === 0 && !isAm) {
                             return <span className="text-muted-foreground text-xs">—</span>;
                           }
                           return (
-                            <div className="flex flex-wrap gap-1">
-                              {caps.map((c) => (
-                                <Badge key={c.label} variant="secondary" className="text-xs">
-                                  {c.icon} {c.label}
-                                </Badge>
-                              ))}
+                            <div className="flex flex-col gap-1.5">
+                              {caps.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {caps.map((c) => (
+                                    <Badge key={c.label} variant="secondary" className="text-xs">
+                                      {c.icon} {c.label}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {isAm && (
+                                <div className="flex items-start gap-2">
+                                  <Badge variant="secondary" className="text-xs shrink-0">
+                                    📊 業績通報訂閱
+                                  </Badge>
+                                  {editing ? (
+                                    <div className="min-w-[240px] flex-1">
+                                      <VenuePicker
+                                        accommodations={accommodations}
+                                        selectedIds={editingAmIds}
+                                        selectedCustom={[]}
+                                        onChangeIds={setEditingAmIds}
+                                        onChangeCustom={() => {}}
+                                      />
+                                      <div className="flex gap-1 mt-1">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => saveAmSubscription(m, editingAmIds)}
+                                        >
+                                          儲存
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => setEditingAmId(null)}
+                                        >
+                                          取消
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingAmId(m.id);
+                                        setEditingAmIds(subscribedIds);
+                                      }}
+                                      className="text-xs text-left hover:underline"
+                                    >
+                                      {!subscribed || subscribedIds.length === 0 ? (
+                                        <span className="text-muted-foreground">未訂閱（點擊設定）</span>
+                                      ) : (
+                                        <span>
+                                          {subscribedIds
+                                            .map(
+                                              (id) =>
+                                                accommodations.find((a) => a.id === id)?.name ?? id,
+                                            )
+                                            .join("、")}
+                                        </span>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
                       </TableCell>
+
                       <TableCell>
                         {bound ? (
                           <Button size="sm" variant="outline" onClick={() => unbind(m)}>
