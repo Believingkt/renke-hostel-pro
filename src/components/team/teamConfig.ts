@@ -116,16 +116,16 @@ export const TEAM_MENU: TeamMenuItem[] = [
     allowedRoles: ["super_admin", "admin", "scout_manager"],
   },
   {
-    title: "外部導購連結",
-    url: "/team/kol/venue-confirm",
-    icon: Tag,
-    allowedRoles: ["super_admin", "admin", "venue_manager"],
-  },
-  {
     title: "LINE群設定",
     url: "/team/lineoa",
     icon: MessageCircle,
     allowedRoles: ["super_admin", "admin", "am"],
+  },
+  {
+    title: "外部導購連結",
+    url: "/team/kol/venue-confirm",
+    icon: Tag,
+    allowedRoles: ["super_admin", "admin", "venue_manager"],
   },
 ];
 
