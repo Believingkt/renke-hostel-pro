@@ -507,6 +507,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           teamCommissionPrice === null || teamCommissionPrice === undefined
             ? null
             : Number(teamCommissionPrice);
+        payload.last_confirmed_final_price = finalPrice ?? null;
       }
 
 
