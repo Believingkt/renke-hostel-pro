@@ -2209,6 +2209,9 @@ interface ExternalOrder {
   co_sales_bonus: number | null;
   co_sales_name2: string | null;
   co_sales_bonus2: number | null;
+  sales_member_id: string | null;
+  co_sales_member_id: string | null;
+  co_sales_member_id2: string | null;
   notes: string | null;
 }
 
