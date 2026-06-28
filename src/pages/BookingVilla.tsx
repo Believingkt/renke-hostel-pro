@@ -480,7 +480,12 @@ const BookingVilla = () => {
         });
       } catch {}
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("已複製連結");
+      } catch {
+        toast.error("複製失敗，請手動複製網址");
+      }
     }
   };
 
