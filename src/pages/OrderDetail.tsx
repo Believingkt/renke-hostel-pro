@@ -268,6 +268,7 @@ const OrderDetailPage = () => {
   }, [customBreakdown, isHakuna, isOlivia]);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
+  const [initialEditSnapshot] = useState<{ current: { rooms: any[]; exclusiveConfigs: Array<Record<string, number>> } }>({ current: { rooms: [], exclusiveConfigs: [] } });
   const [defaultDepositRatio, setDefaultDepositRatio] = useState<number>(0);
 
   // Load accommodation booking settings (use_deposit / deposit_percentage) for fallback ratio
