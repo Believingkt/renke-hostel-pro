@@ -342,9 +342,11 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={startDate}
+                    defaultMonth={startDate}
                     onSelect={(date) => {
                       if (date) {
                         setStartDate(date);
+                        if (endDate < date) setEndDate(date);
                         setStartPopoverOpen(false);
                         setTimeout(() => setEndPopoverOpen(true), 150);
                       }
@@ -374,6 +376,7 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={endDate}
+                    defaultMonth={endDate ?? startDate}
                     onSelect={(date) => {
                       if (date) {
                         setEndDate(date);
