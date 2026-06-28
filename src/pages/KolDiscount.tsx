@@ -154,6 +154,7 @@ const KolDiscount = () => {
   const [commissionRate, setCommissionRate] = useState("");
   
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState<string | null>(null);
