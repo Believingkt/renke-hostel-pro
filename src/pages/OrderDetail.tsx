@@ -31,6 +31,8 @@ import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
+import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import { computeOrderDiff } from "@/utils/orderAuditDiff";
 import {
   AlertDialog,
   AlertDialogAction,
