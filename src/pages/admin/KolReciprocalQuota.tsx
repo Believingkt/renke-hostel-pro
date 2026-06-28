@@ -41,7 +41,8 @@ export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
-  const [datesMap, setDatesMap] = useState<Record<string, string[]>>({});
+  const [datesMap, setDatesMap] = useState<Record<string, { date: string; orderId: string }[]>>({});
+  const [overrideOrderIds, setOverrideOrderIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
@@ -60,7 +61,8 @@ export default function KolReciprocalQuota() {
 
     // 一次撈取相關月份的 KOL 訂單入住日
     const usage: Record<string, number> = {};
-    const dates: Record<string, string[]> = {};
+    const dates: Record<string, { date: string; orderId: string }[]> = {};
+    const overrides = new Set<string>();
     if (list.length > 0) {
       const months = list.map((r) => r.year_month).sort();
       const minStart = `${months[0]}-01`;
@@ -69,25 +71,43 @@ export default function KolReciprocalQuota() {
       const maxEnd = format(maxEndDate, "yyyy-MM-dd");
       const { data: ordersData } = await supabase
         .from("orders")
-        .select("check_in_date, order_status")
+        .select("id, check_in_date, order_status")
         .eq("accommodation_id", currentAccommodationId)
         .eq("order_source", "kol")
         .gte("check_in_date", minStart)
         .lt("check_in_date", maxEnd);
+      const orderIds: string[] = [];
       for (const o of (ordersData ?? []) as any[]) {
         if (o.order_status === "cancelled") continue;
         const ym = (o.check_in_date as string).slice(0, 7);
         usage[ym] = (usage[ym] ?? 0) + 1;
-        (dates[ym] ||= []).push(o.check_in_date);
+        (dates[ym] ||= []).push({ date: o.check_in_date, orderId: o.id });
+        orderIds.push(o.id);
       }
       for (const ym of Object.keys(dates)) {
-        dates[ym].sort();
+        dates[ym].sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      // 撈取 KOL 額度覆寫紀錄
+      if (orderIds.length > 0) {
+        const { data: logs } = await supabase
+          .from("audit_logs")
+          .select("entity_id, details")
+          .eq("entity_type", "order")
+          .in("entity_id", orderIds);
+        for (const log of (logs ?? []) as any[]) {
+          if (log.details?.type === "kol_quota_override" && log.entity_id) {
+            overrides.add(log.entity_id);
+          }
+        }
       }
     }
     setUsageMap(usage);
     setDatesMap(dates);
+    setOverrideOrderIds(overrides);
     setLoading(false);
   };
+
 
   useEffect(() => {
     load();
@@ -162,8 +182,9 @@ export default function KolReciprocalQuota() {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="start">
-                <UsedOrdersList accommodationId={currentAccommodationId} yearMonth={r.year_month} />
+                <UsedOrdersList accommodationId={currentAccommodationId} yearMonth={r.year_month} overrideOrderIds={overrideOrderIds} />
               </PopoverContent>
+
             </Popover>
           ) : (
             <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
@@ -173,9 +194,19 @@ export default function KolReciprocalQuota() {
           {dates.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {dates.map((d, i) => {
-                const [, m, day] = d.split("-");
+                const [, m, day] = d.date.split("-");
+                const isOverride = overrideOrderIds.has(d.orderId);
                 return (
-                  <span key={`${d}-${i}`} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">
+                  <span
+                    key={`${d.date}-${i}`}
+                    title={isOverride ? "超額強制建立" : undefined}
+                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs ${
+                      isOverride
+                        ? "bg-orange-100 text-orange-700 border border-orange-300"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {isOverride && <span>⚠️</span>}
                     {Number(m)}/{Number(day)}
                   </span>
                 );
@@ -185,6 +216,7 @@ export default function KolReciprocalQuota() {
             <span className="text-muted-foreground">—</span>
           )}
         </TableCell>
+
         <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
         <TableCell className="text-right w-24">
           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
@@ -279,7 +311,7 @@ interface UsedOrder {
   guest_name: string | null;
 }
 
-function UsedOrdersList({ accommodationId, yearMonth }: { accommodationId: string | null; yearMonth: string }) {
+function UsedOrdersList({ accommodationId, yearMonth, overrideOrderIds }: { accommodationId: string | null; yearMonth: string; overrideOrderIds: Set<string> }) {
   const [list, setList] = useState<UsedOrder[] | null>(null);
 
   useEffect(() => {
@@ -304,27 +336,44 @@ function UsedOrdersList({ accommodationId, yearMonth }: { accommodationId: strin
   if (list === null) return <div className="p-3 text-sm text-muted-foreground">載入中…</div>;
   if (list.length === 0) return <div className="p-3 text-sm text-muted-foreground">無資料</div>;
 
+  const overrideCount = list.filter(o => overrideOrderIds.has(o.id)).length;
+
   return (
     <div className="max-h-80 overflow-y-auto">
-      <div className="px-3 py-2 border-b text-xs text-muted-foreground">{yearMonth} 已使用 {list.length} 筆</div>
+      <div className="px-3 py-2 border-b text-xs text-muted-foreground flex items-center justify-between gap-2">
+        <span>{yearMonth} 已使用 {list.length} 筆</span>
+        {overrideCount > 0 && (
+          <span className="text-orange-700">⚠️ 超額強制 {overrideCount} 筆</span>
+        )}
+      </div>
       <ul className="divide-y">
-        {list.map((o) => (
-          <li key={o.id} className="px-3 py-2 text-sm flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-medium tabular-nums">{o.check_in_date}{o.check_out_date ? ` → ${o.check_out_date}` : ""}</div>
-              <div className="text-xs text-muted-foreground truncate">{o.guest_name || "—"}</div>
-            </div>
-            <a
-              href={`/admin/orders/${o.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-primary hover:underline shrink-0 tabular-nums"
+        {list.map((o) => {
+          const isOverride = overrideOrderIds.has(o.id);
+          return (
+            <li
+              key={o.id}
+              className={`px-3 py-2 text-sm flex items-center justify-between gap-3 ${isOverride ? "bg-orange-50" : ""}`}
             >
-              {o.order_number || o.id.slice(0, 8)}
-            </a>
-          </li>
-        ))}
+              <div className="min-w-0">
+                <div className="font-medium tabular-nums flex items-center gap-1">
+                  {isOverride && <span title="超額強制建立" className="text-orange-700">⚠️</span>}
+                  {o.check_in_date}{o.check_out_date ? ` → ${o.check_out_date}` : ""}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{o.guest_name || "—"}</div>
+              </div>
+              <a
+                href={`/admin/orders/${o.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary hover:underline shrink-0 tabular-nums"
+              >
+                {o.order_number || o.id.slice(0, 8)}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
+
   );
 }
