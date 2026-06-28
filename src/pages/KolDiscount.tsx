@@ -727,13 +727,21 @@ const KolDiscount = () => {
   };
 
   const getFilteredDiscountCodes = () => {
-    if (filterStatus === "all") {
-      return discountCodes;
+    const q = searchQuery.trim().toLowerCase();
+    let list = discountCodes;
+
+    if (q) {
+      list = list.filter((code) => {
+        const name = (code.name || "").toString().toLowerCase();
+        const codeStr = (code.code || "").toString().toLowerCase();
+        return name.includes(q) || codeStr.includes(q);
+      });
     }
 
-    return discountCodes.filter((code) => {
+    if (filterStatus === "all") return list;
+
+    return list.filter((code) => {
       const status = getCodeStatus(code);
-      
       switch (filterStatus) {
         case "active":
           return status === "active";
