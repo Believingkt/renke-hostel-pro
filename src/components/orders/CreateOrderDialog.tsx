@@ -1221,27 +1221,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       const automaticRoomUnitAssignments = await getAutomaticRoomUnitAssignments(pricedRoomSelections);
 
-      // Insert order_rooms（quantity>1 時，自動展開為多列以分別指派 room_unit_id）
+      // Insert order_rooms（quantity===1 時套用手動或自動安排；quantity>1 維持單列不指派個別單元）
       if (orderData?.id && pricedRoomSelections.length > 0) {
-        const orderRooms = pricedRoomSelections.flatMap(sel => {
-          const autoUnits = automaticRoomUnitAssignments.get(sel.id) || [];
-          const manualUnit = sel.quantity === 1 ? (sel.room_unit_id || null) : null;
-          const allUnits: (string | null)[] = [];
-          if (manualUnit) allUnits.push(manualUnit);
-          allUnits.push(...autoUnits);
-          // 不足 quantity 的部分補 null（單純未指派）
-          while (allUnits.length < sel.quantity) allUnits.push(null);
-
-          const perRowPrice = sel.quantity > 0 ? sel.roomPrice / sel.quantity : sel.roomPrice;
-          return allUnits.slice(0, sel.quantity).map((uid) => ({
+        const orderRooms = pricedRoomSelections.map(sel => {
+          const autoUnit = automaticRoomUnitAssignments.get(sel.id)?.[0] || null;
+          const unitId = sel.quantity === 1 ? (sel.room_unit_id || autoUnit) : null;
+          return {
             order_id: orderData.id,
             room_type_id: sel.room_type_id,
-            quantity: 1,
-            room_price: perRowPrice,
+            quantity: sel.quantity,
+            room_price: sel.roomPrice,
             template_id: sel.template_id || null,
             template_name: sel.template_name || null,
-            room_unit_id: uid,
-          }));
+            room_unit_id: unitId,
+          };
         });
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
         if (roomsError) {
