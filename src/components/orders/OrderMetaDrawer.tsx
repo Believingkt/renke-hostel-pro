@@ -104,6 +104,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [addingTraffic, setAddingTraffic] = useState(false);
   const [addingBooking, setAddingBooking] = useState(false);
 
+  // 編輯前快照（用於變更紀錄）
+  const initialMetaRef = useRef<Record<string, any> | null>(null);
+  const buildMetaSnapshot = (src: Record<string, any>) => ({
+    closer_id: src.closer_id ?? null,
+    video_creator_id: src.video_creator_id ?? null,
+    traffic_source: src.traffic_source ?? null,
+    booking_method: src.booking_method ?? null,
+    ad_id: src.ad_id ?? null,
+    franchise_project: src.franchise_project ?? null,
+    member_number: src.member_number ?? null,
+    is_excluded: Boolean(src.is_excluded),
+    exclusion_note: src.exclusion_note ?? null,
+    inquiry_date: src.inquiry_date ?? null,
+    voucher_count: Number(src.voucher_count ?? 0),
+    addon_note: src.addon_note ?? null,
+    addon_amount: Number(src.addon_amount ?? 0),
+    nickname: src.nickname ?? null,
+    deposit_confirm_date: src.deposit_confirm_date ?? null,
+    team_commission_price:
+      src.team_commission_price === null || src.team_commission_price === undefined
+        ? null
+        : Number(src.team_commission_price),
+  });
+
   // Reset form whenever a new order opens the drawer
   useEffect(() => {
     if (open && orderId) {
