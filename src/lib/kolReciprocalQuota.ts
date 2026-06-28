@@ -96,15 +96,6 @@ export async function ensureKolQuotaPermit(opts: {
     return true;
   }
 
-  // 超出
-  if (!isAdmin) {
-    toast({
-      title: "已達 KOL 互惠額度",
-      description: `${status.yearMonth} 已達 ${status.used}/${status.quota} 筆，僅限管理員強制建立`,
-      variant: "destructive",
-    });
-    return false;
-  }
-
+  // 超出：允許所有人強制覆寫
   return await confirmOverride(status);
 }
