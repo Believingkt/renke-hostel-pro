@@ -290,7 +290,7 @@ export function BulkOpenInventoryDialog({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto p-3" />
+                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} defaultMonth={startDate} initialFocus className="pointer-events-auto p-3" />
                     </PopoverContent>
                   </Popover>
                 </div>
