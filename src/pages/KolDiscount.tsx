@@ -2229,6 +2229,11 @@ const KolDiscount = () => {
                                 ? new Date(editingCode.applicable_date_from)
                                 : undefined
                             }
+                            defaultMonth={
+                              editingCode.applicable_date_from
+                                ? new Date(editingCode.applicable_date_from)
+                                : undefined
+                            }
                             onSelect={(date) =>
                               date &&
                               setEditingCode(
