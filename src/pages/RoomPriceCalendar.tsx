@@ -529,6 +529,15 @@ export default function RoomPriceCalendar() {
 
             {/* 月份選擇器 */}
             <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setBulkOpenDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <Zap className="h-4 w-4" />
+                一鍵開啟庫存
+              </Button>
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
