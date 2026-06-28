@@ -335,6 +335,7 @@ export function BulkOpenInventoryDialog({
         )}
 
         {step === 2 && (
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6"><div className="space-y-4 py-2">
           <div className="space-y-4 py-2">
             <Alert>
               <AlertDescription className="text-sm space-y-1">
