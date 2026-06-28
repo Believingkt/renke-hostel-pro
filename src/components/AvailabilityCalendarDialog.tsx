@@ -81,6 +81,16 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       setRoomTypes(list);
       if (!selectedRoomTypeId && list.length > 0) setSelectedRoomTypeId(list[0].id);
       setCustomIds((prev) => (prev.size === 0 ? new Set(list.map((r) => r.id)) : prev));
+
+      const { data: acc } = await supabase
+        .from("accommodation_info")
+        .select("bundled_lock_inventory, package_inventory_as_one")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      setFlags({
+        bundled_lock: (acc as any)?.bundled_lock_inventory === true,
+        pkg_as_one: (acc as any)?.package_inventory_as_one === true,
+      });
     })();
   }, [open, accommodationId]);
 
