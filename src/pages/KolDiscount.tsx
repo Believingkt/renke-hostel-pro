@@ -2423,7 +2423,25 @@ const KolDiscount = () => {
       )}
 
       {/* Quick Filter Buttons */}
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
+        <div className="relative">
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜尋折扣碼或名稱…"
+            className="h-10 pr-9"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="清除搜尋"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant={filterStatus === "all" ? "default" : "outline"}
