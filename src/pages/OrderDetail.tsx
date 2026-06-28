@@ -769,6 +769,26 @@ const OrderDetailPage = () => {
 
   const handleSaveEdit = async () => {
     if (!order || isSavingEdit) return;
+
+    // KOL 互惠額度檢查（編輯時：若來源改為/維持 'kol'，依入住日歸屬月份）
+    const kolPermitted = await ensureKolQuotaPermit({
+      accommodationId: order.accommodation_id,
+      orderSource: editForm.order_source,
+      checkInDate: order.check_in_date,
+      excludeOrderId: order.id, // 排除本訂單自身
+      isAdmin: isAdminUser,
+      confirmOverride: (status) =>
+        new Promise<boolean>((resolve) => {
+          setKolQuotaPrompt({
+            yearMonth: status.yearMonth,
+            used: status.used,
+            quota: status.quota!,
+            resolve,
+          });
+        }),
+    });
+    if (!kolPermitted) return;
+
     setIsSavingEdit(true);
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
