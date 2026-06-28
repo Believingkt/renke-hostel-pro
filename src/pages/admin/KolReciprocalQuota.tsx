@@ -46,7 +46,8 @@ export default function KolReciprocalQuota() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
-  const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), end_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
 
   const load = async () => {
     if (!currentAccommodationId) return;
@@ -116,13 +117,31 @@ export default function KolReciprocalQuota() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ year_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
+    setBulkMode(false);
+    const cur = format(new Date(), "yyyy-MM");
+    setForm({ year_month: cur, end_month: cur, quota: 5, note: "" });
     setDialogOpen(true);
   };
   const openEdit = (r: QuotaRow) => {
     setEditing(r);
-    setForm({ year_month: r.year_month, quota: r.quota, note: r.note ?? "" });
+    setBulkMode(false);
+    setForm({ year_month: r.year_month, end_month: r.year_month, quota: r.quota, note: r.note ?? "" });
     setDialogOpen(true);
+  };
+
+  const enumerateMonths = (start: string, end: string): string[] => {
+    if (start > end) return [];
+    const months: string[] = [];
+    const [sy, sm] = start.split("-").map(Number);
+    const [ey, em] = end.split("-").map(Number);
+    let y = sy, m = sm;
+    while (y < ey || (y === ey && m <= em)) {
+      months.push(`${y}-${String(m).padStart(2, "0")}`);
+      m++;
+      if (m > 12) { m = 1; y++; }
+      if (months.length > 60) break; // safety
+    }
+    return months;
   };
 
   const handleSave = async () => {
@@ -135,6 +154,32 @@ export default function KolReciprocalQuota() {
       toast({ title: "額度錯誤", description: "請輸入 0 以上的整數", variant: "destructive" });
       return;
     }
+
+    if (!editing && bulkMode) {
+      if (!/^\d{4}-\d{2}$/.test(form.end_month) || form.end_month < form.year_month) {
+        toast({ title: "結束月份錯誤", description: "結束月份需大於等於起始月份", variant: "destructive" });
+        return;
+      }
+      const months = enumerateMonths(form.year_month, form.end_month);
+      const payloads = months.map((ym) => ({
+        accommodation_id: currentAccommodationId,
+        year_month: ym,
+        quota: Math.floor(form.quota),
+        note: form.note.trim() || null,
+      }));
+      const { error } = await supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .upsert(payloads, { onConflict: "accommodation_id,year_month" });
+      if (error) {
+        toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: `已批次設定 ${months.length} 個月份` });
+      setDialogOpen(false);
+      load();
+      return;
+    }
+
     const payload = {
       accommodation_id: currentAccommodationId,
       year_month: form.year_month,
@@ -270,15 +315,50 @@ export default function KolReciprocalQuota() {
             <DialogTitle>{editing ? "編輯月份額度" : "新增月份額度"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>月份 (YYYY-MM)</Label>
-              <Input
-                type="month"
-                value={form.year_month}
-                onChange={(e) => setForm({ ...form, year_month: e.target.value })}
-                disabled={!!editing}
-              />
+            {!editing && (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/40">
+                <div>
+                  <div className="text-sm font-medium">批次設定多個月份</div>
+                  <div className="text-xs text-muted-foreground">同時建立 / 覆寫一段連續月份的額度</div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="checkbox"
+                    checked={bulkMode}
+                    onChange={(e) => setBulkMode(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  啟用
+                </label>
+              </div>
+            )}
+            <div className={bulkMode ? "grid grid-cols-2 gap-3" : "space-y-2"}>
+              <div className="space-y-2">
+                <Label>{bulkMode ? "起始月份" : "月份 (YYYY-MM)"}</Label>
+                <Input
+                  type="month"
+                  value={form.year_month}
+                  onChange={(e) => setForm({ ...form, year_month: e.target.value, end_month: bulkMode && form.end_month < e.target.value ? e.target.value : form.end_month })}
+                  disabled={!!editing}
+                />
+              </div>
+              {bulkMode && (
+                <div className="space-y-2">
+                  <Label>結束月份</Label>
+                  <Input
+                    type="month"
+                    value={form.end_month}
+                    min={form.year_month}
+                    onChange={(e) => setForm({ ...form, end_month: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
+            {bulkMode && (
+              <div className="text-xs text-muted-foreground">
+                將套用至 <strong className="text-foreground">{enumerateMonths(form.year_month, form.end_month).length}</strong> 個月份（已存在的月份會被覆寫）
+              </div>
+            )}
             <div className="space-y-2">
               <Label>上限筆數</Label>
               <Input
