@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, DollarSign, Home, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Home, Zap, History } from "lucide-react";
 import { BulkOpenInventoryDialog } from "@/components/BulkOpenInventoryDialog";
 import { InventoryAuditLogDialog } from "@/components/InventoryAuditLogDialog";
 import { supabase } from "@/integrations/supabase/client";
