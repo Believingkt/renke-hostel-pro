@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -103,6 +103,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [newBookingMethod, setNewBookingMethod] = useState("");
   const [addingTraffic, setAddingTraffic] = useState(false);
   const [addingBooking, setAddingBooking] = useState(false);
+
+  // 編輯前快照（用於變更紀錄）
+  const initialMetaRef = useRef<Record<string, any> | null>(null);
+  const buildMetaSnapshot = (src: Record<string, any>) => ({
+    closer_id: src.closer_id ?? null,
+    video_creator_id: src.video_creator_id ?? null,
+    traffic_source: src.traffic_source ?? null,
+    booking_method: src.booking_method ?? null,
+    ad_id: src.ad_id ?? null,
+    franchise_project: src.franchise_project ?? null,
+    member_number: src.member_number ?? null,
+    is_excluded: Boolean(src.is_excluded),
+    exclusion_note: src.exclusion_note ?? null,
+    inquiry_date: src.inquiry_date ?? null,
+    voucher_count: Number(src.voucher_count ?? 0),
+    addon_note: src.addon_note ?? null,
+    addon_amount: Number(src.addon_amount ?? 0),
+    nickname: src.nickname ?? null,
+    deposit_confirm_date: src.deposit_confirm_date ?? null,
+    team_commission_price:
+      src.team_commission_price === null || src.team_commission_price === undefined
+        ? null
+        : Number(src.team_commission_price),
+  });
 
   // Reset form whenever a new order opens the drawer
   useEffect(() => {
@@ -338,6 +362,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         }
       }
 
+      // 記錄編輯前快照
+      initialMetaRef.current = buildMetaSnapshot(
+        (existingMeta as Record<string, any>) ?? {
+          team_commission_price: fp,
+        },
+      );
+
     })();
 
     return () => {
@@ -516,7 +547,70 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
 
+      // 寫入變更紀錄（行銷/分潤欄位）
+      try {
+        const after = buildMetaSnapshot(payload);
+        const before = initialMetaRef.current ?? buildMetaSnapshot({});
+        const FIELD_LABELS: Record<string, string> = {
+          closer_id: "成交人",
+          video_creator_id: "影片創作者",
+          traffic_source: "客源",
+          booking_method: "訂房方式",
+          ad_id: "廣告 ID",
+          franchise_project: "加盟專案",
+          member_number: "會員編號",
+          is_excluded: "排除統計",
+          exclusion_note: "排除原因",
+          inquiry_date: "詢問日期",
+          voucher_count: "抵用券數",
+          addon_note: "加購備註",
+          addon_amount: "加購金額",
+          nickname: "暱稱",
+          deposit_confirm_date: "訂金確認日",
+          team_commission_price: "分潤基準金額",
+        };
+        const nameMap: Record<string, string> = {};
+        [...closers, ...videoCreators].forEach((m) => {
+          nameMap[m.user_id] = m.display_name;
+        });
+        const fpMap: Record<string, string> = {};
+        franchiseProjects.forEach((p) => { fpMap[p.id] = p.name; });
+        const prettify = (key: string, val: any) => {
+          if (val === null || val === undefined || val === "") return null;
+          if (key === "closer_id" || key === "video_creator_id") return nameMap[val] ?? val;
+          if (key === "franchise_project") return fpMap[val] ?? val;
+          if (key === "is_excluded") return val ? "是" : "否";
+          return val;
+        };
+        const changes = Object.keys(FIELD_LABELS)
+          .filter((k) => JSON.stringify((before as any)[k] ?? null) !== JSON.stringify((after as any)[k] ?? null))
+          .map((k) => ({
+            field: k,
+            label: FIELD_LABELS[k],
+            before: prettify(k, (before as any)[k]),
+            after: prettify(k, (after as any)[k]),
+          }));
+        if (changes.length > 0 && currentUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          await supabase.from("audit_logs").insert([{
+            user_id: currentUserId,
+            user_email: user?.email ?? null,
+            action_type: "update",
+            action_category: "order",
+            entity_type: "order_meta",
+            entity_id: orderId,
+            entity_name: (order as any)?.order_number ?? null,
+            accommodation_id: order?.accommodation_id ?? null,
+            details: { type: "meta_edit", changes } as any,
+          }]);
+        }
+        initialMetaRef.current = after;
+      } catch (e) {
+        console.error("[OrderMetaDrawer] audit log error:", e);
+      }
+
       toast.success("行銷資訊已儲存");
+
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
       if (tcpChanged) {

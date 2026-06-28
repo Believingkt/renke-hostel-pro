@@ -29,6 +29,7 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   undo_checkin: { text: "取消入住", tone: "bg-zinc-100 text-zinc-700" },
   undo_checkout: { text: "取消退房", tone: "bg-zinc-100 text-zinc-700" },
   inline_edit: { text: "編輯", tone: "bg-blue-100 text-blue-700" },
+  meta_edit: { text: "行銷資訊修改", tone: "bg-purple-100 text-purple-700" },
 };
 
 function getActionLabel(details: any, action_type: string) {
@@ -50,7 +51,7 @@ export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
       const { data, error } = await supabase
         .from("audit_logs")
         .select("id, user_id, user_email, action_type, details, created_at")
-        .eq("entity_type", "order")
+        .in("entity_type", ["order", "order_meta"])
         .eq("entity_id", orderId)
         .order("created_at", { ascending: false });
       if (error || cancelled) {
