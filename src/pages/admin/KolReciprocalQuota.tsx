@@ -193,9 +193,19 @@ export default function KolReciprocalQuota() {
           {dates.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {dates.map((d, i) => {
-                const [, m, day] = d.split("-");
+                const [, m, day] = d.date.split("-");
+                const isOverride = overrideOrderIds.has(d.orderId);
                 return (
-                  <span key={`${d}-${i}`} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">
+                  <span
+                    key={`${d.date}-${i}`}
+                    title={isOverride ? "超額強制建立" : undefined}
+                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs ${
+                      isOverride
+                        ? "bg-orange-100 text-orange-700 border border-orange-300"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {isOverride && <span>⚠️</span>}
                     {Number(m)}/{Number(day)}
                   </span>
                 );
@@ -205,6 +215,7 @@ export default function KolReciprocalQuota() {
             <span className="text-muted-foreground">—</span>
           )}
         </TableCell>
+
         <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
         <TableCell className="text-right w-24">
           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
