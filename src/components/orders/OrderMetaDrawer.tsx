@@ -547,7 +547,70 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
 
+      // 寫入變更紀錄（行銷/分潤欄位）
+      try {
+        const after = buildMetaSnapshot(payload);
+        const before = initialMetaRef.current ?? buildMetaSnapshot({});
+        const FIELD_LABELS: Record<string, string> = {
+          closer_id: "成交人",
+          video_creator_id: "影片創作者",
+          traffic_source: "客源",
+          booking_method: "訂房方式",
+          ad_id: "廣告 ID",
+          franchise_project: "加盟專案",
+          member_number: "會員編號",
+          is_excluded: "排除統計",
+          exclusion_note: "排除原因",
+          inquiry_date: "詢問日期",
+          voucher_count: "抵用券數",
+          addon_note: "加購備註",
+          addon_amount: "加購金額",
+          nickname: "暱稱",
+          deposit_confirm_date: "訂金確認日",
+          team_commission_price: "分潤基準金額",
+        };
+        const nameMap: Record<string, string> = {};
+        [...closers, ...videoCreators].forEach((m) => {
+          nameMap[m.user_id] = m.display_name;
+        });
+        const fpMap: Record<string, string> = {};
+        franchiseProjects.forEach((p) => { fpMap[p.id] = p.name; });
+        const prettify = (key: string, val: any) => {
+          if (val === null || val === undefined || val === "") return null;
+          if (key === "closer_id" || key === "video_creator_id") return nameMap[val] ?? val;
+          if (key === "franchise_project") return fpMap[val] ?? val;
+          if (key === "is_excluded") return val ? "是" : "否";
+          return val;
+        };
+        const changes = Object.keys(FIELD_LABELS)
+          .filter((k) => JSON.stringify((before as any)[k] ?? null) !== JSON.stringify((after as any)[k] ?? null))
+          .map((k) => ({
+            field: k,
+            label: FIELD_LABELS[k],
+            before: prettify(k, (before as any)[k]),
+            after: prettify(k, (after as any)[k]),
+          }));
+        if (changes.length > 0 && currentUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          await supabase.from("audit_logs").insert([{
+            user_id: currentUserId,
+            user_email: user?.email ?? null,
+            action_type: "update",
+            action_category: "order",
+            entity_type: "order_meta",
+            entity_id: orderId,
+            entity_name: (order as any)?.order_number ?? null,
+            accommodation_id: order?.accommodation_id ?? null,
+            details: { type: "meta_edit", changes } as any,
+          }]);
+        }
+        initialMetaRef.current = after;
+      } catch (e) {
+        console.error("[OrderMetaDrawer] audit log error:", e);
+      }
+
       toast.success("行銷資訊已儲存");
+
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
       if (tcpChanged) {
