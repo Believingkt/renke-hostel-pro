@@ -137,7 +137,20 @@ export default function KolReciprocalQuota() {
         <TableCell className="font-medium">{r.year_month}</TableCell>
         <TableCell>{r.quota}</TableCell>
         <TableCell>
-          <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
+          {used > 0 ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="cursor-pointer">
+                  <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="start">
+                <UsedOrdersList accommodationId={currentAccommodationId} yearMonth={r.year_month} />
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
+          )}
         </TableCell>
         <TableCell className="text-muted-foreground text-sm">{r.note || "—"}</TableCell>
         <TableCell className="text-right">
