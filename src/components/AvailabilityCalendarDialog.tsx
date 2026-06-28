@@ -76,10 +76,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     (async () => {
       const { data } = await supabase
         .from("room_types")
-        .select("id, name, is_exclusive_package, display_order")
+        .select("id, name, is_exclusive_package, display_order, room_count")
         .eq("accommodation_id", accommodationId)
         .order("display_order", { ascending: true });
-      const list = (data || []) as RoomType[];
+      const list = ((data || []) as any[]).map((r) => ({ ...r, room_count: r.room_count ?? 1 })) as RoomType[];
       setRoomTypes(list);
       if (!selectedRoomTypeId && list.length > 0) setSelectedRoomTypeId(list[0].id);
     })();
