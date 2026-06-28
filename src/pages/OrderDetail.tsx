@@ -32,7 +32,7 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
-import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff } from "@/utils/orderAuditDiff";
+import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -551,18 +551,8 @@ const OrderDetailPage = () => {
         const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
         return petTotal + mealTotal + otherCustom + extra;
       })(),
-      addon_note: (() => {
-        const notes = order.notes || "";
-        // 取最後一筆加購備註區塊（最新）
-        const blocks = [...notes.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
-        if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
-        const m = notes.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
-        return m ? m[1].trim() : "";
-      })(),
-      extra_addon_amount: (() => {
-        const m = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
-        return m ? (parseInt(m[1], 10) || 0) : 0;
-      })(),
+      addon_note: extractAddonNote(order.notes),
+      extra_addon_amount: extractExtraAddonAmount(order.notes),
     });
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
@@ -1085,6 +1075,15 @@ const OrderDetailPage = () => {
           if (exclusiveDiff) changes.push(exclusiveDiff);
           const notesDiff = computeVisibleNotesDiff(order.notes, updateData.notes);
           if (notesDiff) changes.push(notesDiff);
+          const addonNoteBefore = extractAddonNote(order.notes);
+          const addonNoteAfter = extractAddonNote(updateData.notes);
+          if (addonNoteBefore !== addonNoteAfter) {
+            changes.push({ field: "addon_note", label: "額外現場加購備註", before: addonNoteBefore || "(空)", after: addonNoteAfter || "(空)" });
+          }
+          const extraAddonBefore = extractExtraAddonAmount(order.notes);
+          if (Number(extraAddonBefore) !== Number(editForm.extra_addon_amount || 0)) {
+            changes.push({ field: "extra_addon_amount", label: "額外現場加購金額", before: extraAddonBefore, after: editForm.extra_addon_amount || 0 });
+          }
           if (changes.length > 0) {
             const { error: auditError } = await supabase.from("audit_logs").insert([{
               user_id: user.id,
