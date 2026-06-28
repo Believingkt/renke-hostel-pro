@@ -53,6 +53,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
 
   const roomTypeMap = useMemo(
     () => Object.fromEntries(roomTypes.map(r => [r.id, r.name])),
