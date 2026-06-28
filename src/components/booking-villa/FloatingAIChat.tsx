@@ -181,18 +181,54 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
     <>
       {/* 懸浮按鈕 */}
       {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="開啟 AI 管家"
-          className="fixed z-[45] right-3 md:right-6 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6"
-          style={{
-            opacity: 0.85,
-            background: "linear-gradient(135deg, #F08A3E, #E5701A)",
-          }}
-        >
-          <MessageCircleMore className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
+        <div className="fixed z-[45] right-3 md:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6 flex items-end gap-2">
+          {showHint && (
+            <div
+              role="button"
+              onClick={() => {
+                setShowHint(false);
+                setHintDismissed(true);
+                setOpen(true);
+              }}
+              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-in fade-in slide-in-from-right-2 duration-300 max-w-[180px]"
+              style={{ animation: "bounce-soft 1.6s ease-in-out infinite" }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHint(false);
+                  setHintDismissed(true);
+                }}
+                aria-label="關閉提示"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground/20 flex items-center justify-center text-[10px] leading-none"
+              >
+                ✕
+              </button>
+              有疑問，請點我 👉
+              <span className="absolute right-[-6px] bottom-3 w-3 h-3 bg-white border-r border-b border-border rotate-[-45deg]" />
+            </div>
+          )}
+          <button
+            onClick={() => {
+              setShowHint(false);
+              setHintDismissed(true);
+              setOpen(true);
+            }}
+            aria-label="開啟 AI 管家"
+            className="relative rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14"
+            style={{
+              opacity: 0.85,
+              background: "linear-gradient(135deg, #F08A3E, #E5701A)",
+            }}
+          >
+            <MessageCircleMore className="w-5 h-5 md:w-6 md:h-6" />
+            {showHint && (
+              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "#F08A3E", opacity: 0.4 }} />
+            )}
+          </button>
+        </div>
       )}
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col rounded-t-2xl z-[80]">
