@@ -41,6 +41,11 @@ const FIELD_LABELS: Record<string, string> = {
   checked_out_at: "退房時間",
   cancelled_at: "取消時間",
   confirmed_at: "確認時間",
+  addon_total: "加購總額",
+  extra_addon_amount: "額外現場加購金額",
+  addon_note: "額外現場加購備註",
+  __rooms: "房間配置",
+  __exclusive_config: "包區/包棟房型配置",
 };
 
 const norm = (v: any): any => {
