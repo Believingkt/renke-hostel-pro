@@ -32,7 +32,7 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
-import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff } from "@/utils/orderAuditDiff";
+import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff } from "@/utils/orderAuditDiff";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1083,6 +1083,8 @@ const OrderDetailPage = () => {
             editExclusiveConfigs,
           );
           if (exclusiveDiff) changes.push(exclusiveDiff);
+          const notesDiff = computeVisibleNotesDiff(order.notes, updateData.notes);
+          if (notesDiff) changes.push(notesDiff);
           if (changes.length > 0) {
             await supabase.from("audit_logs").insert([{
               user_id: user.id,
