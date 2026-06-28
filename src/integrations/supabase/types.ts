@@ -2385,6 +2385,45 @@ export type Database = {
           },
         ]
       }
+      discount_code_audit_log: {
+        Row: {
+          accommodation_id: string
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_email: string | null
+          changes: Json
+          code: string | null
+          discount_code_id: string | null
+          id: string
+          name: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changes?: Json
+          code?: string | null
+          discount_code_id?: string | null
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changes?: Json
+          code?: string | null
+          discount_code_id?: string | null
+          id?: string
+          name?: string | null
+        }
+        Relationships: []
+      }
       discount_code_secrets: {
         Row: {
           api_key_hash: string | null
