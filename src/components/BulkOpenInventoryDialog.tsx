@@ -341,30 +341,32 @@ export function BulkOpenInventoryDialog({
                 </div>
               </div>
 
-              {/* 庫存數值來源 */}
-              <div>
-                <Label className="mb-1.5 block">庫存數值</Label>
-                <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="default" id="vm-default" />
-                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
-                      使用房型預設庫存量（推薦）
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="vm-custom" />
-                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={customValue}
-                      onChange={(e) => setCustomValue(e.target.value)}
-                      onFocus={() => setValueMode("custom")}
-                      className="w-24 h-8"
-                    />
-                  </div>
-                </RadioGroup>
-              </div>
+              {/* 庫存數值來源（僅開啟模式） */}
+              {operationMode === "open" && (
+                <div>
+                  <Label className="mb-1.5 block">庫存數值</Label>
+                  <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="default" id="vm-default" />
+                      <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                        使用房型預設庫存量（推薦）
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="vm-custom" />
+                      <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        onFocus={() => setValueMode("custom")}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
               {totalCells > 0 && (
                 <Alert>
