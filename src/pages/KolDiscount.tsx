@@ -2232,17 +2232,12 @@ const KolDiscount = () => {
                                 ? new Date(editingCode.applicable_date_from)
                                 : undefined
                             }
-                            onSelect={(date) =>
-                              date &&
-                              setEditingCode(
-                                editingCode
-                                  ? {
-                                      ...editingCode,
-                                      applicable_date_from: format(date, "yyyy-MM-dd"),
-                                    }
-                                  : null
-                              )
-                            }
+                            onSelect={(date) => {
+                              if (!date || !editingCode) return;
+                              const ds = format(date, "yyyy-MM-dd");
+                              const clearEnd = editingCode.applicable_date_to && editingCode.applicable_date_to < ds;
+                              setEditingCode({ ...editingCode, applicable_date_from: ds, ...(clearEnd ? { applicable_date_to: null } : {}) });
+                            }}
                             initialFocus
                             className="pointer-events-auto"
                           />
