@@ -341,32 +341,41 @@ export function BulkOpenInventoryDialog({
                 </div>
               </div>
 
-              {/* 庫存數值來源（僅開啟模式） */}
-              {operationMode === "open" && (
-                <div>
-                  <Label className="mb-1.5 block">庫存數值</Label>
-                  <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="default" id="vm-default" />
-                      <Label htmlFor="vm-default" className="font-normal cursor-pointer">
-                        使用房型預設庫存量（推薦）
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="custom" id="vm-custom" />
-                      <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={customValue}
-                        onChange={(e) => setCustomValue(e.target.value)}
-                        onFocus={() => setValueMode("custom")}
-                        className="w-24 h-8"
-                      />
-                    </div>
-                  </RadioGroup>
+              {/* 庫存數值來源 */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>庫存數值</Label>
+                  {operationMode === "close" && (
+                    <span className="text-xs text-muted-foreground">關閉模式下可售數固定為 0</span>
+                  )}
                 </div>
-              )}
+                <RadioGroup
+                  value={valueMode}
+                  onValueChange={(v) => setValueMode(v as ValueMode)}
+                  disabled={operationMode === "close"}
+                  className={cn(operationMode === "close" && "opacity-50 pointer-events-none")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="default" id="vm-default" />
+                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                      使用房型預設庫存量（推薦）
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="custom" id="vm-custom" />
+                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={customValue}
+                      onChange={(e) => setCustomValue(e.target.value)}
+                      onFocus={() => setValueMode("custom")}
+                      className="w-24 h-8"
+                      disabled={operationMode === "close"}
+                    />
+                  </div>
+                </RadioGroup>
+              </div>
 
               {totalCells > 0 && (
                 <Alert>
