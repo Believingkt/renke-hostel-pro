@@ -244,8 +244,6 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
         if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
       }
 
-      // 多棟/多間：計算每日可訂房數 / 總房數
-      const capacity = new Map<string, { available: number; total: number }>();
       // 計算每日可訂房數 / 總房數（森山/哈庫/嚴格包棟：包棟型態庫存一律以 1 計）
       const capacity = new Map<string, { available: number; total: number }>();
       {
