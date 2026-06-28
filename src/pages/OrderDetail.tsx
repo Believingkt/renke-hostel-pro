@@ -1098,6 +1098,22 @@ const OrderDetailPage = () => {
         .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
         .eq("id", order.id);
       if (error) throw error;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("audit_logs").insert([{
+            user_id: user.id,
+            user_email: user.email,
+            action_type: "update",
+            action_category: "order",
+            entity_type: "order",
+            entity_id: order.id,
+            entity_name: order.order_number,
+            accommodation_id: order.accommodation_id,
+            details: { type: "cancel", changes: [{ field: "order_status", label: "訂單狀態", before: order.order_status, after: "cancelled" }] } as any,
+          }]);
+        }
+      } catch (e) { console.error("Audit log error:", e); }
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
       navigate(backTo);
     } catch (error) {
