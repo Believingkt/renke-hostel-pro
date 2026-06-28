@@ -4,6 +4,7 @@ export type InventoryChangeSource =
   | "manual_edit"        // 手動編輯（RoomPriceEditDialog、單格編輯）
   | "inline_edit"        // 行內編輯（RoomInventoryCalendar 滑桿/輸入）
   | "bulk_open"          // 一鍵開啟庫存（BulkOpenInventoryDialog）
+  | "bulk_close"         // 一鍵關閉庫存（BulkOpenInventoryDialog）
   | "one_click_sync"     // 一鍵套用後同步可售數
   | "template_apply"     // 模板/專案套用
   | "template_clear"     // 模板清除
