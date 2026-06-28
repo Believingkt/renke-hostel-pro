@@ -42,6 +42,8 @@ interface AccommodationFormData {
   description: string;
   short_url_alias: string;
   building_count: number;
+  bundled_lock_inventory: boolean;
+  package_inventory_as_one: boolean;
   // 註：theme_preset 已從表單移除，所有民宿一律使用人客多橘色（由 onSubmit handler 在 DB 層強制寫入 "default"）
 }
 
