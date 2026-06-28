@@ -28,19 +28,16 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const { toast } = useToast();
   const location = useLocation();
 
-  // 停留 5 秒後顯示提示氣泡（每個 session 只顯示一次）
+  // 停留 5 秒後顯示提示氣泡，10 秒後自動收起
   useEffect(() => {
     if (open || hintDismissed) return;
-    const key = `ai-hint-shown-${accommodationId}`;
-    if (sessionStorage.getItem(key)) return;
-    const t = setTimeout(() => {
-      setShowHint(true);
-      sessionStorage.setItem(key, "1");
-      const auto = setTimeout(() => setShowHint(false), 8000);
-      return () => clearTimeout(auto);
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [open, hintDismissed, accommodationId]);
+    const showT = setTimeout(() => setShowHint(true), 5000);
+    const hideT = setTimeout(() => setShowHint(false), 15000);
+    return () => {
+      clearTimeout(showT);
+      clearTimeout(hideT);
+    };
+  }, [open, hintDismissed]);
 
 
 
