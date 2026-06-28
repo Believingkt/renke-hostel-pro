@@ -230,14 +230,10 @@ export function BulkOpenInventoryDialog({
             選擇多個房型與日期區間，批次建立可售庫存。
           </DialogDescription>
         </DialogHeader>
-          <DialogTitle>一鍵開啟庫存</DialogTitle>
-          <DialogDescription>
-            選擇多個房型與日期區間，批次建立可售庫存。
-          </DialogDescription>
-        </DialogHeader>
 
         {step === 1 && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
+
             <div className="space-y-5 py-2">
               {/* 日期區間 */}
               <div className="grid grid-cols-2 gap-3">
