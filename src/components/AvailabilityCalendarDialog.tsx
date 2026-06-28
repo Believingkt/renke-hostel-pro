@@ -62,7 +62,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
-  const isMultiUnit = MULTI_UNIT_HEATMAP_IDS.has(accommodationId);
+  const isMultiUnit = true;
 
   const baseMonth = useMemo(() => {
     if (!baseMonthValue) return startOfMonth(today);
@@ -246,7 +246,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
       // 多棟/多間：計算每日可訂房數 / 總房數
       const capacity = new Map<string, { available: number; total: number }>();
-      if (MULTI_UNIT_HEATMAP_IDS.has(accommodationId)) {
+      {
         const totalRooms = targetRoomTypes.reduce((s, rt) => s + (rt.room_count || 1), 0);
         for (const date of allDates) {
           let avail = 0;
