@@ -44,6 +44,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
