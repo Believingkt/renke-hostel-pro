@@ -58,6 +58,31 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
     }
 
     setIsSaving(true);
+
+    // KOL 互惠額度檢查（從非 kol 切換為 kol 時觸發）
+    if (selectedSource === "kol" && order.order_source !== "kol" && accommodationId) {
+      const permitted = await ensureKolQuotaPermit({
+        accommodationId,
+        orderSource: "kol",
+        checkInDate: order.check_in_date,
+        excludeOrderId: order.id,
+        isAdmin,
+        confirmOverride: (status) =>
+          new Promise<boolean>((resolve) => {
+            setKolQuotaPrompt({
+              yearMonth: status.yearMonth,
+              used: status.used,
+              quota: status.quota!,
+              resolve,
+            });
+          }),
+      });
+      if (!permitted) {
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
       const oldLabel = getOrderSourceConfig(order.order_source).label;
       const newLabel = getOrderSourceConfig(selectedSource).label;
