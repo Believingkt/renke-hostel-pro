@@ -47,7 +47,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home, Key, RefreshCw, Shield } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home, Key, RefreshCw, Shield, History } from "lucide-react";
+import { DiscountCodeAuditLogDialog } from "@/components/DiscountCodeAuditLogDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -166,6 +167,7 @@ const KolDiscount = () => {
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [editingCodeSecrets, setEditingCodeSecrets] = useState<DiscountCodeSecrets | null>(null);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -994,6 +996,10 @@ const KolDiscount = () => {
         icon={Sparkles}
         action={
           <>
+            <Button variant="outline" size="sm" onClick={() => setAuditLogOpen(true)} className="gap-1.5 h-11 sm:h-10 touch-manipulation">
+              <History className="h-4 w-4" />
+              變更紀錄
+            </Button>
             {isMobile ? (
               <Drawer open={open} onOpenChange={handleDialogClose}>
                 <DrawerTrigger asChild>
@@ -3796,6 +3802,12 @@ function verifyWebhook(payload, signature, timestamp, secret) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DiscountCodeAuditLogDialog
+        open={auditLogOpen}
+        onOpenChange={setAuditLogOpen}
+        accommodationId={accommodationId || ""}
+      />
     </div>
   );
 };
