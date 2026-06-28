@@ -2305,13 +2305,50 @@ const OrderDetailPage = () => {
 
                             {(() => {
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
-                              if (or.quantity !== 1) return null;
-                              const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
-                              if (availableUnits.length === 0) return null;
-                              const labelText = isPackage ? `指派${exclusiveLabel}（棟號）` : "指派房間";
+                              const unitNoun = isPackage ? exclusiveLabel : "間";
+
+                              // 同型可用單元統計
+                              const allUnitsOfType = roomUnits.filter(u => u.room_type_id === or.room_type_id);
+                              const totalUnits = allUnitsOfType.length;
+                              const occupiedList = allUnitsOfType.filter(u => u.occupied_by_order_id);
+                              const occupiedByOthers = occupiedList.length;
+                              // 其他列已手動指派（同訂單內）
+                              const siblingPicked = new Set(
+                                editOrderRooms
+                                  .filter(r => r.id !== or.id && r.room_unit_id && r.room_type_id === or.room_type_id)
+                                  .map(r => r.room_unit_id as string)
+                              );
+                              const freeUnits = allUnitsOfType.filter(u => !u.occupied_by_order_id && !siblingPicked.has(u.id));
+
+                              // quantity > 1 → 無法套用自動安排
+                              if (or.quantity !== 1) {
+                                return (
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">指派{unitNoun}</Label>
+                                    <div className="h-8 px-2 rounded-md border border-dashed bg-amber-50 text-amber-700 text-[11px] flex items-center">
+                                      多{unitNoun}訂單請拆為多列以使用自動安排
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              if (totalUnits === 0) {
+                                return (
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">指派{unitNoun}</Label>
+                                    <div className="h-8 px-2 rounded-md border border-dashed bg-muted text-muted-foreground text-[11px] flex items-center">
+                                      此房型尚未建立{unitNoun}號單位
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              const remaining = freeUnits.length;
+                              const isAuto = !or.room_unit_id;
+
                               return (
                                 <div className="space-y-1">
-                                  <Label className="text-xs">{labelText}</Label>
+                                  <Label className="text-xs">指派{unitNoun}</Label>
                                   <Select
                                     value={or.room_unit_id || "none"}
                                     onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_unit_id: v === "none" ? null : v } : r))}
@@ -2321,7 +2358,7 @@ const OrderDetailPage = () => {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="none">自動安排</SelectItem>
-                                      {availableUnits.map(u => {
+                                      {allUnitsOfType.map(u => {
                                         const occupied = u.occupied_by_order_id && u.id !== or.room_unit_id;
                                         return (
                                           <SelectItem key={u.id} value={u.id} disabled={!!occupied}>
@@ -2332,6 +2369,23 @@ const OrderDetailPage = () => {
                                       })}
                                     </SelectContent>
                                   </Select>
+                                  {isAuto && (
+                                    <div className={`text-[11px] leading-tight ${remaining === 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                                      {remaining === 0 ? (
+                                        <>
+                                          ⚠️ 自動安排無可用{unitNoun}（總 {totalUnits}／被占用 {occupiedByOthers}／本單已用 {siblingPicked.size}）
+                                          {occupiedList.length > 0 && (
+                                            <div className="mt-0.5">
+                                              占用明細：{occupiedList.slice(0, 4).map(u => `${u.unit_number}→#${u.occupied_by_order_number}`).join("、")}
+                                              {occupiedList.length > 4 ? ` …+${occupiedList.length - 4}` : ""}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>剩餘可用 {remaining}／{totalUnits} {unitNoun}　將自動指派：{freeUnits[0]?.unit_number}{freeUnits[0]?.nickname ? ` · ${freeUnits[0].nickname}` : ""}</>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
