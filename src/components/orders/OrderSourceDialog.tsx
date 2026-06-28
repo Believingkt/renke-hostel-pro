@@ -137,6 +137,16 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         console.error("Audit log error:", e);
       }
 
+      if (kolOverrideStatus && accommodationId) {
+        await logKolQuotaOverride({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          accommodationId,
+          status: kolOverrideStatus,
+          context: "source_change",
+        });
+      }
+
       toast({ title: "訂單來源已更新" });
       onOpenChange(false);
       onSuccess();
