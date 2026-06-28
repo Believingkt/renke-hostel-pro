@@ -39,6 +39,12 @@ const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8",
   "8e3e8866-3cb0-4654-91f3-d9b09a543301",
 ]);
+// 多棟/多間：顯示熱度色階 + 可訂房數/總房數
+const MULTI_UNIT_HEATMAP_IDS = new Set<string>([
+  "4ee31aca-5641-4d05-80e2-1c67626be83d", // 天送幸福和苑
+  "7690a606-6bac-4cd5-a3e7-2fa754b318e8", // 雲岫海景渡假會館
+  "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
+]);
 
 interface Props {
   open: boolean;
@@ -46,7 +52,7 @@ interface Props {
   accommodationId: string;
 }
 
-type RoomType = { id: string; name: string; is_exclusive_package: boolean | null };
+type RoomType = { id: string; name: string; is_exclusive_package: boolean | null; room_count: number };
 type Mode = "all" | "single";
 
 export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId }: Props) {
@@ -57,6 +63,8 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
+  const isMultiUnit = MULTI_UNIT_HEATMAP_IDS.has(accommodationId);
 
   const baseMonth = useMemo(() => {
     if (!baseMonthValue) return startOfMonth(today);
@@ -70,10 +78,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     (async () => {
       const { data } = await supabase
         .from("room_types")
-        .select("id, name, is_exclusive_package, display_order")
+        .select("id, name, is_exclusive_package, display_order, room_count")
         .eq("accommodation_id", accommodationId)
         .order("display_order", { ascending: true });
-      const list = (data || []) as RoomType[];
+      const list = ((data || []) as any[]).map((r) => ({ ...r, room_count: r.room_count ?? 1 })) as RoomType[];
       setRoomTypes(list);
       if (!selectedRoomTypeId && list.length > 0) setSelectedRoomTypeId(list[0].id);
     })();
@@ -228,8 +236,26 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
         if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
       }
 
+      // 多棟/多間：計算每日可訂房數 / 總房數
+      const capacity = new Map<string, { available: number; total: number }>();
+      if (MULTI_UNIT_HEATMAP_IDS.has(accommodationId)) {
+        const totalRooms = targetRoomTypes.reduce((s, rt) => s + (rt.room_count || 1), 0);
+        for (const date of allDates) {
+          let avail = 0;
+          for (const rt of targetRoomTypes) {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            if (base && base.is_available === false) continue;
+            const adj = adjustedIndex.get(`${rt.id}:${date}`);
+            if (!adj || adj.is_blocked) continue;
+            avail += Math.max(0, adj.available_rooms || 0);
+          }
+          capacity.set(date, { available: avail, total: totalRooms });
+        }
+      }
+
       if (!cancelled) {
         setAvailableDates(available);
+        setCapacityByDate(capacity);
         setLoading(false);
       }
     };
@@ -281,8 +307,40 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
               return <div key={dateStr} className="aspect-square" />;
             }
             const dayNum = day.getDate();
-            const showFull = !isAvail && !isPast;
 
+            // 多棟/多間：熱度色階 + 數字
+            if (isMultiUnit) {
+              const cap = capacityByDate.get(dateStr);
+              const avail = cap?.available ?? 0;
+              const total = cap?.total ?? 0;
+              const ratio = total > 0 ? avail / total : 0;
+              let tone = "border-muted bg-muted text-muted-foreground";
+              if (isPast) tone = "border-muted bg-muted/30 text-muted-foreground/50";
+              else if (avail <= 0) tone = "border-muted bg-muted text-muted-foreground";
+              else if (ratio < 0.25) tone = "border-red-300 bg-red-50 text-red-700";
+              else if (ratio < 0.6) tone = "border-amber-300 bg-amber-50 text-amber-800";
+              else tone = "border-emerald-300 bg-emerald-50 text-emerald-900";
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    "aspect-square rounded-md border flex flex-col items-center justify-center text-xs select-none",
+                    tone,
+                  )}
+                >
+                  <div className={cn("leading-tight font-medium", !isPast && avail <= 0 && "line-through")}>
+                    {dayNum}
+                  </div>
+                  {!isPast && (
+                    <div className="text-[10px] mt-0.5 tabular-nums">
+                      {avail > 0 ? `${avail}/${total}` : "已滿"}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const showFull = !isAvail && !isPast;
             return (
               <div
                 key={dateStr}
@@ -377,6 +435,28 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
             {renderMonth(baseMonth)}
             {renderMonth(secondMonth)}
           </div>
+          {isMultiUnit && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>圖例：</span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-emerald-300 bg-emerald-50" />
+                充足（≥60%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-amber-300 bg-amber-50" />
+                普通（25–60%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-red-300 bg-red-50" />
+                緊張（&lt;25%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-muted bg-muted" />
+                已滿
+              </span>
+              <span className="ml-2">數字 = 可訂房數 / 總房數</span>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
