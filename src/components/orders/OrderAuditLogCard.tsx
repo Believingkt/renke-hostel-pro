@@ -29,6 +29,7 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   undo_checkin: { text: "取消入住", tone: "bg-zinc-100 text-zinc-700" },
   undo_checkout: { text: "取消退房", tone: "bg-zinc-100 text-zinc-700" },
   inline_edit: { text: "編輯", tone: "bg-blue-100 text-blue-700" },
+  meta_edit: { text: "行銷資訊修改", tone: "bg-purple-100 text-purple-700" },
 };
 
 function getActionLabel(details: any, action_type: string) {
