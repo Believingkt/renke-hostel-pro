@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, DollarSign, Home, Zap } from "lucide-react";
 import { BulkOpenInventoryDialog } from "@/components/BulkOpenInventoryDialog";
+import { InventoryAuditLogDialog } from "@/components/InventoryAuditLogDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
