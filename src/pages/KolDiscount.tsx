@@ -167,6 +167,7 @@ const KolDiscount = () => {
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [editingCodeSecrets, setEditingCodeSecrets] = useState<DiscountCodeSecrets | null>(null);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
