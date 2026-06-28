@@ -979,6 +979,44 @@ const OrderDetailPage = () => {
           throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
         }
 
+        // 自動安排：對於 quantity===1 且未手動指派的列，依 display_order 找出可用 unit
+        const needsAuto = editOrderRooms.filter(r => r.quantity === 1 && !r.room_unit_id);
+        const autoAssignMap = new Map<string, string>();
+        if (needsAuto.length > 0 && order.accommodation_id) {
+          const typeIds = Array.from(new Set(needsAuto.map(r => r.room_type_id)));
+          const [unitsRes, occRes] = await Promise.all([
+            supabase
+              .from("room_units" as any)
+              .select("id, room_type_id, display_order, is_active")
+              .eq("accommodation_id", order.accommodation_id)
+              .eq("is_active", true)
+              .in("room_type_id", typeIds)
+              .order("display_order", { ascending: true }),
+            supabase
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+              .not("room_unit_id", "is", null)
+              .eq("orders.accommodation_id", order.accommodation_id)
+              .neq("orders.order_status", "cancelled")
+              .lt("orders.check_in_date", order.check_out_date)
+              .gt("orders.check_out_date", order.check_in_date),
+          ]);
+          const reserved = new Set<string>();
+          ((occRes.data as any[]) || []).forEach((row: any) => {
+            if (row.room_unit_id) reserved.add(row.room_unit_id);
+          });
+          // 排除本次手動指派
+          editOrderRooms.forEach(r => { if (r.room_unit_id) reserved.add(r.room_unit_id); });
+          const units = (((unitsRes.data as any[]) || [])).sort((a: any, b: any) => a.display_order - b.display_order);
+          needsAuto.forEach(r => {
+            const u = units.find((x: any) => x.room_type_id === r.room_type_id && !reserved.has(x.id));
+            if (u) {
+              autoAssignMap.set(r.id, u.id);
+              reserved.add(u.id);
+            }
+          });
+        }
+
         // Insert updated rooms
         const newOrderRooms = editOrderRooms.map(r => {
           return {
@@ -987,8 +1025,8 @@ const OrderDetailPage = () => {
             quantity: r.quantity,
             room_price: r.room_price,
             template_name: r.template_name,
-            // quantity > 1 不指派單一棟/房（只指派單間）；包棟與散客皆可手動指派
-            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || null),
+            // quantity > 1 不指派單一棟/房；quantity===1 套用手動或自動安排
+            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || autoAssignMap.get(r.id) || null),
           };
         });
         const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
