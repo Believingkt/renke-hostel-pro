@@ -239,6 +239,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
