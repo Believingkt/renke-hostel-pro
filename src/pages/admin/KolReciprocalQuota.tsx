@@ -41,6 +41,7 @@ export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
+  const [datesMap, setDatesMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
@@ -57,19 +58,34 @@ export default function KolReciprocalQuota() {
     const list = (data ?? []) as QuotaRow[];
     setRows(list);
 
-    // 撈每個月份的目前使用量
+    // 一次撈取相關月份的 KOL 訂單入住日
     const usage: Record<string, number> = {};
-    await Promise.all(
-      list.map(async (r) => {
-        const { data: cnt } = await supabase.rpc("count_kol_reciprocal_orders", {
-          _accommodation_id: currentAccommodationId,
-          _year_month: r.year_month,
-          _exclude_order_id: null,
-        });
-        usage[r.year_month] = (cnt as number | null) ?? 0;
-      })
-    );
+    const dates: Record<string, string[]> = {};
+    if (list.length > 0) {
+      const months = list.map((r) => r.year_month).sort();
+      const minStart = `${months[0]}-01`;
+      const [maxY, maxM] = months[months.length - 1].split("-").map(Number);
+      const maxEndDate = new Date(maxY, maxM, 1);
+      const maxEnd = format(maxEndDate, "yyyy-MM-dd");
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("check_in_date, order_status")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("order_source", "kol")
+        .gte("check_in_date", minStart)
+        .lt("check_in_date", maxEnd);
+      for (const o of (ordersData ?? []) as any[]) {
+        if (o.order_status === "cancelled") continue;
+        const ym = (o.check_in_date as string).slice(0, 7);
+        usage[ym] = (usage[ym] ?? 0) + 1;
+        (dates[ym] ||= []).push(o.check_in_date);
+      }
+      for (const ym of Object.keys(dates)) {
+        dates[ym].sort();
+      }
+    }
     setUsageMap(usage);
+    setDatesMap(dates);
     setLoading(false);
   };
 
@@ -132,11 +148,12 @@ export default function KolReciprocalQuota() {
     const used = usageMap[r.year_month] ?? 0;
     const pct = r.quota === 0 ? 100 : Math.round((used / r.quota) * 100);
     const variant = used > r.quota ? "destructive" : used === r.quota ? "default" : used / Math.max(1, r.quota) >= 0.8 ? "secondary" : "outline";
+    const dates = datesMap[r.year_month] ?? [];
     return (
       <TableRow key={r.id}>
-        <TableCell className="font-medium">{r.year_month}</TableCell>
-        <TableCell>{r.quota}</TableCell>
-        <TableCell>
+        <TableCell className="font-medium w-24">{r.year_month}</TableCell>
+        <TableCell className="w-16">{r.quota}</TableCell>
+        <TableCell className="w-40">
           {used > 0 ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -152,8 +169,24 @@ export default function KolReciprocalQuota() {
             <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
           )}
         </TableCell>
-        <TableCell className="text-muted-foreground text-sm">{r.note || "—"}</TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-sm tabular-nums">
+          {dates.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {dates.map((d, i) => {
+                const [, m, day] = d.split("-");
+                return (
+                  <span key={`${d}-${i}`} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">
+                    {Number(m)}/{Number(day)}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
+        <TableCell className="text-right w-24">
           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
           <Button size="sm" variant="ghost" onClick={() => handleDelete(r)}><Trash2 className="h-4 w-4" /></Button>
         </TableCell>
@@ -185,11 +218,12 @@ export default function KolReciprocalQuota() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>月份</TableHead>
-                  <TableHead>上限</TableHead>
-                  <TableHead>目前使用量</TableHead>
-                  <TableHead>備註</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="w-24">月份</TableHead>
+                  <TableHead className="w-16">上限</TableHead>
+                  <TableHead className="w-40">目前使用量</TableHead>
+                  <TableHead>已使用入住日</TableHead>
+                  <TableHead className="w-48">備註</TableHead>
+                  <TableHead className="text-right w-24">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>{rows.map(renderRow)}</TableBody>
