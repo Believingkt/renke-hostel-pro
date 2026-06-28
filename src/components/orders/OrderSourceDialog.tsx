@@ -9,6 +9,8 @@ import { Order } from "@/types/order";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { Globe, UserPlus } from "lucide-react";
 import { useOrderSources } from "@/hooks/use-order-sources";
+import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface OrderSourceDialogProps {
   order: Order | null;
@@ -23,12 +25,31 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
   const orderSources = useOrderSources(accommodationId ?? null);
   const [selectedSource, setSelectedSource] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
 
   useEffect(() => {
     if (open && order) {
       setSelectedSource(order.order_source || "manual");
     }
   }, [open, order]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accommodationId) { if (!cancelled) setIsAdmin(false); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", accommodationId);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
+  }, [accommodationId]);
 
   const handleSave = async () => {
     if (!order || selectedSource === (order.order_source || "manual")) {
@@ -37,6 +58,31 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
     }
 
     setIsSaving(true);
+
+    // KOL 互惠額度檢查（從非 kol 切換為 kol 時觸發）
+    if (selectedSource === "kol" && order.order_source !== "kol" && accommodationId) {
+      const permitted = await ensureKolQuotaPermit({
+        accommodationId,
+        orderSource: "kol",
+        checkInDate: order.check_in_date,
+        excludeOrderId: order.id,
+        isAdmin,
+        confirmOverride: (status) =>
+          new Promise<boolean>((resolve) => {
+            setKolQuotaPrompt({
+              yearMonth: status.yearMonth,
+              used: status.used,
+              quota: status.quota!,
+              resolve,
+            });
+          }),
+      });
+      if (!permitted) {
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
       const oldLabel = getOrderSourceConfig(order.order_source).label;
       const newLabel = getOrderSourceConfig(selectedSource).label;
@@ -136,6 +182,16 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
           </Button>
         </DialogFooter>
       </DialogContent>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
     </Dialog>
   );
 }
