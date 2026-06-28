@@ -1407,6 +1407,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
       }
 
+      if (kolOverrideStatus && currentAccommodationId) {
+        await logKolQuotaOverride({
+          orderId: orderData.id,
+          orderNumber,
+          accommodationId: currentAccommodationId,
+          status: kolOverrideStatus,
+          context: "create",
+        });
+      }
+
       toast({
         title: "新增成功",
         description: `訂單 ${orderNumber} 已建立`,
