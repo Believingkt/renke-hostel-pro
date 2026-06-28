@@ -49,6 +49,7 @@ export function BulkOpenInventoryDialog({
   const [startDate, setStartDate] = useState<Date | undefined>(defaultStart);
   const [endDate, setEndDate] = useState<Date | undefined>(defaultEnd);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
+  const [operationMode, setOperationMode] = useState<OperationMode>("open");
   const [valueMode, setValueMode] = useState<ValueMode>("default");
   const [customValue, setCustomValue] = useState<string>("1");
   const [overwriteMode, setOverwriteMode] = useState<OverwriteMode>("skip");
