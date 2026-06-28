@@ -6739,6 +6739,63 @@ export type Database = {
           },
         ]
       }
+      room_inventory_audit_log: {
+        Row: {
+          accommodation_id: string | null
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_email: string | null
+          date: string
+          id: string
+          new_available_rooms: number | null
+          new_is_available: boolean | null
+          new_price: number | null
+          old_available_rooms: number | null
+          old_is_available: boolean | null
+          old_price: number | null
+          pricing_template_id: string | null
+          room_inventory_id: string | null
+          room_type_id: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          date: string
+          id?: string
+          new_available_rooms?: number | null
+          new_is_available?: boolean | null
+          new_price?: number | null
+          old_available_rooms?: number | null
+          old_is_available?: boolean | null
+          old_price?: number | null
+          pricing_template_id?: string | null
+          room_inventory_id?: string | null
+          room_type_id: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          date?: string
+          id?: string
+          new_available_rooms?: number | null
+          new_is_available?: boolean | null
+          new_price?: number | null
+          old_available_rooms?: number | null
+          old_is_available?: boolean | null
+          old_price?: number | null
+          pricing_template_id?: string | null
+          room_inventory_id?: string | null
+          room_type_id?: string
+        }
+        Relationships: []
+      }
       room_inventory_pricing: {
         Row: {
           available_rooms: number
