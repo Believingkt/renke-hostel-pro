@@ -175,7 +175,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
           }}
         >
-          <Sparkles className="w-[18px] h-[18px]" />
+          <MessageCircle className="w-[20px] h-[20px]" />
 
         </button>
       )}
