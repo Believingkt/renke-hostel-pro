@@ -293,7 +293,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     return () => {
       cancelled = true;
     };
-  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes, customIds]);
+  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes, customIds, flags.pkg_as_one]);
 
   const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
 
