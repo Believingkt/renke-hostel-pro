@@ -1084,7 +1084,7 @@ const KolDiscount = () => {
                       mode="single"
                       selected={validFrom}
                       defaultMonth={validFrom}
-                      onSelect={(date) => date && setValidFrom(date)}
+                      onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
                       initialFocus
                       className="pointer-events-auto"
                     />
