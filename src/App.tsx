@@ -78,6 +78,7 @@ const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
+const InventoryVerify = lazy(() => import("./pages/InventoryVerify"));
 const Accounts = lazy(() => import("./pages/Accounts"));
 const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
