@@ -678,6 +678,20 @@ export default function RoomPriceCalendar() {
           onComplete={handleEditComplete}
         />
       )}
+
+      {/* 一鍵開啟庫存 */}
+      <BulkOpenInventoryDialog
+        open={bulkOpenDialogOpen}
+        onOpenChange={setBulkOpenDialogOpen}
+        accommodationId={currentAccommodationId || ''}
+        roomTypes={roomTypes}
+        defaultStart={startOfMonth(currentMonth)}
+        defaultEnd={endOfMonth(currentMonth)}
+        onComplete={() => {
+          setBulkOpenDialogOpen(false);
+          loadData();
+        }}
+      />
     </div>
   );
 }
