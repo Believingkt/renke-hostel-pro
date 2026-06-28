@@ -128,6 +128,21 @@ export function computeVisibleNotesDiff(
   return { field: "__notes_visible", label: FIELD_LABELS.__notes_visible, before: a || "(空)", after: b || "(空)" };
 }
 
+export function extractAddonNote(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const blocks = [...raw.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
+  if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
+  const m = raw.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
+  return m ? m[1].trim() : "";
+}
+
+export function extractExtraAddonAmount(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  const blocks = [...raw.matchAll(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/g)];
+  if (blocks.length === 0) return 0;
+  return parseInt(blocks[blocks.length - 1][1], 10) || 0;
+}
+
 const norm = (v: any): any => {
   if (v === undefined || v === null || v === "") return null;
   if (typeof v === "string") return v.trim();
