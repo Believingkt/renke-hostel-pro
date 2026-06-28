@@ -32,7 +32,7 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
-import { computeOrderDiff } from "@/utils/orderAuditDiff";
+import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff } from "@/utils/orderAuditDiff";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -268,6 +268,7 @@ const OrderDetailPage = () => {
   }, [customBreakdown, isHakuna, isOlivia]);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
+  const [initialEditSnapshot] = useState<{ current: { rooms: any[]; exclusiveConfigs: Array<Record<string, number>> } }>({ current: { rooms: [], exclusiveConfigs: [] } });
   const [defaultDepositRatio, setDefaultDepositRatio] = useState<number>(0);
 
   // Load accommodation booking settings (use_deposit / deposit_percentage) for fallback ratio
@@ -479,6 +480,16 @@ const OrderDetailPage = () => {
       if (Object.keys(cfg).length > 0) parsedConfigs.push(cfg);
     });
     setEditExclusiveConfigs(parsedConfigs);
+    // Snapshot 編輯前的房間配置與包區設定，供儲存時計算差異
+    initialEditSnapshot.current = {
+      rooms: (orderRooms || []).map(r => ({
+        room_type_id: r.room_type_id,
+        quantity: r.quantity,
+        room_price: r.room_price,
+        room_unit_id: r.room_unit_id ?? null,
+      })),
+      exclusiveConfigs: JSON.parse(JSON.stringify(parsedConfigs)),
+    };
     setEditForm({
       guest_name: order.guest_name || "",
       guest_phone: order.guest_phone || "",
@@ -1047,17 +1058,44 @@ const OrderDetailPage = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const changes = computeOrderDiff(order as any, updateData);
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: "inline_edit", changes } as any,
-          }]);
+          // 房間配置差異
+          const roomTypeNameMap: Record<string, string> = Object.fromEntries(
+            (roomTypes || []).map((t: any) => [t.id, t.name])
+          );
+          const unitNameMap: Record<string, string> = Object.fromEntries(
+            (roomUnits || []).map((u: any) => [u.id, u.nickname || u.unit_number])
+          );
+          const roomsAfter = editOrderRooms.map(r => ({
+            room_type_id: r.room_type_id,
+            quantity: r.quantity,
+            room_price: r.room_price,
+            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || null),
+          }));
+          const roomsDiff = computeRoomsDiff(
+            initialEditSnapshot.current.rooms,
+            roomsAfter,
+            roomTypeNameMap,
+            unitNameMap,
+          );
+          if (roomsDiff) changes.push(roomsDiff);
+          const exclusiveDiff = computeExclusiveConfigDiff(
+            initialEditSnapshot.current.exclusiveConfigs,
+            editExclusiveConfigs,
+          );
+          if (exclusiveDiff) changes.push(exclusiveDiff);
+          if (changes.length > 0) {
+            await supabase.from("audit_logs").insert([{
+              user_id: user.id,
+              user_email: user.email,
+              action_type: "update",
+              action_category: "order",
+              entity_type: "order",
+              entity_id: order.id,
+              entity_name: order.order_number,
+              accommodation_id: order.accommodation_id,
+              details: { type: "inline_edit", changes } as any,
+            }]);
+          }
         }
       } catch (e) {
         console.error("Audit log error:", e);
