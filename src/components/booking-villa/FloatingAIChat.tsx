@@ -172,7 +172,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
           }}
         >
-          <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
+          <MessageCircleMore className="w-5 h-5 md:w-6 md:h-6" />
         </button>
       )}
 
