@@ -118,6 +118,7 @@ export default function RoomPriceCalendar() {
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [bulkOpenDialogOpen, setBulkOpenDialogOpen] = useState(false);
   
   const [selectedCell, setSelectedCell] = useState<{
     roomTypeId: string;
