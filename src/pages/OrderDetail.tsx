@@ -33,7 +33,7 @@ import { DepositManagementSection } from "@/components/orders/DepositManagementS
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
-import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import {
   AlertDialog,
@@ -771,6 +771,7 @@ const OrderDetailPage = () => {
     if (!order || isSavingEdit) return;
 
     // KOL 互惠額度檢查（編輯時：若來源改為/維持 'kol'，依入住日歸屬月份）
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     const kolPermitted = await ensureKolQuotaPermit({
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
@@ -786,6 +787,7 @@ const OrderDetailPage = () => {
             resolve,
           });
         }),
+      onOverride: (status) => { kolOverrideStatus = status; },
     });
     if (!kolPermitted) return;
 
@@ -1124,6 +1126,16 @@ const OrderDetailPage = () => {
         }
       } catch (e) {
         console.error("Audit log error:", e);
+      }
+
+      if (kolOverrideStatus && order.accommodation_id) {
+        await logKolQuotaOverride({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          accommodationId: order.accommodation_id,
+          status: kolOverrideStatus,
+          context: "edit",
+        });
       }
 
       toast({ title: "儲存成功", description: "訂單已更新" });

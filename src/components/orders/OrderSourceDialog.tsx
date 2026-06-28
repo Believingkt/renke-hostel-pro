@@ -9,7 +9,7 @@ import { Order } from "@/types/order";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { Globe, UserPlus } from "lucide-react";
 import { useOrderSources } from "@/hooks/use-order-sources";
-import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface OrderSourceDialogProps {
@@ -59,6 +59,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
 
     setIsSaving(true);
 
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     // KOL 互惠額度檢查（從非 kol 切換為 kol 時觸發）
     if (selectedSource === "kol" && order.order_source !== "kol" && accommodationId) {
       const permitted = await ensureKolQuotaPermit({
@@ -76,6 +77,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
               resolve,
             });
           }),
+        onOverride: (status) => { kolOverrideStatus = status; },
       });
       if (!permitted) {
         setIsSaving(false);
@@ -133,6 +135,16 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         }
       } catch (e) {
         console.error("Audit log error:", e);
+      }
+
+      if (kolOverrideStatus && accommodationId) {
+        await logKolQuotaOverride({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          accommodationId,
+          status: kolOverrideStatus,
+          context: "source_change",
+        });
       }
 
       toast({ title: "訂單來源已更新" });

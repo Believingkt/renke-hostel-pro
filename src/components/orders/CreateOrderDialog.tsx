@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
-import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface RoomType {
@@ -1035,6 +1035,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }
 
     // KOL 互惠額度檢查（軟攔截 + admin 可覆寫）
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     const kolPermitted = await ensureKolQuotaPermit({
       accommodationId: currentAccommodationId,
       orderSource: form.order_source || "manual",
@@ -1049,6 +1050,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             resolve,
           });
         }),
+      onOverride: (status) => { kolOverrideStatus = status; },
     });
     if (!kolPermitted) {
       setIsSaving(false);
@@ -1403,6 +1405,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         } catch (mailErr) {
           console.warn("[create-order] booking confirmation email failed:", mailErr);
         }
+      }
+
+      if (kolOverrideStatus && currentAccommodationId) {
+        await logKolQuotaOverride({
+          orderId: orderData.id,
+          orderNumber,
+          accommodationId: currentAccommodationId,
+          status: kolOverrideStatus,
+          context: "create",
+        });
       }
 
       toast({
