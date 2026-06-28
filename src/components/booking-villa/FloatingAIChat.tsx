@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Send, X, Headphones, LogIn, Trash2 } from "lucide-react";
+import { Sparkles, Send, X, Headphones, LogIn, Trash2, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "react-router-dom";
@@ -175,7 +175,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
           }}
         >
-          <Sparkles className="w-[18px] h-[18px]" />
+          <MessageCircle className="w-[20px] h-[20px]" />
+
         </button>
       )}
 
