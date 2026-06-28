@@ -95,6 +95,8 @@ export function AccommodationDialog({
     description: "",
     short_url_alias: "",
     building_count: 1,
+    bundled_lock_inventory: false,
+    package_inventory_as_one: false,
   });
   const [generatingShortName, setGeneratingShortName] = useState(false);
 
@@ -147,6 +149,8 @@ export function AccommodationDialog({
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
         building_count: (initialData as any).building_count ?? 1,
+        bundled_lock_inventory: (initialData as any).bundled_lock_inventory === true,
+        package_inventory_as_one: (initialData as any).package_inventory_as_one === true,
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
@@ -166,6 +170,8 @@ export function AccommodationDialog({
         description: "",
         short_url_alias: "",
         building_count: 1,
+        bundled_lock_inventory: false,
+        package_inventory_as_one: false,
       });
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
