@@ -47,7 +47,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home, Key, RefreshCw, Shield } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home, Key, RefreshCw, Shield, History } from "lucide-react";
+import { DiscountCodeAuditLogDialog } from "@/components/DiscountCodeAuditLogDialog";
 import {
   AlertDialog,
   AlertDialogAction,
