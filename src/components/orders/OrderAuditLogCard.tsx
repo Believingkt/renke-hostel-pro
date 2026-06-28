@@ -18,6 +18,7 @@ interface AuditLogRow {
 
 interface OrderAuditLogCardProps {
   orderId: string;
+  refreshKey?: string | number;
 }
 
 const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
@@ -38,7 +39,7 @@ function getActionLabel(details: any, action_type: string) {
   return ACTION_LABEL[action_type] || { text: action_type, tone: "bg-zinc-100 text-zinc-700" };
 }
 
-export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
+export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLogCardProps) {
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -80,7 +81,7 @@ export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+  }, [orderId, refreshKey]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -155,18 +156,42 @@ export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
                   </button>
                   {isOpen && hasDetail && (
                     <div className="border-t bg-muted/30 px-3 py-2 space-y-1.5">
-                      {changes.map((c, i) => (
-                        <div key={i} className="text-xs flex flex-wrap items-center gap-1.5">
-                          <span className="text-muted-foreground">{c.label || getFieldLabel(c.field)}：</span>
-                          <span className="line-through text-muted-foreground break-all">
-                            {formatChangeValue(c.field, c.before)}
-                          </span>
-                          <span className="text-muted-foreground">→</span>
-                          <span className="font-medium break-all">
-                            {formatChangeValue(c.field, c.after)}
-                          </span>
-                        </div>
-                      ))}
+                      {changes.map((c, i) => {
+                        const isNotes = c.field === "__notes_visible" || c.field === "notes";
+                        if (isNotes) {
+                          return (
+                            <div key={i} className="text-xs space-y-1 pt-1">
+                              <div className="text-muted-foreground font-medium">{c.label || getFieldLabel(c.field)}</div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div className="rounded border bg-background/60 p-2">
+                                  <div className="text-[10px] text-muted-foreground mb-1">變更前</div>
+                                  <pre className="whitespace-pre-wrap break-words font-sans text-xs text-muted-foreground line-through decoration-muted-foreground/40">
+{formatChangeValue(c.field, c.before) || "(空)"}
+                                  </pre>
+                                </div>
+                                <div className="rounded border bg-background p-2">
+                                  <div className="text-[10px] text-muted-foreground mb-1">變更後</div>
+                                  <pre className="whitespace-pre-wrap break-words font-sans text-xs font-medium">
+{formatChangeValue(c.field, c.after) || "(空)"}
+                                  </pre>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={i} className="text-xs flex flex-wrap items-center gap-1.5">
+                            <span className="text-muted-foreground">{c.label || getFieldLabel(c.field)}：</span>
+                            <span className="line-through text-muted-foreground break-all">
+                              {formatChangeValue(c.field, c.before)}
+                            </span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-medium break-all">
+                              {formatChangeValue(c.field, c.after)}
+                            </span>
+                          </div>
+                        );
+                      })}
                       {log.details?.old && log.details?.new && changes.length === 0 && (
                         <div className="text-xs space-y-1">
                           {Object.keys(log.details.new).map((k) => {
