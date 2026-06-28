@@ -797,14 +797,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
 
 
+  // 回傳每個 selection 對應 quantity 個自動安排的 unit IDs（依 display_order）
+  // 已被手動指定的 unit 會優先排除；同型房型可批次連續指派
   const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
-    const assignments = new Map<string, string>();
-    if ((!isYunxiu && !isOlivia) || !currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
+    const assignments = new Map<string, string[]>();
+    if (!currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
 
-    const fitSelections = selections.filter((sel) => {
-      const roomType = roomTypes.find((rt) => rt.id === sel.room_type_id);
-      return roomType && !roomType.is_exclusive_package && sel.quantity === 1;
-    });
+    const fitSelections = selections.filter((sel) => sel.quantity > 0);
     if (fitSelections.length === 0) return assignments;
 
     const roomTypeIds = Array.from(new Set(fitSelections.map((sel) => sel.room_type_id)));
@@ -829,25 +828,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     if (unitsResult.error) throw unitsResult.error;
     if (occupiedResult.error) throw occupiedResult.error;
 
-    const occupiedUnitIds = new Set<string>();
+    const reservedUnitIds = new Set<string>();
     ((occupiedResult.data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
-      const order = row.orders;
-      if (!row.room_unit_id || !order) return;
-      occupiedUnitIds.add(row.room_unit_id);
+      if (row.room_unit_id) reservedUnitIds.add(row.room_unit_id);
+    });
+    // 排除使用者已手動指派的 unit
+    selections.forEach((sel) => {
+      if (sel.room_unit_id) reservedUnitIds.add(sel.room_unit_id);
     });
 
-    const reservedUnitIds = new Set(occupiedUnitIds);
     const units = ((unitsResult.data as RoomUnit[]) || []).sort((a, b) => a.display_order - b.display_order);
     fitSelections.forEach((sel) => {
-      const unit = units.find((u) => u.room_type_id === sel.room_type_id && !reservedUnitIds.has(u.id));
-      if (unit) {
-        assignments.set(sel.id, unit.id);
-        reservedUnitIds.add(unit.id);
-      }
+      const needed = sel.room_unit_id ? sel.quantity - 1 : sel.quantity;
+      if (needed <= 0) return;
+      const pool = units.filter((u) => u.room_type_id === sel.room_type_id && !reservedUnitIds.has(u.id));
+      const picked = pool.slice(0, needed).map((u) => u.id);
+      picked.forEach((id) => reservedUnitIds.add(id));
+      if (picked.length > 0) assignments.set(sel.id, picked);
     });
 
     return assignments;
-  }, [currentAccommodationId, form.check_in_date, form.check_out_date, isYunxiu, isOlivia, roomTypes]);
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
 
   // Check inventory warnings (for all room selections)
   useEffect(() => {
