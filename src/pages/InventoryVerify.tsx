@@ -88,7 +88,7 @@ export default function InventoryVerify() {
         // 取訂單中已佔用的房（排除取消單）
         supabase
           .from("order_rooms")
-          .select("room_type_id, check_in_date, check_out_date, quantity, orders!inner(status)")
+          .select("room_type_id, check_in_date, check_out_date, quantity, orders!inner(order_status)")
           .gte("check_out_date", startStr)
           .lte("check_in_date", endStr),
       ]);
@@ -103,7 +103,7 @@ export default function InventoryVerify() {
       // 計算每個 room_type + date 被佔用數
       const bookedMap = new Map<string, number>();
       (orderRoomsRes.data || []).forEach((row: any) => {
-        const status = row.orders?.status;
+        const status = row.orders?.order_status;
         if (status === "cancelled") return;
         if (!rtIds.has(row.room_type_id)) return;
         const ci = new Date(row.check_in_date);
