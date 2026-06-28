@@ -101,7 +101,7 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
           <Calendar
             mode="single"
             selected={isValidDate ? dateObj : undefined}
-            defaultMonth={isValidDate ? dateObj : undefined}
+            defaultMonth={isValidDate ? dateObj : (fallbackValid ? fallbackObj : undefined)}
             onSelect={(date) => {
               if (date) {
                 const iso = format(date, "yyyy-MM-dd");
