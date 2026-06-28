@@ -1058,17 +1058,44 @@ const OrderDetailPage = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const changes = computeOrderDiff(order as any, updateData);
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: "inline_edit", changes } as any,
-          }]);
+          // 房間配置差異
+          const roomTypeNameMap: Record<string, string> = Object.fromEntries(
+            (roomTypes || []).map((t: any) => [t.id, t.name])
+          );
+          const unitNameMap: Record<string, string> = Object.fromEntries(
+            (roomUnits || []).map((u: any) => [u.id, u.nickname || u.unit_number])
+          );
+          const roomsAfter = editOrderRooms.map(r => ({
+            room_type_id: r.room_type_id,
+            quantity: r.quantity,
+            room_price: r.room_price,
+            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || null),
+          }));
+          const roomsDiff = computeRoomsDiff(
+            initialEditSnapshot.current.rooms,
+            roomsAfter,
+            roomTypeNameMap,
+            unitNameMap,
+          );
+          if (roomsDiff) changes.push(roomsDiff);
+          const exclusiveDiff = computeExclusiveConfigDiff(
+            initialEditSnapshot.current.exclusiveConfigs,
+            editExclusiveConfigs,
+          );
+          if (exclusiveDiff) changes.push(exclusiveDiff);
+          if (changes.length > 0) {
+            await supabase.from("audit_logs").insert([{
+              user_id: user.id,
+              user_email: user.email,
+              action_type: "update",
+              action_category: "order",
+              entity_type: "order",
+              entity_id: order.id,
+              entity_name: order.order_number,
+              accommodation_id: order.accommodation_id,
+              details: { type: "inline_edit", changes } as any,
+            }]);
+          }
         }
       } catch (e) {
         console.error("Audit log error:", e);
