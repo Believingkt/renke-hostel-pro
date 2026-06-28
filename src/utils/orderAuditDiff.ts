@@ -194,7 +194,7 @@ export function formatChangeValue(field: string, value: any): string {
     const rows = normalizeCustomAddonDetails(value);
     if (!rows) return "(空)";
     return rows
-      .map((d) => `${d.addon_type}：${d.count}${d.unit_label || "份"} × ${money(d.price_per_unit)} = ${money(d.total)}`)
+      .map((d) => `${d.addon_type}：${d.count} × ${d.unit_label || "份"} @ ${money(d.price_per_unit)} = ${money(d.total)}`)
       .join("\n");
   }
   if (value === null || value === undefined || value === "") return "(空)";
