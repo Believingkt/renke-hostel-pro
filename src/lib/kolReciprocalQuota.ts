@@ -70,8 +70,9 @@ export async function ensureKolQuotaPermit(opts: {
   excludeOrderId?: string | null;
   isAdmin: boolean;
   confirmOverride: (status: KolQuotaStatus) => Promise<boolean>;
+  onOverride?: (status: KolQuotaStatus) => void;
 }): Promise<boolean> {
-  const { accommodationId, orderSource, checkInDate, excludeOrderId, isAdmin, confirmOverride } = opts;
+  const { accommodationId, orderSource, checkInDate, excludeOrderId, confirmOverride, onOverride } = opts;
 
   if (orderSource !== "kol") return true;
   if (!accommodationId || !checkInDate) return true;
@@ -97,5 +98,74 @@ export async function ensureKolQuotaPermit(opts: {
   }
 
   // 超出：允許所有人強制覆寫
-  return await confirmOverride(status);
+  const confirmed = await confirmOverride(status);
+  if (confirmed) onOverride?.(status);
+  return confirmed;
+}
+
+/**
+ * 記錄 KOL 互惠額度覆寫至 audit_logs，供訂單變更紀錄展示
+ */
+export async function logKolQuotaOverride(params: {
+  orderId: string;
+  orderNumber?: string | null;
+  accommodationId: string;
+  status: KolQuotaStatus;
+  context?: "create" | "edit" | "source_change";
+}) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", user.id)
+      .maybeSingle();
+    const operatorName = profile?.name || user.email || "未知使用者";
+    const contextLabel =
+      params.context === "create" ? "新建訂單"
+      : params.context === "source_change" ? "變更來源為 KOL 互惠"
+      : "編輯訂單";
+
+    await supabase.from("audit_logs").insert([{
+      user_id: user.id,
+      user_email: user.email,
+      action_type: "update",
+      action_category: "order",
+      entity_type: "order",
+      entity_id: params.orderId,
+      entity_name: params.orderNumber ?? null,
+      details: {
+        type: "kol_quota_override",
+        context: params.context ?? "edit",
+        year_month: params.status.yearMonth,
+        quota: params.status.quota,
+        used_before: params.status.used,
+        used_after: params.status.used + 1,
+        operator_name: operatorName,
+        changes: [
+          {
+            field: "kol_quota_override",
+            label: "KOL 互惠額度覆寫",
+            before: `${params.status.used}/${params.status.quota}（${params.status.yearMonth}）`,
+            after: `${params.status.used + 1}/${params.status.quota}（超額 +${(params.status.used + 1) - (params.status.quota ?? 0)}）`,
+          },
+          {
+            field: "kol_quota_override_context",
+            label: "操作情境",
+            before: "-",
+            after: contextLabel,
+          },
+          {
+            field: "kol_quota_override_operator",
+            label: "覆寫者",
+            before: "-",
+            after: operatorName,
+          },
+        ],
+      } as any,
+    }]);
+  } catch (e) {
+    console.error("[KolQuota] 寫入覆寫紀錄失敗", e);
+  }
 }
