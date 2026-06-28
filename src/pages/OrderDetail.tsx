@@ -3405,7 +3405,7 @@ const OrderDetailPage = () => {
       </Card>
 
       {/* 變更紀錄 */}
-      {order && <OrderAuditLogCard orderId={order.id} />}
+      {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
 
 
       {/* 線上付款對話框 */}
