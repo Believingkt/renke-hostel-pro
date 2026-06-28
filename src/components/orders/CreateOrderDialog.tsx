@@ -2732,6 +2732,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </div>
         </DialogFooter>
       </DialogContent>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
     </Dialog>
   );
 }
