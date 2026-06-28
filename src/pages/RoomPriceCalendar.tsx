@@ -14,6 +14,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Breadcrumb,
   BreadcrumbItem,
