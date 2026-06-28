@@ -1086,7 +1086,7 @@ const OrderDetailPage = () => {
           const notesDiff = computeVisibleNotesDiff(order.notes, updateData.notes);
           if (notesDiff) changes.push(notesDiff);
           if (changes.length > 0) {
-            await supabase.from("audit_logs").insert([{
+            const { error: auditError } = await supabase.from("audit_logs").insert([{
               user_id: user.id,
               user_email: user.email,
               action_type: "update",
@@ -1097,6 +1097,7 @@ const OrderDetailPage = () => {
               accommodation_id: order.accommodation_id,
               details: { type: "inline_edit", changes } as any,
             }]);
+            if (auditError) throw auditError;
           }
         }
       } catch (e) {
@@ -1141,7 +1142,7 @@ const OrderDetailPage = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase.from("audit_logs").insert([{
+          const { error: auditError } = await supabase.from("audit_logs").insert([{
             user_id: user.id,
             user_email: user.email,
             action_type: "update",
@@ -1152,6 +1153,7 @@ const OrderDetailPage = () => {
             accommodation_id: order.accommodation_id,
             details: { type: "cancel", changes: [{ field: "order_status", label: "訂單狀態", before: order.order_status, after: "cancelled" }] } as any,
           }]);
+          if (auditError) throw auditError;
         }
       } catch (e) { console.error("Audit log error:", e); }
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
@@ -1180,7 +1182,7 @@ const OrderDetailPage = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase.from("audit_logs").insert([{
+          const { error: auditError } = await supabase.from("audit_logs").insert([{
             user_id: user.id,
             user_email: user.email,
             action_type: "update",
@@ -1191,6 +1193,7 @@ const OrderDetailPage = () => {
             accommodation_id: order.accommodation_id,
             details: { type: action, changes: Object.keys(patch).map(k => ({ field: k, label: k, before: (order as any)[k] ?? null, after: patch[k] })) } as any,
           }]);
+          if (auditError) throw auditError;
         }
       } catch (e) { console.error("Audit log error:", e); }
       toast({
@@ -1300,7 +1303,7 @@ const OrderDetailPage = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase.from("audit_logs").insert([{
+          const { error: auditError } = await supabase.from("audit_logs").insert([{
             user_id: user.id,
             user_email: user.email,
             action_type: "update",
@@ -1311,6 +1314,7 @@ const OrderDetailPage = () => {
             accommodation_id: order.accommodation_id,
             details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues, changes: Object.keys(newValues).filter(k => (oldValues as any)[k] !== (newValues as any)[k]).map(k => ({ field: k, label: k, before: (oldValues as any)[k], after: (newValues as any)[k] })) } as any,
           }]);
+          if (auditError) throw auditError;
         }
       } catch (e) {
         console.error("Audit log error:", e);
