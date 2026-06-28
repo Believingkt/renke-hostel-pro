@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
-import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface RoomType {
