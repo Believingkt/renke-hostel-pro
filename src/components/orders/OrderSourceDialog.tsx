@@ -37,20 +37,19 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const accId = accommodationId ?? order?.accommodation_id;
-      if (!accId) { if (!cancelled) setIsAdmin(false); return; }
+      if (!accommodationId) { if (!cancelled) setIsAdmin(false); return; }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { if (!cancelled) setIsAdmin(false); return; }
       const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .eq("accommodation_id", accId);
+        .eq("accommodation_id", accommodationId);
       const roles = (data ?? []).map((r: any) => r.role);
       if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
     })();
     return () => { cancelled = true; };
-  }, [accommodationId, order?.accommodation_id]);
+  }, [accommodationId]);
 
   const handleSave = async () => {
     if (!order || selectedSource === (order.order_source || "manual")) {
