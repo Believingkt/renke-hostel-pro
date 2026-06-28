@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MonthPicker } from "@/components/ui/month-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -50,17 +51,18 @@ type Mode = "all" | "single";
 
 export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId }: Props) {
   const today = useMemo(() => startOfToday(), []);
-  const [monthOffset, setMonthOffset] = useState(0);
+  const [baseMonthValue, setBaseMonthValue] = useState<string>(() => format(today, "yyyy-MM"));
   const [mode, setMode] = useState<Mode>("all");
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
 
-  const baseMonth = useMemo(
-    () => addMonths(startOfMonth(today), monthOffset),
-    [today, monthOffset],
-  );
+  const baseMonth = useMemo(() => {
+    if (!baseMonthValue) return startOfMonth(today);
+    return startOfMonth(new Date(`${baseMonthValue}-01T00:00:00`));
+  }, [baseMonthValue, today]);
+  const secondMonth = useMemo(() => addMonths(baseMonth, 1), [baseMonth]);
 
   // 載入房型
   useEffect(() => {
@@ -77,7 +79,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     })();
   }, [open, accommodationId]);
 
-  // 計算可訂日
+  // 計算可訂日（跨兩個月）
   useEffect(() => {
     if (!open || !accommodationId) return;
     let cancelled = false;
@@ -93,10 +95,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
         return;
       }
 
-      const monthStart = startOfMonth(baseMonth);
-      const monthEnd = endOfMonth(baseMonth);
-      const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
-      const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+      const rangeStart = startOfMonth(baseMonth);
+      const rangeEnd = endOfMonth(secondMonth);
+      const startDate = startOfWeek(rangeStart, { weekStartsOn: 0 });
+      const endDate = endOfWeek(rangeEnd, { weekStartsOn: 0 });
       const startStr = formatISO(startDate, { representation: "date" });
       const endStr = formatISO(endDate, { representation: "date" });
 
@@ -194,12 +196,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
       const available = new Set<string>();
       for (const date of allDates) {
-        // 單一房型模式：直接看該房型是否可訂
         if (mode === "single") {
           if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
           continue;
         }
-        // 全館模式：沿用前台規則
         if (isHakuna && packageRoomTypes.length > 0) {
           if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
           const closedCount = packageRoomTypes.filter((rt) => {
@@ -238,19 +238,79 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     return () => {
       cancelled = true;
     };
-  }, [open, accommodationId, baseMonth, mode, selectedRoomTypeId, roomTypes]);
+  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes]);
 
   const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
-  const monthStart = startOfMonth(baseMonth);
-  const monthEnd = endOfMonth(baseMonth);
-  const gridDays = eachDayOfInterval({
-    start: startOfWeek(monthStart, { weekStartsOn: 0 }),
-    end: endOfWeek(monthEnd, { weekStartsOn: 0 }),
-  });
+
+  const renderMonth = (monthDate: Date) => {
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+    const gridDays = eachDayOfInterval({
+      start: startOfWeek(monthStart, { weekStartsOn: 0 }),
+      end: endOfWeek(monthEnd, { weekStartsOn: 0 }),
+    });
+
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="text-center font-semibold mb-2">
+          {format(monthDate, "yyyy 年 M 月", { locale: zhTW })}
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {weekDays.map((d, i) => (
+            <div
+              key={d}
+              className={cn(
+                "text-center text-xs py-1",
+                i === 0 && "text-orange-500",
+                i === 6 && "text-orange-500",
+                i !== 0 && i !== 6 && "text-muted-foreground",
+              )}
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {gridDays.map((day) => {
+            const inMonth = isSameMonth(day, monthDate);
+            const isPast = isBefore(day, today);
+            const dateStr = formatISO(day, { representation: "date" });
+            const isAvail = availableDates.has(dateStr);
+
+            if (!inMonth) {
+              return <div key={dateStr} className="aspect-square" />;
+            }
+            const dayNum = day.getDate();
+            const showFull = !isAvail && !isPast;
+
+            return (
+              <div
+                key={dateStr}
+                className={cn(
+                  "aspect-square rounded-md border flex flex-col items-center justify-center text-xs select-none",
+                  isPast && "border-muted bg-muted/30 text-muted-foreground/50",
+                  !isPast && isAvail && "border-emerald-300 bg-emerald-50 text-emerald-900",
+                  !isPast && !isAvail && "border-muted bg-muted text-muted-foreground",
+                )}
+              >
+                <div className={cn("leading-tight", showFull && "line-through")}>{dayNum}</div>
+                {showFull && <div className="text-[10px] mt-0.5">已滿</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const shiftMonth = (delta: number) => {
+    const next = addMonths(baseMonth, delta);
+    setBaseMonthValue(format(next, "yyyy-MM"));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>可訂日曆檢視</DialogTitle>
           <DialogDescription>
@@ -286,18 +346,20 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setMonthOffset((v) => v - 1)}
+              onClick={() => shiftMonth(-1)}
               aria-label="上個月"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[110px] text-center font-semibold">
-              {format(baseMonth, "yyyy 年 M 月", { locale: zhTW })}
-            </div>
+            <MonthPicker
+              value={baseMonthValue}
+              onChange={(v) => v && setBaseMonthValue(v)}
+              placeholder="選擇起始月份"
+            />
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setMonthOffset((v) => v + 1)}
+              onClick={() => shiftMonth(1)}
               aria-label="下個月"
             >
               <ChevronRight className="h-4 w-4" />
@@ -305,65 +367,15 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {weekDays.map((d, i) => (
-              <div
-                key={d}
-                className={cn(
-                  "text-center text-sm py-1",
-                  i === 0 && "text-orange-500",
-                  i === 6 && "text-orange-500",
-                  i !== 0 && i !== 6 && "text-muted-foreground",
-                )}
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-
-          <div className="relative grid grid-cols-7 gap-1">
-            {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 rounded-md">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {gridDays.map((day) => {
-              const inMonth = isSameMonth(day, baseMonth);
-              const isPast = isBefore(day, today);
-              const dateStr = formatISO(day, { representation: "date" });
-              const isAvail = availableDates.has(dateStr);
-
-              if (!inMonth) {
-                return <div key={dateStr} className="aspect-square" />;
-              }
-              const dayNum = day.getDate();
-              const showFull = !isAvail && !isPast;
-
-              return (
-                <div
-                  key={dateStr}
-                  className={cn(
-                    "aspect-square rounded-lg border flex flex-col items-center justify-center text-sm select-none",
-                    isPast && "border-muted bg-muted/30 text-muted-foreground/50",
-                    !isPast && isAvail && "border-emerald-300 bg-emerald-50 text-emerald-900",
-                    !isPast && !isAvail && "border-muted bg-muted text-muted-foreground",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "leading-tight",
-                      showFull && "line-through",
-                    )}
-                  >
-                    {dayNum}
-                  </div>
-                  {showFull && (
-                    <div className="text-[11px] mt-0.5">已滿</div>
-                  )}
-                </div>
-              );
-            })}
+        <div className="mt-4 relative">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 rounded-md">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          <div className="flex flex-col md:flex-row gap-6">
+            {renderMonth(baseMonth)}
+            {renderMonth(secondMonth)}
           </div>
         </div>
       </DialogContent>
