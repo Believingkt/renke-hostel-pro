@@ -154,9 +154,21 @@ export function OrderFilters({
             <option value="order">訂購日期</option>
           </select>
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <DatePickerInput value={startDate} onChange={onStartDateChange} placeholder="開始日期" />
+            <DatePickerInput
+              value={startDate}
+              onChange={(v) => {
+                onStartDateChange(v);
+                if (v && endDate && endDate < v) onEndDateChange("");
+              }}
+              placeholder="開始日期"
+            />
             <span className="text-muted-foreground">-</span>
-            <DatePickerInput value={endDate} onChange={onEndDateChange} placeholder="結束日期" />
+            <DatePickerInput
+              value={endDate}
+              onChange={onEndDateChange}
+              placeholder="結束日期"
+              fallbackDate={startDate}
+            />
           </div>
         </div>
       </div>
