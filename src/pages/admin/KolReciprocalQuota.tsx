@@ -236,3 +236,61 @@ export default function KolReciprocalQuota() {
     </AdminPageHeader>
   );
 }
+
+interface UsedOrder {
+  id: string;
+  order_number: string | null;
+  check_in_date: string;
+  check_out_date: string | null;
+  guest_name: string | null;
+}
+
+function UsedOrdersList({ accommodationId, yearMonth }: { accommodationId: string | null; yearMonth: string }) {
+  const [list, setList] = useState<UsedOrder[] | null>(null);
+
+  useEffect(() => {
+    if (!accommodationId) return;
+    const [y, m] = yearMonth.split("-").map(Number);
+    const start = `${yearMonth}-01`;
+    const endDate = new Date(y, m, 1); // 下個月 1 號
+    const end = format(endDate, "yyyy-MM-dd");
+    (async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, order_number, check_in_date, check_out_date, guest_name, order_status")
+        .eq("accommodation_id", accommodationId)
+        .eq("order_source", "kol")
+        .gte("check_in_date", start)
+        .lt("check_in_date", end)
+        .order("check_in_date", { ascending: true });
+      setList(((data ?? []) as any[]).filter(o => o.order_status !== "cancelled"));
+    })();
+  }, [accommodationId, yearMonth]);
+
+  if (list === null) return <div className="p-3 text-sm text-muted-foreground">載入中…</div>;
+  if (list.length === 0) return <div className="p-3 text-sm text-muted-foreground">無資料</div>;
+
+  return (
+    <div className="max-h-80 overflow-y-auto">
+      <div className="px-3 py-2 border-b text-xs text-muted-foreground">{yearMonth} 已使用 {list.length} 筆</div>
+      <ul className="divide-y">
+        {list.map((o) => (
+          <li key={o.id} className="px-3 py-2 text-sm flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-medium tabular-nums">{o.check_in_date}{o.check_out_date ? ` → ${o.check_out_date}` : ""}</div>
+              <div className="text-xs text-muted-foreground truncate">{o.guest_name || "—"}</div>
+            </div>
+            <a
+              href={`/admin/orders/${o.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-primary hover:underline shrink-0 tabular-nums"
+            >
+              {o.order_number || o.id.slice(0, 8)}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
