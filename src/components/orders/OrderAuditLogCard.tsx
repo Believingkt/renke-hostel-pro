@@ -18,6 +18,7 @@ interface AuditLogRow {
 
 interface OrderAuditLogCardProps {
   orderId: string;
+  refreshKey?: string | number;
 }
 
 const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
