@@ -25,12 +25,32 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
   const orderSources = useOrderSources(accommodationId ?? null);
   const [selectedSource, setSelectedSource] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
 
   useEffect(() => {
     if (open && order) {
       setSelectedSource(order.order_source || "manual");
     }
   }, [open, order]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const accId = accommodationId ?? order?.accommodation_id;
+      if (!accId) { if (!cancelled) setIsAdmin(false); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", accId);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
+  }, [accommodationId, order?.accommodation_id]);
 
   const handleSave = async () => {
     if (!order || selectedSource === (order.order_source || "manual")) {
