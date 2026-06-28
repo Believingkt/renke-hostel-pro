@@ -924,7 +924,15 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                         mode="single"
                         selected={formData.valid_from ? parseISO(formData.valid_from) : undefined}
                         defaultMonth={formData.valid_from ? parseISO(formData.valid_from) : undefined}
-                        onSelect={(d) => setFormData({ ...formData, valid_from: d ? format(d, "yyyy-MM-dd") : "" })}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const ds = format(d, "yyyy-MM-dd");
+                          setFormData((prev) => ({
+                            ...prev,
+                            valid_from: ds,
+                            valid_until: prev.valid_until && prev.valid_until < ds ? ds : prev.valid_until,
+                          }));
+                        }}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
