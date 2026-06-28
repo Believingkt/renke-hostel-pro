@@ -42,6 +42,8 @@ interface AccommodationFormData {
   description: string;
   short_url_alias: string;
   building_count: number;
+  bundled_lock_inventory: boolean;
+  package_inventory_as_one: boolean;
   // 註：theme_preset 已從表單移除，所有民宿一律使用人客多橘色（由 onSubmit handler 在 DB 層強制寫入 "default"）
 }
 
@@ -93,6 +95,8 @@ export function AccommodationDialog({
     description: "",
     short_url_alias: "",
     building_count: 1,
+    bundled_lock_inventory: false,
+    package_inventory_as_one: false,
   });
   const [generatingShortName, setGeneratingShortName] = useState(false);
 
@@ -145,6 +149,8 @@ export function AccommodationDialog({
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
         building_count: (initialData as any).building_count ?? 1,
+        bundled_lock_inventory: (initialData as any).bundled_lock_inventory === true,
+        package_inventory_as_one: (initialData as any).package_inventory_as_one === true,
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
@@ -164,6 +170,8 @@ export function AccommodationDialog({
         description: "",
         short_url_alias: "",
         building_count: 1,
+        bundled_lock_inventory: false,
+        package_inventory_as_one: false,
       });
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
@@ -792,6 +800,41 @@ export function AccommodationDialog({
                     />
                     <p className="text-xs text-muted-foreground">用於業主月結報表的行銷費用計算（每多 1 棟加收行銷費）</p>
                   </div>
+
+                  {/* 庫存顯示規則 */}
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-base flex items-center gap-2">
+                        <div className="h-5 w-1 rounded-full bg-primary" />
+                        庫存顯示規則
+                      </h3>
+                      <p className="text-xs text-muted-foreground">控制可訂日曆與訂房頁如何呈現多棟/包棟庫存。</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">整館綁定鎖房</Label>
+                        <p className="text-xs text-muted-foreground">任一房型滿即整館關閉，日曆只顯示「可訂／已滿」、不顯示間數比例。</p>
+                      </div>
+                      <Switch
+                        checked={formData.bundled_lock_inventory}
+                        onCheckedChange={(v) => setFormData({ ...formData, bundled_lock_inventory: v })}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">包棟型庫存以 1 計</Label>
+                        <p className="text-xs text-muted-foreground">多棟綁定銷售時，包棟房型於日曆顯示一律以 1 間計，避免被誤算為實際房數。</p>
+                      </div>
+                      <Switch
+                        checked={formData.package_inventory_as_one}
+                        onCheckedChange={(v) => setFormData({ ...formData, package_inventory_as_one: v })}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+
+
 
                   {/* Logo 上傳（僅編輯模式） */}
                   {isEditing && initialData?.id && (

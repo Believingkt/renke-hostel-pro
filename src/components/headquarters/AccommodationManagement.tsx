@@ -251,6 +251,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
           building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
+          bundled_lock_inventory: data.bundled_lock_inventory === true,
+          package_inventory_as_one: data.package_inventory_as_one === true,
           is_active: true,
         })
         .select("id")
@@ -357,6 +359,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
           building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
+          bundled_lock_inventory: data.bundled_lock_inventory === true,
+          package_inventory_as_one: data.package_inventory_as_one === true,
         })
         .eq("id", editingAccommodation.id);
 

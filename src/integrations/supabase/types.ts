@@ -301,6 +301,7 @@ export type Database = {
           address: string | null
           booking_type: string
           building_count: number
+          bundled_lock_inventory: boolean
           channel_manager: string
           check_in_notice: string | null
           child_age_rules: Json
@@ -346,6 +347,7 @@ export type Database = {
           og_image_url: string | null
           og_title: string | null
           owlting_aliases: string[]
+          package_inventory_as_one: boolean
           phone: string | null
           rating_score: number | null
           region_1: string | null
@@ -393,6 +395,7 @@ export type Database = {
           address?: string | null
           booking_type?: string
           building_count?: number
+          bundled_lock_inventory?: boolean
           channel_manager?: string
           check_in_notice?: string | null
           child_age_rules?: Json
@@ -438,6 +441,7 @@ export type Database = {
           og_image_url?: string | null
           og_title?: string | null
           owlting_aliases?: string[]
+          package_inventory_as_one?: boolean
           phone?: string | null
           rating_score?: number | null
           region_1?: string | null
@@ -485,6 +489,7 @@ export type Database = {
           address?: string | null
           booking_type?: string
           building_count?: number
+          bundled_lock_inventory?: boolean
           channel_manager?: string
           check_in_notice?: string | null
           child_age_rules?: Json
@@ -530,6 +535,7 @@ export type Database = {
           og_image_url?: string | null
           og_title?: string | null
           owlting_aliases?: string[]
+          package_inventory_as_one?: boolean
           phone?: string | null
           rating_score?: number | null
           region_1?: string | null

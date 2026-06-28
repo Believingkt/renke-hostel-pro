@@ -35,13 +35,16 @@ import { MonthPicker } from "@/components/ui/month-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
+// 庫存顯示規則改由 accommodation_info 旗標控制（HQ 後台可調整）：
+//   - bundled_lock_inventory：整館綁定鎖房（任一房型滿即整館關閉，只顯示「可訂/已滿」）
+//   - package_inventory_as_one：包棟型房型庫存以 1 計
+// 以下常數僅用於少數民宿「可訂日計算」的特殊業務規則（非顯示規則）：
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8",
   "8e3e8866-3cb0-4654-91f3-d9b09a543301",
 ]);
-// 全部民宿皆採熱度色階 + 可訂房數/總房數（總房=1 時僅顯示「可訂/已滿」）
 
 interface Props {
   open: boolean;
@@ -62,10 +65,9 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
-  // 森山/哈庫整館綁定鎖房，不顯示間數比例
-  const isMultiUnit =
-    accommodationId !== HAKUNA_ACCOMMODATION_ID &&
-    accommodationId !== SENSAN_ACCOMMODATION_ID;
+  const [flags, setFlags] = useState<{ bundled_lock: boolean; pkg_as_one: boolean }>({ bundled_lock: false, pkg_as_one: false });
+  // 整館綁定鎖房 → 不顯示間數比例
+  const isMultiUnit = !flags.bundled_lock;
 
   const baseMonth = useMemo(() => {
     if (!baseMonthValue) return startOfMonth(today);
@@ -86,6 +88,16 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       setRoomTypes(list);
       if (!selectedRoomTypeId && list.length > 0) setSelectedRoomTypeId(list[0].id);
       setCustomIds((prev) => (prev.size === 0 ? new Set(list.map((r) => r.id)) : prev));
+
+      const { data: acc } = await supabase
+        .from("accommodation_info")
+        .select("bundled_lock_inventory, package_inventory_as_one")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      setFlags({
+        bundled_lock: (acc as any)?.bundled_lock_inventory === true,
+        pkg_as_one: (acc as any)?.package_inventory_as_one === true,
+      });
     })();
   }, [open, accommodationId]);
 
@@ -247,11 +259,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
         if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
       }
 
-      // 計算每日可訂房數 / 總房數（森山/哈庫/嚴格包棟：包棟型態庫存一律以 1 計）
+      // 計算每日可訂房數 / 總房數（依旗標：包棟型態庫存以 1 計）
       const capacity = new Map<string, { available: number; total: number }>();
       {
-        const lockPackageAsOne =
-          isHakuna || isSensan || STRICT_PACKAGE_ANY_BOOKED_IDS.has(accommodationId);
+        const lockPackageAsOne = flags.pkg_as_one;
         const totalRooms = targetRoomTypes.reduce((s, rt) => {
           const isPkg = rt.is_exclusive_package === true;
           return s + (lockPackageAsOne && isPkg ? 1 : (rt.room_count || 1));
@@ -282,7 +293,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     return () => {
       cancelled = true;
     };
-  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes, customIds]);
+  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes, customIds, flags.pkg_as_one]);
 
   const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
 
