@@ -1522,6 +1522,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <Calendar
                 mode="single"
                 selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                defaultMonth={form.check_in_date ? parseISO(form.check_in_date) : undefined}
                 onSelect={(date) => {
                   if (date && !isNaN(date.getTime())) {
                     const newCheckIn = format(date, "yyyy-MM-dd");

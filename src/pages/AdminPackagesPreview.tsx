@@ -124,6 +124,7 @@ const AdminPackagesPreview = ({ embedded = false }: AdminPackagesPreviewProps = 
                 <Calendar
                   mode="single"
                   selected={checkIn}
+                  defaultMonth={checkIn}
                   onSelect={(d) => {
                     if (!d) return;
                     setCheckIn(d);
@@ -152,6 +153,7 @@ const AdminPackagesPreview = ({ embedded = false }: AdminPackagesPreviewProps = 
                 <Calendar
                   mode="single"
                   selected={checkOut}
+                  defaultMonth={checkOut ?? checkIn}
                   onSelect={(d) => d && setCheckOut(d)}
                   disabled={(d) => d <= checkIn}
                   initialFocus

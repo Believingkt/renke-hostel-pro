@@ -753,6 +753,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   <Calendar
                     mode="single"
                     selected={editForm.check_in_date ? parseISO(editForm.check_in_date) : undefined}
+                    defaultMonth={editForm.check_in_date ? parseISO(editForm.check_in_date) : undefined}
                     onSelect={(date) => {
                       if (date && !isNaN(date.getTime())) {
                         const newCheckIn = format(date, "yyyy-MM-dd");
@@ -792,6 +793,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   <Calendar
                     mode="single"
                     selected={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
+                    defaultMonth={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
                     onSelect={(date) => {
                       if (date && !isNaN(date.getTime())) {
                         if (editForm.check_in_date && isAfter(date, parseISO(editForm.check_in_date))) {

@@ -269,6 +269,7 @@ export function ClearProjectPricingDialog({
                         <Calendar
                           mode="single"
                           selected={startDate}
+                          defaultMonth={startDate}
                           onSelect={(date) => date && setStartDate(date)}
                           variant="backend"
                           initialFocus
@@ -295,6 +296,7 @@ export function ClearProjectPricingDialog({
                         <Calendar
                           mode="single"
                           selected={endDate}
+                          defaultMonth={endDate}
                           onSelect={(date) => date && setEndDate(date)}
                           variant="backend"
                           initialFocus

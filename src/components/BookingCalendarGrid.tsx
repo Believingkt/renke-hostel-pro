@@ -723,6 +723,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               <Calendar
                 mode="single"
                 selected={startDate}
+                defaultMonth={startDate}
                 onSelect={(date) => {
                   if (date) {
                     date.setHours(0, 0, 0, 0);
