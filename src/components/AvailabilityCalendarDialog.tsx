@@ -307,8 +307,40 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
               return <div key={dateStr} className="aspect-square" />;
             }
             const dayNum = day.getDate();
-            const showFull = !isAvail && !isPast;
 
+            // 多棟/多間：熱度色階 + 數字
+            if (isMultiUnit) {
+              const cap = capacityByDate.get(dateStr);
+              const avail = cap?.available ?? 0;
+              const total = cap?.total ?? 0;
+              const ratio = total > 0 ? avail / total : 0;
+              let tone = "border-muted bg-muted text-muted-foreground";
+              if (isPast) tone = "border-muted bg-muted/30 text-muted-foreground/50";
+              else if (avail <= 0) tone = "border-muted bg-muted text-muted-foreground";
+              else if (ratio < 0.25) tone = "border-red-300 bg-red-50 text-red-700";
+              else if (ratio < 0.6) tone = "border-amber-300 bg-amber-50 text-amber-800";
+              else tone = "border-emerald-300 bg-emerald-50 text-emerald-900";
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    "aspect-square rounded-md border flex flex-col items-center justify-center text-xs select-none",
+                    tone,
+                  )}
+                >
+                  <div className={cn("leading-tight font-medium", !isPast && avail <= 0 && "line-through")}>
+                    {dayNum}
+                  </div>
+                  {!isPast && (
+                    <div className="text-[10px] mt-0.5 tabular-nums">
+                      {avail > 0 ? `${avail}/${total}` : "已滿"}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const showFull = !isAvail && !isPast;
             return (
               <div
                 key={dateStr}
