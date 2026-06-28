@@ -65,6 +65,7 @@ export function BulkOpenInventoryDialog({
       setStartDate(defaultStart);
       setEndDate(defaultEnd);
       setSelectedRoomIds(new Set());
+      setOperationMode("open");
       setValueMode("default");
       setCustomValue("1");
       setOverwriteMode("skip");
