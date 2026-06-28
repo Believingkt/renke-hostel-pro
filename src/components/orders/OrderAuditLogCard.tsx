@@ -50,7 +50,7 @@ export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
       const { data, error } = await supabase
         .from("audit_logs")
         .select("id, user_id, user_email, action_type, details, created_at")
-        .eq("entity_type", "order")
+        .in("entity_type", ["order", "order_meta"])
         .eq("entity_id", orderId)
         .order("created_at", { ascending: false });
       if (error || cancelled) {
