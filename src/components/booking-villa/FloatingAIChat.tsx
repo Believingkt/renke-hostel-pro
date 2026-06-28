@@ -166,17 +166,13 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         <button
           onClick={() => setOpen(true)}
           aria-label="開啟 AI 管家"
-          className="fixed z-[70] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity"
+          className="fixed z-[70] right-3 md:right-6 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6"
           style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 180px)",
-            width: 40,
-            height: 40,
-            opacity: 0.7,
+            opacity: 0.85,
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
           }}
         >
-          <MessageCircle className="w-[20px] h-[20px]" />
-
+          <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
         </button>
       )}
 
