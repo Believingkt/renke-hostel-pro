@@ -81,7 +81,24 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
 
       const { data, error } = await q;
       if (error) throw error;
-      setRows((data as AuditRow[]) || []);
+      const list = (data as AuditRow[]) || [];
+      setRows(list);
+
+      const uids = Array.from(new Set(list.map(r => r.changed_by).filter(Boolean))) as string[];
+      const missing = uids.filter(u => !(u in userNameMap));
+      if (missing.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", missing);
+        if (profs) {
+          setUserNameMap(prev => {
+            const next = { ...prev };
+            profs.forEach((p: any) => { next[p.id] = p.name; });
+            return next;
+          });
+        }
+      }
     } catch (e: any) {
       toast.error("讀取變更紀錄失敗：" + e.message);
     } finally {
