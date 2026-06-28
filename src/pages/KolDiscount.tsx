@@ -154,6 +154,7 @@ const KolDiscount = () => {
   const [commissionRate, setCommissionRate] = useState("");
   
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState<string | null>(null);
@@ -726,13 +727,21 @@ const KolDiscount = () => {
   };
 
   const getFilteredDiscountCodes = () => {
-    if (filterStatus === "all") {
-      return discountCodes;
+    const q = searchQuery.trim().toLowerCase();
+    let list = discountCodes;
+
+    if (q) {
+      list = list.filter((code) => {
+        const name = (code.name || "").toString().toLowerCase();
+        const codeStr = (code.code || "").toString().toLowerCase();
+        return name.includes(q) || codeStr.includes(q);
+      });
     }
 
-    return discountCodes.filter((code) => {
+    if (filterStatus === "all") return list;
+
+    return list.filter((code) => {
       const status = getCodeStatus(code);
-      
       switch (filterStatus) {
         case "active":
           return status === "active";
@@ -759,7 +768,7 @@ const KolDiscount = () => {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus]);
+  }, [filterStatus, searchQuery]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -2414,7 +2423,25 @@ const KolDiscount = () => {
       )}
 
       {/* Quick Filter Buttons */}
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
+        <div className="relative">
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜尋折扣碼或名稱…"
+            className="h-10 pr-9"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="清除搜尋"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant={filterStatus === "all" ? "default" : "outline"}
