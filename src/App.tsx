@@ -78,7 +78,7 @@ const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
-const InventoryVerify = lazy(() => import("./pages/InventoryVerify"));
+
 const Accounts = lazy(() => import("./pages/Accounts"));
 const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
@@ -349,11 +349,6 @@ function App() {
                     <Route path="admin/room-price-calendar" element={
                       <RequireModule module="room_price">
                         <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
-                      </RequireModule>
-                    } />
-                    <Route path="admin/inventory-verify" element={
-                      <RequireModule module="room_price">
-                        <Suspense fallback={<TableSkeleton rows={6} columns={8} />}><InventoryVerify /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/search-card" element={
