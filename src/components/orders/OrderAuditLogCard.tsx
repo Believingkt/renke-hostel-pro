@@ -44,6 +44,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,13 +97,22 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center gap-2 pb-3">
+      <CardHeader
+        className="flex flex-row items-center gap-2 pb-3 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+        onClick={() => setCardOpen((v) => !v)}
+      >
+        {cardOpen ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
         <History className="h-4 w-4 text-muted-foreground" />
         <CardTitle className="text-lg md:text-lg">變更紀錄</CardTitle>
         {!loading && (
           <span className="ml-auto text-xs text-muted-foreground">共 {logs.length} 筆</span>
         )}
       </CardHeader>
+      {cardOpen && (
       <CardContent>
         {loading ? null : logs.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-2">尚無變更紀錄</p>
@@ -229,6 +239,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
