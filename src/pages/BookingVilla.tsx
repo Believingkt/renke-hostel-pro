@@ -471,22 +471,45 @@ const BookingVilla = () => {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
+    const url = window.location.href;
+    // 1) 原生分享（手機 Safari/Chrome）
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
       try {
-        await navigator.share({
+        await (navigator as any).share({
           title: info.name,
           text: info.description || info.name,
-          url: window.location.href,
+          url,
         });
-      } catch {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("已複製連結");
-      } catch {
-        toast.error("複製失敗，請手動複製網址");
+        return;
+      } catch (err: any) {
+        if (err?.name === "AbortError") return; // 使用者取消
+        // 其他失敗（iframe 沒授權 web-share 等）→ 走複製 fallback
       }
     }
+    // 2) Clipboard API
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("已複製連結");
+        return;
+      }
+    } catch {}
+    // 3) execCommand fallback（iframe 內最後手段）
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) {
+        toast.success("已複製連結");
+        return;
+      }
+    } catch {}
+    toast.error("無法分享，請手動複製網址");
   };
 
   const region =
