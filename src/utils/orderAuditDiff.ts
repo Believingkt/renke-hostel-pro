@@ -22,7 +22,7 @@ const FIELD_LABELS: Record<string, string> = {
   deposit_payment_method: "訂金付款方式",
   balance_payment_method: "尾款付款方式",
   meal_plan: "餐食方案",
-  notes: "備註",
+  // notes: 由 computeVisibleNotesDiff 另行處理，避免結構性區塊噪音
   room_type_id: "房型",
   discount_code: "折扣碼",
   paid_amount: "已付金額",
