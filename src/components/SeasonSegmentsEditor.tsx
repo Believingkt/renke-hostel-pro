@@ -158,6 +158,7 @@ export function SeasonSegmentsEditor({ segments, onChange, roomTypes, roomTypeId
                           <Calendar
                             mode="single"
                             selected={seg.valid_from ? parseISO(seg.valid_from) : undefined}
+                            defaultMonth={seg.valid_from ? parseISO(seg.valid_from) : undefined}
                             onSelect={(d) => updateSeg(idx, { valid_from: d ? format(d, "yyyy-MM-dd") : "" })}
                             initialFocus
                             className={cn("p-3 pointer-events-auto")}
@@ -178,6 +179,7 @@ export function SeasonSegmentsEditor({ segments, onChange, roomTypes, roomTypeId
                           <Calendar
                             mode="single"
                             selected={seg.valid_until ? parseISO(seg.valid_until) : undefined}
+                            defaultMonth={seg.valid_until ? parseISO(seg.valid_until) : undefined}
                             onSelect={(d) => updateSeg(idx, { valid_until: d ? format(d, "yyyy-MM-dd") : "" })}
                             initialFocus
                             className={cn("p-3 pointer-events-auto")}

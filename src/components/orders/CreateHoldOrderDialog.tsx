@@ -453,6 +453,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
               <Calendar
                 mode="single"
                 selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                defaultMonth={form.check_in_date ? parseISO(form.check_in_date) : undefined}
                 onSelect={(date) => {
                   if (date && !isNaN(date.getTime())) {
                     const newCheckIn = format(date, "yyyy-MM-dd");
@@ -492,6 +493,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
               <Calendar
                 mode="single"
                 selected={form.check_out_date ? parseISO(form.check_out_date) : undefined}
+                defaultMonth={form.check_out_date ? parseISO(form.check_out_date) : undefined}
                 onSelect={(date) => {
                   if (date && !isNaN(date.getTime())) {
                     setForm({ ...form, check_out_date: format(date, "yyyy-MM-dd") });

@@ -1083,6 +1083,7 @@ const KolDiscount = () => {
                     <Calendar
                       mode="single"
                       selected={validFrom}
+                      defaultMonth={validFrom}
                       onSelect={(date) => date && setValidFrom(date)}
                       initialFocus
                       className="pointer-events-auto"
@@ -1109,6 +1110,7 @@ const KolDiscount = () => {
                     <Calendar
                       mode="single"
                       selected={validUntil}
+                      defaultMonth={validUntil ?? validFrom}
                       onSelect={setValidUntil}
                       initialFocus
                       disabled={(date) => date < validFrom}
@@ -1192,6 +1194,7 @@ const KolDiscount = () => {
                       <Calendar
                         mode="single"
                         selected={applicableDateFrom}
+                        defaultMonth={applicableDateFrom}
                         onSelect={setApplicableDateFrom}
                         initialFocus
                         className="pointer-events-auto"
@@ -1228,6 +1231,7 @@ const KolDiscount = () => {
                       <Calendar
                         mode="single"
                         selected={applicableDateTo}
+                        defaultMonth={applicableDateTo ?? applicableDateFrom}
                         onSelect={setApplicableDateTo}
                         initialFocus
                         disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
@@ -1376,6 +1380,7 @@ const KolDiscount = () => {
                           <Calendar
                             mode="single"
                             selected={validFrom}
+                            defaultMonth={validFrom}
                             onSelect={(date) => date && setValidFrom(date)}
                             initialFocus
                             className="pointer-events-auto"
@@ -1402,6 +1407,7 @@ const KolDiscount = () => {
                           <Calendar
                             mode="single"
                             selected={validUntil}
+                            defaultMonth={validUntil ?? validFrom}
                             onSelect={setValidUntil}
                             initialFocus
                             disabled={(date) => date < validFrom}
@@ -1495,6 +1501,7 @@ const KolDiscount = () => {
                                 <Calendar
                                   mode="single"
                                   selected={applicableDateFrom}
+                                  defaultMonth={applicableDateFrom}
                                   onSelect={setApplicableDateFrom}
                                   initialFocus
                                   className="pointer-events-auto"
@@ -1522,6 +1529,7 @@ const KolDiscount = () => {
                                 <Calendar
                                   mode="single"
                                   selected={applicableDateTo}
+                                  defaultMonth={applicableDateTo ?? applicableDateFrom}
                                   onSelect={setApplicableDateTo}
                                   initialFocus
                                   disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
@@ -1666,6 +1674,7 @@ const KolDiscount = () => {
                   <Calendar
                     mode="single"
                     selected={validFrom}
+                    defaultMonth={validFrom}
                     onSelect={(date) => date && setValidFrom(date)}
                     initialFocus
                     className="pointer-events-auto"
@@ -1692,6 +1701,7 @@ const KolDiscount = () => {
                   <Calendar
                     mode="single"
                     selected={validUntil}
+                    defaultMonth={validUntil ?? validFrom}
                     onSelect={setValidUntil}
                     initialFocus
                     disabled={(date) => date < validFrom}
@@ -1775,6 +1785,7 @@ const KolDiscount = () => {
                     <Calendar
                       mode="single"
                       selected={applicableDateFrom}
+                      defaultMonth={applicableDateFrom}
                       onSelect={setApplicableDateFrom}
                       initialFocus
                       className="pointer-events-auto"
@@ -1811,6 +1822,7 @@ const KolDiscount = () => {
                     <Calendar
                       mode="single"
                       selected={applicableDateTo}
+                      defaultMonth={applicableDateTo ?? applicableDateFrom}
                       onSelect={setApplicableDateTo}
                       initialFocus
                       disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
@@ -2031,6 +2043,7 @@ const KolDiscount = () => {
                   <Calendar
                     mode="single"
                     selected={editingCode ? new Date(editingCode.valid_from) : undefined}
+                    defaultMonth={editingCode ? new Date(editingCode.valid_from) : undefined}
                     onSelect={(date) =>
                       date &&
                       setEditingCode(

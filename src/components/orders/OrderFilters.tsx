@@ -99,6 +99,7 @@ function DatePickerInput({ value, onChange, placeholder }: { value: string; onCh
           <Calendar
             mode="single"
             selected={isValidDate ? dateObj : undefined}
+            defaultMonth={isValidDate ? dateObj : undefined}
             onSelect={(date) => {
               if (date) {
                 const iso = format(date, "yyyy-MM-dd");

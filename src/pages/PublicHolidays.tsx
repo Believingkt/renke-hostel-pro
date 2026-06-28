@@ -1157,6 +1157,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   <CalendarComponent
                     mode="single"
                     selected={newHoliday.date}
+                    defaultMonth={newHoliday.date}
                     onSelect={(date) => {
                       setNewHoliday({ ...newHoliday, date });
                       setIsDatePickerOpen(false);
@@ -1246,6 +1247,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   <CalendarComponent
                     mode="single"
                     selected={editHoliday.date}
+                    defaultMonth={editHoliday.date}
                     onSelect={(date) => {
                       setEditHoliday({ ...editHoliday, date });
                       setIsEditDatePickerOpen(false);
