@@ -335,39 +335,41 @@ export function BulkOpenInventoryDialog({
         )}
 
         {step === 2 && (
-          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6"><div className="space-y-4 py-2">
-          <div className="space-y-4 py-2">
-            <Alert>
-              <AlertDescription className="text-sm space-y-1">
-                <div>共 <strong>{totalCells}</strong> 筆，其中：</div>
-                <div>• 新建（無資料的日期）：<strong className="text-primary">{insertCount}</strong> 筆</div>
-                <div>• 已有設定（將依下方策略處理）：<strong className="text-amber-600">{conflictCount}</strong> 筆</div>
-              </AlertDescription>
-            </Alert>
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+            <div className="space-y-4 py-2">
+              <Alert>
+                <AlertDescription className="text-sm space-y-1">
+                  <div>共 <strong>{totalCells}</strong> 筆，其中：</div>
+                  <div>• 新建（無資料的日期）：<strong className="text-primary">{insertCount}</strong> 筆</div>
+                  <div>• 已有設定（將依下方策略處理）：<strong className="text-amber-600">{conflictCount}</strong> 筆</div>
+                </AlertDescription>
+              </Alert>
 
-            <div>
-              <Label className="mb-2 block">已有設定的日期如何處理？</Label>
-              <RadioGroup value={overwriteMode} onValueChange={(v) => setOverwriteMode(v as OverwriteMode)}>
-                <div className="flex items-start space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="skip" id="om-skip" className="mt-0.5" />
-                  <Label htmlFor="om-skip" className="font-normal cursor-pointer flex-1">
-                    <div className="font-medium">只填補空白日，不覆寫</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">已設定的日期保留原值（安全）</div>
-                  </Label>
-                </div>
-                <div className="flex items-start space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
-                  <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
-                    <div className="font-medium">全部強制覆寫</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">將所有日期都改為新值並開啟販售</div>
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div>
+                <Label className="mb-2 block">已有設定的日期如何處理？</Label>
+                <RadioGroup value={overwriteMode} onValueChange={(v) => setOverwriteMode(v as OverwriteMode)}>
+                  <div className="flex items-start space-x-2 border rounded-md p-3">
+                    <RadioGroupItem value="skip" id="om-skip" className="mt-0.5" />
+                    <Label htmlFor="om-skip" className="font-normal cursor-pointer flex-1">
+                      <div className="font-medium">只填補空白日，不覆寫</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">已設定的日期保留原值（安全）</div>
+                    </Label>
+                  </div>
+                  <div className="flex items-start space-x-2 border rounded-md p-3">
+                    <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
+                    <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
+                      <div className="font-medium">全部強制覆寫</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">將所有日期都改為新值並開啟販售</div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
+
           {step === 1 && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
