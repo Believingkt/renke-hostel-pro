@@ -176,6 +176,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
           }}
         >
           <Sparkles className="w-[18px] h-[18px]" />
+
         </button>
       )}
 
