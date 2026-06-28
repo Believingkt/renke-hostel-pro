@@ -181,7 +181,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
                       {format(new Date(r.changed_at), "yyyy-MM-dd HH:mm:ss")}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
-                      {r.changed_by_email || (r.changed_by ? r.changed_by.slice(0, 8) : "系統")}
+                      {(r.changed_by && userNameMap[r.changed_by]) || r.changed_by_email || (r.changed_by ? r.changed_by.slice(0, 8) : "系統")}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <div>{roomTypeMap[r.room_type_id] || r.room_type_id.slice(0, 8)}</div>
