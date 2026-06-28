@@ -1034,6 +1034,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
     }
 
+    // KOL 互惠額度檢查（軟攔截 + admin 可覆寫）
+    const kolPermitted = await ensureKolQuotaPermit({
+      accommodationId: currentAccommodationId,
+      orderSource: form.order_source || "manual",
+      checkInDate: form.check_in_date,
+      isAdmin,
+      confirmOverride: (status) =>
+        new Promise<boolean>((resolve) => {
+          setKolQuotaPrompt({
+            yearMonth: status.yearMonth,
+            used: status.used,
+            quota: status.quota!,
+            resolve,
+          });
+        }),
+    });
+    if (!kolPermitted) {
+      setIsSaving(false);
+      return;
+    }
+
     try {
       // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
       let pricedRoomSelections = roomSelections.map(sel => ({ ...sel }));
