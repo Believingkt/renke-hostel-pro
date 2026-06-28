@@ -77,6 +77,7 @@ const AdminPackages = lazy(() => import("./pages/AdminPackages"));
 const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
+const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 
 const Accounts = lazy(() => import("./pages/Accounts"));
@@ -344,6 +345,11 @@ function App() {
                     <Route path="admin/room-inventory" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/kol-reciprocal-quota" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><KolReciprocalQuota /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/room-price-calendar" element={

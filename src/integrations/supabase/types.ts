@@ -3759,6 +3759,44 @@ export type Database = {
         }
         Relationships: []
       }
+      kol_reciprocal_monthly_quotas: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          note: string | null
+          quota: number
+          updated_at: string
+          year_month: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quota?: number
+          updated_at?: string
+          year_month: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quota?: number
+          updated_at?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_reciprocal_monthly_quotas_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kol_tags: {
         Row: {
           created_at: string
@@ -8249,6 +8287,14 @@ export type Database = {
       }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
+      count_kol_reciprocal_orders: {
+        Args: {
+          _accommodation_id: string
+          _exclude_order_id?: string
+          _year_month: string
+        }
+        Returns: number
+      }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {

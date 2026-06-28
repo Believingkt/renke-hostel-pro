@@ -33,6 +33,8 @@ import { DepositManagementSection } from "@/components/orders/DepositManagementS
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
+import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -210,6 +212,7 @@ const OrderDetailPage = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -766,6 +769,26 @@ const OrderDetailPage = () => {
 
   const handleSaveEdit = async () => {
     if (!order || isSavingEdit) return;
+
+    // KOL 互惠額度檢查（編輯時：若來源改為/維持 'kol'，依入住日歸屬月份）
+    const kolPermitted = await ensureKolQuotaPermit({
+      accommodationId: order.accommodation_id,
+      orderSource: editForm.order_source,
+      checkInDate: order.check_in_date,
+      excludeOrderId: order.id, // 排除本訂單自身
+      isAdmin: isAdminUser,
+      confirmOverride: (status) =>
+        new Promise<boolean>((resolve) => {
+          setKolQuotaPrompt({
+            yearMonth: status.yearMonth,
+            used: status.used,
+            quota: status.quota!,
+            resolve,
+          });
+        }),
+    });
+    if (!kolPermitted) return;
+
     setIsSavingEdit(true);
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
@@ -3528,6 +3551,16 @@ const OrderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
     </div>
   );
 };

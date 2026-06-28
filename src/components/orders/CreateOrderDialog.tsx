@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
+import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface RoomType {
   id: string;
@@ -111,6 +113,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { currentAccommodationId } = useAccommodation();
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
   // Deposit flow removed: orders always require full payment upfront.
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
@@ -383,6 +387,24 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setAllRoomUnits((data as any[]) || []);
     };
     loadUnits();
+  }, [currentAccommodationId]);
+
+  // 判斷目前使用者是否為民宿管理員（用於 KOL 互惠超額強制覆寫）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!currentAccommodationId) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", currentAccommodationId);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
   }, [currentAccommodationId]);
 
   // 載入指定入住區間已被其他訂單佔用的 room_units
@@ -1010,6 +1032,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setIsSaving(false);
         return;
       }
+    }
+
+    // KOL 互惠額度檢查（軟攔截 + admin 可覆寫）
+    const kolPermitted = await ensureKolQuotaPermit({
+      accommodationId: currentAccommodationId,
+      orderSource: form.order_source || "manual",
+      checkInDate: form.check_in_date,
+      isAdmin,
+      confirmOverride: (status) =>
+        new Promise<boolean>((resolve) => {
+          setKolQuotaPrompt({
+            yearMonth: status.yearMonth,
+            used: status.used,
+            quota: status.quota!,
+            resolve,
+          });
+        }),
+    });
+    if (!kolPermitted) {
+      setIsSaving(false);
+      return;
     }
 
     try {
@@ -2689,6 +2732,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </div>
         </DialogFooter>
       </DialogContent>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
     </Dialog>
   );
 }
