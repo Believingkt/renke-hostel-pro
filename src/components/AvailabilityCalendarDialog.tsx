@@ -63,6 +63,8 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
+  const isMultiUnit = MULTI_UNIT_HEATMAP_IDS.has(accommodationId);
 
   const baseMonth = useMemo(() => {
     if (!baseMonthValue) return startOfMonth(today);
