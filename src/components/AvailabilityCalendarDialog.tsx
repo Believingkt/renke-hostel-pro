@@ -39,6 +39,12 @@ const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8",
   "8e3e8866-3cb0-4654-91f3-d9b09a543301",
 ]);
+// 多棟/多間：顯示熱度色階 + 可訂房數/總房數
+const MULTI_UNIT_HEATMAP_IDS = new Set<string>([
+  "4ee31aca-5641-4d05-80e2-1c67626be83d", // 天送幸福和苑
+  "7690a606-6bac-4cd5-a3e7-2fa754b318e8", // 雲岫海景渡假會館
+  "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
+]);
 
 interface Props {
   open: boolean;
@@ -46,7 +52,7 @@ interface Props {
   accommodationId: string;
 }
 
-type RoomType = { id: string; name: string; is_exclusive_package: boolean | null };
+type RoomType = { id: string; name: string; is_exclusive_package: boolean | null; room_count: number };
 type Mode = "all" | "single";
 
 export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId }: Props) {
