@@ -422,17 +422,25 @@ const Headquarters = () => {
   };
 
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("user_roles")
       .update({ role: newRole })
-      .eq("id", roleId);
+      .eq("id", roleId)
+      .select();
 
     if (error) {
-      toast.error("更新用戶權限失敗");
-    } else {
-      toast.success("用戶權限已更新");
-      loadUserRoles();
+      console.error("[updateRole] failed:", error);
+      toast.error(`更新用戶權限失敗：${error.message}`);
+      return;
     }
+
+    if (!data || data.length === 0) {
+      toast.error("更新失敗：權限不足或找不到該筆角色（請確認您對此館別有管理權限）");
+      return;
+    }
+
+    toast.success("用戶權限已更新");
+    loadUserRoles();
   };
 
   const handleResendInvite = async (userId: string, userName: string, accommodationId: string) => {
