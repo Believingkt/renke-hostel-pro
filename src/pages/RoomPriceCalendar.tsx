@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, DollarSign, Home, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Home, Zap, History } from "lucide-react";
 import { BulkOpenInventoryDialog } from "@/components/BulkOpenInventoryDialog";
+import { InventoryAuditLogDialog } from "@/components/InventoryAuditLogDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
@@ -119,6 +120,7 @@ export default function RoomPriceCalendar() {
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bulkOpenDialogOpen, setBulkOpenDialogOpen] = useState(false);
+  const [auditDialogOpen, setAuditDialogOpen] = useState(false);
   
   const [selectedCell, setSelectedCell] = useState<{
     roomTypeId: string;
@@ -538,6 +540,15 @@ export default function RoomPriceCalendar() {
                 <Zap className="h-4 w-4" />
                 一鍵開啟庫存
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAuditDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <History className="h-4 w-4" />
+                變更紀錄
+              </Button>
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -691,6 +702,15 @@ export default function RoomPriceCalendar() {
           setBulkOpenDialogOpen(false);
           loadData();
         }}
+      />
+
+      {/* 庫存變更紀錄 */}
+      <InventoryAuditLogDialog
+        open={auditDialogOpen}
+        onOpenChange={setAuditDialogOpen}
+        accommodationId={currentAccommodationId || ''}
+        roomTypes={roomTypes}
+        templates={templates}
       />
     </div>
   );
