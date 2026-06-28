@@ -110,7 +110,7 @@ const menuItems = [
     icon: DollarSign,
     moduleKey: "room_price",
     subItems: [
-      { title: "房價庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
+      { title: "庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
       { title: "房價價格設定", url: "/admin/projects", icon: TrendingUp },
       { title: "訂房入住方案", url: "/admin/packages", icon: Package },
       { title: "搜尋圖卡設定", url: "/admin/search-card", icon: Package },
