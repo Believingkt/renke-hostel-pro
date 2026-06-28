@@ -49,8 +49,6 @@ const FIELD_LABELS: Record<string, string> = {
   __notes_visible: "備註",
 };
 
-const DETAIL_ARRAY_FIELDS = new Set(["meal_plan_details", "custom_addon_details"]);
-
 const money = (value: any): string => {
   const n = Number(value || 0);
   return `NT$ ${Number.isFinite(n) ? n.toLocaleString() : 0}`;
