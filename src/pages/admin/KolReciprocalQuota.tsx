@@ -117,13 +117,31 @@ export default function KolReciprocalQuota() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ year_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
+    setBulkMode(false);
+    const cur = format(new Date(), "yyyy-MM");
+    setForm({ year_month: cur, end_month: cur, quota: 5, note: "" });
     setDialogOpen(true);
   };
   const openEdit = (r: QuotaRow) => {
     setEditing(r);
-    setForm({ year_month: r.year_month, quota: r.quota, note: r.note ?? "" });
+    setBulkMode(false);
+    setForm({ year_month: r.year_month, end_month: r.year_month, quota: r.quota, note: r.note ?? "" });
     setDialogOpen(true);
+  };
+
+  const enumerateMonths = (start: string, end: string): string[] => {
+    if (start > end) return [];
+    const months: string[] = [];
+    const [sy, sm] = start.split("-").map(Number);
+    const [ey, em] = end.split("-").map(Number);
+    let y = sy, m = sm;
+    while (y < ey || (y === ey && m <= em)) {
+      months.push(`${y}-${String(m).padStart(2, "0")}`);
+      m++;
+      if (m > 12) { m = 1; y++; }
+      if (months.length > 60) break; // safety
+    }
+    return months;
   };
 
   const handleSave = async () => {
@@ -136,6 +154,32 @@ export default function KolReciprocalQuota() {
       toast({ title: "額度錯誤", description: "請輸入 0 以上的整數", variant: "destructive" });
       return;
     }
+
+    if (!editing && bulkMode) {
+      if (!/^\d{4}-\d{2}$/.test(form.end_month) || form.end_month < form.year_month) {
+        toast({ title: "結束月份錯誤", description: "結束月份需大於等於起始月份", variant: "destructive" });
+        return;
+      }
+      const months = enumerateMonths(form.year_month, form.end_month);
+      const payloads = months.map((ym) => ({
+        accommodation_id: currentAccommodationId,
+        year_month: ym,
+        quota: Math.floor(form.quota),
+        note: form.note.trim() || null,
+      }));
+      const { error } = await supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .upsert(payloads, { onConflict: "accommodation_id,year_month" });
+      if (error) {
+        toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: `已批次設定 ${months.length} 個月份` });
+      setDialogOpen(false);
+      load();
+      return;
+    }
+
     const payload = {
       accommodation_id: currentAccommodationId,
       year_month: form.year_month,
