@@ -30,7 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   pet_plan_price: "寵物加購金額",
   meal_plan_total: "餐食總額",
   meal_plan_details: "餐食明細",
-  custom_addon_details: "自訂加購",
+  custom_addon_details: "加購明細",
   total_price: "房費",
   discount_amount: "折扣金額",
   deposit_amount: "訂金",
@@ -81,8 +81,10 @@ const normalizeMealPlanDetails = (value: any): Array<{ date: string; count: numb
 
 const normalizeCustomAddonDetails = (value: any): Array<{ addon_type: string; count: number; price_per_unit: number; total: number; unit_label: string }> | null => {
   if (!Array.isArray(value)) return null;
+  const reservedTypes = new Set(["pet", "寵物", "meal", "餐食", "bbq", "烤肉"]);
   const rows = value
     .filter((d) => d && typeof d === "object")
+    .filter((d) => !reservedTypes.has(String(d.addon_type || "")))
     .map((d) => ({
       addon_type: String(d.addon_type || "未命名加購"),
       count: Number(d.count || 0),
