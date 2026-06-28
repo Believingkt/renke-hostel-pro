@@ -436,6 +436,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           date,
           available_rooms: parseInt(batchEditData.availableRooms),
           is_available: batchEditData.isAvailable,
+          last_change_source: 'inline_edit',
         };
         
         // 只更新選中的價格欄位
@@ -553,6 +554,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         price: copiedData.price!,
         available_rooms: copiedData.availableRooms!,
         is_available: copiedData.isAvailable,
+        last_change_source: 'inline_edit',
       }));
 
       const { error } = await supabase
@@ -856,6 +858,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         date: editingDate,
         available_rooms: parseInt(singleEditData.availableRooms),
         is_available: singleEditData.isAvailable,
+        last_change_source: 'inline_edit',
       };
       
       // 只更新選中的價格欄位

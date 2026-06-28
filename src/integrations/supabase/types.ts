@@ -6743,6 +6743,7 @@ export type Database = {
         Row: {
           accommodation_id: string | null
           action: string
+          change_source: string | null
           changed_at: string
           changed_by: string | null
           changed_by_email: string | null
@@ -6761,6 +6762,7 @@ export type Database = {
         Insert: {
           accommodation_id?: string | null
           action: string
+          change_source?: string | null
           changed_at?: string
           changed_by?: string | null
           changed_by_email?: string | null
@@ -6779,6 +6781,7 @@ export type Database = {
         Update: {
           accommodation_id?: string | null
           action?: string
+          change_source?: string | null
           changed_at?: string
           changed_by?: string | null
           changed_by_email?: string | null
@@ -6803,6 +6806,7 @@ export type Database = {
           date: string
           id: string
           is_available: boolean | null
+          last_change_source: string | null
           max_nights: number | null
           min_nights: number | null
           notes: string | null
@@ -6819,6 +6823,7 @@ export type Database = {
           date: string
           id?: string
           is_available?: boolean | null
+          last_change_source?: string | null
           max_nights?: number | null
           min_nights?: number | null
           notes?: string | null
@@ -6835,6 +6840,7 @@ export type Database = {
           date?: string
           id?: string
           is_available?: boolean | null
+          last_change_source?: string | null
           max_nights?: number | null
           min_nights?: number | null
           notes?: string | null

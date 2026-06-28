@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { History, RefreshCw } from "lucide-react";
+import { getChangeSourceBadge } from "@/utils/inventoryChangeSource";
 
 interface AuditRow {
   id: string;
@@ -25,6 +26,7 @@ interface AuditRow {
   changed_by_email: string | null;
   changed_at: string;
   pricing_template_id: string | null;
+  change_source: string | null;
 }
 
 interface Props {
@@ -158,6 +160,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
               <tr className="text-left">
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">變更時間</th>
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">操作人</th>
+                <th className="py-2 pr-3 font-medium whitespace-nowrap">來源</th>
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">房型 / 專案</th>
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">套用日期</th>
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">動作</th>
@@ -168,7 +171,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
             </thead>
             <tbody>
               {rows.length === 0 && !loading && (
-                <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">無紀錄</td></tr>
+                <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">無紀錄</td></tr>
               )}
               {rows.map(r => {
                 const action = actionLabel[r.action];
@@ -182,6 +185,12 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       {(r.changed_by && userNameMap[r.changed_by]) || r.changed_by_email || (r.changed_by ? r.changed_by.slice(0, 8) : "系統")}
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      {(() => {
+                        const s = getChangeSourceBadge(r.change_source);
+                        return <Badge variant="secondary" className={s.cls}>{s.text}</Badge>;
+                      })()}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <div>{roomTypeMap[r.room_type_id] || r.room_type_id.slice(0, 8)}</div>

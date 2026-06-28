@@ -585,7 +585,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         .update({ template_id: null, template_name: null }) as any)
         .eq('template_id', deletingTemplate.id);
 
-      // Also clear room_inventory_pricing references
+      // Also clear room_inventory_pricing references（先標記來源，再刪除以利 audit log 識別）
+      await (supabase
+        .from('room_inventory_pricing') as any)
+        .update({ last_change_source: 'template_clear' })
+        .eq('template_id', deletingTemplate.id);
       await (supabase
         .from('room_inventory_pricing') as any)
         .delete()

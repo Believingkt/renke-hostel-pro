@@ -221,12 +221,13 @@ export function RoomPriceEditDialog({
             price: u.price ?? currentPrice ?? 0,
             available_rooms: u.available_rooms ?? 1,
             is_available: u.is_available ?? true,
+            last_change_source: 'manual_edit' as const,
           }));
 
         for (const update of baseToUpdate) {
           const { error } = await supabase
             .from('room_inventory_pricing')
-            .update(update)
+            .update({ ...update, last_change_source: 'manual_edit' })
             .eq('room_type_id', roomTypeId)
             .eq('date', update.date)
             .is('pricing_template_id', null);
@@ -267,12 +268,13 @@ export function RoomPriceEditDialog({
             price: priceValue,
             available_rooms: 0,
             is_available: true,
+            last_change_source: 'template_apply' as const,
           }));
 
         for (const date of overrideToUpdate) {
           const { error } = await supabase
             .from('room_inventory_pricing')
-            .update({ price: priceValue })
+            .update({ price: priceValue, last_change_source: 'template_apply' })
             .eq('room_type_id', roomTypeId)
             .eq('date', date)
             .eq('pricing_template_id', templateId);

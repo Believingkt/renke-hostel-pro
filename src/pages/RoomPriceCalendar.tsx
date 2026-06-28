@@ -306,7 +306,7 @@ export default function RoomPriceCalendar() {
            syncTargets.map(async (t) => {
              const { error: syncError } = await supabase
                .from('room_inventory_pricing')
-               .update({ available_rooms: t.toValue })
+               .update({ available_rooms: t.toValue, last_change_source: 'one_click_sync' })
                .eq('room_type_id', t.roomTypeId)
                .gte('date', monthStart)
                .lte('date', monthEnd)

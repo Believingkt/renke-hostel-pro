@@ -188,6 +188,7 @@ export function BulkOpenInventoryDialog({
               available_rooms: value,
               is_available: true,
               pricing_template_id: null,
+              last_change_source: "bulk_open",
             });
           }
         }
@@ -205,7 +206,7 @@ export function BulkOpenInventoryDialog({
       for (const u of updates) {
         const { error } = await supabase
           .from("room_inventory_pricing")
-          .update({ available_rooms: u.available_rooms, is_available: true })
+          .update({ available_rooms: u.available_rooms, is_available: true, last_change_source: "bulk_open" })
           .eq("id", u.id);
         if (error) throw error;
       }
