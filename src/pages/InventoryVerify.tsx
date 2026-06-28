@@ -88,9 +88,9 @@ export default function InventoryVerify() {
         // 取訂單中已佔用的房（排除取消單）
         supabase
           .from("order_rooms")
-          .select("room_type_id, check_in_date, check_out_date, quantity, orders!inner(order_status)")
-          .gte("check_out_date", startStr)
-          .lte("check_in_date", endStr),
+          .select("room_type_id, quantity, orders!inner(order_status, check_in_date, check_out_date)")
+          .gte("orders.check_out_date", startStr)
+          .lte("orders.check_in_date", endStr),
       ]);
 
       if (rtRes.error) throw rtRes.error;
@@ -106,8 +106,8 @@ export default function InventoryVerify() {
         const status = row.orders?.order_status;
         if (status === "cancelled") return;
         if (!rtIds.has(row.room_type_id)) return;
-        const ci = new Date(row.check_in_date);
-        const co = new Date(row.check_out_date);
+        const ci = new Date(row.orders.check_in_date);
+        const co = new Date(row.orders.check_out_date);
         const days = eachDayOfInterval({ start: ci, end: addDays(co, -1) });
         const qty = row.quantity || 1;
         days.forEach((d) => {
