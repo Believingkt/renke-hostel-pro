@@ -540,6 +540,15 @@ export default function RoomPriceCalendar() {
                 <Zap className="h-4 w-4" />
                 一鍵開啟庫存
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAuditDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <History className="h-4 w-4" />
+                變更紀錄
+              </Button>
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
