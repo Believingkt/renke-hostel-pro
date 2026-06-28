@@ -1035,6 +1035,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }
 
     // KOL 互惠額度檢查（軟攔截 + admin 可覆寫）
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     const kolPermitted = await ensureKolQuotaPermit({
       accommodationId: currentAccommodationId,
       orderSource: form.order_source || "manual",
@@ -1049,6 +1050,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             resolve,
           });
         }),
+      onOverride: (status) => { kolOverrideStatus = status; },
     });
     if (!kolPermitted) {
       setIsSaving(false);
