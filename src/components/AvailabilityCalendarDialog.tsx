@@ -246,8 +246,15 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
       // 多棟/多間：計算每日可訂房數 / 總房數
       const capacity = new Map<string, { available: number; total: number }>();
+      // 計算每日可訂房數 / 總房數（森山/哈庫/嚴格包棟：包棟型態庫存一律以 1 計）
+      const capacity = new Map<string, { available: number; total: number }>();
       {
-        const totalRooms = targetRoomTypes.reduce((s, rt) => s + (rt.room_count || 1), 0);
+        const lockPackageAsOne =
+          isHakuna || isSensan || STRICT_PACKAGE_ANY_BOOKED_IDS.has(accommodationId);
+        const totalRooms = targetRoomTypes.reduce((s, rt) => {
+          const isPkg = rt.is_exclusive_package === true;
+          return s + (lockPackageAsOne && isPkg ? 1 : (rt.room_count || 1));
+        }, 0);
         for (const date of allDates) {
           let avail = 0;
           for (const rt of targetRoomTypes) {
@@ -255,7 +262,9 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
             if (base && base.is_available === false) continue;
             const adj = adjustedIndex.get(`${rt.id}:${date}`);
             if (!adj || adj.is_blocked) continue;
-            avail += Math.max(0, adj.available_rooms || 0);
+            const raw = Math.max(0, adj.available_rooms || 0);
+            const isPkg = rt.is_exclusive_package === true;
+            avail += lockPackageAsOne && isPkg ? Math.min(1, raw) : raw;
           }
           capacity.set(date, { available: avail, total: totalRooms });
         }
