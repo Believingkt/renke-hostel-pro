@@ -771,6 +771,7 @@ const OrderDetailPage = () => {
     if (!order || isSavingEdit) return;
 
     // KOL 互惠額度檢查（編輯時：若來源改為/維持 'kol'，依入住日歸屬月份）
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     const kolPermitted = await ensureKolQuotaPermit({
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
@@ -786,6 +787,7 @@ const OrderDetailPage = () => {
             resolve,
           });
         }),
+      onOverride: (status) => { kolOverrideStatus = status; },
     });
     if (!kolPermitted) return;
 
