@@ -212,6 +212,7 @@ const OrderDetailPage = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
