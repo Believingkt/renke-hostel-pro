@@ -996,6 +996,10 @@ const KolDiscount = () => {
         icon={Sparkles}
         action={
           <>
+            <Button variant="outline" size="sm" onClick={() => setAuditLogOpen(true)} className="gap-1.5 h-11 sm:h-10 touch-manipulation">
+              <History className="h-4 w-4" />
+              變更紀錄
+            </Button>
             {isMobile ? (
               <Drawer open={open} onOpenChange={handleDialogClose}>
                 <DrawerTrigger asChild>
