@@ -148,11 +148,12 @@ export default function KolReciprocalQuota() {
     const used = usageMap[r.year_month] ?? 0;
     const pct = r.quota === 0 ? 100 : Math.round((used / r.quota) * 100);
     const variant = used > r.quota ? "destructive" : used === r.quota ? "default" : used / Math.max(1, r.quota) >= 0.8 ? "secondary" : "outline";
+    const dates = datesMap[r.year_month] ?? [];
     return (
       <TableRow key={r.id}>
-        <TableCell className="font-medium">{r.year_month}</TableCell>
-        <TableCell>{r.quota}</TableCell>
-        <TableCell>
+        <TableCell className="font-medium w-24">{r.year_month}</TableCell>
+        <TableCell className="w-16">{r.quota}</TableCell>
+        <TableCell className="w-40">
           {used > 0 ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -168,8 +169,24 @@ export default function KolReciprocalQuota() {
             <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
           )}
         </TableCell>
-        <TableCell className="text-muted-foreground text-sm">{r.note || "—"}</TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-sm tabular-nums">
+          {dates.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {dates.map((d, i) => {
+                const [, m, day] = d.split("-");
+                return (
+                  <span key={`${d}-${i}`} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">
+                    {Number(m)}/{Number(day)}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
+        <TableCell className="text-right w-24">
           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
           <Button size="sm" variant="ghost" onClick={() => handleDelete(r)}><Trash2 className="h-4 w-4" /></Button>
         </TableCell>
