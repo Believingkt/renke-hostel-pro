@@ -404,7 +404,11 @@ export function BulkOpenInventoryDialog({
                     <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
                     <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
                       <div className="font-medium">全部強制覆寫</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">將所有日期都改為新值並開啟販售</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {operationMode === "close"
+                          ? "將所有日期都關閉販售並把可售數歸 0"
+                          : "將所有日期都改為新值並開啟販售"}
+                      </div>
                     </Label>
                   </div>
                 </RadioGroup>
