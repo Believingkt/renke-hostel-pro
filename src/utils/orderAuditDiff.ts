@@ -46,7 +46,33 @@ const FIELD_LABELS: Record<string, string> = {
   addon_note: "額外現場加購備註",
   __rooms: "房間配置",
   __exclusive_config: "包區/包棟房型配置",
+  __notes_visible: "備註",
 };
+
+// 將 notes 內結構性區塊（加購備註/加購金額/包區房間配置/🔒鎖定稽核行）剝除，
+// 只保留使用者可見的純文字 備註
+export function extractVisibleNotes(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return raw
+    .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
+    .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
+    .split("\n")
+    .filter((line) => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
+    .filter((line) => !/^【(?:加購備註|額外現場加購備註)[^】]*】/.test(line.trim()))
+    .filter((line) => !/^🔒\[金額異動 /.test(line.trim()))
+    .join("\n")
+    .trim();
+}
+
+export function computeVisibleNotesDiff(
+  beforeRaw: string | null | undefined,
+  afterRaw: string | null | undefined,
+): OrderFieldChange | null {
+  const a = extractVisibleNotes(beforeRaw);
+  const b = extractVisibleNotes(afterRaw);
+  if (a === b) return null;
+  return { field: "__notes_visible", label: FIELD_LABELS.__notes_visible, before: a || "(空)", after: b || "(空)" };
+}
 
 const norm = (v: any): any => {
   if (v === undefined || v === null || v === "") return null;
