@@ -3364,6 +3364,10 @@ const OrderDetailPage = () => {
         </CardContent>
       </Card>
 
+      {/* 變更紀錄 */}
+      {order && <OrderAuditLogCard orderId={order.id} />}
+
+
       {/* 線上付款對話框 */}
       <OnlinePaymentDialog
         open={showPaymentDialog}
