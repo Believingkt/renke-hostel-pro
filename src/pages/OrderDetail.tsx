@@ -3551,6 +3551,16 @@ const OrderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
     </div>
   );
 };
