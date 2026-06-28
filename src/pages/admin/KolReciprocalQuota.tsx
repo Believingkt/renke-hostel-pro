@@ -311,7 +311,7 @@ interface UsedOrder {
   guest_name: string | null;
 }
 
-function UsedOrdersList({ accommodationId, yearMonth }: { accommodationId: string | null; yearMonth: string }) {
+function UsedOrdersList({ accommodationId, yearMonth, overrideOrderIds }: { accommodationId: string | null; yearMonth: string; overrideOrderIds: Set<string> }) {
   const [list, setList] = useState<UsedOrder[] | null>(null);
 
   useEffect(() => {
@@ -336,27 +336,44 @@ function UsedOrdersList({ accommodationId, yearMonth }: { accommodationId: strin
   if (list === null) return <div className="p-3 text-sm text-muted-foreground">載入中…</div>;
   if (list.length === 0) return <div className="p-3 text-sm text-muted-foreground">無資料</div>;
 
+  const overrideCount = list.filter(o => overrideOrderIds.has(o.id)).length;
+
   return (
     <div className="max-h-80 overflow-y-auto">
-      <div className="px-3 py-2 border-b text-xs text-muted-foreground">{yearMonth} 已使用 {list.length} 筆</div>
+      <div className="px-3 py-2 border-b text-xs text-muted-foreground flex items-center justify-between gap-2">
+        <span>{yearMonth} 已使用 {list.length} 筆</span>
+        {overrideCount > 0 && (
+          <span className="text-orange-700">⚠️ 超額強制 {overrideCount} 筆</span>
+        )}
+      </div>
       <ul className="divide-y">
-        {list.map((o) => (
-          <li key={o.id} className="px-3 py-2 text-sm flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-medium tabular-nums">{o.check_in_date}{o.check_out_date ? ` → ${o.check_out_date}` : ""}</div>
-              <div className="text-xs text-muted-foreground truncate">{o.guest_name || "—"}</div>
-            </div>
-            <a
-              href={`/admin/orders/${o.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-primary hover:underline shrink-0 tabular-nums"
+        {list.map((o) => {
+          const isOverride = overrideOrderIds.has(o.id);
+          return (
+            <li
+              key={o.id}
+              className={`px-3 py-2 text-sm flex items-center justify-between gap-3 ${isOverride ? "bg-orange-50" : ""}`}
             >
-              {o.order_number || o.id.slice(0, 8)}
-            </a>
-          </li>
-        ))}
+              <div className="min-w-0">
+                <div className="font-medium tabular-nums flex items-center gap-1">
+                  {isOverride && <span title="超額強制建立" className="text-orange-700">⚠️</span>}
+                  {o.check_in_date}{o.check_out_date ? ` → ${o.check_out_date}` : ""}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{o.guest_name || "—"}</div>
+              </div>
+              <a
+                href={`/admin/orders/${o.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary hover:underline shrink-0 tabular-nums"
+              >
+                {o.order_number || o.id.slice(0, 8)}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
+
   );
 }
