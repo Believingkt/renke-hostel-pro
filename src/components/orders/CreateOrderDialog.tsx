@@ -389,6 +389,24 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     loadUnits();
   }, [currentAccommodationId]);
 
+  // 判斷目前使用者是否為民宿管理員（用於 KOL 互惠超額強制覆寫）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!currentAccommodationId) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", currentAccommodationId);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
+  }, [currentAccommodationId]);
+
   // 載入指定入住區間已被其他訂單佔用的 room_units
   useEffect(() => {
     const loadOccupied = async () => {
