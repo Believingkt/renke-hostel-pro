@@ -1502,7 +1502,7 @@ const KolDiscount = () => {
                                   mode="single"
                                   selected={applicableDateFrom}
                                   defaultMonth={applicableDateFrom}
-                                  onSelect={setApplicableDateFrom}
+                                  onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
                                   initialFocus
                                   className="pointer-events-auto"
                                 />
