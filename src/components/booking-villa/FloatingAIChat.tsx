@@ -42,7 +42,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
     return () => clearTimeout(t);
   }, [open, hintDismissed, accommodationId]);
 
-  const location = useLocation();
+
 
   // Auth state
   useEffect(() => {
