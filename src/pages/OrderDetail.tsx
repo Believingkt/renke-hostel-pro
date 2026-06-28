@@ -2800,7 +2800,7 @@ const OrderDetailPage = () => {
               }
               customAddons.forEach(d => {
                 if (d.total > 0) {
-                  items.push({ label: `${d.addon_type} (${d.count}${d.unit_label || '份'})`, amount: d.total });
+                  items.push({ label: `${d.addon_type} (${d.count} × ${d.unit_label || '份'})`, amount: d.total });
                 }
               });
               const _notesRaw = order.notes || "";
