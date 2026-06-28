@@ -41,6 +41,7 @@ export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
+  const [datesMap, setDatesMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
@@ -57,19 +58,34 @@ export default function KolReciprocalQuota() {
     const list = (data ?? []) as QuotaRow[];
     setRows(list);
 
-    // 撈每個月份的目前使用量
+    // 一次撈取相關月份的 KOL 訂單入住日
     const usage: Record<string, number> = {};
-    await Promise.all(
-      list.map(async (r) => {
-        const { data: cnt } = await supabase.rpc("count_kol_reciprocal_orders", {
-          _accommodation_id: currentAccommodationId,
-          _year_month: r.year_month,
-          _exclude_order_id: null,
-        });
-        usage[r.year_month] = (cnt as number | null) ?? 0;
-      })
-    );
+    const dates: Record<string, string[]> = {};
+    if (list.length > 0) {
+      const months = list.map((r) => r.year_month).sort();
+      const minStart = `${months[0]}-01`;
+      const [maxY, maxM] = months[months.length - 1].split("-").map(Number);
+      const maxEndDate = new Date(maxY, maxM, 1);
+      const maxEnd = format(maxEndDate, "yyyy-MM-dd");
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("check_in_date, order_status")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("order_source", "kol")
+        .gte("check_in_date", minStart)
+        .lt("check_in_date", maxEnd);
+      for (const o of (ordersData ?? []) as any[]) {
+        if (o.order_status === "cancelled") continue;
+        const ym = (o.check_in_date as string).slice(0, 7);
+        usage[ym] = (usage[ym] ?? 0) + 1;
+        (dates[ym] ||= []).push(o.check_in_date);
+      }
+      for (const ym of Object.keys(dates)) {
+        dates[ym].sort();
+      }
+    }
     setUsageMap(usage);
+    setDatesMap(dates);
     setLoading(false);
   };
 
