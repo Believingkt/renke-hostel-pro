@@ -69,18 +69,8 @@ serve(async (req) => {
       const r = Array.isArray(row) ? row[0] : row;
       accommodationId = r.accommodation_id;
       rateLimit = r.rate_limit_per_min || 30;
-    } else if (authHeader.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: claims } = await userClient.auth.getClaims(token);
-      if (!claims?.claims?.sub) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      authedUserId = claims.claims.sub;
+    } else {
+      // Bearer (authed user) 或 anon publishable key 都走這條：先解析 body 取 accommodation_id
       const body0 = await req.clone().json().catch(() => ({}));
       const reqAccId = body0.accommodation_id;
       if (!reqAccId || !UUID_REGEX.test(reqAccId)) {
@@ -88,22 +78,36 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: hasAccess } = await supabase.rpc("user_has_access_to_accommodation", {
-        _user_id: authedUserId,
-        _accommodation_id: reqAccId,
-      });
-      if (!hasAccess) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+      // 嘗試解析使用者身份（可能是 anon publishable key，沒有 sub）
+      if (authHeader.startsWith("Bearer ")) {
+        const token = authHeader.slice(7);
+        const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: authHeader } },
         });
+        const { data: claims } = await userClient.auth.getClaims(token).catch(() => ({ data: null }));
+        authedUserId = claims?.claims?.sub || null;
       }
+
+      // 若有登入使用者且對該民宿有後台存取權 → Playground 模式（高 rate limit）
+      let hasAccess = false;
+      if (authedUserId) {
+        const { data } = await supabase.rpc("user_has_access_to_accommodation", {
+          _user_id: authedUserId,
+          _accommodation_id: reqAccId,
+        });
+        hasAccess = !!data;
+      }
+
       accommodationId = reqAccId;
-      rateLimit = 60;
-      source = "internal-playground";
-    } else {
-      return new Response(JSON.stringify({ error: "Missing x-api-key or Authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (hasAccess) {
+        rateLimit = 60;
+        source = "internal-playground";
+      } else {
+        // 公開訪客（訂房頁懸浮 AI 管家）
+        rateLimit = 20;
+        source = "public-visitor";
+      }
     }
 
     if (!checkRateLimit(`acc-ai:${accommodationId}:${clientIP}`, rateLimit)) {
