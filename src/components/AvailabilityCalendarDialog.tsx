@@ -346,9 +346,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
                   </div>
                   {!isPast && (
                     <div className="text-[10px] mt-0.5 tabular-nums">
-                      {avail > 0 ? `${avail}/${total}` : "已滿"}
+                      {avail <= 0 ? "已滿" : total >= 2 ? `${avail}/${total}` : "可訂"}
                     </div>
                   )}
+
                 </div>
               );
             }
