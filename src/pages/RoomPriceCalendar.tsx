@@ -703,6 +703,15 @@ export default function RoomPriceCalendar() {
           loadData();
         }}
       />
+
+      {/* 庫存變更紀錄 */}
+      <InventoryAuditLogDialog
+        open={auditDialogOpen}
+        onOpenChange={setAuditDialogOpen}
+        accommodationId={currentAccommodationId || ''}
+        roomTypes={roomTypes}
+        templates={templates}
+      />
     </div>
   );
 }
