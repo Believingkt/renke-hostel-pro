@@ -35,6 +35,7 @@ interface Props {
 
 type ValueMode = "default" | "custom";
 type OverwriteMode = "skip" | "overwrite";
+type OperationMode = "open" | "close";
 
 export function BulkOpenInventoryDialog({
   open,
@@ -48,6 +49,7 @@ export function BulkOpenInventoryDialog({
   const [startDate, setStartDate] = useState<Date | undefined>(defaultStart);
   const [endDate, setEndDate] = useState<Date | undefined>(defaultEnd);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
+  const [operationMode, setOperationMode] = useState<OperationMode>("open");
   const [valueMode, setValueMode] = useState<ValueMode>("default");
   const [customValue, setCustomValue] = useState<string>("1");
   const [overwriteMode, setOverwriteMode] = useState<OverwriteMode>("skip");
@@ -63,6 +65,7 @@ export function BulkOpenInventoryDialog({
       setStartDate(defaultStart);
       setEndDate(defaultEnd);
       setSelectedRoomIds(new Set());
+      setOperationMode("open");
       setValueMode("default");
       setCustomValue("1");
       setOverwriteMode("skip");
@@ -158,14 +161,18 @@ export function BulkOpenInventoryDialog({
         }
       });
 
+      const isClose = operationMode === "close";
+      const sourceTag = isClose ? "bulk_close" : "bulk_open";
+
       const inserts: any[] = [];
       const updates: { id: string; available_rooms: number }[] = [];
 
       for (const rid of roomIds) {
         const rt = roomMap.get(rid);
         if (!rt) continue;
-        const value =
-          valueMode === "default"
+        const value = isClose
+          ? 0
+          : valueMode === "default"
             ? rt.room_count ?? 1
             : parseInt(customValue, 10);
 
@@ -186,9 +193,9 @@ export function BulkOpenInventoryDialog({
               date: dateStr,
               price: rt.base_price ?? 0,
               available_rooms: value,
-              is_available: true,
+              is_available: !isClose,
               pricing_template_id: null,
-              last_change_source: "bulk_open",
+              last_change_source: sourceTag,
             });
           }
         }
@@ -202,17 +209,17 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
-      // 批次更新（含 is_available 重新開啟）
+      // 批次更新
       for (const u of updates) {
         const { error } = await supabase
           .from("room_inventory_pricing")
-          .update({ available_rooms: u.available_rooms, is_available: true, last_change_source: "bulk_open" })
+          .update({ available_rooms: u.available_rooms, is_available: !isClose, last_change_source: sourceTag })
           .eq("id", u.id);
         if (error) throw error;
       }
 
       toast.success(
-        `完成！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
+        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
       );
       onComplete();
       onOpenChange(false);
@@ -228,9 +235,11 @@ export function BulkOpenInventoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
-          <DialogTitle>一鍵開啟庫存</DialogTitle>
+          <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
           <DialogDescription>
-            選擇多個房型與日期區間，批次建立可售庫存。
+            {operationMode === "close"
+              ? "選擇多個房型與日期區間，批次關閉販售（可售數歸 0）。"
+              : "選擇多個房型與日期區間，批次建立可售庫存。"}
           </DialogDescription>
         </DialogHeader>
 
@@ -238,6 +247,37 @@ export function BulkOpenInventoryDialog({
           <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
 
             <div className="space-y-5 py-2">
+              {/* 操作模式 */}
+              <div>
+                <Label className="mb-1.5 block">操作模式</Label>
+                <RadioGroup
+                  value={operationMode}
+                  onValueChange={(v) => setOperationMode(v as OperationMode)}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <label
+                    htmlFor="op-open"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "open" && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <RadioGroupItem value="open" id="op-open" />
+                    <span className="text-sm font-medium">開啟販售</span>
+                  </label>
+                  <label
+                    htmlFor="op-close"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "close" && "border-destructive bg-destructive/5"
+                    )}
+                  >
+                    <RadioGroupItem value="close" id="op-close" />
+                    <span className="text-sm font-medium">關閉販售</span>
+                  </label>
+                </RadioGroup>
+              </div>
+
               {/* 日期區間 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -301,30 +341,32 @@ export function BulkOpenInventoryDialog({
                 </div>
               </div>
 
-              {/* 庫存數值來源 */}
-              <div>
-                <Label className="mb-1.5 block">庫存數值</Label>
-                <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="default" id="vm-default" />
-                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
-                      使用房型預設庫存量（推薦）
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="vm-custom" />
-                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={customValue}
-                      onChange={(e) => setCustomValue(e.target.value)}
-                      onFocus={() => setValueMode("custom")}
-                      className="w-24 h-8"
-                    />
-                  </div>
-                </RadioGroup>
-              </div>
+              {/* 庫存數值來源（僅開啟模式） */}
+              {operationMode === "open" && (
+                <div>
+                  <Label className="mb-1.5 block">庫存數值</Label>
+                  <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="default" id="vm-default" />
+                      <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                        使用房型預設庫存量（推薦）
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="vm-custom" />
+                      <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        onFocus={() => setValueMode("custom")}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
               {totalCells > 0 && (
                 <Alert>
@@ -362,7 +404,11 @@ export function BulkOpenInventoryDialog({
                     <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
                     <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
                       <div className="font-medium">全部強制覆寫</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">將所有日期都改為新值並開啟販售</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {operationMode === "close"
+                          ? "將所有日期都關閉販售並把可售數歸 0"
+                          : "將所有日期都改為新值並開啟販售"}
+                      </div>
                     </Label>
                   </div>
                 </RadioGroup>
