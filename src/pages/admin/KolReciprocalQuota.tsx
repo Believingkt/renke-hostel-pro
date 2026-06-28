@@ -41,7 +41,8 @@ export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
-  const [datesMap, setDatesMap] = useState<Record<string, string[]>>({});
+  const [datesMap, setDatesMap] = useState<Record<string, { date: string; orderId: string }[]>>({});
+  const [overrideOrderIds, setOverrideOrderIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
@@ -60,7 +61,8 @@ export default function KolReciprocalQuota() {
 
     // 一次撈取相關月份的 KOL 訂單入住日
     const usage: Record<string, number> = {};
-    const dates: Record<string, string[]> = {};
+    const dates: Record<string, { date: string; orderId: string }[]> = {};
+    const overrides = new Set<string>();
     if (list.length > 0) {
       const months = list.map((r) => r.year_month).sort();
       const minStart = `${months[0]}-01`;
@@ -69,25 +71,43 @@ export default function KolReciprocalQuota() {
       const maxEnd = format(maxEndDate, "yyyy-MM-dd");
       const { data: ordersData } = await supabase
         .from("orders")
-        .select("check_in_date, order_status")
+        .select("id, check_in_date, order_status")
         .eq("accommodation_id", currentAccommodationId)
         .eq("order_source", "kol")
         .gte("check_in_date", minStart)
         .lt("check_in_date", maxEnd);
+      const orderIds: string[] = [];
       for (const o of (ordersData ?? []) as any[]) {
         if (o.order_status === "cancelled") continue;
         const ym = (o.check_in_date as string).slice(0, 7);
         usage[ym] = (usage[ym] ?? 0) + 1;
-        (dates[ym] ||= []).push(o.check_in_date);
+        (dates[ym] ||= []).push({ date: o.check_in_date, orderId: o.id });
+        orderIds.push(o.id);
       }
       for (const ym of Object.keys(dates)) {
-        dates[ym].sort();
+        dates[ym].sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      // 撈取 KOL 額度覆寫紀錄
+      if (orderIds.length > 0) {
+        const { data: logs } = await supabase
+          .from("audit_logs")
+          .select("entity_id, details")
+          .eq("entity_type", "order")
+          .in("entity_id", orderIds);
+        for (const log of (logs ?? []) as any[]) {
+          if (log.details?.type === "kol_quota_override" && log.entity_id) {
+            overrides.add(log.entity_id);
+          }
+        }
       }
     }
     setUsageMap(usage);
     setDatesMap(dates);
+    setOverrideOrderIds(overrides);
     setLoading(false);
   };
+
 
   useEffect(() => {
     load();
