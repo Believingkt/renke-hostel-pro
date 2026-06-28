@@ -1137,6 +1137,22 @@ const OrderDetailPage = () => {
       if (action === "undo_checkout") patch.checked_out_at = null;
       const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
       if (error) throw error;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("audit_logs").insert([{
+            user_id: user.id,
+            user_email: user.email,
+            action_type: "update",
+            action_category: "order",
+            entity_type: "order",
+            entity_id: order.id,
+            entity_name: order.order_number,
+            accommodation_id: order.accommodation_id,
+            details: { type: action, changes: Object.keys(patch).map(k => ({ field: k, label: k, before: (order as any)[k] ?? null, after: patch[k] })) } as any,
+          }]);
+        }
+      } catch (e) { console.error("Audit log error:", e); }
       toast({
         title:
           action === "checkin" ? "已辦理入住"
