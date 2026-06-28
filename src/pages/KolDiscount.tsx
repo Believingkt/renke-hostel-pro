@@ -768,7 +768,7 @@ const KolDiscount = () => {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus]);
+  }, [filterStatus, searchQuery]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
