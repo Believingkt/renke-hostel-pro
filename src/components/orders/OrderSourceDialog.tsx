@@ -9,7 +9,7 @@ import { Order } from "@/types/order";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { Globe, UserPlus } from "lucide-react";
 import { useOrderSources } from "@/hooks/use-order-sources";
-import { ensureKolQuotaPermit } from "@/lib/kolReciprocalQuota";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 
 interface OrderSourceDialogProps {
