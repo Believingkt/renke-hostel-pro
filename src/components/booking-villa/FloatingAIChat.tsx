@@ -194,7 +194,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mr-8">
               {messages.length > 0 && userId && (
                 <Button variant="ghost" size="icon" onClick={clearHistory} aria-label="清除對話">
                   <Trash2 className="w-4 h-4" />
