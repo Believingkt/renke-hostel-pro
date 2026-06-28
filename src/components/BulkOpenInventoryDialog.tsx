@@ -235,9 +235,11 @@ export function BulkOpenInventoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
-          <DialogTitle>一鍵開啟庫存</DialogTitle>
+          <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
           <DialogDescription>
-            選擇多個房型與日期區間，批次建立可售庫存。
+            {operationMode === "close"
+              ? "選擇多個房型與日期區間，批次關閉販售（可售數歸 0）。"
+              : "選擇多個房型與日期區間，批次建立可售庫存。"}
           </DialogDescription>
         </DialogHeader>
 
@@ -245,6 +247,37 @@ export function BulkOpenInventoryDialog({
           <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
 
             <div className="space-y-5 py-2">
+              {/* 操作模式 */}
+              <div>
+                <Label className="mb-1.5 block">操作模式</Label>
+                <RadioGroup
+                  value={operationMode}
+                  onValueChange={(v) => setOperationMode(v as OperationMode)}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <label
+                    htmlFor="op-open"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "open" && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <RadioGroupItem value="open" id="op-open" />
+                    <span className="text-sm font-medium">開啟販售</span>
+                  </label>
+                  <label
+                    htmlFor="op-close"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "close" && "border-destructive bg-destructive/5"
+                    )}
+                  >
+                    <RadioGroupItem value="close" id="op-close" />
+                    <span className="text-sm font-medium">關閉販售</span>
+                  </label>
+                </RadioGroup>
+              </div>
+
               {/* 日期區間 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
