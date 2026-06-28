@@ -157,8 +157,8 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
                   {isOpen && hasDetail && (
                     <div className="border-t bg-muted/30 px-3 py-2 space-y-1.5">
                       {changes.map((c, i) => {
-                        const isNotes = c.field === "__notes_visible" || c.field === "notes";
-                        if (isNotes) {
+                        const isDetailedText = ["__notes_visible", "notes", "meal_plan_details", "custom_addon_details", "addon_note"].includes(c.field);
+                        if (isDetailedText) {
                           return (
                             <div key={i} className="text-xs space-y-1 pt-1">
                               <div className="text-muted-foreground font-medium">{c.label || getFieldLabel(c.field)}</div>
