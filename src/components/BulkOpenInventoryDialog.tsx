@@ -178,8 +178,10 @@ export function BulkOpenInventoryDialog({
             }
             // skip 模式 → 不處理
           } else {
+            // 注意：room_inventory_pricing 沒有 accommodation_id 欄位
+            // accommodation 關聯透過 room_type_id → room_types.accommodation_id 取得
+            // pricing_template_id: null 表示這是「基礎庫存列」（真實庫存，前台會直接讀）
             inserts.push({
-              accommodation_id: accommodationId,
               room_type_id: rid,
               date: dateStr,
               price: rt.base_price ?? 0,
