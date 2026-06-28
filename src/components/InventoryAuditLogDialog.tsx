@@ -53,6 +53,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
 
   const roomTypeMap = useMemo(
     () => Object.fromEntries(roomTypes.map(r => [r.id, r.name])),
@@ -80,7 +81,24 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
 
       const { data, error } = await q;
       if (error) throw error;
-      setRows((data as AuditRow[]) || []);
+      const list = (data as AuditRow[]) || [];
+      setRows(list);
+
+      const uids = Array.from(new Set(list.map(r => r.changed_by).filter(Boolean))) as string[];
+      const missing = uids.filter(u => !(u in userNameMap));
+      if (missing.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", missing);
+        if (profs) {
+          setUserNameMap(prev => {
+            const next = { ...prev };
+            profs.forEach((p: any) => { next[p.id] = p.name; });
+            return next;
+          });
+        }
+      }
     } catch (e: any) {
       toast.error("讀取變更紀錄失敗：" + e.message);
     } finally {
@@ -163,7 +181,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
                       {format(new Date(r.changed_at), "yyyy-MM-dd HH:mm:ss")}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
-                      {r.changed_by_email || (r.changed_by ? r.changed_by.slice(0, 8) : "系統")}
+                      {(r.changed_by && userNameMap[r.changed_by]) || r.changed_by_email || (r.changed_by ? r.changed_by.slice(0, 8) : "系統")}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <div>{roomTypeMap[r.room_type_id] || r.room_type_id.slice(0, 8)}</div>
