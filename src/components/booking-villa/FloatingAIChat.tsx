@@ -22,8 +22,26 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState("");
+  const [showHint, setShowHint] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const location = useLocation();
+
+  // 停留 5 秒後顯示提示氣泡（每個 session 只顯示一次）
+  useEffect(() => {
+    if (open || hintDismissed) return;
+    const key = `ai-hint-shown-${accommodationId}`;
+    if (sessionStorage.getItem(key)) return;
+    const t = setTimeout(() => {
+      setShowHint(true);
+      sessionStorage.setItem(key, "1");
+      const auto = setTimeout(() => setShowHint(false), 8000);
+      return () => clearTimeout(auto);
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [open, hintDismissed, accommodationId]);
+
   const location = useLocation();
 
   // Auth state
