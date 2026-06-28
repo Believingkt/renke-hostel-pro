@@ -1084,7 +1084,7 @@ const KolDiscount = () => {
                       mode="single"
                       selected={validFrom}
                       defaultMonth={validFrom}
-                      onSelect={(date) => date && setValidFrom(date)}
+                      onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -1195,7 +1195,7 @@ const KolDiscount = () => {
                         mode="single"
                         selected={applicableDateFrom}
                         defaultMonth={applicableDateFrom}
-                        onSelect={setApplicableDateFrom}
+                        onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
                         initialFocus
                         className="pointer-events-auto"
                       />
@@ -1381,7 +1381,7 @@ const KolDiscount = () => {
                             mode="single"
                             selected={validFrom}
                             defaultMonth={validFrom}
-                            onSelect={(date) => date && setValidFrom(date)}
+                            onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
                             initialFocus
                             className="pointer-events-auto"
                           />
@@ -1502,7 +1502,7 @@ const KolDiscount = () => {
                                   mode="single"
                                   selected={applicableDateFrom}
                                   defaultMonth={applicableDateFrom}
-                                  onSelect={setApplicableDateFrom}
+                                  onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
                                   initialFocus
                                   className="pointer-events-auto"
                                 />
@@ -1675,7 +1675,7 @@ const KolDiscount = () => {
                     mode="single"
                     selected={validFrom}
                     defaultMonth={validFrom}
-                    onSelect={(date) => date && setValidFrom(date)}
+                    onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -1786,7 +1786,7 @@ const KolDiscount = () => {
                       mode="single"
                       selected={applicableDateFrom}
                       defaultMonth={applicableDateFrom}
-                      onSelect={setApplicableDateFrom}
+                      onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -2044,14 +2044,12 @@ const KolDiscount = () => {
                     mode="single"
                     selected={editingCode ? new Date(editingCode.valid_from) : undefined}
                     defaultMonth={editingCode ? new Date(editingCode.valid_from) : undefined}
-                    onSelect={(date) =>
-                      date &&
-                      setEditingCode(
-                        editingCode
-                          ? { ...editingCode, valid_from: format(date, "yyyy-MM-dd") }
-                          : null
-                      )
-                    }
+                    onSelect={(date) => {
+                      if (!date || !editingCode) return;
+                      const ds = format(date, "yyyy-MM-dd");
+                      const clearEnd = editingCode.valid_until && editingCode.valid_until < ds;
+                      setEditingCode({ ...editingCode, valid_from: ds, ...(clearEnd ? { valid_until: null } : {}) });
+                    }}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -2234,17 +2232,12 @@ const KolDiscount = () => {
                                 ? new Date(editingCode.applicable_date_from)
                                 : undefined
                             }
-                            onSelect={(date) =>
-                              date &&
-                              setEditingCode(
-                                editingCode
-                                  ? {
-                                      ...editingCode,
-                                      applicable_date_from: format(date, "yyyy-MM-dd"),
-                                    }
-                                  : null
-                              )
-                            }
+                            onSelect={(date) => {
+                              if (!date || !editingCode) return;
+                              const ds = format(date, "yyyy-MM-dd");
+                              const clearEnd = editingCode.applicable_date_to && editingCode.applicable_date_to < ds;
+                              setEditingCode({ ...editingCode, applicable_date_from: ds, ...(clearEnd ? { applicable_date_to: null } : {}) });
+                            }}
                             initialFocus
                             className="pointer-events-auto"
                           />

@@ -29,11 +29,13 @@ interface OrderFiltersProps {
   onSubmit: () => void;
 }
 
-function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
+function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value: string; onChange: (val: string) => void; placeholder?: string; fallbackDate?: string }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value);
   const dateObj = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
   const isValidDate = dateObj && !isNaN(dateObj.getTime());
+  const fallbackObj = fallbackDate ? parse(fallbackDate, "yyyy-MM-dd", new Date()) : undefined;
+  const fallbackValid = fallbackObj && !isNaN(fallbackObj.getTime());
 
   // Keep local text in sync with external prop value
   useEffect(() => {
@@ -99,7 +101,7 @@ function DatePickerInput({ value, onChange, placeholder }: { value: string; onCh
           <Calendar
             mode="single"
             selected={isValidDate ? dateObj : undefined}
-            defaultMonth={isValidDate ? dateObj : undefined}
+            defaultMonth={isValidDate ? dateObj : (fallbackValid ? fallbackObj : undefined)}
             onSelect={(date) => {
               if (date) {
                 const iso = format(date, "yyyy-MM-dd");
@@ -152,9 +154,21 @@ export function OrderFilters({
             <option value="order">訂購日期</option>
           </select>
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <DatePickerInput value={startDate} onChange={onStartDateChange} placeholder="開始日期" />
+            <DatePickerInput
+              value={startDate}
+              onChange={(v) => {
+                onStartDateChange(v);
+                if (v && endDate && endDate < v) onEndDateChange("");
+              }}
+              placeholder="開始日期"
+            />
             <span className="text-muted-foreground">-</span>
-            <DatePickerInput value={endDate} onChange={onEndDateChange} placeholder="結束日期" />
+            <DatePickerInput
+              value={endDate}
+              onChange={onEndDateChange}
+              placeholder="結束日期"
+              fallbackDate={startDate}
+            />
           </div>
         </div>
       </div>
