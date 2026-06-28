@@ -236,8 +236,26 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
         if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
       }
 
+      // 多棟/多間：計算每日可訂房數 / 總房數
+      const capacity = new Map<string, { available: number; total: number }>();
+      if (MULTI_UNIT_HEATMAP_IDS.has(accommodationId)) {
+        const totalRooms = targetRoomTypes.reduce((s, rt) => s + (rt.room_count || 1), 0);
+        for (const date of allDates) {
+          let avail = 0;
+          for (const rt of targetRoomTypes) {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            if (base && base.is_available === false) continue;
+            const adj = adjustedIndex.get(`${rt.id}:${date}`);
+            if (!adj || adj.is_blocked) continue;
+            avail += Math.max(0, adj.available_rooms || 0);
+          }
+          capacity.set(date, { available: avail, total: totalRooms });
+        }
+      }
+
       if (!cancelled) {
         setAvailableDates(available);
+        setCapacityByDate(capacity);
         setLoading(false);
       }
     };
