@@ -2044,14 +2044,12 @@ const KolDiscount = () => {
                     mode="single"
                     selected={editingCode ? new Date(editingCode.valid_from) : undefined}
                     defaultMonth={editingCode ? new Date(editingCode.valid_from) : undefined}
-                    onSelect={(date) =>
-                      date &&
-                      setEditingCode(
-                        editingCode
-                          ? { ...editingCode, valid_from: format(date, "yyyy-MM-dd") }
-                          : null
-                      )
-                    }
+                    onSelect={(date) => {
+                      if (!date || !editingCode) return;
+                      const ds = format(date, "yyyy-MM-dd");
+                      const clearEnd = editingCode.valid_until && editingCode.valid_until < ds;
+                      setEditingCode({ ...editingCode, valid_from: ds, ...(clearEnd ? { valid_until: null } : {}) });
+                    }}
                     initialFocus
                     className="pointer-events-auto"
                   />
