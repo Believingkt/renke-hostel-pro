@@ -81,7 +81,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+  }, [orderId, refreshKey]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
