@@ -1269,7 +1269,7 @@ const OrderDetailPage = () => {
             entity_id: order.id,
             entity_name: order.order_number,
             accommodation_id: order.accommodation_id,
-            details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues } as any,
+            details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues, changes: Object.keys(newValues).filter(k => (oldValues as any)[k] !== (newValues as any)[k]).map(k => ({ field: k, label: k, before: (oldValues as any)[k], after: (newValues as any)[k] })) } as any,
           }]);
         }
       } catch (e) {
