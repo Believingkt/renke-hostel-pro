@@ -15,7 +15,7 @@ export default function RoomInventory() {
       title="預訂管理"
       icon={Package}
       breadcrumbs={[{ label: "訂單資訊" }]}
-      actions={
+      action={
         <Button variant="outline" size="sm" onClick={() => setCalOpen(true)}>
           <CalendarDays className="h-4 w-4 mr-2" />
           日曆檢視
