@@ -218,11 +218,12 @@ export default function KolReciprocalQuota() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>月份</TableHead>
-                  <TableHead>上限</TableHead>
-                  <TableHead>目前使用量</TableHead>
-                  <TableHead>備註</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="w-24">月份</TableHead>
+                  <TableHead className="w-16">上限</TableHead>
+                  <TableHead className="w-40">目前使用量</TableHead>
+                  <TableHead>已使用入住日</TableHead>
+                  <TableHead className="w-48">備註</TableHead>
+                  <TableHead className="text-right w-24">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>{rows.map(renderRow)}</TableBody>
