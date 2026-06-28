@@ -182,8 +182,9 @@ export default function KolReciprocalQuota() {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="start">
-                <UsedOrdersList accommodationId={currentAccommodationId} yearMonth={r.year_month} />
+                <UsedOrdersList accommodationId={currentAccommodationId} yearMonth={r.year_month} overrideOrderIds={overrideOrderIds} />
               </PopoverContent>
+
             </Popover>
           ) : (
             <Badge variant={variant as any}>{used} / {r.quota} ({pct}%)</Badge>
