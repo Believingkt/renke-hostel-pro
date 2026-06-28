@@ -30,7 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   pet_plan_price: "寵物加購金額",
   meal_plan_total: "餐食總額",
   meal_plan_details: "餐食明細",
-  custom_addon_details: "自訂加購",
+  custom_addon_details: "加購明細",
   total_price: "房費",
   discount_amount: "折扣金額",
   deposit_amount: "訂金",
@@ -47,6 +47,60 @@ const FIELD_LABELS: Record<string, string> = {
   __rooms: "房間配置",
   __exclusive_config: "包區/包棟房型配置",
   __notes_visible: "備註",
+};
+
+const money = (value: any): string => {
+  const n = Number(value || 0);
+  return `NT$ ${Number.isFinite(n) ? n.toLocaleString() : 0}`;
+};
+
+const formatDateText = (value: any): string => {
+  if (!value) return "未指定日期";
+  return String(value).slice(0, 10).replace(/-/g, "/");
+};
+
+const normalizeMealPlanDetails = (value: any): Array<{ date: string; count: number; pricePerUnit: number; price: number }> | null => {
+  if (!Array.isArray(value)) return null;
+  const rows = value
+    .filter((d) => d && typeof d === "object")
+    .map((d) => {
+      const count = Number(d.count || 0);
+      const price = Number(d.price || 0);
+      const pricePerUnit = Number(d.pricePerUnit ?? d.price_per_unit ?? (count > 0 ? price / count : 0));
+      return {
+        date: String(d.date || ""),
+        count,
+        pricePerUnit,
+        price,
+      };
+    })
+    .filter((d) => d.date || d.count > 0 || d.price > 0 || d.pricePerUnit > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return rows.length > 0 ? rows : null;
+};
+
+const normalizeCustomAddonDetails = (value: any): Array<{ addon_type: string; count: number; price_per_unit: number; total: number; unit_label: string }> | null => {
+  if (!Array.isArray(value)) return null;
+  const reservedTypes = new Set(["pet", "寵物", "meal", "餐食", "bbq", "烤肉"]);
+  const rows = value
+    .filter((d) => d && typeof d === "object")
+    .filter((d) => !reservedTypes.has(String(d.addon_type || "")))
+    .map((d) => ({
+      addon_type: String(d.addon_type || "未命名加購"),
+      count: Number(d.count || 0),
+      price_per_unit: Number(d.price_per_unit ?? d.pricePerUnit ?? 0),
+      total: Number(d.total || 0),
+      unit_label: String(d.unit_label || "份"),
+    }))
+    .filter((d) => d.addon_type || d.count > 0 || d.total > 0 || d.price_per_unit > 0)
+    .sort((a, b) => a.addon_type.localeCompare(b.addon_type));
+  return rows.length > 0 ? rows : null;
+};
+
+const normalizeForCompare = (field: string, value: any): any => {
+  if (field === "meal_plan_details") return normalizeMealPlanDetails(value);
+  if (field === "custom_addon_details") return normalizeCustomAddonDetails(value);
+  return value;
 };
 
 // 將 notes 內結構性區塊（加購備註/加購金額/包區房間配置/🔒鎖定稽核行）剝除，
@@ -74,15 +128,30 @@ export function computeVisibleNotesDiff(
   return { field: "__notes_visible", label: FIELD_LABELS.__notes_visible, before: a || "(空)", after: b || "(空)" };
 }
 
+export function extractAddonNote(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const blocks = [...raw.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
+  if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
+  const m = raw.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
+  return m ? m[1].trim() : "";
+}
+
+export function extractExtraAddonAmount(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  const blocks = [...raw.matchAll(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/g)];
+  if (blocks.length === 0) return 0;
+  return parseInt(blocks[blocks.length - 1][1], 10) || 0;
+}
+
 const norm = (v: any): any => {
   if (v === undefined || v === null || v === "") return null;
   if (typeof v === "string") return v.trim();
   return v;
 };
 
-const deepEqual = (a: any, b: any): boolean => {
-  const na = norm(a);
-  const nb = norm(b);
+const deepEqual = (a: any, b: any, field = ""): boolean => {
+  const na = norm(normalizeForCompare(field, a));
+  const nb = norm(normalizeForCompare(field, b));
   if (na === nb) return true;
   if (na === null || nb === null) return false;
   if (typeof na !== typeof nb) return false;
@@ -106,7 +175,7 @@ export function computeOrderDiff(
     if (!(k in FIELD_LABELS)) continue;
     const a = after[k];
     const b = before?.[k];
-    if (!deepEqual(b, a)) {
+    if (!deepEqual(b, a, k)) {
       changes.push({ field: k, label: FIELD_LABELS[k], before: b ?? null, after: a ?? null });
     }
   }
@@ -114,9 +183,23 @@ export function computeOrderDiff(
 }
 
 export function formatChangeValue(field: string, value: any): string {
+  if (field === "meal_plan_details") {
+    const rows = normalizeMealPlanDetails(value);
+    if (!rows) return "(空)";
+    return rows
+      .map((d) => `${formatDateText(d.date)}：${d.count} 份 × ${money(d.pricePerUnit)} = ${money(d.price)}`)
+      .join("\n");
+  }
+  if (field === "custom_addon_details") {
+    const rows = normalizeCustomAddonDetails(value);
+    if (!rows) return "(空)";
+    return rows
+      .map((d) => `${d.addon_type}：${d.count}${d.unit_label || "份"} × ${money(d.price_per_unit)} = ${money(d.total)}`)
+      .join("\n");
+  }
   if (value === null || value === undefined || value === "") return "(空)";
   if (typeof value === "boolean") return value ? "是" : "否";
-  if (Array.isArray(value)) return value.length === 0 ? "(空)" : `${value.length} 筆`;
+  if (Array.isArray(value)) return value.length === 0 ? "(空)" : JSON.stringify(value, null, 2);
   if (typeof value === "object") {
     try {
       return JSON.stringify(value);
