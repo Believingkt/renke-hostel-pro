@@ -1083,6 +1083,8 @@ const OrderDetailPage = () => {
             editExclusiveConfigs,
           );
           if (exclusiveDiff) changes.push(exclusiveDiff);
+          const notesDiff = computeVisibleNotesDiff(order.notes, updateData.notes);
+          if (notesDiff) changes.push(notesDiff);
           if (changes.length > 0) {
             await supabase.from("audit_logs").insert([{
               user_id: user.id,
