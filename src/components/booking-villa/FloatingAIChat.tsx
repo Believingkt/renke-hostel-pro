@@ -28,19 +28,16 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const { toast } = useToast();
   const location = useLocation();
 
-  // 停留 5 秒後顯示提示氣泡（每個 session 只顯示一次）
+  // 停留 5 秒後顯示提示氣泡，10 秒後自動收起
   useEffect(() => {
     if (open || hintDismissed) return;
-    const key = `ai-hint-shown-${accommodationId}`;
-    if (sessionStorage.getItem(key)) return;
-    const t = setTimeout(() => {
-      setShowHint(true);
-      sessionStorage.setItem(key, "1");
-      const auto = setTimeout(() => setShowHint(false), 8000);
-      return () => clearTimeout(auto);
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [open, hintDismissed, accommodationId]);
+    const showT = setTimeout(() => setShowHint(true), 5000);
+    const hideT = setTimeout(() => setShowHint(false), 15000);
+    return () => {
+      clearTimeout(showT);
+      clearTimeout(hideT);
+    };
+  }, [open, hintDismissed]);
 
 
 
@@ -190,8 +187,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 setHintDismissed(true);
                 setOpen(true);
               }}
-              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-in fade-in slide-in-from-right-2 duration-300 max-w-[180px]"
-              style={{ animation: "bounce-soft 1.6s ease-in-out infinite" }}
+              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-in fade-in slide-in-from-right-2 duration-300 max-w-[180px] animate-bounce"
+
             >
               <button
                 onClick={(e) => {
