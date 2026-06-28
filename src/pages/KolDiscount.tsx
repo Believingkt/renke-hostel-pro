@@ -3802,6 +3802,12 @@ function verifyWebhook(payload, signature, timestamp, secret) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DiscountCodeAuditLogDialog
+        open={auditLogOpen}
+        onOpenChange={setAuditLogOpen}
+        accommodationId={accommodationId || ""}
+      />
     </div>
   );
 };
