@@ -1046,6 +1046,7 @@ const OrderDetailPage = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          const changes = computeOrderDiff(order as any, updateData);
           await supabase.from("audit_logs").insert([{
             user_id: user.id,
             user_email: user.email,
@@ -1055,7 +1056,7 @@ const OrderDetailPage = () => {
             entity_id: order.id,
             entity_name: order.order_number,
             accommodation_id: order.accommodation_id,
-            details: { type: "inline_edit" } as any,
+            details: { type: "inline_edit", changes } as any,
           }]);
         }
       } catch (e) {
