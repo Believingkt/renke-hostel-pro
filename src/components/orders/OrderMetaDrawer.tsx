@@ -362,6 +362,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         }
       }
 
+      // 記錄編輯前快照
+      initialMetaRef.current = buildMetaSnapshot(
+        (existingMeta as Record<string, any>) ?? {
+          team_commission_price: fp,
+        },
+      );
+
     })();
 
     return () => {
