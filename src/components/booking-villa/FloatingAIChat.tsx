@@ -187,7 +187,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 setHintDismissed(true);
                 setOpen(true);
               }}
-              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-in fade-in slide-in-from-right-2 duration-300 max-w-[180px] animate-bounce"
+              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-fade-in max-w-[180px]"
 
             >
               <button
