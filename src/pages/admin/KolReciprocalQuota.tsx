@@ -315,15 +315,50 @@ export default function KolReciprocalQuota() {
             <DialogTitle>{editing ? "編輯月份額度" : "新增月份額度"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>月份 (YYYY-MM)</Label>
-              <Input
-                type="month"
-                value={form.year_month}
-                onChange={(e) => setForm({ ...form, year_month: e.target.value })}
-                disabled={!!editing}
-              />
+            {!editing && (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/40">
+                <div>
+                  <div className="text-sm font-medium">批次設定多個月份</div>
+                  <div className="text-xs text-muted-foreground">同時建立 / 覆寫一段連續月份的額度</div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="checkbox"
+                    checked={bulkMode}
+                    onChange={(e) => setBulkMode(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  啟用
+                </label>
+              </div>
+            )}
+            <div className={bulkMode ? "grid grid-cols-2 gap-3" : "space-y-2"}>
+              <div className="space-y-2">
+                <Label>{bulkMode ? "起始月份" : "月份 (YYYY-MM)"}</Label>
+                <Input
+                  type="month"
+                  value={form.year_month}
+                  onChange={(e) => setForm({ ...form, year_month: e.target.value, end_month: bulkMode && form.end_month < e.target.value ? e.target.value : form.end_month })}
+                  disabled={!!editing}
+                />
+              </div>
+              {bulkMode && (
+                <div className="space-y-2">
+                  <Label>結束月份</Label>
+                  <Input
+                    type="month"
+                    value={form.end_month}
+                    min={form.year_month}
+                    onChange={(e) => setForm({ ...form, end_month: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
+            {bulkMode && (
+              <div className="text-xs text-muted-foreground">
+                將套用至 <strong className="text-foreground">{enumerateMonths(form.year_month, form.end_month).length}</strong> 個月份（已存在的月份會被覆寫）
+              </div>
+            )}
             <div className="space-y-2">
               <Label>上限筆數</Label>
               <Input
