@@ -223,8 +223,13 @@ export function BulkOpenInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>一鍵開啟庫存</DialogTitle>
+          <DialogDescription>
+            選擇多個房型與日期區間，批次建立可售庫存。
+          </DialogDescription>
+        </DialogHeader>
           <DialogTitle>一鍵開啟庫存</DialogTitle>
           <DialogDescription>
             選擇多個房型與日期區間，批次建立可售庫存。
