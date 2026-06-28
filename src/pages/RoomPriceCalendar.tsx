@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, DollarSign, Home } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Home, Zap } from "lucide-react";
+import { BulkOpenInventoryDialog } from "@/components/BulkOpenInventoryDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
@@ -117,6 +118,7 @@ export default function RoomPriceCalendar() {
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [bulkOpenDialogOpen, setBulkOpenDialogOpen] = useState(false);
   
   const [selectedCell, setSelectedCell] = useState<{
     roomTypeId: string;
@@ -527,6 +529,15 @@ export default function RoomPriceCalendar() {
 
             {/* 月份選擇器 */}
             <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setBulkOpenDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <Zap className="h-4 w-4" />
+                一鍵開啟庫存
+              </Button>
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -667,6 +678,20 @@ export default function RoomPriceCalendar() {
           onComplete={handleEditComplete}
         />
       )}
+
+      {/* 一鍵開啟庫存 */}
+      <BulkOpenInventoryDialog
+        open={bulkOpenDialogOpen}
+        onOpenChange={setBulkOpenDialogOpen}
+        accommodationId={currentAccommodationId || ''}
+        roomTypes={roomTypes}
+        defaultStart={startOfMonth(currentMonth)}
+        defaultEnd={endOfMonth(currentMonth)}
+        onComplete={() => {
+          setBulkOpenDialogOpen(false);
+          loadData();
+        }}
+      />
     </div>
   );
 }

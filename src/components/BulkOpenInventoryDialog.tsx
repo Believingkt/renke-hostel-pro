@@ -1,0 +1,391 @@
+import { useState, useMemo, useEffect } from "react";
+import { format, eachDayOfInterval } from "date-fns";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface RoomTypeOption {
+  id: string;
+  name: string;
+  is_exclusive_package: boolean;
+  base_price: number;
+  room_count: number | null;
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accommodationId: string;
+  roomTypes: RoomTypeOption[];
+  defaultStart?: Date;
+  defaultEnd?: Date;
+  onComplete: () => void;
+}
+
+type ValueMode = "default" | "custom";
+type OverwriteMode = "skip" | "overwrite";
+
+export function BulkOpenInventoryDialog({
+  open,
+  onOpenChange,
+  accommodationId,
+  roomTypes,
+  defaultStart,
+  defaultEnd,
+  onComplete,
+}: Props) {
+  const [startDate, setStartDate] = useState<Date | undefined>(defaultStart);
+  const [endDate, setEndDate] = useState<Date | undefined>(defaultEnd);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
+  const [valueMode, setValueMode] = useState<ValueMode>("default");
+  const [customValue, setCustomValue] = useState<string>("1");
+  const [overwriteMode, setOverwriteMode] = useState<OverwriteMode>("skip");
+
+  const [step, setStep] = useState<1 | 2>(1);
+  const [scanning, setScanning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [conflictCount, setConflictCount] = useState(0);
+  const [insertCount, setInsertCount] = useState(0);
+
+  useEffect(() => {
+    if (open) {
+      setStartDate(defaultStart);
+      setEndDate(defaultEnd);
+      setSelectedRoomIds(new Set());
+      setValueMode("default");
+      setCustomValue("1");
+      setOverwriteMode("skip");
+      setStep(1);
+      setConflictCount(0);
+      setInsertCount(0);
+    }
+  }, [open, defaultStart, defaultEnd]);
+
+  const dateList = useMemo(() => {
+    if (!startDate || !endDate || startDate > endDate) return [] as string[];
+    return eachDayOfInterval({ start: startDate, end: endDate }).map((d) => format(d, "yyyy-MM-dd"));
+  }, [startDate, endDate]);
+
+  const totalCells = dateList.length * selectedRoomIds.size;
+
+  const toggleRoom = (id: string) => {
+    const next = new Set(selectedRoomIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedRoomIds(next);
+  };
+
+  const selectAll = () => setSelectedRoomIds(new Set(roomTypes.map((r) => r.id)));
+  const clearAll = () => setSelectedRoomIds(new Set());
+
+  const handleScan = async () => {
+    if (dateList.length === 0) {
+      toast.error("請選擇有效的日期區間");
+      return;
+    }
+    if (selectedRoomIds.size === 0) {
+      toast.error("請至少選擇一個房型");
+      return;
+    }
+    if (valueMode === "custom") {
+      const n = parseInt(customValue, 10);
+      if (isNaN(n) || n < 0) {
+        toast.error("請輸入有效的庫存數字");
+        return;
+      }
+    }
+
+    setScanning(true);
+    try {
+      const { data, error } = await supabase
+        .from("room_inventory_pricing")
+        .select("room_type_id, date")
+        .in("room_type_id", Array.from(selectedRoomIds))
+        .gte("date", dateList[0])
+        .lte("date", dateList[dateList.length - 1])
+        .is("pricing_template_id", null);
+
+      if (error) throw error;
+      const dateSet = new Set(dateList);
+      const existing = (data || []).filter((r) => dateSet.has(r.date));
+      setConflictCount(existing.length);
+      setInsertCount(totalCells - existing.length);
+      setStep(2);
+    } catch (e) {
+      console.error(e);
+      toast.error("掃描現有資料失敗");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const roomMap = new Map(roomTypes.map((r) => [r.id, r]));
+      const roomIds = Array.from(selectedRoomIds);
+
+      // 已存在 rows
+      const { data: existingRows, error: exErr } = await supabase
+        .from("room_inventory_pricing")
+        .select("id, room_type_id, date, available_rooms, is_available")
+        .in("room_type_id", roomIds)
+        .gte("date", dateList[0])
+        .lte("date", dateList[dateList.length - 1])
+        .is("pricing_template_id", null);
+      if (exErr) throw exErr;
+
+      const dateSet = new Set(dateList);
+      const existingMap = new Map<string, { id: string; available_rooms: number; is_available: boolean }>();
+      (existingRows || []).forEach((r) => {
+        if (dateSet.has(r.date)) {
+          existingMap.set(`${r.room_type_id}_${r.date}`, {
+            id: r.id,
+            available_rooms: r.available_rooms,
+            is_available: r.is_available,
+          });
+        }
+      });
+
+      const inserts: any[] = [];
+      const updates: { id: string; available_rooms: number }[] = [];
+
+      for (const rid of roomIds) {
+        const rt = roomMap.get(rid);
+        if (!rt) continue;
+        const value =
+          valueMode === "default"
+            ? rt.room_count ?? 1
+            : parseInt(customValue, 10);
+
+        for (const dateStr of dateList) {
+          const key = `${rid}_${dateStr}`;
+          const existing = existingMap.get(key);
+          if (existing) {
+            if (overwriteMode === "overwrite") {
+              updates.push({ id: existing.id, available_rooms: value });
+            }
+            // skip 模式 → 不處理
+          } else {
+            inserts.push({
+              accommodation_id: accommodationId,
+              room_type_id: rid,
+              date: dateStr,
+              price: rt.base_price ?? 0,
+              available_rooms: value,
+              is_available: true,
+              pricing_template_id: null,
+            });
+          }
+        }
+      }
+
+      // 批次插入（分塊以避免單次 payload 過大）
+      const CHUNK = 500;
+      for (let i = 0; i < inserts.length; i += CHUNK) {
+        const chunk = inserts.slice(i, i + CHUNK);
+        const { error } = await supabase.from("room_inventory_pricing").insert(chunk);
+        if (error) throw error;
+      }
+
+      // 批次更新（含 is_available 重新開啟）
+      for (const u of updates) {
+        const { error } = await supabase
+          .from("room_inventory_pricing")
+          .update({ available_rooms: u.available_rooms, is_available: true })
+          .eq("id", u.id);
+        if (error) throw error;
+      }
+
+      toast.success(
+        `完成！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
+      );
+      onComplete();
+      onOpenChange(false);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`執行失敗：${e?.message || "未知錯誤"}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>一鍵開啟庫存</DialogTitle>
+          <DialogDescription>
+            選擇多個房型與日期區間，批次建立可售庫存。
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === 1 && (
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-5 py-2">
+              {/* 日期區間 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="mb-1.5 block">起始日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start font-normal", !startDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "yyyy-MM-dd") : "選擇日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto p-3" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="mb-1.5 block">結束日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start font-normal", !endDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "yyyy-MM-dd") : "選擇日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto p-3" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* 房型多選 */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>選擇房型（{selectedRoomIds.size} / {roomTypes.length}）</Label>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={selectAll} type="button">全選</Button>
+                    <Button variant="ghost" size="sm" onClick={clearAll} type="button">清除</Button>
+                  </div>
+                </div>
+                <div className="border rounded-md p-3 max-h-60 overflow-y-auto space-y-2">
+                  {roomTypes.map((rt) => (
+                    <label
+                      key={rt.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/40 px-2 py-1.5 rounded"
+                    >
+                      <Checkbox
+                        checked={selectedRoomIds.has(rt.id)}
+                        onCheckedChange={() => toggleRoom(rt.id)}
+                      />
+                      <span className="text-sm flex-1">{rt.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {rt.is_exclusive_package ? "包棟/包區" : "一般房型"} · 預設庫存 {rt.room_count ?? "-"}
+                      </span>
+                    </label>
+                  ))}
+                  {roomTypes.length === 0 && (
+                    <div className="text-sm text-muted-foreground text-center py-4">尚無房型資料</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 庫存數值來源 */}
+              <div>
+                <Label className="mb-1.5 block">庫存數值</Label>
+                <RadioGroup value={valueMode} onValueChange={(v) => setValueMode(v as ValueMode)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="default" id="vm-default" />
+                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                      使用房型預設庫存量（推薦）
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="custom" id="vm-custom" />
+                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={customValue}
+                      onChange={(e) => setCustomValue(e.target.value)}
+                      onFocus={() => setValueMode("custom")}
+                      className="w-24 h-8"
+                    />
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {totalCells > 0 && (
+                <Alert>
+                  <AlertDescription className="text-sm">
+                    預計處理 <strong>{selectedRoomIds.size}</strong> 個房型 × <strong>{dateList.length}</strong> 天 = <strong>{totalCells}</strong> 筆
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4 py-2">
+            <Alert>
+              <AlertDescription className="text-sm space-y-1">
+                <div>共 <strong>{totalCells}</strong> 筆，其中：</div>
+                <div>• 新建（無資料的日期）：<strong className="text-primary">{insertCount}</strong> 筆</div>
+                <div>• 已有設定（將依下方策略處理）：<strong className="text-amber-600">{conflictCount}</strong> 筆</div>
+              </AlertDescription>
+            </Alert>
+
+            <div>
+              <Label className="mb-2 block">已有設定的日期如何處理？</Label>
+              <RadioGroup value={overwriteMode} onValueChange={(v) => setOverwriteMode(v as OverwriteMode)}>
+                <div className="flex items-start space-x-2 border rounded-md p-3">
+                  <RadioGroupItem value="skip" id="om-skip" className="mt-0.5" />
+                  <Label htmlFor="om-skip" className="font-normal cursor-pointer flex-1">
+                    <div className="font-medium">只填補空白日，不覆寫</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">已設定的日期保留原值（安全）</div>
+                  </Label>
+                </div>
+                <div className="flex items-start space-x-2 border rounded-md p-3">
+                  <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
+                  <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
+                    <div className="font-medium">全部強制覆寫</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">將所有日期都改為新值並開啟販售</div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          {step === 1 && (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+              <Button onClick={handleScan} disabled={scanning || totalCells === 0}>
+                {scanning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                下一步：檢查衝突
+              </Button>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <Button variant="outline" onClick={() => setStep(1)} disabled={submitting}>上一步</Button>
+              <Button onClick={handleSubmit} disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                確認執行
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
