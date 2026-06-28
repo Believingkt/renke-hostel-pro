@@ -435,6 +435,28 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
             {renderMonth(baseMonth)}
             {renderMonth(secondMonth)}
           </div>
+          {isMultiUnit && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>圖例：</span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-emerald-300 bg-emerald-50" />
+                充足（≥60%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-amber-300 bg-amber-50" />
+                普通（25–60%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-red-300 bg-red-50" />
+                緊張（&lt;25%）
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded border border-muted bg-muted" />
+                已滿
+              </span>
+              <span className="ml-2">數字 = 可訂房數 / 總房數</span>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
