@@ -270,7 +270,11 @@ export function ClearProjectPricingDialog({
                           mode="single"
                           selected={startDate}
                           defaultMonth={startDate}
-                          onSelect={(date) => date && setStartDate(date)}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            setStartDate(date);
+                            if (endDate && endDate < date) setEndDate(date);
+                          }}
                           variant="backend"
                           initialFocus
                         />
@@ -296,7 +300,7 @@ export function ClearProjectPricingDialog({
                         <Calendar
                           mode="single"
                           selected={endDate}
-                          defaultMonth={endDate}
+                          defaultMonth={endDate ?? startDate}
                           onSelect={(date) => date && setEndDate(date)}
                           variant="backend"
                           initialFocus
