@@ -120,6 +120,14 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
               type: "order_source_change",
               old_source: order.order_source,
               new_source: selectedSource,
+              changes: [
+                {
+                  field: "order_source",
+                  label: "訂單來源",
+                  before: oldLabel,
+                  after: newLabel,
+                },
+              ],
             } as any,
           }]);
         }
