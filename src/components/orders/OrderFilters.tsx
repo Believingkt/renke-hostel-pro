@@ -29,11 +29,13 @@ interface OrderFiltersProps {
   onSubmit: () => void;
 }
 
-function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
+function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value: string; onChange: (val: string) => void; placeholder?: string; fallbackDate?: string }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value);
   const dateObj = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
   const isValidDate = dateObj && !isNaN(dateObj.getTime());
+  const fallbackObj = fallbackDate ? parse(fallbackDate, "yyyy-MM-dd", new Date()) : undefined;
+  const fallbackValid = fallbackObj && !isNaN(fallbackObj.getTime());
 
   // Keep local text in sync with external prop value
   useEffect(() => {
