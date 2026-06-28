@@ -161,14 +161,18 @@ export function BulkOpenInventoryDialog({
         }
       });
 
+      const isClose = operationMode === "close";
+      const sourceTag = isClose ? "bulk_close" : "bulk_open";
+
       const inserts: any[] = [];
       const updates: { id: string; available_rooms: number }[] = [];
 
       for (const rid of roomIds) {
         const rt = roomMap.get(rid);
         if (!rt) continue;
-        const value =
-          valueMode === "default"
+        const value = isClose
+          ? 0
+          : valueMode === "default"
             ? rt.room_count ?? 1
             : parseInt(customValue, 10);
 
@@ -189,9 +193,9 @@ export function BulkOpenInventoryDialog({
               date: dateStr,
               price: rt.base_price ?? 0,
               available_rooms: value,
-              is_available: true,
+              is_available: !isClose,
               pricing_template_id: null,
-              last_change_source: "bulk_open",
+              last_change_source: sourceTag,
             });
           }
         }
@@ -205,17 +209,17 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
-      // 批次更新（含 is_available 重新開啟）
+      // 批次更新
       for (const u of updates) {
         const { error } = await supabase
           .from("room_inventory_pricing")
-          .update({ available_rooms: u.available_rooms, is_available: true, last_change_source: "bulk_open" })
+          .update({ available_rooms: u.available_rooms, is_available: !isClose, last_change_source: sourceTag })
           .eq("id", u.id);
         if (error) throw error;
       }
 
       toast.success(
-        `完成！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
+        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
       );
       onComplete();
       onOpenChange(false);
