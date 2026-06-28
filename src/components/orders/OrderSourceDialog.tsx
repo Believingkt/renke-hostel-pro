@@ -59,6 +59,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
 
     setIsSaving(true);
 
+    let kolOverrideStatus: KolQuotaStatus | null = null;
     // KOL 互惠額度檢查（從非 kol 切換為 kol 時觸發）
     if (selectedSource === "kol" && order.order_source !== "kol" && accommodationId) {
       const permitted = await ensureKolQuotaPermit({
@@ -76,6 +77,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
               resolve,
             });
           }),
+        onOverride: (status) => { kolOverrideStatus = status; },
       });
       if (!permitted) {
         setIsSaving(false);
