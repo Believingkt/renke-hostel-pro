@@ -1128,6 +1128,16 @@ const OrderDetailPage = () => {
         console.error("Audit log error:", e);
       }
 
+      if (kolOverrideStatus && order.accommodation_id) {
+        await logKolQuotaOverride({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          accommodationId: order.accommodation_id,
+          status: kolOverrideStatus,
+          context: "edit",
+        });
+      }
+
       toast({ title: "儲存成功", description: "訂單已更新" });
       setIsEditing(false);
 
