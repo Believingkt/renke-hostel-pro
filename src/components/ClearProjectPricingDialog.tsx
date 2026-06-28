@@ -154,6 +154,11 @@ export function ClearProjectPricingDialog({
 
       for (const rtId of roomTypeIds) {
         if (result === 'all') {
+          // 預先標記變更來源，讓 audit log 觸發器能紀錄 project_clear
+          await supabase
+            .from('room_inventory_pricing')
+            .update({ last_change_source: 'project_clear' })
+            .eq('room_type_id', rtId);
           const { error } = await supabase
             .from('room_inventory_pricing')
             .delete()
@@ -164,6 +169,11 @@ export function ClearProjectPricingDialog({
             toast.error('沒有符合條件的日期');
             return;
           }
+          await supabase
+            .from('room_inventory_pricing')
+            .update({ last_change_source: 'project_clear' })
+            .eq('room_type_id', rtId)
+            .in('date', result);
           const { error } = await supabase
             .from('room_inventory_pricing')
             .delete()
