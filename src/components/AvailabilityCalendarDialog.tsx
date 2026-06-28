@@ -62,7 +62,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
-  const isMultiUnit = true;
+  // 森山/哈庫整館綁定鎖房，不顯示間數比例
+  const isMultiUnit =
+    accommodationId !== HAKUNA_ACCOMMODATION_ID &&
+    accommodationId !== SENSAN_ACCOMMODATION_ID;
 
   const baseMonth = useMemo(() => {
     if (!baseMonthValue) return startOfMonth(today);
