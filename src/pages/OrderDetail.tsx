@@ -480,6 +480,16 @@ const OrderDetailPage = () => {
       if (Object.keys(cfg).length > 0) parsedConfigs.push(cfg);
     });
     setEditExclusiveConfigs(parsedConfigs);
+    // Snapshot 編輯前的房間配置與包區設定，供儲存時計算差異
+    initialEditSnapshot.current = {
+      rooms: (orderRooms || []).map(r => ({
+        room_type_id: r.room_type_id,
+        quantity: r.quantity,
+        room_price: r.room_price,
+        room_unit_id: r.room_unit_id ?? null,
+      })),
+      exclusiveConfigs: JSON.parse(JSON.stringify(parsedConfigs)),
+    };
     setEditForm({
       guest_name: order.guest_name || "",
       guest_phone: order.guest_phone || "",
