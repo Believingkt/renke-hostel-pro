@@ -39,7 +39,7 @@ function getActionLabel(details: any, action_type: string) {
   return ACTION_LABEL[action_type] || { text: action_type, tone: "bg-zinc-100 text-zinc-700" };
 }
 
-export default function OrderAuditLogCard({ orderId }: OrderAuditLogCardProps) {
+export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLogCardProps) {
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
