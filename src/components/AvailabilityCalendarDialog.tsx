@@ -13,7 +13,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, ListFilter } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MonthPicker } from "@/components/ui/month-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -39,7 +41,7 @@ const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8",
   "8e3e8866-3cb0-4654-91f3-d9b09a543301",
 ]);
-// 多棟/多間：顯示熱度色階 + 可訂房數/總房數
+// 多棟/多間：顯示熱度色階 + 可訂房數/總房數，並支援包棟/散客/多選
 const MULTI_UNIT_HEATMAP_IDS = new Set<string>([
   "4ee31aca-5641-4d05-80e2-1c67626be83d", // 天送幸福和苑
   "7690a606-6bac-4cd5-a3e7-2fa754b318e8", // 雲岫海景渡假會館
@@ -53,7 +55,7 @@ interface Props {
 }
 
 type RoomType = { id: string; name: string; is_exclusive_package: boolean | null; room_count: number };
-type Mode = "all" | "single";
+type Mode = "all" | "single" | "package" | "common" | "custom";
 
 export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId }: Props) {
   const today = useMemo(() => startOfToday(), []);
@@ -61,6 +63,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
   const [mode, setMode] = useState<Mode>("all");
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
+  const [customIds, setCustomIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [capacityByDate, setCapacityByDate] = useState<Map<string, { available: number; total: number }>>(new Map());
@@ -84,6 +87,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       const list = ((data || []) as any[]).map((r) => ({ ...r, room_count: r.room_count ?? 1 })) as RoomType[];
       setRoomTypes(list);
       if (!selectedRoomTypeId && list.length > 0) setSelectedRoomTypeId(list[0].id);
+      setCustomIds((prev) => (prev.size === 0 ? new Set(list.map((r) => r.id)) : prev));
     })();
   }, [open, accommodationId]);
 
@@ -110,13 +114,22 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       const startStr = formatISO(startDate, { representation: "date" });
       const endStr = formatISO(endDate, { representation: "date" });
 
-      const targetRoomTypes =
-        mode === "single"
-          ? rts.filter((r) => r.id === selectedRoomTypeId)
-          : rts;
+      let targetRoomTypes: RoomType[];
+      if (mode === "single") {
+        targetRoomTypes = rts.filter((r) => r.id === selectedRoomTypeId);
+      } else if (mode === "package") {
+        targetRoomTypes = rts.filter((r) => r.is_exclusive_package === true);
+      } else if (mode === "common") {
+        targetRoomTypes = rts.filter((r) => r.is_exclusive_package !== true);
+      } else if (mode === "custom") {
+        targetRoomTypes = rts.filter((r) => customIds.has(r.id));
+      } else {
+        targetRoomTypes = rts;
+      }
       if (targetRoomTypes.length === 0) {
         if (!cancelled) {
           setAvailableDates(new Set());
+          setCapacityByDate(new Map());
           setLoading(false);
         }
         return;
@@ -204,7 +217,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
       const available = new Set<string>();
       for (const date of allDates) {
-        if (mode === "single") {
+        if (mode === "single" || mode === "custom" || mode === "package" || mode === "common") {
           if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
           continue;
         }
@@ -264,7 +277,7 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     return () => {
       cancelled = true;
     };
-  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes]);
+  }, [open, accommodationId, baseMonth, secondMonth, mode, selectedRoomTypeId, roomTypes, customIds]);
 
   const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -366,6 +379,24 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
     setBaseMonthValue(format(next, "yyyy-MM"));
   };
 
+  const toggleCustom = (id: string) => {
+    setCustomIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const customSummary = useMemo(() => {
+    if (customIds.size === 0) return "未選任何房型";
+    if (customIds.size === roomTypes.length) return `全部 (${roomTypes.length})`;
+    return `已選 ${customIds.size} / ${roomTypes.length}`;
+  }, [customIds, roomTypes]);
+
+  const packageRoomTypesAll = roomTypes.filter((r) => r.is_exclusive_package === true);
+  const commonRoomTypesAll = roomTypes.filter((r) => r.is_exclusive_package !== true);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -378,11 +409,18 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全館合計</SelectItem>
+              {isMultiUnit && packageRoomTypesAll.length > 0 && (
+                <SelectItem value="package">僅包棟（{packageRoomTypesAll.length}）</SelectItem>
+              )}
+              {isMultiUnit && commonRoomTypesAll.length > 0 && (
+                <SelectItem value="common">僅散客房（{commonRoomTypesAll.length}）</SelectItem>
+              )}
+              {isMultiUnit && <SelectItem value="custom">自訂多選…</SelectItem>}
               <SelectItem value="single">單一房型</SelectItem>
             </SelectContent>
           </Select>
@@ -399,6 +437,79 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
                 ))}
               </SelectContent>
             </Select>
+          )}
+          {mode === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <ListFilter className="h-4 w-4" />
+                  {customSummary}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[280px] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">勾選要納入計算的房型</span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setCustomIds(new Set(roomTypes.map((r) => r.id)))}
+                    >
+                      全選
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setCustomIds(new Set())}
+                    >
+                      清空
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                  {packageRoomTypesAll.length > 0 && (
+                    <div>
+                      <div className="text-[11px] font-semibold text-muted-foreground mb-1">包棟</div>
+                      <div className="space-y-1.5">
+                        {packageRoomTypesAll.map((rt) => (
+                          <label key={rt.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={customIds.has(rt.id)}
+                              onCheckedChange={() => toggleCustom(rt.id)}
+                            />
+                            <span className="flex-1 truncate">{rt.name}</span>
+                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                              ×{rt.room_count}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {commonRoomTypesAll.length > 0 && (
+                    <div>
+                      <div className="text-[11px] font-semibold text-muted-foreground mb-1">散客房</div>
+                      <div className="space-y-1.5">
+                        {commonRoomTypesAll.map((rt) => (
+                          <label key={rt.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={customIds.has(rt.id)}
+                              onCheckedChange={() => toggleCustom(rt.id)}
+                            />
+                            <span className="flex-1 truncate">{rt.name}</span>
+                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                              ×{rt.room_count}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
           <div className="ml-auto flex items-center gap-1">
             <Button
