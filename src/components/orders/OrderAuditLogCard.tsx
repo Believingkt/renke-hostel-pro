@@ -98,7 +98,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
   return (
     <Card>
       <CardHeader
-        className="flex flex-row items-center gap-2 pb-3 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+        className={`flex flex-row items-center gap-2 cursor-pointer select-none hover:bg-muted/30 transition-colors py-3 ${cardOpen ? "pb-3" : ""}`}
         onClick={() => setCardOpen((v) => !v)}
       >
         {cardOpen ? (
