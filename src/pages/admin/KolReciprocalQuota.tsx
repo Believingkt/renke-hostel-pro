@@ -46,7 +46,8 @@ export default function KolReciprocalQuota() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
-  const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), end_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
 
   const load = async () => {
     if (!currentAccommodationId) return;
