@@ -538,7 +538,7 @@ export default function RoomPriceCalendar() {
                 className="gap-1.5"
               >
                 <Zap className="h-4 w-4" />
-                一鍵開啟庫存
+                一鍵開啟/關閉庫存
               </Button>
               <Button
                 variant="outline"
