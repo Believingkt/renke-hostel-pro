@@ -376,6 +376,7 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={endDate}
+                    defaultMonth={endDate ?? startDate}
                     onSelect={(date) => {
                       if (date) {
                         setEndDate(date);
