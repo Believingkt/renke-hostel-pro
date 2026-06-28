@@ -111,3 +111,59 @@ export function formatChangeValue(field: string, value: any): string {
 export function getFieldLabel(field: string): string {
   return FIELD_LABELS[field] || field;
 }
+
+// 將 order_rooms 陣列序列化為人類可讀字串
+interface RoomLike {
+  room_type_id: string;
+  quantity: number;
+  room_price?: number | null;
+  room_unit_id?: string | null;
+}
+function formatRoomsList(
+  rooms: RoomLike[],
+  roomTypeNameMap: Record<string, string>,
+  unitNameMap: Record<string, string>,
+): string {
+  if (!rooms || rooms.length === 0) return "(無)";
+  return rooms
+    .map((r) => {
+      const typeName = roomTypeNameMap[r.room_type_id] || r.room_type_id?.slice(0, 6) || "未知房型";
+      const unit = r.room_unit_id ? `[${unitNameMap[r.room_unit_id] || "指定單位"}]` : r.quantity === 1 ? "[自動安排]" : "";
+      const price = r.room_price != null ? ` $${r.room_price}` : "";
+      return `${typeName}×${r.quantity}${unit}${price}`;
+    })
+    .join("、");
+}
+
+export function computeRoomsDiff(
+  before: RoomLike[],
+  after: RoomLike[],
+  roomTypeNameMap: Record<string, string> = {},
+  unitNameMap: Record<string, string> = {},
+): OrderFieldChange | null {
+  const a = formatRoomsList(before || [], roomTypeNameMap, unitNameMap);
+  const b = formatRoomsList(after || [], roomTypeNameMap, unitNameMap);
+  if (a === b) return null;
+  return { field: "__rooms", label: FIELD_LABELS.__rooms, before: a, after: b };
+}
+
+export function computeExclusiveConfigDiff(
+  before: Array<Record<string, number>> | null | undefined,
+  after: Array<Record<string, number>> | null | undefined,
+): OrderFieldChange | null {
+  const ser = (arr: Array<Record<string, number>> | null | undefined) => {
+    if (!arr || arr.length === 0) return "(無)";
+    return arr
+      .map((cfg, i) => {
+        const parts = Object.entries(cfg)
+          .filter(([, n]) => Number(n) > 0)
+          .map(([k, n]) => `${k} ${n} 間`);
+        return parts.length > 0 ? `#${i + 1} ${parts.join("、")}` : `#${i + 1} (空)`;
+      })
+      .join("｜");
+  };
+  const a = ser(before);
+  const b = ser(after);
+  if (a === b) return null;
+  return { field: "__exclusive_config", label: FIELD_LABELS.__exclusive_config, before: a, after: b };
+}
