@@ -166,7 +166,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         <button
           onClick={() => setOpen(true)}
           aria-label="開啟 AI 管家"
-          className="fixed z-[70] right-3 md:right-6 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6"
+          className="fixed z-[45] right-3 md:right-6 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6"
           style={{
             opacity: 0.85,
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
@@ -194,9 +194,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1 mr-8">
+            <div className="relative z-10 flex items-center gap-1 mr-12">
               {messages.length > 0 && userId && (
-                <Button variant="ghost" size="icon" onClick={clearHistory} aria-label="清除對話">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={clearHistory} aria-label="清除對話">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}
