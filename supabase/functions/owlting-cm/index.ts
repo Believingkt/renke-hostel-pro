@@ -9,12 +9,12 @@
  *
  * WS-Security UsernameToken auth — single shared OwlTing service account
  * (owlting_service_accounts). Individual property credentials are no longer used.
- * HotelCode is still mapped to a property via owlting_credentials.hotel_code.
+ * HotelCode is mapped to a property via accommodation_owlting_config.owlting_hotel_code
+ * (single source of truth — same row that the HQ「奧丁丁物業設定」UI manages).
+ * Only properties with sync_enabled = true are accepted.
  *
  * Code mapping (numeric, auto-assigned, starting at 1001):
- *   HotelCode    = owlting_credentials.hotel_code
- *   RoomTypeCode = room_types.numeric_code           (e.g. "1001")
- *   RatePlanCode = pricing_templates.numeric_code    (e.g. "1001")
+ *   HotelCode    = accommodation_owlting_config.owlting_hotel_code
  *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -236,16 +236,17 @@ async function authenticate(
   });
   if (rpcErr || !ok) return { ok: false, msg: "Invalid service account credentials" };
 
-  // 2. Resolve HotelCode -> accommodation_id (still per-property mapping)
+  // 2. Resolve HotelCode -> accommodation_id
+  // Single source of truth: accommodation_owlting_config.owlting_hotel_code (sync_enabled = true)
   if (!hotelCode) return { ok: false, msg: "Missing HotelCode" };
   const { data: prop } = await supabase
-    .from("owlting_credentials")
-    .select("accommodation_id, hotel_code, is_active")
-    .eq("hotel_code", hotelCode)
+    .from("accommodation_owlting_config")
+    .select("accommodation_id, owlting_hotel_code, sync_enabled")
+    .eq("owlting_hotel_code", hotelCode)
     .maybeSingle();
-  if (!prop || !prop.is_active) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
+  if (!prop || !prop.sync_enabled) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
 
-  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.hotel_code };
+  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.owlting_hotel_code };
 }
 
 // ============== Handlers ==============
