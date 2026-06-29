@@ -424,6 +424,10 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
     parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
   );
 
+  // Package-group context: lets canonical-room avail pushes fan out to
+  // every member room_type ("sell-one, close-all").
+  const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
+
   // Batch buffers.
   // IMPORTANT: rows MUST NOT carry a `price` field — availability push must
   // not overwrite prices. The RPC only updates fields explicitly present.
@@ -461,8 +465,14 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
       if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
       if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
       if (Object.keys(patch).length === 0) continue;
+      // Fan-out: if room is a group canonical, write to every member room_type
+      // (= sell-one-close-all). Otherwise write to the room itself.
+      const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
+      const targetRoomIds = memberIds && memberIds.length > 0 ? memberIds : [room.id];
       for (const d of dates) {
-        inventoryRows.push({ room_type_id: room.id, date: d, pricing_template_id: null, ...patch });
+        for (const rid of targetRoomIds) {
+          inventoryRows.push({ room_type_id: rid, date: d, pricing_template_id: null, ...patch });
+        }
       }
     }
   }
