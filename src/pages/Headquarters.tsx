@@ -92,6 +92,7 @@ import PointRulesManagement from "@/components/headquarters/PointRulesManagement
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
+import { PermissionTemplatesDialog } from "@/components/PermissionTemplatesDialog";
 import { Settings2 } from "lucide-react";
 
 interface UserRole {
