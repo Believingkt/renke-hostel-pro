@@ -267,16 +267,78 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", auth.accommodationId);
 
-  const stays = (rooms ?? []).map((r: any) => {
+  // ----- Package-group consolidation -----
+  // Load owlting room-type group config (if any). When a group exists,
+  // its member room_types are collapsed into 1 <RoomStay> with the
+  // canonical RoomTypeCode/Name; RatePlans are taken from each member's
+  // mapped pricing_template. Non-grouped room_types behave exactly as before.
+  const { data: groups } = await supabase
+    .from("owlting_room_type_groups")
+    .select("id,canonical_room_type_id,canonical_name,display_order")
+    .eq("accommodation_id", auth.accommodationId)
+    .order("display_order", { ascending: true });
+
+  const groupIds = (groups ?? []).map((g: any) => g.id);
+  const { data: members } = groupIds.length
+    ? await supabase
+        .from("owlting_room_type_group_members")
+        .select("group_id,room_type_id,rate_plan_template_id,rate_plan_name,display_order")
+        .in("group_id", groupIds)
+        .order("display_order", { ascending: true })
+    : { data: [] as any[] };
+
+  const roomById = new Map<string, any>((rooms ?? []).map((r: any) => [r.id, r]));
+  const tplById = new Map<string, any>((templates ?? []).map((t: any) => [t.id, t]));
+
+  // member room_type_id -> group_id (these room_types are hidden as individual RoomStays)
+  const memberRoomToGroup = new Map<string, string>();
+  // group_id -> array of { template, rate_plan_name }
+  const groupPlans = new Map<string, Array<{ tpl: any; name: string }>>();
+  for (const m of (members ?? []) as any[]) {
+    memberRoomToGroup.set(m.room_type_id, m.group_id);
+    const tpl = tplById.get(m.rate_plan_template_id);
+    if (!tpl) continue; // skip if template missing
+    const arr = groupPlans.get(m.group_id) ?? [];
+    arr.push({ tpl, name: m.rate_plan_name });
+    groupPlans.set(m.group_id, arr);
+  }
+
+  const emittedGroupIds = new Set<string>();
+  const stayParts: string[] = [];
+
+  for (const r of (rooms ?? []) as any[]) {
+    const groupId = memberRoomToGroup.get(r.id);
+    if (groupId) {
+      // Emit canonical RoomStay once per group
+      if (emittedGroupIds.has(groupId)) continue;
+      const g = (groups ?? []).find((x: any) => x.id === groupId);
+      if (!g) continue;
+      const canonical = roomById.get(g.canonical_room_type_id);
+      if (!canonical) continue;
+      const plans = groupPlans.get(groupId) ?? [];
+      const planXml = plans.map(({ tpl, name }) =>
+        `<RatePlan RatePlanCode="${tpl.numeric_code}"><RatePlanDescription Name="${xmlEscape(name)}"/></RatePlan>`,
+      ).join("");
+      stayParts.push(`<RoomStay>
+      <RoomTypes><RoomType RoomTypeCode="${canonical.numeric_code}"><RoomDescription Name="${xmlEscape(g.canonical_name)}"/></RoomType></RoomTypes>
+      <RatePlans>${planXml}</RatePlans>
+    </RoomStay>`);
+      emittedGroupIds.add(groupId);
+      continue;
+    }
+
+    // Non-grouped room_type: original behavior
     const plans = (templates ?? []).filter((t: any) => !t.room_type_id || t.room_type_id === r.id);
     const planXml = plans.map((p: any) =>
       `<RatePlan RatePlanCode="${p.numeric_code}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
     ).join("");
-    return `<RoomStay>
+    stayParts.push(`<RoomStay>
       <RoomTypes><RoomType RoomTypeCode="${r.numeric_code}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
       <RatePlans>${planXml}</RatePlans>
-    </RoomStay>`;
-  }).join("");
+    </RoomStay>`);
+  }
+
+  const stays = stayParts.join("");
 
   const body = `<OTA_HotelAvailRS xmlns="${OTA_NS}" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${xmlEscape(echo)}">
     <Success/>
