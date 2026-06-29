@@ -99,6 +99,7 @@ interface UserRole {
   user_id: string;
   accommodation_id: string;
   role: string;
+  template_id?: string | null;
   created_at: string;
   updated_at: string;
   user_email?: string;
@@ -106,6 +107,12 @@ interface UserRole {
   status?: 'pending' | 'active';
   statusLabel?: string;
   display_order?: number;
+}
+
+interface PermissionTemplate {
+  id: string;
+  accommodation_id: string;
+  name: string;
 }
 
 interface GroupedUser {
