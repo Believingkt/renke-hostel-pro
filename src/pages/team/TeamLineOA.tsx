@@ -42,10 +42,22 @@ import {
   ChevronsUpDown,
   Check,
   Info,
+  Trash2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 type LineChannel = {
   id: string;
@@ -163,7 +175,7 @@ export default function TeamLineOA() {
       <Tabs value={tab} onValueChange={setTab}>
         <ResponsiveTabs tabs={tabs} value={tab} onValueChange={setTab} />
         <TabsContent value="groups" className="mt-4">
-          <GroupsTab hideGroupId={isAm} />
+          <GroupsTab hideGroupId={isAm} canManage={!isAm} />
         </TabsContent>
         <TabsContent value="events" className="mt-4">
           <EventsTab />
@@ -424,7 +436,9 @@ function emptyGroupForm(): GroupFormState {
   };
 }
 
-function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
+function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: boolean; canManage?: boolean }) {
+  const [deleteTarget, setDeleteTarget] = useState<PushTarget | null>(null);
+
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
   const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
@@ -531,6 +545,21 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase
+      .from("line_push_targets")
+      .delete()
+      .eq("id", deleteTarget.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("已刪除綁定");
+      setDeleteTarget(null);
+      load();
+    }
+  };
+
+
   const toggleItem = (key: keyof GroupFormState, value: string) => {
     if (!form) return;
     const arr = (form[key] as string[]) ?? [];
@@ -568,11 +597,16 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
           <CardTitle className="text-base">推播群組管理</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊。
-            <br />
-            💡 同一個群組可建立多筆訂閱規則（例如「每日業績只收特定館」+「金額異動收全館」），點選最右側
-            <Copy className="inline h-3 w-3 mx-1" />
-            複製為新規則。
+            {canManage && (
+              <>
+                <br />
+                💡 同一個群組可建立多筆訂閱規則（例如「每日業績只收特定館」+「金額異動收全館」），點選最右側
+                <Copy className="inline h-3 w-3 mx-1" />
+                複製為新規則。
+              </>
+            )}
           </p>
+
         </div>
         <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" /> 手動新增群組
@@ -650,35 +684,46 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                         <Button variant="ghost" size="icon" onClick={() => openEdit(g)} title="編輯">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="複製為新訂閱規則（同群組可有多筆）"
-                          onClick={() => {
-                            openEdit(g);
-                            // 移除 id → 變成新增模式，但保留 target_id / display_name / channel
-                            setTimeout(() => {
-                              setForm((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      id: undefined,
-                                      event_types: [],
-                                      accommodation_ids: [],
-                                      custom_venue_names: [],
-                                      // 名稱跟著 groupId 走，不在複製時改名
-                                      display_name: prev.display_name || "",
-                                    }
-                                  : prev,
-                              );
-                            }, 0);
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="複製為新訂閱規則（同群組可有多筆）"
+                              onClick={() => {
+                                openEdit(g);
+                                setTimeout(() => {
+                                  setForm((prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          id: undefined,
+                                          event_types: [],
+                                          accommodation_ids: [],
+                                          custom_venue_names: [],
+                                          display_name: prev.display_name || "",
+                                        }
+                                      : prev,
+                                  );
+                                }, 0);
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="刪除綁定"
+                              onClick={() => setDeleteTarget(g)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
+
                 ))
               )}
             </TableBody>
@@ -825,7 +870,32 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>刪除推播綁定</AlertDialogTitle>
+            <AlertDialogDescription>
+              即將刪除「{deleteTarget?.display_name || deleteTarget?.target_id}」的綁定。
+              <br />
+              <span className="text-destructive font-medium">
+                ⚠️ 請先確認群組機器人已移除，才刪除此綁定，否則機器人下次重新加入時仍會自動建立綁定。
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
+
   );
 }
 
