@@ -175,7 +175,7 @@ export default function TeamLineOA() {
       <Tabs value={tab} onValueChange={setTab}>
         <ResponsiveTabs tabs={tabs} value={tab} onValueChange={setTab} />
         <TabsContent value="groups" className="mt-4">
-          <GroupsTab hideGroupId={isAm} />
+          <GroupsTab hideGroupId={isAm} canManage={!isAm} />
         </TabsContent>
         <TabsContent value="events" className="mt-4">
           <EventsTab />
