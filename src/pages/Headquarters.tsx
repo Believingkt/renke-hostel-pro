@@ -1166,7 +1166,20 @@ const Headquarters = () => {
                         {selectedAccommodation && getTemplatesFor(selectedAccommodation).map((t) => (
                           <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
                         ))}
+                        <div className="border-t mt-1 pt-1">
+                          <button
+                            type="button"
+                            className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              navigate('/admin/permission-templates');
+                            }}
+                          >
+                            ＋ 管理職位範本…
+                          </button>
+                        </div>
                       </SelectContent>
+
                     </Select>
                   </div>
                   <div className="flex items-end">
@@ -1240,7 +1253,20 @@ const Headquarters = () => {
                         {addRoleAccommodation && getTemplatesFor(addRoleAccommodation).map((t) => (
                           <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
                         ))}
+                        <div className="border-t mt-1 pt-1">
+                          <button
+                            type="button"
+                            className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              navigate('/admin/permission-templates');
+                            }}
+                          >
+                            ＋ 管理職位範本…
+                          </button>
+                        </div>
                       </SelectContent>
+
                     </Select>
                   </div>
                   <div className="space-y-2">
