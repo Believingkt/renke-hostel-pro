@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
@@ -805,19 +806,24 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 <span>訂金確認日</span>
                 {paymentStatus === "deposit_paid" &&
                   (!depositConfirmDate || !depositConfirmDateVerified) && (
-                    <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200"
-                      title={
-                        !depositConfirmDate
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200 cursor-pointer hover:bg-sky-200 transition-colors"
+                        >
+                          📌
+                          {!depositConfirmDate
+                            ? "請確認/補上此日期"
+                            : "系統自動帶入，請確認此日期是否正確"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="start" className="w-auto max-w-[260px] text-xs leading-relaxed">
+                        {!depositConfirmDate
                           ? "請確認/補上此日期"
-                          : "系統自動帶入，請確認此日期是否正確"
-                      }
-                    >
-                      📌
-                      {!depositConfirmDate
-                        ? "請確認/補上此日期"
-                        : "系統自動帶入，請確認此日期是否正確"}
-                    </span>
+                          : "系統自動帶入，請確認此日期是否正確"}
+                      </PopoverContent>
+                    </Popover>
                   )}
               </Label>
               <Input

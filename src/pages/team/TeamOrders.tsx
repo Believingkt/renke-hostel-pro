@@ -35,6 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
 import { Pencil, Check, X, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
@@ -1032,16 +1033,27 @@ export default function TeamOrders() {
                           {o.payment_status === "deposit_paid" &&
                             (!o.meta?.deposit_confirm_date ||
                               !o.meta?.deposit_confirm_date_verified) && (
-                              <span
-                                title={
-                                  !o.meta?.deposit_confirm_date
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-sky-600 cursor-pointer leading-none"
+                                  >
+                                    📌
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  side="top"
+                                  align="center"
+                                  className="w-auto max-w-[240px] text-xs leading-relaxed"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {!o.meta?.deposit_confirm_date
                                     ? "請確認/補上此日期"
-                                    : "系統自動帶入，請確認此日期是否正確"
-                                }
-                                className="text-sky-600"
-                              >
-                                📌
-                              </span>
+                                    : "系統自動帶入，請確認此日期是否正確"}
+                                </PopoverContent>
+                              </Popover>
                             )}
                         </span>
                       </TableCell>
@@ -1627,19 +1639,24 @@ export default function TeamOrders() {
                           {editOrder?.payment_status === "deposit_paid" &&
                             (!form.deposit_confirm_date ||
                               !editOrder?.meta?.deposit_confirm_date_verified) && (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200"
-                                title={
-                                  !form.deposit_confirm_date
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200 cursor-pointer hover:bg-sky-200 transition-colors"
+                                  >
+                                    📌
+                                    {!form.deposit_confirm_date
+                                      ? "請確認/補上此日期"
+                                      : "系統自動帶入，請確認此日期是否正確"}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent side="top" align="start" className="w-auto max-w-[260px] text-xs leading-relaxed">
+                                  {!form.deposit_confirm_date
                                     ? "請確認/補上此日期"
-                                    : "系統自動帶入，請確認此日期是否正確"
-                                }
-                              >
-                                📌
-                                {!form.deposit_confirm_date
-                                  ? "請確認/補上此日期"
-                                  : "系統自動帶入，請確認此日期是否正確"}
-                              </span>
+                                    : "系統自動帶入，請確認此日期是否正確"}
+                                </PopoverContent>
+                              </Popover>
                             )}
                         </Label>
                         <Input
