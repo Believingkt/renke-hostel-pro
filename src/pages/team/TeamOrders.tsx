@@ -66,6 +66,7 @@ interface OrderRow {
   order_date: string | null;
   created_at: string;
   order_status: string | null;
+  payment_status: string | null;
   accommodation_name: string;
   meta: MetaRow | null;
 }
@@ -92,6 +93,7 @@ interface MetaRow {
   addon_amount?: number | null;
   nickname?: string | null;
   deposit_confirm_date?: string | null;
+  deposit_confirm_date_verified?: boolean | null;
   team_commission_price?: number | null;
   commission_price_confirmed_by?: string | null;
   commission_price_confirmed_at?: string | null;
@@ -511,7 +513,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status`,
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
             { count: "exact" }
           )
       );
@@ -559,7 +561,7 @@ export default function TeamOrders() {
                  booking_method, ad_id, is_excluded, closer_assisted,
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-                 nickname, deposit_confirm_date,
+                 nickname, deposit_confirm_date, deposit_confirm_date_verified,
                  team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price`
               )
               .in("order_id", orderIds)
@@ -610,6 +612,7 @@ export default function TeamOrders() {
         order_date: o.order_date ?? null,
         created_at: o.created_at,
         order_status: o.order_status ?? null,
+        payment_status: o.payment_status ?? null,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
       }));
@@ -780,6 +783,14 @@ export default function TeamOrders() {
         payload.last_confirmed_commission_price = newTcp;
         payload.last_confirmed_final_price = editOrder.final_price ?? null;
       }
+      const depositDateChanged =
+        (form.deposit_confirm_date || null) !==
+        (editOrder.meta?.deposit_confirm_date || null);
+      if (depositDateChanged) {
+        payload.deposit_confirm_date_verified = true;
+      }
+
+
 
       const exists = !!editOrder.meta;
       if (exists) {
@@ -1015,7 +1026,25 @@ export default function TeamOrders() {
                             })
                           : "-"}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {o.meta?.deposit_confirm_date || "-"}
+                          {o.payment_status === "deposit_paid" &&
+                            (!o.meta?.deposit_confirm_date ||
+                              !o.meta?.deposit_confirm_date_verified) && (
+                              <span
+                                title={
+                                  !o.meta?.deposit_confirm_date
+                                    ? "請確認/補上此日期"
+                                    : "系統自動帶入，請確認此日期是否正確"
+                                }
+                                className="text-sky-600"
+                              >
+                                📌
+                              </span>
+                            )}
+                        </span>
+                      </TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
@@ -1593,7 +1622,26 @@ export default function TeamOrders() {
 
                       {/* 訂金確認日 */}
                       <div className="space-y-2">
-                        <Label className="text-sm">訂金確認日</Label>
+                        <Label className="text-sm flex items-center gap-1.5">
+                          <span>訂金確認日</span>
+                          {editOrder?.payment_status === "deposit_paid" &&
+                            (!form.deposit_confirm_date ||
+                              !editOrder?.meta?.deposit_confirm_date_verified) && (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200"
+                                title={
+                                  !form.deposit_confirm_date
+                                    ? "請確認/補上此日期"
+                                    : "系統自動帶入，請確認此日期是否正確"
+                                }
+                              >
+                                📌
+                                {!form.deposit_confirm_date
+                                  ? "請確認/補上此日期"
+                                  : "系統自動帶入，請確認此日期是否正確"}
+                              </span>
+                            )}
+                        </Label>
                         <Input
                           type="date"
                           className="text-base"
