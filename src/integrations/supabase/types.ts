@@ -5674,6 +5674,7 @@ export type Database = {
           error_message: string | null
           http_status: number | null
           id: string
+          mapping_meta: Json | null
           owlnest_md5: string | null
           queue_id: string | null
           request_xml: string | null
@@ -5688,6 +5689,7 @@ export type Database = {
           error_message?: string | null
           http_status?: number | null
           id?: string
+          mapping_meta?: Json | null
           owlnest_md5?: string | null
           queue_id?: string | null
           request_xml?: string | null
@@ -5702,6 +5704,7 @@ export type Database = {
           error_message?: string | null
           http_status?: number | null
           id?: string
+          mapping_meta?: Json | null
           owlnest_md5?: string | null
           queue_id?: string | null
           request_xml?: string | null
@@ -5832,7 +5835,7 @@ export type Database = {
           {
             foreignKeyName: "owlting_room_type_group_members_room_type_id_fkey"
             columns: ["room_type_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "room_types"
             referencedColumns: ["id"]
           },
