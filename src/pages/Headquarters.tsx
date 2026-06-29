@@ -99,6 +99,7 @@ interface UserRole {
   user_id: string;
   accommodation_id: string;
   role: string;
+  template_id?: string | null;
   created_at: string;
   updated_at: string;
   user_email?: string;
@@ -106,6 +107,12 @@ interface UserRole {
   status?: 'pending' | 'active';
   statusLabel?: string;
   display_order?: number;
+}
+
+interface PermissionTemplate {
+  id: string;
+  accommodation_id: string;
+  name: string;
 }
 
 interface GroupedUser {
@@ -247,16 +254,55 @@ const Headquarters = () => {
   const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
 
+
+  const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+
   useEffect(() => {
     loadAccommodations();
     loadUserRoles();
+    loadTemplates();
   }, []);
+
+  const loadTemplates = async () => {
+    const { data, error } = await supabase
+      .from("permission_templates")
+      .select("id, accommodation_id, name")
+      .order("display_order", { ascending: true });
+    if (!error) setTemplates((data as any) || []);
+  };
+
+  const getTemplatesFor = (accommodationId: string) =>
+    templates.filter((t) => t.accommodation_id === accommodationId);
+
+  const getTemplateName = (templateId?: string | null) =>
+    templateId ? templates.find((t) => t.id === templateId)?.name : undefined;
+
+  const handleApplyTemplate = async (
+    roleId: string,
+    userId: string,
+    accommodationId: string,
+    templateId: string,
+  ) => {
+    const { error } = await supabase.rpc("apply_template_to_user", {
+      _user_id: userId,
+      _accommodation_id: accommodationId,
+      _template_id: templateId,
+    });
+    if (error) {
+      toast.error(`套用職位失敗：${error.message}`);
+      return;
+    }
+    const tplName = getTemplateName(templateId) || "範本";
+    toast.success(`已套用「${tplName}」權限`);
+    loadUserRoles();
+  };
 
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
       .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, short_name, header_logo_url, footer_logo_url, theme_preset, is_active, created_at, display_order, building_count, bundled_lock_inventory, package_inventory_as_one")
       .order("display_order", { ascending: true });
+
 
     if (error) {
       toast.error("載入民宿列表失敗");
@@ -427,7 +473,7 @@ const Headquarters = () => {
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
     const { data, error } = await supabase
       .from("user_roles")
-      .update({ role: newRole })
+      .update({ role: newRole, template_id: null })
       .eq("id", roleId)
       .select();
 
@@ -548,7 +594,11 @@ const Headquarters = () => {
     return accommodation?.name || accommodationId;
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string, templateId?: string | null) => {
+    if (role === "staff" && templateId) {
+      const tplName = getTemplateName(templateId);
+      if (tplName) return tplName;
+    }
     switch (role) {
       case "super_admin":
         return "總部管理員";
@@ -1232,7 +1282,7 @@ const Headquarters = () => {
                                             {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
                                           </span>
                                           <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
-                                            {getRoleLabel(r.role)}
+                                            {getRoleLabel(r.role, r.template_id)}
                                           </Badge>
                                         </div>
                                       ))}
@@ -1254,16 +1304,40 @@ const Headquarters = () => {
                                       {displayRoles.map((r) => (
                                         <div key={r.id} className="h-10 flex items-center">
                                           <Select
-                                            value={r.role}
-                                            onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                            value={r.role === 'staff' && r.template_id ? `tpl:${r.template_id}` : r.role}
+                                            onValueChange={(value) => {
+                                              if (value.startsWith('tpl:')) {
+                                                handleApplyTemplate(r.id, r.user_id, r.accommodation_id, value.slice(4));
+                                              } else {
+                                                handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff");
+                                              }
+                                            }}
                                           >
-                                            <SelectTrigger className="w-[130px] h-7 text-xs">
+                                            <SelectTrigger className="w-[150px] h-7 text-xs">
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="super_admin">總部管理員</SelectItem>
                                               <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                                               <SelectItem value="staff">現場營運</SelectItem>
+                                              {getTemplatesFor(r.accommodation_id).length > 0 && (
+                                                <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                                              )}
+                                              {getTemplatesFor(r.accommodation_id).map((t) => (
+                                                <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                                              ))}
+                                              <div className="border-t mt-1 pt-1">
+                                                <button
+                                                  type="button"
+                                                  className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
+                                                  onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    navigate('/admin/permission-templates');
+                                                  }}
+                                                >
+                                                  ＋ 管理職位範本…
+                                                </button>
+                                              </div>
                                             </SelectContent>
                                           </Select>
                                         </div>

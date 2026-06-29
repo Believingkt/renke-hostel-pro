@@ -8254,6 +8254,14 @@ export type Database = {
       }
     }
     Functions: {
+      apply_template_to_user: {
+        Args: {
+          _accommodation_id: string
+          _template_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       bulk_upsert_room_inventory_pricing: {
         Args: { p_rows: Json }
         Returns: undefined
