@@ -473,7 +473,7 @@ const Headquarters = () => {
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
     const { data, error } = await supabase
       .from("user_roles")
-      .update({ role: newRole })
+      .update({ role: newRole, template_id: null })
       .eq("id", roleId)
       .select();
 
