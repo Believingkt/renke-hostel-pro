@@ -1,0 +1,1 @@
+UPDATE public.profiles SET name = '阿比' WHERE id = '783b9bd4-d218-4cda-b678-29b3d3b95e95' AND (name IS NULL OR name = '');
