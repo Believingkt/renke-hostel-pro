@@ -452,6 +452,42 @@ const WebsiteContent = () => {
   const [activeTab, setActiveTab] = useState("basic-info");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
   const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
+  // 總部新增的共用設施中，不在前端硬編 facilitiesData 內的「額外項目」
+  const [extraFacilities, setExtraFacilities] = useState<Record<string, Array<{ id: string; name: string; hasPrice: boolean }>>>({});
+
+  // 從共用列計算 extras（排除已在 facilitiesData 中的項目）
+  const computeExtraFacilities = (
+    rows: Array<{ accommodation_id: string | null; facility_name: string; category: string; is_available: boolean | null; pricing_type: string | null }>,
+  ) => {
+    const builtInKeys = new Set<string>();
+    for (const [cat, items] of Object.entries(facilitiesData)) {
+      for (const it of items) builtInKeys.add(`${it.name}||${cat}`);
+    }
+    const extras: Record<string, Array<{ id: string; name: string; hasPrice: boolean }>> = {};
+    const seen = new Set<string>();
+    for (const r of rows) {
+      if (r.accommodation_id !== null) continue;
+      if (r.is_available === false) continue;
+      const key = `${r.facility_name}||${r.category}`;
+      if (builtInKeys.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      if (!extras[r.category]) extras[r.category] = [];
+      const hasPrice = r.pricing_type === 'free' || r.pricing_type === 'paid';
+      extras[r.category].push({
+        id: `extra-${r.category}-${r.facility_name}`,
+        name: r.facility_name,
+        hasPrice,
+      });
+    }
+    return extras;
+  };
+
+  // 合併硬編 + extras 後的項目（給渲染與儲存共用）
+  const getMergedItems = (category: keyof typeof facilitiesData): Array<{ id: string; name: string; hasPrice: boolean }> => {
+    const base = facilitiesData[category] as Array<{ id: string; name: string; hasPrice: boolean }>;
+    const ex = extraFacilities[category] || [];
+    return ex.length > 0 ? [...base, ...ex] : base;
+  };
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -753,6 +789,7 @@ const WebsiteContent = () => {
 
           setSelectedFacilities(selected);
           setPricingTypes(pricing);
+          setExtraFacilities(computeExtraFacilities(facRows as any));
         }
 
 
@@ -1080,6 +1117,7 @@ const WebsiteContent = () => {
 
               setSelectedFacilities(selected);
               setPricingTypes(pricing);
+              setExtraFacilities(computeExtraFacilities(facRowsReload as any));
             }
             break;
 
@@ -1264,7 +1302,15 @@ const WebsiteContent = () => {
       // 1. 目標清單：使用者勾選後該存在的設施
       type DesiredRow = { facility_name: string; category: string; pricing_type: string };
       const desired = new Map<string, DesiredRow>();
-      for (const [category, items] of Object.entries(facilitiesData)) {
+      // 合併硬編 + 總部新增的 extras 後再走 desired 計算
+      const mergedSource: Record<string, Array<{ id: string; name: string; hasPrice: boolean }>> = {};
+      for (const cat of Object.keys(facilitiesData)) {
+        mergedSource[cat] = [
+          ...(facilitiesData as any)[cat],
+          ...((extraFacilities[cat] as any) || []),
+        ];
+      }
+      for (const [category, items] of Object.entries(mergedSource)) {
         for (const item of items) {
           if (!selectedFacilities[item.name]) continue;
           const key = `${item.name}||${category}`;
@@ -1409,6 +1455,7 @@ const WebsiteContent = () => {
         });
         setSelectedFacilities(selected);
         setPricingTypes(pricing);
+        setExtraFacilities(computeExtraFacilities(refreshed as any));
       }
 
 
@@ -3414,7 +3461,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {facilitiesData.public.map((facility) => (
+                  {getMergedItems('public').map((facility) => (
                     <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -3460,7 +3507,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.dining.map((facility) => (
+                {getMergedItems('dining').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
@@ -3490,7 +3537,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.safety.map((facility) => (
+                {getMergedItems('safety').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
@@ -3520,7 +3567,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.entertainment.map((facility) => (
+                {getMergedItems('entertainment').map((facility) => (
                   <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -3567,7 +3614,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.language.map((facility) => (
+                {getMergedItems('language').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
