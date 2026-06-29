@@ -1304,16 +1304,40 @@ const Headquarters = () => {
                                       {displayRoles.map((r) => (
                                         <div key={r.id} className="h-10 flex items-center">
                                           <Select
-                                            value={r.role}
-                                            onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                            value={r.role === 'staff' && r.template_id ? `tpl:${r.template_id}` : r.role}
+                                            onValueChange={(value) => {
+                                              if (value.startsWith('tpl:')) {
+                                                handleApplyTemplate(r.id, r.user_id, r.accommodation_id, value.slice(4));
+                                              } else {
+                                                handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff");
+                                              }
+                                            }}
                                           >
-                                            <SelectTrigger className="w-[130px] h-7 text-xs">
+                                            <SelectTrigger className="w-[150px] h-7 text-xs">
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="super_admin">總部管理員</SelectItem>
                                               <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                                               <SelectItem value="staff">現場營運</SelectItem>
+                                              {getTemplatesFor(r.accommodation_id).length > 0 && (
+                                                <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                                              )}
+                                              {getTemplatesFor(r.accommodation_id).map((t) => (
+                                                <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                                              ))}
+                                              <div className="border-t mt-1 pt-1">
+                                                <button
+                                                  type="button"
+                                                  className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
+                                                  onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    navigate('/admin/permission-templates');
+                                                  }}
+                                                >
+                                                  ＋ 管理職位範本…
+                                                </button>
+                                              </div>
                                             </SelectContent>
                                           </Select>
                                         </div>
