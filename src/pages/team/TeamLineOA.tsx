@@ -870,7 +870,32 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>刪除推播綁定</AlertDialogTitle>
+            <AlertDialogDescription>
+              即將刪除「{deleteTarget?.display_name || deleteTarget?.target_id}」的綁定。
+              <br />
+              <span className="text-destructive font-medium">
+                ⚠️ 請先確認群組機器人已移除，才刪除此綁定，否則機器人下次重新加入時仍會自動建立綁定。
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
+
   );
 }
 
