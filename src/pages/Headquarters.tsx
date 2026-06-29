@@ -1430,7 +1430,7 @@ const Headquarters = () => {
                                                   className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
                                                   onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    navigate('/admin/permission-templates');
+                                                    setTemplatesDialogAccId(r.accommodation_id);
                                                   }}
                                                 >
                                                   ＋ 管理職位範本…
