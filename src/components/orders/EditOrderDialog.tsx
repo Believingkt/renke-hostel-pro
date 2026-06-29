@@ -74,6 +74,7 @@ interface EditOrderDialogProps {
     guest_name: string;
     guest_phone: string;
     guest_email: string;
+    package_id?: string | null;
   }) => Promise<void>;
   onCancel?: (orderId: string) => Promise<void>;
   onDelete?: (orderId: string) => Promise<void>;
