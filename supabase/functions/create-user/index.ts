@@ -252,6 +252,31 @@ serve(async (req) => {
       }
     }
 
+    // Ensure profiles.name is set (handle_new_user trigger may miss user_metadata
+    // depending on timing; also overwrite empty names for existing users so the
+    // HQ user list never shows "未知").
+    {
+      const { data: existingForName } = await supabaseAdmin
+        .from("profiles")
+        .select("id, name")
+        .eq("id", targetUserId)
+        .maybeSingle();
+
+      if (existingForName) {
+        if (!existingForName.name || existingForName.name.trim() === "") {
+          await supabaseAdmin
+            .from("profiles")
+            .update({ name, email })
+            .eq("id", targetUserId);
+        }
+      } else {
+        await supabaseAdmin
+          .from("profiles")
+          .insert({ id: targetUserId, name, email });
+      }
+    }
+
+
     // Create user role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
