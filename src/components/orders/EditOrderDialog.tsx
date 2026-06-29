@@ -312,6 +312,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_name: order.guest_name,
         guest_phone: order.guest_phone,
         guest_email: order.guest_email || "",
+        package_id: (order as any).package_id || "",
       });
 
       // 載入現有的折扣碼
