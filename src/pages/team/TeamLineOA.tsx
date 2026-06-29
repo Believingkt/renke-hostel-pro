@@ -545,6 +545,21 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase
+      .from("line_push_targets")
+      .delete()
+      .eq("id", deleteTarget.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("已刪除綁定");
+      setDeleteTarget(null);
+      load();
+    }
+  };
+
+
   const toggleItem = (key: keyof GroupFormState, value: string) => {
     if (!form) return;
     const arr = (form[key] as string[]) ?? [];
