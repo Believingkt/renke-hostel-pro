@@ -254,10 +254,6 @@ const Headquarters = () => {
   const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadAccommodations();
-    loadUserRoles();
-  }, []);
 
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
 
