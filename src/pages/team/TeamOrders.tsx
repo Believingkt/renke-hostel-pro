@@ -783,6 +783,14 @@ export default function TeamOrders() {
         payload.last_confirmed_commission_price = newTcp;
         payload.last_confirmed_final_price = editOrder.final_price ?? null;
       }
+      const depositDateChanged =
+        (form.deposit_confirm_date || null) !==
+        (editOrder.meta?.deposit_confirm_date || null);
+      if (depositDateChanged) {
+        payload.deposit_confirm_date_verified = true;
+      }
+
+
 
       const exists = !!editOrder.meta;
       if (exists) {
