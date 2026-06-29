@@ -594,10 +594,24 @@ const Headquarters = () => {
       }
 
       toast.success("權限已新增");
+      if (addRoleTemplateId && addRoleType !== "super_admin" && addRoleAccommodation) {
+        const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+          _user_id: addRoleUserId,
+          _accommodation_id: addRoleAccommodation,
+          _template_id: addRoleTemplateId,
+        });
+        if (tplErr) {
+          toast.error(`套用職位範本失敗：${tplErr.message}`);
+        } else {
+          const tplName = getTemplateName(addRoleTemplateId);
+          toast.success(`已套用「${tplName || "範本"}」權限`);
+        }
+      }
       setAddRoleDialogOpen(false);
       setAddRoleUserId("");
       setAddRoleAccommodation("");
       setAddRoleType("staff");
+      setAddRoleTemplateId("");
       loadUserRoles();
     } catch (error) {
       toast.error("新增權限失敗");
