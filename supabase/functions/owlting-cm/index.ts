@@ -187,6 +187,45 @@ async function bulkResolveRatePlans(
   return map;
 }
 
+// ---- Package-group inbound mapping helpers ----
+// When OwlTing pushes against a canonical room_type (set up via
+// owlting_room_type_groups), we map it back to the underlying member
+// room_types so the price/inventory lands on the row our pricing engine reads.
+export interface GroupContext {
+  canonicalRoomTypeIds: Set<string>;        // every group's canonical room_type
+  memberRoomTypeIdsByCanonical: Map<string, string[]>; // canonical -> member room_type ids
+  memberRoomTypeIdByTemplate: Map<string, string>;     // template_id -> member room_type_id (within canonical's group)
+}
+
+export async function loadGroupContext(supabase: any, accommodationId: string): Promise<GroupContext> {
+  const ctx: GroupContext = {
+    canonicalRoomTypeIds: new Set(),
+    memberRoomTypeIdsByCanonical: new Map(),
+    memberRoomTypeIdByTemplate: new Map(),
+  };
+  const { data: groups } = await supabase
+    .from("owlting_room_type_groups")
+    .select("id, canonical_room_type_id")
+    .eq("accommodation_id", accommodationId);
+  if (!groups || groups.length === 0) return ctx;
+  const groupIds = groups.map((g: any) => g.id);
+  const canonicalByGroup = new Map<string, string>(groups.map((g: any) => [g.id, g.canonical_room_type_id]));
+  for (const g of groups) ctx.canonicalRoomTypeIds.add(g.canonical_room_type_id);
+  const { data: members } = await supabase
+    .from("owlting_room_type_group_members")
+    .select("group_id, room_type_id, rate_plan_template_id")
+    .in("group_id", groupIds);
+  for (const m of members ?? []) {
+    const canonical = canonicalByGroup.get(m.group_id);
+    if (!canonical) continue;
+    const arr = ctx.memberRoomTypeIdsByCanonical.get(canonical) ?? [];
+    arr.push(m.room_type_id);
+    ctx.memberRoomTypeIdsByCanonical.set(canonical, arr);
+    ctx.memberRoomTypeIdByTemplate.set(m.rate_plan_template_id, m.room_type_id);
+  }
+  return ctx;
+}
+
 async function logCm(
   supabase: any,
   direction: "inbound" | "outbound",
