@@ -214,6 +214,7 @@ const Headquarters = () => {
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
   const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [overviewTimeRange, setOverviewTimeRange] = useState<"today" | "week" | "month" | "quarter" | "year" | "all">("month");
   
   // Ref for AccommodationManagement
