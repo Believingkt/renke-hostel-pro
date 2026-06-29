@@ -3461,7 +3461,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {facilitiesData.public.map((facility) => (
+                  {getMergedItems('public').map((facility) => (
                     <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -3507,7 +3507,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.dining.map((facility) => (
+                {getMergedItems('dining').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
@@ -3537,7 +3537,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.safety.map((facility) => (
+                {getMergedItems('safety').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
@@ -3567,7 +3567,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.entertainment.map((facility) => (
+                {getMergedItems('entertainment').map((facility) => (
                   <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -3614,7 +3614,7 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {facilitiesData.language.map((facility) => (
+                {getMergedItems('language').map((facility) => (
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
