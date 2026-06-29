@@ -40,6 +40,8 @@ interface UsageRow {
 
 export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
+  const { canEdit } = useStaffPermissions();
+  const editable = canEdit("kol_quota");
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
   const [datesMap, setDatesMap] = useState<Record<string, { date: string; orderId: string }[]>>({});
