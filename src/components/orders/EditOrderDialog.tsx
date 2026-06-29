@@ -718,6 +718,33 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             <Label>訂單編號</Label>
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
+
+          {accommodationPackages.length > 0 && (
+            <div className="space-y-2">
+              <Label>對應方案（accommodation_packages）</Label>
+              <Select
+                value={editForm.package_id || "none"}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, package_id: value === "none" ? "" : value })
+                }
+              >
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue placeholder="（選填）對應實際包區/包棟方案" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">（未指定）</SelectItem>
+                  {accommodationPackages.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}（{p.guest_count} 人）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                寫入 orders.package_id；OwlTing 推送的 RatePlanCode 會以此為準。
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>訂購人 <span className="text-destructive">*</span></Label>
