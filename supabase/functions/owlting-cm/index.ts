@@ -422,6 +422,11 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
     parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
   );
 
+  // IMPORTANT: rows MUST carry only `price` — never `available_rooms` /
+  // `is_available`. Price push must not initialise/overwrite inventory.
+  // When the RPC inserts a brand-new template-specific row, it leaves
+  // available_rooms / is_available as NULL (column is now nullable),
+  // so price-only writes never make the day look sold-out.
   const inventoryRows: { room_type_id: string; date: string; pricing_template_id: string | null; price: number }[] = [];
   for (const p of parsed) {
     const room = roomMap.get(p.invCode);
