@@ -550,6 +550,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             : Number(teamCommissionPrice);
         payload.last_confirmed_final_price = finalPrice ?? null;
       }
+      const depositDateChanged =
+        (depositConfirmDate || null) !== (initialDepositConfirmDate || null);
+      if (depositDateChanged) {
+        payload.deposit_confirm_date_verified = true;
+      }
+
 
 
       const { error } = await supabase
