@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
       .insert([{
         accommodation_id: body.accommodationId,
         room_type_id: body.selectedRoom.id,
+        package_id: body.packageId || null,
         customer_id: body.customerId || null,
         member_id: body.memberId || null,
         idempotency_key: body.idempotencyKey || null,

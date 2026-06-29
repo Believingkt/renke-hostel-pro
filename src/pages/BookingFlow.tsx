@@ -731,6 +731,13 @@ const BookingFlow = () => {
     }
   }, [searchParams]);
 
+  // 從 URL 帶入旅客在詳情頁選定的方案 ID（accommodation_packages.id）
+  // 三條建單路徑都會寫入 orders.package_id：
+  //   1) 非 3DS 信用卡 → create-paid-order Edge Function
+  //   2) 3DS 信用卡 → pending_booking_3ds → complete-3ds-booking Edge Function
+  //   3) ATM / 無付款 → 前端直接 insert orders
+  const selectedPackageId = searchParams.get("packageId") || null;
+
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
@@ -2481,6 +2488,7 @@ const BookingFlow = () => {
               mealPlan: selectedMealPlan,
               mealPlanDetails: mealPlanDetailsData,
               mealPlanTotal: mealPlanTotalPrice,
+              packageId: selectedPackageId,
               petCount,
               petPlanPrice,
               finalPrice,
@@ -2525,6 +2533,7 @@ const BookingFlow = () => {
                 mealPlan: selectedMealPlan,
                 mealPlanDetails: mealPlanDetailsData,
                 mealPlanTotal: mealPlanTotalPrice,
+                packageId: selectedPackageId,
                 petCount,
                 petPlanPrice,
                 finalPrice,
@@ -2755,6 +2764,7 @@ const BookingFlow = () => {
             check_out_date: checkOutDateStr,
             guest_count: totalGuests,
             meal_plan: selectedMealPlan,
+            package_id: selectedPackageId,
             total_price: totalPrice,
             discount_code: appliedDiscount ? appliedDiscount.code : null,
             discount_amount: discountAmount,

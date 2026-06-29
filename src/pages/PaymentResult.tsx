@@ -40,6 +40,7 @@ interface PendingBookingData {
   mealPlan: string;
   mealPlanDetails: Array<{ date: string; count: number; price: number }>;
   mealPlanTotal: number;
+  packageId?: string | null;
   petCount: number;
   petPlanPrice: number;
   finalPrice: number;

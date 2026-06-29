@@ -458,6 +458,7 @@ const BookingVilla = () => {
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
+    if (opt.packageId) params.set("packageId", opt.packageId);
     if (subPlanKey) params.set("plan", subPlanKey);
     if (checkInStr) params.set("checkIn", checkInStr);
     if (checkOutStr) params.set("checkOut", checkOutStr);

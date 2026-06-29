@@ -248,6 +248,7 @@ export function buildPricingTableFromPackages(
         roomAllocation: pkg.room_allocation || pkg.subtitle || pkg.name,
         isFewPeople: pkg.tags?.includes("early_bird") || pkg.tags?.includes("few_people"),
         roomTypeId: pkg.primary_room_type_id || undefined,
+        packageId: pkg.id,
         planName: pkg.name,
         subtitle: pkg.subtitle,
         guestCountMax: pkg.guest_count_max,
