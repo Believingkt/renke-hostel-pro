@@ -160,6 +160,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .order("display_order")
       ]);
 
+      // accommodation_packages → 對應方案下拉
+      const { data: pkgData } = await supabase
+        .from("accommodation_packages")
+        .select("id, name, guest_count, enabled")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("enabled", true)
+        .order("display_order", { ascending: true })
+        .order("guest_count", { ascending: true });
+      setAccommodationPackages(pkgData || []);
+
       if (!roomTypesResult.error && roomTypesResult.data) {
         setRoomTypes(roomTypesResult.data);
       }
