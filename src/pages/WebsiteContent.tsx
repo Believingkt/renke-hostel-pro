@@ -789,6 +789,7 @@ const WebsiteContent = () => {
 
           setSelectedFacilities(selected);
           setPricingTypes(pricing);
+          setExtraFacilities(computeExtraFacilities(facRows as any));
         }
 
 
