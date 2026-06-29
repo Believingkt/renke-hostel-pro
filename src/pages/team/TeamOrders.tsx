@@ -1626,12 +1626,7 @@ export default function TeamOrders() {
                           <span>訂金確認日</span>
                           {editOrder?.payment_status === "deposit_paid" &&
                             (!form.deposit_confirm_date ||
-                              !editOrder?.meta?.deposit_confirm_date_verified ||
-                              (form.deposit_confirm_date ?? null) !==
-                                (editOrder?.meta?.deposit_confirm_date ?? null)
-                                ? !form.deposit_confirm_date ||
-                                  !editOrder?.meta?.deposit_confirm_date_verified
-                                : false) && (
+                              !editOrder?.meta?.deposit_confirm_date_verified) && (
                               <span
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200"
                                 title={
