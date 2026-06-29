@@ -66,6 +66,7 @@ interface OrderRow {
   order_date: string | null;
   created_at: string;
   order_status: string | null;
+  payment_status: string | null;
   accommodation_name: string;
   meta: MetaRow | null;
 }
