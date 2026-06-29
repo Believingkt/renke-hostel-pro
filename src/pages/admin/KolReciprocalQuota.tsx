@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -39,6 +40,8 @@ interface UsageRow {
 
 export default function KolReciprocalQuota() {
   const { currentAccommodationId } = useAccommodation();
+  const { canEdit } = useStaffPermissions();
+  const editable = canEdit("kol_quota");
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
   const [datesMap, setDatesMap] = useState<Record<string, { date: string; orderId: string }[]>>({});
@@ -264,8 +267,8 @@ export default function KolReciprocalQuota() {
 
         <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
         <TableCell className="text-right w-24">
-          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-          <Button size="sm" variant="ghost" onClick={() => handleDelete(r)}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => openEdit(r)} disabled={!editable}><Pencil className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => handleDelete(r)} disabled={!editable}><Trash2 className="h-4 w-4" /></Button>
         </TableCell>
       </TableRow>
     );
@@ -275,11 +278,15 @@ export default function KolReciprocalQuota() {
     <AdminPageHeader
       title="KOL 互惠額度"
       icon={Sparkles}
-      breadcrumbs={[{ label: "訂單資訊" }]}
+      breadcrumbs={[{ label: "KOL 互惠額度" }]}
       action={
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />新增月份額度
-        </Button>
+        editable ? (
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-2" />新增月份額度
+          </Button>
+        ) : (
+          <Badge variant="outline">唯讀預覽</Badge>
+        )
       }
     >
       <Card>

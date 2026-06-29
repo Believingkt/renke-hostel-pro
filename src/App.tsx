@@ -348,7 +348,7 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/kol-reciprocal-quota" element={
-                      <RequireModule module="orders">
+                      <RequireModule module="kol_quota">
                         <Suspense fallback={<FormSkeleton fields={4} />}><KolReciprocalQuota /></Suspense>
                       </RequireModule>
                     } />

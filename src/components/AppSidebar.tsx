@@ -72,9 +72,9 @@ const menuItems = [
     subItems: [
       { title: "預訂管理", url: "/admin/room-inventory", icon: Package },
       { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
-      { title: "KOL 互惠額度", url: "/admin/kol-reciprocal-quota", icon: Sparkles },
     ]
   },
+  { title: "KOL 互惠額度", url: "/admin/kol-reciprocal-quota", icon: Sparkles, moduleKey: "kol_quota" },
   { 
     title: "官網內容", 
     url: "/admin/website-content", 
