@@ -329,6 +329,7 @@ async function processRow(
       http_status: null,
       duration_ms: null,
       success: null,
+      mapping_meta: { stays: mappingAudit },
       error_message: "dryrun — not sent",
     });
     await admin.from("owlting_order_push_queue").update({
