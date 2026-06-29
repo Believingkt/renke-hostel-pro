@@ -214,6 +214,7 @@ const Headquarters = () => {
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
   const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [overviewTimeRange, setOverviewTimeRange] = useState<"today" | "week" | "month" | "quarter" | "year" | "all">("month");
   
   // Ref for AccommodationManagement
@@ -252,6 +253,7 @@ const Headquarters = () => {
   const [addRoleUserId, setAddRoleUserId] = useState("");
   const [addRoleAccommodation, setAddRoleAccommodation] = useState("");
   const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [addRoleTemplateId, setAddRoleTemplateId] = useState<string>("");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
 
 
@@ -429,10 +431,25 @@ const Headquarters = () => {
       }
 
       toast.success("邀請郵件已發送，請通知使用者檢查信箱");
+      const newUserId = data?.user?.id;
+      if (selectedTemplateId && newUserId && accommodationIdToSend) {
+        const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+          _user_id: newUserId,
+          _accommodation_id: accommodationIdToSend,
+          _template_id: selectedTemplateId,
+        });
+        if (tplErr) {
+          toast.error(`套用職位範本失敗：${tplErr.message}`);
+        } else {
+          const tplName = getTemplateName(selectedTemplateId);
+          toast.success(`已套用「${tplName || "範本"}」權限`);
+        }
+      }
       setNewUserName("");
       setNewUserEmail("");
       setSelectedAccommodation("");
       setSelectedRole("staff");
+      setSelectedTemplateId("");
       loadUserRoles();
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -577,10 +594,24 @@ const Headquarters = () => {
       }
 
       toast.success("權限已新增");
+      if (addRoleTemplateId && addRoleType !== "super_admin" && addRoleAccommodation) {
+        const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+          _user_id: addRoleUserId,
+          _accommodation_id: addRoleAccommodation,
+          _template_id: addRoleTemplateId,
+        });
+        if (tplErr) {
+          toast.error(`套用職位範本失敗：${tplErr.message}`);
+        } else {
+          const tplName = getTemplateName(addRoleTemplateId);
+          toast.success(`已套用「${tplName || "範本"}」權限`);
+        }
+      }
       setAddRoleDialogOpen(false);
       setAddRoleUserId("");
       setAddRoleAccommodation("");
       setAddRoleType("staff");
+      setAddRoleTemplateId("");
       loadUserRoles();
     } catch (error) {
       toast.error("新增權限失敗");
@@ -1109,9 +1140,17 @@ const Headquarters = () => {
                   )}
                   <div className="space-y-2">
                     <Label htmlFor="role">角色</Label>
-                    <Select 
-                      value={selectedRole} 
-                      onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}
+                    <Select
+                      value={selectedTemplateId ? `tpl:${selectedTemplateId}` : selectedRole}
+                      onValueChange={(value) => {
+                        if (value.startsWith("tpl:")) {
+                          setSelectedTemplateId(value.slice(4));
+                          setSelectedRole("staff");
+                        } else {
+                          setSelectedTemplateId("");
+                          setSelectedRole(value as "super_admin" | "hotel_admin" | "staff");
+                        }
+                      }}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id="role">
@@ -1121,6 +1160,12 @@ const Headquarters = () => {
                         <SelectItem value="super_admin">總部管理員</SelectItem>
                         <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                         <SelectItem value="staff">現場營運</SelectItem>
+                        {selectedAccommodation && getTemplatesFor(selectedAccommodation).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                        )}
+                        {selectedAccommodation && getTemplatesFor(selectedAccommodation).map((t) => (
+                          <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1170,7 +1215,18 @@ const Headquarters = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>角色</Label>
-                    <Select value={addRoleType} onValueChange={(v) => setAddRoleType(v as "super_admin" | "hotel_admin" | "staff")}>
+                    <Select
+                      value={addRoleTemplateId ? `tpl:${addRoleTemplateId}` : addRoleType}
+                      onValueChange={(v) => {
+                        if (v.startsWith("tpl:")) {
+                          setAddRoleTemplateId(v.slice(4));
+                          setAddRoleType("staff");
+                        } else {
+                          setAddRoleTemplateId("");
+                          setAddRoleType(v as "super_admin" | "hotel_admin" | "staff");
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -1178,6 +1234,12 @@ const Headquarters = () => {
                         <SelectItem value="super_admin">總部管理員</SelectItem>
                         <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                         <SelectItem value="staff">現場營運</SelectItem>
+                        {addRoleAccommodation && getTemplatesFor(addRoleAccommodation).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                        )}
+                        {addRoleAccommodation && getTemplatesFor(addRoleAccommodation).map((t) => (
+                          <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
