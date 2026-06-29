@@ -666,8 +666,8 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                                       event_types: [],
                                       accommodation_ids: [],
                                       custom_venue_names: [],
-                                      display_name:
-                                        (prev.display_name || "") + "（新規則）",
+                                      // 名稱跟著 groupId 走，不在複製時改名
+                                      display_name: prev.display_name || "",
                                     }
                                   : prev,
                               );
@@ -694,14 +694,46 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
           {form && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>群組名稱</Label>
-                  <Input
-                    value={form.display_name}
-                    onChange={(e) => setForm({ ...form, display_name: e.target.value })}
-                    placeholder="例如：行銷團隊群組"
-                  />
-                </div>
+                {(() => {
+                  const sameGroupRows = form.target_id
+                    ? list.filter(
+                        (r) => r.target_id === form.target_id && r.id !== form.id,
+                      )
+                    : [];
+                  const nameLocked = sameGroupRows.length > 0;
+                  const lockedName =
+                    sameGroupRows.find((r) => r.display_name)?.display_name ?? "";
+                  // 自動同步成既有群組名稱，避免使用者誤以為改名就是換群組
+                  if (nameLocked && lockedName && form.display_name !== lockedName) {
+                    setTimeout(
+                      () =>
+                        setForm((prev) =>
+                          prev ? { ...prev, display_name: lockedName } : prev,
+                        ),
+                      0,
+                    );
+                  }
+                  return (
+                    <div>
+                      <Label>群組名稱</Label>
+                      <Input
+                        value={form.display_name}
+                        onChange={(e) =>
+                          setForm({ ...form, display_name: e.target.value })
+                        }
+                        placeholder="例如：行銷團隊群組"
+                        readOnly={nameLocked}
+                        disabled={nameLocked}
+                      />
+                      {nameLocked && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          🔒 此 groupId 已有其他訂閱規則，名稱統一由原始群組記錄管理。
+                          推播實際綁定的是 groupId，改名不會改變綁定對象。
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 {!hideGroupId && (
                   <div>
                     <Label>groupId</Label>
