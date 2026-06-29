@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
-import { Sparkles, Plus, Pencil, Trash2 } from "lucide-react";
+import { Sparkles, Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { AvailabilityCalendarDialog } from "@/components/AvailabilityCalendarDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ export default function KolReciprocalQuota() {
   const [overrideOrderIds, setOverrideOrderIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), end_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
@@ -280,13 +282,19 @@ export default function KolReciprocalQuota() {
       icon={Sparkles}
       breadcrumbs={[{ label: "KOL 互惠額度" }]}
       action={
-        editable ? (
-          <Button onClick={openCreate} size="sm">
-            <Plus className="h-4 w-4 mr-2" />新增月份額度
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCalOpen(true)}>
+            <CalendarDays className="h-4 w-4 mr-2" />
+            日曆檢視
           </Button>
-        ) : (
-          <Badge variant="outline">唯讀預覽</Badge>
-        )
+          {editable ? (
+            <Button onClick={openCreate} size="sm">
+              <Plus className="h-4 w-4 mr-2" />新增月份額度
+            </Button>
+          ) : (
+            <Badge variant="outline">唯讀預覽</Badge>
+          )}
+        </div>
       }
     >
       <Card>
@@ -386,6 +394,14 @@ export default function KolReciprocalQuota() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {currentAccommodationId && (
+        <AvailabilityCalendarDialog
+          open={calOpen}
+          onOpenChange={setCalOpen}
+          accommodationId={currentAccommodationId}
+        />
+      )}
     </AdminPageHeader>
   );
 }
