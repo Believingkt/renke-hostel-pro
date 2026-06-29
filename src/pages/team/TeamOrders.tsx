@@ -66,6 +66,7 @@ interface OrderRow {
   order_date: string | null;
   created_at: string;
   order_status: string | null;
+  payment_status: string | null;
   accommodation_name: string;
   meta: MetaRow | null;
 }
@@ -92,6 +93,7 @@ interface MetaRow {
   addon_amount?: number | null;
   nickname?: string | null;
   deposit_confirm_date?: string | null;
+  deposit_confirm_date_verified?: boolean | null;
   team_commission_price?: number | null;
   commission_price_confirmed_by?: string | null;
   commission_price_confirmed_at?: string | null;
@@ -511,7 +513,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status`,
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
             { count: "exact" }
           )
       );
@@ -559,7 +561,7 @@ export default function TeamOrders() {
                  booking_method, ad_id, is_excluded, closer_assisted,
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-                 nickname, deposit_confirm_date,
+                 nickname, deposit_confirm_date, deposit_confirm_date_verified,
                  team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price`
               )
               .in("order_id", orderIds)
@@ -610,6 +612,7 @@ export default function TeamOrders() {
         order_date: o.order_date ?? null,
         created_at: o.created_at,
         order_status: o.order_status ?? null,
+        payment_status: o.payment_status ?? null,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
       }));
@@ -774,6 +777,12 @@ export default function TeamOrders() {
         deposit_confirm_date: form.deposit_confirm_date ?? null,
         team_commission_price: newTcp,
       };
+      // 訂金確認日有實際變動 → 視為人工確認
+      const prevDcd = editOrder.meta?.deposit_confirm_date ?? null;
+      const newDcd = form.deposit_confirm_date ?? null;
+      if ((prevDcd || "") !== (newDcd || "")) {
+        payload.deposit_confirm_date_verified = true;
+      }
       if (tcpChanged) {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
