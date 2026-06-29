@@ -597,11 +597,16 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
           <CardTitle className="text-base">推播群組管理</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊。
-            <br />
-            💡 同一個群組可建立多筆訂閱規則（例如「每日業績只收特定館」+「金額異動收全館」），點選最右側
-            <Copy className="inline h-3 w-3 mx-1" />
-            複製為新規則。
+            {canManage && (
+              <>
+                <br />
+                💡 同一個群組可建立多筆訂閱規則（例如「每日業績只收特定館」+「金額異動收全館」），點選最右側
+                <Copy className="inline h-3 w-3 mx-1" />
+                複製為新規則。
+              </>
+            )}
           </p>
+
         </div>
         <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" /> 手動新增群組
