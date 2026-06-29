@@ -323,7 +323,9 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
     parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
   );
 
-  // Batch buffers
+  // Batch buffers.
+  // IMPORTANT: rows MUST NOT carry a `price` field — availability push must
+  // not overwrite prices. The RPC only updates fields explicitly present.
   const templateAvailRows: { template_id: string; date: string; is_closed: boolean; updated_at: string }[] = [];
   const inventoryRows: {
     room_type_id: string; date: string;
