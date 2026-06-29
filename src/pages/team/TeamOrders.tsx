@@ -1026,7 +1026,25 @@ export default function TeamOrders() {
                             })
                           : "-"}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {o.meta?.deposit_confirm_date || "-"}
+                          {o.payment_status === "deposit_paid" &&
+                            (!o.meta?.deposit_confirm_date ||
+                              !o.meta?.deposit_confirm_date_verified) && (
+                              <span
+                                title={
+                                  !o.meta?.deposit_confirm_date
+                                    ? "請確認/補上此日期"
+                                    : "系統自動帶入，請確認此日期是否正確"
+                                }
+                                className="text-sky-600"
+                              >
+                                📌
+                              </span>
+                            )}
+                        </span>
+                      </TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
