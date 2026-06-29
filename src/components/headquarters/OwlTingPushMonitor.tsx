@@ -150,7 +150,10 @@ export function OwlTingPushMonitor() {
 
   const accName = (id: string) => accs.find(a => a.id === id)?.name || "—";
   const hotelCode = (id: string) => configs.find(c => c.accommodation_id === id)?.owlting_hotel_code || "—";
-  const orderNo = (id: string) => orders.find(o => o.id === id)?.order_number || id.slice(0, 8);
+  const orderNo = (id: string | null | undefined) => {
+    if (!id) return "—";
+    return orders.find(o => o.id === id)?.order_number || id.slice(0, 8);
+  };
   const latestLogFor = (qid: string) => logs.find(l => l.queue_id === qid);
 
   const filtered = useMemo(() => {
