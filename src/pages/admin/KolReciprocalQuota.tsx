@@ -267,8 +267,8 @@ export default function KolReciprocalQuota() {
 
         <TableCell className="text-muted-foreground text-sm w-48">{r.note || "—"}</TableCell>
         <TableCell className="text-right w-24">
-          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-          <Button size="sm" variant="ghost" onClick={() => handleDelete(r)}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => openEdit(r)} disabled={!editable}><Pencil className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => handleDelete(r)} disabled={!editable}><Trash2 className="h-4 w-4" /></Button>
         </TableCell>
       </TableRow>
     );
