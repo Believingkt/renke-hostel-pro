@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
