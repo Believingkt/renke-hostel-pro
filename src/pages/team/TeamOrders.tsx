@@ -561,7 +561,7 @@ export default function TeamOrders() {
                  booking_method, ad_id, is_excluded, closer_assisted,
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-                 nickname, deposit_confirm_date,
+                 nickname, deposit_confirm_date, deposit_confirm_date_verified,
                  team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price`
               )
               .in("order_id", orderIds)
