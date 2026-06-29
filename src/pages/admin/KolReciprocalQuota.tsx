@@ -49,6 +49,7 @@ export default function KolReciprocalQuota() {
   const [overrideOrderIds, setOverrideOrderIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [editing, setEditing] = useState<QuotaRow | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [form, setForm] = useState({ year_month: format(new Date(), "yyyy-MM"), end_month: format(new Date(), "yyyy-MM"), quota: 5, note: "" });
