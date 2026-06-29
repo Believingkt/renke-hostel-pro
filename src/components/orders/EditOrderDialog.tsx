@@ -124,7 +124,12 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     guest_name: "",
     guest_phone: "",
     guest_email: "",
+    package_id: "" as string,
   });
+
+  const [accommodationPackages, setAccommodationPackages] = useState<
+    Array<{ id: string; name: string; guest_count: number; enabled: boolean }>
+  >([]);
 
   // Fetch room types, public holidays, templates, and addons
   useEffect(() => {
