@@ -236,6 +236,7 @@ const Headquarters = () => {
   const [selectedBackupAccommodation, setSelectedBackupAccommodation] = useState("");
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
 
