@@ -431,10 +431,25 @@ const Headquarters = () => {
       }
 
       toast.success("邀請郵件已發送，請通知使用者檢查信箱");
+      const newUserId = data?.user?.id;
+      if (selectedTemplateId && newUserId && accommodationIdToSend) {
+        const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+          _user_id: newUserId,
+          _accommodation_id: accommodationIdToSend,
+          _template_id: selectedTemplateId,
+        });
+        if (tplErr) {
+          toast.error(`套用職位範本失敗：${tplErr.message}`);
+        } else {
+          const tplName = getTemplateName(selectedTemplateId);
+          toast.success(`已套用「${tplName || "範本"}」權限`);
+        }
+      }
       setNewUserName("");
       setNewUserEmail("");
       setSelectedAccommodation("");
       setSelectedRole("staff");
+      setSelectedTemplateId("");
       loadUserRoles();
     } catch (error: any) {
       if (import.meta.env.DEV) {
