@@ -231,7 +231,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date")
+          .select("order_date, final_price, check_out_date, payment_status")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
