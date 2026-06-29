@@ -1265,7 +1265,11 @@ const Headquarters = () => {
                             className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              navigate('/admin/permission-templates');
+                              if (addRoleAccommodation) {
+                                setTemplatesDialogAccId(addRoleAccommodation);
+                              } else {
+                                toast.error("請先選擇民宿");
+                              }
                             }}
                           >
                             ＋ 管理職位範本…
