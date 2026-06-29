@@ -5783,6 +5783,106 @@ export type Database = {
           },
         ]
       }
+      owlting_room_type_group_members: {
+        Row: {
+          created_at: string
+          display_order: number
+          group_id: string
+          id: string
+          rate_plan_name: string
+          rate_plan_template_id: string
+          room_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          group_id: string
+          id?: string
+          rate_plan_name: string
+          rate_plan_template_id: string
+          room_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          group_id?: string
+          id?: string
+          rate_plan_name?: string
+          rate_plan_template_id?: string
+          room_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_room_type_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_room_type_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_room_type_group_members_rate_plan_template_id_fkey"
+            columns: ["rate_plan_template_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_room_type_group_members_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owlting_room_type_groups: {
+        Row: {
+          accommodation_id: string
+          canonical_name: string
+          canonical_room_type_id: string
+          created_at: string
+          display_order: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          canonical_name: string
+          canonical_room_type_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          canonical_name?: string
+          canonical_room_type_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_room_type_groups_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_room_type_groups_canonical_room_type_id_fkey"
+            columns: ["canonical_room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owlting_service_accounts: {
         Row: {
           created_at: string
