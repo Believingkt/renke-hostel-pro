@@ -1447,6 +1447,7 @@ const WebsiteContent = () => {
         });
         setSelectedFacilities(selected);
         setPricingTypes(pricing);
+        setExtraFacilities(computeExtraFacilities(refreshed as any));
       }
 
 
