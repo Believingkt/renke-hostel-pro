@@ -533,6 +533,11 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
     parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
   );
 
+  // Package-group context: maps OwlTing's (canonical room + member rateplan)
+  // pushback to the underlying member room_type so the price lands on the
+  // row our pricing engine reads.
+  const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
+
   // IMPORTANT: rows MUST carry only `price` — never `available_rooms` /
   // `is_available`. Price push must not initialise/overwrite inventory.
   // When the RPC inserts a brand-new template-specific row, it leaves
@@ -548,9 +553,20 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
     }
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
     const matchTemplateId = plan?.id ?? null;
+
+    // If OwlTing pushed against a canonical room + a member rate-plan template,
+    // rewrite room_type to the member room_type (price belongs to the member's
+    // (room_type, template) row, not canonical). Falls back to the room as-is
+    // when no such mapping exists.
+    let targetRoomId = room.id;
+    if (matchTemplateId && groupCtx.canonicalRoomTypeIds.has(room.id)) {
+      const memberRoom = groupCtx.memberRoomTypeIdByTemplate.get(matchTemplateId);
+      if (memberRoom) targetRoomId = memberRoom;
+    }
+
     for (const rt of p.rates) {
       for (const d of dateRange(rt.start, rt.end)) {
-        inventoryRows.push({ room_type_id: room.id, date: d, pricing_template_id: matchTemplateId, price: rt.price });
+        inventoryRows.push({ room_type_id: targetRoomId, date: d, pricing_template_id: matchTemplateId, price: rt.price });
       }
     }
   }
