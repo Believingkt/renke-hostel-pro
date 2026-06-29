@@ -1489,6 +1489,15 @@ const Headquarters = () => {
                 accommodationId={permissionsTarget.accommodationId}
               />
             )}
+            {templatesDialogAccId && (
+              <PermissionTemplatesDialog
+                open={!!templatesDialogAccId}
+                onOpenChange={(o) => { if (!o) setTemplatesDialogAccId(null); }}
+                accommodationId={templatesDialogAccId}
+                accommodationName={accommodations.find((a) => a.id === templatesDialogAccId)?.name}
+                onChanged={loadTemplates}
+              />
+            )}
           </div>
         );
       case 'system':
