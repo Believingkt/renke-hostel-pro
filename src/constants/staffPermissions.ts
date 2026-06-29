@@ -31,6 +31,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
 
 export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = {
   orders: "editable",
+  kol_quota: "hidden",
   reception: "editable",
   room_price: "editable",
   customers: "editable",
