@@ -1186,7 +1186,18 @@ const Headquarters = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>角色</Label>
-                    <Select value={addRoleType} onValueChange={(v) => setAddRoleType(v as "super_admin" | "hotel_admin" | "staff")}>
+                    <Select
+                      value={addRoleTemplateId ? `tpl:${addRoleTemplateId}` : addRoleType}
+                      onValueChange={(v) => {
+                        if (v.startsWith("tpl:")) {
+                          setAddRoleTemplateId(v.slice(4));
+                          setAddRoleType("staff");
+                        } else {
+                          setAddRoleTemplateId("");
+                          setAddRoleType(v as "super_admin" | "hotel_admin" | "staff");
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -1194,6 +1205,12 @@ const Headquarters = () => {
                         <SelectItem value="super_admin">總部管理員</SelectItem>
                         <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                         <SelectItem value="staff">現場營運</SelectItem>
+                        {addRoleAccommodation && getTemplatesFor(addRoleAccommodation).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                        )}
+                        {addRoleAccommodation && getTemplatesFor(addRoleAccommodation).map((t) => (
+                          <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
