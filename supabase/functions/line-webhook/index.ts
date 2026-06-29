@@ -114,19 +114,38 @@ async function handleEvents(channel: any, events: any[]) {
         const summary = await fetchGroupSummary(channel.channel_access_token, groupId);
         const displayName = summary?.groupName ?? null;
 
-        const { error: upsertErr } = await supabase
+        // 不再依賴 (target_type,target_id) 唯一約束（已移除以支援多訂閱）。
+        // 改為先查 channel_id + target_id 是否已存在，再決定 update 或 insert。
+        const { data: existingGroup, error: findErr } = await supabase
           .from("line_push_targets")
-          .upsert(
-            {
+          .select("id")
+          .eq("target_type", "group")
+          .eq("target_id", groupId)
+          .eq("channel_id", channel.id)
+          .maybeSingle();
+        if (findErr) console.error("join find error", findErr);
+
+        if (existingGroup?.id) {
+          const { error: updErr } = await supabase
+            .from("line_push_targets")
+            .update({
+              display_name: displayName,
+              is_active: true,
+            })
+            .eq("id", existingGroup.id);
+          if (updErr) console.error("join update error", updErr);
+        } else {
+          const { error: insErr } = await supabase
+            .from("line_push_targets")
+            .insert({
               target_type: "group",
               target_id: groupId,
               display_name: displayName,
               channel_id: channel.id,
               is_active: true,
-            },
-            { onConflict: "target_type,target_id", ignoreDuplicates: false },
-          );
-        if (upsertErr) console.error("join upsert error", upsertErr);
+            });
+          if (insErr) console.error("join insert error", insErr);
+        }
       } else if (ev.type === "leave" && ev.source?.type === "group") {
         const groupId = ev.source.groupId;
         await supabase
