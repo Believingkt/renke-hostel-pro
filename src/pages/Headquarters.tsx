@@ -259,11 +259,54 @@ const Headquarters = () => {
     loadUserRoles();
   }, []);
 
+  const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+
+  useEffect(() => {
+    loadAccommodations();
+    loadUserRoles();
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    const { data, error } = await supabase
+      .from("permission_templates")
+      .select("id, accommodation_id, name")
+      .order("display_order", { ascending: true });
+    if (!error) setTemplates((data as any) || []);
+  };
+
+  const getTemplatesFor = (accommodationId: string) =>
+    templates.filter((t) => t.accommodation_id === accommodationId);
+
+  const getTemplateName = (templateId?: string | null) =>
+    templateId ? templates.find((t) => t.id === templateId)?.name : undefined;
+
+  const handleApplyTemplate = async (
+    roleId: string,
+    userId: string,
+    accommodationId: string,
+    templateId: string,
+  ) => {
+    const { error } = await supabase.rpc("apply_template_to_user", {
+      _user_id: userId,
+      _accommodation_id: accommodationId,
+      _template_id: templateId,
+    });
+    if (error) {
+      toast.error(`套用職位失敗：${error.message}`);
+      return;
+    }
+    const tplName = getTemplateName(templateId) || "範本";
+    toast.success(`已套用「${tplName}」權限`);
+    loadUserRoles();
+  };
+
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
       .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, short_name, header_logo_url, footer_logo_url, theme_preset, is_active, created_at, display_order, building_count, bundled_lock_inventory, package_inventory_as_one")
       .order("display_order", { ascending: true });
+
 
     if (error) {
       toast.error("載入民宿列表失敗");
