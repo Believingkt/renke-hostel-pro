@@ -666,8 +666,8 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                                       event_types: [],
                                       accommodation_ids: [],
                                       custom_venue_names: [],
-                                      display_name:
-                                        (prev.display_name || "") + "（新規則）",
+                                      // 名稱跟著 groupId 走，不在複製時改名
+                                      display_name: prev.display_name || "",
                                     }
                                   : prev,
                               );
