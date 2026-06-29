@@ -236,16 +236,17 @@ async function authenticate(
   });
   if (rpcErr || !ok) return { ok: false, msg: "Invalid service account credentials" };
 
-  // 2. Resolve HotelCode -> accommodation_id (still per-property mapping)
+  // 2. Resolve HotelCode -> accommodation_id
+  // Single source of truth: accommodation_owlting_config.owlting_hotel_code (sync_enabled = true)
   if (!hotelCode) return { ok: false, msg: "Missing HotelCode" };
   const { data: prop } = await supabase
-    .from("owlting_credentials")
-    .select("accommodation_id, hotel_code, is_active")
-    .eq("hotel_code", hotelCode)
+    .from("accommodation_owlting_config")
+    .select("accommodation_id, owlting_hotel_code, sync_enabled")
+    .eq("owlting_hotel_code", hotelCode)
     .maybeSingle();
-  if (!prop || !prop.is_active) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
+  if (!prop || !prop.sync_enabled) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
 
-  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.hotel_code };
+  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.owlting_hotel_code };
 }
 
 // ============== Handlers ==============
