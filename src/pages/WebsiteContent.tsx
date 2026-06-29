@@ -1117,6 +1117,7 @@ const WebsiteContent = () => {
 
               setSelectedFacilities(selected);
               setPricingTypes(pricing);
+              setExtraFacilities(computeExtraFacilities(facRowsReload as any));
             }
             break;
 
