@@ -363,6 +363,7 @@ async function processRow(
       duration_ms: durationMs,
       success: ok,
       owlnest_md5: md5,
+      mapping_meta: { stays: mappingAudit },
       error_message: ok ? null : "non-success response",
     });
     if (ok) {
