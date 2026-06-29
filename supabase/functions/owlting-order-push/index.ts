@@ -14,6 +14,7 @@ import {
   type OwlConfig,
   type ResStatus,
 } from "./xml.ts";
+import { buildMappingTables, mapOutboundStay } from "./group-mapping.ts";
 
 
 const corsHeaders = {
