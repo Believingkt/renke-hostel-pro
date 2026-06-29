@@ -1273,7 +1273,18 @@ const Headquarters = () => {
                                   <TableCell className="text-sm align-top">
                                     <div className="flex flex-col gap-4">
                                       {displayRoles.map((r) => (
-                                        <div key={r.id} className="h-10 flex items-center justify-center">
+                                        <div key={r.id} className="h-10 flex items-center justify-center gap-1">
+                                          {r.role !== 'super_admin' && r.accommodation_id && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 shrink-0"
+                                              title="設定模組權限"
+                                              onClick={() => setPermissionsTarget({ userId: r.user_id, accommodationId: r.accommodation_id })}
+                                            >
+                                              <Settings2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          )}
                                           <Button
                                             variant="ghost-destructive"
                                             size="icon"
@@ -1286,6 +1297,7 @@ const Headquarters = () => {
                                       ))}
                                     </div>
                                   </TableCell>
+
                                 </SortableUserRow>
                               );
                             })}
