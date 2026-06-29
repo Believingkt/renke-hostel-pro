@@ -91,6 +91,8 @@ import { CouponManagement, CouponManagementRef } from "@/components/headquarters
 import PointRulesManagement from "@/components/headquarters/PointRulesManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
+import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
+import { Settings2 } from "lucide-react";
 
 interface UserRole {
   id: string;
