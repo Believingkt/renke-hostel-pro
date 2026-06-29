@@ -1111,9 +1111,17 @@ const Headquarters = () => {
                   )}
                   <div className="space-y-2">
                     <Label htmlFor="role">角色</Label>
-                    <Select 
-                      value={selectedRole} 
-                      onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}
+                    <Select
+                      value={selectedTemplateId ? `tpl:${selectedTemplateId}` : selectedRole}
+                      onValueChange={(value) => {
+                        if (value.startsWith("tpl:")) {
+                          setSelectedTemplateId(value.slice(4));
+                          setSelectedRole("staff");
+                        } else {
+                          setSelectedTemplateId("");
+                          setSelectedRole(value as "super_admin" | "hotel_admin" | "staff");
+                        }
+                      }}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id="role">
@@ -1123,6 +1131,12 @@ const Headquarters = () => {
                         <SelectItem value="super_admin">總部管理員</SelectItem>
                         <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                         <SelectItem value="staff">現場營運</SelectItem>
+                        {selectedAccommodation && getTemplatesFor(selectedAccommodation).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">職位範本</div>
+                        )}
+                        {selectedAccommodation && getTemplatesFor(selectedAccommodation).map((t) => (
+                          <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
