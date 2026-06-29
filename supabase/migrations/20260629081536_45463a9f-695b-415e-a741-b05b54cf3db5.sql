@@ -1,0 +1,1 @@
+UPDATE public.owlting_service_accounts SET password_hash='1c7df6611462ca2b9cc31b334c6ce7287431f24b514623cdd97f9ccc395729ca' WHERE username='owlting_partner';
