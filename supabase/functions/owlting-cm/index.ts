@@ -9,12 +9,12 @@
  *
  * WS-Security UsernameToken auth — single shared OwlTing service account
  * (owlting_service_accounts). Individual property credentials are no longer used.
- * HotelCode is still mapped to a property via owlting_credentials.hotel_code.
+ * HotelCode is mapped to a property via accommodation_owlting_config.owlting_hotel_code
+ * (single source of truth — same row that the HQ「奧丁丁物業設定」UI manages).
+ * Only properties with sync_enabled = true are accepted.
  *
  * Code mapping (numeric, auto-assigned, starting at 1001):
- *   HotelCode    = owlting_credentials.hotel_code
- *   RoomTypeCode = room_types.numeric_code           (e.g. "1001")
- *   RatePlanCode = pricing_templates.numeric_code    (e.g. "1001")
+ *   HotelCode    = accommodation_owlting_config.owlting_hotel_code
  *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
