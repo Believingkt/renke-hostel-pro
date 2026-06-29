@@ -777,6 +777,12 @@ export default function TeamOrders() {
         deposit_confirm_date: form.deposit_confirm_date ?? null,
         team_commission_price: newTcp,
       };
+      // 訂金確認日有實際變動 → 視為人工確認
+      const prevDcd = editOrder.meta?.deposit_confirm_date ?? null;
+      const newDcd = form.deposit_confirm_date ?? null;
+      if ((prevDcd || "") !== (newDcd || "")) {
+        payload.deposit_confirm_date_verified = true;
+      }
       if (tcpChanged) {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
