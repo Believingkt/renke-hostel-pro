@@ -532,6 +532,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         nickname: nickname.trim() || null,
         deposit_confirm_date: depositConfirmDate || null,
+        // 訂金確認日有實際變動 → 視為人工確認；沒動就維持原狀
+        ...((depositConfirmDate || "") !== (initialDepositConfirmDate || "")
+          ? { deposit_confirm_date_verified: true }
+          : {}),
         team_commission_price:
           teamCommissionPrice === null || teamCommissionPrice === undefined
             ? null
