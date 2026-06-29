@@ -91,6 +91,8 @@ import { CouponManagement, CouponManagementRef } from "@/components/headquarters
 import PointRulesManagement from "@/components/headquarters/PointRulesManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
+import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
+import { Settings2 } from "lucide-react";
 
 interface UserRole {
   id: string;
@@ -234,6 +236,7 @@ const Headquarters = () => {
   const [selectedBackupAccommodation, setSelectedBackupAccommodation] = useState("");
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
 
@@ -1270,7 +1273,18 @@ const Headquarters = () => {
                                   <TableCell className="text-sm align-top">
                                     <div className="flex flex-col gap-4">
                                       {displayRoles.map((r) => (
-                                        <div key={r.id} className="h-10 flex items-center justify-center">
+                                        <div key={r.id} className="h-10 flex items-center justify-center gap-1">
+                                          {r.role !== 'super_admin' && r.accommodation_id && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 shrink-0"
+                                              title="設定模組權限"
+                                              onClick={() => setPermissionsTarget({ userId: r.user_id, accommodationId: r.accommodation_id })}
+                                            >
+                                              <Settings2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          )}
                                           <Button
                                             variant="ghost-destructive"
                                             size="icon"
@@ -1283,6 +1297,7 @@ const Headquarters = () => {
                                       ))}
                                     </div>
                                   </TableCell>
+
                                 </SortableUserRow>
                               );
                             })}
@@ -1294,6 +1309,14 @@ const Headquarters = () => {
                 )}
               </CardContent>
             </Card>
+            {permissionsTarget && (
+              <StaffPermissionsDialog
+                open={!!permissionsTarget}
+                onOpenChange={(o) => { if (!o) setPermissionsTarget(null); }}
+                userId={permissionsTarget.userId}
+                accommodationId={permissionsTarget.accommodationId}
+              />
+            )}
           </div>
         );
       case 'system':
