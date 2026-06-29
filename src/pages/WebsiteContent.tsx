@@ -452,6 +452,42 @@ const WebsiteContent = () => {
   const [activeTab, setActiveTab] = useState("basic-info");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
   const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
+  // 總部新增的共用設施中，不在前端硬編 facilitiesData 內的「額外項目」
+  const [extraFacilities, setExtraFacilities] = useState<Record<string, Array<{ id: string; name: string; hasPrice: boolean }>>>({});
+
+  // 從共用列計算 extras（排除已在 facilitiesData 中的項目）
+  const computeExtraFacilities = (
+    rows: Array<{ accommodation_id: string | null; facility_name: string; category: string; is_available: boolean | null; pricing_type: string | null }>,
+  ) => {
+    const builtInKeys = new Set<string>();
+    for (const [cat, items] of Object.entries(facilitiesData)) {
+      for (const it of items) builtInKeys.add(`${it.name}||${cat}`);
+    }
+    const extras: Record<string, Array<{ id: string; name: string; hasPrice: boolean }>> = {};
+    const seen = new Set<string>();
+    for (const r of rows) {
+      if (r.accommodation_id !== null) continue;
+      if (r.is_available === false) continue;
+      const key = `${r.facility_name}||${r.category}`;
+      if (builtInKeys.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      if (!extras[r.category]) extras[r.category] = [];
+      const hasPrice = r.pricing_type === 'free' || r.pricing_type === 'paid';
+      extras[r.category].push({
+        id: `extra-${r.category}-${r.facility_name}`,
+        name: r.facility_name,
+        hasPrice,
+      });
+    }
+    return extras;
+  };
+
+  // 合併硬編 + extras 後的項目（給渲染與儲存共用）
+  const getMergedItems = (category: keyof typeof facilitiesData): Array<{ id: string; name: string; hasPrice: boolean }> => {
+    const base = facilitiesData[category] as Array<{ id: string; name: string; hasPrice: boolean }>;
+    const ex = extraFacilities[category] || [];
+    return ex.length > 0 ? [...base, ...ex] : base;
+  };
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
