@@ -1302,7 +1302,15 @@ const WebsiteContent = () => {
       // 1. 目標清單：使用者勾選後該存在的設施
       type DesiredRow = { facility_name: string; category: string; pricing_type: string };
       const desired = new Map<string, DesiredRow>();
-      for (const [category, items] of Object.entries(facilitiesData)) {
+      // 合併硬編 + 總部新增的 extras 後再走 desired 計算
+      const mergedSource: Record<string, Array<{ id: string; name: string; hasPrice: boolean }>> = {};
+      for (const cat of Object.keys(facilitiesData)) {
+        mergedSource[cat] = [
+          ...(facilitiesData as any)[cat],
+          ...((extraFacilities[cat] as any) || []),
+        ];
+      }
+      for (const [category, items] of Object.entries(mergedSource)) {
         for (const item of items) {
           if (!selectedFacilities[item.name]) continue;
           const key = `${item.name}||${category}`;
