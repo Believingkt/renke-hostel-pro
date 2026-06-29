@@ -17,6 +17,8 @@ export interface SensanTierPrice {
   isFewPeople?: boolean;
   /** 可選：直接綁定該方案要下單的房型 id（包區方案資料驅動時使用） */
   roomTypeId?: string;
+  /** 可選：accommodation_packages.id，下單時寫入 orders.package_id */
+  packageId?: string;
   /** 可選：方案名稱（資料驅動時可帶入，沒帶就 fallback "{n} 人包區方案"） */
   planName?: string;
   /** 副標 */

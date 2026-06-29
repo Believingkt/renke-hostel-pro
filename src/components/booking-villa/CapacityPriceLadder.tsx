@@ -54,6 +54,8 @@ interface CapacityOption {
   originalPrice: number;
   discountPercent: number;
   isRecommended?: boolean;
+  /** 對應 accommodation_packages.id，下單時寫入 orders.package_id */
+  packageId?: string;
   /** 多晚跨平/旺/假日時，某些晚不適用本方案而改用替代價的標註 */
   fallbackNotes?: Array<{
     date: Date;
@@ -223,6 +225,7 @@ const CapacityPriceLadder = ({
       originalPrice,
       discountPercent,
       isRecommended,
+      packageId: tier.packageId,
       fallbackNotes,
       breakdown,
     };

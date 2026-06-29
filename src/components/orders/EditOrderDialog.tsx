@@ -74,6 +74,7 @@ interface EditOrderDialogProps {
     guest_name: string;
     guest_phone: string;
     guest_email: string;
+    package_id?: string | null;
   }) => Promise<void>;
   onCancel?: (orderId: string) => Promise<void>;
   onDelete?: (orderId: string) => Promise<void>;
@@ -123,7 +124,12 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     guest_name: "",
     guest_phone: "",
     guest_email: "",
+    package_id: "" as string,
   });
+
+  const [accommodationPackages, setAccommodationPackages] = useState<
+    Array<{ id: string; name: string; guest_count: number; enabled: boolean }>
+  >([]);
 
   // Fetch room types, public holidays, templates, and addons
   useEffect(() => {
@@ -153,6 +159,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
+
+      // accommodation_packages → 對應方案下拉
+      const { data: pkgData } = await supabase
+        .from("accommodation_packages")
+        .select("id, name, guest_count, enabled")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("enabled", true)
+        .order("display_order", { ascending: true })
+        .order("guest_count", { ascending: true });
+      setAccommodationPackages(pkgData || []);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
         setRoomTypes(roomTypesResult.data);
@@ -306,6 +322,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_name: order.guest_name,
         guest_phone: order.guest_phone,
         guest_email: order.guest_email || "",
+        package_id: (order as any).package_id || "",
       });
 
       // 載入現有的折扣碼
@@ -686,6 +703,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_name: editForm.guest_name,
         guest_phone: editForm.guest_phone,
         guest_email: editForm.guest_email,
+        package_id: editForm.package_id || null,
       });
     } finally {
       setIsSaving(false);
@@ -700,6 +718,33 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             <Label>訂單編號</Label>
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
+
+          {accommodationPackages.length > 0 && (
+            <div className="space-y-2">
+              <Label>對應方案（accommodation_packages）</Label>
+              <Select
+                value={editForm.package_id || "none"}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, package_id: value === "none" ? "" : value })
+                }
+              >
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue placeholder="（選填）對應實際包區/包棟方案" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">（未指定）</SelectItem>
+                  {accommodationPackages.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}（{p.guest_count} 人）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                寫入 orders.package_id；OwlTing 推送的 RatePlanCode 會以此為準。
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>訂購人 <span className="text-destructive">*</span></Label>

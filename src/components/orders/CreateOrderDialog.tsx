@@ -228,7 +228,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     order_source: "",
     security_deposit_method: "cash" as "cash" | "card",
     security_deposit_amount: 5000,
+    package_id: "" as string,
   });
+
+  // 對應的方案清單（accommodation_packages），下單時寫入 orders.package_id
+  const [accommodationPackages, setAccommodationPackages] = useState<
+    Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; enabled: boolean }>
+  >([]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -254,6 +260,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         order_source: "",
         security_deposit_method: "cash",
         security_deposit_amount: 5000,
+        package_id: "",
       });
       setSelectedAddons([]);
       setDiscountCode("");
@@ -311,6 +318,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
+
+      // Accommodation packages（給「對應方案」下拉用 → 寫入 orders.package_id）
+      const { data: pkgData } = await supabase
+        .from("accommodation_packages")
+        .select("id, name, guest_count, primary_room_type_id, enabled")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("enabled", true)
+        .order("display_order", { ascending: true })
+        .order("guest_count", { ascending: true });
+      setAccommodationPackages(pkgData || []);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
         setRoomTypes(roomTypesResult.data);
@@ -1254,6 +1271,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
+        package_id: form.package_id || null,
         owner_direct: form.order_source === "owner_provided",
 
         deposit_required_amount: form.security_deposit_amount,
@@ -2470,6 +2488,31 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </AlertDescription>
 
         </Alert>
+      )}
+
+      {accommodationPackages.length > 0 && (
+        <div className="space-y-2">
+          <Label>對應方案（accommodation_packages）</Label>
+          <Select
+            value={form.package_id || "none"}
+            onValueChange={(value) => setForm({ ...form, package_id: value === "none" ? "" : value })}
+          >
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="（選填）對應實際包區/包棟方案" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">（未指定，留空）</SelectItem>
+              {accommodationPackages.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}（{p.guest_count} 人）
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            選定後將寫入 orders.package_id，OwlTing 推送的 RatePlanCode 會以此為準。
+          </p>
+        </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
