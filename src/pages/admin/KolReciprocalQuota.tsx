@@ -278,11 +278,15 @@ export default function KolReciprocalQuota() {
     <AdminPageHeader
       title="KOL 互惠額度"
       icon={Sparkles}
-      breadcrumbs={[{ label: "訂單資訊" }]}
+      breadcrumbs={[{ label: "KOL 互惠額度" }]}
       action={
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />新增月份額度
-        </Button>
+        editable ? (
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-2" />新增月份額度
+          </Button>
+        ) : (
+          <Badge variant="outline">唯讀預覽</Badge>
+        )
       }
     >
       <Card>
