@@ -92,6 +92,7 @@ import PointRulesManagement from "@/components/headquarters/PointRulesManagement
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
+import { PermissionTemplatesDialog } from "@/components/PermissionTemplatesDialog";
 import { Settings2 } from "lucide-react";
 
 interface UserRole {
@@ -245,6 +246,7 @@ const Headquarters = () => {
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
   const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
+  const [templatesDialogAccId, setTemplatesDialogAccId] = useState<string | null>(null);
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
 
@@ -1172,7 +1174,11 @@ const Headquarters = () => {
                             className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              navigate('/admin/permission-templates');
+                              if (selectedAccommodation) {
+                                setTemplatesDialogAccId(selectedAccommodation);
+                              } else {
+                                toast.error("請先選擇民宿");
+                              }
                             }}
                           >
                             ＋ 管理職位範本…
@@ -1259,7 +1265,11 @@ const Headquarters = () => {
                             className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              navigate('/admin/permission-templates');
+                              if (addRoleAccommodation) {
+                                setTemplatesDialogAccId(addRoleAccommodation);
+                              } else {
+                                toast.error("請先選擇民宿");
+                              }
                             }}
                           >
                             ＋ 管理職位範本…
@@ -1420,7 +1430,7 @@ const Headquarters = () => {
                                                   className="w-full text-left px-2 py-1.5 text-xs text-primary hover:bg-accent rounded"
                                                   onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    navigate('/admin/permission-templates');
+                                                    setTemplatesDialogAccId(r.accommodation_id);
                                                   }}
                                                 >
                                                   ＋ 管理職位範本…
@@ -1477,6 +1487,15 @@ const Headquarters = () => {
                 onOpenChange={(o) => { if (!o) setPermissionsTarget(null); }}
                 userId={permissionsTarget.userId}
                 accommodationId={permissionsTarget.accommodationId}
+              />
+            )}
+            {templatesDialogAccId && (
+              <PermissionTemplatesDialog
+                open={!!templatesDialogAccId}
+                onOpenChange={(o) => { if (!o) setTemplatesDialogAccId(null); }}
+                accommodationId={templatesDialogAccId}
+                accommodationName={accommodations.find((a) => a.id === templatesDialogAccId)?.name}
+                onChanged={loadTemplates}
               />
             )}
           </div>
