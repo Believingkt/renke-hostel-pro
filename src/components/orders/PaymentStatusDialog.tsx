@@ -70,6 +70,44 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
 
       if (error) throw error;
 
+      // 自動帶入訂金確認日（僅在改為「已付訂金」且尚無日期時）
+      if (selectedStatus === "deposit_paid") {
+        try {
+          const { data: metaRow } = await supabase
+            .from("order_meta")
+            .select("order_id, deposit_confirm_date")
+            .eq("order_id", order.id)
+            .maybeSingle();
+          const existingDate = (metaRow as { deposit_confirm_date?: string | null } | null)
+            ?.deposit_confirm_date;
+          if (!existingDate) {
+            // Asia/Taipei 今天日期，格式 YYYY-MM-DD
+            const today = new Date().toLocaleDateString("en-CA", {
+              timeZone: "Asia/Taipei",
+            });
+            await supabase.from("order_meta").upsert(
+              {
+                order_id: order.id,
+                deposit_confirm_date: today,
+                deposit_confirm_date_verified: false,
+              } as any,
+              { onConflict: "order_id" },
+            );
+          }
+        } catch (e) {
+          console.error("[PaymentStatusDialog] auto-fill deposit_confirm_date error:", e);
+        }
+      }
+
+      // (legacy update block replaced above)
+      const _legacy = async () => {
+        const { error: _e } = await supabase.from("orders").update({
+          notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
+        })
+        .eq("id", order.id);
+
+      if (error) throw error;
+
       // Audit log
       try {
         const { data: { user } } = await supabase.auth.getUser();
