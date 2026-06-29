@@ -6884,7 +6884,7 @@ export type Database = {
       }
       room_inventory_pricing: {
         Row: {
-          available_rooms: number
+          available_rooms: number | null
           created_at: string
           date: string
           id: string
@@ -6901,7 +6901,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          available_rooms?: number
+          available_rooms?: number | null
           created_at?: string
           date: string
           id?: string
@@ -6918,7 +6918,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          available_rooms?: number
+          available_rooms?: number | null
           created_at?: string
           date?: string
           id?: string
