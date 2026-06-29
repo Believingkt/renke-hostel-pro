@@ -99,14 +99,6 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
         }
       }
 
-      // (legacy update block replaced above)
-      const _legacy = async () => {
-        const { error: _e } = await supabase.from("orders").update({
-          notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-        })
-        .eq("id", order.id);
-
-      if (error) throw error;
 
       // Audit log
       try {
