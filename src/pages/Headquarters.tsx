@@ -594,7 +594,11 @@ const Headquarters = () => {
     return accommodation?.name || accommodationId;
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string, templateId?: string | null) => {
+    if (role === "staff" && templateId) {
+      const tplName = getTemplateName(templateId);
+      if (tplName) return tplName;
+    }
     switch (role) {
       case "super_admin":
         return "總部管理員";
