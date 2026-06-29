@@ -394,6 +394,14 @@ export default function KolReciprocalQuota() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {currentAccommodationId && (
+        <AvailabilityCalendarDialog
+          open={calOpen}
+          onOpenChange={setCalOpen}
+          accommodationId={currentAccommodationId}
+        />
+      )}
     </AdminPageHeader>
   );
 }
