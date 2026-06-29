@@ -513,7 +513,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status`,
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
             { count: "exact" }
           )
       );
