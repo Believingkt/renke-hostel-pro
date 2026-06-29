@@ -321,6 +321,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setAddonAmount(Number(m.addon_amount ?? 0));
         setNickname((m.nickname as string) ?? "");
         setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
+        setInitialDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
+        setDepositConfirmDateVerified(Boolean((m as any).deposit_confirm_date_verified));
 
         const tcp =
           m.team_commission_price === null || m.team_commission_price === undefined
