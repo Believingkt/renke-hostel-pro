@@ -100,7 +100,7 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
                 .from("order_meta")
                 .insert({
                   order_id: order.id,
-                  accommodation_id: order.accommodation_id ?? null,
+                  accommodation_id: (order as any).accommodation_id ?? null,
                   deposit_confirm_date: todayTW,
                   deposit_confirm_date_verified: false,
                 } as any);
