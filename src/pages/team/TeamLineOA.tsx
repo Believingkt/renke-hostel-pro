@@ -684,35 +684,46 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                         <Button variant="ghost" size="icon" onClick={() => openEdit(g)} title="編輯">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="複製為新訂閱規則（同群組可有多筆）"
-                          onClick={() => {
-                            openEdit(g);
-                            // 移除 id → 變成新增模式，但保留 target_id / display_name / channel
-                            setTimeout(() => {
-                              setForm((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      id: undefined,
-                                      event_types: [],
-                                      accommodation_ids: [],
-                                      custom_venue_names: [],
-                                      // 名稱跟著 groupId 走，不在複製時改名
-                                      display_name: prev.display_name || "",
-                                    }
-                                  : prev,
-                              );
-                            }, 0);
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="複製為新訂閱規則（同群組可有多筆）"
+                              onClick={() => {
+                                openEdit(g);
+                                setTimeout(() => {
+                                  setForm((prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          id: undefined,
+                                          event_types: [],
+                                          accommodation_ids: [],
+                                          custom_venue_names: [],
+                                          display_name: prev.display_name || "",
+                                        }
+                                      : prev,
+                                  );
+                                }, 0);
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="刪除綁定"
+                              onClick={() => setDeleteTarget(g)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
+
                 ))
               )}
             </TableBody>
