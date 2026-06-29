@@ -226,35 +226,77 @@ async function processRow(
     (rts ?? []).map((r: any) => [r.id, { name: r.name, numeric_code: r.numeric_code }]),
   );
 
-  // Resolve RatePlanCode strictly from orders.package_id.
-  // NO fallback to "lowest numeric_code" — guessing the rate plan would push
-  // wrong data to OwlNest. Missing package_id => fail with reason "no rate plan".
+  // Resolve fallback RatePlanCode from orders.package_id. May be null when
+  // every stay is a group member (mapping below provides the correct
+  // per-headcount rate plan from owlting_room_type_group_members).
   const { data: pkgs } = await admin
     .from("accommodation_packages")
     .select("id, name, numeric_code")
     .eq("accommodation_id", order.accommodation_id);
   const rp = resolveRatePlan(order.package_id, pkgs ?? []);
-  if (!rp.ok) {
-    await finalizeFail(admin, row, baseLog, rp.reason, true);
-    return { id: row.id, outcome: "failed", reason: "no rate plan" };
-  }
+  const fallbackRpCode = rp.ok ? rp.code : null;
+  const fallbackRpName = rp.ok ? rp.name : undefined;
 
-  // Build OwlOrderInput
+  // Load owlting room-type group config (canonical + members) for this property.
+  const { data: groupsRows } = await admin
+    .from("owlting_room_type_groups")
+    .select("id, canonical_room_type_id, canonical_name")
+    .eq("accommodation_id", order.accommodation_id);
+  const groupIds = (groupsRows ?? []).map((g: any) => g.id);
+  const { data: memberRows } = groupIds.length
+    ? await admin
+        .from("owlting_room_type_group_members")
+        .select("group_id, room_type_id, rate_plan_template_id, rate_plan_name, pricing_templates!owlting_room_type_group_members_rate_plan_template_id_fkey(numeric_code)")
+        .in("group_id", groupIds)
+    : { data: [] as any[] };
+  const canonicalRtIds = (groupsRows ?? []).map((g: any) => g.canonical_room_type_id);
+  const { data: canonicalRts } = canonicalRtIds.length
+    ? await admin.from("room_types").select("id, numeric_code").in("id", canonicalRtIds)
+    : { data: [] as any[] };
+  const mappingTables = buildMappingTables(
+    (groupsRows ?? []),
+    (canonicalRts ?? []),
+    (memberRows ?? []).map((m: any) => ({
+      group_id: m.group_id,
+      room_type_id: m.room_type_id,
+      rate_plan_template_id: m.rate_plan_template_id,
+      rate_plan_name: m.rate_plan_name,
+      rate_plan_template_numeric_code: m.pricing_templates?.numeric_code ?? null,
+    })),
+  );
+
+  // Build OwlOrderInput + mapping audit
   const stays = [];
+  const mappingAudit: any[] = [];
   for (const s of stayInputs) {
     const rt = s.room_type_id ? rtMap.get(s.room_type_id) : undefined;
-    if (!rt || rt.numeric_code == null) {
-      await finalizeFail(admin, row, baseLog, `room_type ${s.room_type_id} missing numeric_code`, true);
-      return { id: row.id, outcome: "failed", reason: "no room_type code" };
+    const mapped = mapOutboundStay(
+      {
+        room_type_id: s.room_type_id,
+        original_room_type_code: rt?.numeric_code ?? null,
+        fallback_rate_plan_code: fallbackRpCode,
+        fallback_rate_plan_name: fallbackRpName,
+        fallback_room_type_name: rt?.name,
+      },
+      mappingTables,
+    );
+    if ("error" in mapped) {
+      await finalizeFail(admin, row, baseLog, mapped.error, true);
+      return { id: row.id, outcome: "failed", reason: mapped.error };
     }
     stays.push({
-      roomTypeCode: rt.numeric_code,
-      ratePlanCode: rp.code,
-      roomTypeName: rt.name,
-      ratePlanName: rp.name,
+      roomTypeCode: mapped.roomTypeCode,
+      ratePlanCode: mapped.ratePlanCode,
+      roomTypeName: mapped.roomTypeName,
+      ratePlanName: mapped.ratePlanName,
       quantity: s.quantity,
       unitAmount: s.unit_amount,
       adults: Math.max(1, order.guest_count ?? 2),
+    });
+    mappingAudit.push({
+      original: mapped.original,
+      converted: mapped.converted,
+      remapped: mapped.remapped,
     });
   }
 
