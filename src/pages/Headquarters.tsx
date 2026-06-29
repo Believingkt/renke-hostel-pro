@@ -253,6 +253,7 @@ const Headquarters = () => {
   const [addRoleUserId, setAddRoleUserId] = useState("");
   const [addRoleAccommodation, setAddRoleAccommodation] = useState("");
   const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [addRoleTemplateId, setAddRoleTemplateId] = useState<string>("");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
 
 
