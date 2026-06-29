@@ -801,13 +801,32 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label>訂金確認日</Label>
+              <Label className="flex items-center gap-1.5">
+                <span>訂金確認日</span>
+                {paymentStatus === "deposit_paid" &&
+                  (!depositConfirmDate || !depositConfirmDateVerified) && (
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-sky-700 border border-sky-200"
+                      title={
+                        !depositConfirmDate
+                          ? "請確認/補上此日期"
+                          : "系統自動帶入，請確認此日期是否正確"
+                      }
+                    >
+                      📌
+                      {!depositConfirmDate
+                        ? "請確認/補上此日期"
+                        : "系統自動帶入，請確認此日期是否正確"}
+                    </span>
+                  )}
+              </Label>
               <Input
                 type="date"
                 value={depositConfirmDate}
                 onChange={(e) => setDepositConfirmDate(e.target.value)}
               />
             </div>
+
           </div>
 
           {/* 3. 廣告編號 / 影音組 */}
