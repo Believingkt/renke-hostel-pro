@@ -1309,6 +1309,14 @@ const Headquarters = () => {
                 )}
               </CardContent>
             </Card>
+            {permissionsTarget && (
+              <StaffPermissionsDialog
+                open={!!permissionsTarget}
+                onOpenChange={(o) => { if (!o) setPermissionsTarget(null); }}
+                userId={permissionsTarget.userId}
+                accommodationId={permissionsTarget.accommodationId}
+              />
+            )}
           </div>
         );
       case 'system':
