@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
-import { Sparkles, Plus, Pencil, Trash2 } from "lucide-react";
+import { Sparkles, Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { AvailabilityCalendarDialog } from "@/components/AvailabilityCalendarDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
