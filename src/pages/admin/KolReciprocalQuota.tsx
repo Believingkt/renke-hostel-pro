@@ -282,13 +282,19 @@ export default function KolReciprocalQuota() {
       icon={Sparkles}
       breadcrumbs={[{ label: "KOL 互惠額度" }]}
       action={
-        editable ? (
-          <Button onClick={openCreate} size="sm">
-            <Plus className="h-4 w-4 mr-2" />新增月份額度
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCalOpen(true)}>
+            <CalendarDays className="h-4 w-4 mr-2" />
+            日曆檢視
           </Button>
-        ) : (
-          <Badge variant="outline">唯讀預覽</Badge>
-        )
+          {editable ? (
+            <Button onClick={openCreate} size="sm">
+              <Plus className="h-4 w-4 mr-2" />新增月份額度
+            </Button>
+          ) : (
+            <Badge variant="outline">唯讀預覽</Badge>
+          )}
+        </div>
       }
     >
       <Card>
