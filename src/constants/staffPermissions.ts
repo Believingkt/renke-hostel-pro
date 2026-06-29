@@ -15,6 +15,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
   { key: "analytics", label: "營運分析" },
   { key: "reception", label: "櫃檯接待" },
   { key: "orders", label: "訂單資訊" },
+  { key: "kol_quota", label: "KOL 互惠額度" },
   { key: "website_content", label: "官網內容" },
   { key: "pricing", label: "房型設施" },
   { key: "room_price", label: "房價庫存" },
