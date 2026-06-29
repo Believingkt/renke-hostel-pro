@@ -149,6 +149,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAddonAmount(0);
       setNickname("");
       setDepositConfirmDate("");
+      setInitialDepositConfirmDate("");
+      setDepositConfirmDateVerified(false);
+      setPaymentStatus(null);
       setOrderDate(null);
       setFinalPrice(null);
       setTeamCommissionPrice(null);
