@@ -1282,7 +1282,7 @@ const Headquarters = () => {
                                             {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
                                           </span>
                                           <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
-                                            {getRoleLabel(r.role)}
+                                            {getRoleLabel(r.role, r.template_id)}
                                           </Badge>
                                         </div>
                                       ))}
