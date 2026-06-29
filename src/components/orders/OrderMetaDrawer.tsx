@@ -85,9 +85,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [addonAmount, setAddonAmount] = useState<number>(0);
   const [nickname, setNickname] = useState("");
   const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
-  const [initialDepositConfirmDate, setInitialDepositConfirmDate] = useState<string>("");
-  const [depositConfirmDateVerified, setDepositConfirmDateVerified] = useState<boolean>(false);
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [orderDate, setOrderDate] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
@@ -149,9 +146,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAddonAmount(0);
       setNickname("");
       setDepositConfirmDate("");
-      setInitialDepositConfirmDate("");
-      setDepositConfirmDateVerified(false);
-      setPaymentStatus(null);
       setOrderDate(null);
       setFinalPrice(null);
       setTeamCommissionPrice(null);
@@ -231,7 +225,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date, payment_status")
+          .select("order_date, final_price, check_out_date")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -281,10 +275,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
 
       const orderRowTyped =
-        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null } | null);
+        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
-      setPaymentStatus(orderRowTyped?.payment_status ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
@@ -321,8 +314,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setAddonAmount(Number(m.addon_amount ?? 0));
         setNickname((m.nickname as string) ?? "");
         setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
-        setInitialDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
-        setDepositConfirmDateVerified(Boolean((m as any).deposit_confirm_date_verified));
 
         const tcp =
           m.team_commission_price === null || m.team_commission_price === undefined
@@ -532,10 +523,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         nickname: nickname.trim() || null,
         deposit_confirm_date: depositConfirmDate || null,
-        // 訂金確認日有實際變動 → 視為人工確認；沒動就維持原狀
-        ...((depositConfirmDate || "") !== (initialDepositConfirmDate || "")
-          ? { deposit_confirm_date_verified: true }
-          : {}),
         team_commission_price:
           teamCommissionPrice === null || teamCommissionPrice === undefined
             ? null
@@ -798,42 +785,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
-                訂金確認日
-                {paymentStatus === "deposit_paid" && !depositConfirmDate && (
-                  <span
-                    title="請確認/補上此日期"
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold"
-                  >
-                    !
-                  </span>
-                )}
-                {paymentStatus === "deposit_paid" &&
-                  !!depositConfirmDate &&
-                  !depositConfirmDateVerified && (
-                    <span
-                      title="系統自動帶入，請確認此日期是否正確"
-                      className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold"
-                    >
-                      ?
-                    </span>
-                  )}
-              </Label>
+              <Label>訂金確認日</Label>
               <Input
                 type="date"
                 value={depositConfirmDate}
                 onChange={(e) => setDepositConfirmDate(e.target.value)}
               />
-              {paymentStatus === "deposit_paid" && !depositConfirmDate && (
-                <p className="text-xs text-red-600">請確認/補上此日期</p>
-              )}
-              {paymentStatus === "deposit_paid" &&
-                !!depositConfirmDate &&
-                !depositConfirmDateVerified && (
-                  <p className="text-xs text-amber-600">
-                    系統自動帶入，請確認此日期是否正確
-                  </p>
-                )}
             </div>
           </div>
 

@@ -70,47 +70,6 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
 
       if (error) throw error;
 
-      // 若狀態改為「已付訂金」且 order_meta.deposit_confirm_date 為空，
-      // 自動帶入今日 (Asia/Taipei) 並標記為未確認，待人工進入訂單詳情/成交大師確認。
-      if (selectedStatus === "deposit_paid") {
-        try {
-          const { data: metaRow } = await supabase
-            .from("order_meta")
-            .select("order_id, deposit_confirm_date")
-            .eq("order_id", order.id)
-            .maybeSingle();
-          const existingDate = (metaRow as any)?.deposit_confirm_date ?? null;
-          if (!existingDate) {
-            const todayTW = new Intl.DateTimeFormat("en-CA", {
-              timeZone: "Asia/Taipei",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            }).format(new Date());
-            if (metaRow) {
-              await supabase
-                .from("order_meta")
-                .update({
-                  deposit_confirm_date: todayTW,
-                  deposit_confirm_date_verified: false,
-                })
-                .eq("order_id", order.id);
-            } else {
-              await supabase
-                .from("order_meta")
-                .insert({
-                  order_id: order.id,
-                  accommodation_id: (order as any).accommodation_id ?? null,
-                  deposit_confirm_date: todayTW,
-                  deposit_confirm_date_verified: false,
-                } as any);
-            }
-          }
-        } catch (e) {
-          console.error("[PaymentStatusDialog] auto-fill deposit date error:", e);
-        }
-      }
-
       // Audit log
       try {
         const { data: { user } } = await supabase.auth.getUser();
