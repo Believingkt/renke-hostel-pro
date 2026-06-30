@@ -141,6 +141,8 @@ export default function TeamOrders() {
   });
 
   const { map: secondaryCurrencyMap } = useSecondaryCurrencyMap();
+  // 逐筆訂單顯示幣別：order_id → 'TWD' | 'JPY' | ...
+  const [orderDisplayCurrencyMap, setOrderDisplayCurrencyMap] = useState<Map<string, string>>(new Map());
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
@@ -573,7 +575,7 @@ export default function TeamOrders() {
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
                  nickname, deposit_confirm_date, deposit_confirm_date_verified,
-                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price`
+                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price, display_currency`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -583,7 +585,12 @@ export default function TeamOrders() {
       if (accRes.error) throw accRes.error;
 
       const metaMap = new Map<string, MetaRow>();
-      ((metaRes.data || []) as any[]).forEach((m) => metaMap.set(m.order_id, m));
+      const dcMap = new Map<string, string>();
+      ((metaRes.data || []) as any[]).forEach((m) => {
+        metaMap.set(m.order_id, m);
+        if (m.display_currency) dcMap.set(m.order_id, m.display_currency);
+      });
+      setOrderDisplayCurrencyMap(dcMap);
 
       // Fetch display names of confirmers for the 分潤基準金額 confirmation banner
       const confirmerIds = Array.from(
@@ -1070,7 +1077,8 @@ export default function TeamOrders() {
                       <TableCell className="tabular-nums">
                         {(() => {
                           const cfg = secondaryCurrencyMap.get(o.accommodation_id);
-                          const isSecPrimary = !!cfg && getDisplayCurrencyMode(o.accommodation_id) === "SEC";
+                          const orderCur = orderDisplayCurrencyMap.get(o.id);
+                          const isSecPrimary = !!cfg && !!orderCur && orderCur.toUpperCase() === cfg.code.toUpperCase();
                           if (cfg && isSecPrimary) {
                             return (
                               <div className="flex flex-col leading-tight">

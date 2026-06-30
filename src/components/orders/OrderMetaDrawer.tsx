@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -96,6 +96,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(accommodationId);
+  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const currencyForcedMode = useMemo<"TWD" | "SEC" | null>(() => {
+    if (!secondaryCurrencyConfig) return null;
+    if (!displayCurrency) return null;
+    return displayCurrency.toUpperCase() === secondaryCurrencyConfig.code.toUpperCase() ? "SEC" : "TWD";
+  }, [displayCurrency, secondaryCurrencyConfig]);
+  const handleCurrencyModeChange = useCallback(async (m: "TWD" | "SEC") => {
+    if (!orderId) return;
+    const { setOrderDisplayCurrency, modeToCurrencyCode } = await import("@/lib/orderDisplayCurrency");
+    const code = modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
+    setDisplayCurrency(code);
+    setOrderDisplayCurrency(orderId, code);
+  }, [orderId, secondaryCurrencyConfig?.code]);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
@@ -291,6 +304,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
       setAccommodationId(orderRowTyped?.accommodation_id ?? null);
+      setDisplayCurrency((existingMeta as any)?.display_currency ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
@@ -707,7 +721,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
                 <DualCurrencyInput
                   config={secondaryCurrencyConfig}
-                  storageKey={accommodationId || "default"}
+                  storageKey={accommodationId || "default"} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
                   value={teamCommissionPrice ?? 0}
                   onChange={(v) => setTeamCommissionPrice(v === 0 ? null : v)}
                 />
@@ -996,7 +1010,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               <Label>加購金額</Label>
               <DualCurrencyInput
                 config={secondaryCurrencyConfig}
-                storageKey={accommodationId || "default"}
+                storageKey={accommodationId || "default"} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
                 value={addonAmount}
                 onChange={(v) => setAddonAmount(v)}
               />

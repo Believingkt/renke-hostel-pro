@@ -114,6 +114,25 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
+  // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
+  const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(() => {
+    if (!currentAccommodationId) return null;
+    try {
+      const v = localStorage.getItem(`lakeze-input-currency:${currentAccommodationId}`);
+      if (v === "TWD") return "TWD";
+    } catch {}
+    return null; // 後續 secondaryCurrencyConfig 載入後再決定
+  });
+  useEffect(() => {
+    if (!createDisplayCurrency && secondaryCurrencyConfig?.code) {
+      setCreateDisplayCurrency(secondaryCurrencyConfig.code.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryCurrencyConfig?.code]);
+  const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
+    const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
+    setCreateDisplayCurrency(code);
+  };
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1443,6 +1462,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         description: `訂單 ${orderNumber} 已建立`,
       });
 
+      // 寫入訂單顯示幣別（依使用者建立時最後一次切換的輸入模式）
+      if (createDisplayCurrency && secondaryCurrencyConfig) {
+        const { setOrderDisplayCurrency } = await import("@/lib/orderDisplayCurrency");
+        setOrderDisplayCurrency(orderData.id, createDisplayCurrency);
+      }
+
       onSuccess(orderData.id);
       onOpenChange(false);
     } catch (error: any) {
@@ -2402,7 +2427,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <DualCurrencyInput
             id="create-discount-amount"
             config={secondaryCurrencyConfig}
-            storageKey={currentAccommodationId || "default"}
+            storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
             inputClassName="h-12 text-base sm:h-10 sm:text-sm"
             placeholder="0"
             value={manualDiscountStr !== null ? (parseInt(manualDiscountStr, 10) || 0) : (totals.discount > 0 ? totals.discount : 0)}
@@ -2670,7 +2695,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Label>訂金金額</Label>
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.deposit_amount}
               onChange={(v) => {
@@ -2722,7 +2747,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Label className="text-sm">押金金額</Label>
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.security_deposit_amount}
               onChange={(v) => setForm({ ...form, security_deposit_amount: v })}

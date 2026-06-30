@@ -20,6 +20,10 @@ interface DualCurrencyInputProps {
   /** 隱藏底下換算說明（極小欄位場景） */
   hideHint?: boolean;
   id?: string;
+  /** 模式改變時通知父層（用於把訂單顯示幣別寫入 DB） */
+  onModeChange?: (mode: "TWD" | "SEC") => void;
+  /** 外部強制指定當前模式（編輯既有訂單時用，例：訂單是 JPY 就強制 SEC） */
+  forcedMode?: "TWD" | "SEC" | null;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
@@ -49,12 +53,20 @@ export function DualCurrencyInput({
   storageKey = "default",
   hideHint,
   id,
+  onModeChange,
+  forcedMode,
 }: DualCurrencyInputProps) {
   const hasSecondary = !!(config && config.rate > 0);
-  const [mode, setMode] = useState<"TWD" | "SEC">(() => readPref(storageKey, hasSecondary));
+  const [mode, setMode] = useState<"TWD" | "SEC">(() => forcedMode ?? readPref(storageKey, hasSecondary));
   const [draft, setDraft] = useState<string>("");
   const [focused, setFocused] = useState(false);
   const lastSecondaryInputRef = useRef<{ secondary: string; twd: number; rate: number } | null>(null);
+
+  // 外部 forcedMode 變動時同步
+  useEffect(() => {
+    if (forcedMode && forcedMode !== mode) setMode(forcedMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forcedMode]);
 
   // value (TWD) 變動且未聚焦時，同步顯示值
   useEffect(() => {
@@ -106,6 +118,7 @@ export function DualCurrencyInput({
     try {
       localStorage.setItem(`${LS_PREFIX}:${storageKey}`, next);
     } catch {}
+    onModeChange?.(next);
   };
 
   const hint = useMemo(() => {
