@@ -113,6 +113,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
