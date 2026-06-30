@@ -152,7 +152,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      <div>NT$ {order.final_price.toLocaleString()}</div>
+                      <div>{renderAmount(order.final_price)}</div>
                       {(() => {
                         const method = getOrderPaymentMethod(order);
                         const dep = (order as any).deposit_amount ?? 0;
