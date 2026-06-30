@@ -96,6 +96,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(accommodationId);
+  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const currencyForcedMode = useMemo<"TWD" | "SEC" | null>(() => {
+    if (!secondaryCurrencyConfig) return null;
+    if (!displayCurrency) return null;
+    return displayCurrency.toUpperCase() === secondaryCurrencyConfig.code.toUpperCase() ? "SEC" : "TWD";
+  }, [displayCurrency, secondaryCurrencyConfig]);
+  const handleCurrencyModeChange = useCallback(async (m: "TWD" | "SEC") => {
+    if (!orderId) return;
+    const { setOrderDisplayCurrency, modeToCurrencyCode } = await import("@/lib/orderDisplayCurrency");
+    const code = modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
+    setDisplayCurrency(code);
+    setOrderDisplayCurrency(orderId, code);
+  }, [orderId, secondaryCurrencyConfig?.code]);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
