@@ -23,6 +23,8 @@ import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 
 interface RoomType {
   id: string;
