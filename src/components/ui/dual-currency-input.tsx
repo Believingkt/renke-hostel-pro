@@ -108,7 +108,7 @@ export function DualCurrencyInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onChange={(e) => handleChange(e.target.value)}
-          className={cn("text-right w-full", hasSecondary ? "pr-14" : "pr-10", inputClassName)}
+          className={cn("text-right w-full tabular-nums", hasSecondary ? "pr-[58px]" : "pr-12", inputClassName)}
         />
         {hasSecondary ? (
           <button
