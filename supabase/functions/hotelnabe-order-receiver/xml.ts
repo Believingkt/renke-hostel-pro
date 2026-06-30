@@ -41,6 +41,9 @@ export interface ParsedReservation {
   guestName: string | null;
   guestPhone: string | null;
   guestEmail: string | null;
+  // Payment guarantee (DepositPayments / GuaranteePayment / @GuaranteeType)
+  // Common values: "PrePay" (OTA pre-collected), "None" (pay at property), null (missing)
+  guaranteeType: string | null;
   // Errors collected during parsing (mapped to OTA error codes)
   errors: ParseError[];
 }
