@@ -525,7 +525,7 @@ export default function TeamOrders() {
 
       // Summary queries (run in parallel with list query)
       const validSumQ = applyFilters(
-        supabase.from("orders").select("final_price", { count: "exact" })
+        supabase.from("orders").select("final_price, accommodation_id", { count: "exact" })
       ).neq("order_status", "cancelled");
       const cancelledQ = applyFilters(
         supabase.from("orders").select("id", { count: "exact", head: true })
@@ -542,13 +542,18 @@ export default function TeamOrders() {
 
       const pageRows = ordersRes.data || [];
       const totalCount = ordersRes.count ?? 0;
-      const validSum = ((validRes.data || []) as any[]).reduce(
-        (s, r) => s + Number(r.final_price || 0),
-        0
-      );
+      const validRows = ((validRes.data || []) as any[]);
+      const validSum = validRows.reduce((s, r) => s + Number(r.final_price || 0), 0);
+      const validSumByAcc: Record<string, number> = {};
+      validRows.forEach((r) => {
+        const k = r.accommodation_id as string;
+        if (!k) return;
+        validSumByAcc[k] = (validSumByAcc[k] || 0) + Number(r.final_price || 0);
+      });
       setSummary({
         validCount: validRes.count ?? 0,
         validSum,
+        validSumByAcc,
         cancelledCount: cancelledRes.count ?? 0,
       });
 
