@@ -113,21 +113,68 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         current.setDate(current.getDate() + 1);
       }
 
-      const { data: inventoryData } = await supabase.rpc(
-        'get_adjusted_room_inventory_batch',
-        {
-          p_room_type_id: roomTypeId,
-          p_dates: dates,
-          p_accommodation_id: currentAccommodationId,
-        }
+      // 取所有房型，套用前台「整天關閉」規則
+      const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
+      const isSensan = currentAccommodationId === SENSAN_ACC_ID;
+      const isStrict = STRICT_PACKAGE_ANY_BOOKED_IDS.has(currentAccommodationId);
+
+      const packageRoomTypes = roomTypes.filter((r) => r.is_exclusive_package);
+      const commonRoomTypes = roomTypes.filter((r) => !r.is_exclusive_package);
+
+      // 需要彙整的房型：選中的房型 + 若適用整天規則則包含所有包棟（與散客）
+      const roomTypeIdsToQuery = new Set<string>([roomTypeId]);
+      if (isHakuna || isSensan || isStrict) {
+        packageRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
+        if (isSensan) commonRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
+      }
+
+      // 平行抓所有相關房型的庫存
+      const invResults = await Promise.all(
+        Array.from(roomTypeIdsToQuery).map(async (rid) => {
+          const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+            p_room_type_id: rid,
+            p_dates: dates,
+            p_accommodation_id: currentAccommodationId,
+          });
+          return { rid, data: (data ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }> };
+        })
       );
 
+      const invIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
+      for (const { rid, data } of invResults) {
+        for (const item of data) {
+          invIndex.set(`${rid}:${item.date_value}`, { available_rooms: item.available_rooms, is_blocked: item.is_blocked });
+        }
+      }
+
+      const isBookedOut = (rid: string, d: string) => {
+        const v = invIndex.get(`${rid}:${d}`);
+        if (!v) return false;
+        return v.is_blocked || v.available_rooms <= 0;
+      };
+      const isAvail = (rid: string, d: string) => {
+        const v = invIndex.get(`${rid}:${d}`);
+        if (!v) return false;
+        return !v.is_blocked && v.available_rooms > 0;
+      };
+
       const blocked = new Set<string>();
-      if (inventoryData) {
-        for (const item of inventoryData) {
-          if (item.is_blocked || item.available_rooms < 1) {
-            blocked.add(item.date_value);
-          }
+      for (const d of dates) {
+        // 1) 選中房型自身無庫存
+        const sel = invIndex.get(`${roomTypeId}:${d}`);
+        if (!sel || sel.is_blocked || sel.available_rooms < 1) {
+          blocked.add(d);
+          continue;
+        }
+        // 2) 整天關閉規則
+        if (isHakuna && packageRoomTypes.length > 0) {
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+        } else if (isSensan && packageRoomTypes.length > 0) {
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+        } else if (isStrict && packageRoomTypes.length > 0) {
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+          if (!packageRoomTypes.some((rt) => isAvail(rt.id, d))) { blocked.add(d); continue; }
         }
       }
       setUnavailableDates(blocked);
@@ -136,7 +183,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     } finally {
       setIsLoadingAvailability(false);
     }
-  }, [currentAccommodationId]);
+  }, [currentAccommodationId, roomTypes]);
 
   useEffect(() => {
     fetchUnavailableDates(form.room_type_id);
