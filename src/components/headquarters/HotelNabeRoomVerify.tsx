@@ -41,7 +41,7 @@ export function HotelNabeRoomVerify() {
 }
 
 class HotelNabeRoomVerifyBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
-  state = { error: null };
+  state: { error: string | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { error: error?.message ?? "旭海房型驗證區塊顯示失敗" };
@@ -72,11 +72,31 @@ function getMappingReport(report: RetrieveResult["report"]): MappingReport | nul
   const candidate = "mapping" in report ? (report as { mapping?: unknown }).mapping : report;
   if (!candidate || typeof candidate !== "object") return null;
   const r = candidate as Partial<MappingReport>;
+  const matched = (Array.isArray(r.matched) ? r.matched : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: String(m?.hotelnabe_room_type_code ?? "—"),
+    our_room_type_id: String(m?.our_room_type_id ?? ""),
+    our_room_type_name: String(m?.our_room_type_name ?? "—"),
+  }));
+  const mismatch = (Array.isArray(r.mismatch) ? r.mismatch : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: m?.hotelnabe_room_type_code ?? null,
+    reason: String(m?.reason ?? "—"),
+  }));
+  const missing = (Array.isArray(r.missing_on_our_side) ? r.missing_on_our_side : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: String(m?.hotelnabe_room_type_code ?? "—"),
+  }));
+  const unused = (Array.isArray(r.unused_on_our_side) ? r.unused_on_our_side : []).map((m: any) => ({
+    our_room_type_id: String(m?.our_room_type_id ?? ""),
+    our_room_type_name: String(m?.our_room_type_name ?? "—"),
+    numeric_code: Number(m?.numeric_code ?? 0),
+  }));
   return {
-    matched: Array.isArray(r.matched) ? r.matched : [],
-    mismatch: Array.isArray(r.mismatch) ? r.mismatch : [],
-    missing_on_our_side: Array.isArray(r.missing_on_our_side) ? r.missing_on_our_side : [],
-    unused_on_our_side: Array.isArray(r.unused_on_our_side) ? r.unused_on_our_side : [],
+    matched,
+    mismatch,
+    missing_on_our_side: missing,
+    unused_on_our_side: unused,
     totals: {
       remote: Number(r.totals?.remote ?? 0),
       ours: Number(r.totals?.ours ?? 0),
