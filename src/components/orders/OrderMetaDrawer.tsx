@@ -994,12 +994,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
             <div className="space-y-2">
               <Label>加購金額</Label>
-              <Input
-                type="number"
+              <DualCurrencyInput
+                config={secondaryCurrencyConfig}
+                storageKey={accommodationId || "default"}
                 value={addonAmount}
-                onChange={(e) =>
-                  setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
-                }
+                onChange={(v) => setAddonAmount(v)}
               />
             </div>
           </div>
