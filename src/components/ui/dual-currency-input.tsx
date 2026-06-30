@@ -97,36 +97,53 @@ export function DualCurrencyInput({
 
   return (
     <div className={cn("flex flex-col items-stretch gap-0.5 w-full", className)}>
-      <div className="relative w-full">
-        <Input
-          id={id}
-          type="text"
-          inputMode="numeric"
-          disabled={disabled}
-          placeholder={placeholder}
-          value={draft}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={(e) => handleChange(e.target.value)}
-          className={cn("text-right w-full tabular-nums", hasSecondary ? "pr-[58px]" : "pr-12", inputClassName)}
-        />
-        {hasSecondary ? (
+      {hasSecondary ? (
+        <div className="flex w-full items-center rounded-lg border border-input bg-background shadow-sm ring-offset-background transition-all focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+          <Input
+            id={id}
+            type="text"
+            inputMode="numeric"
+            disabled={disabled}
+            placeholder={placeholder}
+            value={draft}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChange={(e) => handleChange(e.target.value)}
+            className={cn(
+              "min-w-0 flex-1 border-0 bg-transparent pr-2 text-right shadow-none ring-offset-0 tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0",
+              inputClassName,
+            )}
+          />
           <button
             type="button"
             onClick={toggle}
             disabled={disabled}
-            className="absolute right-1 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[11px] font-medium bg-muted hover:bg-muted/70 text-muted-foreground border"
+            className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
             tabIndex={-1}
             title="切換輸入幣別"
           >
             {currencyLabel}
           </button>
-        ) : (
+        </div>
+      ) : (
+        <div className="relative w-full">
+          <Input
+            id={id}
+            type="text"
+            inputMode="numeric"
+            disabled={disabled}
+            placeholder={placeholder}
+            value={draft}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChange={(e) => handleChange(e.target.value)}
+            className={cn("w-full pr-12 text-right tabular-nums", inputClassName)}
+          />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">
             NT$
           </span>
-        )}
-      </div>
+        </div>
+      )}
       {!hideHint && hint && (
         <span className="text-[10px] text-muted-foreground leading-none text-right">{hint}</span>
       )}
