@@ -613,6 +613,7 @@ const Orders = () => {
                     sortDirection={sortDirection}
                     onSort={handleSort}
                     customMealPlans={customMealPlans}
+                    accommodationId={accommodationId}
                   />
 
                   {/* 分頁資訊和控制 */}
