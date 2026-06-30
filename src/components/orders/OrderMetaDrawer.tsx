@@ -60,6 +60,7 @@ const NONE = "none";
 
 export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [closers, setClosers] = useState<TeamOption[]>([]);
+  const [accommodationIdForCurrency, _setAccIdForCurrency] = useState<string | null>(null);
   const [videoCreators, setVideoCreators] = useState<TeamOption[]>([]);
   const [commonAds, setCommonAds] = useState<CommonAd[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
