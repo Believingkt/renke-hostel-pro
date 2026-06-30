@@ -23,12 +23,20 @@ interface MappingReport {
   totals: { remote: number; ours: number; matched: number; missing: number; mismatch: number; unused: number };
 }
 
+interface RatePlanReport {
+  matched: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string; our_package_id: string; our_package_name: string }[];
+  mismatch: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string | null; reason: string }[];
+  missing_on_our_side: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string }[];
+  unused_on_our_side: { our_package_id: string; our_package_name: string; numeric_code: number }[];
+  totals: { remote: number; ours: number; matched: number; missing: number; mismatch: number; unused: number };
+}
+
 interface RetrieveResult {
   success: boolean;
   log_id?: string;
   http_status?: number;
   echo_token?: string;
-  report?: MappingReport | { mapping?: MappingReport; [key: string]: unknown } | null;
+  report?: (MappingReport | { mapping?: MappingReport; rate_plan_mapping?: RatePlanReport | null; mode?: string; [key: string]: unknown }) | null;
   error?: string;
 }
 
