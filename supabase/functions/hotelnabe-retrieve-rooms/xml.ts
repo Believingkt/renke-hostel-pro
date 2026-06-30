@@ -81,7 +81,7 @@ const parser = new XMLParser({
   trimValues: true,
   parseAttributeValue: false,
   removeNSPrefix: true,
-  isArray: (name) => ["RoomStay", "RoomType", "Error"].includes(name),
+  isArray: (name) => ["RoomStay", "RoomType", "RatePlan", "Error"].includes(name),
 });
 
 function asArr<T>(v: T | T[] | undefined | null): T[] {
