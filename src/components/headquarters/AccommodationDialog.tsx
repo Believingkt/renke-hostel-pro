@@ -132,6 +132,12 @@ export function AccommodationDialog({
   const [loadingFreeCancel, setLoadingFreeCancel] = useState(false);
   const savedFreeCancelRef = useRef<number>(14);
 
+  // Secondary currency (display-only, e.g. JPY for 旅行日)
+  const [secondaryCurrency, setSecondaryCurrency] = useState<string>("");
+  const [secondaryRate, setSecondaryRate] = useState<string>("");
+  const [loadingSecondaryCurrency, setLoadingSecondaryCurrency] = useState(false);
+  const [savingSecondaryCurrency, setSavingSecondaryCurrency] = useState(false);
+
 
   useEffect(() => {
     if (initialData) {
