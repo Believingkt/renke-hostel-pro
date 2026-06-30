@@ -140,6 +140,8 @@ export default function TeamOrders() {
     cancelledCount: 0,
   });
 
+  const { map: secondaryCurrencyMap } = useSecondaryCurrencyMap();
+
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   const [isEditing, setIsEditing] = useState(false);
