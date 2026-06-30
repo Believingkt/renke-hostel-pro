@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Component, ReactNode, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,11 +28,118 @@ interface RetrieveResult {
   log_id?: string;
   http_status?: number;
   echo_token?: string;
-  report?: MappingReport;
+  report?: MappingReport | { mapping?: MappingReport; [key: string]: unknown } | null;
   error?: string;
 }
 
 export function HotelNabeRoomVerify() {
+  return (
+    <HotelNabeRoomVerifyBoundary>
+      <HotelNabeRoomVerifyContent />
+    </HotelNabeRoomVerifyBoundary>
+  );
+}
+
+class HotelNabeRoomVerifyBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state: { error: string | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error: error?.message ?? "旭海房型驗證區塊顯示失敗" };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>旭海房型對應驗證</CardTitle>
+            <CardDescription>此區塊暫時無法顯示，未影響其他後台功能。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive whitespace-pre-wrap break-all">
+              {this.state.error}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function getMappingReport(report: RetrieveResult["report"]): MappingReport | null {
+  if (!report || typeof report !== "object") return null;
+  const candidate = "mapping" in report ? (report as { mapping?: unknown }).mapping : report;
+  if (!candidate || typeof candidate !== "object") return null;
+  const r = candidate as Partial<MappingReport>;
+  const matched = (Array.isArray(r.matched) ? r.matched : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: String(m?.hotelnabe_room_type_code ?? "—"),
+    our_room_type_id: String(m?.our_room_type_id ?? ""),
+    our_room_type_name: String(m?.our_room_type_name ?? "—"),
+  }));
+  const mismatch = (Array.isArray(r.mismatch) ? r.mismatch : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: m?.hotelnabe_room_type_code ?? null,
+    reason: String(m?.reason ?? "—"),
+  }));
+  const missing = (Array.isArray(r.missing_on_our_side) ? r.missing_on_our_side : []).map((m: any) => ({
+    hotelnabe_room_id: m?.hotelnabe_room_id ?? null,
+    hotelnabe_room_type_code: String(m?.hotelnabe_room_type_code ?? "—"),
+  }));
+  const unused = (Array.isArray(r.unused_on_our_side) ? r.unused_on_our_side : []).map((m: any) => ({
+    our_room_type_id: String(m?.our_room_type_id ?? ""),
+    our_room_type_name: String(m?.our_room_type_name ?? "—"),
+    numeric_code: Number(m?.numeric_code ?? 0),
+  }));
+  return {
+    matched,
+    mismatch,
+    missing_on_our_side: missing,
+    unused_on_our_side: unused,
+    totals: {
+      remote: Number(r.totals?.remote ?? 0),
+      ours: Number(r.totals?.ours ?? 0),
+      matched: Number(r.totals?.matched ?? 0),
+      missing: Number(r.totals?.missing ?? 0),
+      mismatch: Number(r.totals?.mismatch ?? 0),
+      unused: Number(r.totals?.unused ?? 0),
+    },
+  };
+}
+
+async function parseFunctionError(error: unknown): Promise<{ message: string; httpStatus?: number }> {
+  const fallback = error instanceof Error ? error.message : String(error ?? "未知錯誤");
+  const ctx = (error as { context?: unknown } | null | undefined)?.context;
+  if (!ctx) return { message: fallback };
+
+  const maybeResponse = ctx as Partial<Response>;
+  if (typeof maybeResponse.clone === "function") {
+    const httpStatus = typeof maybeResponse.status === "number" ? maybeResponse.status : undefined;
+    try {
+      const json = await maybeResponse.clone().json();
+      const message = json?.error || json?.detail || JSON.stringify(json);
+      return { message: String(message || fallback), httpStatus };
+    } catch {
+      try {
+        const text = await maybeResponse.clone().text();
+        return { message: text || fallback, httpStatus };
+      } catch {
+        return { message: fallback, httpStatus };
+      }
+    }
+  }
+
+  if (typeof ctx === "object") {
+    const c = ctx as Record<string, unknown>;
+    const message = c.error || c.detail || c.message || JSON.stringify(c);
+    return { message: String(message || fallback) };
+  }
+
+  return { message: String(ctx || fallback) };
+}
+
+function HotelNabeRoomVerifyContent() {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -74,23 +181,7 @@ export function HotelNabeRoomVerify() {
         body: { accommodation_id: selected },
       });
       if (error) {
-        // FunctionsHttpError 的 context 是原始 Response；把 body 解出來給用戶看
-        let bodyMsg = "";
-        let httpStatus: number | undefined;
-        const ctx = (error as any)?.context;
-        if (ctx instanceof Response) {
-          httpStatus = ctx.status;
-          try {
-            const cloned = ctx.clone();
-            const j = await cloned.json();
-            bodyMsg = j?.error || j?.detail || JSON.stringify(j);
-          } catch {
-            try { bodyMsg = await ctx.clone().text(); } catch { /* noop */ }
-          }
-        } else if (typeof ctx === "object" && ctx) {
-          bodyMsg = ctx.error || ctx.detail || JSON.stringify(ctx);
-        }
-        const msg = bodyMsg || error.message || "未知錯誤";
+        const { message: msg, httpStatus } = await parseFunctionError(error);
         setResult({ success: false, http_status: httpStatus, error: String(msg) });
         toast.error(`呼叫失敗${httpStatus ? `（HTTP ${httpStatus}）` : ""}：${msg}`);
       } else {
@@ -106,7 +197,7 @@ export function HotelNabeRoomVerify() {
     }
   };
 
-  const r = result?.report;
+  const r = getMappingReport(result?.report);
 
   return (
     <div className="space-y-4">
