@@ -198,12 +198,12 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const createDateTime = safeStr(hr?.["@_CreateDateTime"]);
   const lastModifyDateTime = safeStr(hr?.["@_LastModifyDateTime"]);
 
-  // HotelReservationIDs
+  // HotelReservationIDs (also handle ResGlobalInfo path used by HotelNabe production)
   let hotelnabeResId: string | null = null;
   let otaResId: string | null = null;
-  const ids = asArray(hr?.UniqueID).concat(
-    asArray(hr?.HotelReservationIDs?.HotelReservationID),
-  );
+  const ids = asArray(hr?.UniqueID)
+    .concat(asArray(hr?.HotelReservationIDs?.HotelReservationID))
+    .concat(asArray(hr?.ResGlobalInfo?.HotelReservationIDs?.HotelReservationID));
   for (const id of ids) {
     const src = safeStr(id?.["@_ResID_Source"]) ?? safeStr(id?.["@_Source"]);
     const val = safeStr(id?.["@_ResID_Value"]) ?? safeStr(id?.["@_ID"]);
@@ -219,8 +219,11 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   // RoomStay (V1.0.2: single RoomStay typical; take first)
   const roomStay = asArray(hr?.RoomStays?.RoomStay)[0] ?? null;
 
-  // Property
-  const hotelCode = safeStr(roomStay?.BasicPropertyInfo?.["@_HotelCode"]);
+  // Property — HotelNabe production places BasicPropertyInfo under ResGlobalInfo;
+  // keep RoomStay path as fallback for spec-style payloads.
+  const hotelCode =
+    safeStr(hr?.ResGlobalInfo?.BasicPropertyInfo?.["@_HotelCode"]) ??
+    safeStr(roomStay?.BasicPropertyInfo?.["@_HotelCode"]);
 
   // Room type via nabe:PMS@RoomTypeCode
   const roomTypeNode = asArray(roomStay?.RoomTypes?.RoomType)[0] ?? null;
@@ -230,12 +233,16 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const roomTypeCode = safeInt(roomPms?.["@_RoomTypeCode"]);
 
   // Rate plan via nabe:RoomRate/nabe:PMS@RatePlanCode
+  // HotelNabe production wraps nabe:RoomRate inside RoomRates/TPA_Extensions,
+  // not directly under RoomRates. Try both shapes.
   const roomRatesNode = roomStay?.RoomRates ?? null;
   const nabeRoomRate = roomRatesNode?.["nabe:RoomRate"]
+    ?? roomRatesNode?.TPA_Extensions?.["nabe:RoomRate"]
     ?? roomRatesNode?.RoomRate
     ?? null;
   const rrFirst = Array.isArray(nabeRoomRate) ? nabeRoomRate[0] : nabeRoomRate;
-  const ratePms = rrFirst?.TPA_Extensions?.["nabe:PMS"]
+  const ratePms = rrFirst?.["nabe:PMS"]
+    ?? rrFirst?.TPA_Extensions?.["nabe:PMS"]
     ?? rrFirst?.TPA_Extensions?.PMS
     ?? null;
   const ratePlanCode = safeInt(ratePms?.["@_RatePlanCode"]);
