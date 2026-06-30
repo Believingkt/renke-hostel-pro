@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
+import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 
 interface TeamOption {
   user_id: string;
@@ -92,6 +94,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [orderDate, setOrderDate] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [accommodationId, setAccommodationId] = useState<string | null>(null);
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(accommodationId);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
@@ -232,7 +236,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date, payment_status")
+          .select("order_date, final_price, check_out_date, payment_status, accommodation_id")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -282,10 +286,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
 
       const orderRowTyped =
-        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null } | null);
+        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null; accommodation_id?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
+      setAccommodationId(orderRowTyped?.accommodation_id ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
@@ -700,14 +705,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             {canEditCommissionPrice ? (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
-                <Input
-                  type="number"
-                  value={teamCommissionPrice ?? ""}
-                  onChange={(e) =>
-                    setTeamCommissionPrice(
-                      e.target.value === "" ? null : Number(e.target.value),
-                    )
-                  }
+                <DualCurrencyInput
+                  config={secondaryCurrencyConfig}
+                  storageKey={accommodationId || "default"}
+                  value={teamCommissionPrice ?? 0}
+                  onChange={(v) => setTeamCommissionPrice(v === 0 ? null : v)}
                 />
                 <p className="text-xs text-muted-foreground">
                   請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
@@ -992,12 +994,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
             <div className="space-y-2">
               <Label>加購金額</Label>
-              <Input
-                type="number"
+              <DualCurrencyInput
+                config={secondaryCurrencyConfig}
+                storageKey={accommodationId || "default"}
                 value={addonAmount}
-                onChange={(e) =>
-                  setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
-                }
+                onChange={(v) => setAddonAmount(v)}
               />
             </div>
           </div>

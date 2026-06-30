@@ -23,6 +23,8 @@ import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 
 interface RoomType {
   id: string;
@@ -111,6 +113,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -2395,18 +2398,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         )}
 
         <div className="space-y-2 pt-2">
-          <Label htmlFor="create-discount-amount">折扣金額 (NT$)</Label>
-          <Input
+          <Label htmlFor="create-discount-amount">折扣金額</Label>
+          <DualCurrencyInput
             id="create-discount-amount"
-            type="number"
-            min={0}
+            config={secondaryCurrencyConfig}
+            storageKey={currentAccommodationId || "default"}
+            inputClassName="h-12 text-base sm:h-10 sm:text-sm"
             placeholder="0"
-            value={manualDiscountStr !== null ? manualDiscountStr : (totals.discount > 0 ? String(totals.discount) : "")}
-            onChange={(e) => {
-              manualDiscountInputRef.current = e.target.value;
-              setManualDiscountStr(e.target.value);
+            value={manualDiscountStr !== null ? (parseInt(manualDiscountStr, 10) || 0) : (totals.discount > 0 ? totals.discount : 0)}
+            onChange={(v) => {
+              const s = v > 0 ? String(v) : "";
+              manualDiscountInputRef.current = s;
+              setManualDiscountStr(s);
             }}
-            className="h-12 text-base sm:h-10 sm:text-sm"
           />
           <p className="text-xs text-muted-foreground">
             {appliedDiscount ? "可手動覆寫折扣碼計算的金額" : "可直接輸入折扣金額（不需折扣碼）"}
@@ -2663,21 +2667,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <p className="text-xs text-muted-foreground">預設 30%，可手動調整 0–100%</p>
           </div>
           <div className="space-y-2">
-            <Label>訂金金額（NT$）</Label>
-            <Input
-              type="number"
-              min={0}
-              max={totals.final}
+            <Label>訂金金額</Label>
+            <DualCurrencyInput
+              config={secondaryCurrencyConfig}
+              storageKey={currentAccommodationId || "default"}
+              inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.deposit_amount}
-              onChange={(e) => {
-                const v = Number(e.target.value) || 0;
+              onChange={(v) => {
                 const capped = Math.max(0, Math.min(v, totals.final));
                 setForm({ ...form, deposit_amount: capped });
                 if (totals.final > 0) {
                   setDepositPct(Math.round((capped / totals.final) * 100));
                 }
               }}
-              className="h-12 text-base sm:h-10 sm:text-sm"
             />
             <p className="text-xs text-muted-foreground">上限 NT$ {totals.final.toLocaleString()}</p>
           </div>
@@ -2717,16 +2719,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm">押金金額 (NT$)</Label>
-            <Input
-              type="number"
-              min={0}
-              step={100}
+            <Label className="text-sm">押金金額</Label>
+            <DualCurrencyInput
+              config={secondaryCurrencyConfig}
+              storageKey={currentAccommodationId || "default"}
+              inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.security_deposit_amount}
-              onChange={(e) =>
-                setForm({ ...form, security_deposit_amount: Number(e.target.value) || 0 })
-              }
-              className="h-12 text-base sm:h-10 sm:text-sm"
+              onChange={(v) => setForm({ ...form, security_deposit_amount: v })}
             />
           </div>
         </div>
