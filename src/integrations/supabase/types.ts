@@ -355,6 +355,8 @@ export type Database = {
           registration_number: string | null
           review_summary: string | null
           search_card_photos: string[]
+          secondary_currency: string | null
+          secondary_currency_rate: number | null
           seo_description: string | null
           seo_title: string | null
           short_name: string | null
@@ -449,6 +451,8 @@ export type Database = {
           registration_number?: string | null
           review_summary?: string | null
           search_card_photos?: string[]
+          secondary_currency?: string | null
+          secondary_currency_rate?: number | null
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null
@@ -543,6 +547,8 @@ export type Database = {
           registration_number?: string | null
           review_summary?: string | null
           search_card_photos?: string[]
+          secondary_currency?: string | null
+          secondary_currency_rate?: number | null
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null
