@@ -99,7 +99,7 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
   const doc = parser.parse(xml);
   const rs = doc?.OTA_HotelAvailRS;
   if (!rs) {
-    return { echoToken: null, success: false, errors: [{ type: null, code: null, message: "Missing OTA_HotelAvailRS root" }], rooms: [] };
+    return { echoToken: null, success: false, errors: [{ type: null, code: null, message: "Missing OTA_HotelAvailRS root" }], rooms: [], ratePlans: [] };
   }
   const echoToken = rs["@_EchoToken"] ? String(rs["@_EchoToken"]) : null;
   const success = rs.Success !== undefined && rs.Errors === undefined;
@@ -110,6 +110,7 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
   }));
 
   const rooms: ParsedRSRoomType[] = [];
+  const ratePlans: ParsedRSRatePlan[] = [];
   const stays = asArr(rs?.RoomStays?.RoomStay);
   for (const stay of stays) {
     const rts = asArr(stay?.RoomTypes?.RoomType);
@@ -118,8 +119,14 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
       const roomTypeCode = rt?.["@_RoomTypeCode"] != null ? String(rt["@_RoomTypeCode"]) : null;
       if (roomId || roomTypeCode) rooms.push({ roomId, roomTypeCode });
     }
+    const rps = asArr(stay?.RatePlans?.RatePlan);
+    for (const rp of rps) {
+      const ratePlanId = rp?.["@_RatePlanID"] != null ? String(rp["@_RatePlanID"]) : null;
+      const ratePlanCode = rp?.["@_RatePlanCode"] != null ? String(rp["@_RatePlanCode"]) : null;
+      if (ratePlanId || ratePlanCode) ratePlans.push({ ratePlanId, ratePlanCode });
+    }
   }
-  return { echoToken, success: success || errors.length === 0, errors, rooms };
+  return { echoToken, success: success || errors.length === 0, errors, rooms, ratePlans };
 }
 
 // ─── Mapping report ─────────────────────────────────────────────────
