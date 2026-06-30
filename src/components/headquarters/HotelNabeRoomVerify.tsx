@@ -218,13 +218,13 @@ function HotelNabeRoomVerifyContent() {
 
   const selectedAcc = useMemo(() => accs.find((a) => a.id === selected), [accs, selected]);
 
-  const handleRun = async () => {
+  const handleRun = async (mode: "roomOnly" | "roomAndRate" = "roomOnly") => {
     if (!selected) return;
     setLoading(true);
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("hotelnabe-retrieve-rooms", {
-        body: { accommodation_id: selected },
+        body: { accommodation_id: selected, mode },
       });
       if (error) {
         const { message: msg, httpStatus } = await parseFunctionError(error);
@@ -244,6 +244,7 @@ function HotelNabeRoomVerifyContent() {
   };
 
   const r = getMappingReport(result?.report);
+  const rp = getRatePlanReport(result?.report);
 
   return (
     <div className="space-y-4">
