@@ -1001,6 +1001,7 @@ const Headquarters = () => {
         case 'owlting': return Plug;
         case 'owlting-config': return Plug;
         case 'owlting-push': return Activity;
+        case 'hotelnabe-verify': return Plug;
       }
     }
     
