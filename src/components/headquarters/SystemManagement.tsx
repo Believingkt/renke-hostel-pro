@@ -39,6 +39,7 @@ import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { HotelNabePushInventory } from "@/components/headquarters/HotelNabePushInventory";
+import { HotelNabeInboundLog } from "@/components/headquarters/HotelNabeInboundLog";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
