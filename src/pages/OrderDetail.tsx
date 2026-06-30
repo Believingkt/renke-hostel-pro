@@ -2802,17 +2802,18 @@ const OrderDetailPage = () => {
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                    <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    <DualCurrencyInput config={secondaryCurrencyConfig} storageKey={order.accommodation_id} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.addon_total} onChange={(v) => setEditForm(f => ({ ...f, addon_total: v }))} />
                   </div>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購金額</span>
-                    <Input
-                      className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
-                      type="text"
-                      inputMode="numeric"
+                    <DualCurrencyInput
+                      config={secondaryCurrencyConfig}
+                      storageKey={order.accommodation_id}
+                      className="w-[150px]"
+                      inputClassName="h-10 text-base md:h-8 md:text-sm"
                       placeholder="0"
-                      value={editForm.extra_addon_amount || ""}
-                      onChange={(e) => setEditForm(f => ({ ...f, extra_addon_amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      value={editForm.extra_addon_amount || 0}
+                      onChange={(v) => setEditForm(f => ({ ...f, extra_addon_amount: v }))}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
