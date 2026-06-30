@@ -2882,11 +2882,23 @@ const OrderDetailPage = () => {
               const effectiveFinalPrice = order.final_price;
               return (
                 <>
-                  <div className="flex justify-between items-center gap-2">
+                  <div className="flex justify-between items-start gap-2">
                     <span className="text-sm md:text-sm font-semibold">實收金額</span>
-                    <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                      NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
-                    </span>
+                    <div className="flex flex-col items-end leading-tight">
+                      <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                        NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                      </span>
+                      {secondaryCurrencyConfig && (
+                        <span className="text-[11px] text-muted-foreground">
+                          ≈ {formatSecondary(
+                            isEditing
+                              ? (editForm.total_price + editForm.addon_total - editForm.discount_amount)
+                              : effectiveFinalPrice,
+                            secondaryCurrencyConfig
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                    <Separator />
                   {/* 匯款（含舊訂單）：顯示訂金/尾款拆分與各自付款狀態 */}
