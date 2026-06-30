@@ -32,6 +32,7 @@ function makeReservation(over: Partial<ParsedReservation> = {}): ParsedReservati
     guestName: "張小明",
     guestPhone: "0912345678",
     guestEmail: "test@example.com",
+    guaranteeType: null,
     errors: [],
   };
   return { ...base, ...over };
