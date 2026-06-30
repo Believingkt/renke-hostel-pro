@@ -53,12 +53,20 @@ export function DualCurrencyInput({
   storageKey = "default",
   hideHint,
   id,
+  onModeChange,
+  forcedMode,
 }: DualCurrencyInputProps) {
   const hasSecondary = !!(config && config.rate > 0);
-  const [mode, setMode] = useState<"TWD" | "SEC">(() => readPref(storageKey, hasSecondary));
+  const [mode, setMode] = useState<"TWD" | "SEC">(() => forcedMode ?? readPref(storageKey, hasSecondary));
   const [draft, setDraft] = useState<string>("");
   const [focused, setFocused] = useState(false);
   const lastSecondaryInputRef = useRef<{ secondary: string; twd: number; rate: number } | null>(null);
+
+  // 外部 forcedMode 變動時同步
+  useEffect(() => {
+    if (forcedMode && forcedMode !== mode) setMode(forcedMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forcedMode]);
 
   // value (TWD) 變動且未聚焦時，同步顯示值
   useEffect(() => {
