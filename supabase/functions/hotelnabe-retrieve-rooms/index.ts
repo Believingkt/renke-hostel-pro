@@ -14,6 +14,7 @@ import {
   buildHotelnabeAvailRQ,
   parseHotelnabeAvailRS,
   buildMappingReport,
+  buildRatePlanMappingReport,
   maskPasswordInXml,
 } from "./xml.ts";
 
@@ -24,7 +25,10 @@ const INBOUND_PASSWORD = Deno.env.get("HOTELNABE_INBOUND_PASSWORD") ?? "";
 const PMS_ID = Deno.env.get("HOTELNABE_PMS_ID") ?? "";
 
 const HOTELNABE_BASE = Deno.env.get("HOTELNABE_BASE_URL") ?? "https://xml.hotelnabe.com.tw";
-const ENDPOINT = `${HOTELNABE_BASE.replace(/\/+$/, "")}/pms/retrieveRoomOnly`;
+const ENDPOINT_ROOM_ONLY = `${HOTELNABE_BASE.replace(/\/+$/, "")}/pms/retrieveRoomOnly`;
+const ENDPOINT_ROOM_AND_RATE = `${HOTELNABE_BASE.replace(/\/+$/, "")}/pms/retrieveRoomAndRate`;
+
+type Mode = "roomOnly" | "roomAndRate";
 
 function jsonResp(body: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
