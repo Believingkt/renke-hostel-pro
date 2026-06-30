@@ -585,7 +585,12 @@ export default function TeamOrders() {
       if (accRes.error) throw accRes.error;
 
       const metaMap = new Map<string, MetaRow>();
-      ((metaRes.data || []) as any[]).forEach((m) => metaMap.set(m.order_id, m));
+      const dcMap = new Map<string, string>();
+      ((metaRes.data || []) as any[]).forEach((m) => {
+        metaMap.set(m.order_id, m);
+        if (m.display_currency) dcMap.set(m.order_id, m.display_currency);
+      });
+      setOrderDisplayCurrencyMap(dcMap);
 
       // Fetch display names of confirmers for the 分潤基準金額 confirmation banner
       const confirmerIds = Array.from(
