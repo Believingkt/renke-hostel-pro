@@ -2769,7 +2769,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                <DualCurrencyInput config={secondaryCurrencyConfig} storageKey={order.accommodation_id} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
