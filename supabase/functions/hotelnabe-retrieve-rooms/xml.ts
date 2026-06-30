@@ -67,11 +67,17 @@ export interface ParsedRSRoomType {
   roomTypeCode: string | null;  // PMS-side numeric code
 }
 
+export interface ParsedRSRatePlan {
+  ratePlanId: string | null;     // HotelNabe rate plan ID (@RatePlanID)
+  ratePlanCode: string | null;   // PMS-side numeric code (@RatePlanCode)
+}
+
 export interface ParsedAvailRS {
   echoToken: string | null;
   success: boolean;
   errors: { type: string | null; code: string | null; message: string }[];
   rooms: ParsedRSRoomType[];
+  ratePlans: ParsedRSRatePlan[];
 }
 
 const parser = new XMLParser({
