@@ -1039,6 +1039,7 @@ const Headquarters = () => {
         case 'owlting': return '管理奧丁丁通路 SOAP API 共用的 WS-Security 服務帳號';
         case 'owlting-config': return '管理各物業的奧丁丁 Hotel Code、訂單即時同步開關，並檢視房型 / 方案代碼與價格範本對應';
         case 'owlting-push': return '監控奧丁丁訂單推送佇列、成功率與失敗紀錄';
+        case 'hotelnabe-verify': return '一鍵向旭海正式環境拉房型清單，與我方 numeric_code 比對（唯讀）';
       }
     }
     
