@@ -116,6 +116,44 @@ function getMappingReport(report: RetrieveResult["report"]): MappingReport | nul
   };
 }
 
+function getRatePlanReport(report: RetrieveResult["report"]): RatePlanReport | null {
+  if (!report || typeof report !== "object") return null;
+  const candidate = "rate_plan_mapping" in report ? (report as any).rate_plan_mapping : null;
+  if (!candidate || typeof candidate !== "object") return null;
+  const r = candidate as Partial<RatePlanReport>;
+  const matched = (Array.isArray(r.matched) ? r.matched : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: String(m?.hotelnabe_rate_plan_code ?? "—"),
+    our_package_id: String(m?.our_package_id ?? ""),
+    our_package_name: String(m?.our_package_name ?? "—"),
+  }));
+  const mismatch = (Array.isArray(r.mismatch) ? r.mismatch : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: m?.hotelnabe_rate_plan_code ?? null,
+    reason: String(m?.reason ?? "—"),
+  }));
+  const missing = (Array.isArray(r.missing_on_our_side) ? r.missing_on_our_side : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: String(m?.hotelnabe_rate_plan_code ?? "—"),
+  }));
+  const unused = (Array.isArray(r.unused_on_our_side) ? r.unused_on_our_side : []).map((m: any) => ({
+    our_package_id: String(m?.our_package_id ?? ""),
+    our_package_name: String(m?.our_package_name ?? "—"),
+    numeric_code: Number(m?.numeric_code ?? 0),
+  }));
+  return {
+    matched, mismatch, missing_on_our_side: missing, unused_on_our_side: unused,
+    totals: {
+      remote: Number(r.totals?.remote ?? 0),
+      ours: Number(r.totals?.ours ?? 0),
+      matched: Number(r.totals?.matched ?? 0),
+      missing: Number(r.totals?.missing ?? 0),
+      mismatch: Number(r.totals?.mismatch ?? 0),
+      unused: Number(r.totals?.unused ?? 0),
+    },
+  };
+}
+
 async function parseFunctionError(error: unknown): Promise<{ message: string; httpStatus?: number }> {
   const fallback = error instanceof Error ? error.message : String(error ?? "未知錯誤");
   const ctx = (error as { context?: unknown } | null | undefined)?.context;
