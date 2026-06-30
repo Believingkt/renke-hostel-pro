@@ -67,6 +67,7 @@ const menuItems = [
       { title: "奧丁丁服務帳號", url: "/hq?tab=system&section=owlting", icon: FileText },
       { title: "奧丁丁物業設定", url: "/hq?tab=system&section=owlting-config", icon: FileText },
       { title: "奧丁丁推送監控", url: "/hq?tab=system&section=owlting-push", icon: Activity },
+      { title: "旭海房型驗證", url: "/hq?tab=system&section=hotelnabe-verify", icon: Activity },
       { title: "業主聯絡人", url: "/hq?tab=system&section=owners", icon: UserCheck },
     ]
   },

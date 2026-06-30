@@ -37,6 +37,7 @@ import { AccommodationOwnersManagement } from "@/components/headquarters/Accommo
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
+import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
@@ -895,6 +896,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="owlting-push" className="space-y-4">
           <OwlTingPushMonitor />
+        </TabsContent>
+
+        <TabsContent value="hotelnabe-verify" className="space-y-4">
+          <HotelNabeRoomVerify />
         </TabsContent>
 
         <TabsContent value="owners" className="space-y-4">
