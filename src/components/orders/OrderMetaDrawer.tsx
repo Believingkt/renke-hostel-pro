@@ -705,14 +705,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             {canEditCommissionPrice ? (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
-                <Input
-                  type="number"
-                  value={teamCommissionPrice ?? ""}
-                  onChange={(e) =>
-                    setTeamCommissionPrice(
-                      e.target.value === "" ? null : Number(e.target.value),
-                    )
-                  }
+                <DualCurrencyInput
+                  config={secondaryCurrencyConfig}
+                  storageKey={accommodationId || "default"}
+                  value={teamCommissionPrice ?? 0}
+                  onChange={(v) => setTeamCommissionPrice(v === 0 ? null : v)}
                 />
                 <p className="text-xs text-muted-foreground">
                   請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
