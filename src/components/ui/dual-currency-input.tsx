@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SecondaryCurrencyConfig } from "@/lib/currency";
@@ -50,6 +50,7 @@ export function DualCurrencyInput({
   const [mode, setMode] = useState<"TWD" | "SEC">(() => readPref(storageKey, hasSecondary));
   const [draft, setDraft] = useState<string>("");
   const [focused, setFocused] = useState(false);
+  const lastSecondaryInputRef = useRef<{ secondary: string; twd: number; rate: number } | null>(null);
 
   // value (TWD) 變動且未聚焦時，同步顯示值
   useEffect(() => {
@@ -57,6 +58,15 @@ export function DualCurrencyInput({
     if (mode === "TWD") {
       setDraft(value > 0 ? String(value) : "");
     } else if (hasSecondary && config) {
+      const lastSecondaryInput = lastSecondaryInputRef.current;
+      if (
+        lastSecondaryInput &&
+        lastSecondaryInput.twd === value &&
+        lastSecondaryInput.rate === config.rate
+      ) {
+        setDraft(lastSecondaryInput.secondary);
+        return;
+      }
       const sec = Math.round(value * config.rate);
       setDraft(sec > 0 ? String(sec) : "");
     }
@@ -71,10 +81,13 @@ export function DualCurrencyInput({
       return;
     }
     if (mode === "TWD" || !hasSecondary || !config) {
+      lastSecondaryInputRef.current = null;
       onChange(n);
     } else {
       // SEC → TWD
-      onChange(Math.round(n / config.rate));
+      const twd = Math.round(n / config.rate);
+      lastSecondaryInputRef.current = { secondary: cleaned, twd, rate: config.rate };
+      onChange(twd);
     }
   };
 
