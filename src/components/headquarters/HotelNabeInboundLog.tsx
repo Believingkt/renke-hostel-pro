@@ -255,7 +255,7 @@ function Content() {
                   const isOpen = expanded.has(r.id);
                   const hotelName = r.hotelnabe_hotel_code ? hotelMap[r.hotelnabe_hotel_code]?.name : null;
                   return (
-                    <>
+                    <Fragment key={r.id}>
                       <TableRow key={r.id} className="cursor-pointer" onClick={() => toggle(r.id)}>
                         <TableCell>
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
