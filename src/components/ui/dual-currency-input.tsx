@@ -24,6 +24,10 @@ interface DualCurrencyInputProps {
 
 const LS_PREFIX = "lakeze-input-currency";
 
+// 全域記憶：同一 storageKey 下，最近一次以副幣別輸入的 (SEC 原值, 換算後 TWD, 匯率)。
+// 用於讓「原始金額」等衍生欄位顯示時，能還原使用者輸入的原始日幣值，避免 TWD → SEC 反算誤差。
+const secondaryInputMemory = new Map<string, { secondary: string; twd: number; rate: number }>();
+
 function readPref(key: string, hasSecondary: boolean): "TWD" | "SEC" {
   if (!hasSecondary) return "TWD";
   try {
