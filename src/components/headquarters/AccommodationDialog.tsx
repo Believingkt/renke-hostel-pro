@@ -132,6 +132,12 @@ export function AccommodationDialog({
   const [loadingFreeCancel, setLoadingFreeCancel] = useState(false);
   const savedFreeCancelRef = useRef<number>(14);
 
+  // Secondary currency (display-only, e.g. JPY for 旅行日)
+  const [secondaryCurrency, setSecondaryCurrency] = useState<string>("");
+  const [secondaryRate, setSecondaryRate] = useState<string>("");
+  const [loadingSecondaryCurrency, setLoadingSecondaryCurrency] = useState(false);
+  const [savingSecondaryCurrency, setSavingSecondaryCurrency] = useState(false);
+
 
   useEffect(() => {
     if (initialData) {
@@ -185,8 +191,55 @@ export function AccommodationDialog({
     if (isEditing && initialData?.id && open) {
       loadPaymentSettings(initialData.id);
       loadTransactionFeeSetting(initialData.id);
+      loadSecondaryCurrency(initialData.id);
     }
   }, [isEditing, initialData?.id, open]);
+
+  const loadSecondaryCurrency = async (accommodationId: string) => {
+    setLoadingSecondaryCurrency(true);
+    try {
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("secondary_currency, secondary_currency_rate")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      if (error) throw error;
+      setSecondaryCurrency(((data as any)?.secondary_currency || "").toString());
+      const r = (data as any)?.secondary_currency_rate;
+      setSecondaryRate(r != null ? String(r) : "");
+    } catch (err) {
+      console.error("Error loading secondary currency:", err);
+    } finally {
+      setLoadingSecondaryCurrency(false);
+    }
+  };
+
+  const handleSaveSecondaryCurrency = async () => {
+    if (!initialData?.id) return;
+    const code = secondaryCurrency.trim().toUpperCase();
+    const rateNum = secondaryRate === "" ? null : Number(secondaryRate);
+    if (code && (rateNum == null || !Number.isFinite(rateNum) || rateNum <= 0)) {
+      toast.error("匯率必須為大於 0 的數字");
+      return;
+    }
+    setSavingSecondaryCurrency(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({
+          secondary_currency: code || null,
+          secondary_currency_rate: code ? rateNum : null,
+        })
+        .eq("id", initialData.id);
+      if (error) throw error;
+      toast.success(code ? `副幣別已更新（${code}）` : "已停用副幣別顯示");
+    } catch (err: any) {
+      console.error("Error saving secondary currency:", err);
+      toast.error("更新失敗", { description: err.message });
+    } finally {
+      setSavingSecondaryCurrency(false);
+    }
+  };
 
   const loadPaymentSettings = async (accommodationId: string) => {
     try {
@@ -1131,6 +1184,60 @@ export function AccommodationDialog({
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                               )}
                             </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 副幣別顯示（選用） */}
+                      <div className="pt-4 border-t">
+                        <div className="space-y-1 mb-4">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <div className="h-5 w-1 rounded-full bg-primary" />
+                            副幣別顯示（選用）
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            僅用於前台/訂單顯示參考價，<strong>實際收款、結算、分潤一律以 TWD 為準</strong>。
+                            欄位留空即停用此功能。例：旅行日填 <code>JPY</code> + 匯率 <code>4.7</code>（1 TWD ≈ 4.7 日圓）。
+                          </p>
+                        </div>
+                        <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">幣別代碼</Label>
+                              <Input
+                                value={secondaryCurrency}
+                                onChange={(e) => setSecondaryCurrency(e.target.value.toUpperCase())}
+                                placeholder="例：JPY"
+                                maxLength={6}
+                                disabled={loadingSecondaryCurrency || savingSecondaryCurrency}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">匯率（1 TWD =）</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                min={0}
+                                value={secondaryRate}
+                                onChange={(e) => setSecondaryRate(e.target.value)}
+                                placeholder="例：4.7"
+                                disabled={loadingSecondaryCurrency || savingSecondaryCurrency || !secondaryCurrency}
+                                className="h-9"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={handleSaveSecondaryCurrency}
+                              disabled={loadingSecondaryCurrency || savingSecondaryCurrency}
+                            >
+                              {savingSecondaryCurrency && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                              儲存副幣別設定
+                            </Button>
                           </div>
                         </div>
                       </div>
