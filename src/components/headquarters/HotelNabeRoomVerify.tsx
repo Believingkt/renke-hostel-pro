@@ -23,12 +23,20 @@ interface MappingReport {
   totals: { remote: number; ours: number; matched: number; missing: number; mismatch: number; unused: number };
 }
 
+interface RatePlanReport {
+  matched: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string; our_package_id: string; our_package_name: string }[];
+  mismatch: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string | null; reason: string }[];
+  missing_on_our_side: { hotelnabe_rate_plan_id: string | null; hotelnabe_rate_plan_code: string }[];
+  unused_on_our_side: { our_package_id: string; our_package_name: string; numeric_code: number }[];
+  totals: { remote: number; ours: number; matched: number; missing: number; mismatch: number; unused: number };
+}
+
 interface RetrieveResult {
   success: boolean;
   log_id?: string;
   http_status?: number;
   echo_token?: string;
-  report?: MappingReport | { mapping?: MappingReport; [key: string]: unknown } | null;
+  report?: (MappingReport | { mapping?: MappingReport; rate_plan_mapping?: RatePlanReport | null; mode?: string; [key: string]: unknown }) | null;
   error?: string;
 }
 
@@ -108,6 +116,44 @@ function getMappingReport(report: RetrieveResult["report"]): MappingReport | nul
   };
 }
 
+function getRatePlanReport(report: RetrieveResult["report"]): RatePlanReport | null {
+  if (!report || typeof report !== "object") return null;
+  const candidate = "rate_plan_mapping" in report ? (report as any).rate_plan_mapping : null;
+  if (!candidate || typeof candidate !== "object") return null;
+  const r = candidate as Partial<RatePlanReport>;
+  const matched = (Array.isArray(r.matched) ? r.matched : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: String(m?.hotelnabe_rate_plan_code ?? "—"),
+    our_package_id: String(m?.our_package_id ?? ""),
+    our_package_name: String(m?.our_package_name ?? "—"),
+  }));
+  const mismatch = (Array.isArray(r.mismatch) ? r.mismatch : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: m?.hotelnabe_rate_plan_code ?? null,
+    reason: String(m?.reason ?? "—"),
+  }));
+  const missing = (Array.isArray(r.missing_on_our_side) ? r.missing_on_our_side : []).map((m: any) => ({
+    hotelnabe_rate_plan_id: m?.hotelnabe_rate_plan_id ?? null,
+    hotelnabe_rate_plan_code: String(m?.hotelnabe_rate_plan_code ?? "—"),
+  }));
+  const unused = (Array.isArray(r.unused_on_our_side) ? r.unused_on_our_side : []).map((m: any) => ({
+    our_package_id: String(m?.our_package_id ?? ""),
+    our_package_name: String(m?.our_package_name ?? "—"),
+    numeric_code: Number(m?.numeric_code ?? 0),
+  }));
+  return {
+    matched, mismatch, missing_on_our_side: missing, unused_on_our_side: unused,
+    totals: {
+      remote: Number(r.totals?.remote ?? 0),
+      ours: Number(r.totals?.ours ?? 0),
+      matched: Number(r.totals?.matched ?? 0),
+      missing: Number(r.totals?.missing ?? 0),
+      mismatch: Number(r.totals?.mismatch ?? 0),
+      unused: Number(r.totals?.unused ?? 0),
+    },
+  };
+}
+
 async function parseFunctionError(error: unknown): Promise<{ message: string; httpStatus?: number }> {
   const fallback = error instanceof Error ? error.message : String(error ?? "未知錯誤");
   const ctx = (error as { context?: unknown } | null | undefined)?.context;
@@ -172,13 +218,13 @@ function HotelNabeRoomVerifyContent() {
 
   const selectedAcc = useMemo(() => accs.find((a) => a.id === selected), [accs, selected]);
 
-  const handleRun = async () => {
+  const handleRun = async (mode: "roomOnly" | "roomAndRate" = "roomOnly") => {
     if (!selected) return;
     setLoading(true);
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("hotelnabe-retrieve-rooms", {
-        body: { accommodation_id: selected },
+        body: { accommodation_id: selected, mode },
       });
       if (error) {
         const { message: msg, httpStatus } = await parseFunctionError(error);
@@ -198,6 +244,7 @@ function HotelNabeRoomVerifyContent() {
   };
 
   const r = getMappingReport(result?.report);
+  const rp = getRatePlanReport(result?.report);
 
   return (
     <div className="space-y-4">
@@ -226,9 +273,13 @@ function HotelNabeRoomVerifyContent() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleRun} disabled={!selected || loading}>
+            <Button onClick={() => handleRun("roomOnly")} disabled={!selected || loading} variant="outline">
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
               驗證旭海房型對應
+            </Button>
+            <Button onClick={() => handleRun("roomAndRate")} disabled={!selected || loading}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+              驗證房型+方案（含價格計畫）
             </Button>
           </div>
 
@@ -293,6 +344,49 @@ function HotelNabeRoomVerifyContent() {
             tone="muted"
             columns={["我方房型", "numeric_code"]}
             rows={r.unused_on_our_side.map((m) => [m.our_room_type_name, String(m.numeric_code)])}
+          />
+        </>
+      )}
+
+      {rp && (
+        <>
+          <div className="text-sm font-medium pt-2">方案對應（RatePlan）</div>
+          <div className="text-xs text-muted-foreground -mt-2">
+            旭海回傳 {rp.totals.remote} 筆 / 我方 {rp.totals.ours} 筆 ·
+            matched {rp.totals.matched} · missing {rp.totals.missing} ·
+            mismatch {rp.totals.mismatch} · unused {rp.totals.unused}
+          </div>
+          <ReportSection
+            title="✅ matched（方案對得上）"
+            count={rp.matched.length}
+            empty="無對應成功項目"
+            tone="default"
+            columns={["RatePlanID（旭海）", "RatePlanCode", "我方方案"]}
+            rows={rp.matched.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code, m.our_package_name])}
+          />
+          <ReportSection
+            title="⚠️ missing_on_our_side（旭海有方案、我方查無 numeric_code）"
+            count={rp.missing_on_our_side.length}
+            empty="無此分類"
+            tone="warn"
+            columns={["RatePlanID（旭海）", "RatePlanCode"]}
+            rows={rp.missing_on_our_side.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code])}
+          />
+          <ReportSection
+            title="❌ mismatch（旭海未回傳 RatePlanCode 或非數字）"
+            count={rp.mismatch.length}
+            empty="無此分類"
+            tone="error"
+            columns={["RatePlanID（旭海）", "RatePlanCode", "原因"]}
+            rows={rp.mismatch.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code ?? "—", m.reason])}
+          />
+          <ReportSection
+            title="ℹ️ unused_on_our_side（我方方案 numeric_code 但旭海未回傳）"
+            count={rp.unused_on_our_side.length}
+            empty="無此分類"
+            tone="muted"
+            columns={["我方方案", "numeric_code"]}
+            rows={rp.unused_on_our_side.map((m) => [m.our_package_name, String(m.numeric_code)])}
           />
         </>
       )}

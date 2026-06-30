@@ -67,11 +67,17 @@ export interface ParsedRSRoomType {
   roomTypeCode: string | null;  // PMS-side numeric code
 }
 
+export interface ParsedRSRatePlan {
+  ratePlanId: string | null;     // HotelNabe rate plan ID (@RatePlanID)
+  ratePlanCode: string | null;   // PMS-side numeric code (@RatePlanCode)
+}
+
 export interface ParsedAvailRS {
   echoToken: string | null;
   success: boolean;
   errors: { type: string | null; code: string | null; message: string }[];
   rooms: ParsedRSRoomType[];
+  ratePlans: ParsedRSRatePlan[];
 }
 
 const parser = new XMLParser({
@@ -81,7 +87,7 @@ const parser = new XMLParser({
   trimValues: true,
   parseAttributeValue: false,
   removeNSPrefix: true,
-  isArray: (name) => ["RoomStay", "RoomType", "Error"].includes(name),
+  isArray: (name) => ["RoomStay", "RoomType", "RatePlan", "Error"].includes(name),
 });
 
 function asArr<T>(v: T | T[] | undefined | null): T[] {
@@ -93,7 +99,7 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
   const doc = parser.parse(xml);
   const rs = doc?.OTA_HotelAvailRS;
   if (!rs) {
-    return { echoToken: null, success: false, errors: [{ type: null, code: null, message: "Missing OTA_HotelAvailRS root" }], rooms: [] };
+    return { echoToken: null, success: false, errors: [{ type: null, code: null, message: "Missing OTA_HotelAvailRS root" }], rooms: [], ratePlans: [] };
   }
   const echoToken = rs["@_EchoToken"] ? String(rs["@_EchoToken"]) : null;
   const success = rs.Success !== undefined && rs.Errors === undefined;
@@ -104,6 +110,7 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
   }));
 
   const rooms: ParsedRSRoomType[] = [];
+  const ratePlans: ParsedRSRatePlan[] = [];
   const stays = asArr(rs?.RoomStays?.RoomStay);
   for (const stay of stays) {
     const rts = asArr(stay?.RoomTypes?.RoomType);
@@ -112,8 +119,14 @@ export function parseHotelnabeAvailRS(xml: string): ParsedAvailRS {
       const roomTypeCode = rt?.["@_RoomTypeCode"] != null ? String(rt["@_RoomTypeCode"]) : null;
       if (roomId || roomTypeCode) rooms.push({ roomId, roomTypeCode });
     }
+    const rps = asArr(stay?.RatePlans?.RatePlan);
+    for (const rp of rps) {
+      const ratePlanId = rp?.["@_RatePlanID"] != null ? String(rp["@_RatePlanID"]) : null;
+      const ratePlanCode = rp?.["@_RatePlanCode"] != null ? String(rp["@_RatePlanCode"]) : null;
+      if (ratePlanId || ratePlanCode) ratePlans.push({ ratePlanId, ratePlanCode });
+    }
   }
-  return { echoToken, success: success || errors.length === 0, errors, rooms };
+  return { echoToken, success: success || errors.length === 0, errors, rooms, ratePlans };
 }
 
 // ─── Mapping report ─────────────────────────────────────────────────
@@ -214,3 +227,93 @@ export function buildMappingReport(remoteRooms: ParsedRSRoomType[], ourRooms: Ou
 export function maskPasswordInXml(xml: string): string {
   return xml.replace(/(MessagePassword\s*=\s*")([^"]*)(")/gi, (_m, p1, _v, p3) => `${p1}***${p3}`);
 }
+
+// ─── RatePlan mapping report ────────────────────────────────────────
+
+export interface OurPackage {
+  id: string;
+  name: string;
+  numeric_code: number | null;
+}
+
+export interface RatePlanMappingReport {
+  matched: {
+    hotelnabe_rate_plan_id: string | null;
+    hotelnabe_rate_plan_code: string;
+    our_package_id: string;
+    our_package_name: string;
+  }[];
+  mismatch: {
+    hotelnabe_rate_plan_id: string | null;
+    hotelnabe_rate_plan_code: string | null;
+    reason: string;
+  }[];
+  missing_on_our_side: {
+    hotelnabe_rate_plan_id: string | null;
+    hotelnabe_rate_plan_code: string;
+  }[];
+  unused_on_our_side: {
+    our_package_id: string;
+    our_package_name: string;
+    numeric_code: number;
+  }[];
+  totals: { remote: number; ours: number; matched: number; missing: number; mismatch: number; unused: number };
+}
+
+export function buildRatePlanMappingReport(
+  remotePlans: ParsedRSRatePlan[],
+  ourPackages: OurPackage[],
+): RatePlanMappingReport {
+  const ourByCode = new Map<number, OurPackage>();
+  for (const p of ourPackages) if (p.numeric_code != null) ourByCode.set(Number(p.numeric_code), p);
+
+  const matched: RatePlanMappingReport["matched"] = [];
+  const mismatch: RatePlanMappingReport["mismatch"] = [];
+  const missing: RatePlanMappingReport["missing_on_our_side"] = [];
+  const seenCodes = new Set<number>();
+
+  for (const rp of remotePlans) {
+    if (!rp.ratePlanCode || !/^-?\d+$/.test(rp.ratePlanCode)) {
+      mismatch.push({
+        hotelnabe_rate_plan_id: rp.ratePlanId,
+        hotelnabe_rate_plan_code: rp.ratePlanCode,
+        reason: "missing or non-numeric RatePlanCode",
+      });
+      continue;
+    }
+    const code = Number(rp.ratePlanCode);
+    const ours = ourByCode.get(code);
+    if (ours) {
+      matched.push({
+        hotelnabe_rate_plan_id: rp.ratePlanId,
+        hotelnabe_rate_plan_code: rp.ratePlanCode,
+        our_package_id: ours.id,
+        our_package_name: ours.name,
+      });
+      seenCodes.add(code);
+    } else {
+      missing.push({ hotelnabe_rate_plan_id: rp.ratePlanId, hotelnabe_rate_plan_code: rp.ratePlanCode });
+    }
+  }
+
+  const unused: RatePlanMappingReport["unused_on_our_side"] = [];
+  for (const [code, p] of ourByCode.entries()) {
+    if (!seenCodes.has(code)) unused.push({ our_package_id: p.id, our_package_name: p.name, numeric_code: code });
+  }
+
+  return {
+    matched,
+    mismatch,
+    missing_on_our_side: missing,
+    unused_on_our_side: unused,
+    totals: {
+      remote: remotePlans.length,
+      ours: ourPackages.filter(p => p.numeric_code != null).length,
+      matched: matched.length,
+      missing: missing.length,
+      mismatch: mismatch.length,
+      unused: unused.length,
+    },
+  };
+}
+
