@@ -75,22 +75,26 @@ Deno.serve(async (req) => {
     return jsonResp({ error: "accommodation_id_required" }, 400, cors);
   }
 
-  // Role check (super_admin or hotel_admin for the requested accommodation)
-  const { data: roleOk } = await admin.rpc("user_has_role", {
-    _user_id: user.id,
-    _accommodation_id: accommodationId,
-    _role: "super_admin",
-  });
-  let allowed = !!roleOk;
-  if (!allowed) {
-    const { data: ok2 } = await admin.rpc("user_has_role", {
-      _user_id: user.id,
-      _accommodation_id: accommodationId,
-      _role: "hotel_admin",
-    });
-    allowed = !!ok2;
+  // Role check — query user_roles directly via service role
+  // (do NOT use user_has_role RPC: it reads auth.uid() which is null under service_role)
+  const { data: roleRows, error: roleErr } = await admin
+    .from("user_roles")
+    .select("role, accommodation_id")
+    .eq("user_id", user.id);
+  if (roleErr) {
+    return jsonResp({ error: "role_query_failed", detail: roleErr.message }, 500, cors);
   }
-  if (!allowed) return jsonResp({ error: "forbidden" }, 403, cors);
+  const allowed = (roleRows ?? []).some((r: any) =>
+    r.role === "super_admin" ||
+    (r.role === "hotel_admin" && r.accommodation_id === accommodationId)
+  );
+  if (!allowed) {
+    return jsonResp(
+      { error: "forbidden", detail: `caller=${user.id} has no super_admin or hotel_admin for ${accommodationId}` },
+      403,
+      cors,
+    );
+  }
 
   // Look up HotelNabe HotelCode + our room types
   const { data: cfg, error: cfgErr } = await admin
