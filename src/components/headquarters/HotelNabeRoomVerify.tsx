@@ -347,6 +347,49 @@ function HotelNabeRoomVerifyContent() {
           />
         </>
       )}
+
+      {rp && (
+        <>
+          <div className="text-sm font-medium pt-2">方案對應（RatePlan）</div>
+          <div className="text-xs text-muted-foreground -mt-2">
+            旭海回傳 {rp.totals.remote} 筆 / 我方 {rp.totals.ours} 筆 ·
+            matched {rp.totals.matched} · missing {rp.totals.missing} ·
+            mismatch {rp.totals.mismatch} · unused {rp.totals.unused}
+          </div>
+          <ReportSection
+            title="✅ matched（方案對得上）"
+            count={rp.matched.length}
+            empty="無對應成功項目"
+            tone="default"
+            columns={["RatePlanID（旭海）", "RatePlanCode", "我方方案"]}
+            rows={rp.matched.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code, m.our_package_name])}
+          />
+          <ReportSection
+            title="⚠️ missing_on_our_side（旭海有方案、我方查無 numeric_code）"
+            count={rp.missing_on_our_side.length}
+            empty="無此分類"
+            tone="warn"
+            columns={["RatePlanID（旭海）", "RatePlanCode"]}
+            rows={rp.missing_on_our_side.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code])}
+          />
+          <ReportSection
+            title="❌ mismatch（旭海未回傳 RatePlanCode 或非數字）"
+            count={rp.mismatch.length}
+            empty="無此分類"
+            tone="error"
+            columns={["RatePlanID（旭海）", "RatePlanCode", "原因"]}
+            rows={rp.mismatch.map((m) => [m.hotelnabe_rate_plan_id ?? "—", m.hotelnabe_rate_plan_code ?? "—", m.reason])}
+          />
+          <ReportSection
+            title="ℹ️ unused_on_our_side（我方方案 numeric_code 但旭海未回傳）"
+            count={rp.unused_on_our_side.length}
+            empty="無此分類"
+            tone="muted"
+            columns={["我方方案", "numeric_code"]}
+            rows={rp.unused_on_our_side.map((m) => [m.our_package_name, String(m.numeric_code)])}
+          />
+        </>
+      )}
     </div>
   );
 }
