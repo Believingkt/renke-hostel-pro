@@ -332,12 +332,31 @@ export interface OrderUpsertPayload {
   // pricing (NOT NULL: total_price, final_price)
   total_price: number;
   final_price: number;
+  paid_amount: number;
   // status
   order_status: "confirmed" | "cancelled";
-  payment_status: "paid";
+  payment_status: "paid" | "unpaid";
   cancelled_at: string | null;
   // misc audit
   notes: string | null;
+}
+
+/**
+ * Map HotelNabe DepositPayments/GuaranteePayment@GuaranteeType to our payment_status.
+ * - "PrePay"  → OTA pre-collected → paid
+ * - "None"    → pay at property   → unpaid
+ * - missing   → conservative      → unpaid
+ * Case-insensitive; unknown non-empty values are treated as unpaid (conservative).
+ */
+export function derivePaymentFromGuarantee(
+  guaranteeType: string | null,
+  amount: number,
+): { payment_status: "paid" | "unpaid"; paid_amount: number } {
+  const gt = (guaranteeType ?? "").trim().toLowerCase();
+  if (gt === "prepay") {
+    return { payment_status: "paid", paid_amount: amount };
+  }
+  return { payment_status: "unpaid", paid_amount: 0 };
 }
 
 export function buildOrderPayload(input: BuildPayloadInput): OrderUpsertPayload {
@@ -345,12 +364,14 @@ export function buildOrderPayload(input: BuildPayloadInput): OrderUpsertPayload 
   const isCancel = r.resStatus === "Cancel";
   const guestCount = Math.max(1, (r.adults ?? 0) + (r.children ?? 0));
   const amount = r.amountAfterTax ?? 0;
+  const { payment_status, paid_amount } = derivePaymentFromGuarantee(r.guaranteeType, amount);
 
   const noteLines = [
     `[HotelNabe] ResID=${r.hotelnabeResId ?? "n/a"}`,
     r.otaCode ? `OTA=${r.otaCode}` : null,
     r.otaResId ? `OTAResID=${r.otaResId}` : null,
     `Adults=${r.adults} Children=${r.children}`,
+    r.guaranteeType ? `GuaranteeType=${r.guaranteeType}` : null,
   ].filter(Boolean);
 
   return {
@@ -366,6 +387,7 @@ export function buildOrderPayload(input: BuildPayloadInput): OrderUpsertPayload 
       tax_amount: r.taxAmount,
       adults: r.adults,
       children: r.children,
+      guarantee_type: r.guaranteeType,
     },
     accommodation_id: input.accommodationId,
     room_type_id: input.roomTypeId,
@@ -378,8 +400,9 @@ export function buildOrderPayload(input: BuildPayloadInput): OrderUpsertPayload 
     guest_email: r.guestEmail,
     total_price: amount,
     final_price: amount,
+    paid_amount,
     order_status: isCancel ? "cancelled" : "confirmed",
-    payment_status: "paid",
+    payment_status,
     cancelled_at: isCancel ? new Date().toISOString() : null,
     notes: noteLines.join(" | "),
   };
