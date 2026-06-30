@@ -119,6 +119,21 @@ Deno.serve(async (req) => {
     .eq("accommodation_id", accommodationId);
   if (roomsErr) return jsonResp({ error: "room_types_query_failed", detail: roomsErr.message }, 500, cors);
 
+  // Load packages only when we need rate-plan mapping
+  let ourPackages: { id: string; name: string; numeric_code: number | null }[] = [];
+  if (mode === "roomAndRate") {
+    const { data: pkgs, error: pkgsErr } = await admin
+      .from("accommodation_packages")
+      .select("id, name, numeric_code")
+      .eq("accommodation_id", accommodationId);
+    if (pkgsErr) return jsonResp({ error: "packages_query_failed", detail: pkgsErr.message }, 500, cors);
+    ourPackages = (pkgs ?? []).map((p: any) => ({
+      id: String(p.id),
+      name: String(p.name ?? ""),
+      numeric_code: p.numeric_code != null ? Number(p.numeric_code) : null,
+    }));
+  }
+
   // Build outbound RQ
   const echoToken = `LK-${crypto.randomUUID()}`;
   const requestXml = buildHotelnabeAvailRQ({
@@ -135,7 +150,7 @@ Deno.serve(async (req) => {
   let responseXml = "";
   let networkErr: string | null = null;
   try {
-    const resp = await fetch(ENDPOINT, {
+    const resp = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/xml; charset=utf-8", "Accept": "application/xml" },
       body: requestXml,
@@ -164,12 +179,17 @@ Deno.serve(async (req) => {
           numeric_code: r.numeric_code != null ? Number(r.numeric_code) : null,
         })),
       );
+      const ratePlanMapping = mode === "roomAndRate"
+        ? buildRatePlanMappingReport(parsed.ratePlans, ourPackages)
+        : null;
       report = {
+        mode,
         echo_token_sent: echoToken,
         echo_token_received: parsed.echoToken,
         echo_token_match: echoTokenMatch,
         remote_errors: parsed.errors,
         mapping,
+        rate_plan_mapping: ratePlanMapping,
       };
       success = httpStatus >= 200 && httpStatus < 300 && parsed.errors.length === 0;
       if (!success && !errorMessage) {
