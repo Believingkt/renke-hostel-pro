@@ -118,6 +118,7 @@ export function DualCurrencyInput({
     try {
       localStorage.setItem(`${LS_PREFIX}:${storageKey}`, next);
     } catch {}
+    onModeChange?.(next);
   };
 
   const hint = useMemo(() => {
