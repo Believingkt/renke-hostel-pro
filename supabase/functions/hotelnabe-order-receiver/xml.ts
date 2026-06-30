@@ -300,11 +300,21 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const email = customer?.Email;
   const guestEmail = safeStr(typeof email === "object" ? email?.["#text"] : email);
 
-  // ota_code via CompanyName/@Code (typically inside Profile/CompanyInfo)
+  // ota_code via CompanyName/@Code — HotelNabe production puts the OTA channel under
+  // HotelReservation/POS/Source/BookingChannel/CompanyName. Older spec puts it under
+  // Profile/CompanyInfo/CompanyName. Try both.
+  const hrSources = asArray(hr?.POS?.Source);
+  let bookingChannelCode: string | null = null;
+  for (const src of hrSources) {
+    const cn = src?.BookingChannel?.CompanyName;
+    const first = Array.isArray(cn) ? cn[0] : cn;
+    const code = safeStr(first?.["@_Code"]);
+    if (code) { bookingChannelCode = code; break; }
+  }
   const companyName = profile?.CompanyInfo?.CompanyName
     ?? asArray(hr?.ResGlobalInfo?.Profiles?.ProfileInfo?.Profile?.CompanyInfo?.CompanyName)[0]
     ?? null;
-  const otaCode = safeStr(
+  const otaCode = bookingChannelCode ?? safeStr(
     (Array.isArray(companyName) ? companyName[0] : companyName)?.["@_Code"],
   );
 
