@@ -37,6 +37,7 @@ import { AccommodationOwnersManagement } from "@/components/headquarters/Accommo
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
+import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
