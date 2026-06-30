@@ -273,9 +273,13 @@ function HotelNabeRoomVerifyContent() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleRun} disabled={!selected || loading}>
+            <Button onClick={() => handleRun("roomOnly")} disabled={!selected || loading} variant="outline">
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
               驗證旭海房型對應
+            </Button>
+            <Button onClick={() => handleRun("roomAndRate")} disabled={!selected || loading}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+              驗證房型+方案（含價格計畫）
             </Button>
           </div>
 
