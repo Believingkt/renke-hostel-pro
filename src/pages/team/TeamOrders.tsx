@@ -1164,6 +1164,15 @@ export default function TeamOrders() {
             </span>
             <span>
               有效訂單總金額：<span className="font-semibold text-primary">NT$ {summary.validSum.toLocaleString()}</span>
+              {Array.from(secondaryCurrencyMap.entries()).map(([accId, cfg]) => {
+                const sub = summary.validSumByAcc[accId] || 0;
+                if (sub <= 0) return null;
+                return (
+                  <span key={accId} className="ml-2 text-[11px] text-muted-foreground">
+                    （旅行日 ≈ {formatSecondary(sub, cfg)}）
+                  </span>
+                );
+              })}
             </span>
             <span className="text-muted-foreground">
               取消訂單：<span className="font-semibold text-foreground">{summary.cancelledCount.toLocaleString()}</span> 筆
