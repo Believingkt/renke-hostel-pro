@@ -198,12 +198,12 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const createDateTime = safeStr(hr?.["@_CreateDateTime"]);
   const lastModifyDateTime = safeStr(hr?.["@_LastModifyDateTime"]);
 
-  // HotelReservationIDs
+  // HotelReservationIDs (also handle ResGlobalInfo path used by HotelNabe production)
   let hotelnabeResId: string | null = null;
   let otaResId: string | null = null;
-  const ids = asArray(hr?.UniqueID).concat(
-    asArray(hr?.HotelReservationIDs?.HotelReservationID),
-  );
+  const ids = asArray(hr?.UniqueID)
+    .concat(asArray(hr?.HotelReservationIDs?.HotelReservationID))
+    .concat(asArray(hr?.ResGlobalInfo?.HotelReservationIDs?.HotelReservationID));
   for (const id of ids) {
     const src = safeStr(id?.["@_ResID_Source"]) ?? safeStr(id?.["@_Source"]);
     const val = safeStr(id?.["@_ResID_Value"]) ?? safeStr(id?.["@_ID"]);
@@ -219,8 +219,11 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   // RoomStay (V1.0.2: single RoomStay typical; take first)
   const roomStay = asArray(hr?.RoomStays?.RoomStay)[0] ?? null;
 
-  // Property
-  const hotelCode = safeStr(roomStay?.BasicPropertyInfo?.["@_HotelCode"]);
+  // Property — HotelNabe production places BasicPropertyInfo under ResGlobalInfo;
+  // keep RoomStay path as fallback for spec-style payloads.
+  const hotelCode =
+    safeStr(hr?.ResGlobalInfo?.BasicPropertyInfo?.["@_HotelCode"]) ??
+    safeStr(roomStay?.BasicPropertyInfo?.["@_HotelCode"]);
 
   // Room type via nabe:PMS@RoomTypeCode
   const roomTypeNode = asArray(roomStay?.RoomTypes?.RoomType)[0] ?? null;
@@ -230,12 +233,16 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const roomTypeCode = safeInt(roomPms?.["@_RoomTypeCode"]);
 
   // Rate plan via nabe:RoomRate/nabe:PMS@RatePlanCode
+  // HotelNabe production wraps nabe:RoomRate inside RoomRates/TPA_Extensions,
+  // not directly under RoomRates. Try both shapes.
   const roomRatesNode = roomStay?.RoomRates ?? null;
   const nabeRoomRate = roomRatesNode?.["nabe:RoomRate"]
+    ?? roomRatesNode?.TPA_Extensions?.["nabe:RoomRate"]
     ?? roomRatesNode?.RoomRate
     ?? null;
   const rrFirst = Array.isArray(nabeRoomRate) ? nabeRoomRate[0] : nabeRoomRate;
-  const ratePms = rrFirst?.TPA_Extensions?.["nabe:PMS"]
+  const ratePms = rrFirst?.["nabe:PMS"]
+    ?? rrFirst?.TPA_Extensions?.["nabe:PMS"]
     ?? rrFirst?.TPA_Extensions?.PMS
     ?? null;
   const ratePlanCode = safeInt(ratePms?.["@_RatePlanCode"]);
@@ -257,7 +264,7 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
     .reduce((s, g) => s + g.count, 0);
 
   // Total / pricing
-  const total = roomStay?.Total ?? rrFirst?.Total ?? null;
+  const total = roomStay?.Total ?? rrFirst?.Total ?? hr?.ResGlobalInfo?.Total ?? null;
   const currency = safeStr(total?.["@_CurrencyCode"]);
   const decimalPlaces = safeInt(total?.["@_DecimalPlaces"]) ?? 0;
   const rawAmount = safeFloat(total?.["@_AmountAfterTax"]);
@@ -279,9 +286,13 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   }
 
   // ResGuest / Profile (null-safe)
+  // HotelNabe production: ResGuest/Profiles/Profile (no ProfileInfo wrapper).
+  // Spec: ResGuest/Profiles/ProfileInfo/Profile. Try both, with ResGlobalInfo fallback.
   const resGuest = asArray(hr?.ResGuests?.ResGuest)[0] ?? null;
   const profile = resGuest?.Profiles?.ProfileInfo?.Profile
+    ?? resGuest?.Profiles?.Profile
     ?? hr?.Profiles?.ProfileInfo?.Profile
+    ?? hr?.ResGlobalInfo?.Profiles?.ProfileInfo?.Profile
     ?? null;
   const customer = profile?.Customer ?? null;
   const personName = customer?.PersonName ?? null;
@@ -293,11 +304,21 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   const email = customer?.Email;
   const guestEmail = safeStr(typeof email === "object" ? email?.["#text"] : email);
 
-  // ota_code via CompanyName/@Code (typically inside Profile/CompanyInfo)
+  // ota_code via CompanyName/@Code — HotelNabe production puts the OTA channel under
+  // HotelReservation/POS/Source/BookingChannel/CompanyName. Older spec puts it under
+  // Profile/CompanyInfo/CompanyName. Try both.
+  const hrSources = asArray(hr?.POS?.Source);
+  let bookingChannelCode: string | null = null;
+  for (const src of hrSources) {
+    const cn = src?.BookingChannel?.CompanyName;
+    const first = Array.isArray(cn) ? cn[0] : cn;
+    const code = safeStr(first?.["@_Code"]);
+    if (code) { bookingChannelCode = code; break; }
+  }
   const companyName = profile?.CompanyInfo?.CompanyName
     ?? asArray(hr?.ResGlobalInfo?.Profiles?.ProfileInfo?.Profile?.CompanyInfo?.CompanyName)[0]
     ?? null;
-  const otaCode = safeStr(
+  const otaCode = bookingChannelCode ?? safeStr(
     (Array.isArray(companyName) ? companyName[0] : companyName)?.["@_Code"],
   );
 
