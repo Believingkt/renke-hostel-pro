@@ -264,7 +264,7 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
     .reduce((s, g) => s + g.count, 0);
 
   // Total / pricing
-  const total = roomStay?.Total ?? rrFirst?.Total ?? null;
+  const total = roomStay?.Total ?? rrFirst?.Total ?? hr?.ResGlobalInfo?.Total ?? null;
   const currency = safeStr(total?.["@_CurrencyCode"]);
   const decimalPlaces = safeInt(total?.["@_DecimalPlaces"]) ?? 0;
   const rawAmount = safeFloat(total?.["@_AmountAfterTax"]);
