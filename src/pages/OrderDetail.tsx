@@ -2508,13 +2508,13 @@ const OrderDetailPage = () => {
                             })()}
                             <div className="space-y-1">
                               <Label className="text-xs">金額</Label>
-                              <Input
-                                className="h-8 text-xs text-right"
-                                type="text"
-                                inputMode="numeric"
+                              <DualCurrencyInput
+                                config={secondaryCurrencyConfig}
+                                storageKey={order.accommodation_id}
+                                className="w-full"
+                                inputClassName="h-8 text-xs"
                                 value={or.room_price}
-                                onChange={(e) => {
-                                  const newPrice = Math.max(0, parseInt(e.target.value) || 0);
+                                onChange={(newPrice) => {
                                   setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_price: newPrice, unit_price: r.quantity > 0 ? Math.round(newPrice / r.quantity) : newPrice } : r));
                                 }}
                               />
