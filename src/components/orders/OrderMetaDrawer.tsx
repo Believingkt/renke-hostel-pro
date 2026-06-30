@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
+import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
+import { useSecondaryCurrency } from "@/hooks/useSecondaryCurrency";
 
 interface TeamOption {
   user_id: string;
