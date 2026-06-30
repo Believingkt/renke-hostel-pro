@@ -963,6 +963,7 @@ const Headquarters = () => {
         case 'owlting': return '奧丁丁服務帳號';
         case 'owlting-config': return '奧丁丁物業設定';
         case 'owlting-push': return '奧丁丁推送監控';
+        case 'hotelnabe-verify': return '旭海房型驗證';
       }
     }
     
