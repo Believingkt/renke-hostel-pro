@@ -3400,6 +3400,54 @@ export type Database = {
           },
         ]
       }
+      hotelnabe_push_log: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          echo_token: string | null
+          error_message: string | null
+          hotel_code: string
+          http_status: number | null
+          id: string
+          mode: string
+          op_type: string | null
+          request_xml: string | null
+          response_xml: string | null
+          success: boolean
+          summary: Json | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code: string
+          http_status?: number | null
+          id?: string
+          mode: string
+          op_type?: string | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean
+          summary?: Json | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string
+          http_status?: number | null
+          id?: string
+          mode?: string
+          op_type?: string | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean
+          summary?: Json | null
+        }
+        Relationships: []
+      }
       hotelnabe_retrieve_log: {
         Row: {
           accommodation_id: string | null
