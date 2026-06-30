@@ -20,6 +20,10 @@ interface DualCurrencyInputProps {
   /** 隱藏底下換算說明（極小欄位場景） */
   hideHint?: boolean;
   id?: string;
+  /** 模式改變時通知父層（用於把訂單顯示幣別寫入 DB） */
+  onModeChange?: (mode: "TWD" | "SEC") => void;
+  /** 外部強制指定當前模式（編輯既有訂單時用，例：訂單是 JPY 就強制 SEC） */
+  forcedMode?: "TWD" | "SEC" | null;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
