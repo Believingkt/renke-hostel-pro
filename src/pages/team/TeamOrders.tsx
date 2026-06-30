@@ -1067,7 +1067,20 @@ export default function TeamOrders() {
                             )}
                         </span>
                       </TableCell>
-                      <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <div className="flex flex-col leading-tight">
+                          <span>${o.final_price?.toLocaleString()}</span>
+                          {(() => {
+                            const cfg = secondaryCurrencyMap.get(o.accommodation_id);
+                            if (!cfg) return null;
+                            return (
+                              <span className="text-[11px] text-muted-foreground">
+                                ≈ {formatSecondary(o.final_price, cfg)}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
                           const status = getCommissionStatus({
