@@ -325,6 +325,15 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
     (Array.isArray(companyName) ? companyName[0] : companyName)?.["@_Code"],
   );
 
+  // DepositPayments / GuaranteePayment / @GuaranteeType
+  // HotelNabe places this under ResGlobalInfo; some payloads put it at HotelReservation root.
+  const guaranteePayment =
+    hr?.ResGlobalInfo?.DepositPayments?.GuaranteePayment
+    ?? hr?.DepositPayments?.GuaranteePayment
+    ?? null;
+  const gpFirst = Array.isArray(guaranteePayment) ? guaranteePayment[0] : guaranteePayment;
+  const guaranteeType = safeStr(gpFirst?.["@_GuaranteeType"]);
+
   return {
     recordId,
     hotelnabeResId,
@@ -348,6 +357,7 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
     guestName,
     guestPhone,
     guestEmail,
+    guaranteeType,
     errors,
   };
 }
