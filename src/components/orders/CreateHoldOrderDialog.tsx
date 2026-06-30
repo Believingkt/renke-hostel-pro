@@ -40,6 +40,14 @@ const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
 const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
 const AUTO_ASSIGN_ACC_IDS = new Set([YUNXIU_ACC_ID, TIANSONG_ACC_ID]);
 
+// 與前台 VillaAvailabilityCalendar 相同的整天關閉規則
+const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
+  "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
+  "8e3e8866-3cb0-4654-91f3-d9b09a543301", // 淞湘卉館
+]);
+
 export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateHoldOrderDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
