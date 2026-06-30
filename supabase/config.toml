@@ -170,3 +170,6 @@ verify_jwt = false
 
 [functions.hotelnabe-retrieve-rooms]
 verify_jwt = true
+
+[functions.hotelnabe-push-inventory]
+verify_jwt = true
