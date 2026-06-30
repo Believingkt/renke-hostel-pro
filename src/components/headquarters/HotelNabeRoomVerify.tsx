@@ -74,13 +74,29 @@ export function HotelNabeRoomVerify() {
         body: { accommodation_id: selected },
       });
       if (error) {
-        const msg = (error as any)?.context?.error ?? error.message ?? "未知錯誤";
-        setResult({ success: false, error: String(msg) });
-        toast.error("呼叫失敗：" + msg);
+        // FunctionsHttpError 的 context 是原始 Response；把 body 解出來給用戶看
+        let bodyMsg = "";
+        let httpStatus: number | undefined;
+        const ctx = (error as any)?.context;
+        if (ctx instanceof Response) {
+          httpStatus = ctx.status;
+          try {
+            const cloned = ctx.clone();
+            const j = await cloned.json();
+            bodyMsg = j?.error || j?.detail || JSON.stringify(j);
+          } catch {
+            try { bodyMsg = await ctx.clone().text(); } catch { /* noop */ }
+          }
+        } else if (typeof ctx === "object" && ctx) {
+          bodyMsg = ctx.error || ctx.detail || JSON.stringify(ctx);
+        }
+        const msg = bodyMsg || error.message || "未知錯誤";
+        setResult({ success: false, http_status: httpStatus, error: String(msg) });
+        toast.error(`呼叫失敗${httpStatus ? `（HTTP ${httpStatus}）` : ""}：${msg}`);
       } else {
         setResult(data as RetrieveResult);
         if ((data as RetrieveResult)?.success) toast.success("驗證完成");
-        else toast.error("驗證未成功，請見下方錯誤訊息");
+        else toast.error("驗證未成功：" + ((data as RetrieveResult)?.error ?? "請見下方訊息"));
       }
     } catch (e: any) {
       setResult({ success: false, error: e?.message ?? String(e) });
