@@ -14,6 +14,7 @@ import {
   Gift,
   Activity,
   Bot,
+  Inbox,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -68,6 +69,7 @@ const menuItems = [
       { title: "奧丁丁物業設定", url: "/hq?tab=system&section=owlting-config", icon: FileText },
       { title: "奧丁丁推送監控", url: "/hq?tab=system&section=owlting-push", icon: Activity },
       { title: "旭海房型驗證", url: "/hq?tab=system&section=hotelnabe-verify", icon: Activity },
+      { title: "旭海收訂單記錄", url: "/hq?tab=system&section=hotelnabe-inbound", icon: Inbox },
       { title: "業主聯絡人", url: "/hq?tab=system&section=owners", icon: UserCheck },
     ]
   },
