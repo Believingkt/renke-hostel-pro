@@ -191,8 +191,55 @@ export function AccommodationDialog({
     if (isEditing && initialData?.id && open) {
       loadPaymentSettings(initialData.id);
       loadTransactionFeeSetting(initialData.id);
+      loadSecondaryCurrency(initialData.id);
     }
   }, [isEditing, initialData?.id, open]);
+
+  const loadSecondaryCurrency = async (accommodationId: string) => {
+    setLoadingSecondaryCurrency(true);
+    try {
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("secondary_currency, secondary_currency_rate")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      if (error) throw error;
+      setSecondaryCurrency(((data as any)?.secondary_currency || "").toString());
+      const r = (data as any)?.secondary_currency_rate;
+      setSecondaryRate(r != null ? String(r) : "");
+    } catch (err) {
+      console.error("Error loading secondary currency:", err);
+    } finally {
+      setLoadingSecondaryCurrency(false);
+    }
+  };
+
+  const handleSaveSecondaryCurrency = async () => {
+    if (!initialData?.id) return;
+    const code = secondaryCurrency.trim().toUpperCase();
+    const rateNum = secondaryRate === "" ? null : Number(secondaryRate);
+    if (code && (rateNum == null || !Number.isFinite(rateNum) || rateNum <= 0)) {
+      toast.error("匯率必須為大於 0 的數字");
+      return;
+    }
+    setSavingSecondaryCurrency(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({
+          secondary_currency: code || null,
+          secondary_currency_rate: code ? rateNum : null,
+        })
+        .eq("id", initialData.id);
+      if (error) throw error;
+      toast.success(code ? `副幣別已更新（${code}）` : "已停用副幣別顯示");
+    } catch (err: any) {
+      console.error("Error saving secondary currency:", err);
+      toast.error("更新失敗", { description: err.message });
+    } finally {
+      setSavingSecondaryCurrency(false);
+    }
+  };
 
   const loadPaymentSettings = async (accommodationId: string) => {
     try {
