@@ -28,6 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { formatSecondary } from "@/lib/currency";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
