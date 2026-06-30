@@ -114,7 +114,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
-  const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(null);
+  // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
+  const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(() => {
+    if (!currentAccommodationId) return null;
+    try {
+      const v = localStorage.getItem(`lakeze-input-currency:${currentAccommodationId}`);
+      if (v === "TWD") return "TWD";
+    } catch {}
+    return null; // 後續 secondaryCurrencyConfig 載入後再決定
+  });
+  useEffect(() => {
+    if (!createDisplayCurrency && secondaryCurrencyConfig?.code) {
+      setCreateDisplayCurrency(secondaryCurrencyConfig.code.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryCurrencyConfig?.code]);
   const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
     const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
     setCreateDisplayCurrency(code);
