@@ -1,11 +1,12 @@
 import { assertEquals, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildOrderPayload,
+  derivePaymentFromGuarantee,
   upsertHotelnabeOrderCore,
   type OrderUpsertPayload,
   type OrdersTableLike,
 } from "./index.ts";
-import type { ParsedReservation } from "./xml.ts";
+import { parseHotelnabeResNotifRQ, type ParsedReservation } from "./xml.ts";
 
 function makeReservation(over: Partial<ParsedReservation> = {}): ParsedReservation {
   const base: ParsedReservation = {
