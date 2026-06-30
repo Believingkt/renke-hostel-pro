@@ -97,12 +97,58 @@ Deno.test("buildOrderPayload maps to real orders columns with safe defaults", ()
   assertEquals(p.total_price, 18000);
   assertEquals(p.final_price, 18000);
   assertEquals(p.order_status, "confirmed");
-  assertEquals(p.payment_status, "paid");
+  // Default (no DepositPayments info) → conservative unpaid
+  assertEquals(p.payment_status, "unpaid");
+  assertEquals(p.paid_amount, 0);
   assertEquals(p.order_source, "hotelnabe");
   assertEquals(p.ota_channel, "hotelnabe");
   assertEquals(p.hotelnabe_res_id, "HN-TEST-1");
   assertEquals(p.cancelled_at, null);
   assert(p.notes && p.notes.includes("HN-TEST-1"));
+});
+
+Deno.test("derivePaymentFromGuarantee: PrePay → paid, None/missing → unpaid", () => {
+  assertEquals(derivePaymentFromGuarantee("PrePay", 38400), {
+    payment_status: "paid",
+    paid_amount: 38400,
+  });
+  assertEquals(derivePaymentFromGuarantee("prepay", 100), {
+    payment_status: "paid",
+    paid_amount: 100,
+  });
+  assertEquals(derivePaymentFromGuarantee("None", 38400), {
+    payment_status: "unpaid",
+    paid_amount: 0,
+  });
+  assertEquals(derivePaymentFromGuarantee(null, 38400), {
+    payment_status: "unpaid",
+    paid_amount: 0,
+  });
+});
+
+Deno.test("buildOrderPayload PrePay → paid + paid_amount=amount", () => {
+  const p = buildOrderPayload({
+    reservation: makeReservation({ guaranteeType: "PrePay", amountAfterTax: 38400 }),
+    accommodationId: ACC,
+    roomTypeId: RT,
+    packageId: PKG,
+  });
+  assertEquals(p.total_price, 38400);
+  assertEquals(p.final_price, 38400);
+  assertEquals(p.paid_amount, 38400);
+  assertEquals(p.payment_status, "paid");
+});
+
+Deno.test("buildOrderPayload None → unpaid + paid_amount=0 (final_price preserved)", () => {
+  const p = buildOrderPayload({
+    reservation: makeReservation({ guaranteeType: "None", amountAfterTax: 38400 }),
+    accommodationId: ACC,
+    roomTypeId: RT,
+    packageId: PKG,
+  });
+  assertEquals(p.final_price, 38400);
+  assertEquals(p.paid_amount, 0);
+  assertEquals(p.payment_status, "unpaid");
 });
 
 Deno.test("buildOrderPayload null-safe for missing optional guest fields", () => {
