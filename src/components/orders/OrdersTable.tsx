@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -9,7 +10,8 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCa
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
-import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
+import { formatSecondary } from "@/lib/currency";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -28,26 +30,44 @@ interface OrdersTableProps {
 
 export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [], accommodationId }: OrdersTableProps) {
   const { config: secondaryConfig } = useSecondaryCurrency(accommodationId);
-  const primaryCurrency = secondaryConfig && getDisplayCurrencyMode(accommodationId) === "SEC" ? "SEC" : "TWD";
-  const renderAmount = (twd: number) => {
-    if (secondaryConfig && primaryCurrency === "SEC") {
-      const sec = formatSecondary(twd, secondaryConfig);
+  // 逐筆訂單顯示幣別：order_id → 'TWD' | 'JPY' | ...
+  const [displayCurrencyMap, setDisplayCurrencyMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!secondaryConfig) { setDisplayCurrencyMap(new Map()); return; }
+    const ids = orders.map(o => o.id).filter(Boolean);
+    if (ids.length === 0) { setDisplayCurrencyMap(new Map()); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("order_meta")
+        .select("order_id, display_currency")
+        .in("order_id", ids);
+      if (cancelled) return;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((r: any) => { if (r.display_currency) m.set(r.order_id, r.display_currency); });
+      setDisplayCurrencyMap(m);
+    })();
+    return () => { cancelled = true; };
+  }, [orders, secondaryConfig]);
+
+  const renderAmount = (order: Order, twd: number) => {
+    if (!secondaryConfig) return <>NT$ {twd.toLocaleString()}</>;
+    const orderCur = displayCurrencyMap.get(order.id);
+    const isSecPrimary = !!orderCur && orderCur.toUpperCase() === secondaryConfig.code.toUpperCase();
+    if (isSecPrimary) {
       return (
         <span className="inline-flex flex-col leading-tight">
-          <span>{sec}</span>
+          <span>{formatSecondary(twd, secondaryConfig)}</span>
           <span className="text-[11px] text-muted-foreground font-normal">≈ NT$ {twd.toLocaleString()}</span>
         </span>
       );
     }
-    if (secondaryConfig) {
-      return (
-        <span className="inline-flex flex-col leading-tight">
-          <span>NT$ {twd.toLocaleString()}</span>
-          <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
-        </span>
-      );
-    }
-    return <>NT$ {twd.toLocaleString()}</>;
+    return (
+      <span className="inline-flex flex-col leading-tight">
+        <span>NT$ {twd.toLocaleString()}</span>
+        <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
+      </span>
+    );
   };
   const location = useLocation();
   const navigate = useNavigate();
