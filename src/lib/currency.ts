@@ -74,3 +74,16 @@ export function parseSecondaryCurrency(row: {
   if (!Number.isFinite(rate) || rate <= 0) return null;
   return { code, rate, symbol: getCurrencySymbol(code) };
 }
+
+/**
+ * 讀取使用者在 DualCurrencyInput 上記住的輸入幣別偏好。
+ * 用於決定列表/詳情頁主幣別顯示方向（SEC 主、TWD 副 vs. TWD 主、SEC 副）。
+ */
+export function getDisplayCurrencyMode(storageKey?: string | null): "TWD" | "SEC" {
+  if (!storageKey) return "TWD";
+  try {
+    const v = localStorage.getItem(`lakeze-input-currency:${storageKey}`);
+    if (v === "SEC") return "SEC";
+  } catch {}
+  return "TWD";
+}

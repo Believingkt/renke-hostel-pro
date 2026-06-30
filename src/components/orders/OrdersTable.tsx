@@ -8,6 +8,8 @@ import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, get
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -20,9 +22,33 @@ interface OrdersTableProps {
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
+  /** 啟用副幣別顯示（旅行日 JPY 等），需配合 accommodationId 才會生效 */
+  accommodationId?: string | null;
 }
 
-export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [], accommodationId }: OrdersTableProps) {
+  const { config: secondaryConfig } = useSecondaryCurrency(accommodationId);
+  const primaryCurrency = secondaryConfig && getDisplayCurrencyMode(accommodationId) === "SEC" ? "SEC" : "TWD";
+  const renderAmount = (twd: number) => {
+    if (secondaryConfig && primaryCurrency === "SEC") {
+      const sec = formatSecondary(twd, secondaryConfig);
+      return (
+        <span className="inline-flex flex-col leading-tight">
+          <span>{sec}</span>
+          <span className="text-[11px] text-muted-foreground font-normal">≈ NT$ {twd.toLocaleString()}</span>
+        </span>
+      );
+    }
+    if (secondaryConfig) {
+      return (
+        <span className="inline-flex flex-col leading-tight">
+          <span>NT$ {twd.toLocaleString()}</span>
+          <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
+        </span>
+      );
+    }
+    return <>NT$ {twd.toLocaleString()}</>;
+  };
   const location = useLocation();
   const navigate = useNavigate();
   const backTo = `${location.pathname}${location.search}`;
@@ -126,7 +152,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      <div>NT$ {order.final_price.toLocaleString()}</div>
+                      <div>{renderAmount(order.final_price)}</div>
                       {(() => {
                         const method = getOrderPaymentMethod(order);
                         const dep = (order as any).deposit_amount ?? 0;
@@ -358,7 +384,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
-                    <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                    <span className="font-semibold text-base">{renderAmount(order.final_price)}</span>
                   </div>
 
                   {/* 已付金額 / 訂金尾款拆分（匯款） */}

@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
-import { formatSecondary } from "@/lib/currency";
+import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
@@ -1068,18 +1068,28 @@ export default function TeamOrders() {
                         </span>
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        <div className="flex flex-col leading-tight">
-                          <span>${o.final_price?.toLocaleString()}</span>
-                          {(() => {
-                            const cfg = secondaryCurrencyMap.get(o.accommodation_id);
-                            if (!cfg) return null;
+                        {(() => {
+                          const cfg = secondaryCurrencyMap.get(o.accommodation_id);
+                          const isSecPrimary = !!cfg && getDisplayCurrencyMode(o.accommodation_id) === "SEC";
+                          if (cfg && isSecPrimary) {
                             return (
-                              <span className="text-[11px] text-muted-foreground">
-                                ≈ {formatSecondary(o.final_price, cfg)}
-                              </span>
+                              <div className="flex flex-col leading-tight">
+                                <span>{formatSecondary(o.final_price, cfg)}</span>
+                                <span className="text-[11px] text-muted-foreground">≈ ${o.final_price?.toLocaleString()}</span>
+                              </div>
                             );
-                          })()}
-                        </div>
+                          }
+                          return (
+                            <div className="flex flex-col leading-tight">
+                              <span>${o.final_price?.toLocaleString()}</span>
+                              {cfg && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  ≈ {formatSecondary(o.final_price, cfg)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
