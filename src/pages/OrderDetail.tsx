@@ -2756,7 +2756,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} storageKey={order.accommodation_id} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">NT$ {displayTotal.toLocaleString()}</span>
                     )}
