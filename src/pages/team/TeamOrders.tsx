@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
-import { formatSecondary } from "@/lib/currency";
+import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
