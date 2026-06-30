@@ -286,9 +286,13 @@ function parseSingleReservation(hr: any, recordId: string): ParsedReservation {
   }
 
   // ResGuest / Profile (null-safe)
+  // HotelNabe production: ResGuest/Profiles/Profile (no ProfileInfo wrapper).
+  // Spec: ResGuest/Profiles/ProfileInfo/Profile. Try both, with ResGlobalInfo fallback.
   const resGuest = asArray(hr?.ResGuests?.ResGuest)[0] ?? null;
   const profile = resGuest?.Profiles?.ProfileInfo?.Profile
+    ?? resGuest?.Profiles?.Profile
     ?? hr?.Profiles?.ProfileInfo?.Profile
+    ?? hr?.ResGlobalInfo?.Profiles?.ProfileInfo?.Profile
     ?? null;
   const customer = profile?.Customer ?? null;
   const personName = customer?.PersonName ?? null;
