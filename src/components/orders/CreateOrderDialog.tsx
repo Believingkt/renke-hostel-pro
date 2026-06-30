@@ -1443,6 +1443,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         description: `訂單 ${orderNumber} 已建立`,
       });
 
+      // 寫入訂單顯示幣別（依使用者建立時最後一次切換的輸入模式）
+      if (createDisplayCurrency && secondaryCurrencyConfig) {
+        const { setOrderDisplayCurrency } = await import("@/lib/orderDisplayCurrency");
+        setOrderDisplayCurrency(orderData.id, createDisplayCurrency);
+      }
+
       onSuccess(orderData.id);
       onOpenChange(false);
     } catch (error: any) {
