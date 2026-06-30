@@ -4599,6 +4599,7 @@ export type Database = {
           commission_price_confirmed_by: string | null
           deposit_confirm_date: string | null
           deposit_confirm_date_verified: boolean
+          display_currency: string | null
           exclusion_note: string | null
           filled_at: string | null
           filled_by: string | null
@@ -4636,6 +4637,7 @@ export type Database = {
           commission_price_confirmed_by?: string | null
           deposit_confirm_date?: string | null
           deposit_confirm_date_verified?: boolean
+          display_currency?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
@@ -4673,6 +4675,7 @@ export type Database = {
           commission_price_confirmed_by?: string | null
           deposit_confirm_date?: string | null
           deposit_confirm_date_verified?: boolean
+          display_currency?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
