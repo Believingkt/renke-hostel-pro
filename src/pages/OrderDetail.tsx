@@ -258,6 +258,28 @@ const OrderDetailPage = () => {
   const isYunxiu = order?.accommodation_id === YUNXIU_ACC_ID;
   const isOlivia = order?.accommodation_id === OLIVIA_ACC_ID;
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(order?.accommodation_id);
+  // 每筆訂單獨立的顯示幣別
+  const [orderDisplayCurrency, setOrderDisplayCurrency] = useState<string | null>(null);
+  useEffect(() => {
+    if (!order?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("order_meta").select("display_currency").eq("order_id", order.id).maybeSingle();
+      if (!cancelled) setOrderDisplayCurrency((data as any)?.display_currency ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [order?.id]);
+  const currencyForcedMode = useMemo<"TWD" | "SEC" | null>(() => {
+    if (!secondaryCurrencyConfig) return null;
+    if (!orderDisplayCurrency) return null;
+    return orderDisplayCurrency.toUpperCase() === secondaryCurrencyConfig.code.toUpperCase() ? "SEC" : "TWD";
+  }, [orderDisplayCurrency, secondaryCurrencyConfig]);
+  const handleCurrencyModeChange = useCallback(async (m: "TWD" | "SEC") => {
+    if (!order?.id) return;
+    const code = (await import("@/lib/orderDisplayCurrency")).modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
+    setOrderDisplayCurrency(code);
+    (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
+  }, [order?.id, secondaryCurrencyConfig?.code]);
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
