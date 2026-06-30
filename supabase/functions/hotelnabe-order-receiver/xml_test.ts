@@ -295,3 +295,35 @@ Deno.test("auth failure produces 497 RS with echo token", () => {
   assertStringIncludes(rs, `EchoToken="ECHO-EXP-001"`);
   assertStringIncludes(rs, `Code="497"`);
 });
+
+// ─── Regression: real HotelNabe production payload (2026-06-30) ─────
+// Booking → 淞湘卉館 (HotelCode=1886, OTA ResID 5580377069)
+// Previously parser returned hotelCode=null because BasicPropertyInfo lives
+// under ResGlobalInfo (not RoomStay), causing "missing hotel_code" rejection.
+const FIXTURE_HOTELNABE_REAL_BOOKING_5580377069 = `<?xml version="1.0" encoding="UTF-8"?><OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" xmlns:nabe="http://www.hotelnabe.com.tw/" EchoToken="54ed0e8f-6e10-4437-8c8f-f304fa3f5a21" TimeStamp="2026-06-30T20:13:56" Target="Production" Version="1.0"><POS><Source><RequestorID URL="www.surehigh.com.tw" Type="18" ID="lakeze" MessagePassword="secret123"></RequestorID></Source></POS><HotelReservations><HotelReservation CreateDateTime="2026-06-30T17:51:05" LastModifyDateTime="2026-06-30T17:53:46" ResStatus="Book"><POS><Source><BookingChannel Type="7"><CompanyName CompanyShortName="Booking" TravelSector="3" Code="booking"></CompanyName></BookingChannel></Source></POS><RoomStays><RoomStay IndexNumber="1"><RoomTypes><RoomType RoomTypeCode="1" Quantity="1"><TPA_Extensions><nabe:Channel RoomTypeCode="808654101"></nabe:Channel><nabe:PMS RoomTypeCode="1063"></nabe:PMS></TPA_Extensions></RoomType></RoomTypes><RoomRates><RoomRate RatePlanCode="1"><Rates><Rate EffectiveDate="2026-11-02"><Base AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"></Base><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"></Total></Rate></Rates><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"></Total></RoomRate><TPA_Extensions><nabe:RoomRate RatePlanCode="1"><nabe:Channel RatePlanCode="59028844"></nabe:Channel><nabe:PMS RatePlanCode="1001"></nabe:PMS></nabe:RoomRate></TPA_Extensions></RoomRates><GuestCounts><GuestCount AgeQualifyingCode="10" Count="2" ResGuestRPH="1"></GuestCount></GuestCounts><TimeSpan Start="2026-11-02" End="2026-11-03"></TimeSpan><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"></Total><SpecialRequests><SpecialRequest><Text>&#xA;,Meal Plan:這間客房的房價不包括餐點。</Text></SpecialRequest></SpecialRequests></RoomStay></RoomStays><ResGuests><ResGuest ResGuestRPH="1" AgeQualifyingCode="10"><Profiles><Profile><Customer Gender="Unknown"><PersonName><GivenName>TEST</GivenName><Surname>T</Surname></PersonName><Email>tt.764054@guest.booking.com</Email><CitizenCountryName Code="TW"></CitizenCountryName></Customer></Profile></Profiles></ResGuest></ResGuests><ResGlobalInfo><BasicPropertyInfo HotelCode="1886"></BasicPropertyInfo><HotelReservationIDs><HotelReservationID ResID_Value="1" ResID_Source="Hotelnabe" ResID_Date="2026-06-30"></HotelReservationID><HotelReservationID ResID_Value="5580377069" ResID_Source="Booking" ResID_Date="2026-06-30"></HotelReservationID></HotelReservationIDs><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"></Total><Profiles><ProfileInfo><Profile><Customer Gender="Unknown"><PersonName><GivenName>TEST</GivenName><Surname>T</Surname></PersonName><Email>tt.764054@guest.booking.com</Email><CitizenCountryName Code="TW"></CitizenCountryName></Customer></Profile></ProfileInfo></Profiles><DepositPayments><GuaranteePayment GuaranteeType="None"></GuaranteePayment></DepositPayments></ResGlobalInfo><SpecialRequests></SpecialRequests><TPA_Extensions></TPA_Extensions></HotelReservation></HotelReservations></OTA_HotelResNotifRQ>`;
+
+Deno.test("regression: real Booking→1886 payload (ResID 5580377069) parses all key fields", () => {
+  const env = parseHotelnabeResNotifRQ(FIXTURE_HOTELNABE_REAL_BOOKING_5580377069);
+  assertEquals(env.rootError, null);
+  assertEquals(env.echoToken, "54ed0e8f-6e10-4437-8c8f-f304fa3f5a21");
+  assertEquals(env.posId, "lakeze");
+  assertEquals(env.reservations.length, 1);
+  const r = env.reservations[0];
+  // Was previously null → caused "missing hotel_code"
+  assertEquals(r.hotelCode, "1886");
+  assertEquals(r.hotelnabeResId, "1");
+  assertEquals(r.otaResId, "5580377069");
+  assertEquals(r.otaCode, "booking");
+  assertEquals(r.resStatus, "Book");
+  assertEquals(r.roomTypeCode, 1063);
+  assertEquals(r.ratePlanCode, 1001);
+  assertEquals(r.checkIn, "2026-11-02");
+  assertEquals(r.checkOut, "2026-11-03");
+  assertEquals(r.adults, 2);
+  assertEquals(r.children, 0);
+  assertEquals(r.currency, "TWD");
+  // 3840000 / 100 = 38400
+  assertEquals(r.amountAfterTax, 38400);
+  assertEquals(r.guestName, "TTEST");
+  assertEquals(r.guestEmail, "tt.764054@guest.booking.com");
+});
