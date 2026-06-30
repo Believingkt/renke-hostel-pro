@@ -62,19 +62,20 @@ export function DualCurrencyInput({
     if (mode === "TWD") {
       setDraft(value > 0 ? String(value) : "");
     } else if (hasSecondary && config) {
-      const lastSecondaryInput = lastSecondaryInputRef.current;
-      if (
-        lastSecondaryInput &&
-        lastSecondaryInput.twd === value &&
-        lastSecondaryInput.rate === config.rate
-      ) {
-        setDraft(lastSecondaryInput.secondary);
+      const local = lastSecondaryInputRef.current;
+      if (local && local.twd === value && local.rate === config.rate) {
+        setDraft(local.secondary);
+        return;
+      }
+      const shared = secondaryInputMemory.get(storageKey);
+      if (shared && shared.twd === value && shared.rate === config.rate) {
+        setDraft(shared.secondary);
         return;
       }
       const sec = Math.round(value * config.rate);
       setDraft(sec > 0 ? String(sec) : "");
     }
-  }, [value, mode, hasSecondary, config, focused]);
+  }, [value, mode, hasSecondary, config, focused, storageKey]);
 
   const handleChange = (raw: string) => {
     const cleaned = raw.replace(/[^\d]/g, "");
@@ -90,10 +91,13 @@ export function DualCurrencyInput({
     } else {
       // SEC → TWD
       const twd = Math.round(n / config.rate);
-      lastSecondaryInputRef.current = { secondary: cleaned, twd, rate: config.rate };
+      const entry = { secondary: cleaned, twd, rate: config.rate };
+      lastSecondaryInputRef.current = entry;
+      secondaryInputMemory.set(storageKey, entry);
       onChange(twd);
     }
   };
+
 
   const toggle = () => {
     if (!hasSecondary) return;
