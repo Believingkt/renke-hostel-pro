@@ -152,23 +152,31 @@ export default function RoomPriceCalendar() {
       const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
-      // 並行載入所有數據
-      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult, ordersResult] = await Promise.all([
-        supabase
-          .from('room_types')
-          .select('id, name, is_exclusive_package, base_price, room_count')
-          .eq('accommodation_id', currentAccommodationId)
-          .order('display_order', { ascending: true }),
+      // 先取房型清單，避免 inventory 查詢漏過濾 accommodation 時撈到全平台資料導致超過 1000 row 上限
+      const roomTypesResult = await supabase
+        .from('room_types')
+        .select('id, name, is_exclusive_package, base_price, room_count')
+        .eq('accommodation_id', currentAccommodationId)
+        .order('display_order', { ascending: true });
+
+      if (roomTypesResult.error) throw roomTypesResult.error;
+      const roomTypeIds = (roomTypesResult.data || []).map((r) => r.id);
+
+      // 並行載入其他數據（inventory 以 room_type_id IN 過濾本宿房型）
+      const [templatesResult, inventoryResult, holidaysResult, ordersResult] = await Promise.all([
         supabase
           .from('pricing_templates')
           .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_type_id, room_type_ids, available_rooms, room_overrides, season_segments, extra_dates, excluded_dates, valid_from, valid_until')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
-        supabase
-          .from('room_inventory_pricing')
-          .select('room_type_id, date, price, available_rooms, is_available, notes, pricing_template_id')
-          .gte('date', monthStart)
-          .lte('date', monthEnd),
+        roomTypeIds.length > 0
+          ? supabase
+              .from('room_inventory_pricing')
+              .select('room_type_id, date, price, available_rooms, is_available, notes, pricing_template_id')
+              .in('room_type_id', roomTypeIds)
+              .gte('date', monthStart)
+              .lte('date', monthEnd)
+          : Promise.resolve({ data: [], error: null } as any),
         supabase
           .from('public_holidays')
           .select('holiday_date, holiday_type, holiday_name')
@@ -184,11 +192,10 @@ export default function RoomPriceCalendar() {
           .lte('check_in_date', monthEnd),
       ]);
 
-      if (roomTypesResult.error) throw roomTypesResult.error;
       if (templatesResult.error) throw templatesResult.error;
       if (inventoryResult.error) throw inventoryResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
-      if (holidaysResult.error) throw holidaysResult.error;
+
 
       if (ordersResult.error) console.error('查詢訂單失敗:', ordersResult.error);
 
