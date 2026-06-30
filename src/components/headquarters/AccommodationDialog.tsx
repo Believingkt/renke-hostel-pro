@@ -1187,6 +1187,60 @@ export function AccommodationDialog({
                           </div>
                         </div>
                       </div>
+
+                      {/* 副幣別顯示（選用） */}
+                      <div className="pt-4 border-t">
+                        <div className="space-y-1 mb-4">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <div className="h-5 w-1 rounded-full bg-primary" />
+                            副幣別顯示（選用）
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            僅用於前台/訂單顯示參考價，<strong>實際收款、結算、分潤一律以 TWD 為準</strong>。
+                            欄位留空即停用此功能。例：旅行日填 <code>JPY</code> + 匯率 <code>4.7</code>（1 TWD ≈ 4.7 日圓）。
+                          </p>
+                        </div>
+                        <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">幣別代碼</Label>
+                              <Input
+                                value={secondaryCurrency}
+                                onChange={(e) => setSecondaryCurrency(e.target.value.toUpperCase())}
+                                placeholder="例：JPY"
+                                maxLength={6}
+                                disabled={loadingSecondaryCurrency || savingSecondaryCurrency}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">匯率（1 TWD =）</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                min={0}
+                                value={secondaryRate}
+                                onChange={(e) => setSecondaryRate(e.target.value)}
+                                placeholder="例：4.7"
+                                disabled={loadingSecondaryCurrency || savingSecondaryCurrency || !secondaryCurrency}
+                                className="h-9"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={handleSaveSecondaryCurrency}
+                              disabled={loadingSecondaryCurrency || savingSecondaryCurrency}
+                            >
+                              {savingSecondaryCurrency && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                              儲存副幣別設定
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
