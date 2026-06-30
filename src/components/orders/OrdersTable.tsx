@@ -8,6 +8,8 @@ import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, get
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 
 interface OrdersTableProps {
   orders: Order[];
