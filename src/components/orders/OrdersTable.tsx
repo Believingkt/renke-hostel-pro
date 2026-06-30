@@ -22,9 +22,33 @@ interface OrdersTableProps {
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
+  /** 啟用副幣別顯示（旅行日 JPY 等），需配合 accommodationId 才會生效 */
+  accommodationId?: string | null;
 }
 
-export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [], accommodationId }: OrdersTableProps) {
+  const { config: secondaryConfig } = useSecondaryCurrency(accommodationId);
+  const primaryCurrency = secondaryConfig && getDisplayCurrencyMode(accommodationId) === "SEC" ? "SEC" : "TWD";
+  const renderAmount = (twd: number) => {
+    if (secondaryConfig && primaryCurrency === "SEC") {
+      const sec = formatSecondary(twd, secondaryConfig);
+      return (
+        <span className="inline-flex flex-col leading-tight">
+          <span>{sec}</span>
+          <span className="text-[11px] text-muted-foreground font-normal">≈ NT$ {twd.toLocaleString()}</span>
+        </span>
+      );
+    }
+    if (secondaryConfig) {
+      return (
+        <span className="inline-flex flex-col leading-tight">
+          <span>NT$ {twd.toLocaleString()}</span>
+          <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
+        </span>
+      );
+    }
+    return <>NT$ {twd.toLocaleString()}</>;
+  };
   const location = useLocation();
   const navigate = useNavigate();
   const backTo = `${location.pathname}${location.search}`;
