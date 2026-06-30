@@ -95,6 +95,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(accommodationId);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
