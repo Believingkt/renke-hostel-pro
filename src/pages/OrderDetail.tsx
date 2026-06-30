@@ -256,6 +256,7 @@ const OrderDetailPage = () => {
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
   const isYunxiu = order?.accommodation_id === YUNXIU_ACC_ID;
   const isOlivia = order?.accommodation_id === OLIVIA_ACC_ID;
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(order?.accommodation_id);
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
