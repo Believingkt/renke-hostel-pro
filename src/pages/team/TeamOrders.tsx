@@ -482,25 +482,28 @@ export default function TeamOrders() {
         if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
         if (year !== "ALL") {
           const y = Number(year);
+          const pad = (n: number) => String(n).padStart(2, "0");
           if (month !== "ALL") {
             const m = Number(month);
-            const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
-            const lastDay = new Date(y, m, 0).getDate();
-            const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-            // 方案A：期間以 COALESCE(confirmed_at, order_date) 為準
+            const startDay = `${y}-${pad(m)}-01`;
+            // 期間結束採「次日 exclusive」，避免 timestamptz 欄位 lte 'YYYY-MM-DD' 被當 00:00 而漏掉當天訂單
+            const nextY = m === 12 ? y + 1 : y;
+            const nextM = m === 12 ? 1 : m + 1;
+            const endExclusive = `${nextY}-${pad(nextM)}-01`;
             q = q.or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`
+              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`
             );
           } else {
             const startDay = `${y}-01-01`;
-            const endDay = `${y}-12-31`;
+            const endExclusive = `${y + 1}-01-01`;
             q = q.or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`
+              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`
             );
           }
         }
+
 
         const s = search.trim();
         if (s) {
