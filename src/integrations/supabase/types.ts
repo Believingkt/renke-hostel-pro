@@ -3394,6 +3394,56 @@ export type Database = {
           },
         ]
       }
+      hotelnabe_retrieve_log: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          echo_token: string | null
+          error_message: string | null
+          hotel_code: string | null
+          http_status: number | null
+          id: string
+          report: Json | null
+          request_xml: string | null
+          response_xml: string | null
+          success: boolean | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          http_status?: number | null
+          id?: string
+          report?: Json | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          http_status?: number | null
+          id?: string
+          report?: Json | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotelnabe_retrieve_log_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kol_blocked_dates: {
         Row: {
           accommodation_id: string
