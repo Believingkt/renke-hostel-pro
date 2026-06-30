@@ -307,6 +307,14 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", auth.accommodationId);
 
+  // Non-grouped RatePlan source: accommodation_packages (aligned with
+  // owlting-order-push so AvailRS-published RatePlanCode == push RatePlanCode).
+  const { data: pkgs } = await supabase
+    .from("accommodation_packages")
+    .select("id,name,numeric_code,room_type_ids,enabled,display_order")
+    .eq("accommodation_id", auth.accommodationId);
+
+
   // ----- Package-group consolidation -----
   // Load owlting room-type group config (if any). When a group exists,
   // its member room_types are collapsed into 1 <RoomStay> with the
