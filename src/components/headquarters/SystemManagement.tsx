@@ -898,6 +898,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           <OwlTingPushMonitor />
         </TabsContent>
 
+        <TabsContent value="hotelnabe-verify" className="space-y-4">
+          <HotelNabeRoomVerify />
+        </TabsContent>
+
         <TabsContent value="owners" className="space-y-4">
           <AccommodationOwnersManagement />
           <OwlTingAliasesEditor />
