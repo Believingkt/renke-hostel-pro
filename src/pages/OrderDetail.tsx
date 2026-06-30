@@ -28,6 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { formatSecondary } from "@/lib/currency";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
@@ -254,6 +256,7 @@ const OrderDetailPage = () => {
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
   const isYunxiu = order?.accommodation_id === YUNXIU_ACC_ID;
   const isOlivia = order?.accommodation_id === OLIVIA_ACC_ID;
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(order?.accommodation_id);
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
@@ -2879,11 +2882,23 @@ const OrderDetailPage = () => {
               const effectiveFinalPrice = order.final_price;
               return (
                 <>
-                  <div className="flex justify-between items-center gap-2">
+                  <div className="flex justify-between items-start gap-2">
                     <span className="text-sm md:text-sm font-semibold">實收金額</span>
-                    <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                      NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
-                    </span>
+                    <div className="flex flex-col items-end leading-tight">
+                      <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                        NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                      </span>
+                      {secondaryCurrencyConfig && (
+                        <span className="text-[11px] text-muted-foreground">
+                          ≈ {formatSecondary(
+                            isEditing
+                              ? (editForm.total_price + editForm.addon_total - editForm.discount_amount)
+                              : effectiveFinalPrice,
+                            secondaryCurrencyConfig
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                    <Separator />
                   {/* 匯款（含舊訂單）：顯示訂金/尾款拆分與各自付款狀態 */}

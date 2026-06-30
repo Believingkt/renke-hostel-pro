@@ -38,6 +38,8 @@ import { Pencil, Check, X, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucid
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
+import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
+import { formatSecondary } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
@@ -131,11 +133,14 @@ export default function TeamOrders() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
-  const [summary, setSummary] = useState<{ validCount: number; validSum: number; cancelledCount: number }>({
+  const [summary, setSummary] = useState<{ validCount: number; validSum: number; cancelledCount: number; validSumByAcc: Record<string, number> }>({
     validCount: 0,
     validSum: 0,
+    validSumByAcc: {},
     cancelledCount: 0,
   });
+
+  const { map: secondaryCurrencyMap } = useSecondaryCurrencyMap();
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
@@ -463,7 +468,7 @@ export default function TeamOrders() {
         if (metaOrderIds.length === 0) {
           setOrders([]);
           setTotal(0);
-          setSummary({ validCount: 0, validSum: 0, cancelledCount: 0 });
+          setSummary({ validCount: 0, validSum: 0, cancelledCount: 0, validSumByAcc: {} });
           return;
         }
       }
@@ -524,7 +529,7 @@ export default function TeamOrders() {
 
       // Summary queries (run in parallel with list query)
       const validSumQ = applyFilters(
-        supabase.from("orders").select("final_price", { count: "exact" })
+        supabase.from("orders").select("final_price, accommodation_id", { count: "exact" })
       ).neq("order_status", "cancelled");
       const cancelledQ = applyFilters(
         supabase.from("orders").select("id", { count: "exact", head: true })
@@ -541,13 +546,18 @@ export default function TeamOrders() {
 
       const pageRows = ordersRes.data || [];
       const totalCount = ordersRes.count ?? 0;
-      const validSum = ((validRes.data || []) as any[]).reduce(
-        (s, r) => s + Number(r.final_price || 0),
-        0
-      );
+      const validRows = ((validRes.data || []) as any[]);
+      const validSum = validRows.reduce((s, r) => s + Number(r.final_price || 0), 0);
+      const validSumByAcc: Record<string, number> = {};
+      validRows.forEach((r) => {
+        const k = r.accommodation_id as string;
+        if (!k) return;
+        validSumByAcc[k] = (validSumByAcc[k] || 0) + Number(r.final_price || 0);
+      });
       setSummary({
         validCount: validRes.count ?? 0,
         validSum,
+        validSumByAcc,
         cancelledCount: cancelledRes.count ?? 0,
       });
 
@@ -1057,7 +1067,20 @@ export default function TeamOrders() {
                             )}
                         </span>
                       </TableCell>
-                      <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <div className="flex flex-col leading-tight">
+                          <span>${o.final_price?.toLocaleString()}</span>
+                          {(() => {
+                            const cfg = secondaryCurrencyMap.get(o.accommodation_id);
+                            if (!cfg) return null;
+                            return (
+                              <span className="text-[11px] text-muted-foreground">
+                                ≈ {formatSecondary(o.final_price, cfg)}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
                           const status = getCommissionStatus({
@@ -1141,6 +1164,15 @@ export default function TeamOrders() {
             </span>
             <span>
               有效訂單總金額：<span className="font-semibold text-primary">NT$ {summary.validSum.toLocaleString()}</span>
+              {Array.from(secondaryCurrencyMap.entries()).map(([accId, cfg]) => {
+                const sub = summary.validSumByAcc[accId] || 0;
+                if (sub <= 0) return null;
+                return (
+                  <span key={accId} className="ml-2 text-[11px] text-muted-foreground">
+                    （旅行日 ≈ {formatSecondary(sub, cfg)}）
+                  </span>
+                );
+              })}
             </span>
             <span className="text-muted-foreground">
               取消訂單：<span className="font-semibold text-foreground">{summary.cancelledCount.toLocaleString()}</span> 筆
