@@ -114,6 +114,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
+  const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(null);
+  const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
+    const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
+    setCreateDisplayCurrency(code);
+  };
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
