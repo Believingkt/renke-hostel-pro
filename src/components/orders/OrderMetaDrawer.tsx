@@ -283,10 +283,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
 
       const orderRowTyped =
-        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null } | null);
+        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null; accommodation_id?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
+      setAccommodationId(orderRowTyped?.accommodation_id ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
