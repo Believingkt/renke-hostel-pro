@@ -721,7 +721,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
                 <DualCurrencyInput
                   config={secondaryCurrencyConfig}
-                  storageKey={accommodationId || "default"}
+                  storageKey={accommodationId || "default"} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
                   value={teamCommissionPrice ?? 0}
                   onChange={(v) => setTeamCommissionPrice(v === 0 ? null : v)}
                 />
@@ -1010,7 +1010,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               <Label>加購金額</Label>
               <DualCurrencyInput
                 config={secondaryCurrencyConfig}
-                storageKey={accommodationId || "default"}
+                storageKey={accommodationId || "default"} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
                 value={addonAmount}
                 onChange={(v) => setAddonAmount(v)}
               />
