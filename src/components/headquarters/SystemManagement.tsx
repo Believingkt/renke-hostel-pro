@@ -905,6 +905,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           <HotelNabePushInventory />
         </TabsContent>
 
+        <TabsContent value="hotelnabe-inbound" className="space-y-4">
+          <HotelNabeInboundLog />
+        </TabsContent>
+
+
         <TabsContent value="owners" className="space-y-4">
           <AccommodationOwnersManagement />
           <OwlTingAliasesEditor />
