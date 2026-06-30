@@ -167,3 +167,6 @@ verify_jwt = false
 
 [functions.hotelnabe-order-receiver]
 verify_jwt = false
+
+[functions.hotelnabe-retrieve-rooms]
+verify_jwt = true
