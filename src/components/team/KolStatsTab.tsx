@@ -502,12 +502,22 @@ export function KolStatsTab() {
                 r.check_in_date < monthEnd!,
             );
             monthlySuccess = monthRows.length;
+            // 各場域個人目標：改以 invited_at（填寫日期）切月，
+            // 與列表「填寫日期」顯示一致；其他統計（monthlySuccess 等）仍以 check_in_date 切月。
+            const venueMonthRows = rows.filter(
+              (r) =>
+                r.kpi_qualified === true &&
+                !r.is_error &&
+                !!r.invited_at &&
+                r.invited_at >= monthStart! &&
+                r.invited_at < monthEnd!,
+            );
             if (targetsList.length === 0) {
               individualAchieved = false;
             } else {
               individualAchieved = true;
               venueBreakdown = targetsList.map((t) => {
-                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const actual = venueMonthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
                 return {
