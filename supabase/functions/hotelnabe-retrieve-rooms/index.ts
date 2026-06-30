@@ -75,9 +75,11 @@ Deno.serve(async (req) => {
     return jsonResp({ error: "invalid_json_body" }, 400, cors);
   }
   const accommodationId: string | undefined = body?.accommodation_id;
+  const mode: Mode = body?.mode === "roomAndRate" ? "roomAndRate" : "roomOnly";
   if (!accommodationId) {
     return jsonResp({ error: "accommodation_id_required" }, 400, cors);
   }
+  const endpoint = mode === "roomAndRate" ? ENDPOINT_ROOM_AND_RATE : ENDPOINT_ROOM_ONLY;
 
   // Role check — query user_roles directly via service role
   // (do NOT use user_has_role RPC: it reads auth.uid() which is null under service_role)
