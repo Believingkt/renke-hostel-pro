@@ -464,7 +464,7 @@ export default function TeamOrders() {
         if (metaOrderIds.length === 0) {
           setOrders([]);
           setTotal(0);
-          setSummary({ validCount: 0, validSum: 0, cancelledCount: 0 });
+          setSummary({ validCount: 0, validSum: 0, cancelledCount: 0, validSumByAcc: {} });
           return;
         }
       }
