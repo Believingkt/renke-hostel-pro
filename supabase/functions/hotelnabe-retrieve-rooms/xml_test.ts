@@ -104,3 +104,53 @@ Deno.test("EchoToken generated PMS-side is reflected back into RQ unchanged", ()
   assertStringIncludes(xml, `EchoToken="${generated}"`);
   assert(generated.startsWith("LK-"));
 });
+
+// ─── RatePlan parsing & mapping ─────────────────────────────────────
+import { buildRatePlanMappingReport } from "./xml.ts";
+
+const RS_RATEPLAN_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<OTA_HotelAvailRS xmlns="http://www.opentravel.org/OTA/2003/05"
+    EchoToken="LK-ECHO-RP" Version="1.0" TimeStamp="2026-06-30T10:00:00+08:00">
+  <Success/>
+  <RoomStays>
+    <RoomStay>
+      <RoomTypes>
+        <RoomType RoomID="HN-RM-1063" RoomTypeCode="1063"/>
+      </RoomTypes>
+      <RatePlans>
+        <RatePlan RatePlanID="HN-RP-1001" RatePlanCode="1001"/>
+        <RatePlan RatePlanID="HN-RP-2002" RatePlanCode="2002"/>
+        <RatePlan RatePlanID="HN-RP-9999" RatePlanCode="9999"/>
+        <RatePlan RatePlanID="HN-RP-NULL"/>
+      </RatePlans>
+    </RoomStay>
+  </RoomStays>
+</OTA_HotelAvailRS>`;
+
+Deno.test("parseHotelnabeAvailRS — extracts RatePlanID/RatePlanCode", () => {
+  const parsed = parseHotelnabeAvailRS(RS_RATEPLAN_FIXTURE);
+  assertEquals(parsed.ratePlans.length, 4);
+  assertEquals(parsed.ratePlans[0], { ratePlanId: "HN-RP-1001", ratePlanCode: "1001" });
+  assertEquals(parsed.ratePlans[3], { ratePlanId: "HN-RP-NULL", ratePlanCode: null });
+  assertEquals(parsed.rooms.length, 1);
+});
+
+Deno.test("buildRatePlanMappingReport — matched/missing/mismatch/unused classification", () => {
+  const parsed = parseHotelnabeAvailRS(RS_RATEPLAN_FIXTURE);
+  const ours = [
+    { id: "p-1", name: "12人包棟", numeric_code: 1001 },
+    { id: "p-2", name: "8人方案", numeric_code: 2002 },
+    { id: "p-3", name: "未使用方案", numeric_code: 3003 }, // unused
+    { id: "p-4", name: "無編號方案", numeric_code: null },
+  ];
+  const report = buildRatePlanMappingReport(parsed.ratePlans, ours);
+  assertEquals(report.matched.length, 2);
+  assertEquals(report.matched[0].our_package_name, "12人包棟");
+  assertEquals(report.missing_on_our_side.length, 1);
+  assertEquals(report.missing_on_our_side[0].hotelnabe_rate_plan_code, "9999");
+  assertEquals(report.mismatch.length, 1);
+  assertEquals(report.mismatch[0].hotelnabe_rate_plan_id, "HN-RP-NULL");
+  assertEquals(report.unused_on_our_side.length, 1);
+  assertEquals(report.unused_on_our_side[0].our_package_id, "p-3");
+  assertEquals(report.totals, { remote: 4, ours: 3, matched: 2, missing: 1, mismatch: 1, unused: 1 });
+});
