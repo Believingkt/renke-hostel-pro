@@ -2719,16 +2719,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm">押金金額 (NT$)</Label>
-            <Input
-              type="number"
-              min={0}
-              step={100}
+            <Label className="text-sm">押金金額</Label>
+            <DualCurrencyInput
+              config={secondaryCurrencyConfig}
+              storageKey={currentAccommodationId || "default"}
+              inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.security_deposit_amount}
-              onChange={(e) =>
-                setForm({ ...form, security_deposit_amount: Number(e.target.value) || 0 })
-              }
-              className="h-12 text-base sm:h-10 sm:text-sm"
+              onChange={(v) => setForm({ ...form, security_deposit_amount: v })}
             />
           </div>
         </div>
