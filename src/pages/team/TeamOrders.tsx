@@ -141,6 +141,8 @@ export default function TeamOrders() {
   });
 
   const { map: secondaryCurrencyMap } = useSecondaryCurrencyMap();
+  // 逐筆訂單顯示幣別：order_id → 'TWD' | 'JPY' | ...
+  const [orderDisplayCurrencyMap, setOrderDisplayCurrencyMap] = useState<Map<string, string>>(new Map());
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
