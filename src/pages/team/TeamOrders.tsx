@@ -1077,7 +1077,8 @@ export default function TeamOrders() {
                       <TableCell className="tabular-nums">
                         {(() => {
                           const cfg = secondaryCurrencyMap.get(o.accommodation_id);
-                          const isSecPrimary = !!cfg && getDisplayCurrencyMode(o.accommodation_id) === "SEC";
+                          const orderCur = orderDisplayCurrencyMap.get(o.id);
+                          const isSecPrimary = !!cfg && !!orderCur && orderCur.toUpperCase() === cfg.code.toUpperCase();
                           if (cfg && isSecPrimary) {
                             return (
                               <div className="flex flex-col leading-tight">
