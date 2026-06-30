@@ -18,6 +18,7 @@
  *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { buildRatePlansForRoomType } from "./availrs_packages.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -306,6 +307,14 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", auth.accommodationId);
 
+  // Non-grouped RatePlan source: accommodation_packages (aligned with
+  // owlting-order-push so AvailRS-published RatePlanCode == push RatePlanCode).
+  const { data: pkgs } = await supabase
+    .from("accommodation_packages")
+    .select("id,name,numeric_code,room_type_ids,enabled,display_order")
+    .eq("accommodation_id", auth.accommodationId);
+
+
   // ----- Package-group consolidation -----
   // Load owlting room-type group config (if any). When a group exists,
   // its member room_types are collapsed into 1 <RoomStay> with the
@@ -366,10 +375,11 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       continue;
     }
 
-    // Non-grouped room_type: original behavior
-    const plans = (templates ?? []).filter((t: any) => !t.room_type_id || t.room_type_id === r.id);
-    const planXml = plans.map((p: any) =>
-      `<RatePlan RatePlanCode="${p.numeric_code}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
+    // Non-grouped room_type: RatePlans sourced from accommodation_packages
+    // (RatePlanCode = packages.numeric_code, aligning with owlting-order-push).
+    const plans = buildRatePlansForRoomType(r.id, (pkgs ?? []) as any);
+    const planXml = plans.map((p) =>
+      `<RatePlan RatePlanCode="${p.code}"><RatePlanDescription Name="${xmlEscape(p.name)}"/></RatePlan>`,
     ).join("");
     stayParts.push(`<RoomStay>
       <RoomTypes><RoomType RoomTypeCode="${r.numeric_code}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
