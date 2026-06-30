@@ -2985,7 +2985,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} storageKey={order.accommodation_id} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
                     )}
