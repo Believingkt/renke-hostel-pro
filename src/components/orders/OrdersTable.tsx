@@ -172,7 +172,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      <div>{renderAmount(order.final_price)}</div>
+                      <div>{renderAmount(order, order.final_price)}</div>
                       {(() => {
                         const method = getOrderPaymentMethod(order);
                         const dep = (order as any).deposit_amount ?? 0;
@@ -404,7 +404,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
-                    <span className="font-semibold text-base">{renderAmount(order.final_price)}</span>
+                    <span className="font-semibold text-base">{renderAmount(order, order.final_price)}</span>
                   </div>
 
                   {/* 已付金額 / 訂金尾款拆分（匯款） */}
