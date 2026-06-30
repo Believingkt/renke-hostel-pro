@@ -290,3 +290,50 @@ Deno.test("upsertHotelnabeOrderCore requires hotelnabe_res_id", async () => {
   }
   assert(threw);
 });
+
+// ─── Regression: real Booking→1886 payload (ResID 5580377069) ──────
+// GuaranteeType="None" → must be unpaid + paid_amount=0,
+// but final_price MUST preserve the 38400 from the XML (will not be
+// zeroed by validate_order_before_insert once 'hotelnabe' is bypassed).
+const FIXTURE_REAL_BOOKING_NONE = `<?xml version="1.0" encoding="UTF-8"?><OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" xmlns:nabe="http://www.hotelnabe.com.tw/" EchoToken="x" TimeStamp="2026-06-30T20:13:56" Version="1.0"><POS><Source><RequestorID URL="x" Type="18" ID="lakeze" MessagePassword="p"/></Source></POS><HotelReservations><HotelReservation CreateDateTime="2026-06-30T17:51:05" LastModifyDateTime="2026-06-30T17:53:46" ResStatus="Book"><RoomStays><RoomStay><RoomTypes><RoomType><TPA_Extensions><nabe:PMS RoomTypeCode="1063"/></TPA_Extensions></RoomType></RoomTypes><RoomRates><TPA_Extensions><nabe:RoomRate><nabe:PMS RatePlanCode="1001"/></nabe:RoomRate></TPA_Extensions></RoomRates><GuestCounts><GuestCount AgeQualifyingCode="10" Count="2"/></GuestCounts><TimeSpan Start="2026-11-02" End="2026-11-03"/><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"/></RoomStay></RoomStays><ResGlobalInfo><BasicPropertyInfo HotelCode="1886"/><HotelReservationIDs><HotelReservationID ResID_Value="1" ResID_Source="Hotelnabe"/><HotelReservationID ResID_Value="5580377069" ResID_Source="Booking"/></HotelReservationIDs><Total AmountAfterTax="3840000" CurrencyCode="TWD" DecimalPlaces="2"/><DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments></ResGlobalInfo></HotelReservation></HotelReservations></OTA_HotelResNotifRQ>`;
+
+Deno.test("regression: real Booking payload (GuaranteeType=None) → final_price=38400, unpaid", () => {
+  const env = parseHotelnabeResNotifRQ(FIXTURE_REAL_BOOKING_NONE);
+  assertEquals(env.reservations.length, 1);
+  const r = env.reservations[0];
+  assertEquals(r.amountAfterTax, 38400);
+  assertEquals(r.guaranteeType, "None");
+
+  const p = buildOrderPayload({
+    reservation: r,
+    accommodationId: ACC,
+    roomTypeId: RT,
+    packageId: PKG,
+  });
+  // bypass keeps the XML amount intact
+  assertEquals(p.total_price, 38400);
+  assertEquals(p.final_price, 38400);
+  // GuaranteeType=None → unpaid, paid_amount=0
+  assertEquals(p.payment_status, "unpaid");
+  assertEquals(p.paid_amount, 0);
+});
+
+Deno.test("regression: same payload but GuaranteeType=PrePay → paid + paid_amount=38400", () => {
+  const xml = FIXTURE_REAL_BOOKING_NONE.replace(
+    `GuaranteeType="None"`,
+    `GuaranteeType="PrePay"`,
+  );
+  const env = parseHotelnabeResNotifRQ(xml);
+  const r = env.reservations[0];
+  assertEquals(r.guaranteeType, "PrePay");
+
+  const p = buildOrderPayload({
+    reservation: r,
+    accommodationId: ACC,
+    roomTypeId: RT,
+    packageId: PKG,
+  });
+  assertEquals(p.final_price, 38400);
+  assertEquals(p.payment_status, "paid");
+  assertEquals(p.paid_amount, 38400);
+});
