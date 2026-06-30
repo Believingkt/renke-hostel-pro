@@ -2413,7 +2413,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <DualCurrencyInput
             id="create-discount-amount"
             config={secondaryCurrencyConfig}
-            storageKey={currentAccommodationId || "default"}
+            storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
             inputClassName="h-12 text-base sm:h-10 sm:text-sm"
             placeholder="0"
             value={manualDiscountStr !== null ? (parseInt(manualDiscountStr, 10) || 0) : (totals.discount > 0 ? totals.discount : 0)}
@@ -2681,7 +2681,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Label>訂金金額</Label>
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.deposit_amount}
               onChange={(v) => {
@@ -2733,7 +2733,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Label className="text-sm">押金金額</Label>
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.security_deposit_amount}
               onChange={(v) => setForm({ ...form, security_deposit_amount: v })}
