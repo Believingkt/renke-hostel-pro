@@ -96,8 +96,8 @@ export function DualCurrencyInput({
   const currencyLabel = mode === "TWD" ? "NT$" : config?.symbol || "";
 
   return (
-    <div className={cn("flex flex-col items-end gap-0.5", className)}>
-      <div className="relative inline-flex items-center">
+    <div className={cn("flex flex-col items-stretch gap-0.5 w-full", className)}>
+      <div className="relative w-full">
         <Input
           id={id}
           type="text"
@@ -108,7 +108,7 @@ export function DualCurrencyInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onChange={(e) => handleChange(e.target.value)}
-          className={cn("text-right pr-16", inputClassName)}
+          className={cn("text-right w-full", hasSecondary ? "pr-14" : "pr-10", inputClassName)}
         />
         {hasSecondary ? (
           <button
@@ -128,7 +128,7 @@ export function DualCurrencyInput({
         )}
       </div>
       {!hideHint && hint && (
-        <span className="text-[10px] text-muted-foreground leading-none">{hint}</span>
+        <span className="text-[10px] text-muted-foreground leading-none text-right">{hint}</span>
       )}
     </div>
   );
