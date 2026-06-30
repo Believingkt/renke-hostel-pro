@@ -304,6 +304,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
       setAccommodationId(orderRowTyped?.accommodation_id ?? null);
+      setDisplayCurrency((existingMeta as any)?.display_currency ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
