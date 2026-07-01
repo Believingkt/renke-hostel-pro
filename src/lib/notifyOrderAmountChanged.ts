@@ -38,7 +38,7 @@ export async function notifyOrderAmountChanged(params: {
         : `NT$ ${Number(v).toLocaleString()}`;
 
     const message =
-      `💰 分潤基準金額異動通知\n\n` +
+      `💰 訂單變更通知\n\n` +
       `訂單編號：${params.orderNumber}\n` +
       `館別：${params.accommodationName}\n` +
       `客戶姓名：${params.guestName}\n` +
