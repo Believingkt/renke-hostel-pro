@@ -41,7 +41,8 @@ import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
 import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
-import { getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
+import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName } from "@/utils/orderHelpers";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
 interface Member {
