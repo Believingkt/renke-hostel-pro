@@ -1,0 +1,1 @@
+UPDATE public.hotelnabe_ari_push_queue SET status='skipped', last_error='manual skip: pending 業主方向確認 (Error 450 需先推房價)', updated_at=now() WHERE id='377938c8-0000-0000-0000-000000000000' OR (status='pending' AND reason='manual');
