@@ -86,7 +86,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       if (!currentAccommodationId) return;
       const { data } = await supabase
         .from("room_types")
-        .select("id, name, is_exclusive_package")
+        .select("id, name, is_exclusive_package, room_count")
         .eq("accommodation_id", currentAccommodationId)
         .order("display_order");
       if (data) setRoomTypes(data);
