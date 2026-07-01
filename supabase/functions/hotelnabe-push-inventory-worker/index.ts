@@ -93,6 +93,32 @@ export function mergeConsecutive(days: DayRemaining[], invTypeCode: string): Ava
   return out;
 }
 
+/**
+ * Classify HotelNabe RS errors.
+ * "no_price": HotelNabe rejects because rate/price for that date range is not yet
+ * pushed (Code=450 or ShortText contains "push price first" / "please push price").
+ * These are expected rejections — skip the queue row, do NOT retry, do NOT bump attempt.
+ */
+export function classifyRsErrors(
+  errors: { type: string | null; code: string | null; message: string }[],
+): { kind: "no_price" | "other"; message: string } | null {
+  if (!errors || errors.length === 0) return null;
+  for (const e of errors) {
+    const msg = (e.message || "").toLowerCase();
+    if (
+      e.code === "450" ||
+      msg.includes("push price first") ||
+      msg.includes("please push price")
+    ) {
+      return {
+        kind: "no_price",
+        message: `[450 no_price] ${e.message || "please push price first"}`,
+      };
+    }
+  }
+  return { kind: "other", message: errors[0].message || "unknown_error" };
+}
+
 Deno.serve(async (req) => {
   const cors = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -224,6 +250,7 @@ Deno.serve(async (req) => {
       let httpStatus = 0;
       let responseXml = "";
       let errorMessage: string | null = null;
+      let noPriceSkip = false;
 
       if (PUSH_MODE === "live") {
         // Guard: require secrets before we ever POST.
@@ -240,7 +267,15 @@ Deno.serve(async (req) => {
             responseXml = await resp.text();
             const parsed = parseHotelnabeAvailNotifRS(responseXml);
             success = httpStatus >= 200 && httpStatus < 300 && parsed.errors.length === 0;
-            if (!success) errorMessage = parsed.errors[0]?.message || `HTTP ${httpStatus}`;
+            if (!success) {
+              const cls = classifyRsErrors(parsed.errors);
+              if (cls?.kind === "no_price") {
+                noPriceSkip = true;
+                errorMessage = cls.message;
+              } else {
+                errorMessage = parsed.errors[0]?.message || `HTTP ${httpStatus}`;
+              }
+            }
           } catch (e) {
             errorMessage = (e as Error).message;
           }
@@ -263,13 +298,23 @@ Deno.serve(async (req) => {
         http_status: httpStatus || null,
         success,
         error_message: errorMessage,
-        summary,
+        summary: { ...summary, skip_kind: noPriceSkip ? "no_price_450" : undefined },
       });
 
       // 9) Update queue rows.
       if (success) {
         await admin.from("hotelnabe_ari_push_queue")
           .update({ status: "sent", updated_at: new Date().toISOString(), last_error: null })
+          .in("id", queueIds);
+      } else if (noPriceSkip) {
+        // Expected rejection — skip without retry, do NOT bump attempt_count.
+        await admin.from("hotelnabe_ari_push_queue")
+          .update({
+            status: "skipped",
+            next_retry_at: null,
+            last_error: errorMessage,
+            updated_at: new Date().toISOString(),
+          })
           .in("id", queueIds);
       } else {
         // Retry with exponential backoff (capped).
@@ -294,6 +339,7 @@ Deno.serve(async (req) => {
         accommodationId, roomTypeId,
         queue_ids: queueIds,
         mode: PUSH_MODE, success, http_status: httpStatus, message_count: messages.length,
+        skipped: noPriceSkip ? "no_price_450" : undefined,
       });
     } catch (e) {
       const msg = (e as Error).message;
