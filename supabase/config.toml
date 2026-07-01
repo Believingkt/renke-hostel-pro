@@ -173,3 +173,6 @@ verify_jwt = true
 
 [functions.hotelnabe-push-inventory]
 verify_jwt = true
+
+[functions.hotelnabe-push-inventory-worker]
+verify_jwt = false
