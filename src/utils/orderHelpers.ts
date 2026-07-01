@@ -83,6 +83,46 @@ export const getHotelnabeOtaCode = (order: { hotelnabe_sync_state?: any } | null
   return str.length ? str : null;
 };
 
+/** 訂單來源 code → 中文顯示名稱（供 Tooltip 使用） */
+export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
+  website: "官網訂房",
+  manual: "現場訂房",
+  line: "Line@ 官方帳號",
+  agoda: "Agoda",
+  booking: "Booking.com",
+  trip: "Trip.com",
+  travel_agency: "旅行社",
+  kol: "KOL 互惠合作",
+  points_starchain: "星鏈會員點數",
+  official_use: "公務使用",
+  franchise_diff: "加盟價差",
+  owner_provided: "業主自帶",
+  hotelnabe: "旭海 HotelNabe (Channel Manager)",
+};
+
+/** 旭海通路 OTA code → 顯示名稱 */
+export const HOTELNABE_OTA_DISPLAY_NAMES: Record<string, string> = {
+  booking: "Booking.com",
+  agoda: "Agoda",
+  expedia: "Expedia",
+  trip: "Trip.com",
+  ctrip: "攜程 Ctrip",
+  airbnb: "Airbnb",
+  hotels: "Hotels.com",
+  klook: "Klook",
+  kkday: "KKday",
+  direct: "旭海直訂",
+};
+
+export const getOrderSourceDisplayName = (source: string) =>
+  ORDER_SOURCE_DISPLAY_NAMES[source] ?? source ?? "未知";
+
+export const getHotelnabeOtaDisplayName = (code: string) => {
+  const key = (code || "").trim().toLowerCase();
+  return HOTELNABE_OTA_DISPLAY_NAMES[key] ?? code;
+};
+
+
 export const getOrderStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
     hold: "保留中",
