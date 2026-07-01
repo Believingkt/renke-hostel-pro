@@ -41,7 +41,8 @@ import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
 import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
-import { getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
+import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName } from "@/utils/orderHelpers";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
 interface Member {
@@ -1130,10 +1131,28 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
                       <TableCell>{(() => {
                         const cfg = getOrderSourceConfig(o.order_source ?? '', getHotelnabeOtaCode(o as any));
+                        const otaCode = getHotelnabeOtaCode(o as any);
                         return (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
-                            {cfg.label}
-                          </span>
+                          <TooltipProvider delayDuration={200}><Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-help ${cfg.className}`}>
+                                {cfg.label}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{o.order_source || "—"}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(o.order_source ?? "")}</span></div>
+                                {otaCode && (
+                                  <>
+                                    <div className="border-t border-border/50 my-1" />
+                                    <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{otaCode}</span></div>
+                                    <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(otaCode)}</span></div>
+                                  </>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip></TooltipProvider>
                         );
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
