@@ -209,21 +209,39 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       })()}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {onChangeOrderSource ? (
-                        <button
-                          onClick={() => onChangeOrderSource(order)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
-                          title="點擊變更訂單來源"
-                        >
-                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                          {orderSourceConfig.label}
-                        </button>
-                      ) : (
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
-                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                          {orderSourceConfig.label}
-                        </span>
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {onChangeOrderSource ? (
+                            <button
+                              onClick={() => onChangeOrderSource(order)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
+                            >
+                              {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                              {orderSourceConfig.label}
+                            </button>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-help ${orderSourceConfig.className}`}>
+                              {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                              {orderSourceConfig.label}
+                            </span>
+                          )}
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="space-y-1 text-xs">
+                            <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{order.order_source || "—"}</span></div>
+                            <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(order.order_source || "")}</span></div>
+                            {getHotelnabeOtaCode(order as any) && (
+                              <>
+                                <div className="border-t border-border/50 my-1" />
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getHotelnabeOtaCode(order as any)}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getHotelnabeOtaCode(order as any) || "")}</span></div>
+                                {onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
+                              </>
+                            )}
+                            {!getHotelnabeOtaCode(order as any) && onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderStatus ? (
