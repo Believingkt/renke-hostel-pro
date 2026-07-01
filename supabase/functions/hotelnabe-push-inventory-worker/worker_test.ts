@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { mergeConsecutive } from "./index.ts";
+import { mergeConsecutive, classifyRsErrors } from "./index.ts";
+import { parseHotelnabeAvailNotifRS } from "./xml.ts";
 
 Deno.test("mergeConsecutive — all same limit merged", () => {
   const msgs = mergeConsecutive([
