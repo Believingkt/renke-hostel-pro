@@ -1,0 +1,1 @@
+UPDATE public.hotelnabe_ari_push_queue SET status='pending', attempt_count=0, next_retry_at=NULL, last_error=NULL, updated_at=now() WHERE id='377938c8-5e1d-4837-a54d-9b138295bec3';
