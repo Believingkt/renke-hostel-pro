@@ -1625,12 +1625,32 @@ const OrderDetailPage = () => {
     const otaCode = typeof otaRaw === "string" ? otaRaw.trim().toLowerCase() : "";
     const label = source === "hotelnabe" && otaCode ? `${config.label} - ${otaCode}` : config.label;
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
-        <Icon className="w-3 h-3" />
-        {label}
-      </span>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-help ${config.className}`}>
+              <Icon className="w-3 h-3" />
+              {label}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="space-y-1 text-xs">
+              <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{source || "—"}</span></div>
+              <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(source)}</span></div>
+              {otaCode && (
+                <>
+                  <div className="border-t border-border/50 my-1" />
+                  <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{otaCode}</span></div>
+                  <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(otaCode)}</span></div>
+                </>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
+
 
 
   const getPaymentMethodDisplayName = (method: string | null) => {
