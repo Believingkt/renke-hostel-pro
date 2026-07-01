@@ -327,3 +327,39 @@ Deno.test("regression: real Booking→1886 payload (ResID 5580377069) parses all
   assertEquals(r.guestName, "TTEST");
   assertEquals(r.guestEmail, "tt.764054@guest.booking.com");
 });
+
+// ─── ShortText 保證非空（旭海後台「回覆訊息」欄依賴此屬性） ─────────
+Deno.test("failure RS always carries non-empty ShortText attribute", () => {
+  const cases: Array<{ type: string; code: string; message: string }> = [
+    { type: "4", code: "497", message: "Authentication failed" },
+    { type: "3", code: "392", message: "HotelCode 1886 not mapped" },
+    { type: "3", code: "402", message: "RoomTypeCode 999 not mapped" },
+    { type: "3", code: "450", message: "Internal error: orders insert failed: null value in column" },
+    { type: "3", code: "450", message: "" }, // 邊界：訊息為空也要 fallback
+  ];
+  for (const c of cases) {
+    const rs = buildHotelnabeResNotifRS({
+      echoToken: "T",
+      errors: [{ type: c.type, code: c.code, message: c.message, recordId: "1" }],
+    });
+    // 屬性存在
+    const m = rs.match(/ShortText="([^"]*)"/);
+    assert(m, `ShortText missing for code ${c.code}`);
+    // 非空
+    assert(m![1].length > 0, `ShortText empty for code ${c.code}`);
+    // 帶回 Type/Code/RecordID
+    assertStringIncludes(rs, `Type="${c.type}"`);
+    assertStringIncludes(rs, `Code="${c.code}"`);
+    assertStringIncludes(rs, `RecordID="1"`);
+  }
+});
+
+Deno.test("success RS does not contain Errors block", () => {
+  const rs = buildHotelnabeResNotifRS({
+    echoToken: "T",
+    successes: [{ recordId: "1", uniqueId: "order_xyz" }],
+  });
+  assert(!rs.includes("<Errors"));
+  assert(!rs.includes("ShortText"));
+  assertStringIncludes(rs, "<Success");
+});
