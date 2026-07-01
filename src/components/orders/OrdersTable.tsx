@@ -241,7 +241,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                             {!getHotelnabeOtaCode(order as any) && onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
                           </div>
                         </TooltipContent>
-                      </Tooltip>
+                      </Tooltip></TooltipProvider>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderStatus ? (
