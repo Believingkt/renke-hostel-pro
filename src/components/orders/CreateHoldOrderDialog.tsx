@@ -22,6 +22,7 @@ interface RoomType {
   id: string;
   name: string;
   is_exclusive_package?: boolean;
+  room_count?: number;
 }
 
 interface ExtraSelection {
