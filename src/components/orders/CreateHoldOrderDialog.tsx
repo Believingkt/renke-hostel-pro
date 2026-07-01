@@ -60,7 +60,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [inventoryWarnings, setInventoryWarnings] = useState<{ roomName: string; date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
-  const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [extraSelections, setExtraSelections] = useState<ExtraSelection[]>([]);
 
@@ -75,7 +75,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     if (open) {
       setForm({ check_in_date: "", check_out_date: "", room_type_id: "", notes: "" });
       setInventoryWarnings([]);
-      setUnavailableDates(new Set());
+      setAvailableDates(new Set());
       setExtraSelections([]);
     }
   }, [open]);
@@ -96,7 +96,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   // Fetch unavailable dates when primary room type changes
   const fetchUnavailableDates = useCallback(async (roomTypeId: string) => {
     if (!roomTypeId || !currentAccommodationId) {
-      setUnavailableDates(new Set());
+        setAvailableDates(new Set());
       return;
     }
 
@@ -177,27 +177,27 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         return !v.is_blocked && v.available_rooms > 0;
       };
 
-      const blocked = new Set<string>();
+      const available = new Set<string>();
       for (const d of dates) {
         // 1) 選中房型自身無庫存（未開放或已售完/鎖定）
         const selOpened = baseOpened.get(`${roomTypeId}:${d}`) !== false;
         const sel = invIndex.get(`${roomTypeId}:${d}`);
         if (!selOpened || !sel || sel.is_blocked || sel.available_rooms < 1) {
-          blocked.add(d);
           continue;
         }
         // 2) 整天關閉規則
         if (isHakuna && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
         } else if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
-          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
+          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isBookedOut(rt.id, d))) continue;
         } else if (isStrict && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) { blocked.add(d); continue; }
-          if (!packageRoomTypes.some((rt) => isAvail(rt.id, d))) { blocked.add(d); continue; }
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
+          if (!packageRoomTypes.some((rt) => isAvail(rt.id, d))) continue;
         }
+        available.add(d);
       }
-      setUnavailableDates(blocked);
+      setAvailableDates(available);
     } catch (err) {
       console.error("Error fetching availability:", err);
     } finally {
@@ -468,9 +468,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     }
   };
 
-  const isDateUnavailable = useCallback((date: Date) => {
-    return unavailableDates.has(format(date, "yyyy-MM-dd"));
-  }, [unavailableDates]);
+  const isDateAvailable = useCallback((date: Date) => {
+    return availableDates.has(format(date, "yyyy-MM-dd"));
+  }, [availableDates]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -541,7 +541,11 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                     setTimeout(() => setCheckOutOpen(true), 150);
                   }
                 }}
-                disabled={(date) => isBefore(date, today) || isDateUnavailable(date)}
+                disabled={(date) => isBefore(date, today) || !isDateAvailable(date)}
+                modifiers={{ available: isDateAvailable }}
+                modifiersClassNames={{
+                  available: "border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100",
+                }}
               />
             </PopoverContent>
           </Popover>
