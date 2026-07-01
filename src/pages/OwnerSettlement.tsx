@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
-import { getOrderStatusLabel, getOrderSourceConfig } from "@/utils/orderHelpers";
+import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
@@ -517,7 +517,7 @@ export default function OwnerSettlement() {
                                 <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
                                 <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
-                                <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source).label} />
+                                <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source, getHotelnabeOtaCode(r.order as any)).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
                               </div>

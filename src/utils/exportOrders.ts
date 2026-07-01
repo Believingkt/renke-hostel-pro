@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
-import { getOrderStatusConfig, getPaymentStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
+import { getOrderStatusConfig, getPaymentStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getEffectivePaymentStatus } from "@/utils/orderHelpers";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrderRoom {
@@ -134,7 +134,7 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
       "加購小計": addonSubtotal,
       "額外現場加購金額": extraAmount,
       "額外現場加購備註": extraNote,
-      "來源": getOrderSourceConfig(order.order_source).label,
+      "來源": getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any)).label,
       "訂單狀態": getOrderStatusConfig(order.order_status).label,
       "付款狀態": getPaymentStatusConfig(effectivePayment).label,
       "備註": cleanNotes(order.notes),

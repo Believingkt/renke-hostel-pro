@@ -1614,16 +1614,22 @@ const OrderDetailPage = () => {
       official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200", icon: Globe },
       franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200", icon: Globe },
       owner_provided: { label: "業主自帶", className: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Globe },
+      hotelnabe: { label: "hotelnabe", className: "bg-sky-100 text-sky-700 border-sky-200", icon: Globe },
     };
     const config = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border", icon: Globe };
     const Icon = config.icon;
+    // 旭海（hotelnabe）附加 OTA 通路來源，例如 hotelnabe - booking / hotelnabe - agoda
+    const otaRaw = (order as any)?.hotelnabe_sync_state?.ota_code;
+    const otaCode = typeof otaRaw === "string" ? otaRaw.trim().toLowerCase() : "";
+    const label = source === "hotelnabe" && otaCode ? `${config.label} - ${otaCode}` : config.label;
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
         <Icon className="w-3 h-3" />
-        {config.label}
+        {label}
       </span>
     );
   };
+
 
   const getPaymentMethodDisplayName = (method: string | null) => {
     if (!method) return "-";
