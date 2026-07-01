@@ -41,7 +41,7 @@ import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
 import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
-import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName } from "@/utils/orderHelpers";
+import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
@@ -131,6 +131,9 @@ export default function TeamOrders() {
   const [search, setSearch] = useState<string>("");
   const [closerOnly, setCloserOnly] = useState(true);
   const [closerFilter, setCloserFilter] = useState<string>("ALL"); // "ALL" | "NONE" | <user_id>
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL"); // "ALL" | <order_source> | "hotelnabe:<ota>"
+  const [sourceOptions, setSourceOptions] = useState<string[]>([]);
+  const [hotelnabeOtaOptions, setHotelnabeOtaOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
@@ -232,13 +235,13 @@ export default function TeamOrders() {
   // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, sourceFilter, pageSize]);
 
   // Re-query whenever filters or pagination change
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, page, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, sourceFilter, page, pageSize]);
 
   useEffect(() => {
     (async () => {
@@ -321,6 +324,36 @@ export default function TeamOrders() {
     ]);
     setTrafficSources((ts ?? []) as any);
     setBookingMethods((bm ?? []) as any);
+
+    // Load distinct order_source values + hotelnabe OTA codes for the source filter
+    try {
+      const { data: srcRows } = await supabase
+        .from("orders")
+        .select("order_source")
+        .not("order_source", "is", null)
+        .limit(5000);
+      const set = new Set<string>();
+      (srcRows ?? []).forEach((r: any) => {
+        const v = (r.order_source ?? "").toString().trim();
+        if (v) set.add(v);
+      });
+      setSourceOptions(Array.from(set).sort((a, b) => a.localeCompare(b, "zh-Hant")));
+
+      const { data: otaRows } = await supabase
+        .from("orders")
+        .select("hotelnabe_sync_state")
+        .eq("order_source", "hotelnabe")
+        .not("hotelnabe_sync_state", "is", null)
+        .limit(5000);
+      const otaSet = new Set<string>();
+      (otaRows ?? []).forEach((r: any) => {
+        const code = (r.hotelnabe_sync_state?.ota_code ?? "").toString().trim().toLowerCase();
+        if (code) otaSet.add(code);
+      });
+      setHotelnabeOtaOptions(Array.from(otaSet).sort());
+    } catch (e) {
+      // ignore option load errors
+    }
   }
 
   async function handleAddOption(table: "traffic_sources" | "booking_methods") {
@@ -516,6 +549,14 @@ export default function TeamOrders() {
           }
         }
         if (metaOrderIds) q = q.in("id", metaOrderIds);
+        if (sourceFilter !== "ALL") {
+          if (sourceFilter.startsWith("hotelnabe:")) {
+            const ota = sourceFilter.slice("hotelnabe:".length);
+            q = q.eq("order_source", "hotelnabe").eq("hotelnabe_sync_state->>ota_code", ota);
+          } else {
+            q = q.eq("order_source", sourceFilter);
+          }
+        }
         return q as T;
       };
 
@@ -943,6 +984,33 @@ export default function TeamOrders() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="訂單來源" />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="ALL">全部來源</SelectItem>
+                {sourceOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getOrderSourceDisplayName(s) || s}
+                    {ORDER_SOURCE_DISPLAY_NAMES[s] ? ` (${s})` : ""}
+                  </SelectItem>
+                ))}
+                {hotelnabeOtaOptions.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-xs text-muted-foreground border-t mt-1 pt-2">旭海 OTA 通路</div>
+                    {hotelnabeOtaOptions.map((code) => (
+                      <SelectItem key={`hotelnabe:${code}`} value={`hotelnabe:${code}`}>
+                        hotelnabe - {getHotelnabeOtaDisplayName(code) || code}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+
+
 
 
             <span className="text-sm text-muted-foreground ml-2">下單日：</span>
