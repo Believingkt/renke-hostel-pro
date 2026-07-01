@@ -214,6 +214,25 @@ const Orders = () => {
     fetchOrders({ showLoading: true });
   }, [fetchOrders]);
 
+  // 強制在頁面載入 / 分頁重新聚焦 / 從 bfcache 還原時，重新抓取訂單，避免快取顯示過期標籤
+  useEffect(() => {
+    const handleFocus = () => fetchOrders({ showLoading: false });
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchOrders({ showLoading: false });
+    };
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) fetchOrders({ showLoading: false });
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [fetchOrders]);
+
   // 載入快速篩選的計數（不受其他篩選影響）
   const fetchQuickCounts = useCallback(async () => {
     if (!accommodationId) return;
