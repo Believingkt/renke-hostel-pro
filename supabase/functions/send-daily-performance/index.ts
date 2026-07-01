@@ -309,9 +309,14 @@ Deno.serve(async (req) => {
             q = q.gte("order_date", startUtc).lt("order_date", endUtc);
           } else {
             // COALESCE(confirmed_at, order_date) 落在 [startDay, endDay]
+            // 修正:date 字串在 PostgREST 比較 timestamptz 時會被當成 00:00,
+            //      需展開為 UTC timestamptz 區間(台北 [start 00:00, endDay+1 00:00))才能涵蓋整天。
+            const startUtc = new Date(`${startDay}T00:00:00+08:00`).toISOString();
+            const [ey, em, ed] = endDay.split("-").map(Number);
+            const endUtc = new Date(Date.UTC(ey, em - 1, ed + 1, -8, 0, 0)).toISOString();
             q = q.or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`,
+              `and(confirmed_at.gte.${startUtc},confirmed_at.lt.${endUtc}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startUtc},order_date.lt.${endUtc})`,
             );
           }
           return q as T;
