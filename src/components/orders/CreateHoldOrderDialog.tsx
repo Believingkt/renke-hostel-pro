@@ -128,17 +128,26 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         if (isSensan) commonRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
       }
 
-      // 平行抓所有相關房型的庫存
-      const invResults = await Promise.all(
-        Array.from(roomTypeIdsToQuery).map(async (rid) => {
-          const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
-            p_room_type_id: rid,
-            p_dates: dates,
-            p_accommodation_id: currentAccommodationId,
-          });
-          return { rid, data: (data ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }> };
-        })
-      );
+      // 平行抓所有相關房型的調整後庫存 + base RIP is_available
+      const roomIdList = Array.from(roomTypeIdsToQuery);
+      const [invResults, baseResult] = await Promise.all([
+        Promise.all(
+          roomIdList.map(async (rid) => {
+            const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+              p_room_type_id: rid,
+              p_dates: dates,
+              p_accommodation_id: currentAccommodationId,
+            });
+            return { rid, data: (data ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }> };
+          })
+        ),
+        supabase
+          .from('room_inventory_pricing')
+          .select('room_type_id, date, is_available')
+          .in('room_type_id', roomIdList)
+          .gte('date', dates[0])
+          .lte('date', dates[dates.length - 1]),
+      ]);
 
       const invIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
       for (const { rid, data } of invResults) {
@@ -146,13 +155,23 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           invIndex.set(`${rid}:${item.date_value}`, { available_rooms: item.available_rooms, is_blocked: item.is_blocked });
         }
       }
+      // base RIP：某房型於某日是否「已開放」(is_available)。同 key 若有多筆，只要任一為 true 即算開放。
+      const baseOpened = new Map<string, boolean>();
+      for (const row of (baseResult.data ?? []) as Array<{ room_type_id: string; date: string; is_available: boolean | null }>) {
+        const k = `${row.room_type_id}:${row.date}`;
+        const prev = baseOpened.get(k) ?? false;
+        baseOpened.set(k, prev || row.is_available !== false);
+      }
 
+      // 對齊前台 VillaAvailabilityCalendar：is_available=false（未開放）不算「被訂走」
       const isBookedOut = (rid: string, d: string) => {
+        if (baseOpened.get(`${rid}:${d}`) === false) return false;
         const v = invIndex.get(`${rid}:${d}`);
         if (!v) return false;
         return v.is_blocked || v.available_rooms <= 0;
       };
       const isAvail = (rid: string, d: string) => {
+        if (baseOpened.get(`${rid}:${d}`) === false) return false;
         const v = invIndex.get(`${rid}:${d}`);
         if (!v) return false;
         return !v.is_blocked && v.available_rooms > 0;
@@ -160,9 +179,10 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
 
       const blocked = new Set<string>();
       for (const d of dates) {
-        // 1) 選中房型自身無庫存
+        // 1) 選中房型自身無庫存（未開放或已售完/鎖定）
+        const selOpened = baseOpened.get(`${roomTypeId}:${d}`) !== false;
         const sel = invIndex.get(`${roomTypeId}:${d}`);
-        if (!sel || sel.is_blocked || sel.available_rooms < 1) {
+        if (!selOpened || !sel || sel.is_blocked || sel.available_rooms < 1) {
           blocked.add(d);
           continue;
         }
