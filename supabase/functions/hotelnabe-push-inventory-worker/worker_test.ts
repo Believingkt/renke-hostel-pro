@@ -46,3 +46,37 @@ Deno.test("mergeConsecutive — is_available=false forces limit=0", () => {
   ], "1063");
   assertEquals((msgs[0] as any).bookingLimit, 0);
 });
+
+// ---------- classifyRsErrors ----------
+
+const rs450 = `<OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="2099-01-01T00:00:00" EchoToken="e" Version="1.0"><Errors><Error Type="3" Code="450" ShortText="please push price first(RatePlanCode:)(Max:2026-12-30)"/></Errors></OTA_HotelAvailNotifRS>`;
+
+const rsOtherErr = `<OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="2099-01-01T00:00:00" EchoToken="e" Version="1.0"><Errors><Error Type="3" Code="497" ShortText="Invalid HotelCode"/></Errors></OTA_HotelAvailNotifRS>`;
+
+const rsSuccess = `<OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05" TimeStamp="2099-01-01T00:00:00" EchoToken="e" Version="1.0"><Success/></OTA_HotelAvailNotifRS>`;
+
+Deno.test("classifyRsErrors — 450 by code → no_price", () => {
+  const parsed = parseHotelnabeAvailNotifRS(rs450);
+  const cls = classifyRsErrors(parsed.errors);
+  assertEquals(cls?.kind, "no_price");
+  assertEquals(cls?.message.includes("450"), true);
+  assertEquals(cls?.message.includes("please push price first"), true);
+});
+
+Deno.test("classifyRsErrors — ShortText 'push price first' triggers no_price even without code 450", () => {
+  const cls = classifyRsErrors([{ type: "3", code: "999", message: "Please push price first for that date" }]);
+  assertEquals(cls?.kind, "no_price");
+});
+
+Deno.test("classifyRsErrors — other error → other (retryable)", () => {
+  const parsed = parseHotelnabeAvailNotifRS(rsOtherErr);
+  const cls = classifyRsErrors(parsed.errors);
+  assertEquals(cls?.kind, "other");
+  assertEquals(cls?.message, "Invalid HotelCode");
+});
+
+Deno.test("classifyRsErrors — success (no errors) → null", () => {
+  const parsed = parseHotelnabeAvailNotifRS(rsSuccess);
+  assertEquals(parsed.errors.length, 0);
+  assertEquals(classifyRsErrors(parsed.errors), null);
+});
