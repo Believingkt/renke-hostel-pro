@@ -160,23 +160,18 @@ export function DualCurrencyInput({
           </button>
         </div>
       ) : (
-        <div className="relative w-full">
-          <Input
-            id={id}
-            type="text"
-            inputMode="numeric"
-            disabled={disabled}
-            placeholder={placeholder}
-            value={draft}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onChange={(e) => handleChange(e.target.value)}
-            className={cn("w-full pr-12 text-right tabular-nums", inputClassName)}
-          />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">
-            NT$
-          </span>
-        </div>
+        <Input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          disabled={disabled}
+          placeholder={placeholder}
+          value={draft}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={(e) => handleChange(e.target.value)}
+          className={cn("w-full text-right tabular-nums", inputClassName)}
+        />
       )}
       {!hideHint && hint && (
         <span className="text-[10px] text-muted-foreground leading-none text-right">{hint}</span>
