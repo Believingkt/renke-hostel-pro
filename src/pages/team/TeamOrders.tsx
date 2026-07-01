@@ -235,13 +235,13 @@ export default function TeamOrders() {
   // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, sourceFilter, pageSize]);
 
   // Re-query whenever filters or pagination change
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, page, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, sourceFilter, page, pageSize]);
 
   useEffect(() => {
     (async () => {
