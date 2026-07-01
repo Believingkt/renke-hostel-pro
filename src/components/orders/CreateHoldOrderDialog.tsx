@@ -22,7 +22,6 @@ interface RoomType {
   id: string;
   name: string;
   is_exclusive_package?: boolean;
-  room_count?: number;
 }
 
 interface ExtraSelection {
@@ -86,7 +85,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       if (!currentAccommodationId) return;
       const { data } = await supabase
         .from("room_types")
-        .select("id, name, is_exclusive_package, room_count")
+        .select("id, name, is_exclusive_package")
         .eq("accommodation_id", currentAccommodationId)
         .order("display_order");
       if (data) setRoomTypes(data);
@@ -121,30 +120,19 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
 
       const packageRoomTypes = roomTypes.filter((r) => r.is_exclusive_package);
       const commonRoomTypes = roomTypes.filter((r) => !r.is_exclusive_package);
-      const selectedRoomType = roomTypes.find((r) => r.id === roomTypeId);
-      const selectedIsCommon = !!selectedRoomType && !selectedRoomType.is_exclusive_package;
 
-      // 包棟房型仍以 RIP 判斷（沿用整天關閉規則）
-      const packageIdsToQuery = new Set<string>();
+      // 需要彙整的房型：選中的房型 + 若適用整天規則則包含所有包棟（與散客）
+      const roomTypeIdsToQuery = new Set<string>([roomTypeId]);
       if (isHakuna || isSensan || isStrict) {
-        packageRoomTypes.forEach((r) => packageIdsToQuery.add(r.id));
-      }
-      if (selectedRoomType?.is_exclusive_package) {
-        packageIdsToQuery.add(roomTypeId);
+        packageRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
+        if (isSensan) commonRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
       }
 
-      // 散客房型：完全忽略 RIP，改以真實訂單佔用數判斷
-      const commonIdsToQuery = new Set<string>();
-      if (selectedIsCommon) commonIdsToQuery.add(roomTypeId);
-      if (isSensan) commonRoomTypes.forEach((r) => commonIdsToQuery.add(r.id));
-
-      const packageIdList = Array.from(packageIdsToQuery);
-      const commonIdList = Array.from(commonIdsToQuery);
-
-      // 平行抓包棟 RIP 調整後庫存 + 散客訂單佔用
-      const [invResults, baseResult, orderRoomsResult] = await Promise.all([
+      // 平行抓所有相關房型的調整後庫存 + base RIP is_available
+      const roomIdList = Array.from(roomTypeIdsToQuery);
+      const [invResults, baseResult] = await Promise.all([
         Promise.all(
-          packageIdList.map(async (rid) => {
+          roomIdList.map(async (rid) => {
             const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
               p_room_type_id: rid,
               p_dates: dates,
@@ -153,22 +141,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             return { rid, data: (data ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }> };
           })
         ),
-        packageIdList.length > 0
-          ? supabase
-              .from('room_inventory_pricing')
-              .select('room_type_id, date, is_available')
-              .in('room_type_id', packageIdList)
-              .gte('date', dates[0])
-              .lte('date', dates[dates.length - 1])
-          : Promise.resolve({ data: [] as any[] }),
-        commonIdList.length > 0
-          ? supabase
-              .from('order_rooms')
-              .select('room_type_id, check_in_date, check_out_date, orders!inner(order_status)')
-              .in('room_type_id', commonIdList)
-              .lt('check_in_date', dates[dates.length - 1])
-              .gt('check_out_date', dates[0])
-          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from('room_inventory_pricing')
+          .select('room_type_id, date, is_available')
+          .in('room_type_id', roomIdList)
+          .gte('date', dates[0])
+          .lte('date', dates[dates.length - 1]),
       ]);
 
       const invIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
@@ -177,6 +155,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           invIndex.set(`${rid}:${item.date_value}`, { available_rooms: item.available_rooms, is_blocked: item.is_blocked });
         }
       }
+      // base RIP：某房型於某日是否「已開放」(is_available)。同 key 若有多筆，只要任一為 true 即算開放。
       const baseOpened = new Map<string, boolean>();
       for (const row of (baseResult.data ?? []) as Array<{ room_type_id: string; date: string; is_available: boolean | null }>) {
         const k = `${row.room_type_id}:${row.date}`;
@@ -184,61 +163,37 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         baseOpened.set(k, prev || row.is_available !== false);
       }
 
-      // 散客訂單佔用計數：每一晚 [check_in, check_out) 佔用 +1
-      const occupied = new Map<string, number>();
-      for (const row of (orderRoomsResult.data ?? []) as Array<{ room_type_id: string; check_in_date: string; check_out_date: string; orders: { order_status: string } | { order_status: string }[] }>) {
-        const status = Array.isArray(row.orders) ? row.orders[0]?.order_status : row.orders?.order_status;
-        if (status === 'cancelled') continue;
-        const start = new Date(row.check_in_date + 'T00:00:00');
-        const end = new Date(row.check_out_date + 'T00:00:00');
-        for (const cur = new Date(start); cur < end; cur.setDate(cur.getDate() + 1)) {
-          const key = `${row.room_type_id}:${format(cur, 'yyyy-MM-dd')}`;
-          occupied.set(key, (occupied.get(key) ?? 0) + 1);
-        }
-      }
-
-      const commonRoomCount = (rid: string) =>
-        roomTypes.find((r) => r.id === rid)?.room_count ?? 1;
-
-      // 包棟：對齊前台 VillaAvailabilityCalendar：is_available=false（未開放）不算「被訂走」
-      const isPackageBookedOut = (rid: string, d: string) => {
+      // 對齊前台 VillaAvailabilityCalendar：is_available=false（未開放）不算「被訂走」
+      const isBookedOut = (rid: string, d: string) => {
         if (baseOpened.get(`${rid}:${d}`) === false) return false;
         const v = invIndex.get(`${rid}:${d}`);
         if (!v) return false;
         return v.is_blocked || v.available_rooms <= 0;
       };
-      const isPackageAvail = (rid: string, d: string) => {
+      const isAvail = (rid: string, d: string) => {
         if (baseOpened.get(`${rid}:${d}`) === false) return false;
         const v = invIndex.get(`${rid}:${d}`);
         if (!v) return false;
         return !v.is_blocked && v.available_rooms > 0;
       };
-      // 散客：只看真實訂單佔用是否 >= 房間總數（完全忽略 RIP）
-      const isCommonBookedOut = (rid: string, d: string) => {
-        return (occupied.get(`${rid}:${d}`) ?? 0) >= commonRoomCount(rid);
-      };
 
       const available = new Set<string>();
       for (const d of dates) {
-        // 1) 選中房型自身無庫存
-        if (selectedIsCommon) {
-          if (isCommonBookedOut(roomTypeId, d)) continue;
-        } else {
-          const selOpened = baseOpened.get(`${roomTypeId}:${d}`) !== false;
-          const sel = invIndex.get(`${roomTypeId}:${d}`);
-          if (!selOpened || !sel || sel.is_blocked || sel.available_rooms < 1) {
-            continue;
-          }
+        // 1) 選中房型自身無庫存（未開放或已售完/鎖定）
+        const selOpened = baseOpened.get(`${roomTypeId}:${d}`) !== false;
+        const sel = invIndex.get(`${roomTypeId}:${d}`);
+        if (!selOpened || !sel || sel.is_blocked || sel.available_rooms < 1) {
+          continue;
         }
         // 2) 整天關閉規則
         if (isHakuna && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isPackageBookedOut(rt.id, d))) continue;
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
         } else if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isPackageBookedOut(rt.id, d))) continue;
-          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isCommonBookedOut(rt.id, d))) continue;
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
+          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isBookedOut(rt.id, d))) continue;
         } else if (isStrict && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isPackageBookedOut(rt.id, d))) continue;
-          if (!packageRoomTypes.some((rt) => isPackageAvail(rt.id, d))) continue;
+          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
+          if (!packageRoomTypes.some((rt) => isAvail(rt.id, d))) continue;
         }
         available.add(d);
       }
