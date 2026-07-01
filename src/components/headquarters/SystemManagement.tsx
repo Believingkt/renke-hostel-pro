@@ -904,6 +904,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         <TabsContent value="hotelnabe-verify" className="space-y-4">
           <HotelNabeRoomVerify />
           <HotelNabePushInventory />
+          <HotelNabeBackfillPanel />
         </TabsContent>
 
         <TabsContent value="hotelnabe-inbound" className="space-y-4">
