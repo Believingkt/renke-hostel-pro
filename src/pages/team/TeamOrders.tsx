@@ -985,6 +985,33 @@ export default function TeamOrders() {
               </SelectContent>
             </Select>
 
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="訂單來源" />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="ALL">全部來源</SelectItem>
+                {sourceOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getOrderSourceDisplayName(s) || s}
+                    {ORDER_SOURCE_DISPLAY_NAMES[s] ? ` (${s})` : ""}
+                  </SelectItem>
+                ))}
+                {hotelnabeOtaOptions.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-xs text-muted-foreground border-t mt-1 pt-2">旭海 OTA 通路</div>
+                    {hotelnabeOtaOptions.map((code) => (
+                      <SelectItem key={`hotelnabe:${code}`} value={`hotelnabe:${code}`}>
+                        hotelnabe - {getHotelnabeOtaDisplayName(code) || code}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+
+
+
 
             <span className="text-sm text-muted-foreground ml-2">下單日：</span>
 
