@@ -40,6 +40,7 @@ import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAcc
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { HotelNabePushInventory } from "@/components/headquarters/HotelNabePushInventory";
 import { HotelNabeInboundLog } from "@/components/headquarters/HotelNabeInboundLog";
+import { HotelNabeBackfillPanel } from "@/components/headquarters/HotelNabeBackfillPanel";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
@@ -903,6 +904,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         <TabsContent value="hotelnabe-verify" className="space-y-4">
           <HotelNabeRoomVerify />
           <HotelNabePushInventory />
+          <HotelNabeBackfillPanel />
         </TabsContent>
 
         <TabsContent value="hotelnabe-inbound" className="space-y-4">
