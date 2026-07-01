@@ -93,6 +93,32 @@ export function mergeConsecutive(days: DayRemaining[], invTypeCode: string): Ava
   return out;
 }
 
+/**
+ * Classify HotelNabe RS errors.
+ * "no_price": HotelNabe rejects because rate/price for that date range is not yet
+ * pushed (Code=450 or ShortText contains "push price first" / "please push price").
+ * These are expected rejections — skip the queue row, do NOT retry, do NOT bump attempt.
+ */
+export function classifyRsErrors(
+  errors: { type: string | null; code: string | null; message: string }[],
+): { kind: "no_price" | "other"; message: string } | null {
+  if (!errors || errors.length === 0) return null;
+  for (const e of errors) {
+    const msg = (e.message || "").toLowerCase();
+    if (
+      e.code === "450" ||
+      msg.includes("push price first") ||
+      msg.includes("please push price")
+    ) {
+      return {
+        kind: "no_price",
+        message: `[450 no_price] ${e.message || "please push price first"}`,
+      };
+    }
+  }
+  return { kind: "other", message: errors[0].message || "unknown_error" };
+}
+
 Deno.serve(async (req) => {
   const cors = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
