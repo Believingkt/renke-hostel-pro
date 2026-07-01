@@ -171,8 +171,21 @@ Deno.serve(async (req) => {
     let enqueued = 0;
     let already_pending = 0;
     if (mode === "enqueue") {
-      // Insert per-day rows; ON CONFLICT via partial unique index dedupes.
-      const rowsToInsert = span.map((d) => ({
+      // Partial unique index (WHERE status='pending') can't be used as
+      // upsert onConflict target. Fetch existing pending rows first, then
+      // insert only the missing dates.
+      const { data: existing, error: exErr } = await admin
+        .from("hotelnabe_ari_push_queue")
+        .select("from_date")
+        .eq("accommodation_id", accommodationId)
+        .eq("room_type_id", rt.id)
+        .eq("status", "pending")
+        .gte("from_date", fromDate).lte("from_date", toDate);
+      if (exErr) return json({ error: "enqueue_fetch_existing_failed", detail: exErr.message }, 500, cors);
+      const existingDates = new Set((existing ?? []).map((r: any) => r.from_date));
+      const missing = span.filter((d) => !existingDates.has(d));
+      already_pending = span.length - missing.length;
+      const rowsToInsert = missing.map((d) => ({
         accommodation_id: accommodationId,
         room_type_id: rt.id,
         from_date: d,
@@ -185,15 +198,11 @@ Deno.serve(async (req) => {
         const chunk = rowsToInsert.slice(i, i + CHUNK);
         const { data: ins, error: insErr } = await admin
           .from("hotelnabe_ari_push_queue")
-          .upsert(chunk, {
-            onConflict: "accommodation_id,room_type_id,from_date,to_date",
-            ignoreDuplicates: true,
-          })
+          .insert(chunk)
           .select("id");
         if (insErr) return json({ error: "enqueue_failed", detail: insErr.message }, 500, cors);
         enqueued += ins?.length ?? 0;
       }
-      already_pending = span.length - enqueued;
     }
 
     perRoom.push({
