@@ -113,88 +113,37 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         current.setDate(current.getDate() + 1);
       }
 
-      // 取所有房型，套用前台「整天關閉」規則
-      const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
-      const isSensan = currentAccommodationId === SENSAN_ACC_ID;
-      const isStrict = STRICT_PACKAGE_ANY_BOOKED_IDS.has(currentAccommodationId);
-
-      const packageRoomTypes = roomTypes.filter((r) => r.is_exclusive_package);
-      const commonRoomTypes = roomTypes.filter((r) => !r.is_exclusive_package);
-
-      // 需要彙整的房型：選中的房型 + 若適用整天規則則包含所有包棟（與散客）
-      const roomTypeIdsToQuery = new Set<string>([roomTypeId]);
-      if (isHakuna || isSensan || isStrict) {
-        packageRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
-        if (isSensan) commonRoomTypes.forEach((r) => roomTypeIdsToQuery.add(r.id));
-      }
-
-      // 平行抓所有相關房型的調整後庫存 + base RIP is_available
-      const roomIdList = Array.from(roomTypeIdsToQuery);
-      const [invResults, baseResult] = await Promise.all([
-        Promise.all(
-          roomIdList.map(async (rid) => {
-            const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
-              p_room_type_id: rid,
-              p_dates: dates,
-              p_accommodation_id: currentAccommodationId,
-            });
-            return { rid, data: (data ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }> };
-          })
-        ),
+      // 對齊「可訂日曆檢視」單一房型模式：只判斷選中房型自身是否可訂，
+      // 不套用整天關閉規則（散客/包棟被訂走不再連動關閉其他房型）。
+      const [{ data: invData }, baseResult] = await Promise.all([
+        supabase.rpc('get_adjusted_room_inventory_batch', {
+          p_room_type_id: roomTypeId,
+          p_dates: dates,
+          p_accommodation_id: currentAccommodationId,
+        }),
         supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, date, is_available')
-          .in('room_type_id', roomIdList)
+          .select('date, is_available')
+          .eq('room_type_id', roomTypeId)
           .gte('date', dates[0])
           .lte('date', dates[dates.length - 1]),
       ]);
 
       const invIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
-      for (const { rid, data } of invResults) {
-        for (const item of data) {
-          invIndex.set(`${rid}:${item.date_value}`, { available_rooms: item.available_rooms, is_blocked: item.is_blocked });
-        }
+      for (const item of ((invData ?? []) as Array<{ date_value: string; available_rooms: number; is_blocked: boolean }>)) {
+        invIndex.set(item.date_value, { available_rooms: item.available_rooms, is_blocked: item.is_blocked });
       }
-      // base RIP：某房型於某日是否「已開放」(is_available)。同 key 若有多筆，只要任一為 true 即算開放。
       const baseOpened = new Map<string, boolean>();
-      for (const row of (baseResult.data ?? []) as Array<{ room_type_id: string; date: string; is_available: boolean | null }>) {
-        const k = `${row.room_type_id}:${row.date}`;
-        const prev = baseOpened.get(k) ?? false;
-        baseOpened.set(k, prev || row.is_available !== false);
+      for (const row of (baseResult.data ?? []) as Array<{ date: string; is_available: boolean | null }>) {
+        const prev = baseOpened.get(row.date) ?? false;
+        baseOpened.set(row.date, prev || row.is_available !== false);
       }
-
-      // 對齊前台 VillaAvailabilityCalendar：is_available=false（未開放）不算「被訂走」
-      const isBookedOut = (rid: string, d: string) => {
-        if (baseOpened.get(`${rid}:${d}`) === false) return false;
-        const v = invIndex.get(`${rid}:${d}`);
-        if (!v) return false;
-        return v.is_blocked || v.available_rooms <= 0;
-      };
-      const isAvail = (rid: string, d: string) => {
-        if (baseOpened.get(`${rid}:${d}`) === false) return false;
-        const v = invIndex.get(`${rid}:${d}`);
-        if (!v) return false;
-        return !v.is_blocked && v.available_rooms > 0;
-      };
 
       const available = new Set<string>();
       for (const d of dates) {
-        // 1) 選中房型自身無庫存（未開放或已售完/鎖定）
-        const selOpened = baseOpened.get(`${roomTypeId}:${d}`) !== false;
-        const sel = invIndex.get(`${roomTypeId}:${d}`);
-        if (!selOpened || !sel || sel.is_blocked || sel.available_rooms < 1) {
-          continue;
-        }
-        // 2) 整天關閉規則
-        if (isHakuna && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
-        } else if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
-          if (commonRoomTypes.length > 0 && commonRoomTypes.every((rt) => isBookedOut(rt.id, d))) continue;
-        } else if (isStrict && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isBookedOut(rt.id, d))) continue;
-          if (!packageRoomTypes.some((rt) => isAvail(rt.id, d))) continue;
-        }
+        if (baseOpened.get(d) === false) continue;
+        const v = invIndex.get(d);
+        if (!v || v.is_blocked || v.available_rooms < 1) continue;
         available.add(d);
       }
       setAvailableDates(available);
