@@ -549,6 +549,14 @@ export default function TeamOrders() {
           }
         }
         if (metaOrderIds) q = q.in("id", metaOrderIds);
+        if (sourceFilter !== "ALL") {
+          if (sourceFilter.startsWith("hotelnabe:")) {
+            const ota = sourceFilter.slice("hotelnabe:".length);
+            q = q.eq("order_source", "hotelnabe").eq("hotelnabe_sync_state->>ota_code", ota);
+          } else {
+            q = q.eq("order_source", sourceFilter);
+          }
+        }
         return q as T;
       };
 
