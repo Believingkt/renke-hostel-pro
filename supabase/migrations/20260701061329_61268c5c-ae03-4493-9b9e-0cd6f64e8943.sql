@@ -1,0 +1,2 @@
+INSERT INTO public.hotelnabe_ari_push_queue (accommodation_id, room_type_id, from_date, to_date, reason, status)
+VALUES ('8e3e8866-3cb0-4654-91f3-d9b09a543301', '4567bcac-8938-4bc0-ae4f-1267e8533f81', DATE '2026-07-15', DATE '2026-07-15', 'manual', 'pending');
