@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
@@ -154,7 +154,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                 const orderStatusConfig = getOrderStatusConfig(order.order_status);
                 const effectivePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
                 const paymentStatusConfig = getPaymentStatusConfig(effectivePaymentStatus);
-                const orderSourceConfig = getOrderSourceConfig(order.order_source);
+                const orderSourceConfig = getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any));
 
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
@@ -319,7 +319,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
             const effectiveMobilePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
             const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
-            const orderSourceConfig = getOrderSourceConfig(order.order_source);
+            const orderSourceConfig = getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any));
 
             return (
               <Card key={order.id} className="overflow-hidden">
