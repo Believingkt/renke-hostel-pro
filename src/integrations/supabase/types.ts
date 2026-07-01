@@ -266,6 +266,7 @@ export type Database = {
           id: string
           inbound_enabled: boolean
           last_received_at: string | null
+          sync_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -275,6 +276,7 @@ export type Database = {
           id?: string
           inbound_enabled?: boolean
           last_received_at?: string | null
+          sync_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -284,6 +286,7 @@ export type Database = {
           id?: string
           inbound_enabled?: boolean
           last_received_at?: string | null
+          sync_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -3337,6 +3340,66 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      hotelnabe_ari_push_queue: {
+        Row: {
+          accommodation_id: string
+          attempt_count: number
+          created_at: string
+          from_date: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          reason: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
+          room_type_id: string
+          status: Database["public"]["Enums"]["hotelnabe_ari_push_status"]
+          to_date: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          attempt_count?: number
+          created_at?: string
+          from_date: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          reason: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
+          room_type_id: string
+          status?: Database["public"]["Enums"]["hotelnabe_ari_push_status"]
+          to_date: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          attempt_count?: number
+          created_at?: string
+          from_date?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          reason?: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
+          room_type_id?: string
+          status?: Database["public"]["Enums"]["hotelnabe_ari_push_status"]
+          to_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotelnabe_ari_push_queue_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotelnabe_ari_push_queue_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hotelnabe_order_inbound_log: {
         Row: {
@@ -8435,6 +8498,17 @@ export type Database = {
           },
         ]
       }
+      order_room_nights: {
+        Row: {
+          accommodation_id: string | null
+          order_id: string | null
+          order_status: string | null
+          quantity: number | null
+          room_type_id: string | null
+          stay_date: string | null
+        }
+        Relationships: []
+      }
       profiles_safe: {
         Row: {
           created_at: string | null
@@ -8478,6 +8552,19 @@ export type Database = {
       bulk_upsert_room_inventory_pricing: {
         Args: { p_rows: Json }
         Returns: undefined
+      }
+      calculate_room_remaining: {
+        Args: {
+          _accommodation_id: string
+          _date: string
+          _room_type_id: string
+        }
+        Returns: {
+          available_rooms: number
+          is_available: boolean
+          occupied: number
+          remaining: number
+        }[]
       }
       can_unlock_paid_order_discount: {
         Args: { _accommodation_id: string; _user_id: string }
@@ -8786,6 +8873,13 @@ export type Database = {
         | "am"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
+      hotelnabe_ari_push_reason: "order_change" | "manual" | "backfill"
+      hotelnabe_ari_push_status:
+        | "pending"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "skipped"
       member_point_type:
         | "earn_order"
         | "earn_event"
@@ -8954,6 +9048,14 @@ export const Constants = {
       ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
+      hotelnabe_ari_push_reason: ["order_change", "manual", "backfill"],
+      hotelnabe_ari_push_status: [
+        "pending",
+        "sending",
+        "sent",
+        "failed",
+        "skipped",
+      ],
       member_point_type: [
         "earn_order",
         "earn_event",
