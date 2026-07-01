@@ -17,7 +17,7 @@ import {
   parseHotelnabeAvailNotifRS,
   maskPasswordInXml,
   type AvailMessage,
-} from "../hotelnabe-push-inventory/xml.ts";
+} from "./xml.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
