@@ -49,7 +49,7 @@ export const getOrderStatusConfig = (status: string) => {
   return statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
 };
 
-export const getOrderSourceConfig = (source: string) => {
+export const getOrderSourceConfig = (source: string, otaCode?: string | null) => {
   const sourceMap: Record<string, { label: string; className: string }> = {
     website: { label: "官網訂房", className: "bg-blue-100 text-blue-700 border-blue-200" },
     manual: { label: "現場訂房", className: "bg-purple-100 text-purple-700 border-purple-200" },
@@ -63,8 +63,24 @@ export const getOrderSourceConfig = (source: string) => {
     official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200" },
     franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200" },
     owner_provided: { label: "業主自帶", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+    hotelnabe: { label: "hotelnabe", className: "bg-sky-100 text-sky-700 border-sky-200" },
   };
-  return sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
+  const base = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
+  const trimmed = (otaCode ?? "").toString().trim();
+  if (source === "hotelnabe" && trimmed) {
+    return { ...base, label: `${base.label} - ${trimmed.toLowerCase()}` };
+  }
+  return base;
+};
+
+/** Extract HotelNabe inbound OTA channel code from order.hotelnabe_sync_state jsonb. */
+export const getHotelnabeOtaCode = (order: { hotelnabe_sync_state?: any } | null | undefined): string | null => {
+  const s = order?.hotelnabe_sync_state;
+  if (!s || typeof s !== "object") return null;
+  const v = (s as any).ota_code;
+  if (v == null) return null;
+  const str = String(v).trim();
+  return str.length ? str : null;
 };
 
 export const getOrderStatusLabel = (status: string) => {
