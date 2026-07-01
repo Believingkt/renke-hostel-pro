@@ -3341,6 +3341,57 @@ export type Database = {
         }
         Relationships: []
       }
+      hotelnabe_ari_push_log: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          echo_token: string | null
+          error_message: string | null
+          hotel_code: string | null
+          http_status: number | null
+          id: string
+          message_count: number | null
+          mode: string
+          queue_ids: string[] | null
+          request_xml: string | null
+          response_xml: string | null
+          success: boolean | null
+          summary: Json | null
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          http_status?: number | null
+          id?: string
+          message_count?: number | null
+          mode: string
+          queue_ids?: string[] | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+          summary?: Json | null
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          http_status?: number | null
+          id?: string
+          message_count?: number | null
+          mode?: string
+          queue_ids?: string[] | null
+          request_xml?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+          summary?: Json | null
+        }
+        Relationships: []
+      }
       hotelnabe_ari_push_queue: {
         Row: {
           accommodation_id: string
@@ -8541,6 +8592,17 @@ export type Database = {
       }
     }
     Functions: {
+      _hotelnabe_enqueue_days: {
+        Args: {
+          _acc: string
+          _checkin: string
+          _checkout: string
+          _reason: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
+          _room_type: string
+        }
+        Returns: undefined
+      }
+      _hotelnabe_should_sync: { Args: { _acc: string }; Returns: boolean }
       apply_template_to_user: {
         Args: {
           _accommodation_id: string
