@@ -394,12 +394,20 @@ export function buildHotelnabeResNotifRS(opts: BuildRSOptions): string {
   const hasErrors = opts.errors && opts.errors.length > 0;
   if (hasErrors) {
     root.OTA_HotelResNotifRS.Errors = {
-      Error: opts.errors!.map((e) => ({
-        "@_Type": e.type,
-        "@_Code": e.code,
-        ...(e.recordId ? { "@_RecordID": e.recordId } : {}),
-        "#text": e.message,
-      })),
+      Error: opts.errors!.map((e) => {
+        // HotelNabe 後台「回覆訊息」欄讀取 @ShortText 屬性；
+        // 保底一定要有非空 ShortText，避免對方畫面空白無從除錯。
+        const shortText = (e.message ?? "").toString().trim() ||
+          `Error ${e.code ?? "unknown"}`;
+        return {
+          "@_Type": e.type,
+          "@_Code": e.code,
+          ...(e.recordId ? { "@_RecordID": e.recordId } : {}),
+          "@_ShortText": shortText,
+          // 部分實作也讀文字節點，雙寫以擴大相容性
+          "#text": shortText,
+        };
+      }),
     };
   } else {
     root.OTA_HotelResNotifRS.Success = {};
