@@ -324,6 +324,36 @@ export default function TeamOrders() {
     ]);
     setTrafficSources((ts ?? []) as any);
     setBookingMethods((bm ?? []) as any);
+
+    // Load distinct order_source values + hotelnabe OTA codes for the source filter
+    try {
+      const { data: srcRows } = await supabase
+        .from("orders")
+        .select("order_source")
+        .not("order_source", "is", null)
+        .limit(5000);
+      const set = new Set<string>();
+      (srcRows ?? []).forEach((r: any) => {
+        const v = (r.order_source ?? "").toString().trim();
+        if (v) set.add(v);
+      });
+      setSourceOptions(Array.from(set).sort((a, b) => a.localeCompare(b, "zh-Hant")));
+
+      const { data: otaRows } = await supabase
+        .from("orders")
+        .select("hotelnabe_sync_state")
+        .eq("order_source", "hotelnabe")
+        .not("hotelnabe_sync_state", "is", null)
+        .limit(5000);
+      const otaSet = new Set<string>();
+      (otaRows ?? []).forEach((r: any) => {
+        const code = (r.hotelnabe_sync_state?.ota_code ?? "").toString().trim().toLowerCase();
+        if (code) otaSet.add(code);
+      });
+      setHotelnabeOtaOptions(Array.from(otaSet).sort());
+    } catch (e) {
+      // ignore option load errors
+    }
   }
 
   async function handleAddOption(table: "traffic_sources" | "booking_methods") {
