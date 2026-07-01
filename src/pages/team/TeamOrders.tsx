@@ -131,6 +131,9 @@ export default function TeamOrders() {
   const [search, setSearch] = useState<string>("");
   const [closerOnly, setCloserOnly] = useState(true);
   const [closerFilter, setCloserFilter] = useState<string>("ALL"); // "ALL" | "NONE" | <user_id>
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL"); // "ALL" | <order_source> | "hotelnabe:<ota>"
+  const [sourceOptions, setSourceOptions] = useState<string[]>([]);
+  const [hotelnabeOtaOptions, setHotelnabeOtaOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
