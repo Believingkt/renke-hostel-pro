@@ -209,7 +209,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       })()}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <Tooltip>
+                      <TooltipProvider delayDuration={200}><Tooltip>
                         <TooltipTrigger asChild>
                           {onChangeOrderSource ? (
                             <button
