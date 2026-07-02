@@ -64,32 +64,49 @@ interface DayRemaining {
 }
 
 /**
- * Group consecutive dates whose (BookingLimit) is equal into ranges.
- * Returns AvailMessages (booking_limit) with Start/End inclusive.
+ * Group consecutive dates with the same (BookingLimit, Status) into ranges.
+ * Emits BOTH a booking_limit message and a restriction (Open/Close) message
+ * so HotelNabe receives quantity + open/close in sync.
+ *
+ * Rule:
+ *   remaining=0 OR is_available=false → BookingLimit=0 + Status=Close
+ *   remaining>0 AND is_available=true → BookingLimit=remaining + Status=Open
  */
 export function mergeConsecutive(days: DayRemaining[], invTypeCode: string): AvailMessage[] {
   if (days.length === 0) return [];
   const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
   const out: AvailMessage[] = [];
+
+  const effLimit = (d: DayRemaining) => (d.is_available && d.remaining > 0 ? d.remaining : 0);
+  const effStatus = (d: DayRemaining): "Open" | "Close" =>
+    d.is_available && d.remaining > 0 ? "Open" : "Close";
+
   let start = sorted[0].date;
   let end = sorted[0].date;
-  // Effective booking limit: remaining, forced to 0 when is_available is false.
-  const effLimit = (d: DayRemaining) => (d.is_available ? d.remaining : 0);
   let currLimit = effLimit(sorted[0]);
+  let currStatus = effStatus(sorted[0]);
+
+  const flush = () => {
+    out.push({ kind: "booking_limit", start, end, invTypeCode, bookingLimit: currLimit });
+    out.push({ kind: "restriction", start, end, invTypeCode, ratePlanCode: "-1", status: currStatus });
+  };
+
   for (let i = 1; i < sorted.length; i++) {
     const d = sorted[i];
     const nextExpected = addDays(end, 1);
     const limit = effLimit(d);
-    if (d.date === nextExpected && limit === currLimit) {
+    const status = effStatus(d);
+    if (d.date === nextExpected && limit === currLimit && status === currStatus) {
       end = d.date;
     } else {
-      out.push({ kind: "booking_limit", start, end, invTypeCode, bookingLimit: currLimit });
+      flush();
       start = d.date;
       end = d.date;
       currLimit = limit;
+      currStatus = status;
     }
   }
-  out.push({ kind: "booking_limit", start, end, invTypeCode, bookingLimit: currLimit });
+  flush();
   return out;
 }
 
@@ -239,7 +256,8 @@ Deno.serve(async (req) => {
         trigger_reasons: Array.from(new Set(rows.map((r) => r.reason))),
         per_day: perDay,
         merged_messages: messages.map((m: any) => ({
-          start: m.start, end: m.end, booking_limit: m.bookingLimit,
+          kind: m.kind, start: m.start, end: m.end,
+          booking_limit: m.bookingLimit, status: m.status,
         })),
       };
 
