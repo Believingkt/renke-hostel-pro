@@ -59,7 +59,11 @@ const TOC = [
   { id: "room-type-detail", label: "6. GET /room-types/{id}" },
   { id: "errors", label: "7. 錯誤碼表" },
   { id: "notes", label: "8. 備註與注意事項" },
+  { id: "openapi", label: "9. OpenAPI / Swagger" },
 ];
+
+const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
+const SWAGGER_UI_URL = "/docs/accommodation-api-swagger.html";
 
 export default function AccommodationApiDocs() {
   return (
@@ -319,6 +323,43 @@ export default function AccommodationApiDocs() {
                   <li>房量、房價、關房規則與官網訂房、點數訂房共用同一套邏輯（庫存扣房、包棟互斥、tier 解價、房型 override、季節分段、餐型模板），資料保證一致。</li>
                   <li>請將 API Key 存放於後端伺服器環境變數；勿放入前端或提交至公開 Git Repo。</li>
                 </ul>
+              </section>
+
+              {/* OpenAPI / Swagger */}
+              <section id="openapi" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />OpenAPI (Swagger) 規格</CardTitle>
+                    <CardDescription>
+                      本 API 提供 OpenAPI 3.0 規格檔，可直接匯入 Postman / Insomnia / openapi-generator 產生 client SDK。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <a href={OPENAPI_JSON_URL} download="accommodation-api.openapi.json">
+                        <Button variant="default" size="sm" className="gap-2">
+                          <Copy className="h-4 w-4" /> 下載 openapi.json
+                        </Button>
+                      </a>
+                      <a href={OPENAPI_JSON_URL} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">在新分頁開啟 JSON</Button>
+                      </a>
+                      <a href={SWAGGER_UI_URL} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">在新分頁開啟 Swagger UI</Button>
+                      </a>
+                    </div>
+                    <CodeBlock label="OpenAPI JSON URL">{`${typeof window !== "undefined" ? window.location.origin : "https://renke-hostel-pro.lovable.app"}${OPENAPI_JSON_URL}`}</CodeBlock>
+                    <div className="rounded-lg border overflow-hidden bg-white">
+                      <iframe
+                        src={SWAGGER_UI_URL}
+                        title="Accommodation API Swagger UI"
+                        className="w-full"
+                        style={{ height: "820px", border: 0 }}
+                        loading="lazy"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </section>
             </div>
           </div>
