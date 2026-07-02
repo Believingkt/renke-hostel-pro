@@ -257,7 +257,7 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       let price: number | null = null;
       if (!closed) {
         if (inv?.price != null && inv.price > 0) price = inv.price;
-        else price = resolveTemplatePrice(template, tier);
+        else price = resolveTemplatePriceForDate(template, rt.id, d, tier);
       }
       days.push({ date: d, remaining, price, is_available: !closed, closed });
     }
