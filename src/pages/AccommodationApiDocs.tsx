@@ -425,45 +425,168 @@ export default function AccommodationApiDocs() {
 
                     <div>
                       <p className="font-semibold mb-1">cURL 範例</p>
-                      <CodeBlock label="1. 抓全部民宿的房型 + 庫存 + 房價 + 包棟方案">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15' \\
+                      <CodeBlock label="1. 全平台 · 房型 + 庫存 + 房價 + 包棟方案（預設 include）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="2. 只抓指定兩家民宿">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B' \\
+                      <CodeBlock label="2. 指定民宿（單一）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=4ee31aca-5641-4d05-80e2-1c67626be83d' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="3. 只要房型/庫存，不要包棟方案">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
+                      <CodeBlock label="3. 指定民宿（多家，逗號分隔）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B,UUID_C' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <p className="font-semibold mb-1">回應格式</p>
-                      <CodeBlock label="200 OK">{`{
+                      <CodeBlock label="4. 只要房型/庫存/房價（省略 packages）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="5. 只要包棟方案清單（不算庫存，最快）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-05&include=packages' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="6. 單日 snapshot（from == to，最省時）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-05' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="7. 完整組合：指定民宿 + 完整內容 + 60 天上限">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-01&to=2026-08-29&accommodation_ids=UUID_A,UUID_B&include=room_types,packages' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="8. Node.js（fetch）">{`const res = await fetch(
+  'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?' +
+  new URLSearchParams({
+    from: '2026-07-05',
+    to: '2026-07-15',
+    accommodation_ids: 'UUID_A,UUID_B',
+    include: 'room_types,packages',
+  }),
+  { headers: { 'x-api-key': process.env.PLATFORM_MASTER_API_KEY! } }
+);
+const data = await res.json();`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">完整回應欄位示例（200 OK）</p>
+                      <CodeBlock label="response.json">{`{
   "from": "2026-07-05",
-  "to": "2026-07-15",
+  "to": "2026-07-07",
   "currency": "TWD",
   "accommodations": [
     {
-      "id": "uuid",
-      "name": "森山民宿",
-      "room_types": [ /* 同單店 /availability 的 room_types 結構 */ ],
+      "id": "4ee31aca-5641-4d05-80e2-1c67626be83d",
+      "name": "森山民宿 Sensan Villa",
+      "room_types": [
+        {
+          "id": "rt-uuid-double",
+          "name": "雙人房",
+          "capacity": 2,
+          "room_count": 2,
+          "is_exclusive_package": false,
+          "days": [
+            {
+              "date": "2026-07-05",
+              "weekday": 0,
+              "is_holiday": false,
+              "price": 3800,
+              "price_2_meals": 4600,
+              "price_3_meals": 5400,
+              "is_available": true,
+              "remaining": 1,
+              "sold": 1
+            },
+            {
+              "date": "2026-07-06",
+              "weekday": 1,
+              "is_holiday": false,
+              "price": 2800,
+              "is_available": true,
+              "remaining": 2,
+              "sold": 0
+            },
+            {
+              "date": "2026-07-07",
+              "weekday": 2,
+              "is_holiday": false,
+              "price": 2800,
+              "is_available": false,
+              "remaining": 0,
+              "sold": 0,
+              "closed_reason": "manual_close"
+            }
+          ]
+        }
+      ],
       "packages": [
         {
-          "id": "uuid",
-          "name": "包棟方案",
-          "numeric_code": 1001,
-          "base_price": 20000,
-          "room_type_ids": ["uuid", "uuid"],
-          "is_active": true
+          "id": "pkg-uuid-1",
+          "name": "森山包棟 12 人",
+          "numeric_code": 1003,
+          "base_price": 28000,
+          "room_type_ids": ["rt-uuid-double", "rt-uuid-quad"],
+          "room_type_allocation": { "rt-uuid-double": 2, "rt-uuid-quad": 2 },
+          "is_active": true,
+          "display_order": 1
+        },
+        {
+          "id": "pkg-uuid-2",
+          "name": "森山包棟 18 人",
+          "numeric_code": 1006,
+          "base_price": 42000,
+          "room_type_ids": ["rt-uuid-double", "rt-uuid-quad"],
+          "is_active": true,
+          "display_order": 2
         }
+      ]
+    },
+    {
+      "id": "acc-uuid-yunxiu",
+      "name": "雲岫 Villa",
+      "room_types": [ /* A1–A7、B1 每棟 */ ],
+      "packages": [
+        { "id": "pkg-y-A1", "name": "A1 棟", "numeric_code": 1001, "base_price": 18000, "room_type_ids": ["rt-A1"], "is_active": true },
+        { "id": "pkg-y-A2", "name": "A2 棟", "numeric_code": 1002, "base_price": 18000, "room_type_ids": ["rt-A2"], "is_active": true }
+        /* … 1003–1007 */
       ]
     }
   ]
 }`}</CodeBlock>
                     </div>
+
+                    <div>
+                      <p className="font-semibold mb-2">欄位對照</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">欄位</th>
+                              <th className="text-left p-3">型別</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>accommodations[].id</code></td><td className="p-3">uuid</td><td className="p-3">民宿 ID，等同 <code>accommodation_id</code>，可用於後續 API filter。</td></tr>
+                            <tr><td className="p-3"><code>accommodations[].name</code></td><td className="p-3">string</td><td className="p-3">民宿名稱（中文）。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].date</code></td><td className="p-3">YYYY-MM-DD</td><td className="p-3">當地日期，無時區位移。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].price</code></td><td className="p-3">integer TWD</td><td className="p-3">當日房價（純住宿）；季節/週末/假日/模板已套用。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].price_2_meals</code> / <code>price_3_meals</code></td><td className="p-3">integer TWD?</td><td className="p-3">餐型加價後的當日總價（有設定才有值）。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].remaining</code></td><td className="p-3">integer</td><td className="p-3">當日剩餘可售房數；已扣訂單、包棟鎖房。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].is_available</code></td><td className="p-3">boolean</td><td className="p-3">當日是否開放銷售（管理員關房 / 模板關房 / remaining=0 皆為 false）。</td></tr>
+                            <tr><td className="p-3"><code>packages[].numeric_code</code></td><td className="p-3">integer</td><td className="p-3">OTA / OwlTing 用的 RatePlanCode（森山 1003–1006、雲岫 1001–1007）。</td></tr>
+                            <tr><td className="p-3"><code>packages[].room_type_ids</code></td><td className="p-3">uuid[]</td><td className="p-3">此包棟方案涵蓋的房型；下單時會一次鎖這些房型。</td></tr>
+                            <tr><td className="p-3"><code>packages[].room_type_allocation</code></td><td className="p-3">jsonb?</td><td className="p-3">每個房型鎖房數量（森山用）；未設定則預設全鎖。</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
 
                     <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
                       <li>房量、房價、關房邏輯與單店 <code>/availability</code> 完全一致（共用 <code>buildAvailability</code>）。</li>
