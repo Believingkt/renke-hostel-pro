@@ -5,7 +5,12 @@
 // (d) disabled / null-code packages are filtered out.
 
 import { assertEquals, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildRatePlansForRoomType, type PackageRow } from "./availrs_packages.ts";
+import {
+  buildRatePlansForRoomType,
+  findTemplateMappingGaps,
+  type PackageRow,
+  type TemplateRow,
+} from "./availrs_packages.ts";
 
 // Yunxiu real-data shape (numeric_code -> room_type membership).
 const A1 = "2ab16f88-9c72-443a-9d7e-91831c618274";
