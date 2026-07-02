@@ -2,42 +2,45 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { mergeConsecutive, classifyRsErrors } from "./index.ts";
 import { parseHotelnabeAvailNotifRS } from "./xml.ts";
 
-Deno.test("mergeConsecutive — all same limit merged", () => {
+Deno.test("mergeConsecutive — all same limit merged (pair emitted)", () => {
   const msgs = mergeConsecutive([
     { date: "2099-01-01", remaining: 3, is_available: true },
     { date: "2099-01-02", remaining: 3, is_available: true },
     { date: "2099-01-03", remaining: 3, is_available: true },
   ], "1063");
-  assertEquals(msgs.length, 1);
+  assertEquals(msgs.length, 2); // one segment → BookingLimit + Restriction
   assertEquals((msgs[0] as any).start, "2099-01-01");
   assertEquals((msgs[0] as any).end, "2099-01-03");
   assertEquals((msgs[0] as any).bookingLimit, 3);
+  assertEquals((msgs[1] as any).status, "Open");
 });
 
-Deno.test("mergeConsecutive — split on value change", () => {
+Deno.test("mergeConsecutive — split on value change (3 segments × 2 msgs)", () => {
   const msgs = mergeConsecutive([
     { date: "2099-02-01", remaining: 2, is_available: true },
     { date: "2099-02-02", remaining: 2, is_available: true },
     { date: "2099-02-03", remaining: 0, is_available: false }, // closed → 0
     { date: "2099-02-04", remaining: 1, is_available: true },
   ], "1063");
-  assertEquals(msgs.length, 3);
+  assertEquals(msgs.length, 6);
   assertEquals((msgs[0] as any).end, "2099-02-02");
   assertEquals((msgs[0] as any).bookingLimit, 2);
-  assertEquals((msgs[1] as any).start, "2099-02-03");
-  assertEquals((msgs[1] as any).bookingLimit, 0);
-  assertEquals((msgs[2] as any).start, "2099-02-04");
-  assertEquals((msgs[2] as any).bookingLimit, 1);
+  assertEquals((msgs[2] as any).start, "2099-02-03");
+  assertEquals((msgs[2] as any).bookingLimit, 0);
+  assertEquals((msgs[3] as any).status, "Close");
+  assertEquals((msgs[4] as any).start, "2099-02-04");
+  assertEquals((msgs[4] as any).bookingLimit, 1);
+  assertEquals((msgs[5] as any).status, "Open");
 });
 
-Deno.test("mergeConsecutive — split on date gap", () => {
+Deno.test("mergeConsecutive — split on date gap (2 segments × 2 msgs)", () => {
   const msgs = mergeConsecutive([
     { date: "2099-03-01", remaining: 5, is_available: true },
     { date: "2099-03-03", remaining: 5, is_available: true }, // gap
   ], "1063");
-  assertEquals(msgs.length, 2);
+  assertEquals(msgs.length, 4);
   assertEquals((msgs[0] as any).end, "2099-03-01");
-  assertEquals((msgs[1] as any).start, "2099-03-03");
+  assertEquals((msgs[2] as any).start, "2099-03-03");
 });
 
 // ---------- Lock-in: quantity 0 + Close / Open pairing ----------
