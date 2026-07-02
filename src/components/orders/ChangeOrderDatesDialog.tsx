@@ -402,7 +402,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[92dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>訂單改期 ({mode === "kol" ? "KOL 互惠單" : "一般單"})</DialogTitle>
             <DialogDescription>
