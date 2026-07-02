@@ -17,10 +17,45 @@
     { "BearerAuth": [] }
   ],
   "tags": [
+    { "name": "Meta", "description": "服務中繼資訊（版本、健康檢查）" },
     { "name": "Availability", "description": "查詢每日剩餘可售房量、房價與開關房狀態" },
     { "name": "Room Types", "description": "房型列表與詳情" }
   ],
   "paths": {
+    "/version": {
+      "get": {
+        "tags": ["Meta"],
+        "summary": "服務版本資訊（公開，免 API Key）",
+        "description": "回傳 API 版本、建置日期、支援端點清單與伺服器時間。此端點不需要驗證，可用於健康檢查與版本比對。",
+        "operationId": "getVersion",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "版本資訊",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VersionResponse" },
+                "example": {
+                  "name": "accommodation-api",
+                  "version": "1.1.0",
+                  "build_date": "2026-07-02",
+                  "runtime": "deno",
+                  "endpoints": [
+                    "GET /version",
+                    "GET /availability",
+                    "GET /room-types",
+                    "GET /room-types/:id",
+                    "POST /room-types"
+                  ],
+                  "docs_url": "https://renke-hostel-pro.lovable.app/docs/accommodation-api",
+                  "server_time": "2026-07-02T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/availability": {
       "get": {
         "tags": ["Availability"],
@@ -159,6 +194,19 @@
       }
     },
     "schemas": {
+      "VersionResponse": {
+        "type": "object",
+        "required": ["name", "version", "endpoints", "server_time"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "build_date": { "type": "string", "format": "date" },
+          "runtime": { "type": "string" },
+          "endpoints": { "type": "array", "items": { "type": "string" } },
+          "docs_url": { "type": "string", "format": "uri" },
+          "server_time": { "type": "string", "format": "date-time" }
+        }
+      },
       "AvailabilityResponse": {
         "type": "object",
         "required": ["accommodation_id", "from", "to", "currency", "room_types"],
