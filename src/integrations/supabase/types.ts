@@ -8636,6 +8636,14 @@ export type Database = {
         Args: { _accommodation_id: string }
         Returns: boolean
       }
+      change_order_dates: {
+        Args: {
+          _new_check_in: string
+          _new_check_out: string
+          _order_id: string
+        }
+        Returns: Json
+      }
       check_exclusive_room_booking: {
         Args: { p_accommodation_id: string; p_date: string }
         Returns: {

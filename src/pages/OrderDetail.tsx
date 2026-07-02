@@ -40,6 +40,7 @@ import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -218,6 +219,7 @@ const OrderDetailPage = () => {
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
+  const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -2726,7 +2728,21 @@ const OrderDetailPage = () => {
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">退房日期</span>
-              <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
+                {order.payment_status !== "paid" && order.order_status !== "cancelled" && (
+                  (order.order_source === "kol" || isAdminUser) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setChangeDatesOpen(true)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />改期
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
@@ -3550,6 +3566,25 @@ const OrderDetailPage = () => {
           onCancelled={() => navigate(backTo)}
         />
       )}
+
+      {/* 改期對話框 */}
+      {order && (
+        <ChangeOrderDatesDialog
+          open={changeDatesOpen}
+          onOpenChange={setChangeDatesOpen}
+          order={{
+            id: order.id,
+            order_number: order.order_number,
+            order_source: order.order_source,
+            payment_status: order.payment_status,
+            check_in_date: order.check_in_date,
+            check_out_date: order.check_out_date,
+          }}
+          mode={order.order_source === "kol" ? "kol" : "general"}
+          onSuccess={fetchOrder}
+        />
+      )}
+
 
 
 
