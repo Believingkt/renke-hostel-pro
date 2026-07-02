@@ -130,16 +130,15 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1) Pull a batch of pending queue rows that are due.
-  const { data: pending, error: pErr } = await admin
-    .from("hotelnabe_ari_push_queue")
-    .select("id, accommodation_id, room_type_id, from_date, to_date, reason, attempt_count, next_retry_at")
-    .eq("status", "pending")
-    .or(`next_retry_at.is.null,next_retry_at.lte.${new Date().toISOString()}`)
-    .order("created_at", { ascending: true })
-    .limit(BATCH_LIMIT);
+  // 1) Atomically claim a batch (SELECT ... FOR UPDATE SKIP LOCKED + flip to 'sending').
+  //    This makes concurrent invocations (realtime trigger + cron) safe: each row is
+  //    claimed by exactly one worker call.
+  const { data: pending, error: pErr } = await admin.rpc(
+    "claim_hotelnabe_ari_push_batch",
+    { _limit: BATCH_LIMIT },
+  );
 
-  if (pErr) return json({ error: "queue_fetch_failed", detail: pErr.message }, 500, cors);
+  if (pErr) return json({ error: "queue_claim_failed", detail: pErr.message }, 500, cors);
   if (!pending || pending.length === 0) {
     return json({ ok: true, mode: PUSH_MODE, processed: 0 }, 200, cors);
   }
