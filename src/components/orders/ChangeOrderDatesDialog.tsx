@@ -11,10 +11,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { format, parseISO, startOfToday, addDays, addMonths, endOfMonth, formatISO, eachDayOfInterval, startOfMonth } from "date-fns";
+import { Loader2 } from "lucide-react";
+import {
+  format,
+  parseISO,
+  startOfToday,
+  addDays,
+  addMonths,
+  endOfMonth,
+  formatISO,
+  eachDayOfInterval,
+  startOfMonth,
+  isSameDay,
+  isWithinInterval,
+} from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -61,8 +72,7 @@ async function loadCapacityMap(
     .maybeSingle();
   const pkgAsOne = (acc as any)?.package_inventory_as_one === true;
 
-  // base availability flags
-  const baseIndex = new Map<string, boolean>(); // key `${rtId}:${date}` → is_available
+  const baseIndex = new Map<string, boolean>();
   {
     let from = 0;
     const PAGE = 1000;
@@ -128,123 +138,132 @@ async function loadCapacityMap(
 }
 
 function toneClass(cap: Capacity | undefined, isPast: boolean): string {
-  if (isPast) return "text-muted-foreground/50";
+  if (isPast) return "text-muted-foreground/40";
   if (!cap || cap.total === 0) return "";
-  if (cap.available <= 0) return "bg-muted text-muted-foreground line-through";
+  if (cap.available <= 0) return "bg-muted text-muted-foreground";
   const ratio = cap.available / cap.total;
-  if (ratio < 0.25) return "bg-red-50 text-red-700 border border-red-200";
-  if (ratio < 0.6) return "bg-amber-50 text-amber-800 border border-amber-200";
-  return "bg-emerald-50 text-emerald-900 border border-emerald-200";
+  if (ratio < 0.25) return "bg-red-50 text-red-700";
+  if (ratio < 0.6) return "bg-amber-50 text-amber-800";
+  return "bg-emerald-50 text-emerald-900";
 }
 
-function InventoryDatePicker({
-  value,
+/** 內嵌 Range 日曆，避免 Popover 遮擋其他欄位 */
+function InventoryRangeCalendar({
+  checkIn,
+  checkOut,
   onChange,
-  minDate,
   capacityMap,
   loading,
-  placeholder,
-  requireCapacity,
+  minDate,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  minDate: Date;
+  checkIn: string;
+  checkOut: string;
+  onChange: (checkIn: string, checkOut: string) => void;
   capacityMap: Map<string, Capacity>;
   loading: boolean;
-  placeholder: string;
-  /** true = 入住日/中間日，該日需 available>0 才可選；false = 退房日，不需要庫存 */
-  requireCapacity: boolean;
+  minDate: Date;
 }) {
-  const [openPop, setOpenPop] = useState(false);
-  const [month, setMonth] = useState<Date>(value ? parseISO(value) : startOfToday());
-  const selected = value ? parseISO(value) : undefined;
+  const [month, setMonth] = useState<Date>(checkIn ? parseISO(checkIn) : startOfToday());
+  const inDate = checkIn ? parseISO(checkIn) : undefined;
+  const outDate = checkOut ? parseISO(checkOut) : undefined;
+
+  const handleSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const iso = formatISO(date, { representation: "date" });
+    // 若尚未選擇入住日，或已同時有兩個日期 → 重新從入住日開始
+    if (!inDate || (inDate && outDate)) {
+      onChange(iso, "");
+      return;
+    }
+    // 已有入住日、還沒選退房日
+    if (date <= inDate) {
+      // 點到入住日之前或當天 → 把它當作新的入住日
+      onChange(iso, "");
+      return;
+    }
+    onChange(checkIn, iso);
+  };
 
   return (
-    <Popover open={openPop} onOpenChange={setOpenPop}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(parseISO(value), "yyyy/MM/dd (EEE)", { locale: zhTW }) : placeholder}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="p-0 pointer-events-auto z-50 w-[min(22rem,calc(100vw-1.5rem))]"
-        align="start"
-        side="bottom"
-        sideOffset={6}
-        collisionPadding={12}
-        avoidCollisions
-      >
-        <div className="relative">
-          {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          <Calendar
-            mode="single"
-            selected={selected}
-            month={month}
-            onMonthChange={setMonth}
-            showOutsideDays={false}
-            onSelect={(d) => {
-              if (!d) return;
-              onChange(formatISO(d, { representation: "date" }));
-              setOpenPop(false);
-            }}
-            disabled={(date) => {
-              if (date < minDate) return true;
-              if (requireCapacity) {
-                const key = formatISO(date, { representation: "date" });
-                const cap = capacityMap.get(key);
-                if (cap && cap.available <= 0) return true;
-              }
-              return false;
-            }}
-            locale={zhTW}
-            className="p-2 sm:p-3 pointer-events-auto [&_table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-head_cell]:w-9 sm:[&_.rdp-head_cell]:w-11 [&_.rdp-head_cell]:font-normal [&_.rdp-head_cell]:text-[11px]"
-            classNames={{
-              months: "flex flex-col",
-              month: "space-y-2",
-              caption_label: "text-sm font-medium",
-              day: "h-9 w-9 sm:h-11 sm:w-11 p-0 font-normal aria-selected:opacity-100",
-              day_selected: "ring-2 ring-primary ring-offset-1",
-            }}
-            components={{
-              DayContent: ({ date }) => {
-                const key = formatISO(date, { representation: "date" });
-                const cap = capacityMap.get(key);
-                const isPast = date < minDate;
-                return (
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 sm:h-10 sm:w-10 flex-col items-center justify-center rounded-md",
-                      toneClass(cap, isPast),
-                    )}
-                  >
-                    <span className="leading-none font-medium text-[12px] sm:text-[13px]">{date.getDate()}</span>
-                    {!isPast && cap && cap.total > 0 && (
-                      <span className="text-[9px] sm:text-[10px] mt-0.5 tabular-nums leading-none opacity-80">
-                        {cap.available <= 0 ? "滿" : cap.total >= 2 ? `${cap.available}/${cap.total}` : "可"}
-                      </span>
-                    )}
-                  </div>
-                );
-              },
-            }}
-          />
-          <div className="border-t px-3 py-2 text-[10px] text-muted-foreground flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded border border-emerald-300 bg-emerald-50" />充足</span>
-            <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded border border-amber-300 bg-amber-50" />普通</span>
-            <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded border border-red-300 bg-red-50" />緊張</span>
-            <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded border border-muted bg-muted" />已滿</span>
-          </div>
+    <div className="relative rounded-lg border bg-card">
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 rounded-lg">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+      <Calendar
+        mode="single"
+        selected={inDate}
+        month={month}
+        onMonthChange={setMonth}
+        showOutsideDays={false}
+        onSelect={handleSelect}
+        disabled={(date) => {
+          if (date < minDate) return true;
+          // 若尚未選擇入住日或已完整選好 → 該日需有庫存
+          const needCapacity = !inDate || (!!inDate && !!outDate);
+          if (needCapacity) {
+            const key = formatISO(date, { representation: "date" });
+            const cap = capacityMap.get(key);
+            if (cap && cap.available <= 0) return true;
+          }
+          return false;
+        }}
+        locale={zhTW}
+        className="p-2 sm:p-3 pointer-events-auto w-full [&_table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-head_cell]:font-normal [&_.rdp-head_cell]:text-[11px] [&_.rdp-head_cell]:text-muted-foreground"
+        classNames={{
+          months: "flex flex-col w-full",
+          month: "space-y-2 w-full",
+          caption: "flex justify-center pt-1 relative items-center",
+          caption_label: "text-sm font-medium",
+          table: "w-full border-collapse",
+          head_row: "flex w-full",
+          head_cell: "flex-1 text-center",
+          row: "flex w-full mt-1",
+          cell: "flex-1 text-center relative",
+          day: "h-10 sm:h-12 w-full p-0 font-normal aria-selected:opacity-100",
+          day_selected: "!bg-transparent",
+          day_today: "",
+        }}
+        components={{
+          DayContent: ({ date }) => {
+            const key = formatISO(date, { representation: "date" });
+            const cap = capacityMap.get(key);
+            const isPast = date < minDate;
+            const isCheckIn = inDate && isSameDay(date, inDate);
+            const isCheckOut = outDate && isSameDay(date, outDate);
+            const inRange =
+              inDate && outDate && isWithinInterval(date, { start: inDate, end: outDate });
+            return (
+              <div
+                className={cn(
+                  "flex h-9 sm:h-11 w-full flex-col items-center justify-center rounded-md transition-colors",
+                  toneClass(cap, isPast),
+                  inRange && !isCheckIn && !isCheckOut && "ring-1 ring-primary/40",
+                  (isCheckIn || isCheckOut) && "!bg-primary !text-primary-foreground ring-2 ring-primary",
+                )}
+              >
+                <span className="leading-none font-medium text-[12px] sm:text-[13px]">
+                  {date.getDate()}
+                </span>
+                {!isPast && cap && cap.total > 0 && (
+                  <span className="text-[9px] sm:text-[10px] mt-0.5 tabular-nums leading-none opacity-80">
+                    {cap.available <= 0 ? "滿" : cap.total >= 2 ? `${cap.available}/${cap.total}` : "可"}
+                  </span>
+                )}
+              </div>
+            );
+          },
+        }}
+      />
+      <div className="border-t px-3 py-2 text-[10px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded bg-emerald-50 border border-emerald-200" />充足</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded bg-amber-50 border border-amber-200" />普通</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded bg-red-50 border border-red-200" />緊張</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded bg-muted border" />已滿</span>
+        <span className="ml-auto text-muted-foreground/80">點兩下：入住 → 退房</span>
+      </div>
+    </div>
   );
 }
 
@@ -259,7 +278,16 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
   const [capacityMap, setCapacityMap] = useState<Map<string, Capacity>>(new Map());
   const [capLoading, setCapLoading] = useState(false);
 
-  // 對話框打開時重置日期
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
+
+  const [kolConfirm, setKolConfirm] = useState<{
+    open: boolean;
+    yearMonth: string;
+    used: number;
+    quota: number;
+    oldStatus?: { yearMonth: string; used: number; quota: number } | null;
+  } | null>(null);
+
   useEffect(() => {
     if (open) {
       setNewCheckIn(order.check_in_date);
@@ -269,7 +297,6 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     }
   }, [open, order.check_in_date, order.check_out_date]);
 
-  // 載入 12 個月庫存
   useEffect(() => {
     if (!open || !order.accommodation_id) return;
     let cancelled = false;
@@ -286,16 +313,6 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     })();
     return () => { cancelled = true; };
   }, [open, order.accommodation_id, today]);
-
-  const [kolConfirm, setKolConfirm] = useState<{
-    open: boolean;
-    yearMonth: string;
-    used: number;
-    quota: number;
-    oldStatus?: { yearMonth: string; used: number; quota: number } | null;
-  } | null>(null);
-
-  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
   const invoke = async (force: boolean) => {
     setSubmitting(true);
@@ -370,7 +387,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
 
   const handleSubmit = async () => {
     if (!newCheckIn || !newCheckOut) {
-      toast({ title: "請輸入日期", variant: "destructive" });
+      toast({ title: "請完整選擇入住與退房日", variant: "destructive" });
       return;
     }
     if (newCheckOut <= newCheckIn) {
@@ -384,25 +401,15 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     await invoke(false);
   };
 
-  // 入住日變動時，若退房日 <= 入住日，自動改成 入住日 + 原本住房天數（至少 +1）
-  const handleCheckInChange = (v: string) => {
-    setNewCheckIn(v);
-    setInventoryError(null);
-    if (v && newCheckOut && newCheckOut <= v) {
-      const origNights = Math.max(
-        1,
-        Math.round((parseISO(order.check_out_date).getTime() - parseISO(order.check_in_date).getTime()) / 86400000),
-      );
-      setNewCheckOut(formatISO(addDays(parseISO(v), origNights), { representation: "date" }));
-    }
-  };
-
-  const checkOutMin = newCheckIn ? addDays(parseISO(newCheckIn), 1) : addDays(today, 1);
+  const nights =
+    newCheckIn && newCheckOut
+      ? Math.max(0, Math.round((parseISO(newCheckOut).getTime() - parseISO(newCheckIn).getTime()) / 86400000))
+      : 0;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[92dvh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[92dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>訂單改期 ({mode === "kol" ? "KOL 互惠單" : "一般單"})</DialogTitle>
             <DialogDescription>
@@ -410,38 +417,39 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-md bg-muted/50 p-3 text-sm">
-              <div className="text-muted-foreground">原日期</div>
-              <div className="font-medium">
-                {order.check_in_date} → {order.check_out_date}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="text-muted-foreground text-xs">原日期</div>
+                <div className="font-medium mt-0.5">
+                  {order.check_in_date} → {order.check_out_date}
+                </div>
+              </div>
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
+                <div className="text-muted-foreground text-xs">新日期</div>
+                <div className="font-medium mt-0.5 flex items-baseline gap-2">
+                  <span>{newCheckIn || "—"}</span>
+                  <span>→</span>
+                  <span>{newCheckOut || "—"}</span>
+                  {nights > 0 && (
+                    <span className="text-xs text-muted-foreground ml-auto">{nights} 晚</span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">新入住日</Label>
-                <InventoryDatePicker
-                  value={newCheckIn}
-                  onChange={handleCheckInChange}
-                  minDate={today}
-                  capacityMap={capacityMap}
-                  loading={capLoading}
-                  placeholder="選擇入住日"
-                  requireCapacity={true}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">新退房日</Label>
-                <InventoryDatePicker
-                  value={newCheckOut}
-                  onChange={(v) => { setNewCheckOut(v); setInventoryError(null); }}
-                  minDate={checkOutMin}
-                  capacityMap={capacityMap}
-                  loading={capLoading}
-                  placeholder="選擇退房日"
-                  requireCapacity={false}
-                />
-              </div>
-            </div>
+
+            <InventoryRangeCalendar
+              checkIn={newCheckIn}
+              checkOut={newCheckOut}
+              onChange={(ci, co) => {
+                setNewCheckIn(ci);
+                setNewCheckOut(co);
+                setInventoryError(null);
+              }}
+              capacityMap={capacityMap}
+              loading={capLoading}
+              minDate={today}
+            />
+
             <div>
               <Label className="text-xs">備註 (選填)</Label>
               <Textarea
@@ -463,7 +471,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button onClick={handleSubmit} disabled={submitting || !newCheckIn || !newCheckOut}>
               {submitting ? "處理中…" : "確認改期"}
             </Button>
           </DialogFooter>
