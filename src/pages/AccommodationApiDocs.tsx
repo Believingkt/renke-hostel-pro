@@ -378,6 +378,102 @@ export default function AccommodationApiDocs() {
                 </ul>
               </section>
 
+              {/* Platform Master Key */}
+              <section id="master-key" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" />Platform Master Key（一次抓全部民宿）</CardTitle>
+                    <CardDescription>
+                      內部系統 / BI 專用：使用單一 master key，一次呼叫即可取得全平台所有民宿的房型、庫存、房價、包棟方案，不用逐家申請 API Key。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="rounded-md border bg-amber-500/10 text-amber-800 dark:text-amber-300 p-3 text-xs">
+                      ⚠️ 此 key 權限極高（可讀全平台庫存），僅供內部後端 / BI 使用。<strong>禁止放前端、禁止提交 Git、禁止交給外部夥伴</strong>。存放於 Edge Function 環境變數 <code>PLATFORM_MASTER_API_KEY</code>。
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">端點</p>
+                      <CodeBlock label="GET">{`GET https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">認證 Header</p>
+                      <CodeBlock>{`x-api-key: <PLATFORM_MASTER_API_KEY>`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-2">Query 參數</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">參數</th>
+                              <th className="text-left p-3">必填</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>from</code></td><td className="p-3">必填</td><td className="p-3">起始日期 <code>YYYY-MM-DD</code>（含當日）</td></tr>
+                            <tr><td className="p-3"><code>to</code></td><td className="p-3">必填</td><td className="p-3">結束日期 <code>YYYY-MM-DD</code>（含當日，最多 60 天區間）</td></tr>
+                            <tr><td className="p-3"><code>accommodation_ids</code></td><td className="p-3">選填</td><td className="p-3">逗號分隔的民宿 UUID，例：<code>uuid1,uuid2</code>。不填則回全部民宿。</td></tr>
+                            <tr><td className="p-3"><code>include</code></td><td className="p-3">選填</td><td className="p-3">逗號分隔，可選 <code>room_types</code>、<code>packages</code>。預設 <code>room_types,packages</code>（兩者都回）。</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">cURL 範例</p>
+                      <CodeBlock label="1. 抓全部民宿的房型 + 庫存 + 房價 + 包棟方案">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="2. 只抓指定兩家民宿">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="3. 只要房型/庫存，不要包棟方案">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">回應格式</p>
+                      <CodeBlock label="200 OK">{`{
+  "from": "2026-07-05",
+  "to": "2026-07-15",
+  "currency": "TWD",
+  "accommodations": [
+    {
+      "id": "uuid",
+      "name": "森山民宿",
+      "room_types": [ /* 同單店 /availability 的 room_types 結構 */ ],
+      "packages": [
+        {
+          "id": "uuid",
+          "name": "包棟方案",
+          "numeric_code": 1001,
+          "base_price": 20000,
+          "room_type_ids": ["uuid", "uuid"],
+          "is_active": true
+        }
+      ]
+    }
+  ]
+}`}</CodeBlock>
+                    </div>
+
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
+                      <li>房量、房價、關房邏輯與單店 <code>/availability</code> 完全一致（共用 <code>buildAvailability</code>）。</li>
+                      <li><code>packages[].numeric_code</code> 對應 OwlTing 訂單推送用的 RatePlanCode，方便對帳。</li>
+                      <li>單次最多 60 天；跨大量民宿時建議分段查詢避免 timeout。</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </section>
+
               {/* OpenAPI / Swagger */}
               <section id="openapi" className="scroll-mt-24">
                 <Card>
