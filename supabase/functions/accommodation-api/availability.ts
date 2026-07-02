@@ -107,7 +107,7 @@ export function resolveTemplatePrice(t: TemplateRow | undefined | null, tier: Da
 
 /**
  * 完整解價：優先套用 season_segments、room_overrides、tier enabled。
- * 對齊 src/utils/pricingTemplateHelpers.ts 的 getTierForDate。
+ * 對齊 src/utils/pricingTemplateHelpers.ts + templatePriceResolver.ts。
  */
 export function resolveTemplatePriceForDate(
   t: TemplateRow | undefined | null,
@@ -118,11 +118,7 @@ export function resolveTemplatePriceForDate(
   if (!t) return null;
   const info = getTierForDate(t, roomTypeId, dateStr, tier);
   if (!info.enabled) return null;
-  const p = info.price;
-  if (p != null && p > 0) return p;
-  // segments/override 有明確給值但為 0/null 時，才 fallback 到頂層預設
-  // (只在非 segments 模式；segments 模式下若 segment 無值就當作未提供價)
-  return resolveTemplatePrice(t, tier);
+  return info.price != null && info.price > 0 ? info.price : null;
 }
 
 export interface ComputeInput {
