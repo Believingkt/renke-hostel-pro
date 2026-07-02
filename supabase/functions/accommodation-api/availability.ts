@@ -41,12 +41,14 @@ export interface OrderRoomRow {
   room_type_id: string;
   quantity: number;
 }
-export interface TemplateRow {
+export interface TemplateRow extends TemplateLike {
   room_type_id: string | null;
   price: number | null;
   weekday_price: number | null;
   peak_price: number | null;
   weekend_price: number | null;
+  room_overrides?: unknown;
+  season_segments?: unknown;
 }
 export interface HolidayRow {
   holiday_date: string;
