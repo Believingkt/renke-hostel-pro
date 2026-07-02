@@ -49,6 +49,8 @@ export const BOOKING_ALLOWED_PREFIXES = [
   "/ai-booking",
   "/privacy",
   "/data-deletion",
+  "/docs",
+  "/api-docs",
 ] as const;
 
 /**
