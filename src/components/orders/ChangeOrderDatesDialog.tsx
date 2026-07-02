@@ -171,11 +171,12 @@ function InventoryDatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto p-0 pointer-events-auto z-50"
+        className="p-0 pointer-events-auto z-50 w-[min(22rem,calc(100vw-1.5rem))]"
         align="start"
         side="bottom"
         sideOffset={6}
         collisionPadding={12}
+        avoidCollisions
       >
         <div className="relative">
           {loading && (
