@@ -244,6 +244,9 @@ function App() {
                     <Route path="accommodation-api-docs" element={
                       <Suspense fallback={<FrontendSkeleton />}><AccommodationApiDocs /></Suspense>
                     } />
+                    <Route path="docs/accommodation-api" element={
+                      <Suspense fallback={<FrontendSkeleton />}><AccommodationApiDocs /></Suspense>
+                    } />
                     <Route path="docs/owlting-cm" element={
                       <Suspense fallback={<FrontendSkeleton />}><OwlTingCmDocs /></Suspense>
                     } />
