@@ -97,7 +97,7 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
             <CalendarIcon className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto max-w-[92vw] p-0" align="start" collisionPadding={12}>
           <Calendar
             mode="single"
             selected={isValidDate ? dateObj : undefined}
@@ -251,14 +251,14 @@ export function OrderFilters({
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="text-muted-foreground h-10 md:h-9 px-14 touch-manipulation"
+          className="text-muted-foreground h-11 md:h-9 flex-1 md:flex-none px-4 md:px-14 touch-manipulation"
         >
           清除
         </Button>
         <Button
           size="sm"
           onClick={onSubmit}
-          className="h-10 md:h-9 px-14 touch-manipulation"
+          className="h-11 md:h-9 flex-1 md:flex-none px-4 md:px-14 touch-manipulation"
         >
           查詢
         </Button>
