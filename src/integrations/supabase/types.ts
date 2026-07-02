@@ -8663,7 +8663,7 @@ export type Database = {
           from_date: string
           id: string
           next_retry_at: string
-          reason: string
+          reason: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
           room_type_id: string
           to_date: string
         }[]
