@@ -137,7 +137,7 @@ export function AccommodationSelector() {
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-9 w-9"
+              className="hidden sm:inline-flex h-9 w-9"
               onClick={() => window.open(buildFrontendUrl(accommodations[0]), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
