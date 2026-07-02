@@ -84,8 +84,8 @@ export default function AccommodationApiDocs() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">民宿 API — 公開文件</h1>
-              <p className="text-sm text-muted-foreground">Accommodation API · Public Reference</p>
+              <h1 className="text-xl font-bold">民宿庫存 API</h1>
+              <p className="text-sm text-muted-foreground">Accommodation Inventory API</p>
             </div>
           </div>
         </header>
