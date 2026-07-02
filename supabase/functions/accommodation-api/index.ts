@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
       const [invRes, ordersRes, tmplRes, holRes] = await Promise.all([
         supabase
           .from("room_inventory_pricing")
-          .select("room_type_id, date, price, available_rooms, is_available")
+          .select("room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available")
           .in("room_type_id", rtIds)
           .is("pricing_template_id", null)
           .gte("date", from)
@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
           .lte("check_in_date", to),
         supabase
           .from("pricing_templates")
-          .select("room_type_id, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order")
+          .select("room_type_id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true, nullsFirst: false }),
         supabase

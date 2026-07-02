@@ -34,6 +34,8 @@ export interface SeasonSegment {
 
 export interface TemplateLike {
   accommodation_id?: string | null;
+  template_name?: string | null;
+  project_name?: string | null;
   valid_from?: string | null;
   valid_until?: string | null;
   room_overrides?: unknown;
@@ -47,6 +49,20 @@ export interface TemplateLike {
   extra_dates?: unknown;
   excluded_dates?: unknown;
   season_segments?: unknown;
+}
+
+/**
+ * 一比一 port 前端 templatePriceResolver.ts::getMealPriceColumn。
+ * 依方案名稱決定 base row 應取哪個餐型欄位。
+ */
+export function getMealPriceColumn(
+  template: TemplateLike | null | undefined,
+): "price" | "price_2_meals" | "price_3_meals" {
+  if (!template) return "price";
+  const name = template.template_name || template.project_name || "";
+  if (name.includes("三食") || name.includes("3食")) return "price_3_meals";
+  if (name.includes("二食") || name.includes("2食") || name.includes("兩食")) return "price_2_meals";
+  return "price";
 }
 
 export function getRoomOverrides(template: TemplateLike | null | undefined): RoomOverride[] {

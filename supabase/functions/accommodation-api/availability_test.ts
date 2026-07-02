@@ -433,3 +433,214 @@ Deno.test("parity: date outside all segments → price=null (not fallback to tem
     assertEquals(day.price, expected, `${day.date} tier=${tier}`);
   }
 });
+
+// ---------- Parity: 直接呼叫前端 templatePriceResolver 本尊（純函式版） ----------
+import { resolveTemplatePricesFromRows } from "../../../src/utils/templatePriceResolverPure.ts";
+
+/**
+ * 通用 helper：對每個房型的每日 price，比對「API 結果」與「前端 pure resolver 結果」。
+ * 前端 resolver 只回有價的日期；API 對「無法解價」的日期回 null。
+ * 對齊：feResult[d] ?? null === apiDay.price
+ */
+function assertParity(
+  label: string,
+  apiDays: { date: string; price: number | null }[],
+  feResult: Record<string, number>,
+) {
+  for (const day of apiDays) {
+    const expected = feResult[day.date] ?? null;
+    assertEquals(day.price, expected, `${label} ${day.date}`);
+  }
+}
+
+Deno.test("parity-pure: room_overrides — API prices match resolveTemplatePricesFromRows", () => {
+  const template = {
+    id: "tmpl-1",
+    template_name: "標準方案",
+    room_type_id: null,
+    price: 3000,
+    weekday_price: 3000,
+    peak_price: 4000,
+    weekend_price: 5000,
+    room_overrides: [
+      { room_type_id: "rt-a", weekday_price: 2500, peak_price: 3500, weekend_price: 4500, available_rooms: 2 },
+    ],
+    season_segments: null,
+  };
+  const dates = enumerateDates("2026-07-01", "2026-07-06");
+  const res = buildAvailability({
+    from: "2026-07-01",
+    to: "2026-07-06",
+    roomTypes: [RT_A, RT_B],
+    inventory: [],
+    orders: [],
+    orderRooms: [],
+    templates: [
+      { ...template, room_type_id: "rt-a" } as any,
+      { ...template, room_type_id: "rt-b" } as any,
+    ],
+    holidays: [],
+  });
+  for (const rt of ["rt-a", "rt-b"]) {
+    const fe = resolveTemplatePricesFromRows({
+      roomTypeId: rt,
+      template,
+      dates,
+      publicHolidays: [],
+    });
+    const apiDays = res.find((r) => r.room_type_id === rt)!.days;
+    assertParity(`overrides ${rt}`, apiDays, fe);
+  }
+});
+
+Deno.test("parity-pure: season_segments — API prices match resolveTemplatePricesFromRows", () => {
+  const template = {
+    id: "tmpl-2",
+    template_name: "四季方案",
+    room_type_id: "rt-a",
+    price: null,
+    weekday_price: null,
+    peak_price: null,
+    weekend_price: null,
+    season_segments: [
+      {
+        id: "s1",
+        valid_from: "2026-07-01",
+        valid_until: "2026-07-10",
+        weekday_price: 2000,
+        peak_price: 2500,
+        weekend_price: 3000,
+        weekday_enabled: true,
+        peak_enabled: true,
+        weekend_enabled: true,
+        room_overrides: [
+          { room_type_id: "rt-a", weekday_price: 1800, peak_price: null, weekend_price: 2800, available_rooms: 2 },
+        ],
+      },
+      {
+        id: "s2",
+        valid_from: "2026-07-11",
+        valid_until: "2026-07-31",
+        weekday_price: 3500,
+        peak_price: 4500,
+        weekend_price: 6000,
+        weekday_enabled: true,
+        peak_enabled: false,
+        weekend_enabled: true,
+      },
+    ],
+  };
+  const dates = enumerateDates("2026-07-01", "2026-07-20");
+  const fe = resolveTemplatePricesFromRows({
+    roomTypeId: "rt-a",
+    template,
+    dates,
+    publicHolidays: [],
+  });
+  const res = buildAvailability({
+    from: "2026-07-01",
+    to: "2026-07-20",
+    roomTypes: [RT_A],
+    inventory: [],
+    orders: [],
+    orderRooms: [],
+    templates: [template as any],
+    holidays: [],
+  });
+  assertParity("segments rt-a", res[0].days, fe);
+});
+
+Deno.test("parity-pure: meal column — 二食 template 從 inv.price_2_meals 取值", () => {
+  const template = {
+    id: "tmpl-2meals",
+    template_name: "二食方案",
+    room_type_id: "rt-a",
+    // 無 tier 價、無 flat price → 前端會走 base row fallback + meal column
+    price: null,
+    weekday_price: null,
+    peak_price: null,
+    weekend_price: null,
+    season_segments: null,
+  };
+  const dates = enumerateDates("2026-07-01", "2026-07-04");
+  const baseRows = [
+    { date: "2026-07-01", price: 3000, price_2_meals: 3500, price_3_meals: 4000 },
+    { date: "2026-07-02", price: 3000, price_2_meals: 3500, price_3_meals: 4000 },
+    { date: "2026-07-03", price: 3000, price_2_meals: 3500, price_3_meals: 4000 },
+    { date: "2026-07-04", price: 3000, price_2_meals: 3500, price_3_meals: 4000 },
+  ];
+  const fe = resolveTemplatePricesFromRows({
+    roomTypeId: "rt-a",
+    template,
+    dates,
+    baseRows,
+    publicHolidays: [],
+  });
+  const res = buildAvailability({
+    from: "2026-07-01",
+    to: "2026-07-04",
+    roomTypes: [RT_A],
+    inventory: baseRows.map((r) => ({
+      room_type_id: "rt-a",
+      date: r.date,
+      price: r.price,
+      price_2_meals: r.price_2_meals,
+      price_3_meals: r.price_3_meals,
+      available_rooms: 2,
+      is_available: true,
+    })),
+    orders: [],
+    orderRooms: [],
+    templates: [template as any],
+    holidays: [],
+  });
+  // FE 應該全部 3500（二食欄位）
+  assertEquals(fe["2026-07-01"], 3500);
+  assertEquals(fe["2026-07-04"], 3500);
+  assertParity("meal-2 rt-a", res[0].days, fe);
+});
+
+Deno.test("parity-pure: meal column — 三食 template 從 inv.price_3_meals 取值", () => {
+  const template = {
+    id: "tmpl-3meals",
+    template_name: "三食豪華方案",
+    room_type_id: "rt-a",
+    price: null,
+    weekday_price: null,
+    peak_price: null,
+    weekend_price: null,
+  };
+  const dates = enumerateDates("2026-07-01", "2026-07-03");
+  const baseRows = [
+    { date: "2026-07-01", price: 3000, price_2_meals: 3500, price_3_meals: 4200 },
+    { date: "2026-07-02", price: 3000, price_2_meals: 3500, price_3_meals: 4200 },
+    { date: "2026-07-03", price: 3000, price_2_meals: 3500, price_3_meals: 4200 },
+  ];
+  const fe = resolveTemplatePricesFromRows({
+    roomTypeId: "rt-a",
+    template,
+    dates,
+    baseRows,
+    publicHolidays: [],
+  });
+  const res = buildAvailability({
+    from: "2026-07-01",
+    to: "2026-07-03",
+    roomTypes: [RT_A],
+    inventory: baseRows.map((r) => ({
+      room_type_id: "rt-a",
+      date: r.date,
+      price: r.price,
+      price_2_meals: r.price_2_meals,
+      price_3_meals: r.price_3_meals,
+      available_rooms: 2,
+      is_available: true,
+    })),
+    orders: [],
+    orderRooms: [],
+    templates: [template as any],
+    holidays: [],
+  });
+  assertEquals(fe["2026-07-01"], 4200);
+  assertParity("meal-3 rt-a", res[0].days, fe);
+});

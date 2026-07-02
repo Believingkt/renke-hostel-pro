@@ -9,6 +9,7 @@
 //     （含 room_overrides / season_segments / tier enabled；tier 不可售則 price=null）
 import {
   getTierForDate,
+  getMealPriceColumn,
   type TemplateLike,
 } from "../_shared/pricingTemplate.ts";
 
@@ -25,6 +26,8 @@ export interface InvRow {
   room_type_id: string;
   date: string;
   price: number | null;
+  price_2_meals?: number | null;
+  price_3_meals?: number | null;
   available_rooms: number | null;
   is_available: boolean | null;
 }
@@ -43,6 +46,8 @@ export interface OrderRoomRow {
 }
 export interface TemplateRow extends TemplateLike {
   room_type_id: string | null;
+  template_name?: string | null;
+  project_name?: string | null;
   price: number | null;
   weekday_price: number | null;
   peak_price: number | null;
@@ -256,7 +261,16 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       const tier = classifyDay(d, holidaySet, workOnWeekendSet);
       let price: number | null = null;
       if (!closed) {
-        if (inv?.price != null && inv.price > 0) price = inv.price;
+        // Base row 依模板名稱挑餐型欄位（getMealPriceColumn），fallback 至 inv.price。
+        const mealCol = getMealPriceColumn(template);
+        const invMealPrice = inv ? (inv as any)[mealCol] : null;
+        const invEffective =
+          invMealPrice != null && invMealPrice > 0
+            ? invMealPrice
+            : inv?.price != null && inv.price > 0
+              ? inv.price
+              : null;
+        if (invEffective != null) price = invEffective;
         else price = resolveTemplatePriceForDate(template, rt.id, d, tier);
       }
       days.push({ date: d, remaining, price, is_available: !closed, closed });
