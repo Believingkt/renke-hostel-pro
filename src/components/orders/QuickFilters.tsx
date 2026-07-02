@@ -32,7 +32,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
           <span className="sm:hidden">清除</span>
         </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 [&>button]:min-h-[76px] sm:[&>button]:min-h-[100px] [&>button]:p-3 sm:[&>button]:p-4 [&>button>div:first-child]:mb-1.5 sm:[&>button>div:first-child]:mb-3 [&>button_.p-2\\.5]:p-2 sm:[&>button_.p-2\\.5]:p-2.5 [&>button_.h-5]:h-4 sm:[&>button_.h-5]:h-5 [&>button_.w-5]:w-4 sm:[&>button_.w-5]:w-5 [&>button_.text-2xl]:text-xl sm:[&>button_.text-2xl]:text-2xl">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {/* 今日入住 */}
         <button
           onClick={() => onFilterChange("today_checkin")}
