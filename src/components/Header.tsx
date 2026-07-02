@@ -128,9 +128,9 @@ export function Header() {
       <div className="flex h-16 md:h-16 items-center justify-between px-3 md:px-6 gap-2">
         <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
           <SidebarTrigger className="h-10 w-10 flex-shrink-0" />
-          {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 */}
+          {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 (手機版隱藏,避免與選擇器擠壓) */}
           {(!open || isMobile) && (
-            <div className="flex items-center gap-2 group min-w-0">
+            <div className="hidden sm:flex items-center gap-2 group min-w-0">
               <img
                 src={lokezeLogo}
                 alt="Lakeze 人客多"
