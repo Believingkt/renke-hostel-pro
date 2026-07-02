@@ -176,7 +176,7 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-10 px-3 md:px-4 gap-2 touch-manipulation">
+              <Button variant="ghost" className="h-9 w-9 md:h-10 md:w-auto px-0 md:px-4 gap-2 touch-manipulation">
                 <UserCircle className="h-5 w-5 flex-shrink-0" />
                 {userName && (
                   <span className="hidden md:inline-block text-sm font-medium max-w-[120px] truncate">
