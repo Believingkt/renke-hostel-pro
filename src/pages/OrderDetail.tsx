@@ -3567,6 +3567,25 @@ const OrderDetailPage = () => {
         />
       )}
 
+      {/* 改期對話框 */}
+      {order && (
+        <ChangeOrderDatesDialog
+          open={changeDatesOpen}
+          onOpenChange={setChangeDatesOpen}
+          order={{
+            id: order.id,
+            order_number: order.order_number,
+            order_source: order.order_source,
+            payment_status: order.payment_status,
+            check_in_date: order.check_in_date,
+            check_out_date: order.check_out_date,
+          }}
+          mode={order.order_source === "kol" ? "kol" : "general"}
+          onSuccess={fetchOrder}
+        />
+      )}
+
+
 
 
       {/* 修改金額對話框 */}
