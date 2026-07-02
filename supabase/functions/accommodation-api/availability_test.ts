@@ -238,3 +238,198 @@ Deno.test("filter by multiple room_type_id filters output (upstream)", () => {
 Deno.test("date range validation: exceeding MAX_RANGE_DAYS days", () => {
   assertEquals(daysBetweenInclusive("2026-07-01", "2026-09-30") > MAX_RANGE_DAYS, true);
 });
+
+// ---------- Parity tests: room_overrides / season_segments ----------
+// Import the frontend helper directly to assert API prices match
+// what the front-end / points-booking-api would compute.
+import { getTierForDate as feGetTierForDate } from "../../../src/utils/pricingTemplateHelpers.ts";
+
+const RT_A = {
+  id: "rt-a",
+  name: "A房",
+  capacity: 2,
+  room_count: 2,
+  is_exclusive_package: false,
+  is_bound_to_exclusive: false,
+  bound_exclusive_ids: null,
+};
+const RT_B = {
+  id: "rt-b",
+  name: "B房",
+  capacity: 4,
+  room_count: 2,
+  is_exclusive_package: false,
+  is_bound_to_exclusive: false,
+  bound_exclusive_ids: null,
+};
+
+Deno.test("parity: room_overrides overrides template top-level per room_type", () => {
+  // template 頂層 weekday=3000/weekend=5000；rt-a 覆寫 weekday=2500/weekend=4500
+  const template = {
+    room_type_id: null,
+    price: 3000,
+    weekday_price: 3000,
+    peak_price: 4000,
+    weekend_price: 5000,
+    weekday_enabled: true,
+    peak_enabled: true,
+    weekend_enabled: true,
+    room_overrides: [
+      { room_type_id: "rt-a", weekday_price: 2500, peak_price: 3500, weekend_price: 4500, available_rooms: 2 },
+    ],
+    season_segments: null,
+  };
+  const res = buildAvailability({
+    from: "2026-07-01", // Wed weekday
+    to: "2026-07-04",   // Sat weekend
+    roomTypes: [RT_A, RT_B],
+    inventory: [], // 無 base row → 全走 template
+    orders: [],
+    orderRooms: [],
+    templates: [
+      { ...template, room_type_id: "rt-a" } as any,
+      { ...template, room_type_id: "rt-b" } as any,
+    ],
+    holidays: [],
+  });
+  const a = res.find((r) => r.room_type_id === "rt-a")!;
+  const b = res.find((r) => r.room_type_id === "rt-b")!;
+
+  // Parity vs 前端 helper
+  for (const rt of ["rt-a", "rt-b"]) {
+    const days = (rt === "rt-a" ? a : b).days;
+    for (const day of days) {
+      const dow = new Date(day.date + "T00:00:00Z").getUTCDay();
+      const tier = dow === 6 ? "weekend" : (dow === 5 || dow === 0 ? "peak" : "weekday");
+      const feInfo = feGetTierForDate(template as any, rt, day.date, tier as any);
+      const expected = feInfo.enabled && feInfo.price && feInfo.price > 0 ? feInfo.price : null;
+      assertEquals(day.price, expected, `${rt} ${day.date} tier=${tier}`);
+    }
+  }
+
+  // 具體值檢查（rt-a 走覆寫、rt-b 走頂層）
+  const byA = Object.fromEntries(a.days.map((d) => [d.date, d.price]));
+  const byB = Object.fromEntries(b.days.map((d) => [d.date, d.price]));
+  assertEquals(byA["2026-07-01"], 2500); // Wed weekday override
+  assertEquals(byA["2026-07-03"], 3500); // Fri peak override
+  assertEquals(byA["2026-07-04"], 4500); // Sat weekend override
+  assertEquals(byB["2026-07-01"], 3000);
+  assertEquals(byB["2026-07-03"], 4000);
+  assertEquals(byB["2026-07-04"], 5000);
+});
+
+Deno.test("parity: season_segments — per-day segment resolution + per-segment room override", () => {
+  const template = {
+    room_type_id: "rt-a",
+    price: null,
+    weekday_price: null,
+    peak_price: null,
+    weekend_price: null,
+    season_segments: [
+      {
+        id: "s1",
+        label: "淡季",
+        valid_from: "2026-07-01",
+        valid_until: "2026-07-10",
+        weekday_price: 2000,
+        peak_price: 2500,
+        weekend_price: 3000,
+        weekday_enabled: true,
+        peak_enabled: true,
+        weekend_enabled: true,
+        room_overrides: [
+          { room_type_id: "rt-a", weekday_price: 1800, peak_price: null, weekend_price: 2800, available_rooms: 2 },
+        ],
+      },
+      {
+        id: "s2",
+        label: "旺季",
+        valid_from: "2026-07-11",
+        valid_until: "2026-07-31",
+        weekday_price: 3500,
+        peak_price: 4500,
+        weekend_price: 6000,
+        weekday_enabled: true,
+        peak_enabled: false, // 旺季 peak 關閉 → API price 應為 null
+        weekend_enabled: true,
+      },
+    ],
+  };
+  const res = buildAvailability({
+    from: "2026-07-01",
+    to: "2026-07-20",
+    roomTypes: [RT_A],
+    inventory: [],
+    orders: [],
+    orderRooms: [],
+    templates: [template as any],
+    holidays: [],
+  });
+  const days = res[0].days;
+
+  // Full parity loop against frontend helper
+  for (const day of days) {
+    const dow = new Date(day.date + "T00:00:00Z").getUTCDay();
+    const tier = dow === 6 ? "weekend" : (dow === 5 || dow === 0 ? "peak" : "weekday");
+    const feInfo = feGetTierForDate(template as any, "rt-a", day.date, tier as any);
+    const expected = feInfo.enabled && feInfo.price && feInfo.price > 0 ? feInfo.price : null;
+    assertEquals(day.price, expected, `rt-a ${day.date} tier=${tier}`);
+  }
+
+  const byDate = Object.fromEntries(days.map((d) => [d.date, d.price]));
+  // 2026-07-01 Wed weekday 淡季 → rt-a override 1800
+  assertEquals(byDate["2026-07-01"], 1800);
+  // 2026-07-03 Fri peak 淡季 → override peak=null → segment peak 2500
+  assertEquals(byDate["2026-07-03"], 2500);
+  // 2026-07-04 Sat weekend 淡季 → override 2800
+  assertEquals(byDate["2026-07-04"], 2800);
+  // 2026-07-13 Mon weekday 旺季 → segment 3500
+  assertEquals(byDate["2026-07-13"], 3500);
+  // 2026-07-17 Fri peak 旺季 → peak_enabled=false → null
+  assertEquals(byDate["2026-07-17"], null);
+  // 2026-07-18 Sat weekend 旺季 → 6000
+  assertEquals(byDate["2026-07-18"], 6000);
+});
+
+Deno.test("parity: date outside all segments → price=null (not fallback to template top-level)", () => {
+  const template = {
+    room_type_id: "rt-a",
+    // 頂層有價，但 segments 存在 → 頂層價不應被使用
+    weekday_price: 9999,
+    peak_price: 9999,
+    weekend_price: 9999,
+    season_segments: [
+      {
+        valid_from: "2026-07-01",
+        valid_until: "2026-07-05",
+        weekday_price: 2000,
+        peak_price: 2200,
+        weekend_price: 2500,
+      },
+    ],
+  };
+  const res = buildAvailability({
+    from: "2026-07-04",
+    to: "2026-07-08",
+    roomTypes: [RT_A],
+    inventory: [],
+    orders: [],
+    orderRooms: [],
+    templates: [template as any],
+    holidays: [],
+  });
+  const byDate = Object.fromEntries(res[0].days.map((d) => [d.date, d.price]));
+  assertEquals(byDate["2026-07-04"], 2500); // Sat in segment
+  assertEquals(byDate["2026-07-05"], 2200); // Sun in segment (peak)
+  assertEquals(byDate["2026-07-06"], null); // Mon outside segment
+  assertEquals(byDate["2026-07-08"], null); // Wed outside segment
+
+  // Parity
+  for (const day of res[0].days) {
+    const dow = new Date(day.date + "T00:00:00Z").getUTCDay();
+    const tier = dow === 6 ? "weekend" : (dow === 5 || dow === 0 ? "peak" : "weekday");
+    const feInfo = feGetTierForDate(template as any, "rt-a", day.date, tier as any);
+    const expected = feInfo.enabled && feInfo.price && feInfo.price > 0 ? feInfo.price : null;
+    assertEquals(day.price, expected, `${day.date} tier=${tier}`);
+  }
+});
