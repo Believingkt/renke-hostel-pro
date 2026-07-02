@@ -194,6 +194,19 @@
       }
     },
     "schemas": {
+      "VersionResponse": {
+        "type": "object",
+        "required": ["name", "version", "endpoints", "server_time"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "build_date": { "type": "string", "format": "date" },
+          "runtime": { "type": "string" },
+          "endpoints": { "type": "array", "items": { "type": "string" } },
+          "docs_url": { "type": "string", "format": "uri" },
+          "server_time": { "type": "string", "format": "date-time" }
+        }
+      },
       "AvailabilityResponse": {
         "type": "object",
         "required": ["accommodation_id", "from", "to", "currency", "room_types"],
