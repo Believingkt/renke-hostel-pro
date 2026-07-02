@@ -2797,16 +2797,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       <DialogContent
         className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
       >
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
-          <DialogTitle className="text-2xl">新增訂單</DialogTitle>
+        <DialogHeader className="px-4 md:px-6 py-3 md:py-4 border-b shrink-0">
+          <DialogTitle className="text-xl md:text-2xl">新增訂單</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6">
             {formContent}
           </div>
         </div>
-        <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
-          <div className="max-w-4xl mx-auto w-full flex justify-end gap-2">
+        <DialogFooter className="px-4 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
+          <div className="max-w-4xl mx-auto w-full flex justify-end gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
             {footerButtons}
           </div>
         </DialogFooter>

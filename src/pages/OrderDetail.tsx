@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2 } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1921,68 +1922,90 @@ const OrderDetailPage = () => {
           </Button>
           <h1 className="text-3xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-row gap-2 w-full sm:w-auto">
           {isEditing ? (
             <>
-              <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="w-full sm:w-auto text-sm">
+              <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="flex-1 sm:flex-none sm:w-auto text-sm h-11">
                 <Save className="h-4 w-4 mr-2" />
                 {isSavingEdit ? "儲存中..." : "儲存"}
               </Button>
-              <Button variant="outline" onClick={cancelEditing} disabled={isSavingEdit} className="w-full sm:w-auto text-sm">
+              <Button variant="outline" onClick={cancelEditing} disabled={isSavingEdit} className="flex-1 sm:flex-none sm:w-auto text-sm h-11">
                 <X className="h-4 w-4 mr-2" />
                 取消編輯
               </Button>
             </>
           ) : (
             <>
-              {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
-                <Button 
-                  onClick={() => setShowPaymentDialog(true)}
-                  className="w-full sm:w-auto text-sm"
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">線上收款</span>
-                  <span className="sm:hidden">收款</span>
+              {/* 桌面：全部按鈕平鋪 */}
+              <div className="hidden sm:flex sm:flex-row gap-2">
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                  <Button onClick={() => setShowPaymentDialog(true)} className="text-sm">
+                    <CreditCard className="h-4 w-4 mr-2" />線上收款
+                  </Button>
+                )}
+                <Button variant="outline" onClick={startEditing} className="text-sm">
+                  <Pencil className="h-4 w-4 mr-2" />編輯
                 </Button>
-              )}
-              <Button variant="outline" onClick={startEditing} className="w-full sm:w-auto text-sm">
-                <Pencil className="h-4 w-4 mr-2" />
-                編輯
-              </Button>
-              {order.guest_email && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleResendConfirmation}
-                  disabled={isSendingEmail}
-                  className="w-full sm:w-auto text-sm"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
-                  <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
-                </Button>
-              )}
-              {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto text-sm"
-                  disabled={isSyncingRefund}
-                  onClick={handleSyncTapPayRefund}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
-                </Button>
-              )}
-              {order.order_status !== 'cancelled' && (
-                <Button
-                  variant="ghost-destructive"
-                  className="w-full sm:w-auto text-sm"
-                  disabled={isCancelling}
-                  onClick={() => setShowCancelDialog(true)}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  取消訂單
-                </Button>
-              )}
+                {order.guest_email && (
+                  <Button variant="outline" onClick={handleResendConfirmation} disabled={isSendingEmail} className="text-sm">
+                    <Mail className="h-4 w-4 mr-2" />{isSendingEmail ? "發送中..." : "重發確認信"}
+                  </Button>
+                )}
+                {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
+                  <Button variant="outline" className="text-sm" disabled={isSyncingRefund} onClick={handleSyncTapPayRefund}>
+                    <CreditCard className="h-4 w-4 mr-2" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
+                  </Button>
+                )}
+                {order.order_status !== 'cancelled' && (
+                  <Button variant="ghost-destructive" className="text-sm" disabled={isCancelling} onClick={() => setShowCancelDialog(true)}>
+                    <XCircle className="h-4 w-4 mr-2" />取消訂單
+                  </Button>
+                )}
+              </div>
+              {/* 手機：主 CTA + 更多 */}
+              <div className="flex sm:hidden gap-2 w-full">
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' ? (
+                  <Button onClick={() => setShowPaymentDialog(true)} className="flex-1 text-sm h-11">
+                    <CreditCard className="h-4 w-4 mr-1.5" />收款
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={startEditing} className="flex-1 text-sm h-11">
+                    <Pencil className="h-4 w-4 mr-1.5" />編輯
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="更多操作">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                      <DropdownMenuItem onClick={startEditing} className="py-3">
+                        <Pencil className="mr-2 h-4 w-4" />編輯訂單
+                      </DropdownMenuItem>
+                    )}
+                    {order.guest_email && (
+                      <DropdownMenuItem disabled={isSendingEmail} onClick={handleResendConfirmation} className="py-3">
+                        <Mail className="mr-2 h-4 w-4" />{isSendingEmail ? "發送中..." : "重發確認信"}
+                      </DropdownMenuItem>
+                    )}
+                    {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
+                      <DropdownMenuItem disabled={isSyncingRefund} onClick={handleSyncTapPayRefund} className="py-3">
+                        <CreditCard className="mr-2 h-4 w-4" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款"}
+                      </DropdownMenuItem>
+                    )}
+                    {order.order_status !== 'cancelled' && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem disabled={isCancelling} onClick={() => setShowCancelDialog(true)} className="py-3 text-destructive focus:text-destructive">
+                          <XCircle className="mr-2 h-4 w-4" />取消訂單
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           )}
         </div>

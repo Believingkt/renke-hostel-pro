@@ -125,20 +125,20 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-      <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="h-10 w-10" />
+      <div className="flex h-16 md:h-16 items-center justify-between px-3 md:px-6 gap-2">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+          <SidebarTrigger className="h-10 w-10 flex-shrink-0" />
           {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 */}
           {(!open || isMobile) && (
-            <div className="flex items-center gap-2 group">
+            <div className="flex items-center gap-2 group min-w-0">
               <img
                 src={lokezeLogo}
                 alt="Lakeze 人客多"
-                className="h-8 md:h-9 object-contain"
+                className="h-7 md:h-9 object-contain flex-shrink-0"
               />
-              <div className="h-5 md:h-6 w-px bg-border/60" />
-              <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-all duration-200 hover:bg-muted cursor-default">
-                <span className="hidden sm:inline text-[9px] md:text-[10px] uppercase tracking-wider text-muted-foreground/60 group-hover:text-foreground font-medium transition-colors">
+              <div className="hidden sm:block h-5 md:h-6 w-px bg-border/60" />
+              <div className="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-all duration-200 hover:bg-muted cursor-default">
+                <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-muted-foreground/60 group-hover:text-foreground font-medium transition-colors">
                   技術合作
                 </span>
                 <img
@@ -151,10 +151,11 @@ export function Header() {
           )}
         </div>
         
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="hidden sm:block">
+        <div className="flex items-center gap-1.5 md:gap-4 flex-shrink-0 min-w-0">
+          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[9rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
             <AccommodationSelector />
           </div>
+          
           
           <Button
             variant="ghost"

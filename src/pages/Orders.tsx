@@ -20,7 +20,8 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
 import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
@@ -452,7 +453,8 @@ const Orders = () => {
         icon={ShoppingBag}
         breadcrumbs={[{ label: "訂單資訊" }]}
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {/* 匯出：桌面顯示 */}
             <Button
               variant="outline"
               onClick={async () => {
@@ -477,22 +479,65 @@ const Orders = () => {
                   toast({ title: "匯出失敗", description: "匯出過程中發生錯誤", variant: "destructive" });
                 }
               }}
-              className="gap-2"
+              className="gap-2 hidden sm:inline-flex"
             >
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">匯出 Excel</span>
             </Button>
-            <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2 hidden sm:inline-flex">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">匯入訂單</span>
             </Button>
-            <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
+            <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2 hidden sm:inline-flex">
               <CalendarClock className="h-4 w-4" />
               <span className="hidden sm:inline">新增保留單</span>
             </Button>
-            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            {/* 手機：三合一「更多」下拉 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="sm:hidden h-10 w-10" aria-label="更多">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => setHoldDialogOpen(true)} className="py-3">
+                  <CalendarClock className="mr-2 h-4 w-4" />新增保留單
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)} className="py-3">
+                  <Download className="mr-2 h-4 w-4" />匯入訂單
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    if (total === 0) {
+                      toast({ title: "無資料可匯出", description: "目前沒有符合條件的訂單", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      let q: any = supabase
+                        .from("orders")
+                        .select(`*, room_types ( id, name )`)
+                        .eq("accommodation_id", accommodationId!);
+                      q = applyServerFilters(q);
+                      const sf = (sortField || "order_date") as string;
+                      q = q.order(sf, { ascending: sortDirection === "asc" });
+                      const { data, error: exErr } = await q;
+                      if (exErr) throw exErr;
+                      const list = (data ?? []) as Order[];
+                      await exportOrdersToExcel(list);
+                      toast({ title: "匯出成功", description: `已匯出 ${list.length} 筆訂單` });
+                    } catch {
+                      toast({ title: "匯出失敗", description: "匯出過程中發生錯誤", variant: "destructive" });
+                    }
+                  }}
+                  className="py-3"
+                >
+                  <Upload className="mr-2 h-4 w-4" />匯出 Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 h-10">
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">新增訂單</span>
+              <span>新增訂單</span>
             </Button>
           </div>
         }
@@ -667,7 +712,7 @@ const Orders = () => {
                       
                       {totalPages > 1 && (
                         <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
-                          <PaginationContent className="gap-2 md:gap-1.5 flex-wrap">
+                          <PaginationContent className="gap-2 md:gap-1.5 flex-wrap items-center">
                             <PaginationItem>
                               <PaginationPrevious 
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -676,29 +721,35 @@ const Orders = () => {
                                 上一頁
                               </PaginationPrevious>
                             </PaginationItem>
-                            
-                            {Array.from({ length: totalPages }, (_, i) => i + 1)
-                              .filter(page => {
-                                // 顯示第一頁、最後一頁、當前頁及其前後各一頁
-                                 return page === 1 || 
-                                        page === totalPages || 
-                                        Math.abs(page - safeCurrentPage) <= 1;
-                              })
-                              .map((page, index, array) => (
-                                <PaginationItem key={page}>
-                                  {/* 顯示省略號 */}
-                                  {index > 0 && array[index - 1] !== page - 1 && (
-                                    <span className="px-2 md:px-2 text-muted-foreground">...</span>
-                                  )}
-                                  <PaginationLink
-                                     onClick={() => setCurrentPage(page)}
-                                     isActive={safeCurrentPage === page}
-                                    className="h-10 touch-manipulation cursor-pointer"
-                                  >
-                                    {page}
-                                  </PaginationLink>
-                                </PaginationItem>
-                              ))}
+
+                            {/* 手機：僅顯示 x / y 頁 */}
+                            <PaginationItem className="sm:hidden">
+                              <span className="px-3 text-sm whitespace-nowrap">第 {safeCurrentPage}/{totalPages} 頁</span>
+                            </PaginationItem>
+
+                            {/* 桌面：顯示數字頁碼 */}
+                            <div className="hidden sm:contents">
+                              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter(page => {
+                                   return page === 1 || 
+                                          page === totalPages || 
+                                          Math.abs(page - safeCurrentPage) <= 1;
+                                })
+                                .map((page, index, array) => (
+                                  <PaginationItem key={page}>
+                                    {index > 0 && array[index - 1] !== page - 1 && (
+                                      <span className="px-2 md:px-2 text-muted-foreground">...</span>
+                                    )}
+                                    <PaginationLink
+                                       onClick={() => setCurrentPage(page)}
+                                       isActive={safeCurrentPage === page}
+                                      className="h-10 touch-manipulation cursor-pointer"
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                ))}
+                            </div>
                             
                             <PaginationItem>
                               <PaginationNext 

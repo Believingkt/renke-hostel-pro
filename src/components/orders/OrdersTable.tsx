@@ -507,23 +507,23 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <Button
                       variant="outline"
                       size="default"
-                      className="flex-1 h-12 touch-manipulation gap-2"
+                      className="flex-1 h-11 touch-manipulation gap-1.5 px-2 text-sm"
                       asChild
                     >
                       <Link to={`/admin/orders/${order.id}`} state={{ from: backTo }}>
-                        <Eye className="h-5 w-5" />
-                        <span>查看詳情</span>
+                        <Eye className="h-4 w-4" />
+                        <span>詳情</span>
                       </Link>
                     </Button>
                     <Button
                       variant="outline"
                       size="default"
-                      className="flex-1 h-12 touch-manipulation gap-2"
+                      className="flex-1 h-11 touch-manipulation gap-1.5 px-2 text-sm"
                       asChild
                     >
                       <Link to={`/admin/orders/${order.id}?editing=true`} state={{ from: backTo }}>
-                        <Edit className="h-5 w-5" />
-                        <span>編輯訂單</span>
+                        <Edit className="h-4 w-4" />
+                        <span>編輯</span>
                       </Link>
                     </Button>
                   </div>
