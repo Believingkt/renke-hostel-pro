@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
           .lte("check_in_date", to),
         supabase
           .from("pricing_templates")
-          .select("room_type_id, price, weekday_price, peak_price, weekend_price, display_order")
+          .select("room_type_id, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true, nullsFirst: false }),
         supabase
