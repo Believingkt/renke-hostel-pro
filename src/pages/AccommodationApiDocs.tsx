@@ -152,6 +152,40 @@ export default function AccommodationApiDocs() {
                 <CodeBlock label="方式二：Authorization Bearer">{`Authorization: Bearer acc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`}</CodeBlock>
               </section>
 
+              {/* Version (public) */}
+              <section id="version" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/version</code>
+                      <Badge variant="outline" className="text-xs">公開</Badge>
+                    </div>
+                    <CardDescription>
+                      回傳 API 版本、建置日期、支援的端點清單與伺服器時間。<strong>不需要 API Key</strong>，可用於健康檢查、版本比對、串接前的連通性驗證。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <CodeBlock label="cURL（免 API Key）">{`curl -X GET '${BASE_URL}/version'`}</CodeBlock>
+                    <CodeBlock label="回應範例 (200)">{`{
+  "name": "accommodation-api",
+  "version": "1.1.0",
+  "build_date": "2026-07-02",
+  "runtime": "deno",
+  "endpoints": [
+    "GET /version",
+    "GET /availability",
+    "GET /room-types",
+    "GET /room-types/:id",
+    "POST /room-types"
+  ],
+  "docs_url": "https://renke-hostel-pro.lovable.app/docs/accommodation-api",
+  "server_time": "2026-07-02T12:00:00.000Z"
+}`}</CodeBlock>
+                  </CardContent>
+                </Card>
+              </section>
+
               {/* Availability */}
               <section id="availability" className="scroll-mt-24">
                 <Card>
