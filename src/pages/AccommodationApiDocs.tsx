@@ -55,13 +55,14 @@ const TOC = [
   { id: "overview", label: "1. 概述" },
   { id: "base-url", label: "2. Base URL" },
   { id: "auth", label: "3. 認證" },
-  { id: "availability", label: "4. GET /availability（查價格 + 庫存）" },
-  { id: "try-it", label: "5. Try it out（互動測試）" },
-  { id: "room-types", label: "6. GET /room-types（列全部房型）" },
-  { id: "room-type-detail", label: "7. GET /room-types/{id}" },
-  { id: "errors", label: "8. 錯誤碼表" },
-  { id: "notes", label: "9. 備註與注意事項" },
-  { id: "openapi", label: "10. OpenAPI / Swagger" },
+  { id: "version", label: "4. GET /version（公開，免 API Key）" },
+  { id: "availability", label: "5. GET /availability（查價格 + 庫存）" },
+  { id: "try-it", label: "6. Try it out（互動測試）" },
+  { id: "room-types", label: "7. GET /room-types（列全部房型）" },
+  { id: "room-type-detail", label: "8. GET /room-types/{id}" },
+  { id: "errors", label: "9. 錯誤碼表" },
+  { id: "notes", label: "10. 備註與注意事項" },
+  { id: "openapi", label: "11. OpenAPI / Swagger" },
 ];
 
 const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
