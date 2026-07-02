@@ -256,7 +256,8 @@ Deno.serve(async (req) => {
         trigger_reasons: Array.from(new Set(rows.map((r) => r.reason))),
         per_day: perDay,
         merged_messages: messages.map((m: any) => ({
-          start: m.start, end: m.end, booking_limit: m.bookingLimit,
+          kind: m.kind, start: m.start, end: m.end,
+          booking_limit: m.bookingLimit, status: m.status,
         })),
       };
 
