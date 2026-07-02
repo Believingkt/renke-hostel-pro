@@ -33,6 +33,7 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   meta_edit: { text: "行銷資訊修改", tone: "bg-purple-100 text-purple-700" },
   order_source_change: { text: "來源變更", tone: "bg-indigo-100 text-indigo-700" },
   kol_quota_override: { text: "KOL額度覆寫", tone: "bg-orange-100 text-orange-700" },
+  order_date_change: { text: "訂單改期", tone: "bg-fuchsia-100 text-fuchsia-700" },
 };
 
 function getActionLabel(details: any, action_type: string) {

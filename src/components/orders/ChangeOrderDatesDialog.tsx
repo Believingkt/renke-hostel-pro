@@ -42,10 +42,14 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     yearMonth: string;
     used: number;
     quota: number;
+    oldStatus?: { yearMonth: string; used: number; quota: number } | null;
   } | null>(null);
+
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
   const invoke = async (force: boolean) => {
     setSubmitting(true);
+    setInventoryError(null);
     try {
       const { data, error } = await supabase.functions.invoke("change-order-dates", {
         body: {
@@ -58,43 +62,50 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
         },
       });
 
-      // supabase.functions.invoke: 非 2xx 會進 error，但 body 也會回傳於 error.context 或 data
-      // 為了拿到 409 payload，直接用 fetch 更清楚
-      if (error) {
-        // 嘗試從 error 內取 body
-        let bodyJson: any = null;
+      // 從 non-2xx 抽出 body payload（invoke 會把 non-2xx 放到 error.context）
+      const extractPayload = async (): Promise<any> => {
+        if (data) return data;
         try {
-          bodyJson = await (error as any).context?.json?.();
+          const ctx: any = (error as any)?.context;
+          if (ctx?.json) return await ctx.json();
+          if (ctx?.body) {
+            const t = typeof ctx.body === "string" ? ctx.body : await new Response(ctx.body).text();
+            return JSON.parse(t);
+          }
         } catch (_) { /* ignore */ }
-        const payload = bodyJson || data;
-        if (payload?.code === "KOL_QUOTA_EXCEEDED" && payload.quota_status) {
-          setKolConfirm({
-            open: true,
-            yearMonth: payload.quota_status.year_month,
-            used: payload.quota_status.used,
-            quota: payload.quota_status.quota,
-          });
-          return;
-        }
-        toast({
-          title: "改期失敗",
-          description: payload?.message || error.message,
-          variant: "destructive",
+        return null;
+      };
+
+      const payload = await extractPayload();
+
+      if (payload?.code === "KOL_QUOTA_EXCEEDED" && payload.quota_status) {
+        setKolConfirm({
+          open: true,
+          yearMonth: payload.quota_status.year_month,
+          used: payload.quota_status.used,
+          quota: payload.quota_status.quota,
+          oldStatus: payload.old_quota_status
+            ? {
+                yearMonth: payload.old_quota_status.year_month,
+                used: payload.old_quota_status.used,
+                quota: payload.old_quota_status.quota,
+              }
+            : null,
         });
         return;
       }
 
-      if (data?.success === false) {
-        if (data.code === "KOL_QUOTA_EXCEEDED" && data.quota_status) {
-          setKolConfirm({
-            open: true,
-            yearMonth: data.quota_status.year_month,
-            used: data.quota_status.used,
-            quota: data.quota_status.quota,
-          });
-          return;
-        }
-        toast({ title: "改期失敗", description: data.message, variant: "destructive" });
+      if (payload?.code === "INVENTORY_CONFLICT") {
+        setInventoryError(payload.message || "所選日期庫存或包棟互斥條件不符");
+        return;
+      }
+
+      if (error || payload?.success === false) {
+        toast({
+          title: "改期失敗",
+          description: payload?.message || error?.message || "未知錯誤",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -147,7 +158,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 <Input
                   type="date"
                   value={newCheckIn}
-                  onChange={(e) => setNewCheckIn(e.target.value)}
+                  onChange={(e) => { setNewCheckIn(e.target.value); setInventoryError(null); }}
                 />
               </div>
               <div>
@@ -155,7 +166,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 <Input
                   type="date"
                   value={newCheckOut}
-                  onChange={(e) => setNewCheckOut(e.target.value)}
+                  onChange={(e) => { setNewCheckOut(e.target.value); setInventoryError(null); }}
                 />
               </div>
             </div>
@@ -168,6 +179,13 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 rows={2}
               />
             </div>
+            {inventoryError && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive space-y-1">
+                <div className="font-semibold">庫存 / 包棟互斥衝突</div>
+                <div className="text-xs opacity-90 whitespace-pre-wrap">{inventoryError}</div>
+                <div className="text-xs opacity-80">請調整日期後再試。</div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
@@ -186,6 +204,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
           yearMonth={kolConfirm.yearMonth}
           used={kolConfirm.used}
           quota={kolConfirm.quota}
+          oldStatus={kolConfirm.oldStatus ?? null}
           onCancel={() => setKolConfirm(null)}
           onConfirm={async () => {
             setKolConfirm(null);

@@ -119,8 +119,13 @@ serve(async (req) => {
       const oldMonth = order.check_in_date.slice(0, 7);
       const newMonth = body.newCheckIn.slice(0, 7);
       if (oldMonth !== newMonth) {
-        // 查新月份 quota
-        const [quotaRes, countRes] = await Promise.all([
+        // 同時查新月與舊月 quota / used（舊月扣掉當前訂單後的實際佔用）
+        const [
+          newQuotaRes,
+          newCountRes,
+          oldQuotaRes,
+          oldCountRes,
+        ] = await Promise.all([
           supabase
             .from("kol_reciprocal_monthly_quotas")
             .select("quota")
@@ -132,23 +137,40 @@ serve(async (req) => {
             _year_month: newMonth,
             _exclude_order_id: order.id,
           }),
+          supabase
+            .from("kol_reciprocal_monthly_quotas")
+            .select("quota")
+            .eq("accommodation_id", order.accommodation_id)
+            .eq("year_month", oldMonth)
+            .maybeSingle(),
+          supabase.rpc("count_kol_reciprocal_orders", {
+            _accommodation_id: order.accommodation_id,
+            _year_month: oldMonth,
+            _exclude_order_id: order.id,
+          }),
         ]);
-        const quota = quotaRes.data?.quota ?? null;
-        const used = (countRes.data as number | null) ?? 0;
-        if (quota != null && used + 1 > quota) {
+        const newQuota = newQuotaRes.data?.quota ?? null;
+        const newUsed = (newCountRes.data as number | null) ?? 0;
+        const oldQuota = oldQuotaRes.data?.quota ?? null;
+        const oldUsed = (oldCountRes.data as number | null) ?? 0;
+        if (newQuota != null && newUsed + 1 > newQuota) {
           if (!body.forceKolQuotaOverride) {
             return json(
               {
                 success: false,
                 code: "KOL_QUOTA_EXCEEDED",
-                message: `${newMonth} KOL 互惠額度已滿 (${used}/${quota})，需確認後強制覆寫`,
-                quota_status: { year_month: newMonth, quota, used },
+                message: `${newMonth} KOL 互惠額度已滿 (${newUsed}/${newQuota})，需確認後強制覆寫`,
+                quota_status: { year_month: newMonth, quota: newQuota, used: newUsed },
+                old_quota_status:
+                  oldQuota != null
+                    ? { year_month: oldMonth, quota: oldQuota, used: oldUsed }
+                    : null,
               },
               409,
               corsHeaders,
             );
           }
-          kolQuotaOverrideStatus = { year_month: newMonth, quota, used };
+          kolQuotaOverrideStatus = { year_month: newMonth, quota: newQuota, used: newUsed };
         }
       }
     }
