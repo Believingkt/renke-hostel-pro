@@ -8655,6 +8655,19 @@ export type Database = {
           table_name: string
         }[]
       }
+      claim_hotelnabe_ari_push_batch: {
+        Args: { _limit?: number }
+        Returns: {
+          accommodation_id: string
+          attempt_count: number
+          from_date: string
+          id: string
+          next_retry_at: string
+          reason: Database["public"]["Enums"]["hotelnabe_ari_push_reason"]
+          room_type_id: string
+          to_date: string
+        }[]
+      }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
       count_kol_reciprocal_orders: {

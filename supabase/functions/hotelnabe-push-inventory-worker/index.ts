@@ -130,16 +130,15 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1) Pull a batch of pending queue rows that are due.
-  const { data: pending, error: pErr } = await admin
-    .from("hotelnabe_ari_push_queue")
-    .select("id, accommodation_id, room_type_id, from_date, to_date, reason, attempt_count, next_retry_at")
-    .eq("status", "pending")
-    .or(`next_retry_at.is.null,next_retry_at.lte.${new Date().toISOString()}`)
-    .order("created_at", { ascending: true })
-    .limit(BATCH_LIMIT);
+  // 1) Atomically claim a batch (SELECT ... FOR UPDATE SKIP LOCKED + flip to 'sending').
+  //    This makes concurrent invocations (realtime trigger + cron) safe: each row is
+  //    claimed by exactly one worker call.
+  const { data: pending, error: pErr } = await admin.rpc(
+    "claim_hotelnabe_ari_push_batch",
+    { _limit: BATCH_LIMIT },
+  );
 
-  if (pErr) return json({ error: "queue_fetch_failed", detail: pErr.message }, 500, cors);
+  if (pErr) return json({ error: "queue_claim_failed", detail: pErr.message }, 500, cors);
   if (!pending || pending.length === 0) {
     return json({ ok: true, mode: PUSH_MODE, processed: 0 }, 200, cors);
   }
@@ -158,11 +157,9 @@ Deno.serve(async (req) => {
     const [accommodationId, roomTypeId] = key.split("::");
     const queueIds = rows.map((r) => r.id);
 
-    // Mark rows as sending (best-effort).
-    await admin
-      .from("hotelnabe_ari_push_queue")
-      .update({ status: "sending", updated_at: new Date().toISOString() })
-      .in("id", queueIds);
+    // Rows are already marked 'sending' atomically by claim_hotelnabe_ari_push_batch RPC.
+
+
 
     try {
       // 3) Gather all target dates (each row is one day since Step 2 enqueues per-day).
