@@ -71,6 +71,28 @@ Deno.serve(async (req) => {
     const fnIdx = parts.indexOf("accommodation-api");
     const route = parts.slice(fnIdx + 1); // ["room-types", ":id?"]
 
+    // ---- VERSION (public, no auth) ----
+    if (route[0] === "version" && route.length === 1) {
+      if (req.method !== "GET") {
+        return jsonResponse({ error: "Method not allowed" }, 405);
+      }
+      return jsonResponse({
+        name: "accommodation-api",
+        version: API_VERSION,
+        build_date: API_BUILD_DATE,
+        runtime: "deno",
+        endpoints: [
+          "GET /version",
+          "GET /availability",
+          "GET /room-types",
+          "GET /room-types/:id",
+          "POST /room-types",
+        ],
+        docs_url: "https://renke-hostel-pro.lovable.app/docs/accommodation-api",
+        server_time: new Date().toISOString(),
+      });
+    }
+
     const auth = await authenticate(req);
     if ("error" in auth) return auth.error;
     const { supabase, accommodationId } = auth;
