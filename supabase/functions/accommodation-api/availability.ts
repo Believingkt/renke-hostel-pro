@@ -3,12 +3,14 @@
 // 邏輯沿用：
 //   - room_inventory_pricing（pricing_template_id is null）作為每日容量/開關房/基礎房價
 //   - 缺列時容量 fallback 至 room_types.room_count、is_available 視為 true
-//   - orders + order_rooms 佔用扣房；退房日不扣（check_out_date 為離店，不占用）
-//   - 包棟互斥：任何 lock_whole_building=true 訂單 → 該日整館所有房型 remaining=0、closed=true
-//   - 包棟互斥（is_exclusive_package / is_bound_to_exclusive）：
-//       共用包棟訂單當日 → 所有共用包棟 + 綁定散客房型 closed
-//       綁定散客房訂單當日 → 對應包棟 closed
-//   - price fallback：inv.price（>0）→ pricing_templates 依 weekday/peak/weekend tier → null
+//   - orders + order_rooms 佔用扣房；退房日不扣
+//   - 包棟互斥同前
+//   - price 解算：inv.price（>0）→ shared/pricingTemplate.getTierForDate
+//     （含 room_overrides / season_segments / tier enabled；tier 不可售則 price=null）
+import {
+  getTierForDate,
+  type TemplateLike,
+} from "../_shared/pricingTemplate.ts";
 
 export interface RoomType {
   id: string;
@@ -39,12 +41,14 @@ export interface OrderRoomRow {
   room_type_id: string;
   quantity: number;
 }
-export interface TemplateRow {
+export interface TemplateRow extends TemplateLike {
   room_type_id: string | null;
   price: number | null;
   weekday_price: number | null;
   peak_price: number | null;
   weekend_price: number | null;
+  room_overrides?: unknown;
+  season_segments?: unknown;
 }
 export interface HolidayRow {
   holiday_date: string;
@@ -88,6 +92,10 @@ export function classifyDay(
   return "weekday";
 }
 
+/**
+ * 依 tier 解析範本頂層預設價（不套用 room_overrides / season_segments）。
+ * 提供給沒有指定房型的呼叫者當 fallback；正式解價請走 getTierForDate。
+ */
 export function resolveTemplatePrice(t: TemplateRow | undefined | null, tier: DayTier): number | null {
   if (!t) return null;
   const weekday = t.weekday_price ?? t.price ?? null;
@@ -95,6 +103,22 @@ export function resolveTemplatePrice(t: TemplateRow | undefined | null, tier: Da
   const peak = t.peak_price ?? t.weekday_price ?? weekend;
   const chosen = tier === "weekend" ? weekend : tier === "peak" ? peak : weekday;
   return chosen != null && chosen > 0 ? chosen : null;
+}
+
+/**
+ * 完整解價：優先套用 season_segments、room_overrides、tier enabled。
+ * 對齊 src/utils/pricingTemplateHelpers.ts + templatePriceResolver.ts。
+ */
+export function resolveTemplatePriceForDate(
+  t: TemplateRow | undefined | null,
+  roomTypeId: string,
+  dateStr: string,
+  tier: DayTier,
+): number | null {
+  if (!t) return null;
+  const info = getTierForDate(t, roomTypeId, dateStr, tier);
+  if (!info.enabled) return null;
+  return info.price != null && info.price > 0 ? info.price : null;
 }
 
 export interface ComputeInput {
@@ -233,7 +257,7 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       let price: number | null = null;
       if (!closed) {
         if (inv?.price != null && inv.price > 0) price = inv.price;
-        else price = resolveTemplatePrice(template, tier);
+        else price = resolveTemplatePriceForDate(template, rt.id, d, tier);
       }
       days.push({ date: d, remaining, price, is_available: !closed, closed });
     }
