@@ -62,7 +62,8 @@ const TOC = [
   { id: "room-type-detail", label: "8. GET /room-types/{id}" },
   { id: "errors", label: "9. 錯誤碼表" },
   { id: "notes", label: "10. 備註與注意事項" },
-  { id: "openapi", label: "11. OpenAPI / Swagger" },
+  { id: "master-key", label: "11. Platform Master Key（一次抓全部）" },
+  { id: "openapi", label: "12. OpenAPI / Swagger" },
 ];
 
 const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
