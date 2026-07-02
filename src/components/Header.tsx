@@ -128,9 +128,9 @@ export function Header() {
       <div className="flex h-16 md:h-16 items-center justify-between px-3 md:px-6 gap-2">
         <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
           <SidebarTrigger className="h-10 w-10 flex-shrink-0" />
-          {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 */}
+          {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 (手機版隱藏,避免與選擇器擠壓) */}
           {(!open || isMobile) && (
-            <div className="flex items-center gap-2 group min-w-0">
+            <div className="hidden sm:flex items-center gap-2 group min-w-0">
               <img
                 src={lokezeLogo}
                 alt="Lakeze 人客多"
@@ -151,8 +151,8 @@ export function Header() {
           )}
         </div>
         
-        <div className="flex items-center gap-1.5 md:gap-4 flex-shrink-0 min-w-0">
-          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[9rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
+        <div className="flex items-center gap-1 md:gap-4 flex-shrink-0 min-w-0">
+          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[10rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
             <AccommodationSelector />
           </div>
           
@@ -160,7 +160,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 relative touch-manipulation"
+            className="h-9 w-9 md:h-10 md:w-10 relative touch-manipulation"
             onClick={() => aliasNavigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
@@ -176,7 +176,7 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-10 px-3 md:px-4 gap-2 touch-manipulation">
+              <Button variant="ghost" className="h-9 w-9 md:h-10 md:w-auto px-0 md:px-4 gap-2 touch-manipulation">
                 <UserCircle className="h-5 w-5 flex-shrink-0" />
                 {userName && (
                   <span className="hidden md:inline-block text-sm font-medium max-w-[120px] truncate">
