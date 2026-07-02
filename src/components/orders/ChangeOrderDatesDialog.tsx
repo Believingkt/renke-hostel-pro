@@ -204,6 +204,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
           yearMonth={kolConfirm.yearMonth}
           used={kolConfirm.used}
           quota={kolConfirm.quota}
+          oldStatus={kolConfirm.oldStatus ?? null}
           onCancel={() => setKolConfirm(null)}
           onConfirm={async () => {
             setKolConfirm(null);
