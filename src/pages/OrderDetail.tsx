@@ -2728,7 +2728,21 @@ const OrderDetailPage = () => {
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">退房日期</span>
-              <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
+                {order.payment_status !== "paid" && order.order_status !== "cancelled" && (
+                  (order.order_source === "kol" || isAdminUser) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setChangeDatesOpen(true)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />改期
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
