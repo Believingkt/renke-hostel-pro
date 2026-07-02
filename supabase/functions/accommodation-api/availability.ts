@@ -9,6 +9,7 @@
 //     （含 room_overrides / season_segments / tier enabled；tier 不可售則 price=null）
 import {
   getTierForDate,
+  getMealPriceColumn,
   type TemplateLike,
 } from "../_shared/pricingTemplate.ts";
 
