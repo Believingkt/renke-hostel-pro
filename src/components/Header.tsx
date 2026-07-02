@@ -151,8 +151,8 @@ export function Header() {
           )}
         </div>
         
-        <div className="flex items-center gap-1.5 md:gap-4 flex-shrink-0 min-w-0">
-          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[9rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
+        <div className="flex items-center gap-1 md:gap-4 flex-shrink-0 min-w-0">
+          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[10rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
             <AccommodationSelector />
           </div>
           
@@ -160,7 +160,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 relative touch-manipulation"
+            className="h-9 w-9 md:h-10 md:w-10 relative touch-manipulation"
             onClick={() => aliasNavigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
