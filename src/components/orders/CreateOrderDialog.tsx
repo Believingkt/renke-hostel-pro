@@ -1604,9 +1604,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>入住日期 <span className="text-destructive">*</span></Label>
-          <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+          <Popover open={checkInOpen} onOpenChange={(open) => {
+            setCheckInOpen(open);
+            if (open) {
+              setTimeout(() => {
+                document.getElementById("create-order-check-in-trigger")?.scrollIntoView({ block: "center", behavior: "smooth" });
+              }, 20);
+            }
+          }}>
             <PopoverTrigger asChild>
               <Button
+                id="create-order-check-in-trigger"
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal h-12 sm:h-10",
@@ -1619,7 +1627,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 {form.check_in_date ? format(parseISO(form.check_in_date), "yyyy/MM/dd") : "選擇日期"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="start" side="bottom" sideOffset={8} collisionPadding={12}>
               <Calendar
                 mode="single"
                 selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
@@ -1644,9 +1652,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
         <div className="space-y-2">
           <Label>退房日期 <span className="text-destructive">*</span></Label>
-          <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+          <Popover open={checkOutOpen} onOpenChange={(open) => {
+            setCheckOutOpen(open);
+            if (open) {
+              setTimeout(() => {
+                document.getElementById("create-order-check-out-trigger")?.scrollIntoView({ block: "center", behavior: "smooth" });
+              }, 20);
+            }
+          }}>
             <PopoverTrigger asChild>
               <Button
+                id="create-order-check-out-trigger"
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal h-12 sm:h-10",
@@ -1659,7 +1675,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 {form.check_out_date ? format(parseISO(form.check_out_date), "yyyy/MM/dd") : "選擇日期"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="start" side="bottom" sideOffset={8} collisionPadding={12}>
               <Calendar
                 mode="single"
                 selected={form.check_out_date ? parseISO(form.check_out_date) : undefined}
