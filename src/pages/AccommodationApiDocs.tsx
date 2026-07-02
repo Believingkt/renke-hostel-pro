@@ -189,7 +189,87 @@ export default function AccommodationApiDocs() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Availability */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">GET</Badge>
+                  <code className="text-sm">/availability</code>
+                </div>
+                <CardDescription>查詢指定日期區間內每一天的剩餘可售房量、房價、開關房狀態</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="font-medium text-sm mb-2">Query 參數</p>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-3">參數</th>
+                          <th className="text-left p-3">型別</th>
+                          <th className="text-left p-3">必填</th>
+                          <th className="text-left p-3">說明</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        <tr><td className="p-3"><code>from</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">起始日期，格式 <code>YYYY-MM-DD</code>（含當日）</td></tr>
+                        <tr><td className="p-3"><code>to</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">結束日期，格式 <code>YYYY-MM-DD</code>（含當日）。<code>to</code> 需 ≥ <code>from</code>，區間最多 60 天</td></tr>
+                        <tr><td className="p-3"><code>room_type_id</code></td><td className="p-3">string</td><td className="p-3">否</td><td className="p-3">房型 ID，可用逗號分隔多個；未帶則回本館全部房型。不屬於本館的 ID 會被忽略</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium text-sm mb-2">cURL 範例</p>
+                  <Code>{`curl -X GET '${BASE_URL}/availability?from=2026-07-01&to=2026-07-07' \\
+  -H 'x-api-key: YOUR_API_KEY'
+
+# 指定單一或多個房型
+curl -X GET '${BASE_URL}/availability?from=2026-07-01&to=2026-07-07&room_type_id=<ID1>,<ID2>' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</Code>
+                </div>
+
+                <div>
+                  <p className="font-medium text-sm mb-2">回應範例</p>
+                  <Code>{`{
+  "accommodation_id": "uuid",
+  "from": "2026-07-01",
+  "to": "2026-07-03",
+  "currency": "TWD",
+  "room_types": [
+    {
+      "room_type_id": "uuid",
+      "name": "海景雙人房",
+      "capacity": 2,
+      "days": [
+        { "date": "2026-07-01", "remaining": 2, "price": 3800, "is_available": true,  "closed": false },
+        { "date": "2026-07-02", "remaining": 3, "price": 3800, "is_available": true,  "closed": false },
+        { "date": "2026-07-03", "remaining": 0, "price": null, "is_available": false, "closed": true  }
+      ]
+    }
+  ]
+}`}</Code>
+                </div>
+
+                <div>
+                  <p className="font-medium text-sm mb-2">欄位說明</p>
+                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                    <li><code>remaining</code>：當日剩餘可售房量；關房時為 <code>0</code>。</li>
+                    <li><code>price</code>：當日房價（TWD）；關房或未設定價格時為 <code>null</code>。</li>
+                    <li><code>is_available</code>：當日是否開放銷售。<code>closed=true</code> 時為 <code>false</code>。</li>
+                    <li><code>closed</code>：因庫存關房、整棟保留或包棟互斥而不可銷售。</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    剩餘量與房價計算沿用前台訂房與點數訂房邏輯（<code>room_inventory_pricing</code> 實值列 + <code>orders</code> 佔用扣房 + <code>pricing_templates</code> tier 解價 + 包棟互斥），退房日不列入佔用。
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </section>
+
+
 
           <section>
             <h2 className="text-lg font-semibold mb-3">錯誤碼</h2>

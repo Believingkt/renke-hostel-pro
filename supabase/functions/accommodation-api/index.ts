@@ -1,9 +1,18 @@
-// Accommodation Public API: 房型新增與查詢
+// Accommodation Public API: 房型新增與查詢 + 可售房量查詢
 // Endpoints:
 //   GET  /accommodation-api/room-types              -> 列出所有房型
 //   GET  /accommodation-api/room-types/:id          -> 查詢單一房型
 //   POST /accommodation-api/room-types              -> 新增房型（含設施與圖片）
+//   GET  /accommodation-api/availability            -> 每日剩餘房量 / 房價 / 開關房
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  ACTIVE_ORDER_STATUSES,
+  buildAvailability,
+  daysBetweenInclusive,
+  enumerateDates,
+  isValidDateStr,
+  MAX_RANGE_DAYS,
+} from "./availability.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -222,6 +231,105 @@ Deno.serve(async (req) => {
           .single();
         return jsonResponse({ data: full }, 201);
       }
+    }
+
+    // ---- AVAILABILITY ----
+    if (route[0] === "availability" && req.method === "GET" && route.length === 1) {
+      const from = url.searchParams.get("from") || "";
+      const to = url.searchParams.get("to") || "";
+      const rtParam = url.searchParams.get("room_type_id");
+
+      if (!from || !to) return jsonResponse({ error: "from and to are required (YYYY-MM-DD)" }, 400);
+      if (!isValidDateStr(from) || !isValidDateStr(to)) {
+        return jsonResponse({ error: "Invalid date format, expected YYYY-MM-DD" }, 400);
+      }
+      if (to < from) return jsonResponse({ error: "'to' must be on or after 'from'" }, 400);
+      const span = daysBetweenInclusive(from, to);
+      if (span > MAX_RANGE_DAYS) {
+        return jsonResponse({ error: `Date range exceeds ${MAX_RANGE_DAYS} days (got ${span})` }, 400);
+      }
+
+      // Fetch room types for this accommodation (optionally filtered)
+      let rtQuery = supabase
+        .from("room_types")
+        .select("id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order", { ascending: true, nullsFirst: false });
+      if (rtParam) {
+        const requested = rtParam.split(",").map((s) => s.trim()).filter(Boolean);
+        if (requested.length > 0) rtQuery = rtQuery.in("id", requested);
+      }
+      const { data: roomTypes, error: rtErr } = await rtQuery;
+      if (rtErr) return jsonResponse({ error: rtErr.message }, 500);
+      if (!roomTypes || roomTypes.length === 0) {
+        return jsonResponse({
+          accommodation_id: accommodationId,
+          from,
+          to,
+          currency: "TWD",
+          room_types: [],
+        });
+      }
+
+      const rtIds = roomTypes.map((r: any) => r.id);
+      const dates = enumerateDates(from, to);
+
+      const [invRes, ordersRes, tmplRes, holRes] = await Promise.all([
+        supabase
+          .from("room_inventory_pricing")
+          .select("room_type_id, date, price, available_rooms, is_available")
+          .in("room_type_id", rtIds)
+          .is("pricing_template_id", null)
+          .gte("date", from)
+          .lte("date", to),
+        supabase
+          .from("orders")
+          .select("id, room_type_id, check_in_date, check_out_date, order_status, lock_whole_building")
+          .eq("accommodation_id", accommodationId)
+          .in("order_status", ACTIVE_ORDER_STATUSES)
+          .gt("check_out_date", from)
+          .lte("check_in_date", to),
+        supabase
+          .from("pricing_templates")
+          .select("room_type_id, price, weekday_price, peak_price, weekend_price, display_order")
+          .eq("accommodation_id", accommodationId)
+          .order("display_order", { ascending: true, nullsFirst: false }),
+        supabase
+          .from("public_holidays")
+          .select("holiday_date, holiday_type")
+          .eq("accommodation_id", accommodationId)
+          .gte("holiday_date", dates[0])
+          .lte("holiday_date", dates[dates.length - 1]),
+      ]);
+
+      let orderRoomsData: any[] = [];
+      const orderIds = (ordersRes.data || []).map((o: any) => o.id);
+      if (orderIds.length > 0) {
+        const { data: orRows } = await supabase
+          .from("order_rooms")
+          .select("order_id, room_type_id, quantity")
+          .in("order_id", orderIds);
+        orderRoomsData = orRows || [];
+      }
+
+      const result = buildAvailability({
+        from,
+        to,
+        roomTypes: roomTypes as any,
+        inventory: (invRes.data || []) as any,
+        orders: (ordersRes.data || []) as any,
+        orderRooms: orderRoomsData as any,
+        templates: (tmplRes.data || []) as any,
+        holidays: (holRes.data || []) as any,
+      });
+
+      return jsonResponse({
+        accommodation_id: accommodationId,
+        from,
+        to,
+        currency: "TWD",
+        room_types: result,
+      });
     }
 
     return jsonResponse({ error: "Not found" }, 404);
