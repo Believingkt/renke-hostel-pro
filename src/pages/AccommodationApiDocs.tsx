@@ -233,6 +233,21 @@ export default function AccommodationApiDocs() {
                 </Card>
               </section>
 
+              {/* Try it out */}
+              <section id="try-it" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" />Try it out — 互動測試 /availability</CardTitle>
+                    <CardDescription>
+                      直接在瀏覽器呼叫正式 API。輸入你的 API Key、選日期，一鍵送出即可看到真實回應與耗時。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AvailabilityTryIt />
+                  </CardContent>
+                </Card>
+              </section>
+
               {/* Room types list */}
               <section id="room-types" className="scroll-mt-24">
                 <Card>
