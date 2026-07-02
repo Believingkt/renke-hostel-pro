@@ -3579,6 +3579,7 @@ const OrderDetailPage = () => {
             payment_status: order.payment_status,
             check_in_date: order.check_in_date,
             check_out_date: order.check_out_date,
+            accommodation_id: order.accommodation_id,
           }}
           mode={order.order_source === "kol" ? "kol" : "general"}
           onSuccess={fetchOrder}
