@@ -40,6 +40,7 @@ import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import {
   AlertDialog,
   AlertDialogAction,
