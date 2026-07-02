@@ -158,7 +158,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 <Input
                   type="date"
                   value={newCheckIn}
-                  onChange={(e) => setNewCheckIn(e.target.value)}
+                  onChange={(e) => { setNewCheckIn(e.target.value); setInventoryError(null); }}
                 />
               </div>
               <div>
@@ -166,7 +166,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 <Input
                   type="date"
                   value={newCheckOut}
-                  onChange={(e) => setNewCheckOut(e.target.value)}
+                  onChange={(e) => { setNewCheckOut(e.target.value); setInventoryError(null); }}
                 />
               </div>
             </div>
