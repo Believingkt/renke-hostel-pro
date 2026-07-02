@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AvailabilityTryIt } from "@/components/docs/AvailabilityTryIt";
 
 const BASE_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/accommodation-api";
 
