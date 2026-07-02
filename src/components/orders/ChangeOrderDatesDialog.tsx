@@ -170,7 +170,13 @@ function InventoryDatePicker({
           {value ? format(parseISO(value), "yyyy/MM/dd (EEE)", { locale: zhTW }) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+      <PopoverContent
+        className="w-auto p-0 pointer-events-auto z-50"
+        align="start"
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={12}
+      >
         <div className="relative">
           {loading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
@@ -182,6 +188,7 @@ function InventoryDatePicker({
             selected={selected}
             month={month}
             onMonthChange={setMonth}
+            showOutsideDays={false}
             onSelect={(d) => {
               if (!d) return;
               onChange(formatISO(d, { representation: "date" }));
@@ -197,7 +204,11 @@ function InventoryDatePicker({
               return false;
             }}
             locale={zhTW}
-            className="p-3 pointer-events-auto"
+            className="p-3 pointer-events-auto [&_table]:w-full [&_.rdp-cell]:p-0.5 [&_.rdp-head_cell]:w-11"
+            classNames={{
+              day: "h-11 w-11 p-0 font-normal aria-selected:opacity-100",
+              day_selected: "ring-2 ring-primary ring-offset-1",
+            }}
             components={{
               DayContent: ({ date }) => {
                 const key = formatISO(date, { representation: "date" });
@@ -206,13 +217,13 @@ function InventoryDatePicker({
                 return (
                   <div
                     className={cn(
-                      "flex h-9 w-9 flex-col items-center justify-center rounded-md text-xs",
+                      "flex h-10 w-10 flex-col items-center justify-center rounded-md text-xs",
                       toneClass(cap, isPast),
                     )}
                   >
-                    <span className="leading-none font-medium">{date.getDate()}</span>
+                    <span className="leading-none font-medium text-[13px]">{date.getDate()}</span>
                     {!isPast && cap && cap.total > 0 && (
-                      <span className="text-[9px] mt-0.5 tabular-nums leading-none">
+                      <span className="text-[10px] mt-0.5 tabular-nums leading-none opacity-80">
                         {cap.available <= 0 ? "滿" : cap.total >= 2 ? `${cap.available}/${cap.total}` : "可"}
                       </span>
                     )}
@@ -387,7 +398,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>訂單改期 ({mode === "kol" ? "KOL 互惠單" : "一般單"})</DialogTitle>
             <DialogDescription>
