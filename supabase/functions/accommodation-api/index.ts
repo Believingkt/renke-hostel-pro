@@ -1,9 +1,13 @@
 // Accommodation Public API: 房型新增與查詢 + 可售房量查詢
 // Endpoints:
+//   GET  /accommodation-api/version                 -> 服務版本資訊（公開，免 API Key）
 //   GET  /accommodation-api/room-types              -> 列出所有房型
 //   GET  /accommodation-api/room-types/:id          -> 查詢單一房型
 //   POST /accommodation-api/room-types              -> 新增房型（含設施與圖片）
 //   GET  /accommodation-api/availability            -> 每日剩餘房量 / 房價 / 開關房
+
+const API_VERSION = "1.1.0";
+const API_BUILD_DATE = "2026-07-02";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   ACTIVE_ORDER_STATUSES,
