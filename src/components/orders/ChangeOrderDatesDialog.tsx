@@ -179,6 +179,13 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
                 rows={2}
               />
             </div>
+            {inventoryError && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive space-y-1">
+                <div className="font-semibold">庫存 / 包棟互斥衝突</div>
+                <div className="text-xs opacity-90 whitespace-pre-wrap">{inventoryError}</div>
+                <div className="text-xs opacity-80">請調整日期後再試。</div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
