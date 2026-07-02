@@ -5,6 +5,14 @@
 //   POST /accommodation-api/room-types              -> 新增房型（含設施與圖片）
 //   GET  /accommodation-api/availability            -> 每日剩餘房量 / 房價 / 開關房
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  ACTIVE_ORDER_STATUSES,
+  buildAvailability,
+  daysBetweenInclusive,
+  enumerateDates,
+  isValidDateStr,
+  MAX_RANGE_DAYS,
+} from "./availability.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
