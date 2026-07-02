@@ -59,7 +59,11 @@ const TOC = [
   { id: "room-type-detail", label: "6. GET /room-types/{id}" },
   { id: "errors", label: "7. 錯誤碼表" },
   { id: "notes", label: "8. 備註與注意事項" },
+  { id: "openapi", label: "9. OpenAPI / Swagger" },
 ];
+
+const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
+const SWAGGER_UI_URL = "/docs/accommodation-api-swagger.html";
 
 export default function AccommodationApiDocs() {
   return (
