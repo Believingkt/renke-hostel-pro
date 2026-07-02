@@ -92,6 +92,10 @@ export function classifyDay(
   return "weekday";
 }
 
+/**
+ * 依 tier 解析範本頂層預設價（不套用 room_overrides / season_segments）。
+ * 提供給沒有指定房型的呼叫者當 fallback；正式解價請走 getTierForDate。
+ */
 export function resolveTemplatePrice(t: TemplateRow | undefined | null, tier: DayTier): number | null {
   if (!t) return null;
   const weekday = t.weekday_price ?? t.price ?? null;
@@ -99,6 +103,26 @@ export function resolveTemplatePrice(t: TemplateRow | undefined | null, tier: Da
   const peak = t.peak_price ?? t.weekday_price ?? weekend;
   const chosen = tier === "weekend" ? weekend : tier === "peak" ? peak : weekday;
   return chosen != null && chosen > 0 ? chosen : null;
+}
+
+/**
+ * 完整解價：優先套用 season_segments、room_overrides、tier enabled。
+ * 對齊 src/utils/pricingTemplateHelpers.ts 的 getTierForDate。
+ */
+export function resolveTemplatePriceForDate(
+  t: TemplateRow | undefined | null,
+  roomTypeId: string,
+  dateStr: string,
+  tier: DayTier,
+): number | null {
+  if (!t) return null;
+  const info = getTierForDate(t, roomTypeId, dateStr, tier);
+  if (!info.enabled) return null;
+  const p = info.price;
+  if (p != null && p > 0) return p;
+  // segments/override 有明確給值但為 0/null 時，才 fallback 到頂層預設
+  // (只在非 segments 模式；segments 模式下若 segment 無值就當作未提供價)
+  return resolveTemplatePrice(t, tier);
 }
 
 export interface ComputeInput {
