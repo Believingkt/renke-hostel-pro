@@ -72,7 +72,7 @@ export default function AccommodationApiDocs() {
   return (
     <>
       <SEOHead
-        title="民宿房型 API 開放文件 | Accommodation API"
+        title="民宿庫存 API | Accommodation Inventory API"
         description="供外部系統（Bot、Channel Manager、旅遊平台）串接民宿房型、房價、庫存的公開 API 文件。"
       />
       <div className="min-h-screen bg-background">
@@ -84,8 +84,8 @@ export default function AccommodationApiDocs() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">民宿 API — 公開文件</h1>
-              <p className="text-sm text-muted-foreground">Accommodation API · Public Reference</p>
+              <h1 className="text-xl font-bold">民宿庫存 API</h1>
+              <p className="text-sm text-muted-foreground">Accommodation Inventory API</p>
             </div>
           </div>
         </header>
