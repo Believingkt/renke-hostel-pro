@@ -11,7 +11,7 @@ import {
   isTierSellable,
   hasSegments,
   getTierForDate,
-} from "./pricingTemplateHelpers";
+} from "./pricingTemplateHelpers.ts";
 
 export interface PricingTemplateLite {
   id: string;
