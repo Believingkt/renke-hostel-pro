@@ -3,12 +3,14 @@
 // 邏輯沿用：
 //   - room_inventory_pricing（pricing_template_id is null）作為每日容量/開關房/基礎房價
 //   - 缺列時容量 fallback 至 room_types.room_count、is_available 視為 true
-//   - orders + order_rooms 佔用扣房；退房日不扣（check_out_date 為離店，不占用）
-//   - 包棟互斥：任何 lock_whole_building=true 訂單 → 該日整館所有房型 remaining=0、closed=true
-//   - 包棟互斥（is_exclusive_package / is_bound_to_exclusive）：
-//       共用包棟訂單當日 → 所有共用包棟 + 綁定散客房型 closed
-//       綁定散客房訂單當日 → 對應包棟 closed
-//   - price fallback：inv.price（>0）→ pricing_templates 依 weekday/peak/weekend tier → null
+//   - orders + order_rooms 佔用扣房；退房日不扣
+//   - 包棟互斥同前
+//   - price 解算：inv.price（>0）→ shared/pricingTemplate.getTierForDate
+//     （含 room_overrides / season_segments / tier enabled；tier 不可售則 price=null）
+import {
+  getTierForDate,
+  type TemplateLike,
+} from "../_shared/pricingTemplate.ts";
 
 export interface RoomType {
   id: string;
