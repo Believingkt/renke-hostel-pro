@@ -90,6 +90,8 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "payment-test",
   "team",
   "team-auth",
+  "docs",
+  "api-docs",
   "__cb",
   "privacy",
   "data-deletion",
