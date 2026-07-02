@@ -304,11 +304,13 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
 
   const { data: templates } = await supabase
     .from("pricing_templates")
-    .select("id,template_name,room_type_id,numeric_code")
+    .select("id,template_name,room_type_id,numeric_code,default_package_id")
     .eq("accommodation_id", auth.accommodationId);
 
-  // Non-grouped RatePlan source: accommodation_packages (aligned with
-  // owlting-order-push so AvailRS-published RatePlanCode == push RatePlanCode).
+  // Non-grouped RatePlan source: UNION of (a) accommodation_packages containing
+  // this room_type in room_type_ids and (b) pricing_templates.default_package_id
+  // → accommodation_packages. Deduped by package.id. RatePlanCode is ALWAYS the
+  // resolved packages.numeric_code (aligned with owlting-order-push).
   const { data: pkgs } = await supabase
     .from("accommodation_packages")
     .select("id,name,numeric_code,room_type_ids,enabled,display_order")
