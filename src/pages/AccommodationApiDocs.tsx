@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AvailabilityTryIt } from "@/components/docs/AvailabilityTryIt";
 
 const BASE_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/accommodation-api";
 
@@ -55,11 +56,12 @@ const TOC = [
   { id: "base-url", label: "2. Base URL" },
   { id: "auth", label: "3. 認證" },
   { id: "availability", label: "4. GET /availability（查價格 + 庫存）" },
-  { id: "room-types", label: "5. GET /room-types（列全部房型）" },
-  { id: "room-type-detail", label: "6. GET /room-types/{id}" },
-  { id: "errors", label: "7. 錯誤碼表" },
-  { id: "notes", label: "8. 備註與注意事項" },
-  { id: "openapi", label: "9. OpenAPI / Swagger" },
+  { id: "try-it", label: "5. Try it out（互動測試）" },
+  { id: "room-types", label: "6. GET /room-types（列全部房型）" },
+  { id: "room-type-detail", label: "7. GET /room-types/{id}" },
+  { id: "errors", label: "8. 錯誤碼表" },
+  { id: "notes", label: "9. 備註與注意事項" },
+  { id: "openapi", label: "10. OpenAPI / Swagger" },
 ];
 
 const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
@@ -227,6 +229,21 @@ export default function AccommodationApiDocs() {
                       <p className="font-medium mb-1">✅ 判斷「這一晚可訂」</p>
                       <code className="text-xs">closed === false &amp;&amp; remaining &gt; 0 &amp;&amp; price !== null</code>
                     </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Try it out */}
+              <section id="try-it" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" />Try it out — 互動測試 /availability</CardTitle>
+                    <CardDescription>
+                      直接在瀏覽器呼叫正式 API。輸入你的 API Key、選日期，一鍵送出即可看到真實回應與耗時。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AvailabilityTryIt />
                   </CardContent>
                 </Card>
               </section>
