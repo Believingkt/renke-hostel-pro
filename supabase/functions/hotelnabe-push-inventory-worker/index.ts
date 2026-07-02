@@ -157,11 +157,9 @@ Deno.serve(async (req) => {
     const [accommodationId, roomTypeId] = key.split("::");
     const queueIds = rows.map((r) => r.id);
 
-    // Mark rows as sending (best-effort).
-    await admin
-      .from("hotelnabe_ari_push_queue")
-      .update({ status: "sending", updated_at: new Date().toISOString() })
-      .in("id", queueIds);
+    // Rows are already marked 'sending' atomically by claim_hotelnabe_ari_push_batch RPC.
+
+
 
     try {
       // 3) Gather all target dates (each row is one day since Step 2 enqueues per-day).
