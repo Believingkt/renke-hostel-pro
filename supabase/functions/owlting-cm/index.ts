@@ -377,9 +377,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       continue;
     }
 
-    // Non-grouped room_type: RatePlans sourced from accommodation_packages
-    // (RatePlanCode = packages.numeric_code, aligning with owlting-order-push).
-    const plans = buildRatePlansForRoomType(r.id, (pkgs ?? []) as any);
+    // Non-grouped room_type: RatePlans = union of (a) packages + (b) templates
+    // resolved via default_package_id. RatePlanCode = packages.numeric_code.
+    const plans = buildRatePlansForRoomType(r.id, (pkgs ?? []) as any, (templates ?? []) as any);
     const planXml = plans.map((p) =>
       `<RatePlan RatePlanCode="${p.code}"><RatePlanDescription Name="${xmlEscape(p.name)}"/></RatePlan>`,
     ).join("");
