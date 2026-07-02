@@ -261,7 +261,16 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       const tier = classifyDay(d, holidaySet, workOnWeekendSet);
       let price: number | null = null;
       if (!closed) {
-        if (inv?.price != null && inv.price > 0) price = inv.price;
+        // Base row 依模板名稱挑餐型欄位（getMealPriceColumn），fallback 至 inv.price。
+        const mealCol = getMealPriceColumn(template);
+        const invMealPrice = inv ? (inv as any)[mealCol] : null;
+        const invEffective =
+          invMealPrice != null && invMealPrice > 0
+            ? invMealPrice
+            : inv?.price != null && inv.price > 0
+              ? inv.price
+              : null;
+        if (invEffective != null) price = invEffective;
         else price = resolveTemplatePriceForDate(template, rt.id, d, tier);
       }
       days.push({ date: d, remaining, price, is_available: !closed, closed });
