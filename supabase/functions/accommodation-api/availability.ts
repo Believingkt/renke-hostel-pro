@@ -26,6 +26,8 @@ export interface InvRow {
   room_type_id: string;
   date: string;
   price: number | null;
+  price_2_meals?: number | null;
+  price_3_meals?: number | null;
   available_rooms: number | null;
   is_available: boolean | null;
 }
@@ -44,6 +46,8 @@ export interface OrderRoomRow {
 }
 export interface TemplateRow extends TemplateLike {
   room_type_id: string | null;
+  template_name?: string | null;
+  project_name?: string | null;
   price: number | null;
   weekday_price: number | null;
   peak_price: number | null;
