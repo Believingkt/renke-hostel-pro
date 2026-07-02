@@ -36,6 +36,7 @@ function Calendar({ className, classNames, showOutsideDays = true, variant = "ba
   
   return (
     <DayPicker
+      locale={props.locale ?? zhTW}
       showOutsideDays={showOutsideDays}
       className={cn("p-3 bg-popover pointer-events-auto", className)}
       classNames={{
