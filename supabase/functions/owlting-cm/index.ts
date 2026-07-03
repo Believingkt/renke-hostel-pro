@@ -470,6 +470,11 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   // every member room_type ("sell-one, close-all").
   const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
 
+  // Per-room-type OwlTing sync exclusions — inbound push targeting an
+  // excluded room_type is silently ignored (defensive; the room shouldn't
+  // appear in AvailRS in the first place).
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
+
   // Batch buffers.
   // IMPORTANT: rows MUST NOT carry a `price` field — availability push must
   // not overwrite prices. The RPC only updates fields explicitly present.
@@ -487,7 +492,10 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
       await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", `RoomType ${p.invCode} not found`);
       return r;
     }
+    // Skip room_types excluded from OwlTing sync.
+    if (excludedRoomTypeIds.has(room.id)) continue;
     const dates = dateRange(p.start, p.end);
+
 
     if (p.ratePlanCode) {
       const plan = planMap.get(p.ratePlanCode);
