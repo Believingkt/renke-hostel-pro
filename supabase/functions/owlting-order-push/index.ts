@@ -292,7 +292,7 @@ async function processRow(
   // Build OwlOrderInput + mapping audit
   const stays = [];
   const mappingAudit: any[] = [];
-  for (const s of stayInputs) {
+  for (const s of filteredStayInputs) {
     const rt = s.room_type_id ? rtMap.get(s.room_type_id) : undefined;
     const mapped = mapOutboundStay(
       {
