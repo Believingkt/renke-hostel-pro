@@ -588,6 +588,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   // row our pricing engine reads.
   const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
 
+  // Per-room-type OwlTing sync exclusions — inbound rate push targeting an
+  // excluded room_type is silently ignored.
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
+
   // IMPORTANT: rows MUST carry only `price` — never `available_rooms` /
   // `is_available`. Price push must not initialise/overwrite inventory.
   // When the RPC inserts a brand-new template-specific row, it leaves
@@ -601,6 +605,8 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
       await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
       return r;
     }
+    if (excludedRoomTypeIds.has(room.id)) continue;
+
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
     const matchTemplateId = plan?.id ?? null;
 
