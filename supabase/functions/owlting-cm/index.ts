@@ -227,6 +227,26 @@ export async function loadGroupContext(supabase: any, accommodationId: string): 
   return ctx;
 }
 
+/**
+ * Load per-room-type OwlTing sync exclusions.
+ * Returns a Set of room_type_id where sync_enabled = false.
+ * Rooms in this set MUST NOT appear in AvailRS output, and inbound
+ * pushes (AvailNotif / RateAmount) that target them MUST be ignored.
+ */
+export async function loadExcludedRoomTypeIds(
+  supabase: any,
+  accommodationId: string,
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  const { data } = await supabase
+    .from("owlting_room_type_sync")
+    .select("room_type_id, sync_enabled")
+    .eq("accommodation_id", accommodationId)
+    .eq("sync_enabled", false);
+  for (const r of (data ?? []) as any[]) out.add(r.room_type_id);
+  return out;
+}
+
 async function logCm(
   supabase: any,
   direction: "inbound" | "outbound",
@@ -253,12 +273,16 @@ async function logCm(
 // ============== Auth ==============
 type AuthOverride = { accommodationId: string; hotelCode: string } | null;
 
+type AuthResult =
+  | { ok: true; accommodationId: string; hotelCode: string; msg?: undefined }
+  | { ok: false; msg: string; accommodationId?: undefined; hotelCode?: undefined };
+
 async function authenticate(
   supabase: any,
   xml: string,
   hotelCode: string | null,
   override?: AuthOverride,
-) {
+): Promise<AuthResult> {
   if (override) {
     if (hotelCode && override.hotelCode !== hotelCode) {
       return { ok: false, msg: `HotelCode ${hotelCode} does not match override` };
@@ -316,6 +340,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     .select("id,name,numeric_code,room_type_ids,enabled,display_order")
     .eq("accommodation_id", auth.accommodationId);
 
+  // Per-room-type OwlTing sync exclusions (sync_enabled = false).
+  // Excluded room_types must NOT appear in AvailRS (no RoomStay, no RatePlan).
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
 
   // ----- Package-group consolidation -----
   // Load owlting room-type group config (if any). When a group exists,
@@ -353,6 +380,7 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     groupPlans.set(m.group_id, arr);
   }
 
+
   const emittedGroupIds = new Set<string>();
   const stayParts: string[] = [];
 
@@ -365,6 +393,8 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       if (!g) continue;
       const canonical = roomById.get(g.canonical_room_type_id);
       if (!canonical) continue;
+      // If canonical (or its underlying group) is excluded, skip the whole group.
+      if (excludedRoomTypeIds.has(canonical.id)) { emittedGroupIds.add(groupId); continue; }
       const plans = groupPlans.get(groupId) ?? [];
       const planXml = plans.map(({ tpl, name }) =>
         `<RatePlan RatePlanCode="${tpl.numeric_code}"><RatePlanDescription Name="${xmlEscape(name)}"/></RatePlan>`,
@@ -377,6 +407,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       continue;
     }
 
+    // Per-room-type sync toggle: skip room_types marked sync_enabled=false.
+    if (excludedRoomTypeIds.has(r.id)) continue;
+
     // Non-grouped room_type: RatePlans = union of (a) packages + (b) templates
     // resolved via default_package_id. RatePlanCode = packages.numeric_code.
     const plans = buildRatePlansForRoomType(r.id, (pkgs ?? []) as any, (templates ?? []) as any);
@@ -388,6 +421,7 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       <RatePlans>${planXml}</RatePlans>
     </RoomStay>`);
   }
+
 
   const stays = stayParts.join("");
 
@@ -440,6 +474,11 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   // every member room_type ("sell-one, close-all").
   const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
 
+  // Per-room-type OwlTing sync exclusions — inbound push targeting an
+  // excluded room_type is silently ignored (defensive; the room shouldn't
+  // appear in AvailRS in the first place).
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
+
   // Batch buffers.
   // IMPORTANT: rows MUST NOT carry a `price` field — availability push must
   // not overwrite prices. The RPC only updates fields explicitly present.
@@ -457,7 +496,10 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
       await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", `RoomType ${p.invCode} not found`);
       return r;
     }
+    // Skip room_types excluded from OwlTing sync.
+    if (excludedRoomTypeIds.has(room.id)) continue;
     const dates = dateRange(p.start, p.end);
+
 
     if (p.ratePlanCode) {
       const plan = planMap.get(p.ratePlanCode);
@@ -550,6 +592,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   // row our pricing engine reads.
   const groupCtx = await loadGroupContext(supabase, auth.accommodationId!);
 
+  // Per-room-type OwlTing sync exclusions — inbound rate push targeting an
+  // excluded room_type is silently ignored.
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
+
   // IMPORTANT: rows MUST carry only `price` — never `available_rooms` /
   // `is_available`. Price push must not initialise/overwrite inventory.
   // When the RPC inserts a brand-new template-specific row, it leaves
@@ -563,6 +609,8 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
       await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
       return r;
     }
+    if (excludedRoomTypeIds.has(room.id)) continue;
+
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
     const matchTemplateId = plan?.id ?? null;
 

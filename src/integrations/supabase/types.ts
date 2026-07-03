@@ -6110,6 +6110,48 @@ export type Database = {
           },
         ]
       }
+      owlting_room_type_sync: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          room_type_id: string
+          sync_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          room_type_id: string
+          sync_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          room_type_id?: string
+          sync_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_room_type_sync_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_room_type_sync_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owlting_service_accounts: {
         Row: {
           created_at: string
