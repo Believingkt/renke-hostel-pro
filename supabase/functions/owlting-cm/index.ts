@@ -238,11 +238,14 @@ export async function loadExcludedRoomTypeIds(
   accommodationId: string,
 ): Promise<Set<string>> {
   const out = new Set<string>();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("owlting_room_type_sync")
     .select("room_type_id, sync_enabled")
     .eq("accommodation_id", accommodationId)
     .eq("sync_enabled", false);
+  if (error) {
+    throw new Error(`Failed to load OwlTing room sync exclusions: ${error.message ?? String(error)}`);
+  }
   for (const r of (data ?? []) as any[]) out.add(r.room_type_id);
   return out;
 }
@@ -315,7 +318,7 @@ async function authenticate(
 
 // ============== Handlers ==============
 
-async function handleAvailRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
+export async function handleAvailRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "HotelRef", "HotelCode");
   const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelAvailRS", echo, auth.msg);
