@@ -369,6 +369,8 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       if (!g) continue;
       const canonical = roomById.get(g.canonical_room_type_id);
       if (!canonical) continue;
+      // If canonical (or its underlying group) is excluded, skip the whole group.
+      if (excludedRoomTypeIds.has(canonical.id)) { emittedGroupIds.add(groupId); continue; }
       const plans = groupPlans.get(groupId) ?? [];
       const planXml = plans.map(({ tpl, name }) =>
         `<RatePlan RatePlanCode="${tpl.numeric_code}"><RatePlanDescription Name="${xmlEscape(name)}"/></RatePlan>`,
@@ -381,6 +383,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       continue;
     }
 
+    // Per-room-type sync toggle: skip room_types marked sync_enabled=false.
+    if (excludedRoomTypeIds.has(r.id)) continue;
+
     // Non-grouped room_type: RatePlans = union of (a) packages + (b) templates
     // resolved via default_package_id. RatePlanCode = packages.numeric_code.
     const plans = buildRatePlansForRoomType(r.id, (pkgs ?? []) as any, (templates ?? []) as any);
@@ -392,6 +397,7 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
       <RatePlans>${planXml}</RatePlans>
     </RoomStay>`);
   }
+
 
   const stays = stayParts.join("");
 
