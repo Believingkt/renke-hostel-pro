@@ -316,6 +316,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     .select("id,name,numeric_code,room_type_ids,enabled,display_order")
     .eq("accommodation_id", auth.accommodationId);
 
+  // Per-room-type OwlTing sync exclusions (sync_enabled = false).
+  // Excluded room_types must NOT appear in AvailRS (no RoomStay, no RatePlan).
+  const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
 
   // ----- Package-group consolidation -----
   // Load owlting room-type group config (if any). When a group exists,
@@ -352,6 +355,7 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
     arr.push({ tpl, name: m.rate_plan_name });
     groupPlans.set(m.group_id, arr);
   }
+
 
   const emittedGroupIds = new Set<string>();
   const stayParts: string[] = [];
