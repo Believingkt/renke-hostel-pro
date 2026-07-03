@@ -273,12 +273,16 @@ async function logCm(
 // ============== Auth ==============
 type AuthOverride = { accommodationId: string; hotelCode: string } | null;
 
+type AuthResult =
+  | { ok: true; accommodationId: string; hotelCode: string; msg?: undefined }
+  | { ok: false; msg: string; accommodationId?: undefined; hotelCode?: undefined };
+
 async function authenticate(
   supabase: any,
   xml: string,
   hotelCode: string | null,
   override?: AuthOverride,
-) {
+): Promise<AuthResult> {
   if (override) {
     if (hotelCode && override.hotelCode !== hotelCode) {
       return { ok: false, msg: `HotelCode ${hotelCode} does not match override` };
