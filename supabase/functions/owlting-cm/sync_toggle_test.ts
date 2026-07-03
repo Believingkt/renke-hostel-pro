@@ -6,8 +6,8 @@
 //  - SENSAN group canonical (1001) is NOT excluded → group stays intact
 //  - Yunxiu (no exclusions) regression: nothing filtered out
 
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { loadExcludedRoomTypeIds } from "./index.ts";
+import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { handleAvailRQ, loadExcludedRoomTypeIds } from "./index.ts";
 
 // Minimal supabase mock: only supports .from().select().eq().eq() chain used by loader.
 function mockSupabase(rows: { room_type_id: string; sync_enabled: boolean }[]) {
@@ -82,6 +82,73 @@ Deno.test("AvailRS filter — SENSAN 1002/1003 excluded, 1001/1004/1005/1006 kep
   const kept = filterRoomsForAvailRS(sensanRooms, excluded);
   const codes = kept.map((r) => r.numeric_code).sort();
   assertEquals(codes, [1001, 1004, 1005, 1006]);
+});
+
+Deno.test("handleAvailRQ — excluded SENSAN room types are absent from actual AvailRS RoomStays", async () => {
+  const rowsByTable: Record<string, any[]> = {
+    room_types: [
+      { id: "rt-1001", numeric_code: 1001, name: "包區", accommodation_id: "acc-sensan", display_order: 1 },
+      { id: "rt-1002", numeric_code: 1002, name: "雙人房", accommodation_id: "acc-sensan", display_order: 2 },
+      { id: "rt-1003", numeric_code: 1003, name: "四人房", accommodation_id: "acc-sensan", display_order: 3 },
+    ],
+    pricing_templates: [
+      { id: "tpl-1001", template_name: "18 人包區", room_type_id: "rt-1001", numeric_code: 2001, default_package_id: "pkg-1001", accommodation_id: "acc-sensan" },
+    ],
+    accommodation_packages: [
+      { id: "pkg-1001", name: "18 人包區", numeric_code: 3001, room_type_ids: ["rt-1001"], enabled: true, display_order: 1, accommodation_id: "acc-sensan" },
+    ],
+    owlting_room_type_sync: [
+      { accommodation_id: "acc-sensan", room_type_id: "rt-1002", sync_enabled: false },
+      { accommodation_id: "acc-sensan", room_type_id: "rt-1003", sync_enabled: false },
+    ],
+    owlting_room_type_groups: [
+      { id: "group-sensan", canonical_room_type_id: "rt-1001", canonical_name: "包區", display_order: 1, accommodation_id: "acc-sensan" },
+    ],
+    owlting_room_type_group_members: [
+      { group_id: "group-sensan", room_type_id: "rt-1001", rate_plan_template_id: "tpl-1001", rate_plan_name: "18 人包區", display_order: 1 },
+    ],
+    owlting_cm_logs: [],
+  };
+
+  const supabase = {
+    from(table: string) {
+      const chain: any = {
+        _rows: [...(rowsByTable[table] ?? [])],
+        select(_columns: string) { return chain; },
+        eq(column: string, value: any) {
+          chain._rows = chain._rows.filter((row: any) => row[column] === value);
+          return chain;
+        },
+        in(column: string, values: any[]) {
+          chain._rows = chain._rows.filter((row: any) => values.includes(row[column]));
+          return chain;
+        },
+        order(column: string, options?: { ascending?: boolean }) {
+          const direction = options?.ascending === false ? -1 : 1;
+          chain._rows.sort((a: any, b: any) => ((a[column] ?? 0) - (b[column] ?? 0)) * direction);
+          return chain;
+        },
+        insert(row: any) {
+          rowsByTable[table] = [...(rowsByTable[table] ?? []), row];
+          return Promise.resolve({ data: row, error: null });
+        },
+        then(resolve: (value: any) => void) { resolve({ data: chain._rows, error: null }); },
+      };
+      return chain;
+    },
+  };
+
+  const xml = `<OTA_HotelAvailRQ EchoToken="sync-toggle-test"><HotelRef HotelCode="SENSAN"/></OTA_HotelAvailRQ>`;
+  const response = await handleAvailRQ(supabase as any, xml, "sync-toggle-test", {
+    accommodationId: "acc-sensan",
+    hotelCode: "SENSAN",
+  });
+  const body = await response.text();
+
+  assertStringIncludes(body, `RoomTypeCode="1001"`);
+  assertEquals(body.includes(`RoomTypeCode="1002"`), false);
+  assertEquals(body.includes(`RoomTypeCode="1003"`), false);
+  assertEquals((body.match(/<RoomStay>/g) ?? []).length, 1);
 });
 
 Deno.test("AvailRS filter — Yunxiu regression: no exclusions, all rooms kept", () => {
