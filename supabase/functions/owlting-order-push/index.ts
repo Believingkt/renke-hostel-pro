@@ -216,8 +216,32 @@ async function processRow(
     return { id: row.id, outcome: "failed", reason: "no rooms" };
   }
 
+  // Per-room-type OwlTing sync exclusions (owlting_room_type_sync.sync_enabled=false).
+  // Excluded room_types are stripped from the outbound push. If every stay is
+  // excluded, the whole reservation is skipped (marked queue as 'skipped').
+  const { data: excludedRows } = await admin
+    .from("owlting_room_type_sync")
+    .select("room_type_id")
+    .eq("accommodation_id", order.accommodation_id)
+    .eq("sync_enabled", false);
+  const excludedRoomTypeIds = new Set<string>((excludedRows ?? []).map((r: any) => r.room_type_id));
+
+  const filteredStayInputs = stayInputs.filter((s) => !excludedRoomTypeIds.has(s.room_type_id));
+  if (filteredStayInputs.length === 0) {
+    await admin.from("owlting_order_push_queue").update({
+      status: "skipped",
+      last_error: "all room types excluded from OwlTing sync",
+    }).eq("id", row.id);
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog, success: false,
+      error_message: "skipped: all room types excluded from OwlTing sync",
+    });
+    return { id: row.id, outcome: "skipped", reason: "all rooms excluded" };
+  }
+
   // Resolve numeric codes for room types
-  const roomTypeIds = Array.from(new Set(stayInputs.map((s) => s.room_type_id).filter(Boolean)));
+  const roomTypeIds = Array.from(new Set(filteredStayInputs.map((s) => s.room_type_id).filter(Boolean)));
+
   const { data: rts } = await admin
     .from("room_types")
     .select("id, name, numeric_code")
