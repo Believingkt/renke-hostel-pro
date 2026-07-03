@@ -227,6 +227,26 @@ export async function loadGroupContext(supabase: any, accommodationId: string): 
   return ctx;
 }
 
+/**
+ * Load per-room-type OwlTing sync exclusions.
+ * Returns a Set of room_type_id where sync_enabled = false.
+ * Rooms in this set MUST NOT appear in AvailRS output, and inbound
+ * pushes (AvailNotif / RateAmount) that target them MUST be ignored.
+ */
+export async function loadExcludedRoomTypeIds(
+  supabase: any,
+  accommodationId: string,
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  const { data } = await supabase
+    .from("owlting_room_type_sync")
+    .select("room_type_id, sync_enabled")
+    .eq("accommodation_id", accommodationId)
+    .eq("sync_enabled", false);
+  for (const r of (data ?? []) as any[]) out.add(r.room_type_id);
+  return out;
+}
+
 async function logCm(
   supabase: any,
   direction: "inbound" | "outbound",
