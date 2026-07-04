@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
@@ -173,6 +173,19 @@ const BookingPortal = () => {
   const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
   const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
+  const [footerVisible, setFooterVisible] = useState(false);
+  const footerSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = footerSentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { rootMargin: "0px 0px 0px 0px", threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const [filters, setFilters] = useState<RoomFilters>({
     sortBy: "default",
     minCapacity: 0,
@@ -1316,10 +1329,14 @@ const BookingPortal = () => {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           aria-label="問問 AI 管家"
-          className="group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-6 rounded-full shadow-lg hover:shadow-2xl flex items-center gap-2 pl-1.5 pr-4 py-1.5 md:pl-2 md:pr-5 md:py-2 bg-white border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0"
+          aria-hidden={footerVisible}
+          tabIndex={footerVisible ? -1 : 0}
+          className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
+            footerVisible ? "opacity-0 pointer-events-none translate-y-4" : "opacity-100"
+          }`}
         >
           <span
-            className="relative w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
+            className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
             style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
           >
             <span
@@ -1327,14 +1344,15 @@ const BookingPortal = () => {
               style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
               aria-hidden
             />
-            <Sparkles className="relative w-4 h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
+            <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
           </span>
-          <span className="text-sm md:text-base font-medium text-foreground whitespace-nowrap">
+          <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
             問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
           </span>
         </button>
       )}
 
+      <div ref={footerSentinelRef} aria-hidden className="h-px w-full" />
       <BookingFooter />
       <MobileBottomNav />
     </div>
