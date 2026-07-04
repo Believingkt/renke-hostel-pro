@@ -173,6 +173,19 @@ const BookingPortal = () => {
   const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
   const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
+  const [footerVisible, setFooterVisible] = useState(false);
+  const footerSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = footerSentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { rootMargin: "0px 0px 0px 0px", threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const [filters, setFilters] = useState<RoomFilters>({
     sortBy: "default",
     minCapacity: 0,
