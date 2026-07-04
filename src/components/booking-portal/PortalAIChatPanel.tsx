@@ -264,23 +264,11 @@ const PortalAIChatPanel = () => {
         <div ref={focusRef} className="flex-1 flex flex-col items-center justify-center px-4 py-6 overflow-y-auto">
           {showWelcome && messages.length === 0 ? (
             <div className="w-full flex flex-col items-center text-center gap-5 animate-in fade-in duration-500">
-              {/* Mic button (compact) */}
-              <button
-                onClick={handleMicToggle}
-                disabled={isLoading || isTranscribing}
-                className={`relative h-14 w-14 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-md transition-transform hover:scale-105 ${isRecording ? "animate-pulse" : ""}`}
-                aria-label="開始語音對話"
-              >
-                <Mic className="h-6 w-6 text-white" strokeWidth={2.2} />
-                {isRecording && (
-                  <span className="absolute inset-0 rounded-full ring-4 ring-red-400/60 animate-ping" />
-                )}
-              </button>
-
               <div className="space-y-1">
-                <p className="text-base font-bold text-foreground">點擊麥克風，開口就能訂房</p>
+                <p className="text-base font-bold text-foreground">開口或輸入，就能訂房</p>
                 <p className="text-xs text-muted-foreground">告訴我「想去哪、幾個人、什麼時候」即可</p>
               </div>
+
 
               {/* Smart default with adjustable guests & rooms */}
               <div className="w-full max-w-sm rounded-2xl border border-[hsl(25,60%,80%)] bg-white/80 backdrop-blur p-3">
