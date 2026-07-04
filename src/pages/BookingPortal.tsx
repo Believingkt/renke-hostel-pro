@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
-import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
+import assistantAvatar from "@/assets/ai-butler-alpaca.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
