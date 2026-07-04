@@ -224,7 +224,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               >
                 ✕
               </button>
-              有疑問，請點我 👉
+              <span>{typedHint}</span>
+              <span className="inline-block w-[1px] h-3 md:h-3.5 ml-0.5 align-middle bg-foreground/70 animate-pulse" aria-hidden />
               <span className="absolute right-[-6px] bottom-3 w-3 h-3 bg-white border-r border-b border-border rotate-[-45deg]" />
             </div>
           )}
