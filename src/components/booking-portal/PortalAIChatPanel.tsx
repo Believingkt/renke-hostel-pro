@@ -47,7 +47,9 @@ const PortalAIChatPanel = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [defaultGuests, setDefaultGuests] = useState(14);
+  const [defaultGuests, setDefaultGuests] = useState(2);
+  const [defaultChildren, setDefaultChildren] = useState(0);
+  const [guestsOpen, setGuestsOpen] = useState(false);
   const [defaultRooms, setDefaultRooms] = useState(6);
   const [checkIn, setCheckIn] = useState<Date>(smartDefault.date);
   const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
@@ -361,31 +363,53 @@ const PortalAIChatPanel = () => {
 
                 {/* Guests + search */}
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 rounded-xl border border-[hsl(25,40%,88%)] bg-white px-3 py-2">
-                    <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-6 w-6 rounded-full text-foreground"
-                      onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.max(1, defaultGuests - 1)); }}
-                      disabled={defaultGuests <= 1}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-6 text-center text-sm font-semibold tabular-nums text-foreground">{defaultGuests}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-6 w-6 rounded-full text-foreground"
-                      onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.min(50, defaultGuests + 1)); }}
-                      disabled={defaultGuests >= 50}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-xs text-muted-foreground ml-0.5">人</span>
-                  </div>
+                  <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex-1 flex items-center gap-2 rounded-xl border border-[hsl(25,40%,88%)] bg-white px-3 py-2 text-left hover:border-[hsl(25,60%,70%)]"
+                      >
+                        <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {defaultGuests} 大人{defaultChildren > 0 ? ` · ${defaultChildren} 兒童` : ""}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" align="start">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">大人</p>
+                            <p className="text-[11px] text-muted-foreground">13 歲以上</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setDefaultGuests(Math.max(1, defaultGuests - 1))} disabled={defaultGuests <= 1}>
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="w-7 text-center text-sm font-semibold tabular-nums">{defaultGuests}</span>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setDefaultGuests(Math.min(50, defaultGuests + 1))} disabled={defaultGuests >= 50}>
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">兒童</p>
+                            <p className="text-[11px] text-muted-foreground">0-12 歲</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setDefaultChildren(Math.max(0, defaultChildren - 1))} disabled={defaultChildren <= 0}>
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="w-7 text-center text-sm font-semibold tabular-nums">{defaultChildren}</span>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setDefaultChildren(Math.min(20, defaultChildren + 1))} disabled={defaultChildren >= 20}>
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     type="button"
                     className="h-11 px-4 rounded-xl text-white font-medium shrink-0"
@@ -395,8 +419,9 @@ const PortalAIChatPanel = () => {
                       const inIso = format(checkIn, "yyyy-MM-dd");
                       const outIso = format(checkOut, "yyyy-MM-dd");
                       const place = defaultLocation.trim() || selectedRegion || "宜蘭";
+                      const guestsText = `${defaultGuests} 大人${defaultChildren > 0 ? `、${defaultChildren} 兒童` : ""}`;
                       sendMessage(
-                        `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人，${place}，列出可預訂房型`
+                        `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${guestsText}，${place}，列出可預訂房型`
                       );
                     }}
                     disabled={isLoading}
@@ -404,6 +429,7 @@ const PortalAIChatPanel = () => {
                     <Search className="h-4 w-4 mr-1" />搜尋
                   </Button>
                 </div>
+
 
                 {/* Summary */}
                 <p className="text-[11px] text-muted-foreground text-center pt-0.5">
