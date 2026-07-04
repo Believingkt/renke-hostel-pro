@@ -15,6 +15,7 @@ import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import {
@@ -172,7 +173,7 @@ const BookingPortal = () => {
   const [toddlers, setToddlers] = useState(0);
   const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
-  const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
+  const [aiOpen, setAiOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const footerSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -951,111 +952,62 @@ const BookingPortal = () => {
               "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
-          <h1 className={`font-bold drop-shadow-sm ${heroMode === "ai" ? "text-xl sm:text-2xl md:text-4xl mb-1 sm:mb-2" : "text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3"}`}>
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out py-8 md:py-20">
+          <h1 className="font-bold drop-shadow-sm text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3">
             探索優質包棟民宿
           </h1>
-          <p className={`opacity-90 ${heroMode === "ai" ? "text-xs sm:text-sm md:text-base mb-3 sm:mb-4" : "text-sm sm:text-base md:text-lg mb-4 sm:mb-6"}`}>
+          <p className="opacity-90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
             會員優惠  |  安心付款  |  免費取消
           </p>
 
-          {/* Mode Toggle */}
-          <div className="flex items-center justify-center gap-1 mb-4 sm:mb-6">
-            <button
-              onClick={() => setHeroMode("search")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                heroMode === "search"
-                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <Search className="h-4 w-4" />
-              搜尋房型
-            </button>
-            <button
-              onClick={() => setHeroMode("ai")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                heroMode === "ai"
-                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              AI 找房間
-            </button>
-          </div>
-
           <div className="relative">
-            <div
-              key="search"
-              className={`transition-all duration-300 ease-in-out ${
-                heroMode === "search"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
-              }`}
-            >
-              {heroMode === "search" && (
-                <PortalSearchBar
-                  searchQuery={searchQuery}
-                  onSearchQueryChange={setSearchQuery}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  onCheckInChange={setCheckIn}
-                  onCheckOutChange={setCheckOut}
-                  adults={adults}
-                  onAdultsChange={setAdults}
-                  children={children}
-                  onChildrenChange={setChildren}
-                  infants={infants}
-                  onInfantsChange={setInfants}
-                  toddlers={toddlers}
-                  onToddlersChange={setToddlers}
-                  rooms={rooms}
-                  onRoomsChange={setRooms}
-                  onSearch={handleSearch}
-                  availableDateSet={availableDateSet}
-                  isStayRangeAvailable={isStayRangeAvailable}
-                  isLoadingAvailability={loadingAvailability}
-                />
-              )}
-              {heroMode === "search" && (
-                <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
-                  {[
-                    { label: "2 人", value: 2 },
-                    { label: "4 人", value: 4 },
-                    { label: "6-10 人", value: 8 },
-                    { label: "12-16 人", value: 14 },
-                    { label: "16+ 人", value: 18 },
-                  ].map((chip) => {
-                    const active = adults === chip.value;
-                    return (
-                      <button
-                        key={chip.label}
-                        type="button"
-                        onClick={() => setAdults(chip.value)}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
-                          active
-                            ? "bg-white text-[hsl(25,70%,45%)] border-white font-semibold"
-                            : "bg-white/15 text-white border-white/30 hover:bg-white/25"
-                        }`}
-                      >
-                        {chip.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div
-              key="ai"
-              className={`transition-all duration-300 ease-in-out ${
-                heroMode === "ai"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
-              }`}
-            >
-              {heroMode === "ai" && <PortalAIChatPanel />}
+            <PortalSearchBar
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onCheckInChange={setCheckIn}
+              onCheckOutChange={setCheckOut}
+              adults={adults}
+              onAdultsChange={setAdults}
+              children={children}
+              onChildrenChange={setChildren}
+              infants={infants}
+              onInfantsChange={setInfants}
+              toddlers={toddlers}
+              onToddlersChange={setToddlers}
+              rooms={rooms}
+              onRoomsChange={setRooms}
+              onSearch={handleSearch}
+              availableDateSet={availableDateSet}
+              isStayRangeAvailable={isStayRangeAvailable}
+              isLoadingAvailability={loadingAvailability}
+            />
+            <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
+              <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
+              {[
+                { label: "2 人", value: 2 },
+                { label: "4 人", value: 4 },
+                { label: "6-10 人", value: 8 },
+                { label: "12-16 人", value: 14 },
+                { label: "16+ 人", value: 18 },
+              ].map((chip) => {
+                const active = adults === chip.value;
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setAdults(chip.value)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                      active
+                        ? "bg-white text-[hsl(25,70%,45%)] border-white font-semibold"
+                        : "bg-white/15 text-white border-white/30 hover:bg-white/25"
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1322,35 +1274,49 @@ const BookingPortal = () => {
       })()}
 
 
-      {heroMode !== "ai" && (
-        <button
-          onClick={() => {
-            setHeroMode("ai");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          aria-label="問問 AI 管家"
-          aria-hidden={footerVisible}
-          tabIndex={footerVisible ? -1 : 0}
-          className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
-            footerVisible ? "opacity-0 pointer-events-none translate-y-4" : "opacity-80 hover:opacity-100"
-          }`}
+      <button
+        onClick={() => setAiOpen(true)}
+        aria-label="問問 AI 管家"
+        aria-hidden={footerVisible}
+        tabIndex={footerVisible ? -1 : 0}
+        className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
+          footerVisible ? "opacity-0 pointer-events-none translate-y-4" : "opacity-80 hover:opacity-100"
+        }`}
+      >
+        <span
+          className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
+          style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
         >
           <span
-            className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
-            style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
-          >
-            <span
-              className="absolute inset-0 rounded-full animate-ping"
-              style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
-              aria-hidden
-            />
-            <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
-          </span>
-          <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
-            問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
-          </span>
-        </button>
-      )}
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
+            aria-hidden
+          />
+          <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
+        </span>
+        <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
+          問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
+        </span>
+      </button>
+
+      <Sheet open={aiOpen} onOpenChange={setAiOpen}>
+        <SheetContent side="bottom" className="h-[92vh] p-0 flex flex-col rounded-t-2xl z-[80]">
+          <SheetHeader className="px-4 py-3 border-b">
+            <SheetTitle className="text-base flex items-center gap-2">
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
+              >
+                <Sparkles className="w-4 h-4" />
+              </span>
+              AI 找房間
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            {aiOpen && <PortalAIChatPanel />}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div ref={footerSentinelRef} aria-hidden className="h-px w-full" />
       <BookingFooter />
