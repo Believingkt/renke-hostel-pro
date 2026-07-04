@@ -1316,7 +1316,7 @@ const BookingPortal = () => {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           aria-label="問問 AI 管家"
-          className="group fixed z-[45] right-3 md:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-6 rounded-full shadow-lg hover:shadow-2xl flex items-center gap-2 pl-1.5 pr-4 py-1.5 md:pl-2 md:pr-5 md:py-2 bg-white border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0"
+          className="group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-6 rounded-full shadow-lg hover:shadow-2xl flex items-center gap-2 pl-1.5 pr-4 py-1.5 md:pl-2 md:pr-5 md:py-2 bg-white border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0"
         >
           <span
             className="relative w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
