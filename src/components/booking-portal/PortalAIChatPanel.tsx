@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
-import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus } from "lucide-react";
+import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
@@ -53,6 +53,8 @@ const PortalAIChatPanel = () => {
   const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [defaultLocation, setDefaultLocation] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("宜蘭");
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
@@ -270,32 +272,49 @@ const PortalAIChatPanel = () => {
               </div>
 
 
-              {/* Smart default with adjustable guests & rooms */}
-              <div className="w-full max-w-sm rounded-2xl border border-[hsl(25,60%,80%)] bg-white/80 backdrop-blur p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-3.5 w-3.5 text-[hsl(25,70%,50%)]" />
-                  <span className="text-[11px] font-semibold text-[hsl(25,70%,45%)] uppercase tracking-wide">幫您預設好了</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-3">
-                  <MapPin className="h-3.5 w-3.5" />宜蘭
+              {/* Search block - homepage style */}
+              <div className="w-full max-w-sm rounded-2xl border border-[hsl(25,60%,80%)] bg-white shadow-sm p-3 space-y-2.5">
+                {/* Location input */}
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={defaultLocation}
+                    onChange={(e) => setDefaultLocation(e.target.value)}
+                    placeholder="城市、地區或民宿名稱（選填）"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-[hsl(25,40%,88%)] bg-white text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[hsl(25,70%,55%)]"
+                  />
                 </div>
 
-                {/* Date pickers */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                {/* Region chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {["宜蘭", "南投", "苗栗"].map((r) => {
+                    const active = selectedRegion === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setSelectedRegion(active ? "" : r)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          active
+                            ? "bg-[hsl(25,80%,95%)] border-[hsl(25,70%,55%)] text-[hsl(25,70%,40%)]"
+                            : "bg-white border-[hsl(25,40%,88%)] text-muted-foreground hover:border-[hsl(25,60%,70%)]"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Date range row */}
+                <div className="flex items-center gap-2 rounded-xl border border-[hsl(25,40%,88%)] bg-white px-3 py-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto py-2 px-3 flex flex-col items-start gap-0.5 bg-[hsl(25,60%,97%)] border-[hsl(25,40%,88%)] hover:bg-white"
-                      >
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />入住
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {format(checkIn, "M/d (EEE)", { locale: zhTW })}
-                        </span>
-                      </Button>
+                      <button type="button" className="text-sm font-semibold text-foreground hover:text-[hsl(25,70%,50%)]">
+                        {format(checkIn, "M/d (EEE)", { locale: zhTW })}
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarPicker
@@ -313,21 +332,12 @@ const PortalAIChatPanel = () => {
                       />
                     </PopoverContent>
                   </Popover>
-
+                  <span className="text-muted-foreground">→</span>
                   <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto py-2 px-3 flex flex-col items-start gap-0.5 bg-[hsl(25,60%,97%)] border-[hsl(25,40%,88%)] hover:bg-white"
-                      >
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />退房
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {format(checkOut, "M/d (EEE)", { locale: zhTW })}
-                        </span>
-                      </Button>
+                      <button type="button" className="text-sm font-semibold text-foreground hover:text-[hsl(25,70%,50%)]">
+                        {format(checkOut, "M/d (EEE)", { locale: zhTW })}
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarPicker
@@ -344,57 +354,64 @@ const PortalAIChatPanel = () => {
                       />
                     </PopoverContent>
                   </Popover>
+                  <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-[hsl(25,80%,95%)] text-[hsl(25,70%,45%)] font-medium">
+                    {Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000))} 晚
+                  </span>
                 </div>
 
-                {/* Adjustable rows */}
-                <div className="space-y-2 mb-3">
-                  <div className="flex items-center justify-between rounded-lg bg-[hsl(25,60%,97%)] px-3 py-2">
-                    <span className="flex items-center gap-2 text-sm text-foreground">
-                      <Users className="h-4 w-4 text-muted-foreground" />入住人數
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.max(1, defaultGuests - 1)); }}
-                        disabled={defaultGuests <= 1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm font-semibold tabular-nums text-foreground">{defaultGuests}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.min(50, defaultGuests + 1)); }}
-                        disabled={defaultGuests >= 50}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
+                {/* Guests + search */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 rounded-xl border border-[hsl(25,40%,88%)] bg-white px-3 py-2">
+                    <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6 rounded-full text-foreground"
+                      onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.max(1, defaultGuests - 1)); }}
+                      disabled={defaultGuests <= 1}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-6 text-center text-sm font-semibold tabular-nums text-foreground">{defaultGuests}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6 rounded-full text-foreground"
+                      onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.min(50, defaultGuests + 1)); }}
+                      disabled={defaultGuests >= 50}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground ml-0.5">人</span>
                   </div>
+                  <Button
+                    type="button"
+                    className="h-11 px-4 rounded-xl text-white font-medium shrink-0"
+                    style={{ background: "hsl(25, 70%, 55%)" }}
+                    onClick={() => {
+                      const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
+                      const inIso = format(checkIn, "yyyy-MM-dd");
+                      const outIso = format(checkOut, "yyyy-MM-dd");
+                      const place = defaultLocation.trim() || selectedRegion || "宜蘭";
+                      sendMessage(
+                        `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人，${place}，列出可預訂房型`
+                      );
+                    }}
+                    disabled={isLoading}
+                  >
+                    <Search className="h-4 w-4 mr-1" />搜尋
+                  </Button>
                 </div>
 
-                <Button
-                  type="button"
-                  className="w-full h-10 rounded-xl text-white font-medium"
-                  style={{ background: "hsl(25, 70%, 55%)" }}
-                  onClick={() => {
-                    const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
-                    const inIso = format(checkIn, "yyyy-MM-dd");
-                    const outIso = format(checkOut, "yyyy-MM-dd");
-                    sendMessage(
-                      `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人，宜蘭，列出可預訂房型`
-                    );
-                  }}
-                  disabled={isLoading}
-                >
-                  一鍵開始找房 →
-                </Button>
+                {/* Summary */}
+                <p className="text-[11px] text-muted-foreground text-center pt-0.5">
+                  {format(checkIn, "M/d (EEE)", { locale: zhTW })} 至 {format(checkOut, "M/d (EEE)", { locale: zhTW })}，共 {Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000))} 晚
+                </p>
               </div>
+
+
 
               {/* Hot picks */}
               <div className="w-full max-w-sm space-y-1.5">
