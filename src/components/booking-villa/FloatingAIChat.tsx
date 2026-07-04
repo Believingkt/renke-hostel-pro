@@ -212,16 +212,17 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               setOpen(true);
             }}
             aria-label="開啟 AI 管家"
-            className="relative rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14"
-            style={{
-              opacity: 0.85,
-              background: "linear-gradient(135deg, #F08A3E, #E5701A)",
-            }}
+            className="relative rounded-full shadow-lg flex items-center gap-2 pl-1.5 pr-4 py-1.5 md:pl-2 md:pr-5 md:py-2 bg-white border border-border active:scale-95 transition-transform"
           >
-            <MessageCircleMore className="w-5 h-5 md:w-6 md:h-6" />
-            {showHint && (
-              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "#F08A3E", opacity: 0.4 }} />
-            )}
+            <span
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0"
+              style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
+            >
+              <Sparkles className="w-4 h-4 md:w-[18px] md:h-[18px]" />
+            </span>
+            <span className="text-sm md:text-base font-medium text-foreground whitespace-nowrap">
+              問 <span style={{ color: "#F08A3E" }}>AI 管家</span>
+            </span>
           </button>
         </div>
       )}
