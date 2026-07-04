@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
