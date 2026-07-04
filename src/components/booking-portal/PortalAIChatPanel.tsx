@@ -53,6 +53,8 @@ const PortalAIChatPanel = () => {
   const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [defaultLocation, setDefaultLocation] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("宜蘭");
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
