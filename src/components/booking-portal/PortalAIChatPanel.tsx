@@ -223,11 +223,8 @@ const PortalAIChatPanel = () => {
   const isAssistantSpeaking = playingMessageIndex !== null;
 
   return (
-    <div className="max-w-2xl mx-auto px-2 sm:px-0">
-      <div
-        className="bg-gradient-to-br from-white via-[hsl(35,85%,98%)] to-[hsl(25,80%,96%)] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative"
-        style={{ minHeight: "560px", maxHeight: "calc(100dvh - 200px)" }}
-      >
+    <div className="max-w-2xl mx-auto h-full flex flex-col">
+      <div className="bg-gradient-to-br from-white via-[hsl(35,85%,98%)] to-[hsl(25,80%,96%)] overflow-hidden flex flex-col relative flex-1 min-h-0">
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(25,30%,90%)]/60 bg-white/60 backdrop-blur-sm">
           <div className="flex items-center gap-2">
