@@ -986,8 +986,6 @@ const BookingPortal = () => {
             <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
               <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
               {[
-                { label: "2 人", value: 2 },
-                { label: "4 人", value: 4 },
                 { label: "6-10 人", value: 8 },
                 { label: "12-16 人", value: 14 },
                 { label: "16+ 人", value: 18 },
