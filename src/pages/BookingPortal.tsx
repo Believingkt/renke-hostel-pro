@@ -1283,15 +1283,19 @@ const BookingPortal = () => {
         }`}
       >
         <span
-          className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
-          style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
+          className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 ring-2 ring-[#F08A3E]/60 overflow-hidden bg-white"
         >
           <span
             className="absolute inset-0 rounded-full animate-ping"
             style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
             aria-hidden
           />
-          <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
+          <img
+            src={assistantAvatar}
+            alt="AI 管家 小安"
+            className="relative w-full h-full object-cover rounded-full"
+            loading="eager"
+          />
         </span>
         <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
           問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
