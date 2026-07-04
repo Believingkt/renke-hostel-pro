@@ -46,6 +46,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
     }
     const chars = Array.from(HINT_TEXT);
     let i = 0;
+    let hideT: ReturnType<typeof setTimeout> | undefined;
     setTypedHint("");
     const typer = setInterval(() => {
       i += 1;
@@ -55,7 +56,6 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         hideT = setTimeout(() => setShowHint(false), 2000);
       }
     }, 90);
-    let hideT: ReturnType<typeof setTimeout> | undefined;
     return () => {
       clearInterval(typer);
       if (hideT) clearTimeout(hideT);
