@@ -332,6 +332,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
               >
                 <Input
+                  ref={inputRef}
+                  autoFocus
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="輸入您的問題…"
