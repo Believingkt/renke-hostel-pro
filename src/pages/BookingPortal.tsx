@@ -1309,6 +1309,32 @@ const BookingPortal = () => {
       })()}
 
 
+      {heroMode !== "ai" && (
+        <button
+          onClick={() => {
+            setHeroMode("ai");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="問問 AI 管家"
+          className="group fixed z-[45] right-3 md:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-6 rounded-full shadow-lg hover:shadow-2xl flex items-center gap-2 pl-1.5 pr-4 py-1.5 md:pl-2 md:pr-5 md:py-2 bg-white border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0"
+        >
+          <span
+            className="relative w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
+            style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
+          >
+            <span
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
+              aria-hidden
+            />
+            <Sparkles className="relative w-4 h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
+          </span>
+          <span className="text-sm md:text-base font-medium text-foreground whitespace-nowrap">
+            問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
+          </span>
+        </button>
+      )}
+
       <BookingFooter />
       <MobileBottomNav />
     </div>
