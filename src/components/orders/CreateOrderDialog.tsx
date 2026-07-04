@@ -2305,22 +2305,51 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </div>
         )}
         {/* Guest count */}
-        <div className="p-3 border rounded-lg bg-muted/30">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">總入住人數</Label>
-              <Input
-                type="number"
-                min="1"
-                max="30"
-                value={form.guest_count}
-                onChange={(e) => setForm({...form, guest_count: parseInt(e.target.value) || 1})}
-                className="h-10 text-sm"
-                inputMode="numeric"
-              />
+        {(() => {
+          const maxGuestCount = Math.max(
+            1,
+            roomSelections.reduce((sum, sel) => {
+              const rt = roomTypes.find(r => r.id === sel.room_type_id);
+              const cap = rt?.capacity || 0;
+              const qty = sel.quantity || 0;
+              return sum + cap * qty;
+            }, 0)
+          );
+          const overCap = roomSelections.length > 0 && form.guest_count > maxGuestCount;
+          return (
+            <div className="p-3 border rounded-lg bg-muted/30">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    總入住人數
+                    {roomSelections.length > 0 && (
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        （上限 {maxGuestCount} 人）
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={roomSelections.length > 0 ? maxGuestCount : 30}
+                    value={form.guest_count}
+                    onChange={(e) => {
+                      const raw = parseInt(e.target.value) || 1;
+                      setForm({ ...form, guest_count: raw });
+                    }}
+                    className="h-10 text-sm"
+                    inputMode="numeric"
+                  />
+                  {overCap && (
+                    <p className="text-[11px] text-destructive">
+                      已超過所選房型合計上限 {maxGuestCount} 人，請增加房間數或改選容納人數較多的房型
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Addons */}
         {addonSettings.length > 0 && (
