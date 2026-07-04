@@ -952,111 +952,62 @@ const BookingPortal = () => {
               "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
-          <h1 className={`font-bold drop-shadow-sm ${heroMode === "ai" ? "text-xl sm:text-2xl md:text-4xl mb-1 sm:mb-2" : "text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3"}`}>
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out py-8 md:py-20">
+          <h1 className="font-bold drop-shadow-sm text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3">
             探索優質包棟民宿
           </h1>
-          <p className={`opacity-90 ${heroMode === "ai" ? "text-xs sm:text-sm md:text-base mb-3 sm:mb-4" : "text-sm sm:text-base md:text-lg mb-4 sm:mb-6"}`}>
+          <p className="opacity-90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
             會員優惠  |  安心付款  |  免費取消
           </p>
 
-          {/* Mode Toggle */}
-          <div className="flex items-center justify-center gap-1 mb-4 sm:mb-6">
-            <button
-              onClick={() => setHeroMode("search")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                heroMode === "search"
-                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <Search className="h-4 w-4" />
-              搜尋房型
-            </button>
-            <button
-              onClick={() => setHeroMode("ai")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                heroMode === "ai"
-                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              AI 找房間
-            </button>
-          </div>
-
           <div className="relative">
-            <div
-              key="search"
-              className={`transition-all duration-300 ease-in-out ${
-                heroMode === "search"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
-              }`}
-            >
-              {heroMode === "search" && (
-                <PortalSearchBar
-                  searchQuery={searchQuery}
-                  onSearchQueryChange={setSearchQuery}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  onCheckInChange={setCheckIn}
-                  onCheckOutChange={setCheckOut}
-                  adults={adults}
-                  onAdultsChange={setAdults}
-                  children={children}
-                  onChildrenChange={setChildren}
-                  infants={infants}
-                  onInfantsChange={setInfants}
-                  toddlers={toddlers}
-                  onToddlersChange={setToddlers}
-                  rooms={rooms}
-                  onRoomsChange={setRooms}
-                  onSearch={handleSearch}
-                  availableDateSet={availableDateSet}
-                  isStayRangeAvailable={isStayRangeAvailable}
-                  isLoadingAvailability={loadingAvailability}
-                />
-              )}
-              {heroMode === "search" && (
-                <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
-                  {[
-                    { label: "2 人", value: 2 },
-                    { label: "4 人", value: 4 },
-                    { label: "6-10 人", value: 8 },
-                    { label: "12-16 人", value: 14 },
-                    { label: "16+ 人", value: 18 },
-                  ].map((chip) => {
-                    const active = adults === chip.value;
-                    return (
-                      <button
-                        key={chip.label}
-                        type="button"
-                        onClick={() => setAdults(chip.value)}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
-                          active
-                            ? "bg-white text-[hsl(25,70%,45%)] border-white font-semibold"
-                            : "bg-white/15 text-white border-white/30 hover:bg-white/25"
-                        }`}
-                      >
-                        {chip.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div
-              key="ai"
-              className={`transition-all duration-300 ease-in-out ${
-                heroMode === "ai"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
-              }`}
-            >
-              {heroMode === "ai" && <PortalAIChatPanel />}
+            <PortalSearchBar
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onCheckInChange={setCheckIn}
+              onCheckOutChange={setCheckOut}
+              adults={adults}
+              onAdultsChange={setAdults}
+              children={children}
+              onChildrenChange={setChildren}
+              infants={infants}
+              onInfantsChange={setInfants}
+              toddlers={toddlers}
+              onToddlersChange={setToddlers}
+              rooms={rooms}
+              onRoomsChange={setRooms}
+              onSearch={handleSearch}
+              availableDateSet={availableDateSet}
+              isStayRangeAvailable={isStayRangeAvailable}
+              isLoadingAvailability={loadingAvailability}
+            />
+            <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
+              <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
+              {[
+                { label: "2 人", value: 2 },
+                { label: "4 人", value: 4 },
+                { label: "6-10 人", value: 8 },
+                { label: "12-16 人", value: 14 },
+                { label: "16+ 人", value: 18 },
+              ].map((chip) => {
+                const active = adults === chip.value;
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setAdults(chip.value)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                      active
+                        ? "bg-white text-[hsl(25,70%,45%)] border-white font-semibold"
+                        : "bg-white/15 text-white border-white/30 hover:bg-white/25"
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
