@@ -24,20 +24,43 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const [streaming, setStreaming] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
+  const [typedHint, setTypedHint] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const location = useLocation();
 
-  // 停留 5 秒後顯示提示氣泡，10 秒後自動收起
+  const HINT_TEXT = "有疑問，請點我 👉";
+
+  // 停留 5 秒後顯示提示氣泡
   useEffect(() => {
     if (open || hintDismissed) return;
     const showT = setTimeout(() => setShowHint(true), 5000);
-    const hideT = setTimeout(() => setShowHint(false), 15000);
-    return () => {
-      clearTimeout(showT);
-      clearTimeout(hideT);
-    };
+    return () => clearTimeout(showT);
   }, [open, hintDismissed]);
+
+  // 打字效果 + 完成後 2 秒自動收起
+  useEffect(() => {
+    if (!showHint) {
+      setTypedHint("");
+      return;
+    }
+    const chars = Array.from(HINT_TEXT);
+    let i = 0;
+    let hideT: ReturnType<typeof setTimeout> | undefined;
+    setTypedHint("");
+    const typer = setInterval(() => {
+      i += 1;
+      setTypedHint(chars.slice(0, i).join(""));
+      if (i >= chars.length) {
+        clearInterval(typer);
+        hideT = setTimeout(() => setShowHint(false), 2000);
+      }
+    }, 90);
+    return () => {
+      clearInterval(typer);
+      if (hideT) clearTimeout(hideT);
+    };
+  }, [showHint]);
 
 
 
@@ -201,7 +224,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               >
                 ✕
               </button>
-              有疑問，請點我 👉
+              <span>{typedHint}</span>
+              <span className="inline-block w-[1px] h-3 md:h-3.5 ml-0.5 align-middle bg-foreground/70 animate-pulse" aria-hidden />
               <span className="absolute right-[-6px] bottom-3 w-3 h-3 bg-white border-r border-b border-border rotate-[-45deg]" />
             </div>
           )}
