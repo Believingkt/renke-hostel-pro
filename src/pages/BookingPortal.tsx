@@ -1274,35 +1274,49 @@ const BookingPortal = () => {
       })()}
 
 
-      {heroMode !== "ai" && (
-        <button
-          onClick={() => {
-            setHeroMode("ai");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          aria-label="問問 AI 管家"
-          aria-hidden={footerVisible}
-          tabIndex={footerVisible ? -1 : 0}
-          className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
-            footerVisible ? "opacity-0 pointer-events-none translate-y-4" : "opacity-80 hover:opacity-100"
-          }`}
+      <button
+        onClick={() => setAiOpen(true)}
+        aria-label="問問 AI 管家"
+        aria-hidden={footerVisible}
+        tabIndex={footerVisible ? -1 : 0}
+        className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
+          footerVisible ? "opacity-0 pointer-events-none translate-y-4" : "opacity-80 hover:opacity-100"
+        }`}
+      >
+        <span
+          className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
+          style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
         >
           <span
-            className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
-            style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
-          >
-            <span
-              className="absolute inset-0 rounded-full animate-ping"
-              style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
-              aria-hidden
-            />
-            <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
-          </span>
-          <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
-            問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
-          </span>
-        </button>
-      )}
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ background: "#F08A3E", opacity: 0.35, animationDuration: "2.2s" }}
+            aria-hidden
+          />
+          <Sparkles className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-[18px] md:h-[18px] animate-pulse" style={{ animationDuration: "2.2s" }} />
+        </span>
+        <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
+          問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
+        </span>
+      </button>
+
+      <Sheet open={aiOpen} onOpenChange={setAiOpen}>
+        <SheetContent side="bottom" className="h-[92vh] p-0 flex flex-col rounded-t-2xl z-[80]">
+          <SheetHeader className="px-4 py-3 border-b">
+            <SheetTitle className="text-base flex items-center gap-2">
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
+              >
+                <Sparkles className="w-4 h-4" />
+              </span>
+              AI 找房間
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            {aiOpen && <PortalAIChatPanel />}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div ref={footerSentinelRef} aria-hidden className="h-px w-full" />
       <BookingFooter />
