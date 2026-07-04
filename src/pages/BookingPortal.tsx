@@ -28,6 +28,7 @@ import {
   BedDouble,
   MessageCircle,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import {
   isSensanAccommodation,
