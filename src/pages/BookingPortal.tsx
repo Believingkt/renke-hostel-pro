@@ -15,6 +15,7 @@ import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import {
