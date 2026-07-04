@@ -47,7 +47,9 @@ const PortalAIChatPanel = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [defaultGuests, setDefaultGuests] = useState(14);
+  const [defaultGuests, setDefaultGuests] = useState(2);
+  const [defaultChildren, setDefaultChildren] = useState(0);
+  const [guestsOpen, setGuestsOpen] = useState(false);
   const [defaultRooms, setDefaultRooms] = useState(6);
   const [checkIn, setCheckIn] = useState<Date>(smartDefault.date);
   const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
