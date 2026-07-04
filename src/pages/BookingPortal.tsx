@@ -173,7 +173,7 @@ const BookingPortal = () => {
   const [toddlers, setToddlers] = useState(0);
   const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
-  const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
+  const [aiOpen, setAiOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const footerSentinelRef = useRef<HTMLDivElement>(null);
 
