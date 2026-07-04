@@ -25,14 +25,6 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const [showHint, setShowHint] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // 打開時自動聚焦輸入框
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 250);
-    return () => clearTimeout(t);
-  }, [open]);
   const { toast } = useToast();
   const location = useLocation();
 
