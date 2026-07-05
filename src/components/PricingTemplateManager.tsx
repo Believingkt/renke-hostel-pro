@@ -690,11 +690,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         try {
           const written = await syncBasePrices({
             template: dataToSave,
+            templateId: editingTemplate?.id ?? null,
             roomTypeIds: finalIds,
             fromDate: syncBaseFrom,
             toDate: syncBaseUntil,
           });
-          toast.success(`已同步基礎價 ${written} 筆（${syncBaseFrom} ~ ${syncBaseUntil}）`);
+          toast.success(`已同步 ${written} 筆（含清除舊每日覆寫；${syncBaseFrom} ~ ${syncBaseUntil}）`);
         } catch (e: any) {
           console.error('同步基礎價失敗:', e);
           toast.error(`同步基礎價失敗：${e?.message || '未知錯誤'}`);
