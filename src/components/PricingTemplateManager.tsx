@@ -12,9 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addMonths, eachDayOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride, type SeasonSegment } from "@/utils/pricingTemplateHelpers";
+import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, getTierForDate, hasSegments, type RoomOverride, type SeasonSegment } from "@/utils/pricingTemplateHelpers";
+import { classifyDayTier } from "@/utils/templatePriceResolverPure";
 import { SeasonSegmentsEditor } from "@/components/SeasonSegmentsEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -146,6 +147,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     default_package_id: "" as string,
   });
 
+  // 儲存後同步展開基礎價
+  const [syncBaseEnabled, setSyncBaseEnabled] = useState<boolean>(true);
+  const [syncBaseFrom, setSyncBaseFrom] = useState<string>("");
+  const [syncBaseUntil, setSyncBaseUntil] = useState<string>("");
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -241,6 +247,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       extra_segments: [],
       default_package_id: "",
     });
+    // 預設同步範圍：今日 → 12 個月後
+    const today = new Date();
+    setSyncBaseFrom(format(today, "yyyy-MM-dd"));
+    setSyncBaseUntil(format(addMonths(today, 12), "yyyy-MM-dd"));
+    setSyncBaseEnabled(true);
     setErrors({});
     setShowForm(true);
   };
@@ -298,6 +309,17 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       default_package_id: (template as any).default_package_id || "",
     });
     setErrors({});
+    // 預設展開範圍：專案期間 ∩ [今日..今日+12月]（沒有 valid 就用 12 個月）
+    const today = new Date();
+    const start = template.valid_from && template.valid_from > format(today, "yyyy-MM-dd")
+      ? template.valid_from
+      : format(today, "yyyy-MM-dd");
+    const end = template.valid_until && template.valid_until < format(addMonths(today, 12), "yyyy-MM-dd")
+      ? template.valid_until
+      : format(addMonths(today, 12), "yyyy-MM-dd");
+    setSyncBaseFrom(start);
+    setSyncBaseUntil(end);
+    setSyncBaseEnabled(true);
     setShowForm(true);
   };
 
@@ -391,6 +413,120 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       }
       return false;
     }
+  };
+
+  /**
+   * 依專案 tier 價（含 segments / room_overrides）展開為 room_inventory_pricing
+   * 的基礎價列（pricing_template_id IS NULL）。既有列只更新價格與 last_change_source，
+   * 不動 available_rooms 與 is_available；不存在時建立新列。
+   */
+  const syncBasePrices = async (opts: {
+    template: any;
+    roomTypeIds: string[];
+    fromDate: string;
+    toDate: string;
+  }): Promise<number> => {
+    const { template, roomTypeIds, fromDate, toDate } = opts;
+    if (!roomTypeIds.length || fromDate > toDate) return 0;
+
+    // 1) 抓假日
+    const { data: hData } = await supabase
+      .from('public_holidays')
+      .select('holiday_date, holiday_type')
+      .eq('accommodation_id', accommodationId)
+      .in('holiday_type', ['holiday', 'compensatory_day_off']);
+    const holidaySet = new Set<string>((hData || []).map((h: any) => h.holiday_date));
+
+    // 2) 計算每個 (room, date) 的 tier 價
+    const days = eachDayOfInterval({
+      start: parseISO(fromDate),
+      end: parseISO(toDate),
+    }).map((d) => format(d, 'yyyy-MM-dd'));
+
+    type Row = { room_type_id: string; date: string; price: number };
+    const targets: Row[] = [];
+    const useSeg = hasSegments(template);
+    for (const rid of roomTypeIds) {
+      for (const d of days) {
+        const dt = parseISO(d);
+        const tier = classifyDayTier(dt, holidaySet);
+        // 若專案在該日不生效（segments 找不到 / 未開啟該 tier）→ 略過
+        if (useSeg) {
+          const info = getTierForDate(template, rid, d, tier);
+          if (!info.enabled || info.price == null || info.price <= 0) continue;
+          targets.push({ room_type_id: rid, date: d, price: info.price });
+        } else {
+          const info = getTierForDate(template, rid, d, tier);
+          if (!info.enabled) continue;
+          const price = info.price;
+          if (price == null || price <= 0) continue;
+          targets.push({ room_type_id: rid, date: d, price });
+        }
+      }
+    }
+
+    if (targets.length === 0) return 0;
+
+    // 3) 查既有基礎價列（分頁）
+    const PAGE = 1000;
+    const existing = new Map<string, { id: string }>();
+    for (const rid of roomTypeIds) {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('room_inventory_pricing')
+          .select('id, date')
+          .eq('room_type_id', rid)
+          .is('pricing_template_id', null)
+          .gte('date', fromDate)
+          .lte('date', toDate)
+          .order('date', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) existing.set(`${rid}_${r.date}`, { id: (r as any).id });
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+
+    // 4) 分成 updates / inserts
+    const inserts: any[] = [];
+    const updates: { id: string; price: number }[] = [];
+    for (const t of targets) {
+      const key = `${t.room_type_id}_${t.date}`;
+      const ex = existing.get(key);
+      if (ex) {
+        updates.push({ id: ex.id, price: t.price });
+      } else {
+        inserts.push({
+          room_type_id: t.room_type_id,
+          date: t.date,
+          pricing_template_id: null,
+          price: t.price,
+          available_rooms: 1,
+          is_available: true,
+          last_change_source: 'template_apply',
+        });
+      }
+    }
+
+    // 5) 批次寫入
+    const CHUNK = 500;
+    for (let i = 0; i < inserts.length; i += CHUNK) {
+      const chunk = inserts.slice(i, i + CHUNK);
+      const { error } = await supabase.from('room_inventory_pricing').insert(chunk);
+      if (error) throw error;
+    }
+    for (const u of updates) {
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .update({ price: u.price, last_change_source: 'template_apply' })
+        .eq('id', u.id);
+      if (error) throw error;
+    }
+
+    return inserts.length + updates.length;
   };
 
   const handleSubmit = async () => {
@@ -518,6 +654,22 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
         if (error) throw error;
         toast.success('專案已創建');
+      }
+
+      // 同步展開基礎價
+      if (syncBaseEnabled && syncBaseFrom && syncBaseUntil && finalIds.length > 0) {
+        try {
+          const written = await syncBasePrices({
+            template: dataToSave,
+            roomTypeIds: finalIds,
+            fromDate: syncBaseFrom,
+            toDate: syncBaseUntil,
+          });
+          toast.success(`已同步基礎價 ${written} 筆（${syncBaseFrom} ~ ${syncBaseUntil}）`);
+        } catch (e: any) {
+          console.error('同步基礎價失敗:', e);
+          toast.error(`同步基礎價失敗：${e?.message || '未知錯誤'}`);
+        }
       }
 
       setShowForm(false);
@@ -1366,8 +1518,93 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             </div>
           )}
 
-
-
+          {/* 同步展開基礎價 */}
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+            <div className="flex items-start gap-3">
+              <Switch
+                checked={syncBaseEnabled}
+                onCheckedChange={setSyncBaseEnabled}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold">儲存後同步展開基礎價</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的
+                  <strong className="mx-1">基礎價列</strong>
+                  （<code>pricing_template_id = null</code>）。既有列僅更新價格，庫存與販售狀態保持不變。
+                </p>
+              </div>
+            </div>
+            {syncBaseEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-11">
+                <div className="space-y-1">
+                  <Label className="text-xs">展開起日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !syncBaseFrom && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {syncBaseFrom || "選擇"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={syncBaseFrom ? parseISO(syncBaseFrom) : undefined}
+                        defaultMonth={syncBaseFrom ? parseISO(syncBaseFrom) : undefined}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const ds = format(d, "yyyy-MM-dd");
+                          setSyncBaseFrom(ds);
+                          if (syncBaseUntil && syncBaseUntil < ds) setSyncBaseUntil(ds);
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">展開迄日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !syncBaseUntil && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {syncBaseUntil || "選擇"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={syncBaseUntil ? parseISO(syncBaseUntil) : undefined}
+                        defaultMonth={syncBaseUntil ? parseISO(syncBaseUntil) : (syncBaseFrom ? parseISO(syncBaseFrom) : undefined)}
+                        onSelect={(d) => { if (d) setSyncBaseUntil(format(d, "yyyy-MM-dd")); }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="sm:col-span-2 flex flex-wrap gap-2">
+                  {[3, 6, 12, 24].map((m) => (
+                    <Button
+                      key={m}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        const today = new Date();
+                        setSyncBaseFrom(format(today, "yyyy-MM-dd"));
+                        setSyncBaseUntil(format(addMonths(today, m), "yyyy-MM-dd"));
+                      }}
+                    >
+                      今日起 {m} 個月
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
