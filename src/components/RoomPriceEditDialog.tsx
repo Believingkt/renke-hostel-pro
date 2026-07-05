@@ -100,8 +100,9 @@ export function RoomPriceEditDialog({
       setIsAvailable(true);
       setChangeInventory(false);
       setInventoryCount(currentAvailableRooms?.toString() || '1');
+      setResetToTemplate(false);
     }
-  }, [open, initialDate, currentPrice]);
+  }, [open, initialDate, currentPrice, currentAvailableRooms]);
 
   const loadHolidays = async () => {
     try {
