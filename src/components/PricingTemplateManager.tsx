@@ -1518,8 +1518,93 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             </div>
           )}
 
-
-
+          {/* 同步展開基礎價 */}
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+            <div className="flex items-start gap-3">
+              <Switch
+                checked={syncBaseEnabled}
+                onCheckedChange={setSyncBaseEnabled}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold">儲存後同步展開基礎價</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的
+                  <strong className="mx-1">基礎價列</strong>
+                  （<code>pricing_template_id = null</code>）。既有列僅更新價格，庫存與販售狀態保持不變。
+                </p>
+              </div>
+            </div>
+            {syncBaseEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-11">
+                <div className="space-y-1">
+                  <Label className="text-xs">展開起日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !syncBaseFrom && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {syncBaseFrom || "選擇"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={syncBaseFrom ? parseISO(syncBaseFrom) : undefined}
+                        defaultMonth={syncBaseFrom ? parseISO(syncBaseFrom) : undefined}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const ds = format(d, "yyyy-MM-dd");
+                          setSyncBaseFrom(ds);
+                          if (syncBaseUntil && syncBaseUntil < ds) setSyncBaseUntil(ds);
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">展開迄日</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !syncBaseUntil && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {syncBaseUntil || "選擇"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={syncBaseUntil ? parseISO(syncBaseUntil) : undefined}
+                        defaultMonth={syncBaseUntil ? parseISO(syncBaseUntil) : (syncBaseFrom ? parseISO(syncBaseFrom) : undefined)}
+                        onSelect={(d) => { if (d) setSyncBaseUntil(format(d, "yyyy-MM-dd")); }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="sm:col-span-2 flex flex-wrap gap-2">
+                  {[3, 6, 12, 24].map((m) => (
+                    <Button
+                      key={m}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        const today = new Date();
+                        setSyncBaseFrom(format(today, "yyyy-MM-dd"));
+                        setSyncBaseUntil(format(addMonths(today, m), "yyyy-MM-dd"));
+                      }}
+                    >
+                      今日起 {m} 個月
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
