@@ -148,6 +148,26 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
 
       const isHakuna = accommodationId === HAKUNA_ACCOMMODATION_ID;
       const isSensan = accommodationId === SENSAN_ACCOMMODATION_ID;
+
+      // 森山特別處理：直接抓當期訂單，只要當天有活動訂單就關閉
+      const sensanBookedDates = new Set<string>();
+      if (isSensan) {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("check_in_date, check_out_date, order_status")
+          .eq("accommodation_id", accommodationId)
+          .not("order_status", "in", "(cancelled)")
+          .lte("check_in_date", endStr)
+          .gte("check_out_date", todayStr);
+        for (const o of (orders as any[]) || []) {
+          const ci = new Date(o.check_in_date);
+          const co = new Date(o.check_out_date);
+          for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
+            sensanBookedDates.add(formatISO(d, { representation: "date" }));
+          }
+        }
+      }
+
       const packageRoomTypes = roomTypes.filter(
         (rt: any) => rt.is_exclusive_package === true,
       );
@@ -187,13 +207,9 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           available.add(date);
           continue;
         }
-        if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
-          if (
-            commonRoomTypes.length > 0 &&
-            commonRoomTypes.every((rt) => isRoomBookedOut(rt, date))
-          )
-            continue;
+        if (isSensan) {
+          // 森山：只看當天是否有實際訂單，忽略庫存未開的情況
+          if (sensanBookedDates.has(date)) continue;
           available.add(date);
           continue;
         }
