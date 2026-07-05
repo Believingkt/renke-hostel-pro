@@ -139,8 +139,13 @@ export function RoomPriceEditDialog({
   };
 
   const handleSave = async () => {
-    if (!changePrice && !changeAvailability && !changeInventory) {
+    if (!changePrice && !changeAvailability && !changeInventory && !resetToTemplate) {
       toast.error('請至少選擇一項變更設定');
+      return;
+    }
+
+    if (resetToTemplate && changePrice) {
+      toast.error('「重新套用模板」與「變更專案價格」不可同時勾選');
       return;
     }
 
