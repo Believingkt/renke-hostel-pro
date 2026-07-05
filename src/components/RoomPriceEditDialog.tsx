@@ -304,7 +304,31 @@ export function RoomPriceEditDialog({
         });
       }
 
-      const summary = changePrice && templateId
+      // 3) 「重新套用模板」→ 刪除該專案在所選日期的覆寫列，讓計算回到模板 tier 價
+      let resetCount = 0;
+      if (resetToTemplate && templateId) {
+        // 先標記變更來源，讓 audit log 觸發器能記錄
+        await supabase
+          .from('room_inventory_pricing')
+          .update({ last_change_source: 'template_clear' })
+          .eq('room_type_id', roomTypeId)
+          .eq('pricing_template_id', templateId)
+          .in('date', datesToUpdate);
+
+        const { data: deleted, error: delError } = await supabase
+          .from('room_inventory_pricing')
+          .delete()
+          .eq('room_type_id', roomTypeId)
+          .eq('pricing_template_id', templateId)
+          .in('date', datesToUpdate)
+          .select('date');
+        if (delError) throw delError;
+        resetCount = deleted?.length ?? 0;
+      }
+
+      const summary = resetToTemplate && templateId
+        ? `已重新套用「${templateName ?? '專案'}」模板到 ${datesToUpdate.length} 個日期（清除 ${resetCount} 筆覆寫）`
+        : changePrice && templateId
         ? `已更新 ${datesToUpdate.length} 個日期的「${templateName ?? '專案'}」價格`
         : `已更新 ${datesToUpdate.length} 個日期的設定`;
       toast.success(summary);
