@@ -111,17 +111,28 @@ export function BulkOpenInventoryDialog({
 
     setScanning(true);
     try {
-      const { data, error } = await supabase
-        .from("room_inventory_pricing")
-        .select("room_type_id, date")
-        .in("room_type_id", Array.from(selectedRoomIds))
-        .gte("date", dateList[0])
-        .lte("date", dateList[dateList.length - 1])
-        .is("pricing_template_id", null);
-
-      if (error) throw error;
+      const roomIds = Array.from(selectedRoomIds);
+      const PAGE = 1000;
+      const all: { room_type_id: string; date: string }[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("room_inventory_pricing")
+          .select("room_type_id, date")
+          .in("room_type_id", roomIds)
+          .gte("date", dateList[0])
+          .lte("date", dateList[dateList.length - 1])
+          .is("pricing_template_id", null)
+          .order("date", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
       const dateSet = new Set(dateList);
-      const existing = (data || []).filter((r) => dateSet.has(r.date));
+      const existing = all.filter((r) => dateSet.has(r.date));
       setConflictCount(existing.length);
       setInsertCount(totalCells - existing.length);
       setStep(2);
