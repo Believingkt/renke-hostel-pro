@@ -1063,11 +1063,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             .filter(Boolean)
             .join("、");
           toast({
-            title: "請選擇對應方案",
-            description: `此房型會同步到奧丁丁，請選擇對應方案${names ? `（${names}）` : ""}`,
-            variant: "destructive",
+            title: "建議選擇對應方案",
+            description: `此房型會同步到奧丁丁，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
           });
-          return;
+          // 只提醒不擋
         }
         // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
         if (!effectivePackageId && derivedPkgIds.size === 1) {
