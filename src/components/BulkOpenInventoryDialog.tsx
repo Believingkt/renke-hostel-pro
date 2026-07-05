@@ -112,6 +112,13 @@ export function BulkOpenInventoryDialog({
         return;
       }
     }
+    if (changePrice) {
+      const p = parseInt(priceValue, 10);
+      if (isNaN(p) || p < 0) {
+        toast.error("請輸入有效的價格");
+        return;
+      }
+    }
 
     setScanning(true);
     try {
