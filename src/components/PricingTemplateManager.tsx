@@ -542,6 +542,22 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         toast.success('專案已創建');
       }
 
+      // 同步展開基礎價
+      if (syncBaseEnabled && syncBaseFrom && syncBaseUntil && finalIds.length > 0) {
+        try {
+          const written = await syncBasePrices({
+            template: dataToSave,
+            roomTypeIds: finalIds,
+            fromDate: syncBaseFrom,
+            toDate: syncBaseUntil,
+          });
+          toast.success(`已同步基礎價 ${written} 筆（${syncBaseFrom} ~ ${syncBaseUntil}）`);
+        } catch (e: any) {
+          console.error('同步基礎價失敗:', e);
+          toast.error(`同步基礎價失敗：${e?.message || '未知錯誤'}`);
+        }
+      }
+
       setShowForm(false);
       setEditingTemplate(null);
       loadTemplates();
