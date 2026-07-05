@@ -172,6 +172,51 @@ export function BulkOpenInventoryDialog({
       const roomMap = new Map(roomTypes.map((r) => [r.id, r]));
       const roomIds = Array.from(selectedRoomIds);
 
+      // === 清除覆寫模式 ===
+      if (operationMode === "clear_overrides") {
+        const PAGE = 1000;
+        const overrideIds: string[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("room_inventory_pricing")
+            .select("id, date, last_change_source")
+            .in("room_type_id", roomIds)
+            .gte("date", dateList[0])
+            .lte("date", dateList[dateList.length - 1])
+            .is("pricing_template_id", null)
+            .order("date", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          const dateSet = new Set(dateList);
+          for (const r of data as any[]) {
+            if (dateSet.has(r.date) && (r.last_change_source ?? "") !== "template_apply") {
+              overrideIds.push(r.id);
+            }
+          }
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+
+        const CHUNK = 500;
+        let deleted = 0;
+        for (let i = 0; i < overrideIds.length; i += CHUNK) {
+          const chunkIds = overrideIds.slice(i, i + CHUNK);
+          const { error } = await supabase
+            .from("room_inventory_pricing")
+            .delete()
+            .in("id", chunkIds);
+          if (error) throw error;
+          deleted += chunkIds.length;
+        }
+        toast.success(`已清除 ${deleted} 筆強制覆寫列，將回歸專案模板價格`);
+        onComplete();
+        onOpenChange(false);
+        return;
+      }
+
+
       // 已存在 rows（分頁抓完，避免 1000 上限漏掉導致 upsert/insert 撞唯一索引）
       const PAGE = 1000;
       const existingAll: { id: string; room_type_id: string; date: string; available_rooms: number; is_available: boolean }[] = [];
