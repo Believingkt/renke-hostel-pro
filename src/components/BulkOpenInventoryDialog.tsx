@@ -35,7 +35,7 @@ interface Props {
 
 type ValueMode = "default" | "custom";
 type OverwriteMode = "skip" | "overwrite" | "overwrite_status_only";
-type OperationMode = "open" | "close";
+type OperationMode = "open" | "close" | "clear_overrides";
 
 export function BulkOpenInventoryDialog({
   open,
@@ -124,28 +124,39 @@ export function BulkOpenInventoryDialog({
     try {
       const roomIds = Array.from(selectedRoomIds);
       const PAGE = 1000;
-      const all: { room_type_id: string; date: string }[] = [];
+      const isClearMode = operationMode === "clear_overrides";
+      const all: { room_type_id: string; date: string; last_change_source: string | null }[] = [];
       let from = 0;
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("room_inventory_pricing")
-          .select("room_type_id, date")
+          .select("room_type_id, date, last_change_source")
           .in("room_type_id", roomIds)
           .gte("date", dateList[0])
           .lte("date", dateList[dateList.length - 1])
           .is("pricing_template_id", null)
           .order("date", { ascending: true })
           .range(from, from + PAGE - 1);
+        const { data, error } = await query;
         if (error) throw error;
         if (!data || data.length === 0) break;
-        all.push(...data);
+        all.push(...(data as any));
         if (data.length < PAGE) break;
         from += PAGE;
       }
       const dateSet = new Set(dateList);
       const existing = all.filter((r) => dateSet.has(r.date));
-      setConflictCount(existing.length);
-      setInsertCount(totalCells - existing.length);
+      if (isClearMode) {
+        // 覆寫 = 非 template_apply 產生的列
+        const overrides = existing.filter(
+          (r) => (r.last_change_source ?? "") !== "template_apply"
+        );
+        setConflictCount(overrides.length);
+        setInsertCount(0);
+      } else {
+        setConflictCount(existing.length);
+        setInsertCount(totalCells - existing.length);
+      }
       setStep(2);
     } catch (e) {
       console.error(e);
@@ -160,6 +171,51 @@ export function BulkOpenInventoryDialog({
     try {
       const roomMap = new Map(roomTypes.map((r) => [r.id, r]));
       const roomIds = Array.from(selectedRoomIds);
+
+      // === 清除覆寫模式 ===
+      if (operationMode === "clear_overrides") {
+        const PAGE = 1000;
+        const overrideIds: string[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("room_inventory_pricing")
+            .select("id, date, last_change_source")
+            .in("room_type_id", roomIds)
+            .gte("date", dateList[0])
+            .lte("date", dateList[dateList.length - 1])
+            .is("pricing_template_id", null)
+            .order("date", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          const dateSet = new Set(dateList);
+          for (const r of data as any[]) {
+            if (dateSet.has(r.date) && (r.last_change_source ?? "") !== "template_apply") {
+              overrideIds.push(r.id);
+            }
+          }
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+
+        const CHUNK = 500;
+        let deleted = 0;
+        for (let i = 0; i < overrideIds.length; i += CHUNK) {
+          const chunkIds = overrideIds.slice(i, i + CHUNK);
+          const { error } = await supabase
+            .from("room_inventory_pricing")
+            .delete()
+            .in("id", chunkIds);
+          if (error) throw error;
+          deleted += chunkIds.length;
+        }
+        toast.success(`已清除 ${deleted} 筆強制覆寫列，將回歸專案模板價格`);
+        onComplete();
+        onOpenChange(false);
+        return;
+      }
+
 
       // 已存在 rows（分頁抓完，避免 1000 上限漏掉導致 upsert/insert 撞唯一索引）
       const PAGE = 1000;
@@ -300,11 +356,17 @@ export function BulkOpenInventoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
-          <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
+          <DialogTitle>
+            {operationMode === "clear_overrides"
+              ? "一鍵清除覆寫"
+              : `一鍵${operationMode === "close" ? "關閉" : "開啟"}庫存`}
+          </DialogTitle>
           <DialogDescription>
             {operationMode === "close"
               ? "選擇多個房型與日期區間，批次關閉販售（可售數歸 0）。"
-              : "選擇多個房型與日期區間，批次建立可售庫存。"}
+              : operationMode === "clear_overrides"
+                ? "選擇多個房型與日期區間，刪除該範圍內的強制覆寫列，讓價格與庫存回歸專案模板設定。"
+                : "選擇多個房型與日期區間，批次建立可售庫存。"}
           </DialogDescription>
         </DialogHeader>
 
@@ -318,7 +380,7 @@ export function BulkOpenInventoryDialog({
                 <RadioGroup
                   value={operationMode}
                   onValueChange={(v) => setOperationMode(v as OperationMode)}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-3 gap-2"
                 >
                   <label
                     htmlFor="op-open"
@@ -339,6 +401,16 @@ export function BulkOpenInventoryDialog({
                   >
                     <RadioGroupItem value="close" id="op-close" />
                     <span className="text-sm font-medium">關閉販售</span>
+                  </label>
+                  <label
+                    htmlFor="op-clear"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "clear_overrides" && "border-amber-500 bg-amber-500/5"
+                    )}
+                  >
+                    <RadioGroupItem value="clear_overrides" id="op-clear" />
+                    <span className="text-sm font-medium">清除覆寫</span>
                   </label>
                 </RadioGroup>
               </div>
@@ -406,70 +478,88 @@ export function BulkOpenInventoryDialog({
                 </div>
               </div>
 
-              {/* 庫存數值來源 */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label>庫存數值</Label>
-                  {operationMode === "close" && (
-                    <span className="text-xs text-muted-foreground">關閉模式下可售數固定為 0</span>
-                  )}
-                </div>
-                <RadioGroup
-                  value={valueMode}
-                  onValueChange={(v) => setValueMode(v as ValueMode)}
-                  disabled={operationMode === "close"}
-                  className={cn(operationMode === "close" && "opacity-50 pointer-events-none")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="default" id="vm-default" />
-                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
-                      使用房型預設庫存量（推薦）
-                    </Label>
+              {/* 庫存數值來源（清除覆寫模式下隱藏） */}
+              {operationMode !== "clear_overrides" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label>庫存數值</Label>
+                    {operationMode === "close" && (
+                      <span className="text-xs text-muted-foreground">關閉模式下可售數固定為 0</span>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="vm-custom" />
-                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={customValue}
-                      onChange={(e) => setCustomValue(e.target.value)}
-                      onFocus={() => setValueMode("custom")}
-                      className="w-24 h-8"
-                      disabled={operationMode === "close"}
-                    />
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* 價格設定 */}
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer mb-1.5">
-                  <Checkbox
-                    checked={changePrice}
-                    onCheckedChange={(c) => setChangePrice(c === true)}
-                  />
-                  <span className="text-sm font-medium">同時設定價格</span>
-                </label>
-                {changePrice && (
-                  <div className="ml-6 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                  <RadioGroup
+                    value={valueMode}
+                    onValueChange={(v) => setValueMode(v as ValueMode)}
+                    disabled={operationMode === "close"}
+                    className={cn(operationMode === "close" && "opacity-50 pointer-events-none")}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="default" id="vm-default" />
+                      <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                        使用房型預設庫存量（推薦）
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="vm-custom" />
+                      <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
                       <Input
                         type="number"
                         min={0}
-                        value={priceValue}
-                        onChange={(e) => setPriceValue(e.target.value)}
-                        className="w-32 h-8"
-                        placeholder="例如 3200"
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        onFocus={() => setValueMode("custom")}
+                        className="w-24 h-8"
+                        disabled={operationMode === "close"}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
-                    </p>
-                  </div>
-                )}
-              </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* 價格設定（清除覆寫模式下隱藏） */}
+              {operationMode !== "clear_overrides" && (
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer mb-1.5">
+                    <Checkbox
+                      checked={changePrice}
+                      onCheckedChange={(c) => setChangePrice(c === true)}
+                    />
+                    <span className="text-sm font-medium">同時設定價格</span>
+                  </label>
+                  {changePrice && (
+                    <div className="ml-6 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={priceValue}
+                          onChange={(e) => setPriceValue(e.target.value)}
+                          className="w-32 h-8"
+                          placeholder="例如 3200"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {operationMode === "clear_overrides" && (
+                <Alert className="border-amber-500/40 bg-amber-500/5">
+                  <AlertDescription className="text-sm space-y-1">
+                    <div className="font-medium">將刪除以下資料：</div>
+                    <div className="text-xs text-muted-foreground">
+                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（<code>last_change_source ≠ template_apply</code>）。
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      刪除後，該日期會回歸專案模板計算的基礎價格與庫存；不會影響已由專案模板產生的列。
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {totalCells > 0 && (
                 <Alert>
@@ -484,12 +574,30 @@ export function BulkOpenInventoryDialog({
 
         {step === 2 && (() => {
           const isClose = operationMode === "close";
+          const isClear = operationMode === "clear_overrides";
           const selectedRooms = roomTypes.filter((r) => selectedRoomIds.has(r.id));
           const newValueLabel = isClose
             ? "可售數 = 0（關閉）"
             : valueMode === "custom"
               ? `可售數 = ${customValue}（手動）`
               : "可售數 = 各房型預設庫存";
+          if (isClear) {
+            return (
+              <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+                <div className="space-y-4 py-2">
+                  <Alert className="border-amber-500/40 bg-amber-500/5">
+                    <AlertDescription className="text-sm space-y-1">
+                      <div>將在 <strong>{selectedRoomIds.size}</strong> 個房型、<strong>{dateList.length}</strong> 天範圍內執行。</div>
+                      <div>找到 <strong className="text-amber-600">{conflictCount}</strong> 筆強制覆寫列將被刪除。</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        刪除後，該日期會回歸專案模板計算的基礎價格與庫存。此操作無法復原，請確認後再送出。
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </div>
+            );
+          }
           return (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
             <div className="space-y-4 py-2">
@@ -576,9 +684,13 @@ export function BulkOpenInventoryDialog({
           {step === 2 && (
             <>
               <Button variant="outline" onClick={() => setStep(1)} disabled={submitting}>上一步</Button>
-              <Button onClick={handleSubmit} disabled={submitting}>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                variant={operationMode === "clear_overrides" ? "destructive" : "default"}
+              >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                確認執行
+                {operationMode === "clear_overrides" ? "確認刪除覆寫" : "確認執行"}
               </Button>
             </>
           )}
