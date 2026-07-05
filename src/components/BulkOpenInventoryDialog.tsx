@@ -298,7 +298,7 @@ export function BulkOpenInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
           <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
           <DialogDescription>
