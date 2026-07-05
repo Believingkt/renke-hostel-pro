@@ -32,6 +32,8 @@ interface RoomPriceEditDialogProps {
   initialDate: string;
   currentPrice?: number;
   currentAvailableRooms?: number;
+  templatePrice?: number;
+  isOverridden?: boolean;
   accommodationId: string;
   onComplete: () => void;
 }
