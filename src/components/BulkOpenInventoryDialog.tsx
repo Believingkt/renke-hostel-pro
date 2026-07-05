@@ -442,6 +442,35 @@ export function BulkOpenInventoryDialog({
                 </RadioGroup>
               </div>
 
+              {/* 價格設定 */}
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer mb-1.5">
+                  <Checkbox
+                    checked={changePrice}
+                    onCheckedChange={(c) => setChangePrice(c === true)}
+                  />
+                  <span className="text-sm font-medium">同時設定價格</span>
+                </label>
+                {changePrice && (
+                  <div className="ml-6 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={priceValue}
+                        onChange={(e) => setPriceValue(e.target.value)}
+                        className="w-32 h-8"
+                        placeholder="例如 3200"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {totalCells > 0 && (
                 <Alert>
                   <AlertDescription className="text-sm">
