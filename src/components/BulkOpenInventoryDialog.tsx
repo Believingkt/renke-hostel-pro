@@ -53,6 +53,8 @@ export function BulkOpenInventoryDialog({
   const [valueMode, setValueMode] = useState<ValueMode>("default");
   const [customValue, setCustomValue] = useState<string>("1");
   const [overwriteMode, setOverwriteMode] = useState<OverwriteMode>("skip");
+  const [changePrice, setChangePrice] = useState<boolean>(false);
+  const [priceValue, setPriceValue] = useState<string>("");
 
   const [step, setStep] = useState<1 | 2>(1);
   const [scanning, setScanning] = useState(false);
@@ -69,6 +71,8 @@ export function BulkOpenInventoryDialog({
       setValueMode("default");
       setCustomValue("1");
       setOverwriteMode("skip");
+      setChangePrice(false);
+      setPriceValue("");
       setStep(1);
       setConflictCount(0);
       setInsertCount(0);
