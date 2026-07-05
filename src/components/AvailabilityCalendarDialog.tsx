@@ -207,7 +207,6 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       const isHakuna = accommodationId === HAKUNA_ACCOMMODATION_ID;
       const isSensan = accommodationId === SENSAN_ACCOMMODATION_ID;
       const packageRoomTypes = targetRoomTypes.filter((rt) => rt.is_exclusive_package === true);
-      const commonRoomTypes = targetRoomTypes.filter((rt) => rt.is_exclusive_package !== true);
 
       // 森山：可訂日曆只看實際訂單；庫存未開/未建不影響開放狀態。
       const sensanBookedDates = new Set<string>();
