@@ -287,6 +287,25 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     }
     if (!currentAccommodationId) return;
 
+    // 檢查對應方案必填（僅當房型會同步到奧丁丁時）
+    try {
+      const allRoomTypeIds = [form.room_type_id, ...extraSelections.map((e) => e.room_type_id)].filter(Boolean);
+      const req = await checkOwltingPackageRequirement(currentAccommodationId, allRoomTypeIds);
+      if (req.required && !form.package_id) {
+        const names = req.requiredRoomTypeIds
+          .map((id) => roomTypes.find((r) => r.id === id)?.name || id)
+          .join("、");
+        toast({
+          title: "請選擇對應方案",
+          description: `此房型會同步到奧丁丁，請選擇對應方案（${names}）`,
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn("[CreateHoldOrderDialog] owlting package requirement check failed:", e);
+    }
+
     setIsSaving(true);
     try {
       const { data: orderNumber, error: numErr } = await supabase.rpc('generate_order_number');
@@ -300,6 +319,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
         room_type_id: form.room_type_id,
+        package_id: form.package_id || null,
         guest_count: 1,
         order_status: "hold",
         payment_status: "unpaid",
