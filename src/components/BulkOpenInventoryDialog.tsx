@@ -298,7 +298,7 @@ export function BulkOpenInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
           <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
           <DialogDescription>
@@ -311,7 +311,7 @@ export function BulkOpenInventoryDialog({
         {step === 1 && (
           <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
 
-            <div className="space-y-5 py-2">
+            <div className="space-y-5 py-2 pb-6">
               {/* 操作模式 */}
               <div>
                 <Label className="mb-1.5 block">操作模式</Label>
