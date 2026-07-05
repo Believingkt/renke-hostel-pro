@@ -734,6 +734,8 @@ export default function RoomPriceCalendar() {
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
           currentAvailableRooms={selectedCell.currentAvailableRooms}
+          templatePrice={selectedCell.templatePrice}
+          isOverridden={selectedCell.isOverridden}
           accommodationId={currentAccommodationId || ''}
           onComplete={handleEditComplete}
         />
