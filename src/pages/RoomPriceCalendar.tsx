@@ -400,7 +400,9 @@ export default function RoomPriceCalendar() {
     template: PricingTemplate | null,
     dateStr: string,
     currentPrice?: number,
-    currentAvailableRooms?: number
+    currentAvailableRooms?: number,
+    templatePrice?: number,
+    isOverridden?: boolean,
   ) => {
     setSelectedCell({
       roomTypeId: roomType.id,
@@ -410,6 +412,8 @@ export default function RoomPriceCalendar() {
       date: dateStr,
       currentPrice,
       currentAvailableRooms,
+      templatePrice,
+      isOverridden,
     });
     setEditDialogOpen(true);
   };
