@@ -131,6 +131,8 @@ export default function RoomPriceCalendar() {
     date: string;
     currentPrice?: number;
     currentAvailableRooms?: number;
+    templatePrice?: number;
+    isOverridden?: boolean;
   } | null>(null);
 
   // 計算當月的所有日期
@@ -398,7 +400,9 @@ export default function RoomPriceCalendar() {
     template: PricingTemplate | null,
     dateStr: string,
     currentPrice?: number,
-    currentAvailableRooms?: number
+    currentAvailableRooms?: number,
+    templatePrice?: number,
+    isOverridden?: boolean,
   ) => {
     setSelectedCell({
       roomTypeId: roomType.id,
@@ -408,6 +412,8 @@ export default function RoomPriceCalendar() {
       date: dateStr,
       currentPrice,
       currentAvailableRooms,
+      templatePrice,
+      isOverridden,
     });
     setEditDialogOpen(true);
   };
@@ -728,6 +734,8 @@ export default function RoomPriceCalendar() {
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
           currentAvailableRooms={selectedCell.currentAvailableRooms}
+          templatePrice={selectedCell.templatePrice}
+          isOverridden={selectedCell.isOverridden}
           accommodationId={currentAccommodationId || ''}
           onComplete={handleEditComplete}
         />
@@ -769,7 +777,7 @@ interface RoomTypeRowsProps {
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
   getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'peak' | 'weekday';
-  onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number) => void;
+  onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number, templatePrice?: number, isOverridden?: boolean) => void;
   showCategoryHeader?: boolean;
 }
 
@@ -924,7 +932,7 @@ function RoomTypeRows({
                   !isWeekend && !isPeak && "hover:bg-muted/50",
                   isUnavailable && "opacity-60",
                 )}
-                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, overrideInv ?? cellData?.available_rooms)}
+                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, overrideInv ?? cellData?.available_rooms, tierInfo.price ?? fallbackPrice ?? undefined, isOverridden)}
                 title={hideCell ? '此日型已關閉販售' : (!isActive ? '此日不在專案期限內' : (isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)))}
               >
                 <div className="flex flex-col items-center gap-0.5 leading-tight">
