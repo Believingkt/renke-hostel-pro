@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 
 interface RoomType {
   id: string;
@@ -68,12 +70,24 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
+    package_id: "",
     notes: "",
   });
 
+  const { packages } = useAccommodationPackages(currentAccommodationId, { onlyEnabled: true });
+
+  // 篩選出符合當前主房型的方案
+  const applicablePackages = form.room_type_id
+    ? packages.filter(
+        (p) =>
+          p.primary_room_type_id === form.room_type_id ||
+          (Array.isArray(p.room_type_ids) && p.room_type_ids.includes(form.room_type_id))
+      )
+    : [];
+
   useEffect(() => {
     if (open) {
-      setForm({ check_in_date: "", check_out_date: "", room_type_id: "", notes: "" });
+      setForm({ check_in_date: "", check_out_date: "", room_type_id: "", package_id: "", notes: "" });
       setInventoryWarnings([]);
       setAvailableDates(new Set());
       setExtraSelections([]);
@@ -273,6 +287,25 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     }
     if (!currentAccommodationId) return;
 
+    // 檢查對應方案必填（僅當房型會同步到奧丁丁時）
+    try {
+      const allRoomTypeIds = [form.room_type_id, ...extraSelections.map((e) => e.room_type_id)].filter(Boolean);
+      const req = await checkOwltingPackageRequirement(currentAccommodationId, allRoomTypeIds);
+      if (req.required && !form.package_id) {
+        const names = req.requiredRoomTypeIds
+          .map((id) => roomTypes.find((r) => r.id === id)?.name || id)
+          .join("、");
+        toast({
+          title: "請選擇對應方案",
+          description: `此房型會同步到奧丁丁，請選擇對應方案（${names}）`,
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn("[CreateHoldOrderDialog] owlting package requirement check failed:", e);
+    }
+
     setIsSaving(true);
     try {
       const { data: orderNumber, error: numErr } = await supabase.rpc('generate_order_number');
@@ -286,6 +319,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
         room_type_id: form.room_type_id,
+        package_id: form.package_id || null,
         guest_count: 1,
         order_status: "hold",
         payment_status: "unpaid",
@@ -432,7 +466,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       {/* Room type first */}
       <div className="space-y-2">
         <Label>房型 <span className="text-destructive">*</span></Label>
-        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v, check_in_date: "", check_out_date: "" })}>
+        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v, package_id: "", check_in_date: "", check_out_date: "" })}>
           <SelectTrigger className="h-12 sm:h-10">
             <SelectValue placeholder="選擇房型" />
           </SelectTrigger>
@@ -445,6 +479,29 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           </SelectContent>
         </Select>
       </div>
+
+      {/* 對應方案（會同步到奧丁丁時必填） */}
+      {form.room_type_id && applicablePackages.length > 0 && (
+        <div className="space-y-2">
+          <Label>對應方案</Label>
+          <Select
+            value={form.package_id || "none"}
+            onValueChange={(v) => setForm({ ...form, package_id: v === "none" ? "" : v })}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="選擇方案（同步至奧丁丁時必填）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">不指定</SelectItem>
+              {applicablePackages.map((pkg) => (
+                <SelectItem key={pkg.id} value={pkg.id}>
+                  {pkg.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isLoadingAvailability && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
