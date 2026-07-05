@@ -124,28 +124,39 @@ export function BulkOpenInventoryDialog({
     try {
       const roomIds = Array.from(selectedRoomIds);
       const PAGE = 1000;
-      const all: { room_type_id: string; date: string }[] = [];
+      const isClearMode = operationMode === "clear_overrides";
+      const all: { room_type_id: string; date: string; last_change_source: string | null }[] = [];
       let from = 0;
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("room_inventory_pricing")
-          .select("room_type_id, date")
+          .select("room_type_id, date, last_change_source")
           .in("room_type_id", roomIds)
           .gte("date", dateList[0])
           .lte("date", dateList[dateList.length - 1])
           .is("pricing_template_id", null)
           .order("date", { ascending: true })
           .range(from, from + PAGE - 1);
+        const { data, error } = await query;
         if (error) throw error;
         if (!data || data.length === 0) break;
-        all.push(...data);
+        all.push(...(data as any));
         if (data.length < PAGE) break;
         from += PAGE;
       }
       const dateSet = new Set(dateList);
       const existing = all.filter((r) => dateSet.has(r.date));
-      setConflictCount(existing.length);
-      setInsertCount(totalCells - existing.length);
+      if (isClearMode) {
+        // 覆寫 = 非 template_apply 產生的列
+        const overrides = existing.filter(
+          (r) => (r.last_change_source ?? "") !== "template_apply"
+        );
+        setConflictCount(overrides.length);
+        setInsertCount(0);
+      } else {
+        setConflictCount(existing.length);
+        setInsertCount(totalCells - existing.length);
+      }
       setStep(2);
     } catch (e) {
       console.error(e);
