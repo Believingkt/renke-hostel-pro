@@ -478,70 +478,88 @@ export function BulkOpenInventoryDialog({
                 </div>
               </div>
 
-              {/* 庫存數值來源 */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label>庫存數值</Label>
-                  {operationMode === "close" && (
-                    <span className="text-xs text-muted-foreground">關閉模式下可售數固定為 0</span>
-                  )}
-                </div>
-                <RadioGroup
-                  value={valueMode}
-                  onValueChange={(v) => setValueMode(v as ValueMode)}
-                  disabled={operationMode === "close"}
-                  className={cn(operationMode === "close" && "opacity-50 pointer-events-none")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="default" id="vm-default" />
-                    <Label htmlFor="vm-default" className="font-normal cursor-pointer">
-                      使用房型預設庫存量（推薦）
-                    </Label>
+              {/* 庫存數值來源（清除覆寫模式下隱藏） */}
+              {operationMode !== "clear_overrides" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label>庫存數值</Label>
+                    {operationMode === "close" && (
+                      <span className="text-xs text-muted-foreground">關閉模式下可售數固定為 0</span>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="vm-custom" />
-                    <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={customValue}
-                      onChange={(e) => setCustomValue(e.target.value)}
-                      onFocus={() => setValueMode("custom")}
-                      className="w-24 h-8"
-                      disabled={operationMode === "close"}
-                    />
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* 價格設定 */}
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer mb-1.5">
-                  <Checkbox
-                    checked={changePrice}
-                    onCheckedChange={(c) => setChangePrice(c === true)}
-                  />
-                  <span className="text-sm font-medium">同時設定價格</span>
-                </label>
-                {changePrice && (
-                  <div className="ml-6 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                  <RadioGroup
+                    value={valueMode}
+                    onValueChange={(v) => setValueMode(v as ValueMode)}
+                    disabled={operationMode === "close"}
+                    className={cn(operationMode === "close" && "opacity-50 pointer-events-none")}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="default" id="vm-default" />
+                      <Label htmlFor="vm-default" className="font-normal cursor-pointer">
+                        使用房型預設庫存量（推薦）
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="vm-custom" />
+                      <Label htmlFor="vm-custom" className="font-normal cursor-pointer">手動輸入：</Label>
                       <Input
                         type="number"
                         min={0}
-                        value={priceValue}
-                        onChange={(e) => setPriceValue(e.target.value)}
-                        className="w-32 h-8"
-                        placeholder="例如 3200"
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        onFocus={() => setValueMode("custom")}
+                        className="w-24 h-8"
+                        disabled={operationMode === "close"}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
-                    </p>
-                  </div>
-                )}
-              </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* 價格設定（清除覆寫模式下隱藏） */}
+              {operationMode !== "clear_overrides" && (
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer mb-1.5">
+                    <Checkbox
+                      checked={changePrice}
+                      onCheckedChange={(c) => setChangePrice(c === true)}
+                    />
+                    <span className="text-sm font-medium">同時設定價格</span>
+                  </label>
+                  {changePrice && (
+                    <div className="ml-6 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={priceValue}
+                          onChange={(e) => setPriceValue(e.target.value)}
+                          className="w-32 h-8"
+                          placeholder="例如 3200"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {operationMode === "clear_overrides" && (
+                <Alert className="border-amber-500/40 bg-amber-500/5">
+                  <AlertDescription className="text-sm space-y-1">
+                    <div className="font-medium">將刪除以下資料：</div>
+                    <div className="text-xs text-muted-foreground">
+                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（<code>last_change_source ≠ template_apply</code>）。
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      刪除後，該日期會回歸專案模板計算的基礎價格與庫存；不會影響已由專案模板產生的列。
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {totalCells > 0 && (
                 <Alert>
