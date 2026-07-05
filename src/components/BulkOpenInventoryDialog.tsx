@@ -150,19 +150,32 @@ export function BulkOpenInventoryDialog({
       const roomMap = new Map(roomTypes.map((r) => [r.id, r]));
       const roomIds = Array.from(selectedRoomIds);
 
-      // 已存在 rows
-      const { data: existingRows, error: exErr } = await supabase
-        .from("room_inventory_pricing")
-        .select("id, room_type_id, date, available_rooms, is_available")
-        .in("room_type_id", roomIds)
-        .gte("date", dateList[0])
-        .lte("date", dateList[dateList.length - 1])
-        .is("pricing_template_id", null);
-      if (exErr) throw exErr;
+      // 已存在 rows（分頁抓完，避免 1000 上限漏掉導致 upsert/insert 撞唯一索引）
+      const PAGE = 1000;
+      const existingAll: { id: string; room_type_id: string; date: string; available_rooms: number; is_available: boolean }[] = [];
+      {
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("room_inventory_pricing")
+            .select("id, room_type_id, date, available_rooms, is_available")
+            .in("room_type_id", roomIds)
+            .gte("date", dateList[0])
+            .lte("date", dateList[dateList.length - 1])
+            .is("pricing_template_id", null)
+            .order("date", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          existingAll.push(...(data as any));
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+      }
 
       const dateSet = new Set(dateList);
       const existingMap = new Map<string, { id: string; available_rooms: number; is_available: boolean }>();
-      (existingRows || []).forEach((r) => {
+      existingAll.forEach((r) => {
         if (dateSet.has(r.date)) {
           existingMap.set(`${r.room_type_id}_${r.date}`, {
             id: r.id,
