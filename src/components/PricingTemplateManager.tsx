@@ -247,6 +247,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       extra_segments: [],
       default_package_id: "",
     });
+    // 預設同步範圍：今日 → 12 個月後
+    const today = new Date();
+    setSyncBaseFrom(format(today, "yyyy-MM-dd"));
+    setSyncBaseUntil(format(addMonths(today, 12), "yyyy-MM-dd"));
+    setSyncBaseEnabled(true);
     setErrors({});
     setShowForm(true);
   };
