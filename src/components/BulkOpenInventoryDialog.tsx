@@ -507,18 +507,20 @@ export function BulkOpenInventoryDialog({
                 <div className="text-xs text-muted-foreground">
                   狀態：<strong>{isClose ? "關閉販售" : "開啟販售"}</strong>　·　{newValueLabel}
                 </div>
+                <div className="text-xs text-muted-foreground">
+                  價格：{changePrice
+                    ? <strong className="text-primary">${priceValue || 0} / 晚（將寫入所有選定日期）</strong>
+                    : <span>沿用原設定或房型基礎價（不變動）</span>}
+                </div>
                 {!isClose && valueMode === "default" && (
                   <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
                     {selectedRooms.map((r) => (
                       <div key={r.id}>
-                        · {r.name}：<strong>{r.room_count ?? 1}</strong> 間
+                        · {r.name}：預設庫存 <strong>{r.room_count ?? 1}</strong> 間　·　基礎價 <strong>${r.base_price ?? 0}</strong>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="text-[11px] text-muted-foreground pt-1">
-                  註：此功能不會變動價格，價格沿用原設定或房型基礎價。
-                </div>
               </div>
 
               <div>
