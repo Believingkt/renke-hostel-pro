@@ -608,25 +608,32 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
-    // 若房型會同步到奧丁丁，「對應方案」必填
+    // 若房型會同步到奧丁丁，「對應方案」必填（讀 editForm.package_id 或所選 template.default_package_id）
+    let effectivePackageId: string | null = editForm.package_id || null;
     if (currentAccommodationId) {
       try {
         const req = await checkOwltingPackageRequirement(
           currentAccommodationId,
           [editForm.room_type_id],
         );
-        if (req.required && !editForm.package_id) {
-          toast({
-            title: "請選擇對應方案",
-            description: "此房型會同步到奧丁丁，請選擇對應方案",
-            variant: "destructive",
-          });
-          return;
+        if (req.required) {
+          const tpl = pricingTemplates.find((t) => t.id === selectedTemplateId);
+          const fallback = tpl?.default_package_id || null;
+          if (!editForm.package_id && !fallback) {
+            toast({
+              title: "請選擇對應方案",
+              description: "此房型會同步到奧丁丁，請選擇對應方案",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!effectivePackageId) effectivePackageId = fallback;
         }
       } catch (e) {
         console.error("checkOwltingPackageRequirement failed", e);
       }
     }
+
 
 
     if (!editForm.meal_plan) {
