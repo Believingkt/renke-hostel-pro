@@ -422,12 +422,41 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
    */
   const syncBasePrices = async (opts: {
     template: any;
+    templateId?: string | null;
     roomTypeIds: string[];
     fromDate: string;
     toDate: string;
   }): Promise<number> => {
-    const { template, roomTypeIds, fromDate, toDate } = opts;
+    const { template, templateId, roomTypeIds, fromDate, toDate } = opts;
     if (!roomTypeIds.length || fromDate > toDate) return 0;
+
+    // 0) 清除此專案在展開範圍內的「每日單獨覆寫列」→ 讓 tier 價生效
+    // 未提供 templateId（新增未回填 id）時跳過本步驟；改由後續 UPSERT tier 價覆蓋。
+    let clearedOverrides = 0;
+    if (templateId) {
+      const { data: overrideRows, error: fetchOvErr } = await supabase
+        .from('room_inventory_pricing')
+        .select('id')
+        .eq('pricing_template_id', templateId)
+        .in('room_type_id', roomTypeIds)
+        .gte('date', fromDate)
+        .lte('date', toDate);
+      if (fetchOvErr) throw fetchOvErr;
+      const ovIds = (overrideRows || []).map((r: any) => r.id);
+      if (ovIds.length > 0) {
+        // 先標記來源以利 audit
+        await supabase
+          .from('room_inventory_pricing')
+          .update({ last_change_source: 'template_apply' })
+          .in('id', ovIds);
+        const { error: delErr } = await supabase
+          .from('room_inventory_pricing')
+          .delete()
+          .in('id', ovIds);
+        if (delErr) throw delErr;
+        clearedOverrides = ovIds.length;
+      }
+    }
 
     // 1) 抓假日
     const { data: hData } = await supabase
