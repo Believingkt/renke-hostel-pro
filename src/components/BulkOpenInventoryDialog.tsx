@@ -574,12 +574,30 @@ export function BulkOpenInventoryDialog({
 
         {step === 2 && (() => {
           const isClose = operationMode === "close";
+          const isClear = operationMode === "clear_overrides";
           const selectedRooms = roomTypes.filter((r) => selectedRoomIds.has(r.id));
           const newValueLabel = isClose
             ? "可售數 = 0（關閉）"
             : valueMode === "custom"
               ? `可售數 = ${customValue}（手動）`
               : "可售數 = 各房型預設庫存";
+          if (isClear) {
+            return (
+              <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+                <div className="space-y-4 py-2">
+                  <Alert className="border-amber-500/40 bg-amber-500/5">
+                    <AlertDescription className="text-sm space-y-1">
+                      <div>將在 <strong>{selectedRoomIds.size}</strong> 個房型、<strong>{dateList.length}</strong> 天範圍內執行。</div>
+                      <div>找到 <strong className="text-amber-600">{conflictCount}</strong> 筆強制覆寫列將被刪除。</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        刪除後，該日期會回歸專案模板計算的基礎價格與庫存。此操作無法復原，請確認後再送出。
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </div>
+            );
+          }
           return (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
             <div className="space-y-4 py-2">
