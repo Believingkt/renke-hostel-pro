@@ -600,8 +600,34 @@ export function RoomPriceEditDialog({
                 </div>
               )}
             </div>
+
+            {/* 重新套用模板（清除覆寫） */}
+            {templateId && (
+              <div className="space-y-2 rounded-md border border-dashed p-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="resetToTemplate"
+                    checked={resetToTemplate}
+                    onCheckedChange={(checked) => {
+                      const v = checked === true;
+                      setResetToTemplate(v);
+                      if (v) setChangePrice(false);
+                    }}
+                    disabled={changePrice}
+                  />
+                  <label htmlFor="resetToTemplate" className="text-sm cursor-pointer font-medium">
+                    重新套用模板（清除此範圍內的覆寫價）
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  刪除此房型 × 專案在所選日期的覆寫紀錄，價格改由模板 tier（平日 / 假日前一日 / 假日）自動重算。
+                  不會影響庫存與販售狀態。
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
