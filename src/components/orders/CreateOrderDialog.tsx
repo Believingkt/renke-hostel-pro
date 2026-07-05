@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
