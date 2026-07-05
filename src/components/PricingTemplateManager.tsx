@@ -1559,9 +1559,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <div className="flex-1">
                 <Label className="text-sm font-semibold">儲存後同步展開基礎價</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的
-                  <strong className="mx-1">基礎價列</strong>
-                  （<code>pricing_template_id = null</code>）。既有列僅更新價格，庫存與販售狀態保持不變。
+                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的<strong className="mx-1">基礎價列</strong>，
+                  並<strong className="text-destructive mx-0.5">清除該範圍內此專案的舊每日單獨覆寫</strong>（讓 tier 價真的生效）。
+                  庫存與販售狀態保持不變。
                 </p>
               </div>
             </div>
