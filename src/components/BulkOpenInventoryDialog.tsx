@@ -380,7 +380,7 @@ export function BulkOpenInventoryDialog({
                 <RadioGroup
                   value={operationMode}
                   onValueChange={(v) => setOperationMode(v as OperationMode)}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-3 gap-2"
                 >
                   <label
                     htmlFor="op-open"
@@ -401,6 +401,16 @@ export function BulkOpenInventoryDialog({
                   >
                     <RadioGroupItem value="close" id="op-close" />
                     <span className="text-sm font-medium">關閉販售</span>
+                  </label>
+                  <label
+                    htmlFor="op-clear"
+                    className={cn(
+                      "flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer",
+                      operationMode === "clear_overrides" && "border-amber-500 bg-amber-500/5"
+                    )}
+                  >
+                    <RadioGroupItem value="clear_overrides" id="op-clear" />
+                    <span className="text-sm font-medium">清除覆寫</span>
                   </label>
                 </RadioGroup>
               </div>
