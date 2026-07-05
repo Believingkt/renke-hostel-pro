@@ -59,6 +59,8 @@ export function RoomPriceEditDialog({
   initialDate,
   currentPrice,
   currentAvailableRooms,
+  templatePrice,
+  isOverridden,
   accommodationId,
   onComplete,
 }: RoomPriceEditDialogProps) {
@@ -74,6 +76,7 @@ export function RoomPriceEditDialog({
   const [isAvailable, setIsAvailable] = useState(true);
   const [changeInventory, setChangeInventory] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(currentAvailableRooms?.toString() || '1');
+  const [resetToTemplate, setResetToTemplate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
