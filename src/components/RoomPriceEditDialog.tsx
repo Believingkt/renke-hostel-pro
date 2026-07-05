@@ -291,6 +291,49 @@ export function RoomPriceEditDialog({
           updated: overrideToUpdate.length,
           inserted: overrideToInsert.length,
         });
+
+        // 3) 同步覆寫基礎價列（pricing_template_id IS NULL）→ 讓基礎價跟隨最近一次的專案價變動
+        const { data: existingBaseForSync, error: fetchBaseSyncError } = await supabase
+          .from('room_inventory_pricing')
+          .select('id, date')
+          .eq('room_type_id', roomTypeId)
+          .is('pricing_template_id', null)
+          .in('date', datesToUpdate);
+        if (fetchBaseSyncError) throw fetchBaseSyncError;
+        const existingBaseSyncDates = new Set((existingBaseForSync || []).map(d => d.date));
+
+        const baseSyncUpdates = datesToUpdate.filter(d => existingBaseSyncDates.has(d));
+        const baseSyncInserts = datesToUpdate
+          .filter(d => !existingBaseSyncDates.has(d))
+          .map(date => ({
+            room_type_id: roomTypeId,
+            date,
+            pricing_template_id: null,
+            price: priceValue,
+            available_rooms: currentAvailableRooms ?? 1,
+            is_available: true,
+            last_change_source: 'template_apply' as const,
+          }));
+
+        for (const date of baseSyncUpdates) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .update({ price: priceValue, last_change_source: 'template_apply' })
+            .eq('room_type_id', roomTypeId)
+            .eq('date', date)
+            .is('pricing_template_id', null);
+          if (error) throw error;
+        }
+        if (baseSyncInserts.length > 0) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .insert(baseSyncInserts);
+          if (error) throw error;
+        }
+        console.log('[RoomPriceEditDialog] base sync done', {
+          updated: baseSyncUpdates.length,
+          inserted: baseSyncInserts.length,
+        });
       }
 
       const summary = changePrice && templateId
