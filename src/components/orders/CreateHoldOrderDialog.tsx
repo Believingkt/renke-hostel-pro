@@ -466,7 +466,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       {/* Room type first */}
       <div className="space-y-2">
         <Label>房型 <span className="text-destructive">*</span></Label>
-        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v, check_in_date: "", check_out_date: "" })}>
+        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v, package_id: "", check_in_date: "", check_out_date: "" })}>
           <SelectTrigger className="h-12 sm:h-10">
             <SelectValue placeholder="選擇房型" />
           </SelectTrigger>
@@ -479,6 +479,29 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           </SelectContent>
         </Select>
       </div>
+
+      {/* 對應方案（會同步到奧丁丁時必填） */}
+      {form.room_type_id && applicablePackages.length > 0 && (
+        <div className="space-y-2">
+          <Label>對應方案</Label>
+          <Select
+            value={form.package_id || "none"}
+            onValueChange={(v) => setForm({ ...form, package_id: v === "none" ? "" : v })}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="選擇方案（同步至奧丁丁時必填）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">不指定</SelectItem>
+              {applicablePackages.map((pkg) => (
+                <SelectItem key={pkg.id} value={pkg.id}>
+                  {pkg.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isLoadingAvailability && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
