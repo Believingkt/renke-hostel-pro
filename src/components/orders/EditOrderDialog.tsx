@@ -607,6 +607,27 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
+    // 若房型會同步到奧丁丁，「對應方案」必填
+    if (currentAccommodationId) {
+      try {
+        const req = await checkOwltingPackageRequirement(
+          currentAccommodationId,
+          [editForm.room_type_id],
+        );
+        if (req.required && !editForm.package_id) {
+          toast({
+            title: "請選擇對應方案",
+            description: "此房型會同步到奧丁丁，請選擇對應方案",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("checkOwltingPackageRequirement failed", e);
+      }
+    }
+
+
     if (!editForm.meal_plan) {
       toast({
         title: "專案錯誤",
