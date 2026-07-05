@@ -53,6 +53,8 @@ export function BulkOpenInventoryDialog({
   const [valueMode, setValueMode] = useState<ValueMode>("default");
   const [customValue, setCustomValue] = useState<string>("1");
   const [overwriteMode, setOverwriteMode] = useState<OverwriteMode>("skip");
+  const [changePrice, setChangePrice] = useState<boolean>(false);
+  const [priceValue, setPriceValue] = useState<string>("");
 
   const [step, setStep] = useState<1 | 2>(1);
   const [scanning, setScanning] = useState(false);
@@ -69,6 +71,8 @@ export function BulkOpenInventoryDialog({
       setValueMode("default");
       setCustomValue("1");
       setOverwriteMode("skip");
+      setChangePrice(false);
+      setPriceValue("");
       setStep(1);
       setConflictCount(0);
       setInsertCount(0);
@@ -105,6 +109,13 @@ export function BulkOpenInventoryDialog({
       const n = parseInt(customValue, 10);
       if (isNaN(n) || n < 0) {
         toast.error("請輸入有效的庫存數字");
+        return;
+      }
+    }
+    if (changePrice) {
+      const p = parseInt(priceValue, 10);
+      if (isNaN(p) || p < 0) {
+        toast.error("請輸入有效的價格");
         return;
       }
     }
@@ -187,6 +198,7 @@ export function BulkOpenInventoryDialog({
 
       const isClose = operationMode === "close";
       const sourceTag = isClose ? "bulk_close" : "bulk_open";
+      const overridePrice = changePrice ? parseInt(priceValue, 10) : null;
 
       const inserts: any[] = [];
       const updates: { id: string; available_rooms: number; keep_rooms: boolean }[] = [];
@@ -209,15 +221,12 @@ export function BulkOpenInventoryDialog({
             } else if (overwriteMode === "overwrite_status_only") {
               updates.push({ id: existing.id, available_rooms: existing.available_rooms, keep_rooms: true });
             }
-            // skip 模式 → 不處理
+            // skip 模式 → 不處理（若同時勾選變更價格，仍會更新價格，見下方）
           } else {
-            // 注意：room_inventory_pricing 沒有 accommodation_id 欄位
-            // accommodation 關聯透過 room_type_id → room_types.accommodation_id 取得
-            // pricing_template_id: null 表示這是「基礎庫存列」（真實庫存，前台會直接讀）
             inserts.push({
               room_type_id: rid,
               date: dateStr,
-              price: rt.base_price ?? 0,
+              price: overridePrice ?? rt.base_price ?? 0,
               available_rooms: value,
               is_available: !isClose,
               pricing_template_id: null,
@@ -235,10 +244,15 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
-      // 批次更新
+      // 批次更新（狀態 / 可售數 / 價格）
+      let priceUpdatedCount = 0;
       for (const u of updates) {
         const patch: any = { is_available: !isClose, last_change_source: sourceTag };
         if (!u.keep_rooms) patch.available_rooms = u.available_rooms;
+        if (overridePrice !== null) {
+          patch.price = overridePrice;
+          priceUpdatedCount++;
+        }
         const { error } = await supabase
           .from("room_inventory_pricing")
           .update(patch)
@@ -246,8 +260,31 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
+      // skip 模式下若勾選了變更價格，仍要更新既有列的價格
+      if (overridePrice !== null && overwriteMode === "skip") {
+        const skippedIds: string[] = [];
+        for (const rid of roomIds) {
+          for (const dateStr of dateList) {
+            const existing = existingMap.get(`${rid}_${dateStr}`);
+            if (existing) skippedIds.push(existing.id);
+          }
+        }
+        for (let i = 0; i < skippedIds.length; i += CHUNK) {
+          const chunkIds = skippedIds.slice(i, i + CHUNK);
+          const { error } = await supabase
+            .from("room_inventory_pricing")
+            .update({ price: overridePrice, last_change_source: sourceTag })
+            .in("id", chunkIds);
+          if (error) throw error;
+          priceUpdatedCount += chunkIds.length;
+        }
+      }
+
+      const priceMsg = overridePrice !== null
+        ? `，價格設為 $${overridePrice}（新建 ${inserts.length} + 覆寫 ${priceUpdatedCount}）`
+        : "";
       toast.success(
-        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
+        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode !== "skip" ? `、覆寫 ${updates.length} 筆` : ""}${priceMsg}`
       );
       onComplete();
       onOpenChange(false);
@@ -405,6 +442,35 @@ export function BulkOpenInventoryDialog({
                 </RadioGroup>
               </div>
 
+              {/* 價格設定 */}
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer mb-1.5">
+                  <Checkbox
+                    checked={changePrice}
+                    onCheckedChange={(c) => setChangePrice(c === true)}
+                  />
+                  <span className="text-sm font-medium">同時設定價格</span>
+                </label>
+                {changePrice && (
+                  <div className="ml-6 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">每晚價格 $</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={priceValue}
+                        onChange={(e) => setPriceValue(e.target.value)}
+                        className="w-32 h-8"
+                        placeholder="例如 3200"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      將寫入所選日期的基礎價格（pricing_template_id = null 的列）。若未勾選則新建列使用房型基礎價，已有設定的列保留原價。
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {totalCells > 0 && (
                 <Alert>
                   <AlertDescription className="text-sm">
@@ -441,18 +507,20 @@ export function BulkOpenInventoryDialog({
                 <div className="text-xs text-muted-foreground">
                   狀態：<strong>{isClose ? "關閉販售" : "開啟販售"}</strong>　·　{newValueLabel}
                 </div>
+                <div className="text-xs text-muted-foreground">
+                  價格：{changePrice
+                    ? <strong className="text-primary">${priceValue || 0} / 晚（將寫入所有選定日期）</strong>
+                    : <span>沿用原設定或房型基礎價（不變動）</span>}
+                </div>
                 {!isClose && valueMode === "default" && (
                   <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
                     {selectedRooms.map((r) => (
                       <div key={r.id}>
-                        · {r.name}：<strong>{r.room_count ?? 1}</strong> 間
+                        · {r.name}：預設庫存 <strong>{r.room_count ?? 1}</strong> 間　·　基礎價 <strong>${r.base_price ?? 0}</strong>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="text-[11px] text-muted-foreground pt-1">
-                  註：此功能不會變動價格，價格沿用原設定或房型基礎價。
-                </div>
               </div>
 
               <div>
