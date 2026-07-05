@@ -422,12 +422,41 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
    */
   const syncBasePrices = async (opts: {
     template: any;
+    templateId?: string | null;
     roomTypeIds: string[];
     fromDate: string;
     toDate: string;
   }): Promise<number> => {
-    const { template, roomTypeIds, fromDate, toDate } = opts;
+    const { template, templateId, roomTypeIds, fromDate, toDate } = opts;
     if (!roomTypeIds.length || fromDate > toDate) return 0;
+
+    // 0) 清除此專案在展開範圍內的「每日單獨覆寫列」→ 讓 tier 價生效
+    // 未提供 templateId（新增未回填 id）時跳過本步驟；改由後續 UPSERT tier 價覆蓋。
+    let clearedOverrides = 0;
+    if (templateId) {
+      const { data: overrideRows, error: fetchOvErr } = await supabase
+        .from('room_inventory_pricing')
+        .select('id')
+        .eq('pricing_template_id', templateId)
+        .in('room_type_id', roomTypeIds)
+        .gte('date', fromDate)
+        .lte('date', toDate);
+      if (fetchOvErr) throw fetchOvErr;
+      const ovIds = (overrideRows || []).map((r: any) => r.id);
+      if (ovIds.length > 0) {
+        // 先標記來源以利 audit
+        await supabase
+          .from('room_inventory_pricing')
+          .update({ last_change_source: 'template_apply' })
+          .in('id', ovIds);
+        const { error: delErr } = await supabase
+          .from('room_inventory_pricing')
+          .delete()
+          .in('id', ovIds);
+        if (delErr) throw delErr;
+        clearedOverrides = ovIds.length;
+      }
+    }
 
     // 1) 抓假日
     const { data: hData } = await supabase
@@ -526,7 +555,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       if (error) throw error;
     }
 
-    return inserts.length + updates.length;
+    return inserts.length + updates.length + clearedOverrides;
   };
 
   const handleSubmit = async () => {
@@ -661,11 +690,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         try {
           const written = await syncBasePrices({
             template: dataToSave,
+            templateId: editingTemplate?.id ?? null,
             roomTypeIds: finalIds,
             fromDate: syncBaseFrom,
             toDate: syncBaseUntil,
           });
-          toast.success(`已同步基礎價 ${written} 筆（${syncBaseFrom} ~ ${syncBaseUntil}）`);
+          toast.success(`已同步 ${written} 筆（含清除舊每日覆寫；${syncBaseFrom} ~ ${syncBaseUntil}）`);
         } catch (e: any) {
           console.error('同步基礎價失敗:', e);
           toast.error(`同步基礎價失敗：${e?.message || '未知錯誤'}`);
@@ -1529,9 +1559,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <div className="flex-1">
                 <Label className="text-sm font-semibold">儲存後同步展開基礎價</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的
-                  <strong className="mx-1">基礎價列</strong>
-                  （<code>pricing_template_id = null</code>）。既有列僅更新價格，庫存與販售狀態保持不變。
+                  將此專案的平日 / 旺日 / 假日 tier 價依日型展開，寫入所選日期範圍內每個房型的<strong className="mx-1">基礎價列</strong>，
+                  並<strong className="text-destructive mx-0.5">清除該範圍內此專案的舊每日單獨覆寫</strong>（讓 tier 價真的生效）。
+                  庫存與販售狀態保持不變。
                 </p>
               </div>
             </div>
