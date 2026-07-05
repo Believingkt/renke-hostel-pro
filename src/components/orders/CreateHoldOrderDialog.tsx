@@ -70,12 +70,24 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
+    package_id: "",
     notes: "",
   });
 
+  const { packages } = useAccommodationPackages(currentAccommodationId, { onlyEnabled: true });
+
+  // 篩選出符合當前主房型的方案
+  const applicablePackages = form.room_type_id
+    ? packages.filter(
+        (p) =>
+          p.primary_room_type_id === form.room_type_id ||
+          (Array.isArray(p.room_type_ids) && p.room_type_ids.includes(form.room_type_id))
+      )
+    : [];
+
   useEffect(() => {
     if (open) {
-      setForm({ check_in_date: "", check_out_date: "", room_type_id: "", notes: "" });
+      setForm({ check_in_date: "", check_out_date: "", room_type_id: "", package_id: "", notes: "" });
       setInventoryWarnings([]);
       setAvailableDates(new Set());
       setExtraSelections([]);
