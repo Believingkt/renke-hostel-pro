@@ -146,6 +146,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     default_package_id: "" as string,
   });
 
+  // 儲存後同步展開基礎價
+  const [syncBaseEnabled, setSyncBaseEnabled] = useState<boolean>(true);
+  const [syncBaseFrom, setSyncBaseFrom] = useState<string>("");
+  const [syncBaseUntil, setSyncBaseUntil] = useState<string>("");
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
