@@ -14,6 +14,7 @@ import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
