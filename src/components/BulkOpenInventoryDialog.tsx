@@ -311,7 +311,7 @@ export function BulkOpenInventoryDialog({
         {step === 1 && (
           <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
 
-            <div className="space-y-5 py-2">
+            <div className="space-y-5 py-2 pb-6">
               {/* 操作模式 */}
               <div>
                 <Label className="mb-1.5 block">操作模式</Label>
