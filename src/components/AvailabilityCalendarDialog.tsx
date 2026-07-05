@@ -209,6 +209,26 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
       const packageRoomTypes = targetRoomTypes.filter((rt) => rt.is_exclusive_package === true);
       const commonRoomTypes = targetRoomTypes.filter((rt) => rt.is_exclusive_package !== true);
 
+      // 森山：可訂日曆只看實際訂單；庫存未開/未建不影響開放狀態。
+      const sensanBookedDates = new Set<string>();
+      if (isSensan) {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("check_in_date, check_out_date, order_status")
+          .eq("accommodation_id", accommodationId)
+          .not("order_status", "in", "(cancelled)")
+          .lte("check_in_date", endStr)
+          .gte("check_out_date", startStr);
+
+        for (const order of (orders as any[]) || []) {
+          const checkIn = new Date(order.check_in_date);
+          const checkOut = new Date(order.check_out_date);
+          for (let day = new Date(checkIn); day < checkOut; day.setDate(day.getDate() + 1)) {
+            sensanBookedDates.add(formatISO(day, { representation: "date" }));
+          }
+        }
+      }
+
       const isRoomAvailable = (rt: RoomType, date: string) => {
         const base = baseIndex.get(`${rt.id}:${date}`);
         if (base && base.is_available === false) return false;
@@ -227,6 +247,10 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
 
       const available = new Set<string>();
       for (const date of allDates) {
+        if (isSensan) {
+          if (!sensanBookedDates.has(date)) available.add(date);
+          continue;
+        }
         if (mode === "single" || mode === "custom" || mode === "package" || mode === "common") {
           if (targetRoomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
           continue;
@@ -238,16 +262,6 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
             return !base || base.is_available === false;
           }).length;
           if (closedCount >= 2) continue;
-          available.add(date);
-          continue;
-        }
-        if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
-          if (
-            commonRoomTypes.length > 0 &&
-            commonRoomTypes.every((rt) => isRoomBookedOut(rt, date))
-          )
-            continue;
           available.add(date);
           continue;
         }
@@ -268,6 +282,13 @@ export function AvailabilityCalendarDialog({ open, onOpenChange, accommodationId
           return s + (lockPackageAsOne && isPkg ? 1 : (rt.room_count || 1));
         }, 0);
         for (const date of allDates) {
+          if (isSensan) {
+            capacity.set(date, {
+              available: sensanBookedDates.has(date) ? 0 : totalRooms,
+              total: totalRooms,
+            });
+            continue;
+          }
           let avail = 0;
           for (const rt of targetRoomTypes) {
             const base = baseIndex.get(`${rt.id}:${date}`);
