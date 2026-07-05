@@ -60,6 +60,7 @@ interface PricingTemplate {
   weekday_price: number | null;
   peak_price: number | null;
   weekend_price: number | null;
+  default_package_id?: string | null;
 }
 
 interface RoomUnit {
