@@ -14,6 +14,7 @@ import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
@@ -605,6 +606,27 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       });
       return;
     }
+
+    // 若房型會同步到奧丁丁，「對應方案」必填
+    if (currentAccommodationId) {
+      try {
+        const req = await checkOwltingPackageRequirement(
+          currentAccommodationId,
+          [editForm.room_type_id],
+        );
+        if (req.required && !editForm.package_id) {
+          toast({
+            title: "請選擇對應方案",
+            description: "此房型會同步到奧丁丁，請選擇對應方案",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("checkOwltingPackageRequirement failed", e);
+      }
+    }
+
 
     if (!editForm.meal_plan) {
       toast({

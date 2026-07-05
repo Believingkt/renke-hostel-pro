@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
@@ -1033,6 +1034,29 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       toast({ title: "系統錯誤", description: "無法取得住宿資訊", variant: "destructive" });
       return;
     }
+
+    // 若訂單房型會同步到奧丁丁，「對應方案」必填
+    try {
+      const req = await checkOwltingPackageRequirement(
+        currentAccommodationId,
+        roomSelections.map((s) => s.room_type_id),
+      );
+      if (req.required && !form.package_id) {
+        const names = req.requiredRoomTypeIds
+          .map((id) => roomTypes.find((r) => r.id === id)?.name)
+          .filter(Boolean)
+          .join("、");
+        toast({
+          title: "請選擇對應方案",
+          description: `此房型會同步到奧丁丁，請選擇對應方案${names ? `（${names}）` : ""}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (e) {
+      console.error("checkOwltingPackageRequirement failed", e);
+    }
+
 
     setIsSaving(true);
 
