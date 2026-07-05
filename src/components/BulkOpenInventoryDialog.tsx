@@ -189,7 +189,7 @@ export function BulkOpenInventoryDialog({
       const sourceTag = isClose ? "bulk_close" : "bulk_open";
 
       const inserts: any[] = [];
-      const updates: { id: string; available_rooms: number }[] = [];
+      const updates: { id: string; available_rooms: number; keep_rooms: boolean }[] = [];
 
       for (const rid of roomIds) {
         const rt = roomMap.get(rid);
@@ -205,7 +205,9 @@ export function BulkOpenInventoryDialog({
           const existing = existingMap.get(key);
           if (existing) {
             if (overwriteMode === "overwrite") {
-              updates.push({ id: existing.id, available_rooms: value });
+              updates.push({ id: existing.id, available_rooms: value, keep_rooms: false });
+            } else if (overwriteMode === "overwrite_status_only") {
+              updates.push({ id: existing.id, available_rooms: existing.available_rooms, keep_rooms: true });
             }
             // skip 模式 → 不處理
           } else {
@@ -235,9 +237,11 @@ export function BulkOpenInventoryDialog({
 
       // 批次更新
       for (const u of updates) {
+        const patch: any = { is_available: !isClose, last_change_source: sourceTag };
+        if (!u.keep_rooms) patch.available_rooms = u.available_rooms;
         const { error } = await supabase
           .from("room_inventory_pricing")
-          .update({ available_rooms: u.available_rooms, is_available: !isClose, last_change_source: sourceTag })
+          .update(patch)
           .eq("id", u.id);
         if (error) throw error;
       }
