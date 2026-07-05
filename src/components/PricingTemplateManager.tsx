@@ -309,6 +309,17 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       default_package_id: (template as any).default_package_id || "",
     });
     setErrors({});
+    // 預設展開範圍：專案期間 ∩ [今日..今日+12月]（沒有 valid 就用 12 個月）
+    const today = new Date();
+    const start = template.valid_from && template.valid_from > format(today, "yyyy-MM-dd")
+      ? template.valid_from
+      : format(today, "yyyy-MM-dd");
+    const end = template.valid_until && template.valid_until < format(addMonths(today, 12), "yyyy-MM-dd")
+      ? template.valid_until
+      : format(addMonths(today, 12), "yyyy-MM-dd");
+    setSyncBaseFrom(start);
+    setSyncBaseUntil(end);
+    setSyncBaseEnabled(true);
     setShowForm(true);
   };
 
