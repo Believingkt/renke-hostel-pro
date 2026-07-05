@@ -35,7 +35,7 @@ interface Props {
 
 type ValueMode = "default" | "custom";
 type OverwriteMode = "skip" | "overwrite" | "overwrite_status_only";
-type OperationMode = "open" | "close";
+type OperationMode = "open" | "close" | "clear_overrides";
 
 export function BulkOpenInventoryDialog({
   open,
