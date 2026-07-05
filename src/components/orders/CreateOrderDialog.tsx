@@ -1036,27 +1036,48 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
-    // 若訂單房型會同步到奧丁丁，「對應方案」必填
+    // 若訂單房型會同步到奧丁丁，「對應方案」必填（讀 form.package_id 或該房 template.default_package_id）
+    let effectivePackageId: string | null = form.package_id || null;
     try {
       const req = await checkOwltingPackageRequirement(
         currentAccommodationId,
         roomSelections.map((s) => s.room_type_id),
       );
-      if (req.required && !form.package_id) {
-        const names = req.requiredRoomTypeIds
-          .map((id) => roomTypes.find((r) => r.id === id)?.name)
-          .filter(Boolean)
-          .join("、");
-        toast({
-          title: "請選擇對應方案",
-          description: `此房型會同步到奧丁丁，請選擇對應方案${names ? `（${names}）` : ""}`,
-          variant: "destructive",
-        });
-        return;
+      if (req.required) {
+        const requiredSet = new Set(req.requiredRoomTypeIds);
+        const missing: string[] = [];
+        const derivedPkgIds = new Set<string>();
+        for (const sel of roomSelections) {
+          if (!requiredSet.has(sel.room_type_id)) continue;
+          const tpl = pricingTemplates.find((t) => t.id === sel.template_id);
+          const pkgId = form.package_id || tpl?.default_package_id || null;
+          if (!pkgId) {
+            missing.push(sel.room_type_id);
+          } else {
+            derivedPkgIds.add(pkgId);
+          }
+        }
+        if (missing.length > 0) {
+          const names = Array.from(new Set(missing))
+            .map((id) => roomTypes.find((r) => r.id === id)?.name)
+            .filter(Boolean)
+            .join("、");
+          toast({
+            title: "請選擇對應方案",
+            description: `此房型會同步到奧丁丁，請選擇對應方案${names ? `（${names}）` : ""}`,
+            variant: "destructive",
+          });
+          return;
+        }
+        // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
+        if (!effectivePackageId && derivedPkgIds.size === 1) {
+          effectivePackageId = Array.from(derivedPkgIds)[0];
+        }
       }
     } catch (e) {
       console.error("checkOwltingPackageRequirement failed", e);
     }
+
 
 
     setIsSaving(true);
