@@ -356,11 +356,17 @@ export function BulkOpenInventoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
-          <DialogTitle>一鍵{operationMode === "close" ? "關閉" : "開啟"}庫存</DialogTitle>
+          <DialogTitle>
+            {operationMode === "clear_overrides"
+              ? "一鍵清除覆寫"
+              : `一鍵${operationMode === "close" ? "關閉" : "開啟"}庫存`}
+          </DialogTitle>
           <DialogDescription>
             {operationMode === "close"
               ? "選擇多個房型與日期區間，批次關閉販售（可售數歸 0）。"
-              : "選擇多個房型與日期區間，批次建立可售庫存。"}
+              : operationMode === "clear_overrides"
+                ? "選擇多個房型與日期區間，刪除該範圍內的強制覆寫列，讓價格與庫存回歸專案模板設定。"
+                : "選擇多個房型與日期區間，批次建立可售庫存。"}
           </DialogDescription>
         </DialogHeader>
 
