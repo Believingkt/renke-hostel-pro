@@ -187,13 +187,9 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           available.add(date);
           continue;
         }
-        if (isSensan && packageRoomTypes.length > 0) {
-          if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
-          if (
-            commonRoomTypes.length > 0 &&
-            commonRoomTypes.every((rt) => isRoomBookedOut(rt, date))
-          )
-            continue;
+        if (isSensan) {
+          // 森山：只看當天是否有實際訂單，忽略庫存未開的情況
+          if (sensanBookedDates.has(date)) continue;
           available.add(date);
           continue;
         }
