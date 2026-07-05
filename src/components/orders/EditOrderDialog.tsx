@@ -621,11 +621,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           const fallback = tpl?.default_package_id || null;
           if (!editForm.package_id && !fallback) {
             toast({
-              title: "請選擇對應方案",
-              description: "此房型會同步到奧丁丁，請選擇對應方案",
-              variant: "destructive",
+              title: "建議選擇對應方案",
+              description: "此房型會同步到奧丁丁，建議選擇對應方案，否則此單不會自動推送",
             });
-            return;
+            // 只提醒不擋
           }
           if (!effectivePackageId) effectivePackageId = fallback;
         }

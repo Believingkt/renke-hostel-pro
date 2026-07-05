@@ -296,11 +296,10 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           .map((id) => roomTypes.find((r) => r.id === id)?.name || id)
           .join("、");
         toast({
-          title: "請選擇對應方案",
-          description: `此房型會同步到奧丁丁，請選擇對應方案（${names}）`,
-          variant: "destructive",
+          title: "建議選擇對應方案",
+          description: `此房型會同步到奧丁丁，建議選擇對應方案（${names}），否則此單不會自動推送`,
         });
-        return;
+        // 只提醒不擋
       }
     } catch (e) {
       console.warn("[CreateHoldOrderDialog] owlting package requirement check failed:", e);
