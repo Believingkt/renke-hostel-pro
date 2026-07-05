@@ -34,7 +34,7 @@ interface Props {
 }
 
 type ValueMode = "default" | "custom";
-type OverwriteMode = "skip" | "overwrite";
+type OverwriteMode = "skip" | "overwrite" | "overwrite_status_only";
 type OperationMode = "open" | "close";
 
 export function BulkOpenInventoryDialog({
@@ -189,7 +189,7 @@ export function BulkOpenInventoryDialog({
       const sourceTag = isClose ? "bulk_close" : "bulk_open";
 
       const inserts: any[] = [];
-      const updates: { id: string; available_rooms: number }[] = [];
+      const updates: { id: string; available_rooms: number; keep_rooms: boolean }[] = [];
 
       for (const rid of roomIds) {
         const rt = roomMap.get(rid);
@@ -205,7 +205,9 @@ export function BulkOpenInventoryDialog({
           const existing = existingMap.get(key);
           if (existing) {
             if (overwriteMode === "overwrite") {
-              updates.push({ id: existing.id, available_rooms: value });
+              updates.push({ id: existing.id, available_rooms: value, keep_rooms: false });
+            } else if (overwriteMode === "overwrite_status_only") {
+              updates.push({ id: existing.id, available_rooms: existing.available_rooms, keep_rooms: true });
             }
             // skip 模式 → 不處理
           } else {
@@ -235,9 +237,11 @@ export function BulkOpenInventoryDialog({
 
       // 批次更新
       for (const u of updates) {
+        const patch: any = { is_available: !isClose, last_change_source: sourceTag };
+        if (!u.keep_rooms) patch.available_rooms = u.available_rooms;
         const { error } = await supabase
           .from("room_inventory_pricing")
-          .update({ available_rooms: u.available_rooms, is_available: !isClose, last_change_source: sourceTag })
+          .update(patch)
           .eq("id", u.id);
         if (error) throw error;
       }
@@ -412,7 +416,15 @@ export function BulkOpenInventoryDialog({
           </ScrollArea>
         )}
 
-        {step === 2 && (
+        {step === 2 && (() => {
+          const isClose = operationMode === "close";
+          const selectedRooms = roomTypes.filter((r) => selectedRoomIds.has(r.id));
+          const newValueLabel = isClose
+            ? "可售數 = 0（關閉）"
+            : valueMode === "custom"
+              ? `可售數 = ${customValue}（手動）`
+              : "可售數 = 各房型預設庫存";
+          return (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
             <div className="space-y-4 py-2">
               <Alert>
@@ -422,6 +434,26 @@ export function BulkOpenInventoryDialog({
                   <div>• 已有設定（將依下方策略處理）：<strong className="text-amber-600">{conflictCount}</strong> 筆</div>
                 </AlertDescription>
               </Alert>
+
+              {/* 新值預覽 */}
+              <div className="border rounded-md p-3 bg-muted/30 space-y-1.5">
+                <div className="text-sm font-medium">將寫入的新值</div>
+                <div className="text-xs text-muted-foreground">
+                  狀態：<strong>{isClose ? "關閉販售" : "開啟販售"}</strong>　·　{newValueLabel}
+                </div>
+                {!isClose && valueMode === "default" && (
+                  <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                    {selectedRooms.map((r) => (
+                      <div key={r.id}>
+                        · {r.name}：<strong>{r.room_count ?? 1}</strong> 間
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="text-[11px] text-muted-foreground pt-1">
+                  註：此功能不會變動價格，價格沿用原設定或房型基礎價。
+                </div>
+              </div>
 
               <div>
                 <Label className="mb-2 block">已有設定的日期如何處理？</Label>
@@ -434,13 +466,24 @@ export function BulkOpenInventoryDialog({
                     </Label>
                   </div>
                   <div className="flex items-start space-x-2 border rounded-md p-3">
+                    <RadioGroupItem value="overwrite_status_only" id="om-status" className="mt-0.5" />
+                    <Label htmlFor="om-status" className="font-normal cursor-pointer flex-1">
+                      <div className="font-medium">只覆寫販售狀態，保留原可售數</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {isClose
+                          ? "將日期改為關閉販售，但可售數保留原值"
+                          : "將日期改為開啟販售，但可售數保留原值（不套用上方新值）"}
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-start space-x-2 border rounded-md p-3">
                     <RadioGroupItem value="overwrite" id="om-overwrite" className="mt-0.5" />
                     <Label htmlFor="om-overwrite" className="font-normal cursor-pointer flex-1">
-                      <div className="font-medium">全部強制覆寫</div>
+                      <div className="font-medium">全部強制覆寫（含可售數）</div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {operationMode === "close"
+                        {isClose
                           ? "將所有日期都關閉販售並把可售數歸 0"
-                          : "將所有日期都改為新值並開啟販售"}
+                          : `將所有日期都改為開啟販售，且${valueMode === "custom" ? `可售數改為 ${customValue}` : "可售數改為各房型預設庫存"}`}
                       </div>
                     </Label>
                   </div>
@@ -448,7 +491,8 @@ export function BulkOpenInventoryDialog({
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         <DialogFooter className="shrink-0">
 
