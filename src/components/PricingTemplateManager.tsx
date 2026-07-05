@@ -555,7 +555,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       if (error) throw error;
     }
 
-    return inserts.length + updates.length;
+    return inserts.length + updates.length + clearedOverrides;
   };
 
   const handleSubmit = async () => {
