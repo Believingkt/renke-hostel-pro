@@ -37,6 +37,7 @@ interface PricingTemplate {
   peak_price: number | null;
   weekend_price: number | null;
   room_type_id: string | null;
+  default_package_id?: string | null;
 }
 
 interface AddonSetting {
@@ -156,7 +157,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates, default_package_id")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
@@ -607,25 +608,32 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
-    // 若房型會同步到奧丁丁，「對應方案」必填
+    // 若房型會同步到奧丁丁，「對應方案」必填（讀 editForm.package_id 或所選 template.default_package_id）
+    let effectivePackageId: string | null = editForm.package_id || null;
     if (currentAccommodationId) {
       try {
         const req = await checkOwltingPackageRequirement(
           currentAccommodationId,
           [editForm.room_type_id],
         );
-        if (req.required && !editForm.package_id) {
-          toast({
-            title: "請選擇對應方案",
-            description: "此房型會同步到奧丁丁，請選擇對應方案",
-            variant: "destructive",
-          });
-          return;
+        if (req.required) {
+          const tpl = pricingTemplates.find((t) => t.id === selectedTemplateId);
+          const fallback = tpl?.default_package_id || null;
+          if (!editForm.package_id && !fallback) {
+            toast({
+              title: "請選擇對應方案",
+              description: "此房型會同步到奧丁丁，請選擇對應方案",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!effectivePackageId) effectivePackageId = fallback;
         }
       } catch (e) {
         console.error("checkOwltingPackageRequirement failed", e);
       }
     }
+
 
 
     if (!editForm.meal_plan) {
@@ -725,7 +733,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_name: editForm.guest_name,
         guest_phone: editForm.guest_phone,
         guest_email: editForm.guest_email,
-        package_id: editForm.package_id || null,
+        package_id: effectivePackageId,
       });
     } finally {
       setIsSaving(false);
