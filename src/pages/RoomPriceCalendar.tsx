@@ -930,7 +930,7 @@ function RoomTypeRows({
                   !isWeekend && !isPeak && "hover:bg-muted/50",
                   isUnavailable && "opacity-60",
                 )}
-                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, overrideInv ?? cellData?.available_rooms)}
+                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, overrideInv ?? cellData?.available_rooms, tierInfo.price ?? fallbackPrice ?? undefined, isOverridden)}
                 title={hideCell ? '此日型已關閉販售' : (!isActive ? '此日不在專案期限內' : (isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)))}
               >
                 <div className="flex flex-col items-center gap-0.5 leading-tight">
