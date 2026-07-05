@@ -355,6 +355,42 @@ export function RoomPriceEditDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* 目前狀態 / 模板對照 */}
+        {templateId && (currentPrice != null || templatePrice != null) && (
+          <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">目前狀態</span>
+              {isOverridden ? (
+                <span className="inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
+                  覆寫價
+                </span>
+              ) : (
+                <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
+                  模板價
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">目前顯示售價（{initialDate}）</span>
+              <span className={cn("font-medium", isOverridden && "text-primary")}>
+                {currentPrice != null ? `NT$ ${currentPrice.toLocaleString()}` : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">模板計算價</span>
+              <span className="font-medium">
+                {templatePrice != null ? `NT$ ${templatePrice.toLocaleString()}` : '—'}
+              </span>
+            </div>
+            {isOverridden && templatePrice != null && currentPrice != null && currentPrice !== templatePrice && (
+              <p className="text-xs text-muted-foreground pt-1">
+                此日期使用覆寫價，與模板計算價差 {(currentPrice - templatePrice) > 0 ? '+' : ''}
+                {(currentPrice - templatePrice).toLocaleString()}。可用下方「重新套用模板」清除覆寫。
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-6 py-4">
           {/* 日期範圍 */}
           <div className="grid grid-cols-2 gap-4">
