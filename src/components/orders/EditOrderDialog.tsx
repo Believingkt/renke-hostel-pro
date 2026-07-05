@@ -733,7 +733,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_name: editForm.guest_name,
         guest_phone: editForm.guest_phone,
         guest_email: editForm.guest_email,
-        package_id: editForm.package_id || null,
+        package_id: effectivePackageId,
       });
     } finally {
       setIsSaving(false);
