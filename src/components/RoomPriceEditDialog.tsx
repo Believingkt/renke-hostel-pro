@@ -32,8 +32,6 @@ interface RoomPriceEditDialogProps {
   initialDate: string;
   currentPrice?: number;
   currentAvailableRooms?: number;
-  templatePrice?: number;
-  isOverridden?: boolean;
   accommodationId: string;
   onComplete: () => void;
 }
@@ -59,8 +57,6 @@ export function RoomPriceEditDialog({
   initialDate,
   currentPrice,
   currentAvailableRooms,
-  templatePrice,
-  isOverridden,
   accommodationId,
   onComplete,
 }: RoomPriceEditDialogProps) {
@@ -76,7 +72,6 @@ export function RoomPriceEditDialog({
   const [isAvailable, setIsAvailable] = useState(true);
   const [changeInventory, setChangeInventory] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(currentAvailableRooms?.toString() || '1');
-  const [resetToTemplate, setResetToTemplate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
@@ -100,9 +95,8 @@ export function RoomPriceEditDialog({
       setIsAvailable(true);
       setChangeInventory(false);
       setInventoryCount(currentAvailableRooms?.toString() || '1');
-      setResetToTemplate(false);
     }
-  }, [open, initialDate, currentPrice, currentAvailableRooms]);
+  }, [open, initialDate, currentPrice]);
 
   const loadHolidays = async () => {
     try {
@@ -139,13 +133,8 @@ export function RoomPriceEditDialog({
   };
 
   const handleSave = async () => {
-    if (!changePrice && !changeAvailability && !changeInventory && !resetToTemplate) {
+    if (!changePrice && !changeAvailability && !changeInventory) {
       toast.error('請至少選擇一項變更設定');
-      return;
-    }
-
-    if (resetToTemplate && changePrice) {
-      toast.error('「重新套用模板」與「變更專案價格」不可同時勾選');
       return;
     }
 
@@ -304,31 +293,7 @@ export function RoomPriceEditDialog({
         });
       }
 
-      // 3) 「重新套用模板」→ 刪除該專案在所選日期的覆寫列，讓計算回到模板 tier 價
-      let resetCount = 0;
-      if (resetToTemplate && templateId) {
-        // 先標記變更來源，讓 audit log 觸發器能記錄
-        await supabase
-          .from('room_inventory_pricing')
-          .update({ last_change_source: 'template_clear' })
-          .eq('room_type_id', roomTypeId)
-          .eq('pricing_template_id', templateId)
-          .in('date', datesToUpdate);
-
-        const { data: deleted, error: delError } = await supabase
-          .from('room_inventory_pricing')
-          .delete()
-          .eq('room_type_id', roomTypeId)
-          .eq('pricing_template_id', templateId)
-          .in('date', datesToUpdate)
-          .select('date');
-        if (delError) throw delError;
-        resetCount = deleted?.length ?? 0;
-      }
-
-      const summary = resetToTemplate && templateId
-        ? `已重新套用「${templateName ?? '專案'}」模板到 ${datesToUpdate.length} 個日期（清除 ${resetCount} 筆覆寫）`
-        : changePrice && templateId
+      const summary = changePrice && templateId
         ? `已更新 ${datesToUpdate.length} 個日期的「${templateName ?? '專案'}」價格`
         : `已更新 ${datesToUpdate.length} 個日期的設定`;
       toast.success(summary);
@@ -354,42 +319,6 @@ export function RoomPriceEditDialog({
             批次設定選定日期範圍的價格與販售狀態
           </DialogDescription>
         </DialogHeader>
-
-        {/* 目前狀態 / 模板對照 */}
-        {templateId && (currentPrice != null || templatePrice != null) && (
-          <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">目前狀態</span>
-              {isOverridden ? (
-                <span className="inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
-                  覆寫價
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
-                  模板價
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">目前顯示售價（{initialDate}）</span>
-              <span className={cn("font-medium", isOverridden && "text-primary")}>
-                {currentPrice != null ? `NT$ ${currentPrice.toLocaleString()}` : '—'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">模板計算價</span>
-              <span className="font-medium">
-                {templatePrice != null ? `NT$ ${templatePrice.toLocaleString()}` : '—'}
-              </span>
-            </div>
-            {isOverridden && templatePrice != null && currentPrice != null && currentPrice !== templatePrice && (
-              <p className="text-xs text-muted-foreground pt-1">
-                此日期使用覆寫價，與模板計算價差 {(currentPrice - templatePrice) > 0 ? '+' : ''}
-                {(currentPrice - templatePrice).toLocaleString()}。可用下方「重新套用模板」清除覆寫。
-              </p>
-            )}
-          </div>
-        )}
 
         <div className="space-y-6 py-4">
           {/* 日期範圍 */}
@@ -600,34 +529,8 @@ export function RoomPriceEditDialog({
                 </div>
               )}
             </div>
-
-            {/* 重新套用模板（清除覆寫） */}
-            {templateId && (
-              <div className="space-y-2 rounded-md border border-dashed p-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="resetToTemplate"
-                    checked={resetToTemplate}
-                    onCheckedChange={(checked) => {
-                      const v = checked === true;
-                      setResetToTemplate(v);
-                      if (v) setChangePrice(false);
-                    }}
-                    disabled={changePrice}
-                  />
-                  <label htmlFor="resetToTemplate" className="text-sm cursor-pointer font-medium">
-                    重新套用模板（清除此範圍內的覆寫價）
-                  </label>
-                </div>
-                <p className="text-xs text-muted-foreground ml-6">
-                  刪除此房型 × 專案在所選日期的覆寫紀錄，價格改由模板 tier（平日 / 假日前一日 / 假日）自動重算。
-                  不會影響庫存與販售狀態。
-                </p>
-              </div>
-            )}
           </div>
         </div>
-
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
