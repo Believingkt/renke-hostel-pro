@@ -198,6 +198,7 @@ export function BulkOpenInventoryDialog({
 
       const isClose = operationMode === "close";
       const sourceTag = isClose ? "bulk_close" : "bulk_open";
+      const overridePrice = changePrice ? parseInt(priceValue, 10) : null;
 
       const inserts: any[] = [];
       const updates: { id: string; available_rooms: number; keep_rooms: boolean }[] = [];
@@ -220,15 +221,12 @@ export function BulkOpenInventoryDialog({
             } else if (overwriteMode === "overwrite_status_only") {
               updates.push({ id: existing.id, available_rooms: existing.available_rooms, keep_rooms: true });
             }
-            // skip 模式 → 不處理
+            // skip 模式 → 不處理（若同時勾選變更價格，仍會更新價格，見下方）
           } else {
-            // 注意：room_inventory_pricing 沒有 accommodation_id 欄位
-            // accommodation 關聯透過 room_type_id → room_types.accommodation_id 取得
-            // pricing_template_id: null 表示這是「基礎庫存列」（真實庫存，前台會直接讀）
             inserts.push({
               room_type_id: rid,
               date: dateStr,
-              price: rt.base_price ?? 0,
+              price: overridePrice ?? rt.base_price ?? 0,
               available_rooms: value,
               is_available: !isClose,
               pricing_template_id: null,
@@ -246,10 +244,15 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
-      // 批次更新
+      // 批次更新（狀態 / 可售數 / 價格）
+      let priceUpdatedCount = 0;
       for (const u of updates) {
         const patch: any = { is_available: !isClose, last_change_source: sourceTag };
         if (!u.keep_rooms) patch.available_rooms = u.available_rooms;
+        if (overridePrice !== null) {
+          patch.price = overridePrice;
+          priceUpdatedCount++;
+        }
         const { error } = await supabase
           .from("room_inventory_pricing")
           .update(patch)
@@ -257,8 +260,31 @@ export function BulkOpenInventoryDialog({
         if (error) throw error;
       }
 
+      // skip 模式下若勾選了變更價格，仍要更新既有列的價格
+      if (overridePrice !== null && overwriteMode === "skip") {
+        const skippedIds: string[] = [];
+        for (const rid of roomIds) {
+          for (const dateStr of dateList) {
+            const existing = existingMap.get(`${rid}_${dateStr}`);
+            if (existing) skippedIds.push(existing.id);
+          }
+        }
+        for (let i = 0; i < skippedIds.length; i += CHUNK) {
+          const chunkIds = skippedIds.slice(i, i + CHUNK);
+          const { error } = await supabase
+            .from("room_inventory_pricing")
+            .update({ price: overridePrice, last_change_source: sourceTag })
+            .in("id", chunkIds);
+          if (error) throw error;
+          priceUpdatedCount += chunkIds.length;
+        }
+      }
+
+      const priceMsg = overridePrice !== null
+        ? `，價格設為 $${overridePrice}（新建 ${inserts.length} + 覆寫 ${priceUpdatedCount}）`
+        : "";
       toast.success(
-        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode === "overwrite" ? `、覆寫 ${updates.length} 筆` : ""}`
+        `${isClose ? "已關閉" : "已開啟"}！新增 ${inserts.length} 筆${overwriteMode !== "skip" ? `、覆寫 ${updates.length} 筆` : ""}${priceMsg}`
       );
       onComplete();
       onOpenChange(false);
