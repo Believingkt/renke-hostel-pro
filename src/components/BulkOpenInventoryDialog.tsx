@@ -684,9 +684,13 @@ export function BulkOpenInventoryDialog({
           {step === 2 && (
             <>
               <Button variant="outline" onClick={() => setStep(1)} disabled={submitting}>上一步</Button>
-              <Button onClick={handleSubmit} disabled={submitting}>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                variant={operationMode === "clear_overrides" ? "destructive" : "default"}
+              >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                確認執行
+                {operationMode === "clear_overrides" ? "確認刪除覆寫" : "確認執行"}
               </Button>
             </>
           )}
