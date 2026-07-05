@@ -125,18 +125,18 @@ export function BulkOpenInventoryDialog({
       const roomIds = Array.from(selectedRoomIds);
       const PAGE = 1000;
       const isClearMode = operationMode === "clear_overrides";
-      const all: { room_type_id: string; date: string; last_change_source: string | null }[] = [];
+      const all: { room_type_id: string; date: string; pricing_template_id: string | null; last_change_source: string | null }[] = [];
       let from = 0;
       while (true) {
         let query = supabase
           .from("room_inventory_pricing")
-          .select("room_type_id, date, last_change_source")
+          .select("room_type_id, date, pricing_template_id, last_change_source")
           .in("room_type_id", roomIds)
           .gte("date", dateList[0])
           .lte("date", dateList[dateList.length - 1])
-          .is("pricing_template_id", null)
           .order("date", { ascending: true })
           .range(from, from + PAGE - 1);
+        if (!isClearMode) query = query.is("pricing_template_id", null);
         const { data, error } = await query;
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -147,9 +147,9 @@ export function BulkOpenInventoryDialog({
       const dateSet = new Set(dateList);
       const existing = all.filter((r) => dateSet.has(r.date));
       if (isClearMode) {
-        // 覆寫 = 非 template_apply 產生的列
+        // 覆寫 = 專案指定日期覆寫列，或非 template_apply 產生的基礎列
         const overrides = existing.filter(
-          (r) => (r.last_change_source ?? "") !== "template_apply"
+          (r) => r.pricing_template_id != null || (r.last_change_source ?? "") !== "template_apply"
         );
         setConflictCount(overrides.length);
         setInsertCount(0);
@@ -180,18 +180,20 @@ export function BulkOpenInventoryDialog({
         while (true) {
           const { data, error } = await supabase
             .from("room_inventory_pricing")
-            .select("id, date, last_change_source")
+            .select("id, date, pricing_template_id, last_change_source")
             .in("room_type_id", roomIds)
             .gte("date", dateList[0])
             .lte("date", dateList[dateList.length - 1])
-            .is("pricing_template_id", null)
             .order("date", { ascending: true })
             .range(from, from + PAGE - 1);
           if (error) throw error;
           if (!data || data.length === 0) break;
           const dateSet = new Set(dateList);
           for (const r of data as any[]) {
-            if (dateSet.has(r.date) && (r.last_change_source ?? "") !== "template_apply") {
+            if (
+              dateSet.has(r.date) &&
+              (r.pricing_template_id != null || (r.last_change_source ?? "") !== "template_apply")
+            ) {
               overrideIds.push(r.id);
             }
           }
@@ -552,10 +554,10 @@ export function BulkOpenInventoryDialog({
                   <AlertDescription className="text-sm space-y-1">
                     <div className="font-medium">將刪除以下資料：</div>
                     <div className="text-xs text-muted-foreground">
-                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（<code>last_change_source ≠ template_apply</code>）。
+                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（含專案指定日期價格覆寫、以及手動/一鍵覆寫的基礎列）。
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      刪除後，該日期會回歸專案模板計算的基礎價格與庫存；不會影響已由專案模板產生的列。
+                      刪除後，該日期會回歸專案模板計算的價格與庫存；由專案展開產生的正常基礎列會保留。
                     </div>
                   </AlertDescription>
                 </Alert>
