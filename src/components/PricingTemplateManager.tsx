@@ -415,6 +415,120 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     }
   };
 
+  /**
+   * 依專案 tier 價（含 segments / room_overrides）展開為 room_inventory_pricing
+   * 的基礎價列（pricing_template_id IS NULL）。既有列只更新價格與 last_change_source，
+   * 不動 available_rooms 與 is_available；不存在時建立新列。
+   */
+  const syncBasePrices = async (opts: {
+    template: any;
+    roomTypeIds: string[];
+    fromDate: string;
+    toDate: string;
+  }): Promise<number> => {
+    const { template, roomTypeIds, fromDate, toDate } = opts;
+    if (!roomTypeIds.length || fromDate > toDate) return 0;
+
+    // 1) 抓假日
+    const { data: hData } = await supabase
+      .from('public_holidays')
+      .select('holiday_date, holiday_type')
+      .eq('accommodation_id', accommodationId)
+      .in('holiday_type', ['holiday', 'compensatory_day_off']);
+    const holidaySet = new Set<string>((hData || []).map((h: any) => h.holiday_date));
+
+    // 2) 計算每個 (room, date) 的 tier 價
+    const days = eachDayOfInterval({
+      start: parseISO(fromDate),
+      end: parseISO(toDate),
+    }).map((d) => format(d, 'yyyy-MM-dd'));
+
+    type Row = { room_type_id: string; date: string; price: number };
+    const targets: Row[] = [];
+    const useSeg = hasSegments(template);
+    for (const rid of roomTypeIds) {
+      for (const d of days) {
+        const dt = parseISO(d);
+        const tier = classifyDayTier(dt, holidaySet);
+        // 若專案在該日不生效（segments 找不到 / 未開啟該 tier）→ 略過
+        if (useSeg) {
+          const info = getTierForDate(template, rid, d, tier);
+          if (!info.enabled || info.price == null || info.price <= 0) continue;
+          targets.push({ room_type_id: rid, date: d, price: info.price });
+        } else {
+          const info = getTierForDate(template, rid, d, tier);
+          if (!info.enabled) continue;
+          const price = info.price;
+          if (price == null || price <= 0) continue;
+          targets.push({ room_type_id: rid, date: d, price });
+        }
+      }
+    }
+
+    if (targets.length === 0) return 0;
+
+    // 3) 查既有基礎價列（分頁）
+    const PAGE = 1000;
+    const existing = new Map<string, { id: string }>();
+    for (const rid of roomTypeIds) {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('room_inventory_pricing')
+          .select('id, date')
+          .eq('room_type_id', rid)
+          .is('pricing_template_id', null)
+          .gte('date', fromDate)
+          .lte('date', toDate)
+          .order('date', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) existing.set(`${rid}_${r.date}`, { id: (r as any).id });
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+
+    // 4) 分成 updates / inserts
+    const inserts: any[] = [];
+    const updates: { id: string; price: number }[] = [];
+    for (const t of targets) {
+      const key = `${t.room_type_id}_${t.date}`;
+      const ex = existing.get(key);
+      if (ex) {
+        updates.push({ id: ex.id, price: t.price });
+      } else {
+        inserts.push({
+          room_type_id: t.room_type_id,
+          date: t.date,
+          pricing_template_id: null,
+          price: t.price,
+          available_rooms: 1,
+          is_available: true,
+          last_change_source: 'template_apply',
+        });
+      }
+    }
+
+    // 5) 批次寫入
+    const CHUNK = 500;
+    for (let i = 0; i < inserts.length; i += CHUNK) {
+      const chunk = inserts.slice(i, i + CHUNK);
+      const { error } = await supabase.from('room_inventory_pricing').insert(chunk);
+      if (error) throw error;
+    }
+    for (const u of updates) {
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .update({ price: u.price, last_change_source: 'template_apply' })
+        .eq('id', u.id);
+      if (error) throw error;
+    }
+
+    return inserts.length + updates.length;
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       toast.error('請修正表單錯誤後再試');
