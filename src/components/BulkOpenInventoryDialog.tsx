@@ -554,10 +554,10 @@ export function BulkOpenInventoryDialog({
                   <AlertDescription className="text-sm space-y-1">
                     <div className="font-medium">將刪除以下資料：</div>
                     <div className="text-xs text-muted-foreground">
-                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（<code>last_change_source ≠ template_apply</code>）。
+                      在指定日期區間內、所選房型的<strong>強制覆寫列</strong>（含專案指定日期價格覆寫、以及手動/一鍵覆寫的基礎列）。
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      刪除後，該日期會回歸專案模板計算的基礎價格與庫存；不會影響已由專案模板產生的列。
+                      刪除後，該日期會回歸專案模板計算的價格與庫存；由專案展開產生的正常基礎列會保留。
                     </div>
                   </AlertDescription>
                 </Alert>
