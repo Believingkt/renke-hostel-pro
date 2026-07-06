@@ -9,7 +9,9 @@ export type InventoryChangeSource =
   | "template_apply"     // 模板/專案套用
   | "template_clear"     // 模板清除
   | "project_clear"      // 專案清除
-  | "inventory_mgmt";    // 通用庫存管理元件
+  | "inventory_mgmt"      // 通用庫存管理元件
+  | "owlting_inbound"     // 奧丁丁入站庫存/關房推送 (AvailNotif)
+  | "owlting_rate";       // 奧丁丁入站價格推送 (RateAmount)
 
 export const CHANGE_SOURCE_LABEL: Record<string, { text: string; cls: string }> = {
   manual_edit:    { text: "手動編輯",     cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400" },
