@@ -86,7 +86,7 @@ export default function OwnerSettlement() {
   const [addonFeePct, setAddonFeePct] = useState(0);
   const [config, setConfig] = useState<SettlementConfig>({
     commission_rate: 15,
-    marketing_fee_base: 48000,
+    marketing_fee_base: 53000,
     marketing_fee_per_extra_property: 3000,
   });
   const [propertyCount, setPropertyCount] = useState(1);
