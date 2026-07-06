@@ -8653,10 +8653,9 @@ export type Database = {
         }
         Returns: undefined
       }
-      bulk_upsert_room_inventory_pricing: {
-        Args: { p_rows: Json }
-        Returns: undefined
-      }
+      bulk_upsert_room_inventory_pricing:
+        | { Args: { p_rows: Json }; Returns: undefined }
+        | { Args: { p_rows: Json; p_source?: string }; Returns: undefined }
       calculate_room_remaining: {
         Args: {
           _accommodation_id: string
