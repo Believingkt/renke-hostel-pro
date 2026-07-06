@@ -635,7 +635,7 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   }
 
   if (inventoryRows.length > 0) {
-    const { error: upErr } = await supabase.rpc("bulk_upsert_room_inventory_pricing", { p_rows: inventoryRows });
+    const { error: upErr } = await supabase.rpc("bulk_upsert_room_inventory_pricing", { p_rows: inventoryRows, p_source: "owlting_rate" });
     if (upErr) {
       const r = errorResponse("OTA_HotelRateAmountNotifRS", echo, `Rate update failed: ${upErr.message}`);
       await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", upErr.message);
