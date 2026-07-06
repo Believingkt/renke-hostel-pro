@@ -23,6 +23,8 @@ export const CHANGE_SOURCE_LABEL: Record<string, { text: string; cls: string }> 
   template_clear: { text: "模板清除",     cls: "bg-orange-500/15 text-orange-700 dark:text-orange-400" },
   project_clear:  { text: "專案清除",     cls: "bg-red-500/15 text-red-700 dark:text-red-400" },
   inventory_mgmt: { text: "庫存管理",     cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400" },
+  owlting_inbound:{ text: "奧丁丁入站庫存", cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  owlting_rate:   { text: "奧丁丁入站價格", cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400" },
 };
 
 export function getChangeSourceBadge(source: string | null | undefined) {
