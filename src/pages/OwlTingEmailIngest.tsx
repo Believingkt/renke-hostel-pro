@@ -104,6 +104,7 @@ export default function OwlTingEmailIngest() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [reparsing, setReparsing] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [showSelfPush, setShowSelfPush] = useState(false);
 
   const load = async () => {
     if (!currentAccommodationId) {
@@ -227,6 +228,14 @@ export default function OwlTingEmailIngest() {
         title="奧丁丁訂單收件監控"
         action={
           <div className="flex gap-2">
+            <Button
+              variant={showSelfPush ? "default" : "outline"}
+              onClick={() => setShowSelfPush((v) => !v)}
+              disabled={loading}
+              title="切換是否顯示已識別為自家推送、無需補單的紀錄"
+            >
+              {showSelfPush ? "隱藏自家單" : "顯示自家單"}
+            </Button>
             <Button variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
               {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               回填入住/退房日期
@@ -244,7 +253,21 @@ export default function OwlTingEmailIngest() {
       />
 
       <Card>
-        <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>
+            最近 50 筆 Email
+            {(() => {
+              const hidden = rows.filter((r) => {
+                const st = stagingMap[r.id];
+                return isSelfPushSource(st?.channel_source);
+              }).length;
+              if (!showSelfPush && hidden > 0) {
+                return <span className="text-xs text-muted-foreground ml-2">（已隱藏 {hidden} 筆自家單）</span>;
+              }
+              return null;
+            })()}
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -259,7 +282,15 @@ export default function OwlTingEmailIngest() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => {
+              {rows.filter((r) => {
+                if (showSelfPush) return true;
+                const st = stagingMap[r.id];
+                // Hide rows identified as self-push (either by channel source
+                // or already linked/marked). manual_review still shows so humans
+                // can resolve missing matches.
+                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return false;
+                return true;
+              }).map((r) => {
                 const st = stagingMap[r.id];
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";

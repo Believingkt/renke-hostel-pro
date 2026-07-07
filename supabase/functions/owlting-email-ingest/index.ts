@@ -332,8 +332,13 @@ Deno.serve(async (req) => {
         }).catch((e) => console.error("[owlting-email-ingest] change-notify trigger failed:", e));
       }
 
-      // Auto-issue fillup magic link for new_order (fire-and-forget)
-      if (stagingRow?.id && resolvedAccId && fields.message_type === "new_order") {
+      // Self-push detection: PMS → OwlNest → email back to us.
+      // These rows must NOT trigger our internal fillup notification.
+      const chSrc = (fields.channel_source ?? "").trim().toLowerCase();
+      const isSelfPush = chSrc.includes("人客多") || chSrc.includes("lakeze");
+
+      if (stagingRow?.id && resolvedAccId && fields.message_type === "new_order" && !isSelfPush) {
+        // Real OTA new_order: issue fillup magic link (fire-and-forget)
         fetch(`${supabaseUrl}/functions/v1/owlting-fillup-issue`, {
           method: "POST",
           headers: {
@@ -342,6 +347,21 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ staging_id: stagingRow.id }),
         }).catch((e) => console.error("[owlting-email-ingest] fillup-issue trigger failed:", e));
+      } else if (stagingRow?.id && resolvedAccId && isSelfPush) {
+        // Self-push: auto-link to existing PMS order, mark staging self_pushed.
+        // No internal fillup email is sent.
+        console.log("[owlting-email-ingest] self-push detected, auto-linking (no fillup notify)", {
+          staging_id: stagingRow.id,
+          channel_source: fields.channel_source,
+        });
+        fetch(`${supabaseUrl}/functions/v1/owlting-selfpush-link`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ staging_id: stagingRow.id }),
+        }).catch((e) => console.error("[owlting-email-ingest] selfpush-link trigger failed:", e));
       } else if (stagingRow?.id && !resolvedAccId && fields.message_type === "new_order") {
         console.warn("[owlting-email-ingest] new_order staged but accommodation_id unresolved; skip auto fillup-issue", {
           staging_id: stagingRow.id,
