@@ -130,6 +130,27 @@ Deno.serve(async (req) => {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (staging.pii_status === "self_pushed") {
+      return new Response(JSON.stringify({ error: "此為本站已推送的訂單，無需補單" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Defense-in-depth: block self-pushed sources (人客多 / Lakeze) from creating
+    // duplicate orders even if UI or client bypasses the badge.
+    const channelSourceRaw = String(staging.channel_source ?? "").trim().toLowerCase();
+    const isSelfPush = channelSourceRaw.includes("人客多")
+      || channelSourceRaw.includes("lakeze");
+    if (isSelfPush) {
+      await admin.from("owlting_email_parsed_staging").update({
+        pii_status: "manual_review",
+        review_notes: `[self-push] 阻擋重複建單：channel_source=${staging.channel_source}`,
+      }).eq("id", staging.id);
+      return new Response(JSON.stringify({
+        error: "此訂單來源為「人客多 / Lakeze」，屬本站已推送的訂單。已阻擋重複建單，請至補單列表使用「連結自家訂單」。",
+        is_self_push: true,
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const accId = tok.accommodation_id ?? staging.accommodation_id;
     if (!accId) {
