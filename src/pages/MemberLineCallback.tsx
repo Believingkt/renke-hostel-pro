@@ -107,6 +107,11 @@ const MemberLineCallback = () => {
         return;
       }
 
+      if (expired) {
+        fail("LINE 登入已逾時，請重新登入");
+        return;
+      }
+
       // State validation: same-origin → strict; cross-origin → state must
       // carry our embedded return URL marker.
       if (storedState) {
