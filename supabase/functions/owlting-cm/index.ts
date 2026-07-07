@@ -546,10 +546,30 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
         await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
         return r;
       }
-      if (p.restrictionStatus) {
-        const isClosed = p.restrictionStatus.toLowerCase() === "close";
-        for (const d of dates) {
-          templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
+      if (plan.kind === "template") {
+        // SENSAN 散客一泊一食等：availability writes to pricing_template_availability.
+        if (p.restrictionStatus) {
+          const isClosed = p.restrictionStatus.toLowerCase() === "close";
+          for (const d of dates) {
+            templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
+          }
+        }
+      } else {
+        // Package (雲岫 1001–1007 / SENSAN 包區 canonical)：availability/limit lands
+        // on the base inventory row of the InvType room. Group canonical rooms
+        // fan-out to member room_types (sell-one-close-all), same as the
+        // no-RatePlanCode branch below.
+        const patch: { available_rooms?: number; is_available?: boolean } = {};
+        if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
+        if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
+        if (Object.keys(patch).length > 0) {
+          const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
+          const targetRoomIds = memberIds && memberIds.length > 0 ? memberIds : [room.id];
+          for (const d of dates) {
+            for (const rid of targetRoomIds) {
+              inventoryRows.push({ room_type_id: rid, date: d, pricing_template_id: null, ...patch });
+            }
+          }
         }
       }
     } else {
