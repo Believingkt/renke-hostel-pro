@@ -270,9 +270,12 @@ const MemberAuth = () => {
         ? "https://booking.lakeze.com/member/auth/line-callback"
         : `${window.location.origin}/member/auth/line-callback`;
 
-      sessionStorage.setItem("line_oauth_state", state);
-      sessionStorage.setItem("line_oauth_nonce", nonce);
-      sessionStorage.setItem("line_oauth_redirect_uri", redirectUri);
+      // Use localStorage so iOS Safari opening the callback in a new tab
+      // (universal link from LINE app) can still validate state.
+      localStorage.setItem("line_oauth_state", state);
+      localStorage.setItem("line_oauth_nonce", nonce);
+      localStorage.setItem("line_oauth_redirect_uri", redirectUri);
+      localStorage.setItem("line_oauth_ts", String(Date.now()));
 
       const authorizeUrl = new URL("https://access.line.me/oauth2/v2.1/authorize");
       authorizeUrl.searchParams.set("response_type", "code");
