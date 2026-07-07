@@ -179,7 +179,7 @@ export type ResolvedPlan =
   | { kind: "template"; id: string; template_name: string; room_type_id: string | null }
   | { kind: "package"; id: string; name: string; room_type_ids: string[] };
 
-async function bulkResolveRatePlans(
+export async function bulkResolveRatePlans(
   supabase: any, accId: string, codes: string[],
 ): Promise<Map<string, ResolvedPlan>> {
   const map = new Map<string, ResolvedPlan>();
