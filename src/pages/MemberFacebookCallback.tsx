@@ -18,6 +18,7 @@ const MemberFacebookCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [message, setMessage] = useState("Facebook 登入處理中…");
+  const [failure, setFailure] = useState<{ msg: string; debug?: unknown } | null>(null);
   const ranRef = useRef(false);
 
   useEffect(() => {
