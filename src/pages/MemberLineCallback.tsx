@@ -60,11 +60,25 @@ const MemberLineCallback = () => {
       const errorParam = searchParams.get("error");
       const errorDescription = searchParams.get("error_description");
 
-      const storedState = sessionStorage.getItem("line_oauth_state");
-      const storedNonce = sessionStorage.getItem("line_oauth_nonce");
-      const storedRedirect = sessionStorage.getItem("line_oauth_redirect_uri");
+      // Read state/nonce/redirect_uri from localStorage (migrated from
+      // sessionStorage so iOS new-tab callback can still validate).
+      // Fallback to sessionStorage briefly for any in-flight logins started
+      // before this deploy.
+      const storedState =
+        localStorage.getItem("line_oauth_state") ??
+        sessionStorage.getItem("line_oauth_state");
+      const storedNonce =
+        localStorage.getItem("line_oauth_nonce") ??
+        sessionStorage.getItem("line_oauth_nonce");
+      const storedRedirect =
+        localStorage.getItem("line_oauth_redirect_uri") ??
+        sessionStorage.getItem("line_oauth_redirect_uri");
 
       const cleanup = () => {
+        localStorage.removeItem("line_oauth_state");
+        localStorage.removeItem("line_oauth_nonce");
+        localStorage.removeItem("line_oauth_redirect_uri");
+        localStorage.removeItem("line_oauth_ts");
         sessionStorage.removeItem("line_oauth_state");
         sessionStorage.removeItem("line_oauth_nonce");
         sessionStorage.removeItem("line_oauth_redirect_uri");
