@@ -106,11 +106,6 @@ const MemberFacebookCallback = () => {
           fail("Facebook 登入 state 驗證失敗，請重新嘗試");
           return;
         }
-      if (storedState) {
-        if (state !== storedState) {
-          fail("Facebook 登入 state 驗證失敗，請重新嘗試");
-          return;
-        }
       } else if (!returnFromState) {
         fail("Facebook 登入 state 驗證失敗，請重新嘗試");
         return;
