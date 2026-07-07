@@ -670,7 +670,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
     if (excludedRoomTypeIds.has(room.id)) continue;
 
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
-    const matchTemplateId = plan?.id ?? null;
+    // Only template plans get a pricing_template_id — package plans write on
+    // the base inventory row (pricing_template_id = null). Unknown codes are
+    // tolerated (matchTemplateId = null) to preserve current forgiving behavior.
+    const matchTemplateId = plan && plan.kind === "template" ? plan.id : null;
 
     // If OwlTing pushed against a canonical room + a member rate-plan template,
     // rewrite room_type to the member room_type (price belongs to the member's
