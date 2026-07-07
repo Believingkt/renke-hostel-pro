@@ -224,6 +224,8 @@ const MemberAuth = () => {
 
   // ----- Facebook Login (Custom OAuth — same architecture as LINE) -----
   const handleFacebookLogin = () => {
+    if (fbLoading || lineLoading || loading) return;
+    setFbLoading(true);
     try {
       const appId = FACEBOOK_APP_ID;
       const state = crypto.randomUUID();
@@ -242,22 +244,27 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("scope", "public_profile,email");
 
+      // 10s timeout — if redirect hasn't happened by then, recover button.
+      window.setTimeout(() => {
+        toast.error("網路不穩，請再試一次");
+        setFbLoading(false);
+      }, 10000);
+
       window.location.href = authorizeUrl.toString();
     } catch (error: any) {
       toast.error(error.message || "Facebook 登入啟動失敗");
+      setFbLoading(false);
     }
   };
 
   // ----- LINE Login v2.1 (OIDC) — manual authorize redirect -----
   const handleLineLogin = () => {
+    if (fbLoading || lineLoading || loading) return;
+    setLineLoading(true);
     try {
       const channelId = LINE_CHANNEL_ID;
       const state = crypto.randomUUID();
       const nonce = crypto.randomUUID();
-      // Single canonical callback URL — must be registered in LINE Developers.
-      // For Lovable preview / lovable.app domains we fall back to the current
-      // origin so dev / preview testing also works (these preview hosts must
-      // also be added to LINE Developers Callback URL list).
       const isProdHost = window.location.hostname === "booking.lakeze.com";
       const redirectUri = isProdHost
         ? "https://booking.lakeze.com/member/auth/line-callback"
@@ -275,9 +282,15 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("scope", "openid profile email");
       authorizeUrl.searchParams.set("nonce", nonce);
 
+      window.setTimeout(() => {
+        toast.error("網路不穩，請再試一次");
+        setLineLoading(false);
+      }, 10000);
+
       window.location.href = authorizeUrl.toString();
     } catch (error: any) {
       toast.error(error.message || "LINE 登入啟動失敗");
+      setLineLoading(false);
     }
   };
 
