@@ -234,8 +234,10 @@ const MemberAuth = () => {
         ? "https://booking.lakeze.com/member/auth/facebook-callback"
         : `${window.location.origin}/member/auth/facebook-callback`;
 
-      sessionStorage.setItem("fb_oauth_state", state);
-      sessionStorage.setItem("fb_oauth_redirect_uri", redirectUri);
+      // localStorage so iOS Safari new-tab callback can still validate.
+      localStorage.setItem("fb_oauth_state", state);
+      localStorage.setItem("fb_oauth_redirect_uri", redirectUri);
+      localStorage.setItem("fb_oauth_ts", String(Date.now()));
 
       const authorizeUrl = new URL("https://www.facebook.com/v18.0/dialog/oauth");
       authorizeUrl.searchParams.set("response_type", "code");

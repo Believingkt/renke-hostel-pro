@@ -44,6 +44,9 @@ const MemberFacebookCallback = () => {
       // 1. Pre-check: if a session already exists, skip everything.
       const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
       if (existingRedirect) {
+        localStorage.removeItem("fb_oauth_state");
+        localStorage.removeItem("fb_oauth_redirect_uri");
+        localStorage.removeItem("fb_oauth_ts");
         sessionStorage.removeItem("fb_oauth_state");
         sessionStorage.removeItem("fb_oauth_redirect_uri");
         await finish(existingRedirect.redirectTo, {
@@ -58,10 +61,21 @@ const MemberFacebookCallback = () => {
       const errorReason =
         searchParams.get("error_reason") || searchParams.get("error_description");
 
-      const storedState = sessionStorage.getItem("fb_oauth_state");
-      const storedRedirect = sessionStorage.getItem("fb_oauth_redirect_uri");
+      // Read from localStorage (fallback sessionStorage for in-flight logins).
+      const storedState =
+        localStorage.getItem("fb_oauth_state") ??
+        sessionStorage.getItem("fb_oauth_state");
+      const storedRedirect =
+        localStorage.getItem("fb_oauth_redirect_uri") ??
+        sessionStorage.getItem("fb_oauth_redirect_uri");
+      const storedTs = Number(localStorage.getItem("fb_oauth_ts") || 0);
+      const TTL_MS = 10 * 60 * 1000;
+      const expired = storedTs > 0 && Date.now() - storedTs > TTL_MS;
 
       const cleanup = () => {
+        localStorage.removeItem("fb_oauth_state");
+        localStorage.removeItem("fb_oauth_redirect_uri");
+        localStorage.removeItem("fb_oauth_ts");
         sessionStorage.removeItem("fb_oauth_state");
         sessionStorage.removeItem("fb_oauth_redirect_uri");
       };
@@ -94,6 +108,10 @@ const MemberFacebookCallback = () => {
         }
       } else if (!returnFromState) {
         fail("Facebook 登入 state 驗證失敗，請重新嘗試");
+        return;
+      }
+      if (expired) {
+        fail("Facebook 登入已逾時，請重新登入");
         return;
       }
 
