@@ -116,12 +116,12 @@ const MemberFacebookCallback = () => {
       if (storedState) {
         if (state !== storedState) {
           console.warn(`[${TAG} callback] state mismatch`, stateDebug);
-          fail("Facebook 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。");
+          fail("Facebook 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。", stateDebug);
           return;
         }
       } else if (!returnFromState) {
         console.warn(`[${TAG} callback] state missing (no storedState, no embedded return)`, stateDebug);
-        fail("Facebook 登入資訊遺失，請回到登入頁重新登入。");
+        fail("Facebook 登入資訊遺失，請回到登入頁重新登入。", stateDebug);
         return;
       }
       if (expired) {
