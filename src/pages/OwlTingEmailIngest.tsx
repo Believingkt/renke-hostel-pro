@@ -261,7 +261,9 @@ export default function OwlTingEmailIngest() {
             <TableBody>
               {rows.map((r) => {
                 const st = stagingMap[r.id];
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled";
+                const selfPush = isSelfPushSource(st?.channel_source);
+                const alreadyLinked = st?.pii_status === "self_pushed";
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !selfPush;
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
                 const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
