@@ -174,6 +174,34 @@ export default function OwlTingEmailIngest() {
     }
   };
 
+  const linkSelfPush = async (stagingId: string) => {
+    setLinkingId(stagingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-selfpush-link", {
+        body: { staging_id: stagingId },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.ok && d?.matched_order_number) {
+        toast.success(`已連結至本站訂單 ${d.matched_order_number}`);
+      } else if (d?.ambiguous) {
+        toast.warning(`找到 ${d.candidates?.length ?? 0} 筆候選訂單，已標記待人工確認`);
+      } else if (d?.not_found) {
+        toast.warning("找不到對應本站訂單，已標記待人工確認");
+      } else if (d?.is_self_push === false) {
+        toast.error("此非自家來源，無需連結");
+      } else {
+        toast.error("連結失敗");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(`連結失敗：${e.message ?? e}`);
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+
   const reparseDates = async () => {
     if (!currentAccommodationId) return;
     setReparsing(true);
