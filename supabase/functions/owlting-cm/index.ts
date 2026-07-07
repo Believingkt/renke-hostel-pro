@@ -171,19 +171,54 @@ async function bulkResolveRoomTypes(
   for (const r of data ?? []) map.set(String(r.numeric_code), { id: r.id, name: r.name });
   return map;
 }
-async function bulkResolveRatePlans(
+// Discriminated result: inbound RatePlanCode can map to EITHER a pricing_template
+// (SENSAN 散客一泊一食等) OR an accommodation_package (雲岫 1001-1007 / SENSAN 包區).
+// Priority: template first (preserves SENSAN semantics — template row carries
+// availability + price), package as fallback (writes on base inventory row).
+export type ResolvedPlan =
+  | { kind: "template"; id: string; template_name: string; room_type_id: string | null }
+  | { kind: "package"; id: string; name: string; room_type_ids: string[] };
+
+export async function bulkResolveRatePlans(
   supabase: any, accId: string, codes: string[],
-): Promise<Map<string, { id: string; template_name: string; room_type_id: string | null }>> {
-  const map = new Map<string, { id: string; template_name: string; room_type_id: string | null }>();
+): Promise<Map<string, ResolvedPlan>> {
+  const map = new Map<string, ResolvedPlan>();
   const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
   if (nums.length === 0) return map;
-  const { data } = await supabase
+
+  // 1) Templates first (SENSAN priority)
+  const { data: tpls } = await supabase
     .from("pricing_templates")
     .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", accId)
     .in("numeric_code", nums);
-  for (const r of data ?? []) {
-    map.set(String(r.numeric_code), { id: r.id, template_name: r.template_name, room_type_id: r.room_type_id });
+  for (const r of tpls ?? []) {
+    map.set(String(r.numeric_code), {
+      kind: "template",
+      id: r.id,
+      template_name: r.template_name,
+      room_type_id: r.room_type_id,
+    });
+  }
+
+  // 2) Packages as fallback for codes not covered by a template
+  const remaining = nums.filter((n) => !map.has(String(n)));
+  if (remaining.length > 0) {
+    const { data: pkgs } = await supabase
+      .from("accommodation_packages")
+      .select("id,name,numeric_code,room_type_ids,enabled")
+      .eq("accommodation_id", accId)
+      .eq("enabled", true)
+      .in("numeric_code", remaining);
+    for (const p of pkgs ?? []) {
+      if (map.has(String(p.numeric_code))) continue; // template already claimed it
+      map.set(String(p.numeric_code), {
+        kind: "package",
+        id: p.id,
+        name: p.name,
+        room_type_ids: Array.isArray(p.room_type_ids) ? p.room_type_ids : [],
+      });
+    }
   }
   return map;
 }
@@ -511,10 +546,30 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
         await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
         return r;
       }
-      if (p.restrictionStatus) {
-        const isClosed = p.restrictionStatus.toLowerCase() === "close";
-        for (const d of dates) {
-          templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
+      if (plan.kind === "template") {
+        // SENSAN 散客一泊一食等：availability writes to pricing_template_availability.
+        if (p.restrictionStatus) {
+          const isClosed = p.restrictionStatus.toLowerCase() === "close";
+          for (const d of dates) {
+            templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
+          }
+        }
+      } else {
+        // Package (雲岫 1001–1007 / SENSAN 包區 canonical)：availability/limit lands
+        // on the base inventory row of the InvType room. Group canonical rooms
+        // fan-out to member room_types (sell-one-close-all), same as the
+        // no-RatePlanCode branch below.
+        const patch: { available_rooms?: number; is_available?: boolean } = {};
+        if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
+        if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
+        if (Object.keys(patch).length > 0) {
+          const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
+          const targetRoomIds = memberIds && memberIds.length > 0 ? memberIds : [room.id];
+          for (const d of dates) {
+            for (const rid of targetRoomIds) {
+              inventoryRows.push({ room_type_id: rid, date: d, pricing_template_id: null, ...patch });
+            }
+          }
         }
       }
     } else {
@@ -615,7 +670,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
     if (excludedRoomTypeIds.has(room.id)) continue;
 
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
-    const matchTemplateId = plan?.id ?? null;
+    // Only template plans get a pricing_template_id — package plans write on
+    // the base inventory row (pricing_template_id = null). Unknown codes are
+    // tolerated (matchTemplateId = null) to preserve current forgiving behavior.
+    const matchTemplateId = plan && plan.kind === "template" ? plan.id : null;
 
     // If OwlTing pushed against a canonical room + a member rate-plan template,
     // rewrite room_type to the member room_type (price belongs to the member's
