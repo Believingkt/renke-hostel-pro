@@ -329,7 +329,27 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {canSend ? (
+                        {selfPush ? (
+                          !alreadyLinked && st ? (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => linkSelfPush(st.id)}
+                              disabled={linkingId === st.id}
+                            >
+                              {linkingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <ClipboardEdit className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              連結自家訂單
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                          )
+                        ) : canSend ? (
                           <>
                             <Button
                               size="sm"
