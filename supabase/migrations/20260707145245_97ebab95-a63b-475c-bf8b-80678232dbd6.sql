@@ -1,0 +1,2 @@
+ALTER TABLE public.owlting_email_parsed_staging DROP CONSTRAINT IF EXISTS owlting_staging_pii_status_check;
+ALTER TABLE public.owlting_email_parsed_staging ADD CONSTRAINT owlting_staging_pii_status_check CHECK (pii_status = ANY (ARRAY['pending_pii_fillup'::text, 'pii_filled'::text, 'promoted_to_booking'::text, 'expired'::text, 'skipped'::text, 'self_pushed'::text, 'manual_review'::text]));
