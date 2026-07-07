@@ -171,19 +171,54 @@ async function bulkResolveRoomTypes(
   for (const r of data ?? []) map.set(String(r.numeric_code), { id: r.id, name: r.name });
   return map;
 }
+// Discriminated result: inbound RatePlanCode can map to EITHER a pricing_template
+// (SENSAN 散客一泊一食等) OR an accommodation_package (雲岫 1001-1007 / SENSAN 包區).
+// Priority: template first (preserves SENSAN semantics — template row carries
+// availability + price), package as fallback (writes on base inventory row).
+export type ResolvedPlan =
+  | { kind: "template"; id: string; template_name: string; room_type_id: string | null }
+  | { kind: "package"; id: string; name: string; room_type_ids: string[] };
+
 async function bulkResolveRatePlans(
   supabase: any, accId: string, codes: string[],
-): Promise<Map<string, { id: string; template_name: string; room_type_id: string | null }>> {
-  const map = new Map<string, { id: string; template_name: string; room_type_id: string | null }>();
+): Promise<Map<string, ResolvedPlan>> {
+  const map = new Map<string, ResolvedPlan>();
   const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
   if (nums.length === 0) return map;
-  const { data } = await supabase
+
+  // 1) Templates first (SENSAN priority)
+  const { data: tpls } = await supabase
     .from("pricing_templates")
     .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", accId)
     .in("numeric_code", nums);
-  for (const r of data ?? []) {
-    map.set(String(r.numeric_code), { id: r.id, template_name: r.template_name, room_type_id: r.room_type_id });
+  for (const r of tpls ?? []) {
+    map.set(String(r.numeric_code), {
+      kind: "template",
+      id: r.id,
+      template_name: r.template_name,
+      room_type_id: r.room_type_id,
+    });
+  }
+
+  // 2) Packages as fallback for codes not covered by a template
+  const remaining = nums.filter((n) => !map.has(String(n)));
+  if (remaining.length > 0) {
+    const { data: pkgs } = await supabase
+      .from("accommodation_packages")
+      .select("id,name,numeric_code,room_type_ids,enabled")
+      .eq("accommodation_id", accId)
+      .eq("enabled", true)
+      .in("numeric_code", remaining);
+    for (const p of pkgs ?? []) {
+      if (map.has(String(p.numeric_code))) continue; // template already claimed it
+      map.set(String(p.numeric_code), {
+        kind: "package",
+        id: p.id,
+        name: p.name,
+        room_type_ids: Array.isArray(p.room_type_ids) ? p.room_type_ids : [],
+      });
+    }
   }
   return map;
 }
