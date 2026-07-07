@@ -793,31 +793,52 @@ const BookingFlow = () => {
           cursor.setDate(cursor.getDate() + 1);
         }
 
-        const [inventoryResult, adjustedResults] = await Promise.all([
-          supabase
+        // Paginated fetch — Supabase caps rows at 1000 by default, which
+        // would silently truncate results for many room_types × ~180 days
+        // and make later dates falsely look unavailable in the calendar.
+        type InvRow = {
+          date: string;
+          room_type_id: string;
+          is_available: boolean | null;
+          available_rooms: number | null;
+          price: number | null;
+        };
+        const PAGE = 1000;
+        let allInventoryRows: InvRow[] = [];
+        let fromIdx = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: pageRows, error: pageErr } = await supabase
             .from('room_inventory_pricing')
-            .select('date, available_rooms, is_available, price, price_2_meals, price_3_meals, room_type_id')
+            .select('date, room_type_id, is_available, available_rooms, price')
             .in('room_type_id', roomTypeIds)
             .gte('date', todayStr)
-            .lte('date', endStr),
-          Promise.all(
-            roomTypeIds.map(async (roomTypeId) => {
-              const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
-                p_room_type_id: roomTypeId,
-                p_dates: dateRange,
-                p_accommodation_id: accommodationId,
-              });
-              if (error) throw error;
-              return { roomTypeId, rows: data || [] };
-            })
-          ),
-        ]);
+            .lte('date', endStr)
+            .range(fromIdx, fromIdx + PAGE - 1);
+          if (pageErr) throw pageErr;
+          if (pageRows && pageRows.length > 0) {
+            allInventoryRows = allInventoryRows.concat(pageRows as InvRow[]);
+            fromIdx += PAGE;
+            hasMore = pageRows.length === PAGE;
+          } else {
+            hasMore = false;
+          }
+        }
 
-        if (inventoryResult.error) throw inventoryResult.error;
+        const adjustedResults = await Promise.all(
+          roomTypeIds.map(async (roomTypeId) => {
+            const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+              p_room_type_id: roomTypeId,
+              p_dates: dateRange,
+              p_accommodation_id: accommodationId,
+            });
+            if (error) throw error;
+            return { roomTypeId, rows: data || [] };
+          })
+        );
 
-        const priceColumn = getPriceColumn();
-        const inventoryIndex = new Map<string, NonNullable<typeof inventoryResult.data>[number]>();
-        inventoryResult.data?.forEach((row) => {
+        const inventoryIndex = new Map<string, InvRow>();
+        allInventoryRows.forEach((row) => {
           inventoryIndex.set(`${row.room_type_id}:${row.date}`, row);
         });
 
