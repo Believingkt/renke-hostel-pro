@@ -143,8 +143,10 @@ Deno.serve(async (req) => {
       const { data: candidates } = await q;
       const target = normalizeName(staging.guest_name ?? "");
       const filtered = (candidates ?? []).filter((o: any) => {
+        const orderPrice = Number(o.final_price);
         const priceOk = amount === 0
-          || (Number(o.final_price) >= amountLo && Number(o.final_price) <= amountHi);
+          || orderPrice === 0 // order not yet priced — allow match on dates/name
+          || (orderPrice >= amountLo && orderPrice <= amountHi);
         if (!priceOk) return false;
         if (!target) return true;
         return normalizeName(o.guest_name).includes(target) || target.includes(normalizeName(o.guest_name));
