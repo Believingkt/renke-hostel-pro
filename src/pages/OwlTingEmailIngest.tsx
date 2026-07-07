@@ -253,7 +253,21 @@ export default function OwlTingEmailIngest() {
       />
 
       <Card>
-        <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>
+            最近 50 筆 Email
+            {(() => {
+              const hidden = rows.filter((r) => {
+                const st = stagingMap[r.id];
+                return isSelfPushSource(st?.channel_source);
+              }).length;
+              if (!showSelfPush && hidden > 0) {
+                return <span className="text-xs text-muted-foreground ml-2">（已隱藏 {hidden} 筆自家單）</span>;
+              }
+              return null;
+            })()}
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -268,7 +282,15 @@ export default function OwlTingEmailIngest() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => {
+              {rows.filter((r) => {
+                if (showSelfPush) return true;
+                const st = stagingMap[r.id];
+                // Hide rows identified as self-push (either by channel source
+                // or already linked/marked). manual_review still shows so humans
+                // can resolve missing matches.
+                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return false;
+                return true;
+              }).map((r) => {
                 const st = stagingMap[r.id];
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
