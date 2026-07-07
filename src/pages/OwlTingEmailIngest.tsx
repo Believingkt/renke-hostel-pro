@@ -35,6 +35,9 @@ interface StagingLite {
   pii_status: string;
   accommodation_id: string | null;
   accommodation_name: string | null;
+  channel_source: string | null;
+  promoted_order_id: string | null;
+  review_notes: string | null;
   notified_at: string | null;
   pii_due_at: string | null;
   matched_acc_id: string | null;
@@ -44,6 +47,14 @@ interface StagingLite {
   last_send_message: string | null;
   last_send_at: string | null;
   last_send_attempts: number | null;
+}
+
+// Channel sources that indicate the OTA email was triggered by our own push
+// (PMS → OwlNest → email back). These rows must NOT go through the fillup flow.
+function isSelfPushSource(source: string | null | undefined): boolean {
+  if (!source) return false;
+  const s = source.trim().toLowerCase();
+  return s.includes("人客多") || s.includes("lakeze");
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
