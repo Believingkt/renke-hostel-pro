@@ -295,10 +295,22 @@ export default function OwlTingEmailIngest() {
                     <TableCell className="text-xs">
                       {st ? (
                         <div className="flex flex-col gap-1">
-                          <Badge variant={PII_VARIANT[st.pii_status] ?? "outline"}>
-                            {PII_LABEL[st.pii_status] ?? st.pii_status}
+                          <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
+                            {selfPush && !alreadyLinked
+                              ? "自家訂單、無需補單"
+                              : PII_LABEL[st.pii_status] ?? st.pii_status}
                           </Badge>
-                          {st.notified_at && (
+                          {st.channel_source && (
+                            <span className="text-[10px] text-muted-foreground">
+                              來源：{st.channel_source}
+                            </span>
+                          )}
+                          {st.review_notes && (
+                            <span className="text-[10px] text-muted-foreground line-clamp-2" title={st.review_notes}>
+                              {st.review_notes}
+                            </span>
+                          )}
+                          {!selfPush && st.notified_at && (
                             <span className="text-[10px] text-muted-foreground">
                               已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
                             </span>
