@@ -71,10 +71,22 @@ const PII_LABEL: Record<string, string> = {
   promoted_to_booking: "已建單",
 };
 
+const PII_LABEL: Record<string, string> = {
+  pending_pii_fillup: "待補 PII",
+  pii_filled: "已補齊",
+  promoted_to_booking: "已建單",
+  self_pushed: "自家訂單、無需補單",
+  manual_review: "待人工確認",
+  expired: "已過期",
+  skipped: "已略過",
+};
+
 const PII_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending_pii_fillup: "destructive",
   pii_filled: "secondary",
   promoted_to_booking: "default",
+  self_pushed: "secondary",
+  manual_review: "destructive",
 };
 
 const TYPE_LABEL: Record<string, string> = {
