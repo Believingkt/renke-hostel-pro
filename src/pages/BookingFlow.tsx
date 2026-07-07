@@ -3220,17 +3220,33 @@ const BookingFlow = () => {
                         </div>
                       </div>
                     )}
-                    {/* 顯示載入狀態 */}
-                    {checkInDate && checkOutDate && isCheckingAvailability && (
-                      <div className="bg-muted p-6 rounded-lg text-center">
-                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                    {/* 顯示載入狀態：以 skeleton card 呈現，避免整段空白或用「沒有房型」樣式冒充 */}
+                    {checkInDate && checkOutDate && (isCheckingAvailability || !hasLoadedDateAvailability) && (
+                      <div className="space-y-4">
+                        {(roomTypes.length > 0 ? roomTypes : [0, 1]).map((_, idx) => (
+                          <Card key={`sk-${idx}`} className="overflow-hidden border">
+                            <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
+                              <Skeleton className="min-h-[240px] sm:min-h-[320px] md:min-h-full w-full rounded-none" />
+                              <CardContent className="p-4 sm:p-6 space-y-3">
+                                <Skeleton className="h-6 w-2/3" />
+                                <Skeleton className="h-4 w-1/2" />
+                                <Skeleton className="h-4 w-3/4" />
+                                <div className="pt-4 border-t space-y-2">
+                                  <Skeleton className="h-4 w-1/4" />
+                                  <Skeleton className="h-6 w-2/5" />
+                                </div>
+                              </CardContent>
+                            </div>
+                          </Card>
+                        ))}
+                        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span>正在檢查房型可用性...</span>
                         </div>
                       </div>
                     )}
-                    {/* 只有在檢查完成後才顯示內容 */}
-                    {(!checkInDate || !checkOutDate || !isCheckingAvailability) && (
+                    {/* 只有在所有庫存查詢都完成後才顯示房型清單／空狀態 */}
+                    {(!checkInDate || !checkOutDate || (!isCheckingAvailability && hasLoadedDateAvailability)) && (
                       <>
                     {checkInDate && checkOutDate && getAvailableRooms().length === 0 && (
                       <div className="bg-muted p-6 rounded-lg text-center">
