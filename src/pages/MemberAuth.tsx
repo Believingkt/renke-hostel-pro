@@ -28,6 +28,8 @@ const MemberAuth = () => {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/member/profile";
   const [loading, setLoading] = useState(false);
+  const [fbLoading, setFbLoading] = useState(false);
+  const [lineLoading, setLineLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
