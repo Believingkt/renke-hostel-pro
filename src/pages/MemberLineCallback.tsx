@@ -93,11 +93,11 @@ const MemberLineCallback = () => {
         sessionStorage.removeItem("line_oauth_redirect_uri");
       };
 
-      const fail = (msg: string) => {
+      const fail = (msg: string, debug?: unknown) => {
         cleanup();
         toast.error(msg);
         setMessage(msg);
-        setTimeout(() => navigate("/member/auth", { replace: true }), 1500);
+        setFailure({ msg, debug });
       };
 
       if (errorParam) {
