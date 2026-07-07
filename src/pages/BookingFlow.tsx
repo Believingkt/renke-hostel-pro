@@ -32,7 +32,9 @@ import {
   Info,
   ChevronDown,
   Building2,
+  Loader2,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
 import {
   guestInfoSchema,
@@ -791,31 +793,52 @@ const BookingFlow = () => {
           cursor.setDate(cursor.getDate() + 1);
         }
 
-        const [inventoryResult, adjustedResults] = await Promise.all([
-          supabase
+        // Paginated fetch — Supabase caps rows at 1000 by default, which
+        // would silently truncate results for many room_types × ~180 days
+        // and make later dates falsely look unavailable in the calendar.
+        type InvRow = {
+          date: string;
+          room_type_id: string;
+          is_available: boolean | null;
+          available_rooms: number | null;
+          price: number | null;
+        };
+        const PAGE = 1000;
+        let allInventoryRows: InvRow[] = [];
+        let fromIdx = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: pageRows, error: pageErr } = await supabase
             .from('room_inventory_pricing')
-            .select('date, available_rooms, is_available, price, price_2_meals, price_3_meals, room_type_id')
+            .select('date, room_type_id, is_available, available_rooms, price')
             .in('room_type_id', roomTypeIds)
             .gte('date', todayStr)
-            .lte('date', endStr),
-          Promise.all(
-            roomTypeIds.map(async (roomTypeId) => {
-              const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
-                p_room_type_id: roomTypeId,
-                p_dates: dateRange,
-                p_accommodation_id: accommodationId,
-              });
-              if (error) throw error;
-              return { roomTypeId, rows: data || [] };
-            })
-          ),
-        ]);
+            .lte('date', endStr)
+            .range(fromIdx, fromIdx + PAGE - 1);
+          if (pageErr) throw pageErr;
+          if (pageRows && pageRows.length > 0) {
+            allInventoryRows = allInventoryRows.concat(pageRows as InvRow[]);
+            fromIdx += PAGE;
+            hasMore = pageRows.length === PAGE;
+          } else {
+            hasMore = false;
+          }
+        }
 
-        if (inventoryResult.error) throw inventoryResult.error;
+        const adjustedResults = await Promise.all(
+          roomTypeIds.map(async (roomTypeId) => {
+            const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+              p_room_type_id: roomTypeId,
+              p_dates: dateRange,
+              p_accommodation_id: accommodationId,
+            });
+            if (error) throw error;
+            return { roomTypeId, rows: data || [] };
+          })
+        );
 
-        const priceColumn = getPriceColumn();
-        const inventoryIndex = new Map<string, NonNullable<typeof inventoryResult.data>[number]>();
-        inventoryResult.data?.forEach((row) => {
+        const inventoryIndex = new Map<string, InvRow>();
+        allInventoryRows.forEach((row) => {
           inventoryIndex.set(`${row.room_type_id}:${row.date}`, row);
         });
 
@@ -836,11 +859,7 @@ const BookingFlow = () => {
           const hasAnyAvailableRoom = roomTypeIds.some((roomTypeId) => {
             const inventoryRow = inventoryIndex.get(`${roomTypeId}:${dateStr}`);
             const adjustedRow = adjustedIndex.get(`${roomTypeId}:${dateStr}`);
-            const selectedPrice = priceColumn === 'price_3_meals'
-              ? inventoryRow?.price_3_meals
-              : priceColumn === 'price_2_meals'
-                ? inventoryRow?.price_2_meals
-                : inventoryRow?.price;
+            const selectedPrice = inventoryRow?.price;
 
             return inventoryRow?.is_available !== false
               && selectedPrice !== null
@@ -893,7 +912,7 @@ const BookingFlow = () => {
     return true;
   };
 
-  // 當日期或房型變化時，預先獲取價格和檢查可用性
+  // 當日期或房型變化時，預先獲取價格和檢查可用性（批次版：一次查整段日期區間）
   useEffect(() => {
     const fetchRoomPricingAndAvailability = async () => {
       if (!selectedRoom || !checkInDate || !checkOutDate || !accommodationId) {
@@ -905,6 +924,15 @@ const BookingFlow = () => {
       if (nights === 0) return;
 
       const start = new Date(checkInDateStr);
+      const dateRange: string[] = [];
+      for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        dateRange.push(currentDate.toISOString().split('T')[0]);
+      }
+      const rangeStartStr = dateRange[0];
+      const rangeEndStr = dateRange[dateRange.length - 1];
+
       const pricing: Record<string, number> = {};
       let hasBlocked = false;
       let blockedByName = '';
@@ -913,86 +941,95 @@ const BookingFlow = () => {
       const missingDates: string[] = [];
       const unavailableDates: string[] = [];
 
-      for (let i = 0; i < nights; i++) {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        const dateStr = currentDate.toISOString().split('T')[0];
+      try {
+        const priceCol = getPriceColumn();
 
-        try {
-          const priceCol = getPriceColumn();
-          // 獲取價格、可用房間數與販售狀態
-          const { data: priceData, error: priceError } = await supabase
-            .from('room_inventory_pricing')
-            .select('price, price_2_meals, price_3_meals, available_rooms, is_available')
-            .eq('room_type_id', selectedRoom.id)
-            .eq('date', dateStr)
-            .maybeSingle();
+        // 批次一：整段日期區間的 room_inventory_pricing
+        const { data: pricingRows, error: pricingErr } = await supabase
+          .from('room_inventory_pricing')
+          .select('date, price, price_2_meals, price_3_meals, available_rooms, is_available')
+          .eq('room_type_id', selectedRoom.id)
+          .gte('date', rangeStartStr)
+          .lte('date', rangeEndStr);
+        if (pricingErr) throw pricingErr;
 
-          if (priceError) throw priceError;
+        const pricingByDate = new Map<string, any>();
+        (pricingRows || []).forEach((r: any) => pricingByDate.set(r.date, r));
 
-          // 根據選擇的方案取得對應價格
-          const selectedPrice = priceCol === 'price_3_meals' 
-            ? priceData?.price_3_meals 
-            : priceCol === 'price_2_meals' 
-              ? priceData?.price_2_meals 
+        // 批次二：一次拿整段日期的調整後庫存 / 互斥狀態
+        const { data: adjustedRows, error: adjustedErr } = await supabase.rpc(
+          'get_adjusted_room_inventory_batch',
+          {
+            p_room_type_id: selectedRoom.id,
+            p_dates: dateRange,
+            p_accommodation_id: accommodationId,
+          },
+        );
+        if (adjustedErr) throw adjustedErr;
+
+        const adjustedByDate = new Map<string, any>();
+        (adjustedRows || []).forEach((row: any) => {
+          const dateKey = typeof row.date_value === 'string'
+            ? row.date_value
+            : new Date(row.date_value).toISOString().split('T')[0];
+          adjustedByDate.set(dateKey, row);
+        });
+
+        for (const dateStr of dateRange) {
+          const priceData = pricingByDate.get(dateStr);
+          const selectedPrice = priceCol === 'price_3_meals'
+            ? priceData?.price_3_meals
+            : priceCol === 'price_2_meals'
+              ? priceData?.price_2_meals
               : priceData?.price;
 
-          // 檢查是否有設定價格
           if (!priceData || selectedPrice === null || selectedPrice === undefined) {
             hasMissingPricing = true;
             missingDates.push(dateStr);
-            pricing[dateStr] = 0; // 標記為無價格
+            pricing[dateStr] = 0;
           } else {
             pricing[dateStr] = selectedPrice;
 
-            // 關閉販售：前台視為不可預訂
             const isClosed = priceData.is_available === false;
             if (isClosed) {
               hasNoAvailability = true;
               if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
             }
-
-            // 庫存為 0：視為無空房（僅在未關閉販售時判斷，避免重複）
             if (!isClosed && priceData.available_rooms !== null && priceData.available_rooms <= 0) {
               hasNoAvailability = true;
               if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
             }
           }
 
-          // 檢查互斥邏輯
-          const { data: availabilityData, error: availabilityError } = await supabase
-            .rpc('get_adjusted_room_inventory', {
-              p_room_type_id: selectedRoom.id,
-              p_date: dateStr,
-              p_accommodation_id: accommodationId
-            });
-
-          if (!availabilityError && availabilityData && availabilityData[0]?.is_blocked) {
+          const adjusted = adjustedByDate.get(dateStr);
+          if (adjusted?.is_blocked) {
             hasBlocked = true;
-            blockedByName = availabilityData[0].blocked_by_room_name;
+            blockedByName = adjusted.blocked_by_room_name || blockedByName;
           }
-          
-          // 即使沒有被互斥，也要檢查調整後的可用房間數
-          if (!availabilityError && availabilityData && availabilityData[0]) {
-            const adjustedAvailable = availabilityData[0].available_rooms;
-            if (adjustedAvailable !== null && adjustedAvailable <= 0 && !unavailableDates.includes(dateStr)) {
-              hasNoAvailability = true;
-              unavailableDates.push(dateStr);
-            }
+          const adjustedAvailable = adjusted?.available_rooms;
+          if (
+            adjustedAvailable !== null &&
+            adjustedAvailable !== undefined &&
+            adjustedAvailable <= 0 &&
+            !unavailableDates.includes(dateStr)
+          ) {
+            hasNoAvailability = true;
+            unavailableDates.push(dateStr);
           }
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Error fetching price/availability for date:', dateStr, error);
-          }
-          hasMissingPricing = true;
-          missingDates.push(dateStr);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error fetching price/availability (batch):', error);
+        }
+        hasMissingPricing = true;
+        for (const dateStr of dateRange) {
+          if (!missingDates.includes(dateStr)) missingDates.push(dateStr);
           pricing[dateStr] = 0;
         }
       }
 
       setRoomPricing(pricing);
-      
-      // 更新房型可用性狀態
+
       setRoomAvailability(prev => ({
         ...prev,
         [selectedRoom.id]: {
@@ -1008,6 +1045,7 @@ const BookingFlow = () => {
 
     fetchRoomPricingAndAvailability();
   }, [selectedRoom, checkInDate, checkOutDate, accommodationId, selectedTemplate]);
+
 
   // 當日期改變時，預先檢查所有房型的可用性（批次查詢優化版 + 快取）
   useEffect(() => {
@@ -3182,17 +3220,33 @@ const BookingFlow = () => {
                         </div>
                       </div>
                     )}
-                    {/* 顯示載入狀態 */}
-                    {checkInDate && checkOutDate && isCheckingAvailability && (
-                      <div className="bg-muted p-6 rounded-lg text-center">
-                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                    {/* 顯示載入狀態：以 skeleton card 呈現，避免整段空白或用「沒有房型」樣式冒充 */}
+                    {checkInDate && checkOutDate && (isCheckingAvailability || !hasLoadedDateAvailability) && (
+                      <div className="space-y-4">
+                        {(roomTypes.length > 0 ? roomTypes : [0, 1]).map((_, idx) => (
+                          <Card key={`sk-${idx}`} className="overflow-hidden border">
+                            <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
+                              <Skeleton className="min-h-[240px] sm:min-h-[320px] md:min-h-full w-full rounded-none" />
+                              <CardContent className="p-4 sm:p-6 space-y-3">
+                                <Skeleton className="h-6 w-2/3" />
+                                <Skeleton className="h-4 w-1/2" />
+                                <Skeleton className="h-4 w-3/4" />
+                                <div className="pt-4 border-t space-y-2">
+                                  <Skeleton className="h-4 w-1/4" />
+                                  <Skeleton className="h-6 w-2/5" />
+                                </div>
+                              </CardContent>
+                            </div>
+                          </Card>
+                        ))}
+                        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           <span>正在檢查房型可用性...</span>
                         </div>
                       </div>
                     )}
-                    {/* 只有在檢查完成後才顯示內容 */}
-                    {(!checkInDate || !checkOutDate || !isCheckingAvailability) && (
+                    {/* 只有在所有庫存查詢都完成後才顯示房型清單／空狀態 */}
+                    {(!checkInDate || !checkOutDate || (!isCheckingAvailability && hasLoadedDateAvailability)) && (
                       <>
                     {checkInDate && checkOutDate && getAvailableRooms().length === 0 && (
                       <div className="bg-muted p-6 rounded-lg text-center">
@@ -3457,7 +3511,7 @@ const BookingFlow = () => {
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <div className="p-3">
+                            <div className="p-3 relative">
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
@@ -3512,6 +3566,8 @@ const BookingFlow = () => {
                                    return availableDatesForCalendar.has(dateStr);
                                  },
                                   unavailable: (date) => {
+                                    // 載入中：不要用「客滿」樣式冒充；改由 overlay 呈現
+                                    if (isLoadingRoomDates || !hasLoadedDateAvailability) return false;
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     return date >= today && !isCalendarDateBookable(date);
@@ -3526,6 +3582,12 @@ const BookingFlow = () => {
                               className="pointer-events-auto"
                               variant="frontend"
                             />
+                            {(isLoadingRoomDates || !hasLoadedDateAvailability) && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-sm rounded-md z-10">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <span className="text-xs text-muted-foreground">載入可預訂日期中...</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
@@ -3567,7 +3629,7 @@ const BookingFlow = () => {
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <div className="p-3">
+                            <div className="p-3 relative">
                             <CalendarComponent
                               mode="single"
                               selected={checkOutDate}
@@ -3626,6 +3688,8 @@ const BookingFlow = () => {
                                    return availableDatesForCalendar.has(dateStr);
                                  },
                                   unavailable: (date) => {
+                                    // 載入中：不要用「客滿」樣式冒充；改由 overlay 呈現
+                                    if (isLoadingRoomDates || !hasLoadedDateAvailability) return false;
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     return date >= today && checkInDate !== undefined && !isStayRangeBookable(checkInDate, date);
@@ -3640,6 +3704,12 @@ const BookingFlow = () => {
                               className="pointer-events-auto"
                               variant="frontend"
                             />
+                            {(isLoadingRoomDates || !hasLoadedDateAvailability) && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-sm rounded-md z-10">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <span className="text-xs text-muted-foreground">載入可預訂日期中...</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
