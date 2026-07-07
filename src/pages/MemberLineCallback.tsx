@@ -130,12 +130,12 @@ const MemberLineCallback = () => {
       if (storedState) {
         if (state !== storedState) {
           console.warn(`[${TAG} callback] state mismatch`, stateDebug);
-          fail("LINE 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。");
+          fail("LINE 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。", stateDebug);
           return;
         }
       } else if (!returnFromState) {
         console.warn(`[${TAG} callback] state missing (no storedState, no embedded return)`, stateDebug);
-        fail("LINE 登入資訊遺失，請回到登入頁重新登入。");
+        fail("LINE 登入資訊遺失，請回到登入頁重新登入。", stateDebug);
         return;
       }
 
