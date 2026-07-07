@@ -3495,7 +3495,7 @@ const BookingFlow = () => {
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <div className="p-3">
+                            <div className="p-3 relative">
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
@@ -3550,6 +3550,8 @@ const BookingFlow = () => {
                                    return availableDatesForCalendar.has(dateStr);
                                  },
                                   unavailable: (date) => {
+                                    // 載入中：不要用「客滿」樣式冒充；改由 overlay 呈現
+                                    if (isLoadingRoomDates || !hasLoadedDateAvailability) return false;
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     return date >= today && !isCalendarDateBookable(date);
@@ -3564,6 +3566,12 @@ const BookingFlow = () => {
                               className="pointer-events-auto"
                               variant="frontend"
                             />
+                            {(isLoadingRoomDates || !hasLoadedDateAvailability) && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-sm rounded-md z-10">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <span className="text-xs text-muted-foreground">載入可預訂日期中...</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
