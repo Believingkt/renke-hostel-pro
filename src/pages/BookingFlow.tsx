@@ -859,11 +859,7 @@ const BookingFlow = () => {
           const hasAnyAvailableRoom = roomTypeIds.some((roomTypeId) => {
             const inventoryRow = inventoryIndex.get(`${roomTypeId}:${dateStr}`);
             const adjustedRow = adjustedIndex.get(`${roomTypeId}:${dateStr}`);
-            const selectedPrice = priceColumn === 'price_3_meals'
-              ? inventoryRow?.price_3_meals
-              : priceColumn === 'price_2_meals'
-                ? inventoryRow?.price_2_meals
-                : inventoryRow?.price;
+            const selectedPrice = inventoryRow?.price;
 
             return inventoryRow?.is_available !== false
               && selectedPrice !== null
