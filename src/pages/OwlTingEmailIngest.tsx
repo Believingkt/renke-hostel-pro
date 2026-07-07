@@ -228,6 +228,14 @@ export default function OwlTingEmailIngest() {
         title="奧丁丁訂單收件監控"
         action={
           <div className="flex gap-2">
+            <Button
+              variant={showSelfPush ? "default" : "outline"}
+              onClick={() => setShowSelfPush((v) => !v)}
+              disabled={loading}
+              title="切換是否顯示已識別為自家推送、無需補單的紀錄"
+            >
+              {showSelfPush ? "隱藏自家單" : "顯示自家單"}
+            </Button>
             <Button variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
               {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               回填入住/退房日期
