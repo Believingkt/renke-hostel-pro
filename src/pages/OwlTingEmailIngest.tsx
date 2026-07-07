@@ -103,6 +103,7 @@ export default function OwlTingEmailIngest() {
   const [rawOpen, setRawOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [reparsing, setReparsing] = useState(false);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const load = async () => {
     if (!currentAccommodationId) {
