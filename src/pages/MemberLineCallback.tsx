@@ -114,13 +114,26 @@ const MemberLineCallback = () => {
 
       // State validation: same-origin → strict; cross-origin → state must
       // carry our embedded return URL marker.
+      const stateDebug = {
+        hasStoredState: !!storedState,
+        hasReturnFromState: !!returnFromState,
+        hasStoredNonce: !!storedNonce,
+        hasStoredTs: storedTs > 0,
+        ageSec: storedTs > 0 ? Math.round((Date.now() - storedTs) / 1000) : null,
+        stateLen: state?.length ?? 0,
+        storedStateLen: storedState?.length ?? 0,
+        stateMatches: !!storedState && state === storedState,
+        ua: navigator.userAgent.substring(0, 120),
+      };
       if (storedState) {
         if (state !== storedState) {
-          fail("LINE 登入 state 驗證失敗，請重新嘗試");
+          console.warn(`[${TAG} callback] state mismatch`, stateDebug);
+          fail("LINE 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。");
           return;
         }
       } else if (!returnFromState) {
-        fail("LINE 登入 state 驗證失敗，請重新嘗試");
+        console.warn(`[${TAG} callback] state missing (no storedState, no embedded return)`, stateDebug);
+        fail("LINE 登入資訊遺失，請回到登入頁重新登入。");
         return;
       }
 
