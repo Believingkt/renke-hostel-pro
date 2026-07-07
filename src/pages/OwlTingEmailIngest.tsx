@@ -65,11 +65,6 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   failed: "destructive",
 };
 
-const PII_LABEL: Record<string, string> = {
-  pending_pii_fillup: "待補 PII",
-  pii_filled: "已補齊",
-  promoted_to_booking: "已建單",
-};
 
 const PII_LABEL: Record<string, string> = {
   pending_pii_fillup: "待補 PII",
