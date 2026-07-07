@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   preCheckExistingSession,
   runOAuthExchange,
