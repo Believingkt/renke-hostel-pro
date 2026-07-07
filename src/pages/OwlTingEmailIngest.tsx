@@ -126,7 +126,7 @@ export default function OwlTingEmailIngest() {
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts")
+        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts")
         .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
 
