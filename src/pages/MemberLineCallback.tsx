@@ -169,11 +169,47 @@ const MemberLineCallback = () => {
   }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
-      <div className="text-center space-y-3">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "hsl(24, 100%, 50%)" }} />
-        <p className="text-sm text-muted-foreground">{message}</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white px-4">
+      {failure ? (
+        <div className="w-full max-w-md space-y-4 rounded-lg border border-destructive/30 bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 flex-shrink-0 text-destructive" />
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">LINE 登入失敗</h2>
+              <p className="text-sm text-muted-foreground break-words">{failure.msg}</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              className="flex-1"
+              style={{ backgroundColor: "hsl(24, 100%, 50%)" }}
+              onClick={() => navigate("/member/auth", { replace: true })}
+            >
+              回到登入頁重新嘗試
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate("/", { replace: true })}
+            >
+              返回首頁
+            </Button>
+          </div>
+          {failure.debug != null && (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer select-none">技術細節（回報時提供）</summary>
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-muted p-2">
+                {JSON.stringify(failure.debug, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      ) : (
+        <div className="text-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "hsl(24, 100%, 50%)" }} />
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      )}
     </div>
   );
 };
