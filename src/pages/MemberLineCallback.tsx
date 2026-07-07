@@ -77,6 +77,9 @@ const MemberLineCallback = () => {
       const storedRedirect =
         localStorage.getItem("line_oauth_redirect_uri") ??
         sessionStorage.getItem("line_oauth_redirect_uri");
+      const storedTs = Number(localStorage.getItem("line_oauth_ts") || 0);
+      const TTL_MS = 10 * 60 * 1000;
+      const expired = storedTs > 0 && Date.now() - storedTs > TTL_MS;
 
       const cleanup = () => {
         localStorage.removeItem("line_oauth_state");
