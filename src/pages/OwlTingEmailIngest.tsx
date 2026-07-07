@@ -35,6 +35,9 @@ interface StagingLite {
   pii_status: string;
   accommodation_id: string | null;
   accommodation_name: string | null;
+  channel_source: string | null;
+  promoted_order_id: string | null;
+  review_notes: string | null;
   notified_at: string | null;
   pii_due_at: string | null;
   matched_acc_id: string | null;
@@ -46,6 +49,14 @@ interface StagingLite {
   last_send_attempts: number | null;
 }
 
+// Channel sources that indicate the OTA email was triggered by our own push
+// (PMS → OwlNest → email back). These rows must NOT go through the fillup flow.
+function isSelfPushSource(source: string | null | undefined): boolean {
+  if (!source) return false;
+  const s = source.trim().toLowerCase();
+  return s.includes("人客多") || s.includes("lakeze");
+}
+
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   parsed: "default",
   received: "secondary",
@@ -54,16 +65,23 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   failed: "destructive",
 };
 
+
 const PII_LABEL: Record<string, string> = {
   pending_pii_fillup: "待補 PII",
   pii_filled: "已補齊",
   promoted_to_booking: "已建單",
+  self_pushed: "自家訂單、無需補單",
+  manual_review: "待人工確認",
+  expired: "已過期",
+  skipped: "已略過",
 };
 
 const PII_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending_pii_fillup: "destructive",
   pii_filled: "secondary",
   promoted_to_booking: "default",
+  self_pushed: "secondary",
+  manual_review: "destructive",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -85,6 +103,7 @@ export default function OwlTingEmailIngest() {
   const [rawOpen, setRawOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [reparsing, setReparsing] = useState(false);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const load = async () => {
     if (!currentAccommodationId) {
@@ -108,7 +127,7 @@ export default function OwlTingEmailIngest() {
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts")
+        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts")
         .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
 
@@ -154,6 +173,34 @@ export default function OwlTingEmailIngest() {
       setSendingId(null);
     }
   };
+
+  const linkSelfPush = async (stagingId: string) => {
+    setLinkingId(stagingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-selfpush-link", {
+        body: { staging_id: stagingId },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.ok && d?.matched_order_number) {
+        toast.success(`已連結至本站訂單 ${d.matched_order_number}`);
+      } else if (d?.ambiguous) {
+        toast.warning(`找到 ${d.candidates?.length ?? 0} 筆候選訂單，已標記待人工確認`);
+      } else if (d?.not_found) {
+        toast.warning("找不到對應本站訂單，已標記待人工確認");
+      } else if (d?.is_self_push === false) {
+        toast.error("此非自家來源，無需連結");
+      } else {
+        toast.error("連結失敗");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(`連結失敗：${e.message ?? e}`);
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
 
   const reparseDates = async () => {
     if (!currentAccommodationId) return;
@@ -214,7 +261,9 @@ export default function OwlTingEmailIngest() {
             <TableBody>
               {rows.map((r) => {
                 const st = stagingMap[r.id];
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled";
+                const selfPush = isSelfPushSource(st?.channel_source);
+                const alreadyLinked = st?.pii_status === "self_pushed";
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !selfPush;
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
                 const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
@@ -246,10 +295,22 @@ export default function OwlTingEmailIngest() {
                     <TableCell className="text-xs">
                       {st ? (
                         <div className="flex flex-col gap-1">
-                          <Badge variant={PII_VARIANT[st.pii_status] ?? "outline"}>
-                            {PII_LABEL[st.pii_status] ?? st.pii_status}
+                          <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
+                            {selfPush && !alreadyLinked
+                              ? "自家訂單、無需補單"
+                              : PII_LABEL[st.pii_status] ?? st.pii_status}
                           </Badge>
-                          {st.notified_at && (
+                          {st.channel_source && (
+                            <span className="text-[10px] text-muted-foreground">
+                              來源：{st.channel_source}
+                            </span>
+                          )}
+                          {st.review_notes && (
+                            <span className="text-[10px] text-muted-foreground line-clamp-2" title={st.review_notes}>
+                              {st.review_notes}
+                            </span>
+                          )}
+                          {!selfPush && st.notified_at && (
                             <span className="text-[10px] text-muted-foreground">
                               已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
                             </span>
@@ -268,7 +329,27 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {canSend ? (
+                        {selfPush ? (
+                          !alreadyLinked && st ? (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => linkSelfPush(st.id)}
+                              disabled={linkingId === st.id}
+                            >
+                              {linkingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <ClipboardEdit className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              連結自家訂單
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                          )
+                        ) : canSend ? (
                           <>
                             <Button
                               size="sm"
