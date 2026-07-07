@@ -46,6 +46,10 @@ const MemberLineCallback = () => {
       // 1. Pre-check: if a session already exists, skip everything.
       const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
       if (existingRedirect) {
+        localStorage.removeItem("line_oauth_state");
+        localStorage.removeItem("line_oauth_nonce");
+        localStorage.removeItem("line_oauth_redirect_uri");
+        localStorage.removeItem("line_oauth_ts");
         sessionStorage.removeItem("line_oauth_state");
         sessionStorage.removeItem("line_oauth_nonce");
         sessionStorage.removeItem("line_oauth_redirect_uri");
