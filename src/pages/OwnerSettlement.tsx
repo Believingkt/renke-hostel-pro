@@ -213,7 +213,9 @@ export default function OwnerSettlement() {
         const monthDiscount = Number(o.discount_amount || 0) * ratio;
         const monthCommissionable = monthFinal;
 
-        const exempt = !!o.owner_direct;
+        const exempt =
+          !!o.owner_direct ||
+          (config.exempt_order_sources ?? []).includes(o.order_source);
         const commission = exempt
           ? 0
           : monthCommissionable * (config.commission_rate / 100);
