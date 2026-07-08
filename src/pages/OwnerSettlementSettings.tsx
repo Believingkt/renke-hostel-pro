@@ -54,19 +54,48 @@ export default function OwnerSettlementSettings() {
       const superAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
       setIsSuperAdmin(superAdmin);
 
-      const { data } = await supabase
-        .from("system_settings")
-        .select("setting_value")
-        .eq("setting_key", "owner_settlement_config")
-        .maybeSingle();
-      if (data?.setting_value) {
-        const raw = data.setting_value as any;
+      const [settingRes, accRes, ordersRes] = await Promise.all([
+        supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "owner_settlement_config")
+          .maybeSingle(),
+        supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .order("name", { ascending: true }),
+        supabase
+          .from("orders")
+          .select("accommodation_id, order_source")
+          .not("order_source", "is", null),
+      ]);
+
+      if (settingRes.data?.setting_value) {
+        const raw = settingRes.data.setting_value as any;
         setConfig({
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
         });
       }
+
+      const sourcesByAcc = new Map<string, Set<string>>();
+      for (const row of (ordersRes.data ?? []) as Array<{ accommodation_id: string | null; order_source: string | null }>) {
+        if (!row.accommodation_id || !row.order_source) continue;
+        const src = row.order_source.trim();
+        if (!src) continue;
+        if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
+        sourcesByAcc.get(row.accommodation_id)!.add(src);
+      }
+      const nextGroups: AccommodationGroup[] = ((accRes.data ?? []) as Array<{ id: string; name: string }>)
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          sources: Array.from(sourcesByAcc.get(a.id) ?? []).sort(),
+        }))
+        .filter((g) => g.sources.length > 0);
+      setGroups(nextGroups);
+
       setLoading(false);
     })();
   }, []);
