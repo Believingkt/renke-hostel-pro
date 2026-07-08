@@ -126,6 +126,29 @@ serve(async (req) => {
 
     if (!targetUserId) {
       isNewUser = true;
+
+      // ⚠️ 順序關鍵：必須先寫入 team_pending_invites，再呼叫 createUser。
+      // auth.users AFTER INSERT trigger (apply_team_pending_invites) 會依 email 撈 pending
+      // 並套用 role + 清除 pending。若順序反了，trigger 撲空，pending 會變孤兒列，
+      // 導致「現有成員」與「待生效邀請」同時顯示同一人。
+      {
+        const rows = roles.map((role) => ({
+          email,
+          display_name: displayName,
+          role,
+          invited_by: user.id,
+        }));
+        const { error: pendingErr } = await supabaseAdmin
+          .from("team_pending_invites")
+          .upsert(rows, { onConflict: "email,role" });
+        if (pendingErr) {
+          return json(
+            { success: false, error: `寫入待生效邀請失敗：${pendingErr.message}` },
+            500,
+          );
+        }
+      }
+
       const { data: created, error: createErr } = await supabaseAdmin.auth.admin
         .createUser({
           email,
@@ -146,10 +169,20 @@ serve(async (req) => {
           if (authRow2?.id) {
             targetUserId = authRow2.id as string;
             isNewUser = false;
+            // 既有用戶不需要 pending，清掉剛剛寫進去的孤兒列
+            await supabaseAdmin
+              .from("team_pending_invites")
+              .delete()
+              .ilike("email", email);
           } else {
             return json({ success: false, error: "此 Email 已被註冊" }, 400);
           }
         } else {
+          // createUser 失敗，回滾剛寫入的 pending
+          await supabaseAdmin
+            .from("team_pending_invites")
+            .delete()
+            .ilike("email", email);
           return json({ success: false, error: msg }, 400);
         }
       } else {
@@ -172,6 +205,7 @@ serve(async (req) => {
       }
     }
 
+
     // 建立/更新 team profile
     await supabaseAdmin
       .from("team_member_profiles")
@@ -180,7 +214,9 @@ serve(async (req) => {
         { onConflict: "user_id" },
       );
 
-    // 既有用戶：直接套用 roles；新用戶：寫入 team_pending_invites
+    // 既有用戶：直接套用 roles。
+    // 新用戶：pending_invites 已在 createUser 前寫入，auth.users AFTER INSERT trigger
+    // 會自動搬進 user_roles 並清除 pending，此處不需重複寫入。
     if (!isNewUser) {
       const { data: existingRoles } = await supabaseAdmin
         .from("user_roles")
@@ -198,17 +234,13 @@ serve(async (req) => {
           })),
         );
       }
-    } else {
-      const rows = roles.map((role) => ({
-        email,
-        display_name: displayName,
-        role,
-        invited_by: user.id,
-      }));
+      // 防禦性清除：若此 email 因歷史 bug 殘留 pending 孤兒列，一併移除
       await supabaseAdmin
         .from("team_pending_invites")
-        .upsert(rows, { onConflict: "email,role" });
+        .delete()
+        .ilike("email", email);
     }
+
 
     // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證的森山子網域）
     let emailSent = false;
