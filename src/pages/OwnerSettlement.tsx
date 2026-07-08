@@ -90,6 +90,7 @@ export default function OwnerSettlement() {
     commission_rate: 15,
     marketing_fee_base: 53000,
     marketing_fee_per_extra_property: 3000,
+    exempt_order_sources: [],
   });
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
