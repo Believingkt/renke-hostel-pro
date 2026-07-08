@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface SettlementConfig {
   commission_rate: number;
