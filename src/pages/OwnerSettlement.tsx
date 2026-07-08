@@ -52,6 +52,7 @@ interface SettlementConfig {
   commission_rate: number;
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
+  exempt_order_sources: string[];
 }
 
 interface RoomTypePricing {
@@ -89,6 +90,7 @@ export default function OwnerSettlement() {
     commission_rate: 15,
     marketing_fee_base: 53000,
     marketing_fee_per_extra_property: 3000,
+    exempt_order_sources: [],
   });
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -160,7 +162,13 @@ export default function OwnerSettlement() {
         }))
       );
       if (configRes.data?.setting_value) {
-        setConfig(configRes.data.setting_value as unknown as SettlementConfig);
+        const raw = configRes.data.setting_value as any;
+        setConfig({
+          commission_rate: raw.commission_rate ?? 15,
+          marketing_fee_base: raw.marketing_fee_base ?? 53000,
+          marketing_fee_per_extra_property: raw.marketing_fee_per_extra_property ?? 3000,
+          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+        });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
       const tmap: Record<string, string> = {};
@@ -205,7 +213,9 @@ export default function OwnerSettlement() {
         const monthDiscount = Number(o.discount_amount || 0) * ratio;
         const monthCommissionable = monthFinal;
 
-        const exempt = !!o.owner_direct;
+        const exempt =
+          !!o.owner_direct ||
+          (config.exempt_order_sources ?? []).includes(o.order_source);
         const commission = exempt
           ? 0
           : monthCommissionable * (config.commission_rate / 100);
@@ -225,7 +235,7 @@ export default function OwnerSettlement() {
       })
       .filter((x): x is OrderRow => x !== null)
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, roomTypes, month, config.commission_rate]);
+  }, [orders, roomTypes, month, config.commission_rate, config.exempt_order_sources]);
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
@@ -506,13 +516,13 @@ export default function OwnerSettlement() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
-                            <Badge variant="secondary">業主自帶</Badge>
+                            <Badge variant="secondary">{r.order.owner_direct ? "業主自帶" : "來源不抽成"}</Badge>
                           ) : (
                             <span className="text-destructive">-{fmt(r.commission)}</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          {r.order.owner_direct && (
+                          {r.exempt && (
                             <Badge variant="outline" className="text-xs">不抽成</Badge>
                           )}
                         </TableCell>

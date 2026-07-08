@@ -6,20 +6,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
 
 interface SettlementConfig {
   commission_rate: number;
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
+  exempt_order_sources: string[];
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
   commission_rate: 15,
   marketing_fee_base: 53000,
   marketing_fee_per_extra_property: 3000,
+  exempt_order_sources: [],
 };
+
+// 額外一個 hotelnabe（旭海通路管理）選項，因為它不在 FALLBACK_ORDER_SOURCES
+const SOURCE_OPTIONS = [
+  ...FALLBACK_ORDER_SOURCES,
+  { value: "hotelnabe", label: "旭海 HotelNabe" },
+];
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
@@ -49,11 +59,25 @@ export default function OwnerSettlementSettings() {
         .eq("setting_key", "owner_settlement_config")
         .maybeSingle();
       if (data?.setting_value) {
-        setConfig({ ...DEFAULT_CONFIG, ...(data.setting_value as any) });
+        const raw = data.setting_value as any;
+        setConfig({
+          ...DEFAULT_CONFIG,
+          ...raw,
+          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+        });
       }
       setLoading(false);
     })();
   }, []);
+
+  const toggleSource = (value: string, checked: boolean) => {
+    setConfig((prev) => {
+      const set = new Set(prev.exempt_order_sources);
+      if (checked) set.add(value);
+      else set.delete(value);
+      return { ...prev, exempt_order_sources: Array.from(set) };
+    });
+  };
 
   const handleSave = async () => {
     if (config.commission_rate < 0 || config.commission_rate > 100) {
@@ -120,7 +144,7 @@ export default function OwnerSettlementSettings() {
         <CardHeader>
           <CardTitle>服務費</CardTitle>
           <CardDescription>
-            套用至所有訂單（除 <code>owner_direct = true</code>）。計算方式：本月分攤後金額 × 服務費率。
+            套用至所有訂單（除 <code>owner_direct = true</code> 或訂單來源被勾選為不抽成）。計算方式：本月分攤後金額 × 服務費率。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -139,6 +163,40 @@ export default function OwnerSettlementSettings() {
               目前：{config.commission_rate}%（含金流處理、客服、系統維運、訂單管理、網紅抽成）
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>不抽成的訂單來源</CardTitle>
+          <CardDescription>
+            勾選後，該訂單來源的訂單於業主月結中不計服務費（等同「業主自帶」）。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {SOURCE_OPTIONS.map((opt) => {
+              const checked = config.exempt_order_sources.includes(opt.value);
+              return (
+                <label
+                  key={opt.value}
+                  className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(v) => toggleSource(opt.value, v === true)}
+                  />
+                  <span className="text-sm">{opt.label}</span>
+                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
+                </label>
+              );
+            })}
+          </div>
+          {config.exempt_order_sources.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-3">
+              已選：{config.exempt_order_sources.join(", ")}
+            </p>
+          )}
         </CardContent>
       </Card>
 
