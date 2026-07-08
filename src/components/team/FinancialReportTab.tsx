@@ -133,15 +133,20 @@ export default function FinancialReportTab() {
         const r1 = emptyBuckets();
         const r2 = emptyBuckets();
 
-        // Scout discount codes（全域，比對用大寫集合）
-        const { data: scoutCodesRaw } = await supabase
-          .from("scout_discount_codes")
-          .select("discount_code");
-        const scoutCodeSet = new Set<string>(
-          (scoutCodesRaw ?? [])
-            .map((r: any) => String(r.discount_code ?? "").toUpperCase())
-            .filter((c) => c.length > 0),
-        );
+        // KOL 折扣碼白名單：scout_discount_codes ∪ kol_profiles.cid_code（全域，比對用大寫集合）
+        const [{ data: scoutCodesRaw }, { data: kolCidRaw }] = await Promise.all([
+          supabase.from("scout_discount_codes").select("discount_code"),
+          supabase.from("kol_profiles").select("cid_code").not("cid_code", "is", null),
+        ]);
+        const kolCodeSet = new Set<string>();
+        for (const r of (scoutCodesRaw ?? []) as any[]) {
+          const c = String(r.discount_code ?? "").toUpperCase();
+          if (c) kolCodeSet.add(c);
+        }
+        for (const r of (kolCidRaw ?? []) as any[]) {
+          const c = String(r.cid_code ?? "").toUpperCase();
+          if (c) kolCodeSet.add(c);
+        }
 
         if (selectedAccs.length > 0) {
           // 台北月首/月末的 UTC 邊界（涵蓋所有訂單）
@@ -167,7 +172,7 @@ export default function FinancialReportTab() {
             const w = getWeekIndex(day);
             r1[w] += price;
             const dc = String(o.discount_code ?? "").toUpperCase();
-            if (dc && scoutCodeSet.has(dc)) {
+            if (dc && kolCodeSet.has(dc)) {
               r2[w] += price;
             }
           }
