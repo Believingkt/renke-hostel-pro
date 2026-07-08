@@ -195,6 +195,24 @@ Deno.serve(async (req) => {
     }
     const nowIso = new Date().toISOString();
 
+    // Normalize staging.channel_source (e.g. "Agoda", "Booking.com", "Expedia", "官網") into
+    // a stable code stored on orders.ota_channel. Self-push sources (人客多/lakeze) are blocked
+    // above, so we won't reach here with them.
+    const rawChannel = String(staging.channel_source ?? "").trim();
+    const lowerCh = rawChannel.toLowerCase();
+    let otaChannel: string | null = null;
+    if (lowerCh) {
+      if (lowerCh.includes("agoda")) otaChannel = "agoda";
+      else if (lowerCh.includes("booking")) otaChannel = "booking";
+      else if (lowerCh.includes("expedia")) otaChannel = "expedia";
+      else if (lowerCh.includes("trip") || lowerCh.includes("ctrip") || lowerCh.includes("攜程")) otaChannel = "trip";
+      else if (lowerCh.includes("airbnb")) otaChannel = "airbnb";
+      else if (lowerCh.includes("klook")) otaChannel = "klook";
+      else if (lowerCh.includes("kkday")) otaChannel = "kkday";
+      else if (lowerCh.includes("官網") || lowerCh.includes("direct")) otaChannel = "owlting_direct";
+      else otaChannel = rawChannel; // fall back to raw label
+    }
+
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
       accommodation_id: accId,
@@ -209,13 +227,14 @@ Deno.serve(async (req) => {
       final_price: resolvedTotal,
       discount_amount: 0,
       order_source: "owlting",
+      ota_channel: otaChannel,
       order_status: "confirmed",
       payment_status: "paid",
       confirmed_at: nowIso,
       requires_owner_review: true,
       owlting_reservation_id: staging.obe_number,
       deposit_required_amount: 0,
-      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""})`,
+      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${rawChannel ? `, 平台: ${rawChannel}` : ""})`,
     }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
     if (insErr) {
