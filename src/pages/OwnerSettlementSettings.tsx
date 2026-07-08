@@ -34,6 +34,7 @@ interface AccommodationGroup {
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
+  const { currentAccommodationId } = useAccommodation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
