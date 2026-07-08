@@ -149,32 +149,42 @@ export default function FinancialReportTab() {
         }
 
         if (selectedAccs.length > 0) {
-          // 台北月首/月末的 UTC 邊界（涵蓋所有訂單）
-          // Row 1 用 COALESCE(confirmed_at, order_date)，可能落在 order_date 之外的月份，
-          // 因此擴大抓取範圍：前後各多抓 2 個月，再於 JS 側依台北時區判斷。
-          const fetchStartDate = new Date(year, month - 3, 1);
-          const fetchEndDate = new Date(year, month + 1, 0);
-          const fetchStart = `${fetchStartDate.getFullYear()}-${String(fetchStartDate.getMonth() + 1).padStart(2, "0")}-01T00:00:00+08:00`;
-          const fetchEnd = `${fetchEndDate.getFullYear()}-${String(fetchEndDate.getMonth() + 1).padStart(2, "0")}-${String(fetchEndDate.getDate()).padStart(2, "0")}T23:59:59.999+08:00`;
+          // 台北時區月份邊界（[startDay, endExclusive)）
+          const nextYear = month === 12 ? year + 1 : year;
+          const nextMonth = month === 12 ? 1 : month + 1;
+          const startDay = `${year}-${String(month).padStart(2, "0")}-01T00:00:00+08:00`;
+          const endExclusive = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+08:00`;
 
-          const { data: orders } = await supabase
+          // Row 1：COALESCE(confirmed_at, order_date) 落在當月（對齊 TeamOrders 口徑）
+          const { data: row1Orders } = await supabase
             .from("orders")
-            .select("id, order_date, confirmed_at, final_price, order_status, guest_name, discount_code, accommodation_id")
+            .select("id, order_date, confirmed_at, final_price, order_status, guest_name, accommodation_id")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
-            .gte("order_date", fetchStart)
-            .lte("order_date", fetchEnd);
+            .or(
+              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`,
+            );
 
-          const orderList = (orders ?? []) as any[];
-          const orderIds = orderList.map((o) => o.id).filter(Boolean);
+          // Row 2：order_date 落在當月（KOL 邏輯不變）
+          const { data: row2Orders } = await supabase
+            .from("orders")
+            .select("id, order_date, final_price, order_status, guest_name, discount_code, accommodation_id")
+            .in("accommodation_id", selectedAccs)
+            .neq("order_status", "cancelled")
+            .gte("order_date", startDay)
+            .lt("order_date", endExclusive);
 
-          // 撈出符合成交大師口徑的 order_meta：有 closer_id 且未被排除
+          const row1List = (row1Orders ?? []) as any[];
+          const row2List = (row2Orders ?? []) as any[];
+
+          // 只需 Row 1 訂單查 order_meta eligibility
+          const row1Ids = row1List.map((o) => o.id).filter(Boolean);
           const eligibleCloserSet = new Set<string>();
-          if (orderIds.length > 0) {
-            // Supabase 預設 1000 上限，分批查詢
+          if (row1Ids.length > 0) {
             const CHUNK = 500;
-            for (let i = 0; i < orderIds.length; i += CHUNK) {
-              const slice = orderIds.slice(i, i + CHUNK);
+            for (let i = 0; i < row1Ids.length; i += CHUNK) {
+              const slice = row1Ids.slice(i, i + CHUNK);
               const { data: metas } = await supabase
                 .from("order_meta")
                 .select("order_id, closer_id, is_excluded")
@@ -187,34 +197,32 @@ export default function FinancialReportTab() {
             }
           }
 
-          for (const o of orderList) {
+          // Row 1 累計
+          for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
             if (!(price > 0)) continue;
+            if (!eligibleCloserSet.has(o.id)) continue;
+            const basisIso: string | null = o.confirmed_at ?? o.order_date ?? null;
+            if (!basisIso) continue;
+            const basisStr = toTaipeiDateStr(basisIso);
+            if (basisStr < monthStart || basisStr > monthEnd) continue;
+            const day = Number(basisStr.slice(8, 10));
+            r1[getWeekIndex(day)] += price;
+          }
 
-            // Row 2 (KOL) 使用 order_date 判斷月份/週次
-            if (o.order_date) {
-              const orderDateStr = toTaipeiDateStr(o.order_date);
-              if (orderDateStr >= monthStart && orderDateStr <= monthEnd) {
-                const dc = String(o.discount_code ?? "").toUpperCase();
-                if (dc && kolCodeSet.has(dc)) {
-                  const day = Number(orderDateStr.slice(8, 10));
-                  r2[getWeekIndex(day)] += price;
-                }
-              }
-            }
-
-            // Row 1 訂房組業績：需為成交大師 eligible 訂單，日期用 COALESCE(confirmed_at, order_date)
-            if (eligibleCloserSet.has(o.id)) {
-              const basisIso: string | null = o.confirmed_at ?? o.order_date ?? null;
-              if (basisIso) {
-                const basisStr = toTaipeiDateStr(basisIso);
-                if (basisStr >= monthStart && basisStr <= monthEnd) {
-                  const day = Number(basisStr.slice(8, 10));
-                  r1[getWeekIndex(day)] += price;
-                }
-              }
-            }
+          // Row 2 累計（KOL）
+          for (const o of row2List) {
+            if (o.guest_name === "保留單") continue;
+            const price = Number(o.final_price ?? 0);
+            if (!(price > 0)) continue;
+            if (!o.order_date) continue;
+            const orderDateStr = toTaipeiDateStr(o.order_date);
+            if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
+            const dc = String(o.discount_code ?? "").toUpperCase();
+            if (!dc || !kolCodeSet.has(dc)) continue;
+            const day = Number(orderDateStr.slice(8, 10));
+            r2[getWeekIndex(day)] += price;
           }
         }
 
