@@ -234,12 +234,7 @@ export default function OwnerSettlementSettings() {
                       onCheckedChange={(v) => toggleSource(opt.value, v === true)}
                     />
                     <span className="text-sm">{opt.label}</span>
-                    {opt.origin === "orders" && (
-                      <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">實際</Badge>
-                    )}
-                    {opt.origin === "config" && (
-                      <Badge variant="secondary" className="ml-1 text-[10px] px-1 py-0">設定</Badge>
-                    )}
+
                     <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
                   </label>
                 );
