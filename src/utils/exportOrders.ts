@@ -134,7 +134,7 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
       "加購小計": addonSubtotal,
       "額外現場加購金額": extraAmount,
       "額外現場加購備註": extraNote,
-      "來源": getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any)).label,
+      "來源": getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any)).label,
       "訂單狀態": getOrderStatusConfig(order.order_status).label,
       "付款狀態": getPaymentStatusConfig(effectivePayment).label,
       "備註": cleanNotes(order.notes),

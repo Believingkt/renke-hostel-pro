@@ -154,7 +154,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                 const orderStatusConfig = getOrderStatusConfig(order.order_status);
                 const effectivePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
                 const paymentStatusConfig = getPaymentStatusConfig(effectivePaymentStatus);
-                const orderSourceConfig = getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any));
+                const orderSourceConfig = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any));
 
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
@@ -230,15 +230,15 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           <div className="space-y-1 text-xs">
                             <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{order.order_source || "—"}</span></div>
                             <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(order.order_source || "")}</span></div>
-                            {getHotelnabeOtaCode(order as any) && (
+                            {getOrderOtaCode(order as any) && (
                               <>
                                 <div className="border-t border-border/50 my-1" />
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getHotelnabeOtaCode(order as any)}</span></div>
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getHotelnabeOtaCode(order as any) || "")}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getOrderOtaCode(order as any)}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getOrderOtaCode(order as any) || "")}</span></div>
                                 {onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
                               </>
                             )}
-                            {!getHotelnabeOtaCode(order as any) && onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
+                            {!getOrderOtaCode(order as any) && onChangeOrderSource && <div className="pt-1 text-muted-foreground">點擊可變更訂單來源</div>}
                           </div>
                         </TooltipContent>
                       </Tooltip></TooltipProvider>
@@ -337,7 +337,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
             const effectiveMobilePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
             const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
-            const orderSourceConfig = getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any));
+            const orderSourceConfig = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any));
 
             return (
               <Card key={order.id} className="overflow-hidden">
@@ -373,11 +373,11 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           <div className="space-y-1 text-xs">
                             <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{order.order_source || "—"}</span></div>
                             <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(order.order_source || "")}</span></div>
-                            {getHotelnabeOtaCode(order as any) && (
+                            {getOrderOtaCode(order as any) && (
                               <>
                                 <div className="border-t border-border/50 my-1" />
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getHotelnabeOtaCode(order as any)}</span></div>
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getHotelnabeOtaCode(order as any) || "")}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getOrderOtaCode(order as any)}</span></div>
+                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getOrderOtaCode(order as any) || "")}</span></div>
                               </>
                             )}
                           </div>
