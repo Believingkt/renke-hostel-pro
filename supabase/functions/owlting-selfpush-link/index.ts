@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     if (uniqCandidates.length > 0) {
       const { data } = await admin
         .from("orders")
-        .select("id, order_number, owlting_reservation_id, guest_name, final_price, check_in_date, check_out_date, room_type_id, accommodation_id")
+        .select("id, order_number, owlting_reservation_id, guest_name, total_price, final_price, check_in_date, check_out_date, room_type_id, accommodation_id")
         .in("owlting_unique_id", uniqCandidates)
         .eq("accommodation_id", staging.accommodation_id ?? "00000000-0000-0000-0000-000000000000")
         .limit(1);
@@ -129,36 +129,60 @@ Deno.serve(async (req) => {
     }
 
     if (!matchedOrder && staging.accommodation_id && staging.check_in_date && staging.check_out_date) {
+      // OwlNest 回寄的信帶「原價 (未折扣)」= orders.total_price（gross），不是 final_price。
+      // 因此用 total_price ±1 比對，才能配得上有折扣的自家訂單。
       const amount = Number(staging.total_amount ?? 0);
       const amountLo = amount > 0 ? amount - 1 : 0;
       const amountHi = amount > 0 ? amount + 1 : 999_999_999;
+      // 排除 OTA / channel-manager 來源；其餘（website/line/kol/phone/walk_in/manual/...）皆視為自家訂單候選。
       const q = admin
         .from("orders")
-        .select("id, order_number, guest_name, final_price, check_in_date, check_out_date, room_type_id, accommodation_id, order_source, owlting_reservation_id")
+        .select("id, order_number, guest_name, total_price, final_price, check_in_date, check_out_date, room_type_id, accommodation_id, order_source, owlting_reservation_id")
         .eq("accommodation_id", staging.accommodation_id)
         .eq("check_in_date", staging.check_in_date)
         .eq("check_out_date", staging.check_out_date)
-        .in("order_source", ["website", "kol", "phone", "walk_in", "official_use", "external", "franchise"])
+        .not("order_source", "in", "(owlting,hotelnabe)")
         .neq("order_status", "cancelled");
       const { data: candidates } = await q;
+
+      // Resolve staging room_type_name → orders.room_type_id (best-effort) to add
+      // 房型 as a soft matching key.
+      let stagingRoomTypeId: string | null = null;
+      const roomName = (staging.room_type_name ?? "").trim();
+      if (roomName) {
+        const { data: rts } = await admin
+          .from("room_types")
+          .select("id, name")
+          .eq("accommodation_id", staging.accommodation_id);
+        const normRoom = roomName.replace(/\s+/g, "").toLowerCase();
+        const hit = (rts ?? []).find((r: any) => {
+          const n = String(r.name ?? "").replace(/\s+/g, "").toLowerCase();
+          return n && (n === normRoom || n.includes(normRoom) || normRoom.includes(n));
+        });
+        stagingRoomTypeId = hit?.id ?? null;
+      }
+
       const target = normalizeName(staging.guest_name ?? "");
       const filtered = (candidates ?? []).filter((o: any) => {
-        const orderPrice = Number(o.final_price);
+        // Prefer total_price (gross); fall back to final_price if total_price missing.
+        const gross = Number(o.total_price ?? o.final_price ?? 0);
         const priceOk = amount === 0
-          || orderPrice === 0 // order not yet priced — allow match on dates/name
-          || (orderPrice >= amountLo && orderPrice <= amountHi);
+          || gross === 0 // order not yet priced — allow match on dates/name
+          || (gross >= amountLo && gross <= amountHi);
         if (!priceOk) return false;
+        // Soft room-type filter: only exclude when we resolved a staging room and the order has a different one.
+        if (stagingRoomTypeId && o.room_type_id && o.room_type_id !== stagingRoomTypeId) return false;
         if (!target) return true;
         return normalizeName(o.guest_name).includes(target) || target.includes(normalizeName(o.guest_name));
       });
       if (filtered.length === 1) {
         matchedOrder = filtered[0];
-        matchReason = `date+price${target ? "+guest" : ""}=${matchedOrder.order_number}`;
+        matchReason = `date+gross${stagingRoomTypeId ? "+room" : ""}${target ? "+guest" : ""}=${matchedOrder.order_number}`;
       } else if (filtered.length > 1) {
         // Ambiguous — mark manual review.
         await admin.from("owlting_email_parsed_staging").update({
           pii_status: "manual_review",
-          review_notes: `[self-push] 找到 ${filtered.length} 筆同日期/金額訂單，需人工確認。候選：${filtered.map((o: any) => o.order_number).join(", ")}`,
+          review_notes: `[self-push] 找到 ${filtered.length} 筆同日期/原價訂單，需人工確認。候選：${filtered.map((o: any) => o.order_number).join(", ")}`,
         }).eq("id", stagingId);
         return new Response(JSON.stringify({
           ok: false, is_self_push: true, ambiguous: true,

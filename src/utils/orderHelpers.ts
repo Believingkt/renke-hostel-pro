@@ -64,11 +64,15 @@ export const getOrderSourceConfig = (source: string, otaCode?: string | null) =>
     franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200" },
     owner_provided: { label: "業主自帶", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
     hotelnabe: { label: "hotelnabe", className: "bg-sky-100 text-sky-700 border-sky-200" },
+    owlting: { label: "奧丁丁", className: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
   };
   const base = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
   const trimmed = (otaCode ?? "").toString().trim();
   if (source === "hotelnabe" && trimmed) {
     return { ...base, label: `${base.label} - ${trimmed.toLowerCase()}` };
+  }
+  if (source === "owlting" && trimmed) {
+    return { ...base, label: `${base.label} - ${OWLTING_OTA_DISPLAY_NAMES[trimmed.toLowerCase()] ?? trimmed}` };
   }
   return base;
 };
@@ -81,6 +85,19 @@ export const getHotelnabeOtaCode = (order: { hotelnabe_sync_state?: any } | null
   if (v == null) return null;
   const str = String(v).trim();
   return str.length ? str : null;
+};
+
+/** Return the OTA/channel code to display for an order (hotelnabe sync state OR owlting ota_channel). */
+export const getOrderOtaCode = (
+  order: { order_source?: string | null; hotelnabe_sync_state?: any; ota_channel?: string | null } | null | undefined,
+): string | null => {
+  if (!order) return null;
+  if (order.order_source === "hotelnabe") return getHotelnabeOtaCode(order);
+  if (order.order_source === "owlting") {
+    const v = (order.ota_channel ?? "").toString().trim();
+    return v || null;
+  }
+  return null;
 };
 
 /** 訂單來源 code → 中文顯示名稱（供 Tooltip 使用） */
@@ -98,6 +115,7 @@ export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
   franchise_diff: "加盟價差",
   owner_provided: "業主自帶",
   hotelnabe: "旭海 HotelNabe (Channel Manager)",
+  owlting: "奧丁丁 OwlNest (OTA 聚合)",
 };
 
 /** 旭海通路 OTA code → 顯示名稱 */
@@ -112,6 +130,18 @@ export const HOTELNABE_OTA_DISPLAY_NAMES: Record<string, string> = {
   klook: "Klook",
   kkday: "KKday",
   direct: "旭海直訂",
+};
+
+/** 奧丁丁通路 OTA code → 顯示名稱 */
+export const OWLTING_OTA_DISPLAY_NAMES: Record<string, string> = {
+  agoda: "Agoda",
+  booking: "Booking.com",
+  expedia: "Expedia",
+  trip: "Trip.com",
+  airbnb: "Airbnb",
+  klook: "Klook",
+  kkday: "KKday",
+  owlting_direct: "奧丁丁官網",
 };
 
 export const getOrderSourceDisplayName = (source: string) =>

@@ -41,7 +41,7 @@ import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
 import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
-import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
+import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
@@ -1198,8 +1198,8 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
                       <TableCell>{(() => {
-                        const cfg = getOrderSourceConfig(o.order_source ?? '', getHotelnabeOtaCode(o as any));
-                        const otaCode = getHotelnabeOtaCode(o as any);
+                        const cfg = getOrderSourceConfig(o.order_source ?? '', getOrderOtaCode(o as any));
+                        const otaCode = getOrderOtaCode(o as any);
                         return (
                           <TooltipProvider delayDuration={200}><Tooltip>
                             <TooltipTrigger asChild>
@@ -1548,7 +1548,7 @@ export default function TeamOrders() {
                         <div className="text-xs text-muted-foreground">來源</div>
                         <div className="mt-1">
                           {(() => {
-                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '', getHotelnabeOtaCode(editOrder as any));
+                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '', getOrderOtaCode(editOrder as any));
                             return (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
                                 {cfg.label}
@@ -1630,7 +1630,7 @@ export default function TeamOrders() {
                         <Label className="text-sm">來源</Label>
                         <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40">
                           {(() => {
-                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '', getHotelnabeOtaCode(editOrder as any));
+                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '', getOrderOtaCode(editOrder as any));
                             return (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
                                 {cfg.label}

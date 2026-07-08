@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
-import { getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
+import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode } from "@/utils/orderHelpers";
 import { Globe, UserPlus } from "lucide-react";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
@@ -86,7 +86,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
     }
 
     try {
-      const oldLabel = getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any)).label;
+      const oldLabel = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any)).label;
       const newLabel = getOrderSourceConfig(selectedSource).label;
 
       const noteAppend = `\n【來源變更】${oldLabel} → ${newLabel}`;
@@ -158,7 +158,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
     }
   };
 
-  const currentConfig = order ? getOrderSourceConfig(order.order_source, getHotelnabeOtaCode(order as any)) : null;
+  const currentConfig = order ? getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any)) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
