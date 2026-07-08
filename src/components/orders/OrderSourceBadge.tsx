@@ -1,15 +1,16 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   getOrderSourceConfig,
-  getHotelnabeOtaCode,
+  getOrderOtaCode,
   getOrderSourceDisplayName,
   getHotelnabeOtaDisplayName,
+  OWLTING_OTA_DISPLAY_NAMES,
 } from "@/utils/orderHelpers";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 interface OrderSourceBadgeProps {
-  order: { order_source?: string | null; hotelnabe_sync_state?: any } | null | undefined;
+  order: { order_source?: string | null; hotelnabe_sync_state?: any; ota_channel?: string | null } | null | undefined;
   className?: string;
   leadingIcon?: ReactNode;
 }
@@ -20,10 +21,14 @@ interface OrderSourceBadgeProps {
  */
 export function OrderSourceBadge({ order, className, leadingIcon }: OrderSourceBadgeProps) {
   const source = order?.order_source ?? "";
-  const otaCode = getHotelnabeOtaCode(order);
+  const otaCode = getOrderOtaCode(order);
   const cfg = getOrderSourceConfig(source, otaCode);
   const sourceName = getOrderSourceDisplayName(source);
-  const otaName = otaCode ? getHotelnabeOtaDisplayName(otaCode) : null;
+  const otaName = otaCode
+    ? (source === "owlting"
+        ? (OWLTING_OTA_DISPLAY_NAMES[otaCode.toLowerCase()] ?? otaCode)
+        : getHotelnabeOtaDisplayName(otaCode))
+    : null;
 
   return (
     <TooltipProvider delayDuration={200}>
