@@ -259,7 +259,18 @@ export default function OwlTingEmailIngest() {
             {(() => {
               const hidden = rows.filter((r) => {
                 const st = stagingMap[r.id];
-                return isSelfPushSource(st?.channel_source);
+                // A row is treated as "self-push / already handled" if either
+                // the staging pii_status marks it done, or the channel is a
+                // self-push source and it is not awaiting human review.
+                const doneStatuses = new Set([
+                  "self_pushed",
+                  "promoted_to_booking",
+                  "skipped",
+                  "expired",
+                ]);
+                if (st && doneStatuses.has(st.pii_status)) return true;
+                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return true;
+                return false;
               }).length;
               if (!showSelfPush && hidden > 0) {
                 return <span className="text-xs text-muted-foreground ml-2">（已隱藏 {hidden} 筆自家單）</span>;
@@ -285,9 +296,14 @@ export default function OwlTingEmailIngest() {
               {rows.filter((r) => {
                 if (showSelfPush) return true;
                 const st = stagingMap[r.id];
-                // Hide rows identified as self-push (either by channel source
-                // or already linked/marked). manual_review still shows so humans
-                // can resolve missing matches.
+                // Hide by pii_status first (authoritative), then by channel source.
+                const doneStatuses = new Set([
+                  "self_pushed",
+                  "promoted_to_booking",
+                  "skipped",
+                  "expired",
+                ]);
+                if (st && doneStatuses.has(st.pii_status)) return false;
                 if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return false;
                 return true;
               }).map((r) => {
