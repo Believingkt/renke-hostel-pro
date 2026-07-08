@@ -214,7 +214,9 @@ serve(async (req) => {
         { onConflict: "user_id" },
       );
 
-    // 既有用戶：直接套用 roles；新用戶：寫入 team_pending_invites
+    // 既有用戶：直接套用 roles。
+    // 新用戶：pending_invites 已在 createUser 前寫入，auth.users AFTER INSERT trigger
+    // 會自動搬進 user_roles 並清除 pending，此處不需重複寫入。
     if (!isNewUser) {
       const { data: existingRoles } = await supabaseAdmin
         .from("user_roles")
@@ -232,17 +234,13 @@ serve(async (req) => {
           })),
         );
       }
-    } else {
-      const rows = roles.map((role) => ({
-        email,
-        display_name: displayName,
-        role,
-        invited_by: user.id,
-      }));
+      // 防禦性清除：若此 email 因歷史 bug 殘留 pending 孤兒列，一併移除
       await supabaseAdmin
         .from("team_pending_invites")
-        .upsert(rows, { onConflict: "email,role" });
+        .delete()
+        .ilike("email", email);
     }
+
 
     // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證的森山子網域）
     let emailSent = false;
