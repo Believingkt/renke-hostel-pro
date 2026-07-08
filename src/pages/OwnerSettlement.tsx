@@ -52,6 +52,7 @@ interface SettlementConfig {
   commission_rate: number;
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
+  exempt_order_sources: string[];
 }
 
 interface RoomTypePricing {
