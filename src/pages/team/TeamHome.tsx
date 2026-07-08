@@ -69,6 +69,10 @@ export default function TeamHome() {
   const [closerAmt, setCloserAmt] = useState(0);
   const [videoAmt, setVideoAmt] = useState(0);
   const [scoutAmt, setScoutAmt] = useState(0);
+  const [rarityAmt, setRarityAmt] = useState(0);
+  const [baseSalaryAmt, setBaseSalaryAmt] = useState(0);
+  const [teamBonusAmt, setTeamBonusAmt] = useState(0);
+  const [isScoutTeamMember, setIsScoutTeamMember] = useState(false);
   const [franchiseAmt, setFranchiseAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
 
@@ -76,13 +80,20 @@ export default function TeamHome() {
     const now = taipeiParts();
     const nextY = now.m === 12 ? now.y + 1 : now.y;
     const nextM = now.m === 12 ? 1 : now.m + 1;
+    const prevY = now.m === 1 ? now.y - 1 : now.y;
+    const prevM = now.m === 1 ? 12 : now.m - 1;
     return {
       y: now.y,
       m: now.m,
+      today: taipeiDateStr(now.y, now.m, now.d),
       monthStartIso: taipeiMidnightUtcISO(now.y, now.m, 1),
       monthEndIso: taipeiMidnightUtcISO(nextY, nextM, 1),
       monthStartDate: taipeiDateStr(now.y, now.m, 1),
       monthEndDate: taipeiDateStr(nextY, nextM, 1),
+      prevMonthStartDate: taipeiDateStr(prevY, prevM, 1),
+      prevMonthEndDate: taipeiDateStr(now.y, now.m, 1),
+      prevY,
+      prevM,
       nextMonthLabel: `${nextY} 年 ${nextM} 月`,
     };
   }, []);
@@ -98,21 +109,28 @@ export default function TeamHome() {
       setLoading(true);
       try {
         const {
+          today,
           monthStartIso,
           monthEndIso,
           monthStartDate,
           monthEndDate,
+          prevMonthStartDate,
+          prevMonthEndDate,
+          prevY,
+          prevM,
         } = monthInfo;
 
         // profile id (for scout / franchise external)
         let profileId: string | null = null;
+        let scoutTeamMember = false;
         if (showScout || showFranchise) {
           const { data } = await supabase
             .from("team_member_profiles")
-            .select("id")
+            .select("id, is_scout_team_member")
             .eq("user_id", userId)
             .maybeSingle();
           profileId = (data?.id as string | undefined) ?? null;
+          scoutTeamMember = !!(data as { is_scout_team_member?: boolean } | null)?.is_scout_team_member;
         }
 
         // ===== Closer / Video =====
@@ -121,7 +139,6 @@ export default function TeamHome() {
         let videoSum = 0;
 
         if (needMeta) {
-          // 1) fetch order_meta where user is closer/video
           const orFilter = [
             showCloser ? `closer_id.eq.${userId}` : null,
             showVideo ? `video_creator_id.eq.${userId}` : null,
@@ -154,77 +171,116 @@ export default function TeamHome() {
                 `and(confirmed_at.gte.${monthStartIso},confirmed_at.lt.${monthEndIso}),and(confirmed_at.is.null,order_date.gte.${monthStartIso},order_date.lt.${monthEndIso})`,
               );
 
-          const orderList = orders ?? [];
-          const accIds = Array.from(
-            new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)),
-          );
-
-          let rates: RateRow[] = [];
-          if (accIds.length > 0) {
-            const { data: r } = await supabase
-              .from("accommodation_commission_settings")
-              .select("accommodation_id, effective_from, closer_rate, video_rate")
-              .in("accommodation_id", accIds);
-            rates = (r ?? []) as RateRow[];
-          }
-
-          const metaByOrder = new Map<string, any>();
-          metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
-
-          for (const o of orderList) {
-            const meta = metaByOrder.get(o.id as string);
-            if (!meta) continue;
-            const base = Number(
-              meta.team_commission_price != null
-                ? meta.team_commission_price
-                : o.final_price ?? 0,
+            const orderList = orders ?? [];
+            const accIds = Array.from(
+              new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)),
             );
-            const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
 
-            if (showCloser && meta.closer_id === userId) {
-              const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
-              closerSum += base * rate;
+            let rates: RateRow[] = [];
+            if (accIds.length > 0) {
+              const { data: r } = await supabase
+                .from("accommodation_commission_settings")
+                .select("accommodation_id, effective_from, closer_rate, video_rate")
+                .in("accommodation_id", accIds);
+              rates = (r ?? []) as RateRow[];
             }
-            if (showVideo && meta.video_creator_id === userId) {
-              const rate = pickRate(rates, o.accommodation_id, orderDateIso, "video_rate");
-              videoSum += base * rate;
+
+            const metaByOrder = new Map<string, any>();
+            metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
+
+            for (const o of orderList) {
+              const meta = metaByOrder.get(o.id as string);
+              if (!meta) continue;
+              const base = Number(
+                meta.team_commission_price != null
+                  ? meta.team_commission_price
+                  : o.final_price ?? 0,
+              );
+              const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
+
+              if (showCloser && meta.closer_id === userId) {
+                const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
+                closerSum += base * rate;
+              }
+              if (showVideo && meta.video_creator_id === userId) {
+                const rate = pickRate(rates, o.accommodation_id, orderDateIso, "video_rate");
+                videoSum += base * rate;
+              }
             }
-          }
           }
         }
 
-        // ===== Scout / KOL =====
+        // ===== Scout: KOL 分潤 / 稀有度 / 底薪 / 團隊獎金 =====
         let scoutSum = 0;
+        let raritySum = 0;
+        let baseSalary = 0;
+        let teamBonus = 0;
+
         if (showScout) {
-          const [{ data: sdc }, { data: kols }] = await Promise.all([
-            profileId
-              ? supabase
-                  .from("scout_discount_codes")
-                  .select("discount_code, scout_rate")
-                  .eq("scout_id", profileId)
-              : Promise.resolve({ data: [] as any[] }),
+          // (a) 收集所有歷史 kpi_qualified cid_code
+          const [
+            { data: qualifiedKols },
+            { data: sdc },
+            cumulativeRes,
+            { data: tierRows },
+          ] = await Promise.all([
             supabase
               .from("kol_profiles")
               .select("cid_code")
               .eq("scout_id", userId)
+              .eq("kpi_qualified", true)
               .not("cid_code", "is", null),
+            profileId
+              ? supabase
+                  .from("scout_discount_codes")
+                  .select("discount_code")
+                  .eq("scout_id", profileId)
+              : Promise.resolve({ data: [] as any[] }),
+            supabase
+              .from("kol_profiles")
+              .select("id", { count: "exact", head: true })
+              .eq("scout_id", userId)
+              .eq("kpi_qualified", true),
+            supabase
+              .from("scout_tier_settings")
+              .select("min_count, max_count, commission_rate, effective_from")
+              .lte("effective_from", today)
+              .order("effective_from", { ascending: false }),
           ]);
 
-          const rateByCode = new Map<string, number>();
-          (sdc ?? []).forEach((r: any) => {
-            if (r.discount_code) {
-              rateByCode.set(
-                String(r.discount_code).toUpperCase(),
-                Number(r.scout_rate ?? 0),
-              );
-            }
+          const cidUpperSet = new Set<string>();
+          (qualifiedKols ?? []).forEach((r: any) => {
+            if (r.cid_code) cidUpperSet.add(String(r.cid_code).trim().toUpperCase());
           });
-          const kolCodeSet = new Set<string>(rateByCode.keys());
-          (kols ?? []).forEach((k: any) => {
-            if (k.cid_code) kolCodeSet.add(String(k.cid_code).toUpperCase());
+          (sdc ?? []).forEach((r: any) => {
+            if (r.discount_code) cidUpperSet.add(String(r.discount_code).trim().toUpperCase());
           });
 
-          if (kolCodeSet.size > 0) {
+          const cumulativeCount = Number(cumulativeRes.count ?? 0);
+
+          // tier rate: dedupe by min_count-max_count (keep newest effective_from)
+          const tierMap = new Map<string, { min: number; max: number | null; rate: number }>();
+          for (const t of (tierRows ?? []) as any[]) {
+            const key = `${t.min_count}-${t.max_count ?? "inf"}`;
+            if (!tierMap.has(key)) {
+              tierMap.set(key, {
+                min: Number(t.min_count),
+                max: t.max_count == null ? null : Number(t.max_count),
+                rate: Number(t.commission_rate ?? 0),
+              });
+            }
+          }
+          const tiers = [...tierMap.values()].sort((a, b) => a.min - b.min);
+          let commissionRate = 0;
+          for (const t of tiers) {
+            if (cumulativeCount >= t.min && (t.max == null || cumulativeCount <= t.max)) {
+              commissionRate = t.rate;
+              break;
+            }
+          }
+
+          // KOL 分潤: orders in current month matching cid codes
+          if (cidUpperSet.size > 0 && commissionRate > 0) {
             const { data: kolOrders } = await supabase
               .from("orders")
               .select("final_price, discount_code, order_status, order_date")
@@ -233,11 +289,127 @@ export default function TeamHome() {
               .gte("order_date", monthStartIso)
               .lt("order_date", monthEndIso);
 
+            let sumPrice = 0;
             for (const o of kolOrders ?? []) {
-              const code = String((o as any).discount_code ?? "").toUpperCase();
-              if (!kolCodeSet.has(code)) continue;
-              const rate = rateByCode.get(code) ?? 0;
-              scoutSum += Number((o as any).final_price ?? 0) * rate;
+              const code = String((o as any).discount_code ?? "").trim().toUpperCase();
+              if (!cidUpperSet.has(code)) continue;
+              sumPrice += Number((o as any).final_price ?? 0);
+            }
+            scoutSum = sumPrice * commissionRate;
+          }
+
+          // 稀有度獎金: 本月 check_in_date 落在當月且 kpi_qualified、非 error、invited_at 非空、rarity != 'ck'
+          const [{ data: rarityRows }, { data: monthKols }] = await Promise.all([
+            supabase
+              .from("kol_rarity_settings")
+              .select("rarity, bonus_amount, effective_from")
+              .lte("effective_from", today)
+              .order("effective_from", { ascending: false }),
+            supabase
+              .from("kol_profiles")
+              .select("rarity, check_in_date, invited_at, is_error, kpi_qualified")
+              .eq("scout_id", userId)
+              .eq("kpi_qualified", true)
+              .eq("is_error", false)
+              .not("invited_at", "is", null)
+              .gte("check_in_date", monthStartDate)
+              .lt("check_in_date", monthEndDate),
+          ]);
+
+          const rarityMap = new Map<string, number>();
+          for (const r of (rarityRows ?? []) as any[]) {
+            if (!rarityMap.has(r.rarity)) rarityMap.set(r.rarity, Number(r.bonus_amount ?? 0));
+          }
+          for (const r of (monthKols ?? []) as any[]) {
+            const rar = String(r.rarity ?? "");
+            if (!rar || rar === "ck") continue;
+            raritySum += rarityMap.get(rar) ?? 0;
+          }
+
+          // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計
+          if (scoutTeamMember) {
+            const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
+              supabase
+                .from("scout_salary_settings")
+                .select("base_salary, team_bonus, effective_from")
+                .lte("effective_from", today)
+                .order("effective_from", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+              supabase
+                .from("scout_team_targets")
+                .select("venue_name, personal_min, target_count")
+                .eq("year", prevY)
+                .eq("month", prevM),
+              supabase
+                .from("kol_profiles")
+                .select("venue_name, invited_at")
+                .eq("scout_id", userId)
+                .eq("kpi_qualified", true)
+                .eq("is_error", false)
+                .not("invited_at", "is", null)
+                .gte("invited_at", prevMonthStartDate)
+                .lt("invited_at", prevMonthEndDate),
+            ]);
+
+            const baseSalaryAmount = Number((salaryRow as any)?.base_salary ?? 0);
+            const teamBonusAmount = Number((salaryRow as any)?.team_bonus ?? 0);
+            const targetList = ((targetsData ?? []) as any[])
+              .map((t) => ({
+                venue_name: (t.venue_name ?? "—") as string,
+                personal_min: Number(t.personal_min ?? 0),
+                target_count: Number(t.target_count ?? 0),
+              }))
+              .filter((t) => t.personal_min > 0 || t.target_count > 0);
+
+            // 個人達標
+            if (targetList.length > 0) {
+              let allPersonalOk = true;
+              for (const t of targetList) {
+                if (t.personal_min <= 0) continue;
+                const actual = ((myPrevKols ?? []) as any[]).filter(
+                  (r) => (r.venue_name ?? "—") === t.venue_name,
+                ).length;
+                if (actual < t.personal_min) {
+                  allPersonalOk = false;
+                  break;
+                }
+              }
+              if (allPersonalOk) baseSalary = baseSalaryAmount;
+
+              // 團隊達標: 全部 scout team members 的上月 invited_at
+              const { data: allScouts } = await supabase
+                .from("team_member_profiles")
+                .select("user_id")
+                .eq("is_scout_team_member", true);
+              const scoutIds = ((allScouts ?? []) as any[])
+                .map((s) => s.user_id as string)
+                .filter(Boolean);
+
+              if (scoutIds.length > 0) {
+                const { data: teamKols } = await supabase
+                  .from("kol_profiles")
+                  .select("venue_name, scout_id, invited_at")
+                  .in("scout_id", scoutIds)
+                  .eq("kpi_qualified", true)
+                  .eq("is_error", false)
+                  .not("invited_at", "is", null)
+                  .gte("invited_at", prevMonthStartDate)
+                  .lt("invited_at", prevMonthEndDate);
+
+                let teamOk = true;
+                for (const t of targetList) {
+                  if (t.target_count <= 0) continue;
+                  const total = ((teamKols ?? []) as any[]).filter(
+                    (r) => (r.venue_name ?? "—") === t.venue_name,
+                  ).length;
+                  if (total < t.target_count) {
+                    teamOk = false;
+                    break;
+                  }
+                }
+                if (teamOk) teamBonus = teamBonusAmount;
+              }
             }
           }
         }
@@ -303,6 +475,10 @@ export default function TeamHome() {
         setCloserAmt(closerSum);
         setVideoAmt(videoSum);
         setScoutAmt(scoutSum);
+        setRarityAmt(raritySum);
+        setBaseSalaryAmt(baseSalary);
+        setTeamBonusAmt(teamBonus);
+        setIsScoutTeamMember(scoutTeamMember);
         setFranchiseAmt(franchiseSum);
         setStarlinkAmt(starlinkSum);
       } catch (e) {
@@ -317,10 +493,29 @@ export default function TeamHome() {
     };
   }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
 
-  const cards: Array<{ key: string; title: string; amount: number }> = [];
+  const cards: Array<{ key: string; title: string; amount: number; note?: string }> = [];
   if (showCloser) cards.push({ key: "closer", title: "成交獎金", amount: closerAmt });
   if (showVideo) cards.push({ key: "video", title: "影音獎金", amount: videoAmt });
-  if (showScout) cards.push({ key: "scout", title: "KOL 分潤", amount: scoutAmt });
+  if (showScout) {
+    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: scoutAmt });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: rarityAmt });
+    cards.push({
+      key: "scout_base",
+      title: "底薪",
+      amount: baseSalaryAmt,
+      note: isScoutTeamMember
+        ? "依上月邀約達標計算，本月 10 日發放"
+        : "非全職星探不發底薪",
+    });
+    cards.push({
+      key: "scout_team",
+      title: "團隊獎金",
+      amount: teamBonusAmt,
+      note: isScoutTeamMember
+        ? "依全隊上月達標計算,本月 10 日發放"
+        : "非全職星探不發團隊獎金",
+    });
+  }
   if (showFranchise) cards.push({ key: "franchise", title: "特許加盟", amount: franchiseAmt });
   if (showStarlink) cards.push({ key: "starlink", title: "星鏈", amount: starlinkAmt });
 
@@ -363,6 +558,9 @@ export default function TeamHome() {
                     <CardTitle className="text-sm text-muted-foreground font-medium">
                       {c.title}
                     </CardTitle>
+                    {c.note ? (
+                      <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
+                    ) : null}
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-semibold">
