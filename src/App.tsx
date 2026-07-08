@@ -111,6 +111,7 @@ const EmailTest = lazy(() => import("./pages/EmailTest"));
 const EmailPreview = lazy(() => import("./pages/EmailPreview"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
+const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettings"));
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
@@ -428,6 +429,11 @@ function App() {
                     <Route path="admin/owner-settlement" element={
                       <RequireModule module="owner_settlement">
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owner-settlement/settings" element={
+                      <RequireModule module="owner_settlement">
+                        <Suspense fallback={<FormSkeleton fields={3} />}><OwnerSettlementSettings /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/addon-center" element={

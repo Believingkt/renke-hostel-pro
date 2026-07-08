@@ -14,7 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MonthPicker } from "@/components/ui/month-picker";
-import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink, ShoppingBag } from "lucide-react";
+import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink, ShoppingBag, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -255,7 +256,15 @@ export default function OwnerSettlement() {
         description={`${monthLabel} 房務營運摘要與業主撥款明細`}
         icon={Banknote}
         action={
-          <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
+          <div className="flex items-center gap-2">
+            <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/owner-settlement/settings">
+                <Settings className="w-4 h-4 mr-1" />
+                設定
+              </Link>
+            </Button>
+          </div>
         }
       />
 
