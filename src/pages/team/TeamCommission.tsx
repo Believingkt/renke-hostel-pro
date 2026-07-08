@@ -105,9 +105,9 @@ export default function TeamCommission() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="payouts">發放管理</TabsTrigger>
+            {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
-            {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
