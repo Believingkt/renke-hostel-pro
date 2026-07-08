@@ -22,7 +22,7 @@ interface SettlementConfig {
 interface SourceOption {
   value: string;
   label: string;
-  origin: "config" | "orders" | "fallback";
+  origin: "orders";
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -31,11 +31,6 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_per_extra_property: 3000,
   exempt_order_sources: [],
 };
-
-// 少數不在 accommodation_order_sources 也不在 FALLBACK 的固定來源
-const EXTRA_STATIC_SOURCES: SourceOption[] = [
-  { value: "hotelnabe", label: "旭海 HotelNabe", origin: "fallback" },
-];
 
 const FALLBACK_LABEL_MAP: Record<string, string> = Object.fromEntries(
   FALLBACK_ORDER_SOURCES.map((o) => [o.value, o.label]),
