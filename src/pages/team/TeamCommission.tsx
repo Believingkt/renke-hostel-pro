@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import FinancialReportTab from "@/components/team/FinancialReportTab";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
@@ -106,6 +107,7 @@ export default function TeamCommission() {
             <TabsTrigger value="payouts">發放管理</TabsTrigger>
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
@@ -119,6 +121,11 @@ export default function TeamCommission() {
         {showAdminTabs && (
           <TabsContent value="multiplier">
             <MultiplierBlock readOnly={financeReadOnly} />
+          </TabsContent>
+        )}
+        {showAdminTabs && (
+          <TabsContent value="financial-report">
+            <FinancialReportTab />
           </TabsContent>
         )}
       </Tabs>
