@@ -136,6 +136,13 @@ export default function OwnerSettlementSettings() {
       toast.error("行銷費不可為負數");
       return;
     }
+    // 值域驗證：只保存已知的 source
+    const sanitizedExempt = config.exempt_order_sources.filter((v) => validValueSet.has(v));
+    const invalid = config.exempt_order_sources.filter((v) => !validValueSet.has(v));
+    if (invalid.length > 0) {
+      toast.error(`包含未知的訂單來源，無法儲存：${invalid.join(", ")}`);
+      return;
+    }
     setSaving(true);
     const { data: existing } = await supabase
       .from("system_settings")
@@ -145,7 +152,7 @@ export default function OwnerSettlementSettings() {
 
     const payload = {
       setting_key: "owner_settlement_config",
-      setting_value: config as any,
+      setting_value: { ...config, exempt_order_sources: sanitizedExempt } as any,
     };
     const { error } = existing
       ? await supabase.from("system_settings").update(payload).eq("setting_key", "owner_settlement_config")
