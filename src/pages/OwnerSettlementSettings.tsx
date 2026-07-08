@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
+import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
 
 interface SettlementConfig {
   commission_rate: number;
@@ -25,11 +25,11 @@ const DEFAULT_CONFIG: SettlementConfig = {
   exempt_order_sources: [],
 };
 
-// 額外一個 hotelnabe（旭海通路管理）選項，因為它不在 FALLBACK_ORDER_SOURCES
-const SOURCE_OPTIONS = [
-  ...FALLBACK_ORDER_SOURCES,
-  { value: "hotelnabe", label: "旭海 HotelNabe" },
-];
+interface AccommodationGroup {
+  id: string;
+  name: string;
+  sources: string[];
+}
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export default function OwnerSettlementSettings() {
   const [saving, setSaving] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
+  const [groups, setGroups] = useState<AccommodationGroup[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -53,19 +54,48 @@ export default function OwnerSettlementSettings() {
       const superAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
       setIsSuperAdmin(superAdmin);
 
-      const { data } = await supabase
-        .from("system_settings")
-        .select("setting_value")
-        .eq("setting_key", "owner_settlement_config")
-        .maybeSingle();
-      if (data?.setting_value) {
-        const raw = data.setting_value as any;
+      const [settingRes, accRes, ordersRes] = await Promise.all([
+        supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "owner_settlement_config")
+          .maybeSingle(),
+        supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .order("name", { ascending: true }),
+        supabase
+          .from("orders")
+          .select("accommodation_id, order_source")
+          .not("order_source", "is", null),
+      ]);
+
+      if (settingRes.data?.setting_value) {
+        const raw = settingRes.data.setting_value as any;
         setConfig({
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
         });
       }
+
+      const sourcesByAcc = new Map<string, Set<string>>();
+      for (const row of (ordersRes.data ?? []) as Array<{ accommodation_id: string | null; order_source: string | null }>) {
+        if (!row.accommodation_id || !row.order_source) continue;
+        const src = row.order_source.trim();
+        if (!src) continue;
+        if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
+        sourcesByAcc.get(row.accommodation_id)!.add(src);
+      }
+      const nextGroups: AccommodationGroup[] = ((accRes.data ?? []) as Array<{ id: string; name: string }>)
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          sources: Array.from(sourcesByAcc.get(a.id) ?? []).sort(),
+        }))
+        .filter((g) => g.sources.length > 0);
+      setGroups(nextGroups);
+
       setLoading(false);
     })();
   }, []);
@@ -170,30 +200,38 @@ export default function OwnerSettlementSettings() {
         <CardHeader>
           <CardTitle>不抽成的訂單來源</CardTitle>
           <CardDescription>
-            勾選後，該訂單來源的訂單於業主月結中不計服務費（等同「業主自帶」）。
+            依各民宿實際使用的訂單來源分組列出，勾選後該來源訂單於業主月結中不計服務費（等同「業主自帶」）。同名來源跨民宿共用同一設定。
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {SOURCE_OPTIONS.map((opt) => {
-              const checked = config.exempt_order_sources.includes(opt.value);
-              return (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(v) => toggleSource(opt.value, v === true)}
-                  />
-                  <span className="text-sm">{opt.label}</span>
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
-                </label>
-              );
-            })}
-          </div>
+        <CardContent className="space-y-6">
+          {groups.length === 0 && (
+            <p className="text-sm text-muted-foreground">目前尚未偵測到任何民宿使用中的訂單來源。</p>
+          )}
+          {groups.map((g) => (
+            <div key={g.id} className="space-y-2">
+              <div className="text-sm font-medium">{g.name}</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {g.sources.map((src) => {
+                  const checked = config.exempt_order_sources.includes(src);
+                  return (
+                    <label
+                      key={`${g.id}-${src}`}
+                      className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => toggleSource(src, v === true)}
+                      />
+                      <span className="text-sm">{getOrderSourceDisplayName(src)}</span>
+                      <span className="ml-auto text-[10px] font-mono text-muted-foreground">{src}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
           {config.exempt_order_sources.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-xs text-muted-foreground">
               已選：{config.exempt_order_sources.join(", ")}
             </p>
           )}
