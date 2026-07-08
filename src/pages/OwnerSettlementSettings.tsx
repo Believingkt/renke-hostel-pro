@@ -148,13 +148,13 @@ export default function OwnerSettlementSettings() {
 
   if (loading) return null;
 
-  if (!isSuperAdmin) {
+  if (!canEdit) {
     return (
       <div className="container mx-auto py-6">
         <AdminPageHeader title="業主月結設定" icon={Settings} />
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
-            僅限超級管理員（super_admin）存取此設定頁面。
+            僅限管理員（admin / super_admin）存取此設定頁面。
           </CardContent>
         </Card>
       </div>
