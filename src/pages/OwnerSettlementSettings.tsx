@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
