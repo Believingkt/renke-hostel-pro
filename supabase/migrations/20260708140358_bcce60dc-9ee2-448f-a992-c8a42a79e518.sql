@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS ota_channel text;
+COMMENT ON COLUMN public.orders.ota_channel IS 'Actual OTA channel/platform for owlting orders (e.g. Agoda, Booking.com, Expedia). order_source stays as owlting for legacy logic.';
