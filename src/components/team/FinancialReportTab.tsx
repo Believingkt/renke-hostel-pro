@@ -498,6 +498,26 @@ export default function FinancialReportTab() {
                   );
                 })
               )}
+              {!loading && (() => {
+                const totals = emptyBuckets();
+                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                  for (let i = 0; i < 4; i++) totals[i] += b[i];
+                }
+                const grand = totals.reduce((a, b) => a + b, 0);
+                return (
+                  <TableRow className="bg-muted font-bold border-t-2">
+                    <TableCell className="font-bold">合計</TableCell>
+                    {totals.map((v, i) => (
+                      <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
+                        {fmtMoney(v)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
+                      {fmtMoney(grand)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })()}
             </TableBody>
           </Table>
         </div>
