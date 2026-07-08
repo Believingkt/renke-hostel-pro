@@ -107,6 +107,7 @@ export default function TeamCommission() {
             <TabsTrigger value="payouts">發放管理</TabsTrigger>
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
@@ -120,6 +121,11 @@ export default function TeamCommission() {
         {showAdminTabs && (
           <TabsContent value="multiplier">
             <MultiplierBlock readOnly={financeReadOnly} />
+          </TabsContent>
+        )}
+        {showAdminTabs && (
+          <TabsContent value="financial-report">
+            <FinancialReportTab />
           </TabsContent>
         )}
       </Tabs>
