@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
-import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
+import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode } from "@/utils/orderHelpers";
 import { computeOwnerSettlementRows } from "@/lib/ownerSettlement";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {

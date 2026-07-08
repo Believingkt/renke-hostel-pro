@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
-import { getOrderStatusConfig, getPaymentStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getEffectivePaymentStatus } from "@/utils/orderHelpers";
+import { getOrderStatusConfig, getPaymentStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getEffectivePaymentStatus } from "@/utils/orderHelpers";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrderRoom {
