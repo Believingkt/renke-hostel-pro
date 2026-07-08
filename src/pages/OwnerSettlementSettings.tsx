@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
+import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
 
 interface SettlementConfig {
   commission_rate: number;
@@ -25,11 +25,11 @@ const DEFAULT_CONFIG: SettlementConfig = {
   exempt_order_sources: [],
 };
 
-// 額外一個 hotelnabe（旭海通路管理）選項，因為它不在 FALLBACK_ORDER_SOURCES
-const SOURCE_OPTIONS = [
-  ...FALLBACK_ORDER_SOURCES,
-  { value: "hotelnabe", label: "旭海 HotelNabe" },
-];
+interface AccommodationGroup {
+  id: string;
+  name: string;
+  sources: string[];
+}
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export default function OwnerSettlementSettings() {
   const [saving, setSaving] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
+  const [groups, setGroups] = useState<AccommodationGroup[]>([]);
 
   useEffect(() => {
     (async () => {
