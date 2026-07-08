@@ -162,7 +162,13 @@ export default function OwnerSettlement() {
         }))
       );
       if (configRes.data?.setting_value) {
-        setConfig(configRes.data.setting_value as unknown as SettlementConfig);
+        const raw = configRes.data.setting_value as any;
+        setConfig({
+          commission_rate: raw.commission_rate ?? 15,
+          marketing_fee_base: raw.marketing_fee_base ?? 53000,
+          marketing_fee_per_extra_property: raw.marketing_fee_per_extra_property ?? 3000,
+          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+        });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
       const tmap: Record<string, string> = {};
