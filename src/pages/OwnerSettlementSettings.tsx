@@ -37,7 +37,7 @@ export default function OwnerSettlementSettings() {
   const { currentAccommodationId } = useAccommodation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
 
@@ -53,8 +53,8 @@ export default function OwnerSettlementSettings() {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
-      const superAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
-      setIsSuperAdmin(superAdmin);
+      const allowed = (roles ?? []).some((r: any) => ["super_admin", "admin"].includes(r.role));
+      setCanEdit(allowed);
 
       const ordersQuery = supabase
         .from("orders")
