@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
@@ -18,6 +19,12 @@ interface SettlementConfig {
   exempt_order_sources: string[];
 }
 
+interface SourceOption {
+  value: string;
+  label: string;
+  origin: "config" | "orders" | "fallback";
+}
+
 const DEFAULT_CONFIG: SettlementConfig = {
   commission_rate: 15,
   marketing_fee_base: 53000,
@@ -25,11 +32,14 @@ const DEFAULT_CONFIG: SettlementConfig = {
   exempt_order_sources: [],
 };
 
-// 額外一個 hotelnabe（旭海通路管理）選項，因為它不在 FALLBACK_ORDER_SOURCES
-const SOURCE_OPTIONS = [
-  ...FALLBACK_ORDER_SOURCES,
-  { value: "hotelnabe", label: "旭海 HotelNabe" },
+// 少數不在 accommodation_order_sources 也不在 FALLBACK 的固定來源
+const EXTRA_STATIC_SOURCES: SourceOption[] = [
+  { value: "hotelnabe", label: "旭海 HotelNabe", origin: "fallback" },
 ];
+
+const FALLBACK_LABEL_MAP: Record<string, string> = Object.fromEntries(
+  FALLBACK_ORDER_SOURCES.map((o) => [o.value, o.label]),
+);
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
@@ -37,6 +47,7 @@ export default function OwnerSettlementSettings() {
   const [saving, setSaving] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
+  const [sourceOptions, setSourceOptions] = useState<SourceOption[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -46,31 +57,68 @@ export default function OwnerSettlementSettings() {
         setLoading(false);
         return;
       }
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const superAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
+      const [rolesRes, settingRes, configuredRes, ordersRes] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "owner_settlement_config")
+          .maybeSingle(),
+        supabase.from("accommodation_order_sources").select("name, display_order"),
+        supabase
+          .from("orders")
+          .select("order_source")
+          .not("order_source", "is", null)
+          .limit(10000),
+      ]);
+
+      const superAdmin = (rolesRes.data ?? []).some((r: any) => r.role === "super_admin");
       setIsSuperAdmin(superAdmin);
 
-      const { data } = await supabase
-        .from("system_settings")
-        .select("setting_value")
-        .eq("setting_key", "owner_settlement_config")
-        .maybeSingle();
-      if (data?.setting_value) {
-        const raw = data.setting_value as any;
+      // 動態組合來源選項：後台設定 → orders 實際存在 → FALLBACK → 額外靜態
+      const seen = new Set<string>();
+      const merged: SourceOption[] = [];
+      const push = (value: string, label: string, origin: SourceOption["origin"]) => {
+        const v = (value ?? "").trim();
+        if (!v || seen.has(v)) return;
+        seen.add(v);
+        merged.push({ value: v, label: label || FALLBACK_LABEL_MAP[v] || v, origin });
+      };
+      (configuredRes.data ?? [])
+        .sort((a: any, b: any) => (a.display_order ?? 999) - (b.display_order ?? 999))
+        .forEach((c: any) => push(c.name, FALLBACK_LABEL_MAP[c.name] ?? c.name, "config"));
+      (ordersRes.data ?? []).forEach((o: any) => push(o.order_source, FALLBACK_LABEL_MAP[o.order_source] ?? o.order_source, "orders"));
+      FALLBACK_ORDER_SOURCES.forEach((o) => push(o.value, o.label, "fallback"));
+      EXTRA_STATIC_SOURCES.forEach((o) => push(o.value, o.label, o.origin));
+      setSourceOptions(merged);
+
+      if (settingRes.data?.setting_value) {
+        const raw = settingRes.data.setting_value as any;
+        const rawExempt: string[] = Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [];
+        // 值域驗證：過濾掉不在可選清單中的值
+        const validValues = new Set(merged.map((m) => m.value));
+        const filtered = rawExempt.filter((v) => validValues.has(v));
+        const dropped = rawExempt.filter((v) => !validValues.has(v));
+        if (dropped.length > 0) {
+          toast.warning(`已忽略 ${dropped.length} 個不存在的訂單來源：${dropped.join(", ")}`);
+        }
         setConfig({
           ...DEFAULT_CONFIG,
           ...raw,
-          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+          exempt_order_sources: filtered,
         });
       }
       setLoading(false);
     })();
   }, []);
 
+  const validValueSet = useMemo(() => new Set(sourceOptions.map((o) => o.value)), [sourceOptions]);
+
   const toggleSource = (value: string, checked: boolean) => {
+    if (checked && !validValueSet.has(value)) {
+      toast.error(`未知的訂單來源：${value}`);
+      return;
+    }
     setConfig((prev) => {
       const set = new Set(prev.exempt_order_sources);
       if (checked) set.add(value);
