@@ -21,6 +21,7 @@ import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, 
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode } from "@/utils/orderHelpers";
+import { computeOwnerSettlementRows } from "@/lib/ownerSettlement";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
@@ -189,53 +190,22 @@ export default function OwnerSettlement() {
   }, [currentAccommodationId, month]);
 
   const rows: OrderRow[] = useMemo(() => {
-    const monthStart = startOfMonth(month);
-    const monthEnd = endOfMonth(month);
-    const rtMap = new Map(roomTypes.map((r) => [r.id, r]));
-
-    return orders
-      .map((o) => {
-        const ci = parseISO(o.check_in_date);
-        const co = parseISO(o.check_out_date);
-        const totalNights = Math.max(1, differenceInDays(co, ci));
-
-        // count nights overlapping with this month
-        let nightsInMonth = 0;
-        for (let i = 0; i < totalNights; i++) {
-          const d = addDays(ci, i);
-          if (d >= monthStart && d <= monthEnd) nightsInMonth++;
-        }
-        if (nightsInMonth === 0) return null;
-
-        const ratio = nightsInMonth / totalNights;
-
-        const monthFinal = Number(o.final_price || 0) * ratio;
-        const monthDiscount = Number(o.discount_amount || 0) * ratio;
-        const monthCommissionable = monthFinal;
-
-        const exempt =
-          !!o.owner_direct ||
-          (config.exempt_order_sources ?? []).includes(o.order_source);
-        const commission = exempt
-          ? 0
-          : monthCommissionable * (config.commission_rate / 100);
-
-        return {
-          order: o,
-          nightsInMonth,
-          totalNights,
-          monthRatio: ratio,
-          monthFinal,
-          monthFood: 0,
-          monthDiscount,
-          monthCommissionable,
-          commission,
-          exempt,
-        } as OrderRow;
-      })
-      .filter((x): x is OrderRow => x !== null)
+    const computed = computeOwnerSettlementRows(orders, config, month);
+    return computed
+      .map((r) => ({
+        order: r.order as Order,
+        nightsInMonth: r.nightsInMonth,
+        totalNights: r.totalNights,
+        monthRatio: r.monthRatio,
+        monthFinal: r.monthFinal,
+        monthFood: 0,
+        monthDiscount: r.monthDiscount,
+        monthCommissionable: r.monthCommissionable,
+        commission: r.commission,
+        exempt: r.exempt,
+      }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, roomTypes, month, config.commission_rate, config.exempt_order_sources]);
+  }, [orders, month, config.commission_rate, config.exempt_order_sources]);
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
