@@ -818,6 +818,25 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
+      scoutCloserOrders.forEach((o: any) => {
+        if (!o.discount_code || !o.final_price) return;
+        const hit = scoutCloserMap.get(String(o.discount_code).trim().toUpperCase());
+        if (!hit) return;
+        const amount = Math.round(Number(o.final_price) * Number(hit.closer_rate));
+        if (!amount) return;
+        pushItem(
+          "scout_discount_codes_closer",
+          o.id,
+          "closer",
+          profileByUserId.get(hit.closer_id),
+          SOURCE_LABEL.scout_closer,
+          `訂單 ${String(o.id).slice(0, 8)}・${o.discount_code}`,
+          amount,
+        );
+      });
+
+
+
       (scoutPayouts ?? []).forEach((r: any) => {
         const scout = r.scout_id ? profileByUserId.get(r.scout_id) : undefined;
         const periodLabel = r.period === 10 ? "10日期" : "25日期";
