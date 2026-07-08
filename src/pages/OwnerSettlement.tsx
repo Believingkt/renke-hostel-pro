@@ -235,7 +235,7 @@ export default function OwnerSettlement() {
       })
       .filter((x): x is OrderRow => x !== null)
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, roomTypes, month, config.commission_rate]);
+  }, [orders, roomTypes, month, config.commission_rate, config.exempt_order_sources]);
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
