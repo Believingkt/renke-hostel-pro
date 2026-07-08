@@ -222,24 +222,34 @@ export default function OwnerSettlementSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {SOURCE_OPTIONS.map((opt) => {
-              const checked = config.exempt_order_sources.includes(opt.value);
-              return (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(v) => toggleSource(opt.value, v === true)}
-                  />
-                  <span className="text-sm">{opt.label}</span>
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
-                </label>
-              );
-            })}
-          </div>
+          {sourceOptions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">尚無可選來源。</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {sourceOptions.map((opt) => {
+                const checked = config.exempt_order_sources.includes(opt.value);
+                return (
+                  <label
+                    key={opt.value}
+                    className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => toggleSource(opt.value, v === true)}
+                    />
+                    <span className="text-sm">{opt.label}</span>
+                    {opt.origin === "orders" && (
+                      <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">實際</Badge>
+                    )}
+                    {opt.origin === "config" && (
+                      <Badge variant="secondary" className="ml-1 text-[10px] px-1 py-0">設定</Badge>
+                    )}
+                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
           {config.exempt_order_sources.length > 0 && (
             <p className="text-xs text-muted-foreground mt-3">
               已選：{config.exempt_order_sources.join(", ")}
