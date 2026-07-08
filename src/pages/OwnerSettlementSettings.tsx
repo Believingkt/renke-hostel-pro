@@ -57,14 +57,13 @@ export default function OwnerSettlementSettings() {
         setLoading(false);
         return;
       }
-      const [rolesRes, settingRes, configuredRes, ordersRes] = await Promise.all([
+      const [rolesRes, settingRes, ordersRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase
           .from("system_settings")
           .select("setting_value")
           .eq("setting_key", "owner_settlement_config")
           .maybeSingle(),
-        supabase.from("accommodation_order_sources").select("name, display_order"),
         supabase
           .from("orders")
           .select("order_source")
@@ -75,21 +74,16 @@ export default function OwnerSettlementSettings() {
       const superAdmin = (rolesRes.data ?? []).some((r: any) => r.role === "super_admin");
       setIsSuperAdmin(superAdmin);
 
-      // 動態組合來源選項：後台設定 → orders 實際存在 → FALLBACK → 額外靜態
+      // 只使用 orders 實際存在的來源
       const seen = new Set<string>();
       const merged: SourceOption[] = [];
-      const push = (value: string, label: string, origin: SourceOption["origin"]) => {
-        const v = (value ?? "").trim();
+      (ordersRes.data ?? []).forEach((o: any) => {
+        const v = (o.order_source ?? "").trim();
         if (!v || seen.has(v)) return;
         seen.add(v);
-        merged.push({ value: v, label: label || FALLBACK_LABEL_MAP[v] || v, origin });
-      };
-      (configuredRes.data ?? [])
-        .sort((a: any, b: any) => (a.display_order ?? 999) - (b.display_order ?? 999))
-        .forEach((c: any) => push(c.name, FALLBACK_LABEL_MAP[c.name] ?? c.name, "config"));
-      (ordersRes.data ?? []).forEach((o: any) => push(o.order_source, FALLBACK_LABEL_MAP[o.order_source] ?? o.order_source, "orders"));
-      FALLBACK_ORDER_SOURCES.forEach((o) => push(o.value, o.label, "fallback"));
-      EXTRA_STATIC_SOURCES.forEach((o) => push(o.value, o.label, o.origin));
+        merged.push({ value: v, label: FALLBACK_LABEL_MAP[v] ?? v, origin: "orders" });
+      });
+      merged.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
       setSourceOptions(merged);
 
       if (settingRes.data?.setting_value) {
