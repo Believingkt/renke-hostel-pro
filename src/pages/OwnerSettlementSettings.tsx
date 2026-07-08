@@ -200,30 +200,38 @@ export default function OwnerSettlementSettings() {
         <CardHeader>
           <CardTitle>不抽成的訂單來源</CardTitle>
           <CardDescription>
-            勾選後，該訂單來源的訂單於業主月結中不計服務費（等同「業主自帶」）。
+            依各民宿實際使用的訂單來源分組列出，勾選後該來源訂單於業主月結中不計服務費（等同「業主自帶」）。同名來源跨民宿共用同一設定。
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {SOURCE_OPTIONS.map((opt) => {
-              const checked = config.exempt_order_sources.includes(opt.value);
-              return (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(v) => toggleSource(opt.value, v === true)}
-                  />
-                  <span className="text-sm">{opt.label}</span>
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">{opt.value}</span>
-                </label>
-              );
-            })}
-          </div>
+        <CardContent className="space-y-6">
+          {groups.length === 0 && (
+            <p className="text-sm text-muted-foreground">目前尚未偵測到任何民宿使用中的訂單來源。</p>
+          )}
+          {groups.map((g) => (
+            <div key={g.id} className="space-y-2">
+              <div className="text-sm font-medium">{g.name}</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {g.sources.map((src) => {
+                  const checked = config.exempt_order_sources.includes(src);
+                  return (
+                    <label
+                      key={`${g.id}-${src}`}
+                      className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => toggleSource(src, v === true)}
+                      />
+                      <span className="text-sm">{getOrderSourceDisplayName(src)}</span>
+                      <span className="ml-auto text-[10px] font-mono text-muted-foreground">{src}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
           {config.exempt_order_sources.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-xs text-muted-foreground">
               已選：{config.exempt_order_sources.join(", ")}
             </p>
           )}
