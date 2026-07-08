@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface SettlementConfig {
   commission_rate: number;
@@ -33,6 +34,7 @@ interface AccommodationGroup {
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
+  const { currentAccommodationId } = useAccommodation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -54,20 +56,23 @@ export default function OwnerSettlementSettings() {
       const superAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
       setIsSuperAdmin(superAdmin);
 
+      const ordersQuery = supabase
+        .from("orders")
+        .select("accommodation_id, order_source")
+        .not("order_source", "is", null);
+      if (currentAccommodationId) ordersQuery.eq("accommodation_id", currentAccommodationId);
+
+      const accQuery = supabase.from("accommodation_info").select("id, name");
+      if (currentAccommodationId) accQuery.eq("id", currentAccommodationId);
+
       const [settingRes, accRes, ordersRes] = await Promise.all([
         supabase
           .from("system_settings")
           .select("setting_value")
           .eq("setting_key", "owner_settlement_config")
           .maybeSingle(),
-        supabase
-          .from("accommodation_info")
-          .select("id, name")
-          .order("name", { ascending: true }),
-        supabase
-          .from("orders")
-          .select("accommodation_id, order_source")
-          .not("order_source", "is", null),
+        accQuery.order("name", { ascending: true }),
+        ordersQuery,
       ]);
 
       if (settingRes.data?.setting_value) {
@@ -98,7 +103,7 @@ export default function OwnerSettlementSettings() {
 
       setLoading(false);
     })();
-  }, []);
+  }, [currentAccommodationId]);
 
   const toggleSource = (value: string, checked: boolean) => {
     setConfig((prev) => {
