@@ -1291,7 +1291,16 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                           <TableRow key={it.key}>
                             <TableCell className="text-xs">{it.source_label}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                            <TableCell className="text-right tabular-nums">{formatMoney(it.amount)}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {it.multiplier > 1 && (
+                                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                                    × {Number(it.multiplier).toFixed(2)} 倍
+                                  </Badge>
+                                )}
+                                <span>{formatMoney(it.multiplied_amount)}</span>
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {it.paid ? (
                                 <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
