@@ -269,7 +269,7 @@ export default function OwlTingEmailIngest() {
                   "expired",
                 ]);
                 if (st && doneStatuses.has(st.pii_status)) return true;
-                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return true;
+                if (isSelfPushSource(st?.channel_source)) return true;
                 return false;
               }).length;
               if (!showSelfPush && hidden > 0) {
