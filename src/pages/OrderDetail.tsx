@@ -915,7 +915,26 @@ const OrderDetailPage = () => {
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
-      addIfChanged("final_price", editFinalPriceCalc, order.final_price);
+      // 但若 total_price / discount / 加購 全都沒動，代表使用者只是編輯備註等非金額欄位，
+      // 不可用「重算公式」覆蓋歷史 final_price（避免舊資料 total-discount 與 final 不一致時被靜默改動）。
+      const originalAddonTotal = (() => {
+        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+        const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + d.total, 0);
+        const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + d.total, 0);
+        const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
+        const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
+        const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
+        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
+        return petTotal + mealTotal + otherCustom + extra;
+      })();
+      const pricingUnchanged =
+        Number(editForm.total_price) === Number(order.total_price ?? 0) &&
+        Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
+        Number(editForm.addon_total) === Number(originalAddonTotal);
+      if (!pricingUnchanged) {
+        addIfChanged("final_price", editFinalPriceCalc, order.final_price);
+      }
 
       // Block disallowed financial edits with friendly toast
       const blocked: string[] = [];
