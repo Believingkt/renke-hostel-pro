@@ -1541,34 +1541,31 @@ export type Database = {
           bonus_type: string
           created_at: string | null
           created_by: string | null
-          end_date: string
+          end_month: string
           id: string
-          is_active: boolean | null
           multiplier: number
           reason: string | null
-          start_date: string
+          start_month: string
         }
         Insert: {
           bonus_type: string
           created_at?: string | null
           created_by?: string | null
-          end_date: string
+          end_month: string
           id?: string
-          is_active?: boolean | null
           multiplier?: number
           reason?: string | null
-          start_date: string
+          start_month: string
         }
         Update: {
           bonus_type?: string
           created_at?: string | null
           created_by?: string | null
-          end_date?: string
+          end_month?: string
           id?: string
-          is_active?: boolean | null
           multiplier?: number
           reason?: string | null
-          start_date?: string
+          start_month?: string
         }
         Relationships: [
           {

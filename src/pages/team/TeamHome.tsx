@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
@@ -74,8 +75,10 @@ export default function TeamHome() {
   const [baseSalaryAmt, setBaseSalaryAmt] = useState(0);
   const [teamBonusAmt, setTeamBonusAmt] = useState(0);
   const [isScoutTeamMember, setIsScoutTeamMember] = useState(false);
-  const [franchiseAmt, setFranchiseAmt] = useState(0);
+  const [franchiseInternalAmt, setFranchiseInternalAmt] = useState(0);
+  const [franchiseExternalAmt, setFranchiseExternalAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
+  const [multipliers, setMultipliers] = useState<Record<string, number>>({});
 
   const monthInfo = useMemo(() => {
     const now = taipeiParts();
@@ -87,6 +90,7 @@ export default function TeamHome() {
       y: now.y,
       m: now.m,
       today: taipeiDateStr(now.y, now.m, now.d),
+      currentMonthKey: `${now.y}-${String(now.m).padStart(2, "0")}`,
       monthStartIso: taipeiMidnightUtcISO(now.y, now.m, 1),
       monthEndIso: taipeiMidnightUtcISO(nextY, nextM, 1),
       monthStartDate: taipeiDateStr(now.y, now.m, 1),
@@ -469,7 +473,8 @@ export default function TeamHome() {
         }
 
         // ===== Franchise =====
-        let franchiseSum = 0;
+        let franchiseInternalSum = 0;
+        let franchiseExternalSum = 0;
         if (showFranchise) {
           const { data: fInternal } = await supabase
             .from("franchise_orders")
@@ -479,7 +484,7 @@ export default function TeamHome() {
             .gte("sold_at", monthStartDate)
             .lt("sold_at", monthEndDate);
           for (const r of fInternal ?? []) {
-            franchiseSum += Number((r as any).commission_amount ?? 0);
+            franchiseInternalSum += Number((r as any).commission_amount ?? 0);
           }
 
           if (profileId) {
@@ -498,13 +503,13 @@ export default function TeamHome() {
             for (const r of fExt ?? []) {
               const row = r as any;
               if (row.sales_member_id === profileId) {
-                franchiseSum += Number(row.sales_bonus ?? 0);
+                franchiseExternalSum += Number(row.sales_bonus ?? 0);
               }
               if (row.co_sales_member_id === profileId) {
-                franchiseSum += Number(row.co_sales_bonus ?? 0);
+                franchiseExternalSum += Number(row.co_sales_bonus ?? 0);
               }
               if (row.co_sales_member_id2 === profileId) {
-                franchiseSum += Number(row.co_sales_bonus2 ?? 0);
+                franchiseExternalSum += Number(row.co_sales_bonus2 ?? 0);
               }
             }
           }
@@ -525,6 +530,17 @@ export default function TeamHome() {
           }
         }
 
+        // ===== Multipliers（當月 YYYY-MM）=====
+        const { data: multRows } = await supabase
+          .from("bonus_multiplier_settings")
+          .select("bonus_type, multiplier, start_month, end_month")
+          .lte("start_month", monthInfo.currentMonthKey)
+          .gte("end_month", monthInfo.currentMonthKey);
+        const multMap: Record<string, number> = {};
+        (multRows ?? []).forEach((r: any) => {
+          multMap[r.bonus_type] = Number(r.multiplier ?? 1);
+        });
+
         if (cancelled) return;
         setCloserAmt(closerSum);
         setScoutCloserAmt(scoutCloserSum);
@@ -534,8 +550,10 @@ export default function TeamHome() {
         setBaseSalaryAmt(baseSalary);
         setTeamBonusAmt(teamBonus);
         setIsScoutTeamMember(scoutTeamMember);
-        setFranchiseAmt(franchiseSum);
+        setFranchiseInternalAmt(franchiseInternalSum);
+        setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
+        setMultipliers(multMap);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
       } finally {
@@ -548,20 +566,49 @@ export default function TeamHome() {
     };
   }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
 
-  const cards: Array<{ key: string; title: string; amount: number; note?: string; lines?: Array<{ label: string; amount: number }> }> = [];
+  // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
+  const allMult = multipliers.all ?? 1;
+  const multOf = (bt: string) => (multipliers[bt] ?? 1) * allMult;
+
+  const cards: Array<{
+    key: string;
+    title: string;
+    amount: number;              // 加倍後金額（顯示 + 合計用）
+    multiplier: number;          // 用於 badge
+    note?: string;
+    lines?: Array<{ label: string; amount: number; multiplier: number }>;
+  }> = [];
+
   if (showCloser) {
-    const lines = [{ label: "訂房成交獎金", amount: closerAmt }];
-    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserAmt });
-    cards.push({ key: "closer", title: "成交獎金", amount: closerAmt + scoutCloserAmt, lines });
+    const closerMult = multOf("closer");
+    const closerBoosted = Math.round(closerAmt * closerMult);
+    const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
+    const lines = [{ label: "訂房成交獎金", amount: closerBoosted, multiplier: closerMult }];
+    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
+    cards.push({
+      key: "closer",
+      title: "成交獎金",
+      amount: closerBoosted + scoutCloserBoosted,
+      multiplier: closerMult,
+      lines,
+    });
   }
-  if (showVideo) cards.push({ key: "video", title: "影音獎金", amount: videoAmt });
+  if (showVideo) {
+    const m = multOf("video");
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), multiplier: m });
+  }
   if (showScout) {
-    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: scoutAmt });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: rarityAmt });
+    const kolM = multOf("scout_kol");
+    const rarityM = multOf("scout_rarity");
+    const baseM = multOf("scout_base");
+    const teamM = multOf("scout_team");
+    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM });
     cards.push({
       key: "scout_base",
       title: "底薪",
-      amount: baseSalaryAmt,
+      amount: Math.round(baseSalaryAmt * baseM),
+      multiplier: baseM,
       note: isScoutTeamMember
         ? "依上月邀約達標計算，本月 10 日發放"
         : "非全職星探不發底薪",
@@ -569,14 +616,39 @@ export default function TeamHome() {
     cards.push({
       key: "scout_team",
       title: "團隊獎金",
-      amount: teamBonusAmt,
+      amount: Math.round(teamBonusAmt * teamM),
+      multiplier: teamM,
       note: isScoutTeamMember
         ? "依全隊上月達標計算,本月 10 日發放"
         : "非全職星探不發團隊獎金",
     });
   }
-  if (showFranchise) cards.push({ key: "franchise", title: "特許加盟", amount: franchiseAmt });
-  if (showStarlink) cards.push({ key: "starlink", title: "星鏈", amount: starlinkAmt });
+  if (showFranchise) {
+    const intM = multOf("franchise_internal");
+    const extM = multOf("franchise_external");
+    const intBoosted = Math.round(franchiseInternalAmt * intM);
+    const extBoosted = Math.round(franchiseExternalAmt * extM);
+    // 內外兩者若倍率一致 → 用單一 badge；否則顯示最大倍率作標示
+    const combinedMult = intM === extM ? intM : Math.max(intM, extM);
+    const lines: Array<{ label: string; amount: number; multiplier: number }> = [];
+    if (franchiseInternalAmt > 0 || intM > 1) {
+      lines.push({ label: "特許加盟（內部）", amount: intBoosted, multiplier: intM });
+    }
+    if (franchiseExternalAmt > 0 || extM > 1) {
+      lines.push({ label: "特許加盟（外部）", amount: extBoosted, multiplier: extM });
+    }
+    cards.push({
+      key: "franchise",
+      title: "特許加盟",
+      amount: intBoosted + extBoosted,
+      multiplier: combinedMult,
+      lines: lines.length > 1 ? lines : undefined,
+    });
+  }
+  if (showStarlink) {
+    const m = multOf("starlink");
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
+  }
 
   const total = cards.reduce((s, c) => s + c.amount, 0);
 
@@ -612,7 +684,12 @@ export default function TeamHome() {
             <h3 className="text-lg font-semibold mb-3">各來源獎金</h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {cards.map((c) => (
-                <Card key={c.key}>
+                <Card key={c.key} className="relative">
+                  {c.multiplier > 1 && !loading && (
+                    <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                      × {Number(c.multiplier).toFixed(2)} 倍
+                    </Badge>
+                  )}
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-muted-foreground font-medium">
                       {c.title}
