@@ -677,6 +677,8 @@ export default function FinancialReportTab() {
             ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
           </p>
         </div>
+
+        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
       </CardContent>
     </Card>
   );
