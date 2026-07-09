@@ -885,6 +885,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           source_label,
           detail,
           amount: Number(amount),
+          multiplier: 1,
+          multiplied_amount: Number(amount),
           paid: false,
           payout_date: null,
         });
