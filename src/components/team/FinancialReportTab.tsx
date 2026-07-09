@@ -733,7 +733,7 @@ export default function FinancialReportTab() {
               {!loading && (() => {
                 const totals = emptyBuckets(weekCount);
                 // Row 5 週欄位不納入合計；只有 TOTAL 加入 Row 5 總額
-                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                for (const b of [row1.buckets, row2.buckets, row3.buckets, row4.buckets]) {
                   for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
                 }
                 const row5Total = row5.buckets.reduce((a, b) => a + b, 0);
