@@ -208,6 +208,56 @@ export default function TeamHome() {
                 videoSum += base * rate;
               }
             }
+        }
+
+        // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
+        let scoutCloserSum = 0;
+        if (showCloser) {
+          const { data: partnerCodes } = await supabase
+            .from("scout_discount_codes")
+            .select("discount_code, closer_rate")
+            .eq("commission_type", "partner")
+            .gt("closer_rate", 0)
+            .eq("is_active", true);
+
+          const rateMap = new Map<string, number>();
+          (partnerCodes ?? []).forEach((c: any) => {
+            if (c.discount_code && Number(c.closer_rate) > 0) {
+              rateMap.set(String(c.discount_code).trim().toUpperCase(), Number(c.closer_rate));
+            }
+          });
+
+          if (rateMap.size > 0) {
+            const { data: ords } = await supabase
+              .from("orders")
+              .select("id, discount_code, final_price, order_date")
+              .neq("order_status", "cancelled")
+              .not("discount_code", "is", null)
+              .gte("order_date", monthStartIso)
+              .lt("order_date", monthEndIso);
+
+            const orderList = ords ?? [];
+            const orderIds = orderList.map((o: any) => o.id);
+            const closerByOrderId = new Map<string, string>();
+            const excluded = new Set<string>();
+            if (orderIds.length > 0) {
+              const { data: metas2 } = await supabase
+                .from("order_meta")
+                .select("order_id, closer_id, is_excluded")
+                .in("order_id", orderIds);
+              (metas2 ?? []).forEach((m: any) => {
+                if (m.is_excluded === true) excluded.add(m.order_id);
+                if (m.closer_id) closerByOrderId.set(m.order_id, m.closer_id);
+              });
+            }
+
+            for (const o of orderList) {
+              if (excluded.has(o.id)) continue;
+              if (closerByOrderId.get(o.id) !== userId) continue;
+              const rate = rateMap.get(String(o.discount_code).trim().toUpperCase());
+              if (!rate) continue;
+              scoutCloserSum += Math.round(Number(o.final_price ?? 0) * rate);
+            }
           }
         }
 
