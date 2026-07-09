@@ -473,7 +473,7 @@ export default function FinancialReportTab() {
             const ci: string = String(o.check_in_date ?? "").slice(0, 10);
             const co: string = String(o.check_out_date ?? "").slice(0, 10);
             if (!ci || !co) continue;
-            const orderPrice = o.order_source === "kol" ? 0 : Number(o.final_price ?? 0);
+            const orderPrice = Number(o.final_price ?? 0);
             const ciDate = new Date(`${ci}T00:00:00`);
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
