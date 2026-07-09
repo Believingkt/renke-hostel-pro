@@ -359,7 +359,7 @@ export default function FinancialReportTab() {
 
         /* ---- Row 3: franchise ---- */
         const row3ByAcc = new Map<string, number[]>();
-        for (const id of franchiseAccIds) row3ByAcc.set(id, emptyBuckets());
+        for (const id of franchiseAccIds) row3ByAcc.set(id, emptyBuckets(weekCount));
 
         if (projectToAcc.size > 0) {
           const projectNames = Array.from(projectToAcc.keys());
@@ -379,9 +379,9 @@ export default function FinancialReportTab() {
             if (!accId) continue;
             const qty = Number(o.quantity ?? 1) || 1;
             const amount = Number(o.plan_price ?? 0) * qty;
-            const day = Number(soldAt.slice(8, 10));
-            const w = getWeekIndex(day);
-            const b = row3ByAcc.get(accId) ?? emptyBuckets();
+            const w = getWeekIndex(soldAt, weeks);
+            if (w < 0) continue;
+            const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
           }
@@ -400,18 +400,18 @@ export default function FinancialReportTab() {
             const accId = projectToAcc.get(o.project_name);
             if (!accId) continue;
             const amount = Number(o.total_amount ?? 0);
-            const day = Number(signed.slice(8, 10));
-            const w = getWeekIndex(day);
-            const b = row3ByAcc.get(accId) ?? emptyBuckets();
+            const w = getWeekIndex(signed, weeks);
+            if (w < 0) continue;
+            const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
           }
         }
 
-        const row3Total = emptyBuckets();
+        const row3Total = emptyBuckets(weekCount);
         const row3Children: GroupedRow[] = [];
         for (const [accId, b] of row3ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row3Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row3Total[i] += b[i];
           row3Children.push({
             key: `row3-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -422,7 +422,7 @@ export default function FinancialReportTab() {
 
         /* ---- Row 4: 住房營收 (stay-range overlap，按晚均分) ---- */
         const row4ByAcc = new Map<string, number[]>();
-        for (const id of franchiseAccIds) row4ByAcc.set(id, emptyBuckets());
+        for (const id of franchiseAccIds) row4ByAcc.set(id, emptyBuckets(weekCount));
 
         if (franchiseAccIds.length > 0) {
           const { data: stayOrders } = await supabase
@@ -442,25 +442,25 @@ export default function FinancialReportTab() {
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
             const daily = orderPrice / nights;
+            let cur = ci;
             for (let n = 0; n < nights; n++) {
-              const d = new Date(ciDate);
-              d.setDate(d.getDate() + n);
-              const y = d.getFullYear();
-              const m = d.getMonth() + 1;
-              if (y !== year || m !== month) continue;
-              const day = d.getDate();
-              const w = getWeekIndex(day);
-              const b = row4ByAcc.get(o.accommodation_id) ?? emptyBuckets();
-              b[w] += daily;
-              row4ByAcc.set(o.accommodation_id, b);
+              if (cur >= monthStart && cur <= monthEnd) {
+                const w = getWeekIndex(cur, weeks);
+                if (w >= 0) {
+                  const b = row4ByAcc.get(o.accommodation_id) ?? emptyBuckets(weekCount);
+                  b[w] += daily;
+                  row4ByAcc.set(o.accommodation_id, b);
+                }
+              }
+              cur = addDaysStr(cur, 1);
             }
           }
         }
 
-        const row4Total = emptyBuckets();
+        const row4Total = emptyBuckets(weekCount);
         const row4Children: GroupedRow[] = [];
         for (const [accId, b] of row4ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row4Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row4Total[i] += b[i];
           row4Children.push({
             key: `row4-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -487,20 +487,20 @@ export default function FinancialReportTab() {
             return null;
           };
           for (const accId of franchiseAccIds) {
-            const stay = row4ByAcc.get(accId) ?? emptyBuckets();
+            const stay = row4ByAcc.get(accId) ?? emptyBuckets(weekCount);
             const rate = pickRate(accId);
             if (rate == null) {
-              row5ByAcc.set(accId, emptyBuckets());
+              row5ByAcc.set(accId, emptyBuckets(weekCount));
               continue;
             }
             hasAnyRate = true;
             row5ByAcc.set(accId, stay.map((v) => v * rate));
           }
         }
-        const row5Total = emptyBuckets();
+        const row5Total = emptyBuckets(weekCount);
         const row5Children: GroupedRow[] = [];
         for (const [accId, b] of row5ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row5Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row5Total[i] += b[i];
           row5Children.push({
             key: `row5-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
