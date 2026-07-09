@@ -756,7 +756,7 @@ export default function FinancialReportTab() {
         <div className="text-xs text-muted-foreground space-y-2 leading-relaxed pt-2 border-t">
           <p>
             <span className="font-medium text-foreground">訂房組業績：</span>
-            以訂單確認時間為主、下單日為輔，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
+            以下單日為基準，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
           </p>
           <p>
             <span className="font-medium text-foreground">KOL 總額：</span>
