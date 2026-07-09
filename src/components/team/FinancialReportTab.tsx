@@ -465,7 +465,7 @@ export default function FinancialReportTab() {
             .from("orders")
             .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id")
             .in("accommodation_id", franchiseAccIds)
-            .in("order_status", ["confirmed", "hold"])
+            .eq("order_status", "confirmed")
             .lte("check_in_date", monthEnd)
             .gte("check_out_date", monthStart);
 
@@ -473,7 +473,7 @@ export default function FinancialReportTab() {
             const ci: string = String(o.check_in_date ?? "").slice(0, 10);
             const co: string = String(o.check_out_date ?? "").slice(0, 10);
             if (!ci || !co) continue;
-            const orderPrice = o.order_source === "kol" ? 0 : Number(o.final_price ?? 0);
+            const orderPrice = Number(o.final_price ?? 0);
             const ciDate = new Date(`${ci}T00:00:00`);
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
@@ -771,7 +771,7 @@ export default function FinancialReportTab() {
           </p>
           <p>
             <span className="font-medium text-foreground">住房營收：</span>
-            以入住日逐晚均分計算,含已確認及保留單,KOL 訂單金額計為零。
+            以入住日逐晚均分計算,僅納入已確認訂單（不含保留單）,KOL 訂單依實際付款金額計算。⚠️ 與 admin 住房率分析頁面口徑不同（admin 含保留單且 KOL 訂單強制計為零）。
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
