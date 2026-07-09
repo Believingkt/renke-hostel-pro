@@ -576,6 +576,20 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   const range = useMemo(() => previousMonthRange(year, month), [year, month]);
 
+  // Widen fetch window (±3 months around prev month) so we can pick up early_payout_month rows via JS filter
+  const wideRange = useMemo(() => {
+    const [py, pm] = [range.prevYear, range.prevMonth];
+    const start = new Date(py, pm - 1 - 3, 1);
+    const endMonth = new Date(py, pm - 1 + 3 + 1, 0); // last day of prev+3
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { start: fmt(start), end: fmt(endMonth) };
+  }, [range]);
+  const prevMonthKey = useMemo(
+    () => `${range.prevYear}-${String(range.prevMonth).padStart(2, "0")}`,
+    [range],
+  );
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -611,14 +625,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("franchise_orders")
-          .select("id, sold_by, commission_amount, leader_amount, customer_name, plan_name, sold_at")
-          .gte("sold_at", start)
-          .lte("sold_at", end),
+          .select("id, sold_by, commission_amount, leader_amount, customer_name, plan_name, sold_at, early_payout_month")
+          .gte("sold_at", wideRange.start)
+          .lte("sold_at", wideRange.end),
         supabase
           .from("franchise_external_orders")
-          .select("id, sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, customer_name, project_name, signed_at")
-          .gte("signed_at", start)
-          .lte("signed_at", end),
+          .select("id, sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, customer_name, project_name, signed_at, early_payout_month")
+          .gte("signed_at", wideRange.start)
+          .lte("signed_at", wideRange.end),
         supabase
           .from("starlink_orders")
           .select("id, sold_by, commission_amount, client_name, plan_name, sold_at")
