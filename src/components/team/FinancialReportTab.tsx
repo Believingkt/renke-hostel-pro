@@ -397,23 +397,42 @@ export default function FinancialReportTab() {
         if (projectToAcc.size > 0) {
           const projectNames = Array.from(projectToAcc.keys());
 
+          // Widen fetch to ±3 months so we can pick up early_payout_month rows via JS filter
+          const wideStart = `${year}-${String(month).padStart(2, "0")}-01`;
+          const wideStartDate = new Date(year, month - 1 - 3, 1);
+          const wideEndDate = new Date(year, month - 1 + 3 + 1, 0);
+          const fmtDate = (d: Date) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          const fetchStart = fmtDate(wideStartDate);
+          const fetchEnd = fmtDate(wideEndDate);
+          void wideStart;
+
+          const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+          const matchesTargetMonth = (r: any, dateField: string) => {
+            const ep = (r?.early_payout_month ?? null) as string | null;
+            if (ep) return ep === monthKey;
+            return String(r?.[dateField] ?? "").slice(0, 7) === monthKey;
+          };
+
           const { data: fOrders } = await supabase
             .from("franchise_orders")
-            .select("sold_at, plan_name, plan_price, quantity, payment_confirmed")
+            .select("sold_at, plan_name, plan_price, quantity, payment_confirmed, early_payout_month")
             .in("plan_name", projectNames)
             .eq("payment_confirmed", true)
-            .gte("sold_at", monthStart)
-            .lte("sold_at", monthEnd);
+            .gte("sold_at", fetchStart)
+            .lte("sold_at", fetchEnd);
 
           for (const o of (fOrders ?? []) as any[]) {
+            if (!matchesTargetMonth(o, "sold_at")) continue;
             const soldAt: string = String(o.sold_at ?? "").slice(0, 10);
             if (!soldAt) continue;
             const accId = projectToAcc.get(o.plan_name);
             if (!accId) continue;
             const qty = Number(o.quantity ?? 1) || 1;
             const amount = Number(o.plan_price ?? 0) * qty;
-            const w = getWeekIndex(soldAt, weeks);
-            if (w < 0) continue;
+            // Early-paid rows may sit outside target month; drop them into first week for visibility.
+            let w = getWeekIndex(soldAt, weeks);
+            if (w < 0) w = 0;
             const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
@@ -421,20 +440,21 @@ export default function FinancialReportTab() {
 
           const { data: fExt } = await supabase
             .from("franchise_external_orders")
-            .select("signed_at, project_name, total_amount, contract_progress")
+            .select("signed_at, project_name, total_amount, contract_progress, early_payout_month")
             .in("project_name", projectNames)
             .eq("contract_progress", "已完成")
-            .gte("signed_at", monthStart)
-            .lte("signed_at", monthEnd);
+            .gte("signed_at", fetchStart)
+            .lte("signed_at", fetchEnd);
 
           for (const o of (fExt ?? []) as any[]) {
+            if (!matchesTargetMonth(o, "signed_at")) continue;
             const signed: string = String(o.signed_at ?? "").slice(0, 10);
             if (!signed) continue;
             const accId = projectToAcc.get(o.project_name);
             if (!accId) continue;
             const amount = Number(o.total_amount ?? 0);
-            const w = getWeekIndex(signed, weeks);
-            if (w < 0) continue;
+            let w = getWeekIndex(signed, weeks);
+            if (w < 0) w = 0;
             const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
