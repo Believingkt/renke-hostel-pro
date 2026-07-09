@@ -771,7 +771,7 @@ export default function FinancialReportTab() {
           </p>
           <p>
             <span className="font-medium text-foreground">住房營收：</span>
-            以入住日逐晚均分計算,含已確認及保留單,KOL 訂單金額計為零。
+            以入住日逐晚均分計算,僅納入已確認訂單（不含保留單）,KOL 訂單依實際付款金額計算。⚠️ 與 admin 住房率分析頁面口徑不同（admin 含保留單且 KOL 訂單強制計為零）。
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
