@@ -778,7 +778,7 @@ export default function FinancialReportTab() {
             住房營收 × 管顧費率,費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
           </p>
           <p className="text-amber-600 dark:text-amber-500">
-            ⚠️ 各列日期基準不同,與財務 Excel 對帳時請注意各列的日期口徑。
+            ⚠️ 各列日期基準不同,對帳時請特別注意。
           </p>
         </div>
 
