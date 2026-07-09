@@ -163,6 +163,19 @@ function prevMonthOfDate(dateStr: string | null | undefined) {
   };
 }
 
+// Given an order date string (YYYY-MM-DD), return that month's own key/label.
+// Used for early payout label: 提前發放日 = 訂單當月 10 日。
+function monthOfDate(dateStr: string | null | undefined) {
+  if (!dateStr || dateStr.length < 7) return null;
+  const y = Number(dateStr.slice(0, 4));
+  const m = Number(dateStr.slice(5, 7));
+  if (!y || !m) return null;
+  return {
+    key: `${y}-${String(m).padStart(2, "0")}`,
+    label: `${y} 年 ${m} 月`,
+  };
+}
+
 // Compute next sequential member_number with a given prefix from existing records.
 // Returns e.g. "S1006" given existing max "S1005". Falls back to "{prefix}1001".
 const nextMemberNumber = (existing: (string | null | undefined)[], prefix: string) => {
@@ -1353,7 +1366,7 @@ function OrdersTab({
                         {!prev
                           ? `請先填寫簽約日期`
                           : enabled
-                          ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
+                          ? `勾選後此筆獎金將提前於 ${monthOfDate(soldAt)?.label ?? ""} 10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
@@ -2848,7 +2861,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     {!prev
                       ? `請先填寫簽約日期`
                       : enabled
-                      ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
+                      ? `勾選後此筆獎金將提前於 ${monthOfDate((form.signed_at as string | null) ?? null)?.label ?? ""} 10 日發放`
                       : `每月 10 日後無法提前發放`}
                   </Label>
                 </div>
