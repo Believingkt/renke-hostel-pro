@@ -37,13 +37,10 @@ import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 
 /* ---------- helpers ---------- */
 
-const WEEK_LABELS = ["週1 (1-7)", "週2 (8-14)", "週3 (15-21)", "週4 (22-月底)"] as const;
-
-function getWeekIndex(day: number): 0 | 1 | 2 | 3 {
-  if (day <= 7) return 0;
-  if (day <= 14) return 1;
-  if (day <= 21) return 2;
-  return 3;
+interface WeekRange {
+  start: string; // YYYY-MM-DD (inclusive, clipped to month)
+  end: string;   // YYYY-MM-DD (inclusive, clipped to month)
+  label: string; // e.g. "週1 (7/1-7/5)"
 }
 
 const taipeiDateFmt = new Intl.DateTimeFormat("en-CA", {
@@ -58,9 +55,69 @@ function toTaipeiDateStr(iso: string): string {
   return taipeiDateFmt.format(new Date(iso));
 }
 
+const taipeiWeekdayFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Taipei",
+  weekday: "short",
+});
+
+/** Weekday index of a YYYY-MM-DD date in Taipei; 0=Sun, 1=Mon, ..., 6=Sat */
+function taipeiWeekday(dateStr: string): number {
+  // Interpret as Taipei noon to be safe; formatter yields weekday name.
+  const d = new Date(`${dateStr}T12:00:00+08:00`);
+  const wd = taipeiWeekdayFmt.format(d);
+  return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? 0;
+}
+
+function addDaysStr(dateStr: string, days: number): string {
+  // Use Taipei-noon to avoid DST edge; Taipei has no DST.
+  const d = new Date(`${dateStr}T12:00:00+08:00`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return taipeiDateFmt.format(d);
+}
+
+/** Build Mon-Sun weeks that overlap the given year/month (Taipei). 4~5 weeks. */
+function buildWeeks(year: number, month: number): WeekRange[] {
+  const mm = String(month).padStart(2, "0");
+  const monthStart = `${year}-${mm}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const dow = taipeiWeekday(monthStart); // 0=Sun..6=Sat
+  const daysFromMonday = (dow + 6) % 7; // Mon=0, Sun=6
+  let weekStart = addDaysStr(monthStart, -daysFromMonday);
+
+  const weeks: WeekRange[] = [];
+  while (weekStart <= monthEnd && weeks.length < 6) {
+    const weekEnd = addDaysStr(weekStart, 6);
+    const clipStart = weekStart < monthStart ? monthStart : weekStart;
+    const clipEnd = weekEnd > monthEnd ? monthEnd : weekEnd;
+    if (clipStart <= clipEnd) {
+      const sm = Number(clipStart.slice(5, 7));
+      const sd = Number(clipStart.slice(8, 10));
+      const em = Number(clipEnd.slice(5, 7));
+      const ed = Number(clipEnd.slice(8, 10));
+      weeks.push({
+        start: clipStart,
+        end: clipEnd,
+        label: `週${weeks.length + 1} (${sm}/${sd}-${em}/${ed})`,
+      });
+    }
+    weekStart = addDaysStr(weekStart, 7);
+  }
+  return weeks;
+}
+
+/** Return 0-based week index for a Taipei date string; -1 if not in month. */
+function getWeekIndex(dateStr: string, weeks: WeekRange[]): number {
+  for (let i = 0; i < weeks.length; i++) {
+    if (dateStr >= weeks[i].start && dateStr <= weeks[i].end) return i;
+  }
+  return -1;
+}
+
 const fmtMoney = (n: number) => `NT$ ${Math.round(n).toLocaleString()}`;
 
-const emptyBuckets = (): number[] => [0, 0, 0, 0];
+const emptyBuckets = (n: number): number[] => Array.from({ length: n }, () => 0);
 
 /* ---------- component ---------- */
 
