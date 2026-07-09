@@ -569,6 +569,31 @@ export default function FinancialReportTab() {
             </TableBody>
           </Table>
         </div>
+
+        <div className="text-xs text-muted-foreground space-y-2 leading-relaxed pt-2 border-t">
+          <p>
+            <span className="font-medium text-foreground">訂房組業績：</span>
+            以「訂單確認時間」（confirmed_at）為歸屬基準；若訂單尚未有確認時間，則改以「下單日」（order_date）為準。僅統計已指定成交人且未被標記「不分潤」的訂單，排除保留單與金額為零的訂單。此數字口徑與成交大師一致。
+          </p>
+          <p>
+            <span className="font-medium text-foreground">KOL 總額：</span>
+            以「下單日」（order_date）為歸屬基準。訂單折扣碼需符合星探邀約 CID（kol_profiles）或星探專屬折扣碼(scout_discount_codes）之一才列入，排除保留單與金額為零的訂單。
+          </p>
+          <div>
+            <span className="font-medium text-foreground">特許加盟：</span>
+            <ul className="list-none pl-4 mt-1 space-y-1">
+              <li>・內部訂單（franchise_orders）：以「成交日期」（sold_at）為歸屬基準，需已確認付款（payment_confirmed = true）。</li>
+              <li>・外部訂單（franchise_external_orders）：以「簽約日期」（signed_at）為歸屬基準，需合約進度為「已完成」。</li>
+            </ul>
+          </div>
+          <p>
+            <span className="font-medium text-foreground">住房營收：</span>
+            以「入住日期」（check_in_date）逐晚均分計算，跨月訂單按實際住宿晚數拆分至對應月份。納入已確認（confirmed）及保留單（hold）訂單，KOL 訂單（order_source = kol）金額計為零。
+          </p>
+          <p className="text-amber-600 dark:text-amber-500">
+            ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
