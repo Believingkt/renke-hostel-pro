@@ -1325,9 +1325,10 @@ function OrdersTab({
               {(() => {
                 const t = taipeiTodayParts();
                 const enabled = t.d <= 10;
+                const soldAt = (detailForm.sold_at as string | null) ?? detailOrder.sold_at ?? null;
+                const prev = prevMonthOfDate(soldAt);
                 const currentValue = (detailForm.early_payout_month as string | null) ?? null;
                 const orderValue = detailOrder.early_payout_month ?? null;
-                const isEarly = detailEditing ? currentValue === t.prevMonthKey : orderValue === t.prevMonthKey;
                 if (!detailEditing) {
                   return orderValue ? (
                     <DetailRow label="提前發放">
@@ -1335,20 +1336,24 @@ function OrdersTab({
                     </DetailRow>
                   ) : null;
                 }
+                const isEarly = prev ? currentValue === prev.key : false;
+                const canEarly = enabled && !!prev;
                 return (
                   <DetailRow label="提前發放">
                     <div className="flex items-start gap-2">
                       <Checkbox
                         id="detail_early_payout"
-                        disabled={!enabled}
+                        disabled={!canEarly}
                         checked={isEarly}
                         onCheckedChange={(v) =>
-                          setDetailForm({ ...detailForm, early_payout_month: v ? t.prevMonthKey : null })
+                          setDetailForm({ ...detailForm, early_payout_month: v && prev ? prev.key : null })
                         }
                       />
                       <Label htmlFor="detail_early_payout" className="text-xs leading-tight cursor-pointer">
-                        {enabled
-                          ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
+                        {!prev
+                          ? `請先填寫簽約日期`
+                          : enabled
+                          ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
