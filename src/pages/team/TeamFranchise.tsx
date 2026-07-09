@@ -132,12 +132,19 @@ interface FranchiseOrder {
 function taipeiTodayParts() {
   const s = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date());
   const [y, m, d] = s.split("-");
+  const yNum = Number(y);
+  const mNum = Number(m);
+  const prevYear = mNum === 1 ? yNum - 1 : yNum;
+  const prevMonth = mNum === 1 ? 12 : mNum - 1;
+  const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
   return {
     y,
     m,
     d: Number(d),
     monthKey: `${y}-${m}`,
     monthLabel: `${y} 年 ${Number(m)} 月`,
+    prevMonthKey,
+    prevMonthLabel: `${prevYear} 年 ${prevMonth} 月`,
   };
 }
 
