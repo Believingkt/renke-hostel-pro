@@ -225,8 +225,12 @@ export default function FinancialReportTab() {
       setLoading(true);
       try {
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
-        const r1 = emptyBuckets(weekCount);
-        const r2 = emptyBuckets(weekCount);
+        const r1ByAcc = new Map<string, number[]>();
+        const r2ByAcc = new Map<string, number[]>();
+        for (const id of selectedAccs) {
+          r1ByAcc.set(id, emptyBuckets(weekCount));
+          r2ByAcc.set(id, emptyBuckets(weekCount));
+        }
 
         // KOL 折扣碼白名單：scout_discount_codes ∪ kol_profiles.cid_code（全域，比對用大寫集合）
         const [{ data: scoutCodesRaw }, { data: kolCidRaw }] = await Promise.all([
@@ -292,7 +296,7 @@ export default function FinancialReportTab() {
             }
           }
 
-          // Row 1 累計
+          // Row 1 累計（依館別）
           for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
@@ -304,10 +308,14 @@ export default function FinancialReportTab() {
             if (basisStr < monthStart || basisStr > monthEnd) continue;
             const w = getWeekIndex(basisStr, weeks);
             if (w < 0) continue;
-            r1[w] += price;
+            const accId = o.accommodation_id;
+            if (!accId) continue;
+            const b = r1ByAcc.get(accId) ?? emptyBuckets(weekCount);
+            b[w] += price;
+            r1ByAcc.set(accId, b);
           }
 
-          // Row 2 累計（KOL）
+          // Row 2 累計（KOL，依館別）
           for (const o of row2List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
@@ -319,9 +327,37 @@ export default function FinancialReportTab() {
             if (!dc || !kolCodeSet.has(dc)) continue;
             const w = getWeekIndex(orderDateStr, weeks);
             if (w < 0) continue;
-            r2[w] += price;
+            const accId = o.accommodation_id;
+            if (!accId) continue;
+            const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
+            b[w] += price;
+            r2ByAcc.set(accId, b);
           }
         }
+
+        const notifAccNameMap = new Map<string, string>();
+        for (const a of notifAccs) notifAccNameMap.set(a.id, a.name);
+        const buildGrouped = (
+          key: string,
+          label: string,
+          byAcc: Map<string, number[]>,
+        ): GroupedRow => {
+          const total = emptyBuckets(weekCount);
+          const children: GroupedRow[] = [];
+          for (const accId of selectedAccs) {
+            const b = byAcc.get(accId) ?? emptyBuckets(weekCount);
+            for (let i = 0; i < weekCount; i++) total[i] += b[i];
+            children.push({
+              key: `${key}-${accId}`,
+              label: notifAccNameMap.get(accId) ?? accId,
+              buckets: b,
+            });
+          }
+          children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+          return { key, label, buckets: total, children };
+        };
+        const row1Grouped = buildGrouped("row1", "訂房組業績", r1ByAcc);
+        const row2Grouped = buildGrouped("row2", "KOL 總額", r2ByAcc);
 
         /* ---- 特許加盟館別 ---- */
         const { data: flagRows } = await supabase
