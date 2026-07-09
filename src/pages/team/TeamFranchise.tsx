@@ -132,12 +132,19 @@ interface FranchiseOrder {
 function taipeiTodayParts() {
   const s = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date());
   const [y, m, d] = s.split("-");
+  const yNum = Number(y);
+  const mNum = Number(m);
+  const prevYear = mNum === 1 ? yNum - 1 : yNum;
+  const prevMonth = mNum === 1 ? 12 : mNum - 1;
+  const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
   return {
     y,
     m,
     d: Number(d),
     monthKey: `${y}-${m}`,
     monthLabel: `${y} 年 ${Number(m)} 月`,
+    prevMonthKey,
+    prevMonthLabel: `${prevYear} 年 ${prevMonth} 月`,
   };
 }
 
@@ -1305,7 +1312,7 @@ function OrdersTab({
                 const enabled = t.d <= 10;
                 const currentValue = (detailForm.early_payout_month as string | null) ?? null;
                 const orderValue = detailOrder.early_payout_month ?? null;
-                const isEarly = detailEditing ? currentValue === t.monthKey : orderValue === t.monthKey;
+                const isEarly = detailEditing ? currentValue === t.prevMonthKey : orderValue === t.prevMonthKey;
                 if (!detailEditing) {
                   return orderValue ? (
                     <DetailRow label="提前發放">
@@ -1321,12 +1328,12 @@ function OrdersTab({
                         disabled={!enabled}
                         checked={isEarly}
                         onCheckedChange={(v) =>
-                          setDetailForm({ ...detailForm, early_payout_month: v ? t.monthKey : null })
+                          setDetailForm({ ...detailForm, early_payout_month: v ? t.prevMonthKey : null })
                         }
                       />
                       <Label htmlFor="detail_early_payout" className="text-xs leading-tight cursor-pointer">
                         {enabled
-                          ? `勾選後此筆獎金將提前於當月（${t.monthLabel}）10 日發放`
+                          ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
@@ -2806,18 +2813,18 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             {(() => {
               const t = taipeiTodayParts();
               const enabled = t.d <= 10;
-              const isEarly = (form.early_payout_month ?? null) === t.monthKey;
+              const isEarly = (form.early_payout_month ?? null) === t.prevMonthKey;
               return (
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id="ext_early_payout"
                     disabled={!enabled}
                     checked={isEarly}
-                    onCheckedChange={(v) => onChange("early_payout_month", v ? t.monthKey : null)}
+                    onCheckedChange={(v) => onChange("early_payout_month", v ? t.prevMonthKey : null)}
                   />
                   <Label htmlFor="ext_early_payout" className="text-xs leading-tight cursor-pointer">
                     {enabled
-                      ? `勾選後此筆獎金將提前於當月（${t.monthLabel}）10 日發放`
+                      ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
                       : `每月 10 日後無法提前發放`}
                   </Label>
                 </div>
