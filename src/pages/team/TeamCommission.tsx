@@ -855,6 +855,58 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         );
       });
 
+      // 星探折扣碼分潤：折扣碼命中訂單的 scout_rate 部分歸給 scout 本人（scout_self + partner 皆納入）
+      const scoutKolMap = new Map<string, { scout_id: string; scout_rate: number; commission_type: string }>();
+      (scoutKolCodes ?? []).forEach((c: any) => {
+        if (c.discount_code && c.scout_id && Number(c.scout_rate) > 0) {
+          scoutKolMap.set(String(c.discount_code).trim().toUpperCase(), {
+            scout_id: c.scout_id,
+            scout_rate: Number(c.scout_rate),
+            commission_type: c.commission_type,
+          });
+        }
+      });
+      if (scoutKolMap.size > 0) {
+        const { data: kolOrds } = await supabase
+          .from("orders")
+          .select("id, discount_code, final_price, order_date")
+          .neq("order_status", "cancelled")
+          .not("discount_code", "is", null)
+          .gte("order_date", start)
+          .lt("order_date", nextMonthStart);
+        const kolOrders = kolOrds ?? [];
+        const kolOrderIds = kolOrders.map((o: any) => o.id);
+        const kolExcluded = new Set<string>();
+        if (kolOrderIds.length > 0) {
+          const { data: kolMetas } = await supabase
+            .from("order_meta")
+            .select("order_id, is_excluded")
+            .in("order_id", kolOrderIds);
+          (kolMetas ?? []).forEach((m: any) => {
+            if (m.is_excluded) kolExcluded.add(m.order_id);
+          });
+        }
+        kolOrders.forEach((o: any) => {
+          if (!o.discount_code || !o.final_price) return;
+          if (kolExcluded.has(o.id)) return;
+          const hit = scoutKolMap.get(String(o.discount_code).trim().toUpperCase());
+          if (!hit) return;
+          const amount = Math.round(Number(o.final_price) * hit.scout_rate);
+          if (!amount) return;
+          pushItem(
+            "scout_discount_codes_kol",
+            o.id,
+            "scout",
+            profileById.get(hit.scout_id),
+            SOURCE_LABEL.scout_discount_kol,
+            `訂單 ${String(o.id).slice(0, 8)}・${o.discount_code}`,
+            amount,
+          );
+        });
+      }
+
+
+
 
 
       (scoutPayouts ?? []).forEach((r: any) => {
