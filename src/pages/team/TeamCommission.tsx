@@ -735,7 +735,17 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
+      // 決定該筆特許加盟訂單是否屬於本次「發放月」：
+      // - 有 early_payout_month → 該值 === payoutMonthKey
+      // - 無 → sold_at / signed_at 的 YYYY-MM === prevMonthKey（上月）
+      const matchesPayoutMonth = (r: any, dateField: string) => {
+        const ep = (r?.early_payout_month ?? null) as string | null;
+        if (ep) return ep === payoutMonthKey;
+        return String(r?.[dateField] ?? "").slice(0, 7) === prevMonthKey;
+      };
+
       (fInternal ?? []).forEach((r: any) => {
+        if (!matchesPayoutMonth(r, "sold_at")) return;
         const detail = `${r.customer_name ?? ""}・${r.plan_name ?? ""}`.trim();
         if (r.sold_by && Number(r.commission_amount) > 0) {
           pushItem("franchise_orders", r.id, "sales", profileByUserId.get(r.sold_by), SOURCE_LABEL.franchise_internal_sales, detail, r.commission_amount);
@@ -749,6 +759,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       (fExternal ?? []).forEach((r: any) => {
+        if (!matchesPayoutMonth(r, "signed_at")) return;
         const detail = `${r.project_name ?? ""}・${r.customer_name ?? ""}`.trim();
         if (r.sales_member_id && Number(r.sales_bonus) > 0) {
           pushItem("franchise_external_orders", r.id, "sales", profileById.get(r.sales_member_id), SOURCE_LABEL.franchise_external_sales, detail, r.sales_bonus);
