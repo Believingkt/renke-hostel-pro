@@ -208,7 +208,10 @@ export default function TeamHome() {
                 videoSum += base * rate;
               }
             }
+          }
         }
+
+
 
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
