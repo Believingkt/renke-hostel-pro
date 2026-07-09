@@ -952,7 +952,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [range, wideRange, prevMonthKey, year, month]);
 
   useEffect(() => {
     fetchData();
