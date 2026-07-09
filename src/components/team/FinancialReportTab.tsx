@@ -634,8 +634,8 @@ export default function FinancialReportTab() {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[160px]">項目</TableHead>
-                {WEEK_LABELS.map((w) => (
-                  <TableHead key={w} className="text-right whitespace-nowrap">{w}</TableHead>
+                {weeks.map((w, i) => (
+                  <TableHead key={i} className="text-right whitespace-nowrap">{w.label}</TableHead>
                 ))}
                 <TableHead className="text-right whitespace-nowrap">TOTAL</TableHead>
               </TableRow>
