@@ -150,8 +150,8 @@ export default function FinancialReportTab() {
   const [accsLoaded, setAccsLoaded] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [row1, setRow1] = useState<number[]>([]);
-  const [row2, setRow2] = useState<number[]>([]);
+  const [row1, setRow1] = useState<GroupedRow>({ key: "row1", label: "訂房組業績", buckets: [], children: [] });
+  const [row2, setRow2] = useState<GroupedRow>({ key: "row2", label: "KOL 總額", buckets: [], children: [] });
   const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: [], children: [] });
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: [], children: [] });
   const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: [], children: [], hasAnyRate: false });
