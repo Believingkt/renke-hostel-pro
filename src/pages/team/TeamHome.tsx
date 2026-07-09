@@ -476,14 +476,28 @@ export default function TeamHome() {
         let franchiseInternalSum = 0;
         let franchiseExternalSum = 0;
         if (showFranchise) {
+          // Widen fetch to ±3 months so we can pick up early_payout_month rows via JS filter
+          const wideStart = taipeiDateStr(prevY, prevM, 1);
+          const nextY3 = monthInfo.y + (monthInfo.m + 3 > 12 ? 1 : 0);
+          const nextM3 = ((monthInfo.m + 3 - 1) % 12) + 1;
+          const wideEnd = taipeiDateStr(nextY3, nextM3, 1);
+
+          const currentMonthKey = monthInfo.currentMonthKey;
+          const matches = (r: any, dateField: string) => {
+            const ep = (r?.early_payout_month ?? null) as string | null;
+            if (ep) return ep === currentMonthKey;
+            return String(r?.[dateField] ?? "").slice(0, 7) === currentMonthKey;
+          };
+
           const { data: fInternal } = await supabase
             .from("franchise_orders")
-            .select("commission_amount, sold_by, payment_confirmed, sold_at")
+            .select("commission_amount, sold_by, payment_confirmed, sold_at, early_payout_month")
             .eq("sold_by", userId)
             .eq("payment_confirmed", true)
-            .gte("sold_at", monthStartDate)
-            .lt("sold_at", monthEndDate);
+            .gte("sold_at", wideStart)
+            .lt("sold_at", wideEnd);
           for (const r of fInternal ?? []) {
+            if (!matches(r, "sold_at")) continue;
             franchiseInternalSum += Number((r as any).commission_amount ?? 0);
           }
 
@@ -491,16 +505,17 @@ export default function TeamHome() {
             const { data: fExt } = await supabase
               .from("franchise_external_orders")
               .select(
-                "sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, contract_progress, signed_at",
+                "sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, contract_progress, signed_at, early_payout_month",
               )
               .eq("contract_progress", "已完成")
-              .gte("signed_at", monthStartDate)
-              .lt("signed_at", monthEndDate)
+              .gte("signed_at", wideStart)
+              .lt("signed_at", wideEnd)
               .or(
                 `sales_member_id.eq.${profileId},co_sales_member_id.eq.${profileId},co_sales_member_id2.eq.${profileId}`,
               );
 
             for (const r of fExt ?? []) {
+              if (!matches(r, "signed_at")) continue;
               const row = r as any;
               if (row.sales_member_id === profileId) {
                 franchiseExternalSum += Number(row.sales_bonus ?? 0);
