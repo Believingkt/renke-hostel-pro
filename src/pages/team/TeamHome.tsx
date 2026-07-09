@@ -89,6 +89,7 @@ export default function TeamHome() {
       y: now.y,
       m: now.m,
       today: taipeiDateStr(now.y, now.m, now.d),
+      currentMonthKey: `${now.y}-${String(now.m).padStart(2, "0")}`,
       monthStartIso: taipeiMidnightUtcISO(now.y, now.m, 1),
       monthEndIso: taipeiMidnightUtcISO(nextY, nextM, 1),
       monthStartDate: taipeiDateStr(now.y, now.m, 1),
