@@ -225,8 +225,8 @@ export default function FinancialReportTab() {
       setLoading(true);
       try {
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
-        const r1 = emptyBuckets();
-        const r2 = emptyBuckets();
+        const r1 = emptyBuckets(weekCount);
+        const r2 = emptyBuckets(weekCount);
 
         // KOL 折扣碼白名單：scout_discount_codes ∪ kol_profiles.cid_code（全域，比對用大寫集合）
         const [{ data: scoutCodesRaw }, { data: kolCidRaw }] = await Promise.all([
