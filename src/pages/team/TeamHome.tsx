@@ -565,20 +565,49 @@ export default function TeamHome() {
     };
   }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
 
-  const cards: Array<{ key: string; title: string; amount: number; note?: string; lines?: Array<{ label: string; amount: number }> }> = [];
+  // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
+  const allMult = multipliers.all ?? 1;
+  const multOf = (bt: string) => (multipliers[bt] ?? 1) * allMult;
+
+  const cards: Array<{
+    key: string;
+    title: string;
+    amount: number;              // 加倍後金額（顯示 + 合計用）
+    multiplier: number;          // 用於 badge
+    note?: string;
+    lines?: Array<{ label: string; amount: number; multiplier: number }>;
+  }> = [];
+
   if (showCloser) {
-    const lines = [{ label: "訂房成交獎金", amount: closerAmt }];
-    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserAmt });
-    cards.push({ key: "closer", title: "成交獎金", amount: closerAmt + scoutCloserAmt, lines });
+    const closerMult = multOf("closer");
+    const closerBoosted = Math.round(closerAmt * closerMult);
+    const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
+    const lines = [{ label: "訂房成交獎金", amount: closerBoosted, multiplier: closerMult }];
+    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
+    cards.push({
+      key: "closer",
+      title: "成交獎金",
+      amount: closerBoosted + scoutCloserBoosted,
+      multiplier: closerMult,
+      lines,
+    });
   }
-  if (showVideo) cards.push({ key: "video", title: "影音獎金", amount: videoAmt });
+  if (showVideo) {
+    const m = multOf("video");
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), multiplier: m });
+  }
   if (showScout) {
-    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: scoutAmt });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: rarityAmt });
+    const kolM = multOf("scout_kol");
+    const rarityM = multOf("scout_rarity");
+    const baseM = multOf("scout_base");
+    const teamM = multOf("scout_team");
+    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM });
     cards.push({
       key: "scout_base",
       title: "底薪",
-      amount: baseSalaryAmt,
+      amount: Math.round(baseSalaryAmt * baseM),
+      multiplier: baseM,
       note: isScoutTeamMember
         ? "依上月邀約達標計算，本月 10 日發放"
         : "非全職星探不發底薪",
@@ -586,14 +615,39 @@ export default function TeamHome() {
     cards.push({
       key: "scout_team",
       title: "團隊獎金",
-      amount: teamBonusAmt,
+      amount: Math.round(teamBonusAmt * teamM),
+      multiplier: teamM,
       note: isScoutTeamMember
         ? "依全隊上月達標計算,本月 10 日發放"
         : "非全職星探不發團隊獎金",
     });
   }
-  if (showFranchise) cards.push({ key: "franchise", title: "特許加盟", amount: franchiseAmt });
-  if (showStarlink) cards.push({ key: "starlink", title: "星鏈", amount: starlinkAmt });
+  if (showFranchise) {
+    const intM = multOf("franchise_internal");
+    const extM = multOf("franchise_external");
+    const intBoosted = Math.round(franchiseInternalAmt * intM);
+    const extBoosted = Math.round(franchiseExternalAmt * extM);
+    // 內外兩者若倍率一致 → 用單一 badge；否則顯示最大倍率作標示
+    const combinedMult = intM === extM ? intM : Math.max(intM, extM);
+    const lines: Array<{ label: string; amount: number; multiplier: number }> = [];
+    if (franchiseInternalAmt > 0 || intM > 1) {
+      lines.push({ label: "特許加盟（內部）", amount: intBoosted, multiplier: intM });
+    }
+    if (franchiseExternalAmt > 0 || extM > 1) {
+      lines.push({ label: "特許加盟（外部）", amount: extBoosted, multiplier: extM });
+    }
+    cards.push({
+      key: "franchise",
+      title: "特許加盟",
+      amount: intBoosted + extBoosted,
+      multiplier: combinedMult,
+      lines: lines.length > 1 ? lines : undefined,
+    });
+  }
+  if (showStarlink) {
+    const m = multOf("starlink");
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
+  }
 
   const total = cards.reduce((s, c) => s + c.amount, 0);
 
