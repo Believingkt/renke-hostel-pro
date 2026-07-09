@@ -472,7 +472,8 @@ export default function TeamHome() {
         }
 
         // ===== Franchise =====
-        let franchiseSum = 0;
+        let franchiseInternalSum = 0;
+        let franchiseExternalSum = 0;
         if (showFranchise) {
           const { data: fInternal } = await supabase
             .from("franchise_orders")
@@ -482,7 +483,7 @@ export default function TeamHome() {
             .gte("sold_at", monthStartDate)
             .lt("sold_at", monthEndDate);
           for (const r of fInternal ?? []) {
-            franchiseSum += Number((r as any).commission_amount ?? 0);
+            franchiseInternalSum += Number((r as any).commission_amount ?? 0);
           }
 
           if (profileId) {
@@ -501,13 +502,13 @@ export default function TeamHome() {
             for (const r of fExt ?? []) {
               const row = r as any;
               if (row.sales_member_id === profileId) {
-                franchiseSum += Number(row.sales_bonus ?? 0);
+                franchiseExternalSum += Number(row.sales_bonus ?? 0);
               }
               if (row.co_sales_member_id === profileId) {
-                franchiseSum += Number(row.co_sales_bonus ?? 0);
+                franchiseExternalSum += Number(row.co_sales_bonus ?? 0);
               }
               if (row.co_sales_member_id2 === profileId) {
-                franchiseSum += Number(row.co_sales_bonus2 ?? 0);
+                franchiseExternalSum += Number(row.co_sales_bonus2 ?? 0);
               }
             }
           }
@@ -528,6 +529,17 @@ export default function TeamHome() {
           }
         }
 
+        // ===== Multipliers（當月 YYYY-MM）=====
+        const { data: multRows } = await supabase
+          .from("bonus_multiplier_settings")
+          .select("bonus_type, multiplier, start_month, end_month")
+          .lte("start_month", monthInfo.currentMonthKey)
+          .gte("end_month", monthInfo.currentMonthKey);
+        const multMap: Record<string, number> = {};
+        (multRows ?? []).forEach((r: any) => {
+          multMap[r.bonus_type] = Number(r.multiplier ?? 1);
+        });
+
         if (cancelled) return;
         setCloserAmt(closerSum);
         setScoutCloserAmt(scoutCloserSum);
@@ -537,8 +549,10 @@ export default function TeamHome() {
         setBaseSalaryAmt(baseSalary);
         setTeamBonusAmt(teamBonus);
         setIsScoutTeamMember(scoutTeamMember);
-        setFranchiseAmt(franchiseSum);
+        setFranchiseInternalAmt(franchiseInternalSum);
+        setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
+        setMultipliers(multMap);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
       } finally {
