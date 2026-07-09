@@ -269,7 +269,7 @@ export default function OwlTingEmailIngest() {
                   "expired",
                 ]);
                 if (st && doneStatuses.has(st.pii_status)) return true;
-                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return true;
+                if (isSelfPushSource(st?.channel_source)) return true;
                 return false;
               }).length;
               if (!showSelfPush && hidden > 0) {
@@ -304,7 +304,7 @@ export default function OwlTingEmailIngest() {
                   "expired",
                 ]);
                 if (st && doneStatuses.has(st.pii_status)) return false;
-                if (isSelfPushSource(st?.channel_source) && st?.pii_status !== "manual_review") return false;
+                if (isSelfPushSource(st?.channel_source)) return false;
                 return true;
               }).map((r) => {
                 const st = stagingMap[r.id];
