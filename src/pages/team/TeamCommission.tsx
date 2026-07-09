@@ -686,6 +686,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: teamSettings },
         { data: scoutPayouts },
         { data: scoutCloserCodes },
+        { data: scoutKolCodes },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -719,6 +720,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .select("discount_code, closer_rate")
           .eq("commission_type", "partner")
           .gt("closer_rate", 0)
+          .eq("is_active", true),
+        supabase
+          .from("scout_discount_codes")
+          .select("discount_code, scout_id, scout_rate, commission_type")
+          .gt("scout_rate", 0)
           .eq("is_active", true),
       ]);
 
