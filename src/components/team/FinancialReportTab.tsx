@@ -302,8 +302,9 @@ export default function FinancialReportTab() {
             if (!basisIso) continue;
             const basisStr = toTaipeiDateStr(basisIso);
             if (basisStr < monthStart || basisStr > monthEnd) continue;
-            const day = Number(basisStr.slice(8, 10));
-            r1[getWeekIndex(day)] += price;
+            const w = getWeekIndex(basisStr, weeks);
+            if (w < 0) continue;
+            r1[w] += price;
           }
 
           // Row 2 累計（KOL）
