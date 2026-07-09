@@ -689,11 +689,13 @@ export default function FinancialReportTab() {
                 })
               )}
               {!loading && (() => {
-                const totals = emptyBuckets();
-                for (const b of [row1, row2, row3.buckets, row4.buckets, row5.buckets]) {
-                  for (let i = 0; i < 4; i++) totals[i] += b[i];
+                const totals = emptyBuckets(weekCount);
+                // Row 5 週欄位不納入合計；只有 TOTAL 加入 Row 5 總額
+                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                  for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
                 }
-                const grand = totals.reduce((a, b) => a + b, 0);
+                const row5Total = row5.buckets.reduce((a, b) => a + b, 0);
+                const grand = totals.reduce((a, b) => a + b, 0) + row5Total;
                 return (
                   <TableRow className="bg-muted font-bold border-t-2">
                     <TableCell className="font-bold">合計</TableCell>
