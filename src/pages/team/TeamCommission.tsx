@@ -624,6 +624,7 @@ const SOURCE_LABEL: Record<string, string> = {
   scout_kol: "星探KOL分潤",
   scout_team: "星探團隊獎金",
   scout_closer: "星探成交獎金",
+  scout_discount_kol: "星探折扣碼分潤",
 };
 
 
