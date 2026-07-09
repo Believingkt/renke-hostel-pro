@@ -1366,7 +1366,7 @@ function OrdersTab({
                         {!prev
                           ? `請先填寫簽約日期`
                           : enabled
-                          ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
+                          ? `勾選後此筆獎金將提前於 ${monthOfDate(soldAt)?.label ?? ""} 10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
