@@ -465,7 +465,7 @@ export default function FinancialReportTab() {
             .from("orders")
             .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id")
             .in("accommodation_id", franchiseAccIds)
-            .in("order_status", ["confirmed", "hold"])
+            .eq("order_status", "confirmed")
             .lte("check_in_date", monthEnd)
             .gte("check_out_date", monthStart);
 
