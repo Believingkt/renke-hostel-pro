@@ -300,9 +300,8 @@ export default function FinancialReportTab() {
             const price = Number(o.final_price ?? 0);
             if (!(price > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;
-            const basisIso: string | null = o.confirmed_at ?? o.order_date ?? null;
-            if (!basisIso) continue;
-            const basisStr = toTaipeiDateStr(basisIso);
+            if (!o.order_date) continue;
+            const basisStr = toTaipeiDateStr(o.order_date);
             if (basisStr < monthStart || basisStr > monthEnd) continue;
             const w = getWeekIndex(basisStr, weeks);
             if (w < 0) continue;
