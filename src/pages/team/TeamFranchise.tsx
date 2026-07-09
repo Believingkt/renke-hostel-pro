@@ -2833,18 +2833,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             {(() => {
               const t = taipeiTodayParts();
               const enabled = t.d <= 10;
-              const isEarly = (form.early_payout_month ?? null) === t.prevMonthKey;
+              const prev = prevMonthOfDate((form.signed_at as string | null) ?? null);
+              const isEarly = prev ? (form.early_payout_month ?? null) === prev.key : false;
+              const canEarly = enabled && !!prev;
               return (
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id="ext_early_payout"
-                    disabled={!enabled}
+                    disabled={!canEarly}
                     checked={isEarly}
-                    onCheckedChange={(v) => onChange("early_payout_month", v ? t.prevMonthKey : null)}
+                    onCheckedChange={(v) => onChange("early_payout_month", v && prev ? prev.key : null)}
                   />
                   <Label htmlFor="ext_early_payout" className="text-xs leading-tight cursor-pointer">
-                    {enabled
-                      ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
+                    {!prev
+                      ? `請先填寫簽約日期`
+                      : enabled
+                      ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
                       : `每月 10 日後無法提前發放`}
                   </Label>
                 </div>
