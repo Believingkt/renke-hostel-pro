@@ -573,9 +573,15 @@ export default function FinancialReportTab() {
   const rows = useMemo(() => {
     const flat: { row: GroupedRow; depth: number; isChild?: boolean; parentKey?: string }[] = [];
     // Row 1
-    flat.push({ row: { key: "row1", label: "訂房組業績", buckets: row1 }, depth: 0 });
+    flat.push({ row: row1, depth: 0 });
+    if (expanded[row1.key] && row1.children) {
+      for (const c of row1.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row1.key });
+    }
     // Row 2
-    flat.push({ row: { key: "row2", label: "KOL 總額", buckets: row2 }, depth: 0 });
+    flat.push({ row: row2, depth: 0 });
+    if (expanded[row2.key] && row2.children) {
+      for (const c of row2.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row2.key });
+    }
     // Row 3
     flat.push({ row: row3, depth: 0 });
     if (expanded[row3.key] && row3.children) {
