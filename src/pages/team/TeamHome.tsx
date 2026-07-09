@@ -684,7 +684,12 @@ export default function TeamHome() {
             <h3 className="text-lg font-semibold mb-3">各來源獎金</h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {cards.map((c) => (
-                <Card key={c.key}>
+                <Card key={c.key} className="relative">
+                  {c.multiplier > 1 && !loading && (
+                    <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                      × {Number(c.multiplier).toFixed(2)} 倍
+                    </Badge>
+                  )}
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-muted-foreground font-medium">
                       {c.title}
