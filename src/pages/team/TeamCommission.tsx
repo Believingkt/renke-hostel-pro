@@ -511,6 +511,17 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
     fetchRows();
   };
 
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("bonus_multiplier_settings").delete().eq("id", deletingId);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success("已刪除");
+    setDeletingId(null);
+    fetchRows();
+  };
+
   const statusOf = (r: MultiplierRow): { label: string; className: string } => {
     if (r.start_month > nowKey) return { label: "未開始", className: "" };
     if (r.end_month < nowKey) return { label: "已結束", className: "" };
