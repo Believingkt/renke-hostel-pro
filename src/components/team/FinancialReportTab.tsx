@@ -590,6 +590,7 @@ export default function FinancialReportTab() {
                   const total = row.buckets.reduce((a, b) => a + b, 0);
                   const expandable = !isChild && (row.children?.length ?? 0) > 0;
                   const isOpen = !!expanded[row.key];
+                  const showDash = row.key === "row5" && !row5.hasAnyRate;
                   return (
                     <TableRow key={row.key} className={isChild ? "bg-muted/30" : ""}>
                       <TableCell className={`font-medium ${depth > 0 ? "pl-8" : ""}`}>
@@ -614,11 +615,11 @@ export default function FinancialReportTab() {
                       </TableCell>
                       {row.buckets.map((v, i) => (
                         <TableCell key={i} className="text-right tabular-nums whitespace-nowrap">
-                          {fmtMoney(v)}
+                          {showDash ? "—" : fmtMoney(v)}
                         </TableCell>
                       ))}
                       <TableCell className="text-right tabular-nums whitespace-nowrap font-semibold">
-                        {fmtMoney(total)}
+                        {showDash ? "—" : fmtMoney(total)}
                       </TableCell>
                     </TableRow>
                   );
