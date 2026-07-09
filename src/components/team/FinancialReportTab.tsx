@@ -254,16 +254,14 @@ export default function FinancialReportTab() {
           const startDay = `${year}-${String(month).padStart(2, "0")}-01T00:00:00+08:00`;
           const endExclusive = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+08:00`;
 
-          // Row 1：COALESCE(confirmed_at, order_date) 落在當月（對齊 TeamOrders 口徑）
+          // Row 1：order_date（下單日）落在當月，對齊成交大師口徑
           const { data: row1Orders } = await supabase
             .from("orders")
-            .select("id, order_date, confirmed_at, final_price, order_status, guest_name, accommodation_id")
+            .select("id, order_date, final_price, order_status, guest_name, accommodation_id")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
-            .or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`,
-            );
+            .gte("order_date", startDay)
+            .lt("order_date", endExclusive);
 
           // Row 2：order_date 落在當月（KOL 邏輯不變）
           const { data: row2Orders } = await supabase
@@ -302,9 +300,8 @@ export default function FinancialReportTab() {
             const price = Number(o.final_price ?? 0);
             if (!(price > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;
-            const basisIso: string | null = o.confirmed_at ?? o.order_date ?? null;
-            if (!basisIso) continue;
-            const basisStr = toTaipeiDateStr(basisIso);
+            if (!o.order_date) continue;
+            const basisStr = toTaipeiDateStr(o.order_date);
             if (basisStr < monthStart || basisStr > monthEnd) continue;
             const w = getWeekIndex(basisStr, weeks);
             if (w < 0) continue;
@@ -759,7 +756,7 @@ export default function FinancialReportTab() {
         <div className="text-xs text-muted-foreground space-y-2 leading-relaxed pt-2 border-t">
           <p>
             <span className="font-medium text-foreground">訂房組業績：</span>
-            以訂單確認時間為主、下單日為輔，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
+            以下單日為基準，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
           </p>
           <p>
             <span className="font-medium text-foreground">KOL 總額：</span>
