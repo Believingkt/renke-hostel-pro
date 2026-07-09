@@ -736,11 +736,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
-      // - 有 early_payout_month → 該值 === payoutMonthKey
+      // - 有 early_payout_month → 該值 === prevMonthKey（期別月，即發放月-1）
       // - 無 → sold_at / signed_at 的 YYYY-MM === prevMonthKey（上月）
       const matchesPayoutMonth = (r: any, dateField: string) => {
         const ep = (r?.early_payout_month ?? null) as string | null;
-        if (ep) return ep === payoutMonthKey;
+        if (ep) return ep === prevMonthKey;
         return String(r?.[dateField] ?? "").slice(0, 7) === prevMonthKey;
       };
 
