@@ -2122,6 +2122,44 @@ export type Database = {
           },
         ]
       }
+      consulting_fee_settings: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          note: string | null
+          rate: number
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          note?: string | null
+          rate: number
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          note?: string | null
+          rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consulting_fee_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_usages: {
         Row: {
           coupon_id: string

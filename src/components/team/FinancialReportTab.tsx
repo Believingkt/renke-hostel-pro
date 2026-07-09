@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { differenceInDays } from "date-fns";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,7 +24,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+
 
 /* ---------- helpers ---------- */
 
@@ -85,7 +97,10 @@ export default function FinancialReportTab() {
   const [row2, setRow2] = useState<number[]>(emptyBuckets());
   const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: emptyBuckets(), children: [] });
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: emptyBuckets(), children: [] });
+  const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: emptyBuckets(), children: [], hasAnyRate: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [canManageFees, setCanManageFees] = useState(false);
+  const [canViewFees, setCanViewFees] = useState(false);
 
   // 月首日/末日字串（純日期比較用）
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
@@ -120,6 +135,26 @@ export default function FinancialReportTab() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  /* --- role permissions for 管顧費率設定 --- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+      const manage = roleSet.has("hotel_admin") || roleSet.has("super_admin");
+      const view = manage || roleSet.has("finance");
+      setCanManageFees(manage);
+      setCanViewFees(view);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   /* --- load report --- */
@@ -372,11 +407,52 @@ export default function FinancialReportTab() {
         }
         row4Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
+        /* ---- Row 5: 管顧費用 = 住房營收 × 費率（依館別、依生效日取最新） ---- */
+        const row5ByAcc = new Map<string, number[]>();
+        let hasAnyRate = false;
+        if (franchiseAccIds.length > 0) {
+          const { data: feeRows } = await supabase
+            .from("consulting_fee_settings")
+            .select("rate, accommodation_id, effective_from")
+            .lte("effective_from", monthStart)
+            .order("effective_from", { ascending: false });
+          const fees = (feeRows ?? []) as any[];
+          const pickRate = (accId: string): number | null => {
+            const specific = fees.find((f) => f.accommodation_id === accId);
+            if (specific) return Number(specific.rate);
+            const fallback = fees.find((f) => f.accommodation_id == null);
+            if (fallback) return Number(fallback.rate);
+            return null;
+          };
+          for (const accId of franchiseAccIds) {
+            const stay = row4ByAcc.get(accId) ?? emptyBuckets();
+            const rate = pickRate(accId);
+            if (rate == null) {
+              row5ByAcc.set(accId, emptyBuckets());
+              continue;
+            }
+            hasAnyRate = true;
+            row5ByAcc.set(accId, stay.map((v) => v * rate));
+          }
+        }
+        const row5Total = emptyBuckets();
+        const row5Children: GroupedRow[] = [];
+        for (const [accId, b] of row5ByAcc.entries()) {
+          for (let i = 0; i < 4; i++) row5Total[i] += b[i];
+          row5Children.push({
+            key: `row5-${accId}`,
+            label: franchiseAccNameMap.get(accId) ?? accId,
+            buckets: b,
+          });
+        }
+        row5Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
         if (cancelled) return;
         setRow1(r1);
         setRow2(r2);
         setRow3({ key: "row3", label: "特許加盟", buckets: row3Total, children: row3Children });
         setRow4({ key: "row4", label: "住房營收", buckets: row4Total, children: row4Children });
+        setRow5({ key: "row5", label: "管顧費用", buckets: row5Total, children: row5Children, hasAnyRate });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -412,8 +488,10 @@ export default function FinancialReportTab() {
     if (expanded[row4.key] && row4.children) {
       for (const c of row4.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row4.key });
     }
+    // Row 5
+    flat.push({ row: { key: row5.key, label: row5.label, buckets: row5.buckets }, depth: 0 });
     return flat;
-  }, [row1, row2, row3, row4, expanded]);
+  }, [row1, row2, row3, row4, row5, expanded]);
 
   return (
     <Card className="mt-4">
@@ -512,6 +590,7 @@ export default function FinancialReportTab() {
                   const total = row.buckets.reduce((a, b) => a + b, 0);
                   const expandable = !isChild && (row.children?.length ?? 0) > 0;
                   const isOpen = !!expanded[row.key];
+                  const showDash = row.key === "row5" && !row5.hasAnyRate;
                   return (
                     <TableRow key={row.key} className={isChild ? "bg-muted/30" : ""}>
                       <TableCell className={`font-medium ${depth > 0 ? "pl-8" : ""}`}>
@@ -536,11 +615,11 @@ export default function FinancialReportTab() {
                       </TableCell>
                       {row.buckets.map((v, i) => (
                         <TableCell key={i} className="text-right tabular-nums whitespace-nowrap">
-                          {fmtMoney(v)}
+                          {showDash ? "—" : fmtMoney(v)}
                         </TableCell>
                       ))}
                       <TableCell className="text-right tabular-nums whitespace-nowrap font-semibold">
-                        {fmtMoney(total)}
+                        {showDash ? "—" : fmtMoney(total)}
                       </TableCell>
                     </TableRow>
                   );
@@ -548,7 +627,7 @@ export default function FinancialReportTab() {
               )}
               {!loading && (() => {
                 const totals = emptyBuckets();
-                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                for (const b of [row1, row2, row3.buckets, row4.buckets, row5.buckets]) {
                   for (let i = 0; i < 4; i++) totals[i] += b[i];
                 }
                 const grand = totals.reduce((a, b) => a + b, 0);
@@ -590,11 +669,251 @@ export default function FinancialReportTab() {
             <span className="font-medium text-foreground">住房營收：</span>
             以「入住日期」（check_in_date）逐晚均分計算，跨月訂單按實際住宿晚數拆分至對應月份。納入已確認（confirmed）及保留單（hold）訂單，KOL 訂單（order_source = kol）金額計為零。
           </p>
+          <p>
+            <span className="font-medium text-foreground">管顧費用：</span>
+            = 住房營收 × 管顧費率。費率以「當月起始日」為基準，取生效日 ≤ 當月 1 日的最新一筆設定；優先套用館別專屬費率，若無則使用全館通用預設值。無任何費率設定時該欄顯示「—」。
+          </p>
           <p className="text-amber-600 dark:text-amber-500">
             ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
           </p>
         </div>
+
+        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
       </CardContent>
     </Card>
+  );
+}
+
+/* ---------- 管顧費率設定區塊 ---------- */
+
+interface FeeRow {
+  id: string;
+  rate: number;
+  accommodation_id: string | null;
+  effective_from: string;
+  note: string | null;
+}
+
+function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<FeeRow[]>([]);
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    effective_from: new Date().toISOString().slice(0, 10),
+    ratePercent: "",
+    accommodation_id: "all" as string,
+    note: "",
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [{ data: feeData }, { data: accData }] = await Promise.all([
+        supabase
+          .from("consulting_fee_settings")
+          .select("id, rate, accommodation_id, effective_from, note")
+          .order("effective_from", { ascending: false }),
+        supabase.from("accommodation_info").select("id, name").order("name"),
+      ]);
+      setRows((feeData ?? []) as FeeRow[]);
+      setAccs(((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const accMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of accs) m.set(a.id, a.name);
+    return m;
+  }, [accs]);
+
+  const handleSubmit = async () => {
+    const pct = Number(form.ratePercent);
+    if (!form.effective_from || !Number.isFinite(pct) || pct < 0) {
+      toast.error("請輸入有效的生效日期與費率");
+      return;
+    }
+    const rate = pct / 100;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("consulting_fee_settings").insert({
+        rate,
+        accommodation_id: form.accommodation_id === "all" ? null : form.accommodation_id,
+        effective_from: form.effective_from,
+        note: form.note.trim() || null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+      toast.success("已新增費率版本");
+      setDialogOpen(false);
+      setForm({
+        effective_from: new Date().toISOString().slice(0, 10),
+        ratePercent: "",
+        accommodation_id: "all",
+        note: "",
+      });
+      await load();
+    } catch (e: any) {
+      toast.error(e.message ?? "新增失敗");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="pt-4 border-t mt-4">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        管顧費率設定
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          {canManage && (
+            <div className="flex justify-end">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    新增費率版本
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="overflow-x-hidden">
+                  <DialogHeader>
+                    <DialogTitle>新增費率版本</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label>生效日期</Label>
+                      <Input
+                        type="date"
+                        value={form.effective_from}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, effective_from: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>費率 (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="例如 10 表示 10%"
+                        value={form.ratePercent}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, ratePercent: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>適用館別</Label>
+                      <Select
+                        value={form.accommodation_id}
+                        onValueChange={(v) =>
+                          setForm((f) => ({ ...f, accommodation_id: v }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">全館通用</SelectItem>
+                          {accs.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>備註</Label>
+                      <Textarea
+                        value={form.note}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, note: e.target.value }))
+                        }
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      disabled={saving}
+                    >
+                      取消
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={saving}>
+                      {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                      新增
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">費率</TableHead>
+                  <TableHead className="whitespace-nowrap">適用館別</TableHead>
+                  <TableHead>備註</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">
+                      <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                      載入中…
+                    </TableCell>
+                  </TableRow>
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      尚無費率設定
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap">{r.effective_from}</TableCell>
+                      <TableCell className="text-right tabular-nums whitespace-nowrap">
+                        {(Number(r.rate) * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.accommodation_id
+                          ? accMap.get(r.accommodation_id) ?? "（已刪除）"
+                          : <span className="text-muted-foreground">全館通用</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.note ?? ""}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
