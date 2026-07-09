@@ -625,6 +625,16 @@ export default function TeamHome() {
                     <p className="text-2xl font-semibold">
                       {loading ? "—" : fmt(c.amount)}
                     </p>
+                    {!loading && c.lines && c.lines.length > 1 ? (
+                      <div className="mt-2 space-y-0.5">
+                        {c.lines.map((ln, i) => (
+                          <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                            <span>{ln.label}</span>
+                            <span className="tabular-nums">{fmt(ln.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               ))}
