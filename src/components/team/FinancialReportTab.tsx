@@ -759,31 +759,29 @@ export default function FinancialReportTab() {
         <div className="text-xs text-muted-foreground space-y-2 leading-relaxed pt-2 border-t">
           <p>
             <span className="font-medium text-foreground">訂房組業績：</span>
-            以「訂單確認時間」（confirmed_at）為歸屬基準；若訂單尚未有確認時間，則改以「下單日」（order_date）為準。僅統計已指定成交人且未被標記「不分潤」的訂單，排除保留單與金額為零的訂單。此數字口徑與成交大師一致。
+            以訂單確認時間為主、下單日為輔，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
           </p>
           <p>
             <span className="font-medium text-foreground">KOL 總額：</span>
-            以「下單日」（order_date）為歸屬基準。訂單折扣碼需符合星探邀約 CID（kol_profiles）或星探專屬折扣碼(scout_discount_codes）之一才列入，排除保留單與金額為零的訂單。
+            以下單日為基準，折扣碼需符合星探邀約 CID 或星探專屬折扣碼之一才列入。
           </p>
-          <div>
+          <p>
             <span className="font-medium text-foreground">特許加盟：</span>
-            <ul className="list-none pl-4 mt-1 space-y-1">
-              <li>・內部訂單（franchise_orders）：以「成交日期」（sold_at）為歸屬基準，需已確認付款（payment_confirmed = true）。</li>
-              <li>・外部訂單（franchise_external_orders）：以「簽約日期」（signed_at）為歸屬基準，需合約進度為「已完成」。</li>
-            </ul>
-          </div>
+            內部訂單以成交日期為基準（需已確認付款）；外部訂單以簽約日期為基準（需合約已完成）。
+          </p>
           <p>
             <span className="font-medium text-foreground">住房營收：</span>
-            以「入住日期」（check_in_date）逐晚均分計算，跨月訂單按實際住宿晚數拆分至對應月份。納入已確認（confirmed）及保留單（hold）訂單，KOL 訂單（order_source = kol）金額計為零。
+            以入住日逐晚均分計算,含已確認及保留單,KOL 訂單金額計為零。
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
-            = 住房營收 × 管顧費率。費率以「當月起始日」為基準，取生效日 ≤ 當月 1 日的最新一筆設定；優先套用館別專屬費率，若無則使用全館通用預設值。無任何費率設定時該欄顯示「—」。
+            住房營收 × 管顧費率,費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
           </p>
           <p className="text-amber-600 dark:text-amber-500">
-            ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
+            ⚠️ 各列日期基準不同,與財務 Excel 對帳時請注意各列的日期口徑。
           </p>
         </div>
+
 
         {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
       </CardContent>
