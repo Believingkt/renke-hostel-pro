@@ -488,8 +488,10 @@ export default function FinancialReportTab() {
     if (expanded[row4.key] && row4.children) {
       for (const c of row4.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row4.key });
     }
+    // Row 5
+    flat.push({ row: { key: row5.key, label: row5.label, buckets: row5.buckets }, depth: 0 });
     return flat;
-  }, [row1, row2, row3, row4, expanded]);
+  }, [row1, row2, row3, row4, row5, expanded]);
 
   return (
     <Card className="mt-4">
