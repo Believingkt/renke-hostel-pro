@@ -150,8 +150,8 @@ export default function FinancialReportTab() {
   const [accsLoaded, setAccsLoaded] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [row1, setRow1] = useState<number[]>([]);
-  const [row2, setRow2] = useState<number[]>([]);
+  const [row1, setRow1] = useState<GroupedRow>({ key: "row1", label: "訂房組業績", buckets: [], children: [] });
+  const [row2, setRow2] = useState<GroupedRow>({ key: "row2", label: "KOL 總額", buckets: [], children: [] });
   const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: [], children: [] });
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: [], children: [] });
   const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: [], children: [], hasAnyRate: false });
@@ -225,8 +225,12 @@ export default function FinancialReportTab() {
       setLoading(true);
       try {
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
-        const r1 = emptyBuckets(weekCount);
-        const r2 = emptyBuckets(weekCount);
+        const r1ByAcc = new Map<string, number[]>();
+        const r2ByAcc = new Map<string, number[]>();
+        for (const id of selectedAccs) {
+          r1ByAcc.set(id, emptyBuckets(weekCount));
+          r2ByAcc.set(id, emptyBuckets(weekCount));
+        }
 
         // KOL 折扣碼白名單：scout_discount_codes ∪ kol_profiles.cid_code（全域，比對用大寫集合）
         const [{ data: scoutCodesRaw }, { data: kolCidRaw }] = await Promise.all([
@@ -292,7 +296,7 @@ export default function FinancialReportTab() {
             }
           }
 
-          // Row 1 累計
+          // Row 1 累計（依館別）
           for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
@@ -304,10 +308,14 @@ export default function FinancialReportTab() {
             if (basisStr < monthStart || basisStr > monthEnd) continue;
             const w = getWeekIndex(basisStr, weeks);
             if (w < 0) continue;
-            r1[w] += price;
+            const accId = o.accommodation_id;
+            if (!accId) continue;
+            const b = r1ByAcc.get(accId) ?? emptyBuckets(weekCount);
+            b[w] += price;
+            r1ByAcc.set(accId, b);
           }
 
-          // Row 2 累計（KOL）
+          // Row 2 累計（KOL，依館別）
           for (const o of row2List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
@@ -319,9 +327,37 @@ export default function FinancialReportTab() {
             if (!dc || !kolCodeSet.has(dc)) continue;
             const w = getWeekIndex(orderDateStr, weeks);
             if (w < 0) continue;
-            r2[w] += price;
+            const accId = o.accommodation_id;
+            if (!accId) continue;
+            const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
+            b[w] += price;
+            r2ByAcc.set(accId, b);
           }
         }
+
+        const notifAccNameMap = new Map<string, string>();
+        for (const a of notifAccs) notifAccNameMap.set(a.id, a.name);
+        const buildGrouped = (
+          key: string,
+          label: string,
+          byAcc: Map<string, number[]>,
+        ): GroupedRow => {
+          const total = emptyBuckets(weekCount);
+          const children: GroupedRow[] = [];
+          for (const accId of selectedAccs) {
+            const b = byAcc.get(accId) ?? emptyBuckets(weekCount);
+            for (let i = 0; i < weekCount; i++) total[i] += b[i];
+            children.push({
+              key: `${key}-${accId}`,
+              label: notifAccNameMap.get(accId) ?? accId,
+              buckets: b,
+            });
+          }
+          children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+          return { key, label, buckets: total, children };
+        };
+        const row1Grouped = buildGrouped("row1", "訂房組業績", r1ByAcc);
+        const row2Grouped = buildGrouped("row2", "KOL 總額", r2ByAcc);
 
         /* ---- 特許加盟館別 ---- */
         const { data: flagRows } = await supabase
@@ -510,8 +546,8 @@ export default function FinancialReportTab() {
         row5Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
         if (cancelled) return;
-        setRow1(r1);
-        setRow2(r2);
+        setRow1(row1Grouped);
+        setRow2(row2Grouped);
         setRow3({ key: "row3", label: "特許加盟", buckets: row3Total, children: row3Children });
         setRow4({ key: "row4", label: "住房營收", buckets: row4Total, children: row4Children });
         setRow5({ key: "row5", label: "管顧費用", buckets: row5Total, children: row5Children, hasAnyRate });
@@ -537,9 +573,15 @@ export default function FinancialReportTab() {
   const rows = useMemo(() => {
     const flat: { row: GroupedRow; depth: number; isChild?: boolean; parentKey?: string }[] = [];
     // Row 1
-    flat.push({ row: { key: "row1", label: "訂房組業績", buckets: row1 }, depth: 0 });
+    flat.push({ row: row1, depth: 0 });
+    if (expanded[row1.key] && row1.children) {
+      for (const c of row1.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row1.key });
+    }
     // Row 2
-    flat.push({ row: { key: "row2", label: "KOL 總額", buckets: row2 }, depth: 0 });
+    flat.push({ row: row2, depth: 0 });
+    if (expanded[row2.key] && row2.children) {
+      for (const c of row2.children) flat.push({ row: c, depth: 1, isChild: true, parentKey: row2.key });
+    }
     // Row 3
     flat.push({ row: row3, depth: 0 });
     if (expanded[row3.key] && row3.children) {
@@ -585,7 +627,7 @@ export default function FinancialReportTab() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>館別（Row 1、2）</Label>
+            <Label>可篩選訂房組業績與 KOL 總額</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
@@ -691,7 +733,7 @@ export default function FinancialReportTab() {
               {!loading && (() => {
                 const totals = emptyBuckets(weekCount);
                 // Row 5 週欄位不納入合計；只有 TOTAL 加入 Row 5 總額
-                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                for (const b of [row1.buckets, row2.buckets, row3.buckets, row4.buckets]) {
                   for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
                 }
                 const row5Total = row5.buckets.reduce((a, b) => a + b, 0);
@@ -717,31 +759,29 @@ export default function FinancialReportTab() {
         <div className="text-xs text-muted-foreground space-y-2 leading-relaxed pt-2 border-t">
           <p>
             <span className="font-medium text-foreground">訂房組業績：</span>
-            以「訂單確認時間」（confirmed_at）為歸屬基準；若訂單尚未有確認時間，則改以「下單日」（order_date）為準。僅統計已指定成交人且未被標記「不分潤」的訂單，排除保留單與金額為零的訂單。此數字口徑與成交大師一致。
+            以訂單確認時間為主、下單日為輔，僅統計已指定成交人且未排除分潤的訂單。數字口徑與成交大師一致。
           </p>
           <p>
             <span className="font-medium text-foreground">KOL 總額：</span>
-            以「下單日」（order_date）為歸屬基準。訂單折扣碼需符合星探邀約 CID（kol_profiles）或星探專屬折扣碼(scout_discount_codes）之一才列入，排除保留單與金額為零的訂單。
+            以下單日為基準，折扣碼需符合星探邀約 CID 或星探專屬折扣碼之一才列入。
           </p>
-          <div>
+          <p>
             <span className="font-medium text-foreground">特許加盟：</span>
-            <ul className="list-none pl-4 mt-1 space-y-1">
-              <li>・內部訂單（franchise_orders）：以「成交日期」（sold_at）為歸屬基準，需已確認付款（payment_confirmed = true）。</li>
-              <li>・外部訂單（franchise_external_orders）：以「簽約日期」（signed_at）為歸屬基準，需合約進度為「已完成」。</li>
-            </ul>
-          </div>
+            內部訂單以成交日期為基準（需已確認付款）；外部訂單以簽約日期為基準（需合約已完成）。
+          </p>
           <p>
             <span className="font-medium text-foreground">住房營收：</span>
-            以「入住日期」（check_in_date）逐晚均分計算，跨月訂單按實際住宿晚數拆分至對應月份。納入已確認（confirmed）及保留單（hold）訂單，KOL 訂單（order_source = kol）金額計為零。
+            以入住日逐晚均分計算,含已確認及保留單,KOL 訂單金額計為零。
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
-            = 住房營收 × 管顧費率。費率以「當月起始日」為基準，取生效日 ≤ 當月 1 日的最新一筆設定；優先套用館別專屬費率，若無則使用全館通用預設值。無任何費率設定時該欄顯示「—」。
+            住房營收 × 管顧費率,費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
           </p>
           <p className="text-amber-600 dark:text-amber-500">
-            ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
+            ⚠️ 各列日期基準不同,與財務 Excel 對帳時請注意各列的日期口徑。
           </p>
         </div>
+
 
         {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
       </CardContent>
