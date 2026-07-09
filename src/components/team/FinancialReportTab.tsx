@@ -37,13 +37,10 @@ import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 
 /* ---------- helpers ---------- */
 
-const WEEK_LABELS = ["週1 (1-7)", "週2 (8-14)", "週3 (15-21)", "週4 (22-月底)"] as const;
-
-function getWeekIndex(day: number): 0 | 1 | 2 | 3 {
-  if (day <= 7) return 0;
-  if (day <= 14) return 1;
-  if (day <= 21) return 2;
-  return 3;
+interface WeekRange {
+  start: string; // YYYY-MM-DD (inclusive, clipped to month)
+  end: string;   // YYYY-MM-DD (inclusive, clipped to month)
+  label: string; // e.g. "週1 (7/1-7/5)"
 }
 
 const taipeiDateFmt = new Intl.DateTimeFormat("en-CA", {
@@ -58,9 +55,69 @@ function toTaipeiDateStr(iso: string): string {
   return taipeiDateFmt.format(new Date(iso));
 }
 
+const taipeiWeekdayFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Taipei",
+  weekday: "short",
+});
+
+/** Weekday index of a YYYY-MM-DD date in Taipei; 0=Sun, 1=Mon, ..., 6=Sat */
+function taipeiWeekday(dateStr: string): number {
+  // Interpret as Taipei noon to be safe; formatter yields weekday name.
+  const d = new Date(`${dateStr}T12:00:00+08:00`);
+  const wd = taipeiWeekdayFmt.format(d);
+  return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? 0;
+}
+
+function addDaysStr(dateStr: string, days: number): string {
+  // Use Taipei-noon to avoid DST edge; Taipei has no DST.
+  const d = new Date(`${dateStr}T12:00:00+08:00`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return taipeiDateFmt.format(d);
+}
+
+/** Build Mon-Sun weeks that overlap the given year/month (Taipei). 4~5 weeks. */
+function buildWeeks(year: number, month: number): WeekRange[] {
+  const mm = String(month).padStart(2, "0");
+  const monthStart = `${year}-${mm}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const dow = taipeiWeekday(monthStart); // 0=Sun..6=Sat
+  const daysFromMonday = (dow + 6) % 7; // Mon=0, Sun=6
+  let weekStart = addDaysStr(monthStart, -daysFromMonday);
+
+  const weeks: WeekRange[] = [];
+  while (weekStart <= monthEnd && weeks.length < 6) {
+    const weekEnd = addDaysStr(weekStart, 6);
+    const clipStart = weekStart < monthStart ? monthStart : weekStart;
+    const clipEnd = weekEnd > monthEnd ? monthEnd : weekEnd;
+    if (clipStart <= clipEnd) {
+      const sm = Number(clipStart.slice(5, 7));
+      const sd = Number(clipStart.slice(8, 10));
+      const em = Number(clipEnd.slice(5, 7));
+      const ed = Number(clipEnd.slice(8, 10));
+      weeks.push({
+        start: clipStart,
+        end: clipEnd,
+        label: `週${weeks.length + 1} (${sm}/${sd}-${em}/${ed})`,
+      });
+    }
+    weekStart = addDaysStr(weekStart, 7);
+  }
+  return weeks;
+}
+
+/** Return 0-based week index for a Taipei date string; -1 if not in month. */
+function getWeekIndex(dateStr: string, weeks: WeekRange[]): number {
+  for (let i = 0; i < weeks.length; i++) {
+    if (dateStr >= weeks[i].start && dateStr <= weeks[i].end) return i;
+  }
+  return -1;
+}
+
 const fmtMoney = (n: number) => `NT$ ${Math.round(n).toLocaleString()}`;
 
-const emptyBuckets = (): number[] => [0, 0, 0, 0];
+const emptyBuckets = (n: number): number[] => Array.from({ length: n }, () => 0);
 
 /* ---------- component ---------- */
 
@@ -93,11 +150,11 @@ export default function FinancialReportTab() {
   const [accsLoaded, setAccsLoaded] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [row1, setRow1] = useState<number[]>(emptyBuckets());
-  const [row2, setRow2] = useState<number[]>(emptyBuckets());
-  const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: emptyBuckets(), children: [] });
-  const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: emptyBuckets(), children: [] });
-  const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: emptyBuckets(), children: [], hasAnyRate: false });
+  const [row1, setRow1] = useState<number[]>([]);
+  const [row2, setRow2] = useState<number[]>([]);
+  const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: [], children: [] });
+  const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: [], children: [] });
+  const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: [], children: [], hasAnyRate: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [canManageFees, setCanManageFees] = useState(false);
   const [canViewFees, setCanViewFees] = useState(false);
@@ -108,6 +165,9 @@ export default function FinancialReportTab() {
   const monthEndDate = new Date(year, month, 0); // 0 = 上個月最後一天
   const daysInMonth = monthEndDate.getDate();
   const monthEnd = `${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+  const weekCount = weeks.length;
 
   /* --- load enabled notification accommodations --- */
   useEffect(() => {
@@ -165,8 +225,8 @@ export default function FinancialReportTab() {
       setLoading(true);
       try {
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
-        const r1 = emptyBuckets();
-        const r2 = emptyBuckets();
+        const r1 = emptyBuckets(weekCount);
+        const r2 = emptyBuckets(weekCount);
 
         // KOL 折扣碼白名單：scout_discount_codes ∪ kol_profiles.cid_code（全域，比對用大寫集合）
         const [{ data: scoutCodesRaw }, { data: kolCidRaw }] = await Promise.all([
@@ -242,8 +302,9 @@ export default function FinancialReportTab() {
             if (!basisIso) continue;
             const basisStr = toTaipeiDateStr(basisIso);
             if (basisStr < monthStart || basisStr > monthEnd) continue;
-            const day = Number(basisStr.slice(8, 10));
-            r1[getWeekIndex(day)] += price;
+            const w = getWeekIndex(basisStr, weeks);
+            if (w < 0) continue;
+            r1[w] += price;
           }
 
           // Row 2 累計（KOL）
@@ -256,8 +317,9 @@ export default function FinancialReportTab() {
             if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
             const dc = String(o.discount_code ?? "").toUpperCase();
             if (!dc || !kolCodeSet.has(dc)) continue;
-            const day = Number(orderDateStr.slice(8, 10));
-            r2[getWeekIndex(day)] += price;
+            const w = getWeekIndex(orderDateStr, weeks);
+            if (w < 0) continue;
+            r2[w] += price;
           }
         }
 
@@ -297,7 +359,7 @@ export default function FinancialReportTab() {
 
         /* ---- Row 3: franchise ---- */
         const row3ByAcc = new Map<string, number[]>();
-        for (const id of franchiseAccIds) row3ByAcc.set(id, emptyBuckets());
+        for (const id of franchiseAccIds) row3ByAcc.set(id, emptyBuckets(weekCount));
 
         if (projectToAcc.size > 0) {
           const projectNames = Array.from(projectToAcc.keys());
@@ -317,9 +379,9 @@ export default function FinancialReportTab() {
             if (!accId) continue;
             const qty = Number(o.quantity ?? 1) || 1;
             const amount = Number(o.plan_price ?? 0) * qty;
-            const day = Number(soldAt.slice(8, 10));
-            const w = getWeekIndex(day);
-            const b = row3ByAcc.get(accId) ?? emptyBuckets();
+            const w = getWeekIndex(soldAt, weeks);
+            if (w < 0) continue;
+            const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
           }
@@ -338,18 +400,18 @@ export default function FinancialReportTab() {
             const accId = projectToAcc.get(o.project_name);
             if (!accId) continue;
             const amount = Number(o.total_amount ?? 0);
-            const day = Number(signed.slice(8, 10));
-            const w = getWeekIndex(day);
-            const b = row3ByAcc.get(accId) ?? emptyBuckets();
+            const w = getWeekIndex(signed, weeks);
+            if (w < 0) continue;
+            const b = row3ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += amount;
             row3ByAcc.set(accId, b);
           }
         }
 
-        const row3Total = emptyBuckets();
+        const row3Total = emptyBuckets(weekCount);
         const row3Children: GroupedRow[] = [];
         for (const [accId, b] of row3ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row3Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row3Total[i] += b[i];
           row3Children.push({
             key: `row3-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -360,7 +422,7 @@ export default function FinancialReportTab() {
 
         /* ---- Row 4: 住房營收 (stay-range overlap，按晚均分) ---- */
         const row4ByAcc = new Map<string, number[]>();
-        for (const id of franchiseAccIds) row4ByAcc.set(id, emptyBuckets());
+        for (const id of franchiseAccIds) row4ByAcc.set(id, emptyBuckets(weekCount));
 
         if (franchiseAccIds.length > 0) {
           const { data: stayOrders } = await supabase
@@ -380,25 +442,25 @@ export default function FinancialReportTab() {
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
             const daily = orderPrice / nights;
+            let cur = ci;
             for (let n = 0; n < nights; n++) {
-              const d = new Date(ciDate);
-              d.setDate(d.getDate() + n);
-              const y = d.getFullYear();
-              const m = d.getMonth() + 1;
-              if (y !== year || m !== month) continue;
-              const day = d.getDate();
-              const w = getWeekIndex(day);
-              const b = row4ByAcc.get(o.accommodation_id) ?? emptyBuckets();
-              b[w] += daily;
-              row4ByAcc.set(o.accommodation_id, b);
+              if (cur >= monthStart && cur <= monthEnd) {
+                const w = getWeekIndex(cur, weeks);
+                if (w >= 0) {
+                  const b = row4ByAcc.get(o.accommodation_id) ?? emptyBuckets(weekCount);
+                  b[w] += daily;
+                  row4ByAcc.set(o.accommodation_id, b);
+                }
+              }
+              cur = addDaysStr(cur, 1);
             }
           }
         }
 
-        const row4Total = emptyBuckets();
+        const row4Total = emptyBuckets(weekCount);
         const row4Children: GroupedRow[] = [];
         for (const [accId, b] of row4ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row4Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row4Total[i] += b[i];
           row4Children.push({
             key: `row4-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -425,20 +487,20 @@ export default function FinancialReportTab() {
             return null;
           };
           for (const accId of franchiseAccIds) {
-            const stay = row4ByAcc.get(accId) ?? emptyBuckets();
+            const stay = row4ByAcc.get(accId) ?? emptyBuckets(weekCount);
             const rate = pickRate(accId);
             if (rate == null) {
-              row5ByAcc.set(accId, emptyBuckets());
+              row5ByAcc.set(accId, emptyBuckets(weekCount));
               continue;
             }
             hasAnyRate = true;
             row5ByAcc.set(accId, stay.map((v) => v * rate));
           }
         }
-        const row5Total = emptyBuckets();
+        const row5Total = emptyBuckets(weekCount);
         const row5Children: GroupedRow[] = [];
         for (const [accId, b] of row5ByAcc.entries()) {
-          for (let i = 0; i < 4; i++) row5Total[i] += b[i];
+          for (let i = 0; i < weekCount; i++) row5Total[i] += b[i];
           row5Children.push({
             key: `row5-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -572,8 +634,8 @@ export default function FinancialReportTab() {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[160px]">項目</TableHead>
-                {WEEK_LABELS.map((w) => (
-                  <TableHead key={w} className="text-right whitespace-nowrap">{w}</TableHead>
+                {weeks.map((w, i) => (
+                  <TableHead key={i} className="text-right whitespace-nowrap">{w.label}</TableHead>
                 ))}
                 <TableHead className="text-right whitespace-nowrap">TOTAL</TableHead>
               </TableRow>
@@ -581,7 +643,7 @@ export default function FinancialReportTab() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={weekCount + 2} className="text-center py-8">
                     <Loader2 className="inline h-4 w-4 animate-spin mr-2" />載入中…
                   </TableCell>
                 </TableRow>
@@ -590,7 +652,8 @@ export default function FinancialReportTab() {
                   const total = row.buckets.reduce((a, b) => a + b, 0);
                   const expandable = !isChild && (row.children?.length ?? 0) > 0;
                   const isOpen = !!expanded[row.key];
-                  const showDash = row.key === "row5" && !row5.hasAnyRate;
+                  const isRow5 = row.key === "row5";
+                  const totalDash = isRow5 && !row5.hasAnyRate;
                   return (
                     <TableRow key={row.key} className={isChild ? "bg-muted/30" : ""}>
                       <TableCell className={`font-medium ${depth > 0 ? "pl-8" : ""}`}>
@@ -615,22 +678,24 @@ export default function FinancialReportTab() {
                       </TableCell>
                       {row.buckets.map((v, i) => (
                         <TableCell key={i} className="text-right tabular-nums whitespace-nowrap">
-                          {showDash ? "—" : fmtMoney(v)}
+                          {isRow5 ? "—" : fmtMoney(v)}
                         </TableCell>
                       ))}
                       <TableCell className="text-right tabular-nums whitespace-nowrap font-semibold">
-                        {showDash ? "—" : fmtMoney(total)}
+                        {totalDash ? "—" : fmtMoney(total)}
                       </TableCell>
                     </TableRow>
                   );
                 })
               )}
               {!loading && (() => {
-                const totals = emptyBuckets();
-                for (const b of [row1, row2, row3.buckets, row4.buckets, row5.buckets]) {
-                  for (let i = 0; i < 4; i++) totals[i] += b[i];
+                const totals = emptyBuckets(weekCount);
+                // Row 5 週欄位不納入合計；只有 TOTAL 加入 Row 5 總額
+                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                  for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
                 }
-                const grand = totals.reduce((a, b) => a + b, 0);
+                const row5Total = row5.buckets.reduce((a, b) => a + b, 0);
+                const grand = totals.reduce((a, b) => a + b, 0) + row5Total;
                 return (
                   <TableRow className="bg-muted font-bold border-t-2">
                     <TableCell className="font-bold">合計</TableCell>
