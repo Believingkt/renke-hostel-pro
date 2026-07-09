@@ -685,6 +685,22 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </Dialog>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && !deleting && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此加倍活動設定嗎？此動作無法復原。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+              {deleting ? "刪除中…" : "刪除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
