@@ -669,6 +669,10 @@ export default function FinancialReportTab() {
             <span className="font-medium text-foreground">住房營收：</span>
             以「入住日期」（check_in_date）逐晚均分計算，跨月訂單按實際住宿晚數拆分至對應月份。納入已確認（confirmed）及保留單（hold）訂單，KOL 訂單（order_source = kol）金額計為零。
           </p>
+          <p>
+            <span className="font-medium text-foreground">管顧費用：</span>
+            = 住房營收 × 管顧費率。費率以「當月起始日」為基準，取生效日 ≤ 當月 1 日的最新一筆設定；優先套用館別專屬費率，若無則使用全館通用預設值。無任何費率設定時該欄顯示「—」。
+          </p>
           <p className="text-amber-600 dark:text-amber-500">
             ⚠️ 各列日期基準不同，與財務 Excel 對帳時請注意各列所使用的日期口徑。
           </p>
