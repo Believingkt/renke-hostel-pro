@@ -582,6 +582,7 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                 <TableHead>發放月份範圍</TableHead>
                 <TableHead>說明</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead className="w-16 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -599,6 +600,16 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                       ) : (
                         <Badge variant="outline">{s.label}</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeletingId(r.id)}
+                        aria-label="刪除"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
