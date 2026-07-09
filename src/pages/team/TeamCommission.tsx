@@ -43,12 +43,15 @@ import FinancialReportTab from "@/components/team/FinancialReportTab";
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
-  closer: "成交組訂房佣金",
+  closer: "成交組獎金",
   video: "影音組分潤",
   scout_kol: "星探KOL分潤",
-  scout_base: "星探底薪+團隊獎金",
-  franchise_internal: "特許加盟獎金",
-  starlink: "星鏈方案獎金",
+  scout_rarity: "星探稀有度獎金",
+  scout_base: "星探底薪",
+  scout_team: "星探團隊獎金",
+  franchise_internal: "特許加盟內部",
+  franchise_external: "特許加盟外部",
+  starlink: "星鏈分潤",
 };
 
 // 結算規則用（不含「全部」）
