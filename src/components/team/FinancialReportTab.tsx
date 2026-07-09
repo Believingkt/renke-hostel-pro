@@ -97,7 +97,10 @@ export default function FinancialReportTab() {
   const [row2, setRow2] = useState<number[]>(emptyBuckets());
   const [row3, setRow3] = useState<GroupedRow>({ key: "row3", label: "特許加盟", buckets: emptyBuckets(), children: [] });
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: emptyBuckets(), children: [] });
+  const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: emptyBuckets(), children: [], hasAnyRate: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [canManageFees, setCanManageFees] = useState(false);
+  const [canViewFees, setCanViewFees] = useState(false);
 
   // 月首日/末日字串（純日期比較用）
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
