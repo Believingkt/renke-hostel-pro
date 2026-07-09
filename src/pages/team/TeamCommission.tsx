@@ -685,7 +685,6 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </Dialog>
 
       <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && !deleting && setDeletingId(null)}>
         <AlertDialogContent>
