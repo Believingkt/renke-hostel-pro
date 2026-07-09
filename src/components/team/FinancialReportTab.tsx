@@ -627,7 +627,7 @@ export default function FinancialReportTab() {
               )}
               {!loading && (() => {
                 const totals = emptyBuckets();
-                for (const b of [row1, row2, row3.buckets, row4.buckets]) {
+                for (const b of [row1, row2, row3.buckets, row4.buckets, row5.buckets]) {
                   for (let i = 0; i < 4; i++) totals[i] += b[i];
                 }
                 const grand = totals.reduce((a, b) => a + b, 0);
