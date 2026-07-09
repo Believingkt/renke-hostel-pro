@@ -683,3 +683,237 @@ export default function FinancialReportTab() {
     </Card>
   );
 }
+
+/* ---------- 管顧費率設定區塊 ---------- */
+
+interface FeeRow {
+  id: string;
+  rate: number;
+  accommodation_id: string | null;
+  effective_from: string;
+  note: string | null;
+}
+
+function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<FeeRow[]>([]);
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    effective_from: new Date().toISOString().slice(0, 10),
+    ratePercent: "",
+    accommodation_id: "all" as string,
+    note: "",
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [{ data: feeData }, { data: accData }] = await Promise.all([
+        supabase
+          .from("consulting_fee_settings")
+          .select("id, rate, accommodation_id, effective_from, note")
+          .order("effective_from", { ascending: false }),
+        supabase.from("accommodation_info").select("id, name").order("name"),
+      ]);
+      setRows((feeData ?? []) as FeeRow[]);
+      setAccs(((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const accMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of accs) m.set(a.id, a.name);
+    return m;
+  }, [accs]);
+
+  const handleSubmit = async () => {
+    const pct = Number(form.ratePercent);
+    if (!form.effective_from || !Number.isFinite(pct) || pct < 0) {
+      toast.error("請輸入有效的生效日期與費率");
+      return;
+    }
+    const rate = pct / 100;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("consulting_fee_settings").insert({
+        rate,
+        accommodation_id: form.accommodation_id === "all" ? null : form.accommodation_id,
+        effective_from: form.effective_from,
+        note: form.note.trim() || null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+      toast.success("已新增費率版本");
+      setDialogOpen(false);
+      setForm({
+        effective_from: new Date().toISOString().slice(0, 10),
+        ratePercent: "",
+        accommodation_id: "all",
+        note: "",
+      });
+      await load();
+    } catch (e: any) {
+      toast.error(e.message ?? "新增失敗");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="pt-4 border-t mt-4">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        管顧費率設定
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          {canManage && (
+            <div className="flex justify-end">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    新增費率版本
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="overflow-x-hidden">
+                  <DialogHeader>
+                    <DialogTitle>新增費率版本</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label>生效日期</Label>
+                      <Input
+                        type="date"
+                        value={form.effective_from}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, effective_from: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>費率 (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="例如 10 表示 10%"
+                        value={form.ratePercent}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, ratePercent: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>適用館別</Label>
+                      <Select
+                        value={form.accommodation_id}
+                        onValueChange={(v) =>
+                          setForm((f) => ({ ...f, accommodation_id: v }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">全館通用</SelectItem>
+                          {accs.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>備註</Label>
+                      <Textarea
+                        value={form.note}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, note: e.target.value }))
+                        }
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      disabled={saving}
+                    >
+                      取消
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={saving}>
+                      {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                      新增
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">費率</TableHead>
+                  <TableHead className="whitespace-nowrap">適用館別</TableHead>
+                  <TableHead>備註</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">
+                      <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                      載入中…
+                    </TableCell>
+                  </TableRow>
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      尚無費率設定
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap">{r.effective_from}</TableCell>
+                      <TableCell className="text-right tabular-nums whitespace-nowrap">
+                        {(Number(r.rate) * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.accommodation_id
+                          ? accMap.get(r.accommodation_id) ?? "（已刪除）"
+                          : <span className="text-muted-foreground">全館通用</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.note ?? ""}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
