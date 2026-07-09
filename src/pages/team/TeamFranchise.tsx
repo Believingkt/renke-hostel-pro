@@ -125,6 +125,20 @@ interface FranchiseOrder {
   payout_status: string | null;
   invoice_number: string | null;
   notes: string | null;
+  early_payout_month: string | null;
+}
+
+// Taipei timezone helpers for early payout feature
+function taipeiTodayParts() {
+  const s = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date());
+  const [y, m, d] = s.split("-");
+  return {
+    y,
+    m,
+    d: Number(d),
+    monthKey: `${y}-${m}`,
+    monthLabel: `${y} 年 ${Number(m)} 月`,
+  };
 }
 
 // Compute next sequential member_number with a given prefix from existing records.
@@ -545,6 +559,7 @@ function OrdersTab({
         sold_at: detailOrder.sold_at,
         payment_confirmed: detailOrder.payment_confirmed,
         payment_at: detailOrder.payment_at,
+        early_payout_month: detailOrder.early_payout_month,
       } as any);
       setDetailMemberNumberError("");
     }
@@ -598,7 +613,7 @@ function OrdersTab({
       supabase
         .from("franchise_orders")
         .select(
-          "id,member_number,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes",
+          "id,member_number,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes,early_payout_month",
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
@@ -1285,6 +1300,39 @@ function OrdersTab({
                   detailOrder.payment_at ?? "—"
                 )}
               </DetailRow>
+              {(() => {
+                const t = taipeiTodayParts();
+                const enabled = t.d <= 10;
+                const currentValue = (detailForm.early_payout_month as string | null) ?? null;
+                const orderValue = detailOrder.early_payout_month ?? null;
+                const isEarly = detailEditing ? currentValue === t.monthKey : orderValue === t.monthKey;
+                if (!detailEditing) {
+                  return orderValue ? (
+                    <DetailRow label="提前發放">
+                      <Badge variant="secondary">已提前至 {orderValue} 發放</Badge>
+                    </DetailRow>
+                  ) : null;
+                }
+                return (
+                  <DetailRow label="提前發放">
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="detail_early_payout"
+                        disabled={!enabled}
+                        checked={isEarly}
+                        onCheckedChange={(v) =>
+                          setDetailForm({ ...detailForm, early_payout_month: v ? t.monthKey : null })
+                        }
+                      />
+                      <Label htmlFor="detail_early_payout" className="text-xs leading-tight cursor-pointer">
+                        {enabled
+                          ? `勾選後此筆獎金將提前於當月（${t.monthLabel}）10 日發放`
+                          : `每月 10 日後無法提前發放`}
+                      </Label>
+                    </div>
+                  </DetailRow>
+                );
+              })()}
               <DetailRow label="發票號碼">
                 {detailEditing ? (
                   <Input
@@ -1340,6 +1388,7 @@ function OrdersTab({
                     payment_confirmed: !!detailForm.payment_confirmed,
                     payment_at: (detailForm.payment_at as string) || null,
                     invoice_number: (detailForm.invoice_number as string)?.trim() || null,
+                    early_payout_month: (detailForm.early_payout_month as string | null) ?? null,
                     notes: (detailForm.notes as string)?.trim() || null,
                   };
                   const { error } = await supabase.from("franchise_orders").update(payload).eq("id", detailOrder.id);
@@ -2213,6 +2262,7 @@ interface ExternalOrder {
   co_sales_member_id: string | null;
   co_sales_member_id2: string | null;
   notes: string | null;
+  early_payout_month: string | null;
 }
 
 const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
@@ -2526,6 +2576,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       co_sales_member_id: form.co_sales_member_id || null,
       co_sales_member_id2: form.co_sales_member_id2 || null,
       notes: form.notes?.trim() || null,
+      early_payout_month: form.early_payout_month ?? null,
     };
     setSaving(true);
     let error;
@@ -2752,6 +2803,26 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <Input type="date" value={form.signed_at ?? ""} onChange={(e) => onChange("signed_at", e.target.value)} />
               </div>
             </div>
+            {(() => {
+              const t = taipeiTodayParts();
+              const enabled = t.d <= 10;
+              const isEarly = (form.early_payout_month ?? null) === t.monthKey;
+              return (
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="ext_early_payout"
+                    disabled={!enabled}
+                    checked={isEarly}
+                    onCheckedChange={(v) => onChange("early_payout_month", v ? t.monthKey : null)}
+                  />
+                  <Label htmlFor="ext_early_payout" className="text-xs leading-tight cursor-pointer">
+                    {enabled
+                      ? `勾選後此筆獎金將提前於當月（${t.monthLabel}）10 日發放`
+                      : `每月 10 日後無法提前發放`}
+                  </Label>
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>開發業務姓名</Label>

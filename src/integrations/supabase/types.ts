@@ -2853,6 +2853,7 @@ export type Database = {
           created_by: string | null
           customer_name: string
           customer_phone: string | null
+          early_payout_month: string | null
           id: string
           invoice_address: string | null
           invoice_carrier: boolean | null
@@ -2898,6 +2899,7 @@ export type Database = {
           created_by?: string | null
           customer_name: string
           customer_phone?: string | null
+          early_payout_month?: string | null
           id?: string
           invoice_address?: string | null
           invoice_carrier?: boolean | null
@@ -2943,6 +2945,7 @@ export type Database = {
           created_by?: string | null
           customer_name?: string
           customer_phone?: string | null
+          early_payout_month?: string | null
           id?: string
           invoice_address?: string | null
           invoice_carrier?: boolean | null
@@ -3048,6 +3051,7 @@ export type Database = {
           created_by: string | null
           customer_name: string
           customer_phone: string | null
+          early_payout_month: string | null
           id: string
           import_source: string | null
           invoice_number: string | null
@@ -3092,6 +3096,7 @@ export type Database = {
           created_by?: string | null
           customer_name: string
           customer_phone?: string | null
+          early_payout_month?: string | null
           id?: string
           import_source?: string | null
           invoice_number?: string | null
@@ -3136,6 +3141,7 @@ export type Database = {
           created_by?: string | null
           customer_name?: string
           customer_phone?: string | null
+          early_payout_month?: string | null
           id?: string
           import_source?: string | null
           invoice_number?: string | null

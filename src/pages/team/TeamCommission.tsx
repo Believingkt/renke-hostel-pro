@@ -576,6 +576,20 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   const range = useMemo(() => previousMonthRange(year, month), [year, month]);
 
+  // Widen fetch window (±3 months around prev month) so we can pick up early_payout_month rows via JS filter
+  const wideRange = useMemo(() => {
+    const [py, pm] = [range.prevYear, range.prevMonth];
+    const start = new Date(py, pm - 1 - 3, 1);
+    const endMonth = new Date(py, pm - 1 + 3 + 1, 0); // last day of prev+3
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { start: fmt(start), end: fmt(endMonth) };
+  }, [range]);
+  const prevMonthKey = useMemo(
+    () => `${range.prevYear}-${String(range.prevMonth).padStart(2, "0")}`,
+    [range],
+  );
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -611,14 +625,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("franchise_orders")
-          .select("id, sold_by, commission_amount, leader_amount, customer_name, plan_name, sold_at")
-          .gte("sold_at", start)
-          .lte("sold_at", end),
+          .select("id, sold_by, commission_amount, leader_amount, customer_name, plan_name, sold_at, early_payout_month")
+          .gte("sold_at", wideRange.start)
+          .lte("sold_at", wideRange.end),
         supabase
           .from("franchise_external_orders")
-          .select("id, sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, customer_name, project_name, signed_at")
-          .gte("signed_at", start)
-          .lte("signed_at", end),
+          .select("id, sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, customer_name, project_name, signed_at, early_payout_month")
+          .gte("signed_at", wideRange.start)
+          .lte("signed_at", wideRange.end),
         supabase
           .from("starlink_orders")
           .select("id, sold_by, commission_amount, client_name, plan_name, sold_at")
@@ -721,7 +735,17 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
+      // 決定該筆特許加盟訂單是否屬於本次「發放月」：
+      // - 有 early_payout_month → 該值 === payoutMonthKey
+      // - 無 → sold_at / signed_at 的 YYYY-MM === prevMonthKey（上月）
+      const matchesPayoutMonth = (r: any, dateField: string) => {
+        const ep = (r?.early_payout_month ?? null) as string | null;
+        if (ep) return ep === payoutMonthKey;
+        return String(r?.[dateField] ?? "").slice(0, 7) === prevMonthKey;
+      };
+
       (fInternal ?? []).forEach((r: any) => {
+        if (!matchesPayoutMonth(r, "sold_at")) return;
         const detail = `${r.customer_name ?? ""}・${r.plan_name ?? ""}`.trim();
         if (r.sold_by && Number(r.commission_amount) > 0) {
           pushItem("franchise_orders", r.id, "sales", profileByUserId.get(r.sold_by), SOURCE_LABEL.franchise_internal_sales, detail, r.commission_amount);
@@ -735,6 +759,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       (fExternal ?? []).forEach((r: any) => {
+        if (!matchesPayoutMonth(r, "signed_at")) return;
         const detail = `${r.project_name ?? ""}・${r.customer_name ?? ""}`.trim();
         if (r.sales_member_id && Number(r.sales_bonus) > 0) {
           pushItem("franchise_external_orders", r.id, "sales", profileById.get(r.sales_member_id), SOURCE_LABEL.franchise_external_sales, detail, r.sales_bonus);
@@ -927,7 +952,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [range, wideRange, prevMonthKey, year, month]);
 
   useEffect(() => {
     fetchData();
