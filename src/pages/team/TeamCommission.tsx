@@ -378,14 +378,16 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setDeletingId(r.id)}
-                        aria-label="刪除"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setDeletingId(r.id)}
+                          aria-label="刪除"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
