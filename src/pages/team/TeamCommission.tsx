@@ -151,260 +151,36 @@ interface PayoutRuleRow {
 }
 
 function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
-  const [rows, setRows] = useState<PayoutRuleRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<PayoutRuleRow | null>(null);
-  const [draft, setDraft] = useState({
-    commission_type: "closer",
-    cycle_type: "bimonthly",
-    cutoff_description: "",
-    effective_from: todayStr(),
-  });
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const latestIdByType = new Map<string, string>();
-  const countByType = new Map<string, number>();
-  for (const r of rows) {
-    countByType.set(r.commission_type, (countByType.get(r.commission_type) ?? 0) + 1);
-    if (!latestIdByType.has(r.commission_type)) latestIdByType.set(r.commission_type, r.id);
-  }
-
-  const handleDelete = async () => {
-    if (!deletingId) return;
-    setDeleting(true);
-    const { error } = await supabase.from("commission_payout_rules").delete().eq("id", deletingId);
-    setDeleting(false);
-    if (error) return toast.error(error.message);
-    toast.success("已刪除");
-    setDeletingId(null);
-    fetchRows();
-  };
-
-  const fetchRows = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("commission_payout_rules")
-      .select("*")
-      .order("commission_type", { ascending: true })
-      .order("effective_from", { ascending: false });
-    if (error) toast.error(error.message);
-    else setRows((data as PayoutRuleRow[]) ?? []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
-
-  const openNew = () => {
-    setEditing({} as PayoutRuleRow);
-    setDraft({
-      commission_type: "closer",
-      cycle_type: "bimonthly",
-      cutoff_description: "",
-      effective_from: todayStr(),
-    });
-  };
-
-  const openEdit = (r: PayoutRuleRow) => {
-    setEditing(r);
-    setDraft({
-      commission_type: r.commission_type,
-      cycle_type: r.cycle_type ?? "bimonthly",
-      cutoff_description: r.cutoff_description ?? "",
-      effective_from: todayStr(),
-    });
-  };
-
-  const save = async () => {
-    setSaving(true);
-    const { data: auth } = await supabase.auth.getUser();
-    const days = CYCLE_PAYOUT_DAYS[draft.cycle_type] ?? [];
-    const { error } = await supabase.from("commission_payout_rules").insert({
-      commission_type: draft.commission_type,
-      rule_name: null,
-      cycle_type: draft.cycle_type,
-      payout_days: days.length > 0 ? days : null,
-      cutoff_description: draft.cutoff_description || null,
-      effective_from: draft.effective_from,
-      created_by: auth.user?.id ?? null,
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("已儲存");
-    setEditing(null);
-    fetchRows();
-  };
-
-  const currentPayoutDays = CYCLE_PAYOUT_DAYS[draft.cycle_type] ?? [];
-
-  const currentRows = rows.filter((r) => latestIdByType.get(r.commission_type) === r.id);
-  const historyRows = rows.filter((r) => latestIdByType.get(r.commission_type) !== r.id);
-
-  const renderRow = (r: PayoutRuleRow, opts: { showDelete: boolean }) => {
-    const onlyOne = (countByType.get(r.commission_type) ?? 0) <= 1;
-    return (
-      <TableRow key={r.id}>
-        <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
-        <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
-        <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
-        <TableCell>{r.cutoff_description ?? "-"}</TableCell>
-        <TableCell>{r.effective_from}</TableCell>
-        <TableCell>
-          {!readOnly && (
-            <div className="flex items-center justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                以此為範本新增版本
-              </Button>
-              {opts.showDelete && (
-                onlyOne ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <Button size="sm" variant="ghost" disabled>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>至少保留一筆版本</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )
-              )}
-            </div>
-          )}
-        </TableCell>
-
-      </TableRow>
-    );
-  };
-
-  const tableHeader = (
-    <TableHeader>
-      <TableRow>
-        <TableHead>獎金類型</TableHead>
-        <TableHead>結算週期</TableHead>
-        <TableHead>發放日</TableHead>
-        <TableHead>說明</TableHead>
-        <TableHead>生效日期</TableHead>
-        <TableHead></TableHead>
-      </TableRow>
-    </TableHeader>
-  );
-
+  void readOnly;
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>結算規則</CardTitle>
-          {!readOnly && (
-            <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" /> 新增規則
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">
-            每新增一筆規則版本，新獎金計算將從該版本的生效日期開始套用。若新增錯誤，可刪除最新版本。
-          </p>
-          {loading ? null : (
-            <Table>
-              {tableHeader}
-              <TableBody>{currentRows.map((r) => renderRow(r, { showDelete: true }))}</TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {!loading && historyRows.length > 0 && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>歷史版本</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              已被新版本取代的舊規則，僅供查閱與作為新版本範本。
-            </p>
-            <Table>
-              {tableHeader}
-              <TableBody>{historyRows.map((r) => renderRow(r, { showDelete: false }))}</TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-
-      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>刪除此版本</AlertDialogTitle>
-            <AlertDialogDescription>確定刪除此版本嗎？此操作無法復原。</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-              {deleting ? "刪除中…" : "確認刪除"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto overflow-x-hidden">
-          <DialogHeader>
-            <DialogTitle>新增結算規則版本（以此為範本）</DialogTitle>
-            <DialogDescription>儲存後會新增一筆生效日期版本</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>獎金類型</Label>
-              <Select value={draft.commission_type} onValueChange={(v) => setDraft({ ...draft, commission_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(COMMISSION_TYPE_LABEL).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>生效日期</Label>
-              <Input type="date" value={draft.effective_from} onChange={(e) => setDraft({ ...draft, effective_from: e.target.value })} />
-            </div>
-            <div>
-              <Label>結算週期</Label>
-              <Select value={draft.cycle_type} onValueChange={(v) => setDraft({ ...draft, cycle_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bimonthly">每月兩次</SelectItem>
-                  <SelectItem value="monthly_early">月初發放</SelectItem>
-                  <SelectItem value="monthly_late">月底發放</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              發放日：{currentPayoutDays.map((d) => `${d} 日`).join(" / ")}
-            </div>
-            <div>
-              <Label>說明</Label>
-              <Textarea value={draft.cutoff_description} onChange={(e) => setDraft({ ...draft, cutoff_description: e.target.value })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle>結算規則說明</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm leading-7 space-y-4">
+        <p className="text-muted-foreground">各獎金類型的結算週期與發放日如下：</p>
+        <ul className="space-y-2">
+          <li><span className="font-medium">成交組訂房佣金：</span>每月 10 日發放，結算上個月整月訂單。</li>
+          <li><span className="font-medium">影音組分潤：</span>每月 10 日發放，結算上個月整月訂單。</li>
+          <li>
+            <div><span className="font-medium">星探KOL分潤：</span>每月 10 日與 25 日各發放一次。</div>
+            <ul className="pl-6 mt-1 space-y-1 text-muted-foreground list-disc">
+              <li>10 日期：結算上月 21 日 ～ 當月 5 日的入住訂單</li>
+              <li>25 日期：結算當月 6 日 ～ 當月 20 日的入住訂單</li>
+            </ul>
+          </li>
+          <li><span className="font-medium">星探底薪：</span>每月 10 日發放，以上月整月邀約達標為計算基準。</li>
+          <li><span className="font-medium">星探團隊獎金：</span>每月 10 日發放，以上月整月全隊達標為計算基準。</li>
+          <li><span className="font-medium">星探稀有度獎金：</span>10 日與 25 日各發放一次，計算區間同 KOL 分潤。</li>
+          <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
+          <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
+          <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
+        </ul>
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+          ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
