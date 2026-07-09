@@ -1192,7 +1192,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   const totalAll = groups.reduce((s, g) => s + g.total, 0);
   const totalUnpaid = groups.reduce(
-    (s, g) => s + g.items.filter((i) => !i.paid).reduce((a, i) => a + i.amount, 0),
+    (s, g) => s + g.items.filter((i) => !i.paid).reduce((a, i) => a + i.multiplied_amount, 0),
     0,
   );
 
