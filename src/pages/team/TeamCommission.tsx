@@ -410,33 +410,53 @@ interface MultiplierRow {
   id: string;
   bonus_type: string;
   multiplier: number;
-  start_date: string;
-  end_date: string;
+  start_month: string;
+  end_month: string;
   reason: string | null;
-  is_active: boolean;
+}
+
+function currentMonthKeyTaipei(): string {
+  const f = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  });
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(new Date())) parts[p.type] = p.value;
+  return `${parts.year}-${parts.month}`;
 }
 
 function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<MultiplierRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const nowKey = currentMonthKeyTaipei();
+  const [nowY, nowM] = nowKey.split("-");
   const [draft, setDraft] = useState({
     bonus_type: "all",
     multiplier: "1.5",
-    start_date: todayStr(),
-    end_date: todayStr(),
+    start_year: nowY,
+    start_month: nowM,
+    end_year: nowY,
+    end_month: nowM,
     reason: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const yearOptions = useMemo(() => {
+    const y = Number(nowY);
+    return Array.from({ length: 5 }, (_, i) => String(y - 1 + i));
+  }, [nowY]);
+  const monthOptions = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("bonus_multiplier_settings")
-      .select("*")
-      .order("start_date", { ascending: false });
+      .select("id, bonus_type, multiplier, start_month, end_month, reason")
+      .order("start_month", { ascending: false });
     if (error) toast.error(error.message);
-    else setRows((data as MultiplierRow[]) ?? []);
+    else setRows((data as unknown as MultiplierRow[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -446,18 +466,39 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
 
   const save = async () => {
     if (Number(draft.multiplier) < 1) return toast.error("倍率最小 1.0");
-    if (!draft.start_date || !draft.end_date) return toast.error("請填日期");
+    const startMonth = `${draft.start_year}-${draft.start_month}`;
+    const endMonth = `${draft.end_year}-${draft.end_month}`;
+    if (startMonth > endMonth) return toast.error("結束發放月不能早於生效發放月");
+
     setSaving(true);
+    // 防呆：與同 bonus_type 的現有設定月份範圍重疊即擋下
+    const { data: existing, error: exErr } = await supabase
+      .from("bonus_multiplier_settings")
+      .select("bonus_type, start_month, end_month")
+      .eq("bonus_type", draft.bonus_type);
+    if (exErr) {
+      setSaving(false);
+      return toast.error(exErr.message);
+    }
+    const overlap = (existing ?? []).find(
+      (r: any) => r.start_month <= endMonth && r.end_month >= startMonth,
+    );
+    if (overlap) {
+      setSaving(false);
+      return toast.error(
+        `與現有設定重疊（${BONUS_TYPE_LABEL[(overlap as any).bonus_type] ?? (overlap as any).bonus_type} ${(overlap as any).start_month}～${(overlap as any).end_month} 已存在），請調整月份範圍`,
+      );
+    }
+
     const { data: auth } = await supabase.auth.getUser();
     const { error } = await supabase.from("bonus_multiplier_settings").insert({
       bonus_type: draft.bonus_type,
       multiplier: Number(draft.multiplier),
-      start_date: draft.start_date,
-      end_date: draft.end_date,
+      start_month: startMonth,
+      end_month: endMonth,
       reason: draft.reason || null,
-      is_active: true,
       created_by: auth.user?.id ?? null,
-    });
+    } as any);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("已新增活動");
@@ -465,18 +506,11 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
     fetchRows();
   };
 
-  const endEarly = async (id: string) => {
-    if (!confirm("確定要提前結束此活動嗎？")) return;
-    const { error } = await supabase
-      .from("bonus_multiplier_settings")
-      .update({ is_active: false })
-      .eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("已結束");
-    fetchRows();
+  const statusOf = (r: MultiplierRow): { label: string; className: string } => {
+    if (r.start_month > nowKey) return { label: "未開始", className: "" };
+    if (r.end_month < nowKey) return { label: "已結束", className: "" };
+    return { label: "進行中", className: "bg-green-100 text-green-700 border-green-200" };
   };
-
-  const today = todayStr();
 
   return (
     <Card>
@@ -489,8 +523,10 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
               setDraft({
                 bonus_type: "all",
                 multiplier: "1.5",
-                start_date: today,
-                end_date: today,
+                start_year: nowY,
+                start_month: nowM,
+                end_year: nowY,
+                end_month: nowM,
                 reason: "",
               });
               setOpen(true);
@@ -501,39 +537,51 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
         )}
       </CardHeader>
       <CardContent>
+        <div className="text-sm text-muted-foreground mb-3 space-y-1">
+          <p>獎金加倍活動以「發放月份」為單位設定，設定生效後，該發放月的對應獎金發放金額將乘以指定倍率。</p>
+          <p className="font-medium mt-2">設定欄位說明：</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            <li>獎金類型：選擇要加倍的獎金種類</li>
+            <li>倍率：例如 2 = 雙倍、1.5 = 1.5 倍</li>
+            <li>生效發放月：從哪個月的發放開始套用</li>
+            <li>結束發放月：到哪個月的發放結束（含該月）</li>
+          </ul>
+          <p className="font-medium mt-2">舉例：</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            <li>稀有度獎金從 8 月到 12 月雙倍：設定「稀有度獎金 / 倍率 2 / 生效 2026-08 / 結束 2026-12」→ 這段期間每次發放的稀有度獎金都會 × 2</li>
+            <li>9 月成交組三倍，10 月恢復正常：設定「成交組 / 倍率 3 / 生效 2026-09 / 結束 2026-09」→ 只有 9 月發放的成交組獎金 × 3，10 月自動恢復</li>
+          </ul>
+          <p className="font-medium mt-2">注意事項：</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            <li>無加倍設定的月份自動視為倍率 1（不加倍）</li>
+            <li>加倍計算套用於發放金額，原始業績統計數字不受影響</li>
+          </ul>
+        </div>
         {loading ? null : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>類型</TableHead>
                 <TableHead>倍率</TableHead>
-                <TableHead>活動期間</TableHead>
+                <TableHead>發放月份範圍</TableHead>
                 <TableHead>說明</TableHead>
                 <TableHead>狀態</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r) => {
-                const active = r.is_active && r.start_date <= today && r.end_date >= today;
+                const s = statusOf(r);
                 return (
                   <TableRow key={r.id}>
                     <TableCell>{BONUS_TYPE_LABEL[r.bonus_type] ?? r.bonus_type}</TableCell>
                     <TableCell>{Number(r.multiplier).toFixed(2)}x</TableCell>
-                    <TableCell>{r.start_date} ~ {r.end_date}</TableCell>
+                    <TableCell>{r.start_month} ~ {r.end_month}</TableCell>
                     <TableCell>{r.reason ?? "-"}</TableCell>
                     <TableCell>
-                      {active ? (
-                        <Badge className="bg-green-100 text-green-700 border-green-200">進行中</Badge>
+                      {s.className ? (
+                        <Badge className={s.className}>{s.label}</Badge>
                       ) : (
-                        <Badge variant="outline">已結束</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {active && !readOnly && (
-                        <Button size="sm" variant="ghost" onClick={() => endEarly(r.id)}>
-                          <StopCircle className="h-4 w-4 mr-1" />提前結束
-                        </Button>
+                        <Badge variant="outline">{s.label}</Badge>
                       )}
                     </TableCell>
                   </TableRow>
@@ -563,14 +611,40 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
               <Label>倍率（最小 1.0）</Label>
               <Input type="number" step="0.1" min="1" value={draft.multiplier} onChange={(e) => setDraft({ ...draft, multiplier: e.target.value })} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>開始日</Label>
-                <Input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} />
+                <Label>生效發放月</Label>
+                <div className="flex gap-2">
+                  <Select value={draft.start_year} onValueChange={(v) => setDraft({ ...draft, start_year: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={draft.start_month} onValueChange={(v) => setDraft({ ...draft, start_month: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((m) => <SelectItem key={m} value={m}>{m} 月</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
-                <Label>結束日</Label>
-                <Input type="date" value={draft.end_date} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} />
+                <Label>結束發放月</Label>
+                <div className="flex gap-2">
+                  <Select value={draft.end_year} onValueChange={(v) => setDraft({ ...draft, end_year: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={draft.end_month} onValueChange={(v) => setDraft({ ...draft, end_month: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((m) => <SelectItem key={m} value={m}>{m} 月</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             <div>
@@ -587,6 +661,7 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
     </Card>
   );
 }
+
 
 /* ============================== Tab 1: Payouts (彙整所有獎金來源) ============================== */
 
