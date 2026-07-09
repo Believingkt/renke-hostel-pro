@@ -1066,7 +1066,26 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       }
 
 
-      // 4. 依人分組
+      // 3.5 加倍活動：查該發放月的所有設定，建立 bonus_type → multiplier map
+      const { data: multRows } = await supabase
+        .from("bonus_multiplier_settings")
+        .select("bonus_type, multiplier, start_month, end_month")
+        .lte("start_month", payoutMonthKey)
+        .gte("end_month", payoutMonthKey);
+      const multiplierMap = new Map<string, number>();
+      (multRows ?? []).forEach((r: any) => {
+        multiplierMap.set(r.bonus_type, Number(r.multiplier ?? 1));
+      });
+      const allMult = multiplierMap.get("all") ?? 1;
+      items.forEach((it) => {
+        const bt = bonusTypeOf(it.source_table, it.role_key);
+        const specific = bt ? (multiplierMap.get(bt) ?? 1) : 1;
+        const mult = specific * allMult;
+        it.multiplier = mult;
+        it.multiplied_amount = Math.round(it.amount * mult);
+      });
+
+      // 4. 依人分組（合計使用加倍後金額）
       const groupMap = new Map<string, MemberGroup>();
       items.forEach((it) => {
         const key = it.member_id ?? "__unassigned__";
@@ -1078,7 +1097,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
         const g = groupMap.get(key)!;
         g.items.push(it);
-        g.total += it.amount;
+        g.total += it.multiplied_amount;
       });
 
       const list = Array.from(groupMap.values()).sort((a, b) => b.total - a.total);
