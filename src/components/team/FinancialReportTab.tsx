@@ -166,6 +166,9 @@ export default function FinancialReportTab() {
   const daysInMonth = monthEndDate.getDate();
   const monthEnd = `${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
 
+  const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+  const weekCount = weeks.length;
+
   /* --- load enabled notification accommodations --- */
   useEffect(() => {
     let cancelled = false;
