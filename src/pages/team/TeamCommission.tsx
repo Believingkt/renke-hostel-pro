@@ -673,9 +673,31 @@ interface SourceItem {
   member_id: string | null;     // team_member_profiles.id
   source_label: string;
   detail: string;               // 訂單描述 / 客戶名
-  amount: number;
+  amount: number;               // 原始金額
+  multiplier: number;           // 套用倍率（1 = 不加倍）
+  multiplied_amount: number;    // 加倍後金額（顯示與合計用）
   paid: boolean;
   payout_date: string | null;
+}
+
+// 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
+function bonusTypeOf(source_table: string, role_key: string): string | null {
+  if (source_table === "closer_commission_snapshots") {
+    if (role_key === "closer") return "closer";
+    if (role_key === "video") return "video";
+  }
+  if (source_table === "scout_monthly_payouts") {
+    if (role_key === "base") return "scout_base";
+    if (role_key === "rarity") return "scout_rarity";
+    if (role_key === "kol") return "scout_kol";
+    if (role_key === "team") return "scout_team";
+  }
+  if (source_table === "franchise_orders") return "franchise_internal";
+  if (source_table === "franchise_external_orders") return "franchise_external";
+  if (source_table === "starlink_orders") return "starlink";
+  if (source_table === "scout_discount_codes_kol") return "scout_kol";
+  if (source_table === "scout_discount_codes_closer") return "closer";
+  return null;
 }
 
 interface MemberGroup {
