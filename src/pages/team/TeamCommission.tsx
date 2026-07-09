@@ -433,6 +433,8 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<MultiplierRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const nowKey = currentMonthKeyTaipei();
   const [nowY, nowM] = nowKey.split("-");
   const [draft, setDraft] = useState({
@@ -509,6 +511,17 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
     fetchRows();
   };
 
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("bonus_multiplier_settings").delete().eq("id", deletingId);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success("已刪除");
+    setDeletingId(null);
+    fetchRows();
+  };
+
   const statusOf = (r: MultiplierRow): { label: string; className: string } => {
     if (r.start_month > nowKey) return { label: "未開始", className: "" };
     if (r.end_month < nowKey) return { label: "已結束", className: "" };
@@ -569,6 +582,7 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                 <TableHead>發放月份範圍</TableHead>
                 <TableHead>說明</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead className="w-16 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -586,6 +600,16 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                       ) : (
                         <Badge variant="outline">{s.label}</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeletingId(r.id)}
+                        aria-label="刪除"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -661,6 +685,21 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && !deleting && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此加倍活動設定嗎？此動作無法復原。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+              {deleting ? "刪除中…" : "刪除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
