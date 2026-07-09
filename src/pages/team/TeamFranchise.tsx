@@ -148,6 +148,21 @@ function taipeiTodayParts() {
   };
 }
 
+// Given an order date string (YYYY-MM-DD), return the previous month key/label.
+// Used for early payout: 提前一期 = 訂單月份 - 1。
+function prevMonthOfDate(dateStr: string | null | undefined) {
+  if (!dateStr || dateStr.length < 7) return null;
+  const y = Number(dateStr.slice(0, 4));
+  const m = Number(dateStr.slice(5, 7));
+  if (!y || !m) return null;
+  const prevYear = m === 1 ? y - 1 : y;
+  const prevMonth = m === 1 ? 12 : m - 1;
+  return {
+    key: `${prevYear}-${String(prevMonth).padStart(2, "0")}`,
+    label: `${prevYear} 年 ${prevMonth} 月`,
+  };
+}
+
 // Compute next sequential member_number with a given prefix from existing records.
 // Returns e.g. "S1006" given existing max "S1005". Falls back to "{prefix}1001".
 const nextMemberNumber = (existing: (string | null | undefined)[], prefix: string) => {
@@ -1310,9 +1325,10 @@ function OrdersTab({
               {(() => {
                 const t = taipeiTodayParts();
                 const enabled = t.d <= 10;
+                const soldAt = (detailForm.sold_at as string | null) ?? detailOrder.sold_at ?? null;
+                const prev = prevMonthOfDate(soldAt);
                 const currentValue = (detailForm.early_payout_month as string | null) ?? null;
                 const orderValue = detailOrder.early_payout_month ?? null;
-                const isEarly = detailEditing ? currentValue === t.prevMonthKey : orderValue === t.prevMonthKey;
                 if (!detailEditing) {
                   return orderValue ? (
                     <DetailRow label="提前發放">
@@ -1320,20 +1336,24 @@ function OrdersTab({
                     </DetailRow>
                   ) : null;
                 }
+                const isEarly = prev ? currentValue === prev.key : false;
+                const canEarly = enabled && !!prev;
                 return (
                   <DetailRow label="提前發放">
                     <div className="flex items-start gap-2">
                       <Checkbox
                         id="detail_early_payout"
-                        disabled={!enabled}
+                        disabled={!canEarly}
                         checked={isEarly}
                         onCheckedChange={(v) =>
-                          setDetailForm({ ...detailForm, early_payout_month: v ? t.prevMonthKey : null })
+                          setDetailForm({ ...detailForm, early_payout_month: v && prev ? prev.key : null })
                         }
                       />
                       <Label htmlFor="detail_early_payout" className="text-xs leading-tight cursor-pointer">
-                        {enabled
-                          ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
+                        {!prev
+                          ? `請先填寫簽約日期`
+                          : enabled
+                          ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
@@ -2813,18 +2833,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             {(() => {
               const t = taipeiTodayParts();
               const enabled = t.d <= 10;
-              const isEarly = (form.early_payout_month ?? null) === t.prevMonthKey;
+              const prev = prevMonthOfDate((form.signed_at as string | null) ?? null);
+              const isEarly = prev ? (form.early_payout_month ?? null) === prev.key : false;
+              const canEarly = enabled && !!prev;
               return (
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id="ext_early_payout"
-                    disabled={!enabled}
+                    disabled={!canEarly}
                     checked={isEarly}
-                    onCheckedChange={(v) => onChange("early_payout_month", v ? t.prevMonthKey : null)}
+                    onCheckedChange={(v) => onChange("early_payout_month", v && prev ? prev.key : null)}
                   />
                   <Label htmlFor="ext_early_payout" className="text-xs leading-tight cursor-pointer">
-                    {enabled
-                      ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
+                    {!prev
+                      ? `請先填寫簽約日期`
+                      : enabled
+                      ? `勾選後此筆獎金將提前於 ${prev.label} 10 日發放`
                       : `每月 10 日後無法提前發放`}
                   </Label>
                 </div>
