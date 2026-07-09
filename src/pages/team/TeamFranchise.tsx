@@ -148,6 +148,21 @@ function taipeiTodayParts() {
   };
 }
 
+// Given an order date string (YYYY-MM-DD), return the previous month key/label.
+// Used for early payout: 提前一期 = 訂單月份 - 1。
+function prevMonthOfDate(dateStr: string | null | undefined) {
+  if (!dateStr || dateStr.length < 7) return null;
+  const y = Number(dateStr.slice(0, 4));
+  const m = Number(dateStr.slice(5, 7));
+  if (!y || !m) return null;
+  const prevYear = m === 1 ? y - 1 : y;
+  const prevMonth = m === 1 ? 12 : m - 1;
+  return {
+    key: `${prevYear}-${String(prevMonth).padStart(2, "0")}`,
+    label: `${prevYear} 年 ${prevMonth} 月`,
+  };
+}
+
 // Compute next sequential member_number with a given prefix from existing records.
 // Returns e.g. "S1006" given existing max "S1005". Falls back to "{prefix}1001".
 const nextMemberNumber = (existing: (string | null | undefined)[], prefix: string) => {
