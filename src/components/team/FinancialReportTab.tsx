@@ -137,6 +137,26 @@ export default function FinancialReportTab() {
     };
   }, []);
 
+  /* --- role permissions for 管顧費率設定 --- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+      const manage = roleSet.has("hotel_admin") || roleSet.has("super_admin");
+      const view = manage || roleSet.has("finance");
+      setCanManageFees(manage);
+      setCanViewFees(view);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   /* --- load report --- */
   useEffect(() => {
     if (!accsLoaded) return;
