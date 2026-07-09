@@ -548,8 +548,12 @@ export default function TeamHome() {
     };
   }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
 
-  const cards: Array<{ key: string; title: string; amount: number; note?: string }> = [];
-  if (showCloser) cards.push({ key: "closer", title: "成交獎金", amount: closerAmt });
+  const cards: Array<{ key: string; title: string; amount: number; note?: string; lines?: Array<{ label: string; amount: number }> }> = [];
+  if (showCloser) {
+    const lines = [{ label: "訂房成交獎金", amount: closerAmt }];
+    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserAmt });
+    cards.push({ key: "closer", title: "成交獎金", amount: closerAmt + scoutCloserAmt, lines });
+  }
   if (showVideo) cards.push({ key: "video", title: "影音獎金", amount: videoAmt });
   if (showScout) {
     cards.push({ key: "scout_kol", title: "KOL 分潤", amount: scoutAmt });
