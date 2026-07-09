@@ -407,11 +407,52 @@ export default function FinancialReportTab() {
         }
         row4Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
+        /* ---- Row 5: 管顧費用 = 住房營收 × 費率（依館別、依生效日取最新） ---- */
+        const row5ByAcc = new Map<string, number[]>();
+        let hasAnyRate = false;
+        if (franchiseAccIds.length > 0) {
+          const { data: feeRows } = await supabase
+            .from("consulting_fee_settings")
+            .select("rate, accommodation_id, effective_from")
+            .lte("effective_from", monthStart)
+            .order("effective_from", { ascending: false });
+          const fees = (feeRows ?? []) as any[];
+          const pickRate = (accId: string): number | null => {
+            const specific = fees.find((f) => f.accommodation_id === accId);
+            if (specific) return Number(specific.rate);
+            const fallback = fees.find((f) => f.accommodation_id == null);
+            if (fallback) return Number(fallback.rate);
+            return null;
+          };
+          for (const accId of franchiseAccIds) {
+            const stay = row4ByAcc.get(accId) ?? emptyBuckets();
+            const rate = pickRate(accId);
+            if (rate == null) {
+              row5ByAcc.set(accId, emptyBuckets());
+              continue;
+            }
+            hasAnyRate = true;
+            row5ByAcc.set(accId, stay.map((v) => v * rate));
+          }
+        }
+        const row5Total = emptyBuckets();
+        const row5Children: GroupedRow[] = [];
+        for (const [accId, b] of row5ByAcc.entries()) {
+          for (let i = 0; i < 4; i++) row5Total[i] += b[i];
+          row5Children.push({
+            key: `row5-${accId}`,
+            label: franchiseAccNameMap.get(accId) ?? accId,
+            buckets: b,
+          });
+        }
+        row5Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
         if (cancelled) return;
         setRow1(r1);
         setRow2(r2);
         setRow3({ key: "row3", label: "特許加盟", buckets: row3Total, children: row3Children });
         setRow4({ key: "row4", label: "住房營收", buckets: row4Total, children: row4Children });
+        setRow5({ key: "row5", label: "管顧費用", buckets: row5Total, children: row5Children, hasAnyRate });
       } finally {
         if (!cancelled) setLoading(false);
       }
