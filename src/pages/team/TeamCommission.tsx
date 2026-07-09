@@ -1032,6 +1032,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             source_label: label,
             detail,
             amount,
+            multiplier: 1,
+            multiplied_amount: amount,
             paid,
             payout_date: r.payout_date ?? null,
           });
