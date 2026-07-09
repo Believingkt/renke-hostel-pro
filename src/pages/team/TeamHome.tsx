@@ -74,8 +74,10 @@ export default function TeamHome() {
   const [baseSalaryAmt, setBaseSalaryAmt] = useState(0);
   const [teamBonusAmt, setTeamBonusAmt] = useState(0);
   const [isScoutTeamMember, setIsScoutTeamMember] = useState(false);
-  const [franchiseAmt, setFranchiseAmt] = useState(0);
+  const [franchiseInternalAmt, setFranchiseInternalAmt] = useState(0);
+  const [franchiseExternalAmt, setFranchiseExternalAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
+  const [multipliers, setMultipliers] = useState<Record<string, number>>({});
 
   const monthInfo = useMemo(() => {
     const now = taipeiParts();
