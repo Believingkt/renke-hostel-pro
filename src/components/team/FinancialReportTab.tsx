@@ -546,8 +546,8 @@ export default function FinancialReportTab() {
         row5Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
         if (cancelled) return;
-        setRow1(r1);
-        setRow2(r2);
+        setRow1(row1Grouped);
+        setRow2(row2Grouped);
         setRow3({ key: "row3", label: "特許加盟", buckets: row3Total, children: row3Children });
         setRow4({ key: "row4", label: "住房營收", buckets: row4Total, children: row4Children });
         setRow5({ key: "row5", label: "管顧費用", buckets: row5Total, children: row5Children, hasAnyRate });
