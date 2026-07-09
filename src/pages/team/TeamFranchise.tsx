@@ -4634,13 +4634,24 @@ function FranchisePayoutsTab() {
   const range = useMemo(() => {
     const pad = (n: number) => String(n).padStart(2, "0");
     if (year === "ALL" && month === "ALL") {
-      return { monthStart: null as string | null, monthEnd: null as string | null, label: "全部訂單", displayLabel: "全部訂單" };
+      return {
+        monthStart: null as string | null,
+        monthEnd: null as string | null,
+        fetchStart: null as string | null,
+        fetchEnd: null as string | null,
+        targetMonthKey: null as string | null,
+        label: "全部訂單",
+        displayLabel: "全部訂單",
+      };
     }
     if (year !== "ALL" && month === "ALL") {
       const y = Number(year);
       return {
         monthStart: `${y}-01-01`,
         monthEnd: `${y + 1}-01-01`,
+        fetchStart: `${y}-01-01`,
+        fetchEnd: `${y + 1}-01-01`,
+        targetMonthKey: null as string | null,
         label: `${y} 全年`,
         displayLabel: `${y}-01-01 ～ ${y}-12-31`,
       };
@@ -4652,9 +4663,16 @@ function FranchisePayoutsTab() {
     const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
     const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
     const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+    // 前後各 3 個月的撈取範圍，用於涵蓋 early_payout_month 命中的訂單
+    const fetchStartDate = new Date(targetYear, targetMonth - 1 - 3, 1);
+    const fetchEndDate = new Date(targetYear, targetMonth - 1 + 4, 1);
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
     return {
       monthStart: `${targetYear}-${pad(targetMonth)}-01`,
       monthEnd: `${nextYear}-${pad(nextMonth)}-01`,
+      fetchStart: fmt(fetchStartDate),
+      fetchEnd: fmt(fetchEndDate),
+      targetMonthKey: `${targetYear}-${pad(targetMonth)}`,
       label: `${targetYear}-${pad(targetMonth)}`,
       displayLabel: `${targetYear}-${pad(targetMonth)}-01 ～ ${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
     };
@@ -4666,10 +4684,10 @@ function FranchisePayoutsTab() {
       setLoadingI(true);
       let q = supabase
         .from("franchise_orders")
-        .select("id,customer_name,plan_name,plan_price,commission_amount,leader_amount,sold_at,sold_by,sold_by_name,team_leader")
+        .select("id,customer_name,plan_name,plan_price,commission_amount,leader_amount,sold_at,sold_by,sold_by_name,team_leader,early_payout_month")
         .eq("payment_confirmed", true);
-      if (range.monthStart && range.monthEnd) {
-        q = q.gte("sold_at", range.monthStart).lt("sold_at", range.monthEnd);
+      if (range.fetchStart && range.fetchEnd) {
+        q = q.gte("sold_at", range.fetchStart).lt("sold_at", range.fetchEnd);
       }
       const { data, error } = await q.order("sold_at", { ascending: true });
       if (aborted) return;
@@ -4677,7 +4695,14 @@ function FranchisePayoutsTab() {
         toast.error("讀取內部銷售失敗：" + error.message);
         setInternalOrders([]);
       } else {
-        setInternalOrders((data ?? []) as FpInternalOrder[]);
+        let rows = (data ?? []) as Array<FpInternalOrder & { early_payout_month?: string | null }>;
+        if (range.targetMonthKey) {
+          rows = rows.filter((o) => {
+            const key = o.early_payout_month ?? (o.sold_at ? o.sold_at.slice(0, 7) : null);
+            return key === range.targetMonthKey;
+          });
+        }
+        setInternalOrders(rows as FpInternalOrder[]);
       }
       setLoadingI(false);
     };
@@ -4685,10 +4710,10 @@ function FranchisePayoutsTab() {
       setLoadingE(true);
       let q = supabase
         .from("franchise_external_orders")
-        .select("id,customer_name,project_name,total_amount,plan_price,unit_count,sales_name,sales_bonus,co_sales_name,co_sales_bonus,co_sales_name2,co_sales_bonus2,signed_at,contract_progress")
+        .select("id,customer_name,project_name,total_amount,plan_price,unit_count,sales_name,sales_bonus,co_sales_name,co_sales_bonus,co_sales_name2,co_sales_bonus2,signed_at,contract_progress,early_payout_month")
         .eq("contract_progress", "已完成");
-      if (range.monthStart && range.monthEnd) {
-        q = q.gte("signed_at", range.monthStart).lt("signed_at", range.monthEnd);
+      if (range.fetchStart && range.fetchEnd) {
+        q = q.gte("signed_at", range.fetchStart).lt("signed_at", range.fetchEnd);
       }
       const { data, error } = await q.order("signed_at", { ascending: true });
       if (aborted) return;
@@ -4696,14 +4721,21 @@ function FranchisePayoutsTab() {
         toast.error("讀取外部銷售失敗：" + error.message);
         setExternalOrders([]);
       } else {
-        setExternalOrders((data ?? []) as FpExternalOrder[]);
+        let rows = (data ?? []) as Array<FpExternalOrder & { early_payout_month?: string | null }>;
+        if (range.targetMonthKey) {
+          rows = rows.filter((o) => {
+            const key = o.early_payout_month ?? (o.signed_at ? o.signed_at.slice(0, 7) : null);
+            return key === range.targetMonthKey;
+          });
+        }
+        setExternalOrders(rows as FpExternalOrder[]);
       }
       setLoadingE(false);
     };
     void loadInternal();
     void loadExternal();
     return () => { aborted = true; };
-  }, [range.monthStart, range.monthEnd]);
+  }, [range.fetchStart, range.fetchEnd, range.targetMonthKey]);
 
   useEffect(() => {
     const ids = Array.from(new Set([
