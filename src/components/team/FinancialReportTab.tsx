@@ -627,7 +627,7 @@ export default function FinancialReportTab() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>館別（Row 1、2）</Label>
+            <Label>可篩選訂房組業績與 KOL 總額</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
