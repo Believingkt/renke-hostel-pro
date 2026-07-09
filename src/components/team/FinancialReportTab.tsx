@@ -643,7 +643,7 @@ export default function FinancialReportTab() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={weekCount + 2} className="text-center py-8">
                     <Loader2 className="inline h-4 w-4 animate-spin mr-2" />載入中…
                   </TableCell>
                 </TableRow>
