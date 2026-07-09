@@ -317,8 +317,9 @@ export default function FinancialReportTab() {
             if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
             const dc = String(o.discount_code ?? "").toUpperCase();
             if (!dc || !kolCodeSet.has(dc)) continue;
-            const day = Number(orderDateStr.slice(8, 10));
-            r2[getWeekIndex(day)] += price;
+            const w = getWeekIndex(orderDateStr, weeks);
+            if (w < 0) continue;
+            r2[w] += price;
           }
         }
 
