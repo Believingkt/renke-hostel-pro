@@ -715,32 +715,42 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", month),
         supabase
           .from("scout_discount_codes")
-          .select("discount_code, closer_id, closer_rate, accommodation_id")
+          .select("discount_code, closer_rate")
+          .eq("commission_type", "partner")
           .gt("closer_rate", 0)
-          .not("closer_id", "is", null)
           .eq("is_active", true),
       ]);
 
-      // 星探成交獎金：查該月訂單，JS 側 toUpperCase 比對
-      const scoutCloserMap = new Map<string, { closer_id: string; closer_rate: number }>();
+      // 星探成交獎金：折扣碼 → closer_rate（成交人來自 order_meta.closer_id）
+      const scoutCloserMap = new Map<string, number>();
       (scoutCloserCodes ?? []).forEach((c: any) => {
-        if (c.discount_code && c.closer_id && Number(c.closer_rate) > 0) {
-          scoutCloserMap.set(String(c.discount_code).trim().toUpperCase(), {
-            closer_id: c.closer_id,
-            closer_rate: Number(c.closer_rate),
-          });
+        if (c.discount_code && Number(c.closer_rate) > 0) {
+          scoutCloserMap.set(String(c.discount_code).trim().toUpperCase(), Number(c.closer_rate));
         }
       });
       let scoutCloserOrders: any[] = [];
+      const closerByOrderId = new Map<string, string>();
+      const excludedOrderIds = new Set<string>();
       if (scoutCloserMap.size > 0) {
         const { data: ords } = await supabase
           .from("orders")
-          .select("id, discount_code, final_price, order_date, accommodation_id, order_status")
+          .select("id, discount_code, final_price, order_date")
           .neq("order_status", "cancelled")
           .not("discount_code", "is", null)
           .gte("order_date", start)
           .lt("order_date", nextMonthStart);
         scoutCloserOrders = ords ?? [];
+        const orderIds = scoutCloserOrders.map((o: any) => o.id);
+        if (orderIds.length > 0) {
+          const { data: metas } = await supabase
+            .from("order_meta")
+            .select("order_id, closer_id, is_excluded")
+            .in("order_id", orderIds);
+          (metas ?? []).forEach((m: any) => {
+            if (m.is_excluded) excludedOrderIds.add(m.order_id);
+            if (m.closer_id) closerByOrderId.set(m.order_id, m.closer_id);
+          });
+        }
       }
 
 
@@ -820,15 +830,18 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
       scoutCloserOrders.forEach((o: any) => {
         if (!o.discount_code || !o.final_price) return;
-        const hit = scoutCloserMap.get(String(o.discount_code).trim().toUpperCase());
-        if (!hit) return;
-        const amount = Math.round(Number(o.final_price) * Number(hit.closer_rate));
+        if (excludedOrderIds.has(o.id)) return;
+        const rate = scoutCloserMap.get(String(o.discount_code).trim().toUpperCase());
+        if (!rate) return;
+        const closerUserId = closerByOrderId.get(o.id);
+        if (!closerUserId) return;
+        const amount = Math.round(Number(o.final_price) * rate);
         if (!amount) return;
         pushItem(
           "scout_discount_codes_closer",
           o.id,
           "closer",
-          profileByUserId.get(hit.closer_id),
+          profileByUserId.get(closerUserId),
           SOURCE_LABEL.scout_closer,
           `訂單 ${String(o.id).slice(0, 8)}・${o.discount_code}`,
           amount,
