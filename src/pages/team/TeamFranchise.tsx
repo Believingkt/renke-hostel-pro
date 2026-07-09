@@ -1312,7 +1312,7 @@ function OrdersTab({
                 const enabled = t.d <= 10;
                 const currentValue = (detailForm.early_payout_month as string | null) ?? null;
                 const orderValue = detailOrder.early_payout_month ?? null;
-                const isEarly = detailEditing ? currentValue === t.monthKey : orderValue === t.monthKey;
+                const isEarly = detailEditing ? currentValue === t.prevMonthKey : orderValue === t.prevMonthKey;
                 if (!detailEditing) {
                   return orderValue ? (
                     <DetailRow label="提前發放">
@@ -1328,12 +1328,12 @@ function OrdersTab({
                         disabled={!enabled}
                         checked={isEarly}
                         onCheckedChange={(v) =>
-                          setDetailForm({ ...detailForm, early_payout_month: v ? t.monthKey : null })
+                          setDetailForm({ ...detailForm, early_payout_month: v ? t.prevMonthKey : null })
                         }
                       />
                       <Label htmlFor="detail_early_payout" className="text-xs leading-tight cursor-pointer">
                         {enabled
-                          ? `勾選後此筆獎金將提前於當月（${t.monthLabel}）10 日發放`
+                          ? `勾選後此筆獎金將提前於上月（${t.prevMonthLabel}）10 日發放`
                           : `每月 10 日後無法提前發放`}
                       </Label>
                     </div>
