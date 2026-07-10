@@ -146,6 +146,11 @@ Deno.serve(async (req) => {
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
 
+// Minimum spacing (seconds) between a successful Commit and a subsequent Modify
+// for the same order. OwlNest silently drops reservations when Modify lands
+// within a few seconds of Commit while its async pipeline is still ingesting.
+const MODIFY_MIN_GAP_SECONDS = 60;
+
 async function processRow(
   admin: any,
   row: QueueRow,
@@ -156,6 +161,37 @@ async function processRow(
     accommodation_id: row.accommodation_id,
     res_status: row.res_status,
   };
+
+  // Defer Modify if a successful Commit for the same order was sent very recently.
+  // We compare on the parent order (queue rows share order_id) via the queue log.
+  if (row.res_status === "Modify") {
+    const { data: parentRow } = await admin
+      .from("owlting_order_push_queue")
+      .select("order_id")
+      .eq("id", row.id)
+      .maybeSingle();
+    const orderId = parentRow?.order_id;
+    if (orderId) {
+      const cutoffIso = new Date(Date.now() - MODIFY_MIN_GAP_SECONDS * 1000).toISOString();
+      const { data: recentCommit } = await admin
+        .from("owlting_order_push_log")
+        .select("id, created_at, queue_id, owlting_order_push_queue!inner(order_id)")
+        .eq("owlting_order_push_queue.order_id", orderId)
+        .eq("res_status", "Commit")
+        .eq("success", true)
+        .gt("created_at", cutoffIso)
+        .limit(1);
+      if (recentCommit && recentCommit.length > 0) {
+        const nextRetry = new Date(Date.now() + MODIFY_MIN_GAP_SECONDS * 1000).toISOString();
+        await admin.from("owlting_order_push_queue").update({
+          status: "pending",
+          next_retry_at: nextRetry,
+          last_error: "deferred: waiting for OwlNest to finish ingesting recent Commit",
+        }).eq("id", row.id);
+        return { id: row.id, outcome: "deferred", reason: "recent commit" };
+      }
+    }
+  }
 
   // Mark sending
   await admin.from("owlting_order_push_queue").update({
