@@ -109,13 +109,12 @@ Deno.test("Payload never contains credentials", () => {
   assert(!/UsernameToken/i.test(xml));
 });
 
-Deno.test("Notes are sent to OwlNest order remarks, not SpecialRequests", () => {
+Deno.test("Notes are also sent as SpecialRequests so OwlNest 特殊需求 shows payment status", () => {
   const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
   assertStringIncludes(xml, `<OrderRemarks><OrderRemark>靠窗 &amp; 高樓層</OrderRemark></OrderRemarks>`);
-  assertStringIncludes(xml, `<Comments><Comment GuestViewable="false"><Text>靠窗 &amp; 高樓層</Text></Comment></Comments>`);
+  assertStringIncludes(xml, `<SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests>`);
   const commentCount = (xml.match(/<Comments>/g) ?? []).length;
   assertEquals(commentCount, 3, "notes should be present on each RoomStay and ResGlobalInfo");
-  assert(!xml.includes("<SpecialRequests>"), "OwlNest order remarks must not be sent as SpecialRequests");
 });
 
 Deno.test("Unpaid PMS orders are marked deposit-required and pay-at-hotel", () => {
