@@ -350,16 +350,30 @@ async function processRow(
     });
   }
 
-  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註，
-  // 但不改變 total_amount — 讓 OwlTing 端仍以「未結清」狀態顯示，避免收款結帳困擾。
+  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註。
+  // 同時在 ResGlobalInfo 送 <Guarantee GuaranteeType="GuaranteeRequired"/>，
+  // 讓奧丁丁維持「待結清」狀態，不會被自動判定為已結清。
   const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
   const paidStatus = String(order.payment_status ?? "");
-  const paidAmt = paidStatus === "paid" || paidStatus === "fully_paid"
-    ? finalTotal
-    : (paidStatus === "deposit_paid" ? depositAmt : 0);
+  const isFullyPaid = paidStatus === "paid" || paidStatus === "fully_paid";
+  const isDepositPaid = paidStatus === "deposit_paid";
+  const paidAmt = isFullyPaid ? finalTotal : (isDepositPaid ? depositAmt : 0);
   const balanceAmt = Math.max(0, finalTotal - paidAmt);
-  const payLine = `[人客多收款狀態] 總額 ${finalTotal} / 已收 ${paidAmt}（${paidStatus || "unpaid"}） / 未收 ${balanceAmt}`;
+  const remainderAmt = Math.max(0, finalTotal - depositAmt);
+  const depositLabel = isFullyPaid || isDepositPaid ? "已付" : "未付";
+  const remainderLabel = isFullyPaid ? "已付" : "未付";
+  const statusLabel = isFullyPaid ? "已全額付款" : (isDepositPaid ? "已付訂金" : "未付款");
+  const payLines = [
+    `[人客多收款狀態] ${statusLabel}`,
+    `　總額 NT$${finalTotal}`,
+    depositAmt > 0
+      ? `　訂金 NT$${depositAmt}（${depositLabel}） / 尾款 NT$${remainderAmt}（${remainderLabel}）`
+      : `　訂金 未設定 / 尾款 NT$${finalTotal}（${remainderLabel}）`,
+    `　已收 NT$${paidAmt} / 未收 NT$${balanceAmt}`,
+  ];
+  const payLine = payLines.join("\n");
   const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
+
 
   const owlOrder: OwlOrderInput = {
     order_number: order.order_number,

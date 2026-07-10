@@ -113,6 +113,10 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
   const { first, last } = splitName(order.guest_name);
   return [
     `<ResGlobalInfo>`,
+      // Guarantee node signals to OwlTing that payment is NOT prepaid via
+      // channel — the reservation should stay as 待結清 until front desk
+      // records payment manually.
+      `<Guarantee GuaranteeType="GuaranteeRequired"/>`,
       `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
