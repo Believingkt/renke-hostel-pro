@@ -254,7 +254,7 @@ async function processRow(
   const finalTotal = Math.round(Number(order.final_price ?? order.total_price ?? 0));
   const origTotal = rawStayInputs.reduce((s, x) => s + x.unit_amount * x.quantity, 0);
   const stayInputs = rawStayInputs.map((s) => ({ ...s }));
-  if (finalTotal > 0 && origTotal > 0 && stayInputs.length > 0) {
+  if (finalTotal >= 0 && origTotal > 0 && stayInputs.length > 0) {
     let allocated = 0;
     for (let i = 0; i < stayInputs.length; i++) {
       const s = stayInputs[i];
