@@ -4442,9 +4442,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
             <Field label="團隊目標數">
               <Input type="number" min={0} placeholder="0" value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
             </Field>
-            <Field label="正職個人最低目標">
-              <Input type="number" min={0} placeholder="0" value={addFulltimeMin} onChange={(e) => setAddFulltimeMin(e.target.value)} />
-            </Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>取消</Button>
