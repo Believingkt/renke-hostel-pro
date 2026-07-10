@@ -4248,14 +4248,13 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 <TableHead className="text-right">目標邀約數</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達成率</TableHead>
-                <TableHead className="text-right">正職個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
@@ -4268,7 +4267,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                       <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{rate}%</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                           {achievementLabel(r.actual_count, r.target_count)}
@@ -4314,9 +4312,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
               <TableRow>
                 <TableHead>星探</TableHead>
                 <TableHead>場域</TableHead>
-                <TableHead className="text-right">正職個人目標</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
-                <TableHead className="text-right">達標狀態</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -4330,29 +4326,18 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 if (filtered.length === 0) {
                   return (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
                         本月尚無正職個人邀約紀錄
                       </TableCell>
                     </TableRow>
                   );
                 }
                 return filtered.map((r, i) => {
-                  const reached = r.actual_count >= r.fulltime_min && r.fulltime_min > 0;
-                  const badge =
-                    r.fulltime_min <= 0 ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : reached ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">✅ 達標</Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">❌ 未達標</Badge>
-                    );
                   return (
                     <TableRow key={`${r.scout_id}-${r.venue_name}-${i}`}>
                       <TableCell>{r.scout_name}</TableCell>
                       <TableCell>{r.venue_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{!r.fulltime_min || r.fulltime_min <= 0 ? <span className="text-muted-foreground">尚未設定</span> : r.fulltime_min}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
-                      <TableCell className="text-right">{badge}</TableCell>
                     </TableRow>
                   );
                 });
@@ -4420,9 +4405,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
             <Field label="團隊目標數">
               <Input type="number" min={0} value={editTarget} onChange={(e) => setEditTarget(e.target.value)} />
             </Field>
-            <Field label="正職個人最低目標">
-              <Input type="number" min={0} value={editFulltimeMin} onChange={(e) => setEditFulltimeMin(e.target.value)} />
-            </Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditRow(null)} disabled={saving}>取消</Button>
@@ -4459,9 +4441,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
             </Field>
             <Field label="團隊目標數">
               <Input type="number" min={0} placeholder="0" value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
-            </Field>
-            <Field label="正職個人最低目標">
-              <Input type="number" min={0} placeholder="0" value={addFulltimeMin} onChange={(e) => setAddFulltimeMin(e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
@@ -6476,8 +6455,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     if (Number.isNaN(tt) || tt < 0) return toast.error("請輸入有效的團隊目標數");
     const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
     if (pm !== null && (Number.isNaN(pm) || pm < 0)) return toast.error("請輸入有效的兼職個人最低目標");
-    const fm = parseInt(fFulltimeMin, 10);
-    if (Number.isNaN(fm) || fm < 0) return toast.error("請輸入有效的正職個人最低目標");
+    const fm = 0;
 
     // 新增模式才檢查重複；編輯模式直接覆蓋同一筆
     if (!editing) {
@@ -6551,7 +6529,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     const m = parseInt(fMonth, 10);
     const tt = parseInt(fTeamTarget, 10);
     const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
-    const fm = parseInt(fFulltimeMin, 10);
+    const fm = 0;
     await performSave(m, tt, pm, fm);
   };
 
@@ -6629,7 +6607,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
               <TableHead>場域</TableHead>
               <TableHead className="text-right">團隊目標數</TableHead>
               <TableHead className="text-right">兼職個人最低目標</TableHead>
-              <TableHead className="text-right">正職個人最低目標</TableHead>
               <TableHead className="text-center">星鏈場域</TableHead>
               {isManager && <TableHead className="text-right">操作</TableHead>}
             </TableRow>
@@ -6637,7 +6614,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
           <TableBody>
             {loading ? null : filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
                   尚無目標資料
                 </TableCell>
               </TableRow>
@@ -6650,7 +6627,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                   <TableCell className="text-right tabular-nums">
                     {r.personal_min == null ? "不限定" : r.personal_min}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
                   <TableCell className="text-center">{r.is_starlink ? "✅" : "－"}</TableCell>
                   {isManager && (
                     <TableCell className="text-right">
@@ -6674,9 +6650,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {filteredRows.reduce((sum, r) => sum + (r.personal_min ?? 0), 0)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {filteredRows.reduce((sum, r) => sum + (r.fulltime_min ?? 0), 0)}
                 </TableCell>
                 <TableCell />
                 {isManager && <TableCell />}
@@ -6732,10 +6705,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                 onChange={(e) => setFPersonalMin(e.target.value)}
                 placeholder="不限定"
               />
-            </div>
-            <div className="space-y-1">
-              <Label>正職個人最低目標</Label>
-              <Input type="number" min={0} value={fFulltimeMin} onChange={(e) => setFFulltimeMin(e.target.value)} />
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
