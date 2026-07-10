@@ -117,6 +117,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
+const OwlTingFieldMappingCheck = lazy(() => import("./pages/OwlTingFieldMappingCheck"));
 const OwlTingFillup = lazy(() => import("./pages/OwlTingFillup"));
 
 // AI 助理訓練中心 (Phase 2)
