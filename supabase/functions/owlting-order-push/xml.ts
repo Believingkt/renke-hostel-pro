@@ -184,9 +184,11 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
         order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
       `</Customer></Profile></ProfileInfo></Profiles>`,
-      // OwlNest's 「訂單備註」 is not the OTA SpecialRequests field. Send a
-      // dedicated OrderRemarks node while keeping Comments/TPA mirrors for
-      // channel-manager parsers that map only one of these locations.
+      // OwlNest 後台「特殊需求」欄位實際讀 SpecialRequests；沒送時它會用
+      // ResGuest.PersonName 自動拼成 "guest: <name>" 顯示。我們把付款/訂金
+      // 摘要（含在 order.notes 內）塞進 SpecialRequests，確保後台看得到。
+      order.notes ? `<SpecialRequests><SpecialRequest><Text>${esc(order.notes)}</Text></SpecialRequest></SpecialRequests>` : ``,
+      // 保留 OrderRemarks / Comments / TPA 三個位置，供其他 CM parser 對應。
       orderRemarks,
       comments,
       tpaRemarks,
