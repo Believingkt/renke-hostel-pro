@@ -72,23 +72,12 @@ function buildPos(): string {
   return `<POS><Source><RequestorID Type="22" ID="LAKEZE"/><BookingChannel Type="7" Primary="true"><CompanyName Code="LAKEZE">人客多 LAKEZE</CompanyName></BookingChannel></Source></POS>`;
 }
 
-function buildSpecialRequests(notes?: string | null): string {
-  return notes
-    ? `<SpecialRequests><SpecialRequest><Text>${esc(notes)}</Text></SpecialRequest></SpecialRequests>`
-    : ``;
-}
-
 function buildRoomStay(
   hotelCode: string,
   rs: OwlRoomStayInput,
   checkIn: string,
   checkOut: string,
-  notes?: string | null,
 ): string {
-  const comments = notes
-    ? `<Comments><Comment GuestViewable="false"><Text>${esc(notes)}</Text></Comment></Comments>`
-    : ``;
-  const specialRequests = buildSpecialRequests(notes);
   return [
     `<RoomStay>`,
       `<RoomTypes><RoomType RoomTypeCode="${esc(rs.roomTypeCode)}"`,
@@ -107,12 +96,8 @@ function buildRoomStay(
         rs.children && rs.children > 0 ? `<GuestCount AgeQualifyingCode="8" Count="${esc(rs.children)}"/>` : ``,
       `</GuestCounts>`,
       `<TimeSpan Start="${esc(checkIn)}" End="${esc(checkOut)}"/>`,
-      `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD" Type="Net"/>`,
+      `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD"/>`,
       `<BasicPropertyInfo HotelCode="${esc(hotelCode)}"/>`,
-      comments,
-      // OwlNest 後台「特殊需求」目前看起來優先讀 RoomStay 層級。
-      // ResGlobalInfo 層級已送成功但既有訂單畫面未更新，因此同步補在每個 RoomStay。
-      specialRequests,
     `</RoomStay>`,
   ].join("");
 }
@@ -127,84 +112,18 @@ function buildResGuests(order: OwlOrderInput): string {
           order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
           order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
         `</Customer></Profile></ProfileInfo></Profiles>`,
-        // Some CM parsers bind special requests to the guest record, not ResGlobalInfo.
-        // Sending the same payment summary here replaces OwlNest's fallback "guest: <name>" text.
-        buildSpecialRequests(order.notes),
       `</ResGuest>`,
     `</ResGuests>`,
   ].join("");
 }
 
-function buildPaymentMarkers(order: OwlOrderInput): string {
-  const paymentStatus = String(order.payment_status ?? "");
-  const isFullyPaid = paymentStatus === "paid" || paymentStatus === "fully_paid";
-  const isDepositPaid = paymentStatus === "deposit_paid";
-  const depositAmount = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
-  const paidAmount = Math.max(0, Math.round(Number(order.paid_amount ?? 0)));
-
-  if (isFullyPaid) {
-    return [
-      `<Guarantee GuaranteeType="PrePay"/>`,
-      `<DepositPayments><GuaranteePayment GuaranteeType="PrePay"><AmountPercent Amount="${esc(order.total_amount)}" CurrencyCode="TWD" DecimalPlaces="0"/>`,
-      order.notes ? `<Description><Text>${esc(order.notes)}</Text></Description>` : ``,
-      `</GuaranteePayment></DepositPayments>`,
-      `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="Prepaid"/></AcceptableGuarantees></BookingRule></BookingRules>`,
-    ].join("");
-  }
-
-  const guaranteeType = depositAmount > 0
-    ? (isDepositPaid || paidAmount > 0 ? "Deposit" : "DepositRequired")
-    : "GuaranteeRequired";
-
-  return [
-    `<Guarantee GuaranteeType="${guaranteeType}"/>`,
-    depositAmount > 0
-      ? [
-          `<DepositPayments><GuaranteePayment GuaranteeType="${guaranteeType}">`,
-            `<AmountPercent Amount="${esc(depositAmount)}" CurrencyCode="TWD" DecimalPlaces="0"/>`,
-            order.notes ? `<Description><Text>${esc(order.notes)}</Text></Description>` : ``,
-          `</GuaranteePayment></DepositPayments>`,
-        ].join("")
-      : ``,
-    `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="PayAtHotel"/></AcceptableGuarantees></BookingRule></BookingRules>`,
-  ].join("");
-}
-
 function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
-  const { first, last } = splitName(order.guest_name);
-  const orderRemarks = order.notes
-    ? `<OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks>`
-    : ``;
-  const comments = order.notes
-    ? `<Comments><Comment GuestViewable="false" Name="OrderRemark"><Text>${esc(order.notes)}</Text></Comment></Comments>`
-    : ``;
-  const tpaRemarks = order.notes
-    ? `<TPA_Extensions><OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></TPA_Extensions>`
-    : ``;
   return [
     `<ResGlobalInfo>`,
-      `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD" Type="Net"/>`,
+      `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
       `</HotelReservationIDs>`,
-      // OwlNest marked PMS-originated orders as settled when only Total was sent.
-      // Send explicit OTA payment markers instead: DepositRequired/Deposit for
-      // deposit workflows, PayAtHotel for unsettled balances, and PrePay only
-      // when the PMS order is actually fully paid.
-      buildPaymentMarkers(order),
-      `<Profiles><ProfileInfo><Profile ProfileType="1"><Customer>`,
-        `<PersonName><GivenName>${esc(first)}</GivenName><Surname>${esc(last)}</Surname></PersonName>`,
-        order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
-        order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
-      `</Customer></Profile></ProfileInfo></Profiles>`,
-      // OwlNest 後台「特殊需求」欄位實際讀 SpecialRequests；沒送時它會用
-      // ResGuest.PersonName 自動拼成 "guest: <name>" 顯示。我們把付款/訂金
-      // 摘要（含在 order.notes 內）塞進 SpecialRequests，確保後台看得到。
-      buildSpecialRequests(order.notes),
-      // 保留 OrderRemarks / Comments / TPA 三個位置，供其他 CM parser 對應。
-      orderRemarks,
-      comments,
-      tpaRemarks,
     `</ResGlobalInfo>`,
   ].join("");
 }
@@ -216,7 +135,7 @@ function buildHotelReservation(
 ): string {
   const now = opts.nowIso ?? new Date().toISOString();
   const stays = order.roomStays
-    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date, order.notes))
+    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date))
     .join("");
 
   // Per OpenTravel + OwlTing convention: CreateDateTime only on Commit;
@@ -231,7 +150,6 @@ function buildHotelReservation(
       `<RoomStays>${stays}</RoomStays>`,
       buildResGuests(order),
       buildResGlobalInfo(order, opts.uniqueId),
-      order.notes ? `<TPA_Extensions><OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks></TPA_Extensions>` : ``,
     `</HotelReservation>`,
   ].join("");
 }
