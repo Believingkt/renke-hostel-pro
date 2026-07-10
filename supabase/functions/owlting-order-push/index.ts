@@ -31,11 +31,12 @@ const MAX_ATTEMPTS = 5;
 interface QueueRow {
   id: string;
   accommodation_id: string;
-  order_id: string;
+  order_id: string | null;
   res_status: ResStatus;
   echo_token: string;
   status: string;
   attempt_count: number;
+  order_snapshot: any | null;
 }
 
 // --- Single fetch wrapper: only place that talks to OwlTing externally.
@@ -119,7 +120,7 @@ Deno.serve(async (req) => {
   const nowIso = new Date().toISOString();
   const { data: queue, error: qErr } = await admin
     .from("owlting_order_push_queue")
-    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count")
+    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count, order_snapshot")
     .eq("status", "pending")
     .lte("next_retry_at", nowIso)
     .order("created_at", { ascending: true })
@@ -181,23 +182,59 @@ async function processRow(
     return { id: row.id, outcome: "skipped" };
   }
 
-  // Load order with rooms
-  const { data: order } = await admin
-    .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
-    .eq("id", row.order_id)
-    .maybeSingle();
+  // Load order with rooms. When the order row has been deleted (order_id is
+  // now NULL due to ON DELETE SET NULL) we fall back to order_snapshot that the
+  // BEFORE DELETE trigger captured — needed to send the Cancel push.
+  let order: any = null;
+  if (row.order_id) {
+    const { data } = await admin
+      .from("orders")
+      .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+      .eq("id", row.order_id)
+      .maybeSingle();
+    order = data;
+  }
+  let snapshotRooms: any[] | null = null;
+  if (!order && row.order_snapshot) {
+    const s = row.order_snapshot;
+    order = {
+      id: s.id,
+      order_number: s.order_number,
+      accommodation_id: s.accommodation_id,
+      check_in_date: s.check_in_date,
+      check_out_date: s.check_out_date,
+      guest_count: s.guest_count,
+      guest_name: s.guest_name,
+      guest_phone: s.guest_phone,
+      guest_email: s.guest_email,
+      total_price: s.total_price,
+      final_price: s.final_price,
+      deposit_amount: s.deposit_amount,
+      payment_status: s.payment_status,
+      notes: s.notes,
+      room_type_id: s.room_type_id,
+      package_id: s.package_id,
+      meal_plan: s.meal_plan,
+      owlting_unique_id: s.owlting_unique_id,
+      order_status: s.order_status ?? "cancelled",
+    };
+    snapshotRooms = Array.isArray(s.order_rooms) ? s.order_rooms : [];
+  }
 
   if (!order) {
     await finalizeFail(admin, row, baseLog, "order not found", true);
     return { id: row.id, outcome: "failed", reason: "order not found" };
   }
 
-  // Build room stays from order_rooms; fall back to single (room_type_id, qty=1)
-  const { data: orRooms } = await admin
-    .from("order_rooms")
-    .select("room_type_id, quantity, room_price")
-    .eq("order_id", order.id);
+  // Build room stays from order_rooms; fall back to snapshot rooms, then single (room_type_id, qty=1)
+  let orRooms: any[] | null = snapshotRooms;
+  if (!orRooms) {
+    const { data } = await admin
+      .from("order_rooms")
+      .select("room_type_id, quantity, room_price")
+      .eq("order_id", order.id);
+    orRooms = data;
+  }
 
   const rawStayInputs = (orRooms && orRooms.length > 0)
     ? orRooms.map((r: any) => ({
