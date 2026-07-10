@@ -4096,14 +4096,14 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .eq("is_error", false)
         .eq("kpi_month", kpiMonthStr)
         .in("scout_id", Array.from(fulltimeScoutMap.keys()))
-        .in("rarity", ["SR", "SSR"]);
+        .in("rarity", ["SR", "SSR", "UR"]);
       const rarityRows = ((rarityRowsRaw as any[]) ?? []).filter((r) => r.scout_id);
 
       // 取最近一筆生效的稀有度設定 bonus_amount
       const { data: raritySettings } = await supabase
         .from("kol_rarity_settings" as any)
         .select("rarity, bonus_amount, effective_from")
-        .in("rarity", ["SR", "SSR"])
+        .in("rarity", ["SR", "SSR", "UR"])
         .lte("effective_from", `${year}-${String(month).padStart(2, "0")}-31`)
         .order("effective_from", { ascending: false });
       const bonusMap = new Map<string, number>();

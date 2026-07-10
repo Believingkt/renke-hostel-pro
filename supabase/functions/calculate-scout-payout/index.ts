@@ -189,7 +189,7 @@ serve(async (req) => {
     // ===== 三、撈有效邀約（kpi_qualified + 非錯誤 + invited_at 非空 + check_in_date 在抓取範圍） =====
     const { data: monthInvitesRaw, error: monthInvErr } = await supabase
       .from("kol_profiles")
-      .select("scout_id, accommodation_id, rarity, check_in_date")
+      .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
       .eq("is_error", false)
       .eq("kpi_qualified", true)
       .not("invited_at", "is", null)
@@ -315,10 +315,23 @@ serve(async (req) => {
       const baseSalary =
         !isFulltime && period === 10 && individualAchieved ? baseSalaryAmount : 0;
 
-      // ===== 五、稀有度獎金（check_in_date 落在 period 區間） =====
+      // ===== 五、稀有度獎金 =====
+      // 正職：當月（check_in_date ∈ 當月）SR/SSR/UR 超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
+      // 兼職：期別內每筆 rarity 都計獎（維持原邏輯）
       let rarityBonus = 0;
-      for (const inv of myPeriodInvites) {
-        if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
+      if (isFulltime) {
+        const myMonthRare = myMonthInvites
+          .filter((i) => ["SR", "SSR", "UR"].includes(i.rarity ?? ""))
+          .sort((a, b) => ((a as any).created_at || "").localeCompare((b as any).created_at || ""));
+        if (myMonthRare.length > 30) {
+          for (const inv of myMonthRare.slice(30)) {
+            if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
+          }
+        }
+      } else {
+        for (const inv of myPeriodInvites) {
+          if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
+        }
       }
 
       // ===== 六、KOL 分潤（依 scout_tier_settings 等級階梯） =====
