@@ -135,7 +135,7 @@ function buildHotelReservation(
 ): string {
   const now = opts.nowIso ?? new Date().toISOString();
   const stays = order.roomStays
-    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date, order.notes))
+    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date))
     .join("");
 
   // Per OpenTravel + OwlTing convention: CreateDateTime only on Commit;
@@ -150,7 +150,6 @@ function buildHotelReservation(
       `<RoomStays>${stays}</RoomStays>`,
       buildResGuests(order),
       buildResGlobalInfo(order, opts.uniqueId),
-      order.notes ? `<TPA_Extensions><OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks></TPA_Extensions>` : ``,
     `</HotelReservation>`,
   ].join("");
 }
