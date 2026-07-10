@@ -9,6 +9,9 @@ const order: OwlOrderInput = {
   guest_phone: "0912345678",
   guest_email: "test@example.com",
   total_amount: 6000,
+  deposit_amount: 1800,
+  paid_amount: 0,
+  payment_status: "unpaid",
   notes: "靠窗 & 高樓層",
   roomStays: [
     { roomTypeCode: 1001, ratePlanCode: 1001, roomTypeName: "雙人房", ratePlanName: "一泊一食", quantity: 1, unitAmount: 3000, adults: 2 },
@@ -115,12 +118,23 @@ Deno.test("Notes are sent to OwlNest order remarks, not SpecialRequests", () => 
   assert(!xml.includes("<SpecialRequests>"), "OwlNest order remarks must not be sent as SpecialRequests");
 });
 
-Deno.test("Unpaid PMS orders are marked as pay-at-hotel", () => {
+Deno.test("Unpaid PMS orders are marked deposit-required and pay-at-hotel", () => {
   const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
-  assertStringIncludes(xml, `<Guarantee GuaranteeType="None" GuaranteeCode="None"/>`);
+  assertStringIncludes(xml, `<Guarantee GuaranteeType="DepositRequired"/>`);
+  assertStringIncludes(xml, `<DepositPayments><GuaranteePayment GuaranteeType="DepositRequired">`);
+  assertStringIncludes(xml, `<AmountPercent Amount="1800" CurrencyCode="TWD" DecimalPlaces="0"/>`);
   assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="PayAtHotel"/>`);
-  assert(!xml.includes("<DepositPayments>"), "pay-at-hotel orders must not send DepositPayments because OwlNest treats it as prepaid metadata");
+  assert(!xml.includes(`GuaranteeType="None"`), "unsettled deposit orders must not look like no-payment/no-guarantee bookings");
+  assert(!xml.includes(`PaymentType="Prepaid"`), "unsettled deposit orders must not be sent as prepaid");
   assertStringIncludes(xml, `<Total AmountAfterTax="6000" CurrencyCode="TWD" Type="Net"/>`);
+});
+
+Deno.test("Fully paid PMS orders are the only payloads marked prepaid", () => {
+  const paidOrder: OwlOrderInput = { ...order, payment_status: "paid", paid_amount: 6000 };
+  const xml = buildResNotifRq(paidOrder, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
+  assertStringIncludes(xml, `<Guarantee GuaranteeType="PrePay"/>`);
+  assertStringIncludes(xml, `<GuaranteePayment GuaranteeType="PrePay">`);
+  assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="Prepaid"/>`);
 });
 
 // ---- resolveRatePlan strictly uses order.package_id ----
