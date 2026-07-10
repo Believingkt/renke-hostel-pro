@@ -184,7 +184,7 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
     .eq("id", row.order_id)
     .maybeSingle();
 
@@ -383,6 +383,9 @@ async function processRow(
     guest_phone: order.guest_phone,
     guest_email: order.guest_email,
     total_amount: finalTotal,
+    deposit_amount: depositAmt,
+    paid_amount: paidAmt,
+    payment_status: order.payment_status,
     notes: combinedNotes,
     roomStays: stays,
   };
