@@ -69,7 +69,16 @@ function buildPos(): string {
   return `<POS><Source><RequestorID Type="22" ID="LAKEZE"/><BookingChannel Type="7" Primary="true"><CompanyName Code="LAKEZE">人客多 LAKEZE</CompanyName></BookingChannel></Source></POS>`;
 }
 
-function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string, checkOut: string): string {
+function buildRoomStay(
+  hotelCode: string,
+  rs: OwlRoomStayInput,
+  checkIn: string,
+  checkOut: string,
+  notes?: string | null,
+): string {
+  const comments = notes
+    ? `<Comments><Comment GuestViewable="false"><Text>${esc(notes)}</Text></Comment></Comments>`
+    : ``;
   return [
     `<RoomStay>`,
       `<RoomTypes><RoomType RoomTypeCode="${esc(rs.roomTypeCode)}"`,
@@ -88,8 +97,9 @@ function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string,
         rs.children && rs.children > 0 ? `<GuestCount AgeQualifyingCode="8" Count="${esc(rs.children)}"/>` : ``,
       `</GuestCounts>`,
       `<TimeSpan Start="${esc(checkIn)}" End="${esc(checkOut)}"/>`,
-      `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD"/>`,
+      `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD" Type="Net"/>`,
       `<BasicPropertyInfo HotelCode="${esc(hotelCode)}"/>`,
+      comments,
     `</RoomStay>`,
   ].join("");
 }
@@ -116,14 +126,15 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
     : ``;
   return [
     `<ResGlobalInfo>`,
-      `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
+      `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD" Type="Net"/>`,
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
       `</HotelReservationIDs>`,
-      // OwlTing/HotelNabe uses DepositPayments/GuaranteePayment to derive
-      // payment state. GuaranteeType="None" means the channel did not prepay,
-      // so the order should remain 待結清 and be settled manually in OwlTing.
-      `<DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments>`,
+      // For PMS-originated unpaid/deposit-only orders, do NOT send
+      // DepositPayments: many OTA receivers treat the presence of that block as
+      // prepayment metadata. The standard "pay at hotel" signal is Guarantee
+      // None + BookingRules/AcceptableGuarantee PaymentType=PayAtHotel.
+      `<Guarantee GuaranteeType="None" GuaranteeCode="None"/>`,
       // Some OwlNest views map payment state from booking rules rather than
       // GuaranteePayment. Explicitly mark this PMS channel as pay-at-hotel.
       `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="PayAtHotel"/></AcceptableGuarantees></BookingRule></BookingRules>`,
@@ -135,7 +146,7 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
       // OwlNest's 「訂單備註」 is not the OTA SpecialRequests field. Send a
       // dedicated OrderRemarks node while keeping Comments for OTA compatibility.
       orderRemarks,
-      order.notes ? `<Comments><Comment><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
+      order.notes ? `<Comments><Comment GuestViewable="false"><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
     `</ResGlobalInfo>`,
   ].join("");
 }
@@ -147,7 +158,7 @@ function buildHotelReservation(
 ): string {
   const now = opts.nowIso ?? new Date().toISOString();
   const stays = order.roomStays
-    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date))
+    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date, order.notes))
     .join("");
 
   // Per OpenTravel + OwlTing convention: CreateDateTime only on Commit;
