@@ -473,6 +473,11 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/owlting-field-mapping-check" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><OwlTingFieldMappingCheck /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/ai-training" element={
                       <RequireModule module="ai_training">
                         <Suspense fallback={<DashboardSkeleton />}><AdminAiTrainingLayout /></Suspense>
