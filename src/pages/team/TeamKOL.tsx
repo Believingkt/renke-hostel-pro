@@ -4248,14 +4248,13 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 <TableHead className="text-right">目標邀約數</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達成率</TableHead>
-                <TableHead className="text-right">正職個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
@@ -4268,7 +4267,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                       <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{rate}%</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                           {achievementLabel(r.actual_count, r.target_count)}
