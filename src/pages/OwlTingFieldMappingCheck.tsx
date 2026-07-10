@@ -197,7 +197,7 @@ export default function OwlTingFieldMappingCheck() {
     if (!orderCode.trim()) return;
     setLoading(true);
     try {
-      const { data: ord, error: e1 } = await supabase
+      const { data: ord, error: e1 } = await (supabase as any)
         .from("orders")
         .select("id")
         .eq("order_code", orderCode.trim())
