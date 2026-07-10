@@ -109,14 +109,18 @@ Deno.test("Payload never contains credentials", () => {
 Deno.test("Notes are sent to OwlNest order remarks, not SpecialRequests", () => {
   const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
   assertStringIncludes(xml, `<OrderRemarks><OrderRemark>靠窗 &amp; 高樓層</OrderRemark></OrderRemarks>`);
-  assertStringIncludes(xml, `<Comments><Comment><Text>靠窗 &amp; 高樓層</Text></Comment></Comments>`);
+  assertStringIncludes(xml, `<Comments><Comment GuestViewable="false"><Text>靠窗 &amp; 高樓層</Text></Comment></Comments>`);
+  const commentCount = (xml.match(/<Comments>/g) ?? []).length;
+  assertEquals(commentCount, 3, "notes should be present on each RoomStay and ResGlobalInfo");
   assert(!xml.includes("<SpecialRequests>"), "OwlNest order remarks must not be sent as SpecialRequests");
 });
 
 Deno.test("Unpaid PMS orders are marked as pay-at-hotel", () => {
   const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
-  assertStringIncludes(xml, `<DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments>`);
+  assertStringIncludes(xml, `<Guarantee GuaranteeType="None" GuaranteeCode="None"/>`);
   assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="PayAtHotel"/>`);
+  assert(!xml.includes("<DepositPayments>"), "pay-at-hotel orders must not send DepositPayments because OwlNest treats it as prepaid metadata");
+  assertStringIncludes(xml, `<Total AmountAfterTax="6000" CurrencyCode="TWD" Type="Net"/>`);
 });
 
 // ---- resolveRatePlan strictly uses order.package_id ----
