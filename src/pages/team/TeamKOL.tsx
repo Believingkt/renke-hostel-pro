@@ -4405,9 +4405,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
             <Field label="團隊目標數">
               <Input type="number" min={0} value={editTarget} onChange={(e) => setEditTarget(e.target.value)} />
             </Field>
-            <Field label="正職個人最低目標">
-              <Input type="number" min={0} value={editFulltimeMin} onChange={(e) => setEditFulltimeMin(e.target.value)} />
-            </Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditRow(null)} disabled={saving}>取消</Button>
