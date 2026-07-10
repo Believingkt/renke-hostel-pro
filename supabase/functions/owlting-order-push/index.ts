@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
   const nowIso = new Date().toISOString();
   const { data: queue, error: qErr } = await admin
     .from("owlting_order_push_queue")
-    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count")
+    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count, order_snapshot")
     .eq("status", "pending")
     .lte("next_retry_at", nowIso)
     .order("created_at", { ascending: true })
