@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 
@@ -294,7 +295,7 @@ export default function TeamMembers() {
     if (inviteRoles.length === 0) return toast.error("請至少選擇一個角色");
 
     // 角色權限檢查
-    const allowed = new Set(invitableRoles);
+    const allowed = enabledInviteRoles;
     if (inviteRoles.some((r) => !allowed.has(r))) {
       return toast.error("您沒有權限指派部分角色");
     }
@@ -303,101 +304,55 @@ export default function TeamMembers() {
     try {
       const targetEmail = inviteEmail.trim().toLowerCase();
 
-      // 先嘗試 lookup 既有用戶
-      let targetUserId: string | null = null;
-      try {
-        const { data: lookup } = await supabase.functions.invoke("team-lookup-user-by-email", {
-          body: { email: targetEmail },
-        });
-        if (lookup?.success && lookup.user?.id) {
-          targetUserId = lookup.user.id as string;
-        }
-      } catch {
-        // ignore — 視為新用戶
+      // 由 Edge Function 統一建立/更新帳號、角色與邀請信，避免前端先寫入成功後又顯示寄信失敗的雙 Toast。
+      const { data: inviteRes, error: inviteErr } = await supabase.functions.invoke(
+        "send-team-invite",
+        {
+          body: {
+            email: targetEmail,
+            display_name: inviteName.trim(),
+            roles: inviteRoles,
+          },
+        },
+      );
+      if (inviteErr) {
+        const parsed = await parseFunctionInvokeError(inviteErr);
+        throw new Error(parsed.message);
+      }
+      if (!inviteRes?.success) {
+        throw new Error(inviteRes?.error ?? "邀請失敗");
       }
 
-      if (targetUserId) {
-        // 既有用戶：直接套用 profile + roles
-        const wantsVenueManager = inviteRoles.includes("venue_manager" as TeamRole);
-        const isScoutLike = inviteRoles.includes("scout") || inviteRoles.includes("scout_manager");
+      const targetUserId = inviteRes.user?.id as string | undefined;
+      if (!targetUserId) {
+        throw new Error("邀請已送出，但無法確認成員資料");
+      }
+
+      const wantsVenueManager = inviteRoles.includes("venue_manager" as TeamRole);
+      const isScoutLike = inviteRoles.includes("scout") || inviteRoles.includes("scout_manager");
+      if (wantsVenueManager || isScoutLike) {
+        const profilePayload: Record<string, unknown> = {
+          user_id: targetUserId,
+          display_name: inviteName.trim(),
+        };
+        if (wantsVenueManager) {
+          profilePayload.managed_venue = inviteVenue ? [inviteVenue] : null;
+        }
+        if (isScoutLike) {
+          profilePayload.is_scout_team_member = inviteScoutTeam;
+        }
         const { error: profileErr } = await supabase
           .from("team_member_profiles")
-          .upsert(
-            {
-              user_id: targetUserId,
-              display_name: inviteName.trim(),
-              managed_venue: wantsVenueManager && inviteVenue ? [inviteVenue] : null,
-              is_scout_team_member: isScoutLike ? inviteScoutTeam : false,
-            } as never,
-            { onConflict: "user_id" },
-          );
+          .upsert(profilePayload as never, { onConflict: "user_id" });
         if (profileErr) throw profileErr;
+      }
 
-        const { data: existingRoles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", targetUserId)
-          .is("accommodation_id", null);
-        const existSet = new Set((existingRoles ?? []).map((r) => r.role));
-        const newRoles = inviteRoles.filter((r) => !existSet.has(r));
-        if (newRoles.length > 0) {
-          const { error: roleErr } = await supabase.from("user_roles").insert(
-            newRoles.map((role) => ({
-              user_id: targetUserId,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (roleErr) throw roleErr;
-        }
-        
+      if (inviteRes.emailSent) {
+        toast.success(inviteRes.isNewUser ? "已建立邀請並寄出設定密碼信" : "已新增成員權限並寄出通知信");
+      } else if (inviteRes.emailError) {
+        toast.error(`邀請已建立，但通知信未寄出：${inviteRes.emailError}`);
       } else {
-        // 新用戶：寫入 pending invites（每個角色一筆）
-        const rows = inviteRoles.map((role) => ({
-          email: targetEmail,
-          display_name: inviteName.trim(),
-          role,
-          invited_by: myUserId,
-        }));
-        const { error: pendingErr } = await supabase
-          .from("team_pending_invites")
-          .upsert(rows, { onConflict: "email,role" });
-        if (pendingErr) throw pendingErr;
-      }
-
-      // 寄出邀請信（新用戶：設定密碼信；既有用戶：權限更新通知）
-      let emailSent = false;
-      let emailError: string | null = null;
-      try {
-        const { data: emailRes, error: emailErr } = await supabase.functions.invoke(
-          "send-team-invite",
-          {
-            body: {
-              email: targetEmail,
-              display_name: inviteName.trim(),
-              roles: inviteRoles,
-            },
-          },
-        );
-        if (emailErr) {
-          emailError = emailErr.message;
-        } else if (emailRes?.success) {
-          emailSent = !!emailRes.emailSent;
-          emailError = emailRes.emailError ?? null;
-        } else {
-          emailError = emailRes?.error ?? "未知錯誤";
-        }
-      } catch (e) {
-        emailError = e instanceof Error ? e.message : String(e);
-      }
-
-      if (targetUserId) {
-        toast.success(emailSent ? "已新增成員權限並寄出通知信" : "已新增成員權限");
-      } else {
-        toast.success(emailSent ? "已建立邀請並寄出設定密碼信" : "已建立邀請");
-      }
-      if (!emailSent && emailError) {
-        toast.error(`寄信失敗：${emailError}`);
+        toast.success(inviteRes.isNewUser ? "已建立邀請" : "已新增成員權限");
       }
 
       setInviteName("");
