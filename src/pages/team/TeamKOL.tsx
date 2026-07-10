@@ -6707,10 +6707,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                 placeholder="不限定"
               />
             </div>
-            <div className="space-y-1">
-              <Label>正職個人最低目標</Label>
-              <Input type="number" min={0} value={fFulltimeMin} onChange={(e) => setFFulltimeMin(e.target.value)} />
-            </div>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="invite-target-starlink"
