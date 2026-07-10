@@ -6529,7 +6529,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     const m = parseInt(fMonth, 10);
     const tt = parseInt(fTeamTarget, 10);
     const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
-    const fm = parseInt(fFulltimeMin, 10);
+    const fm = 0;
     await performSave(m, tt, pm, fm);
   };
 
