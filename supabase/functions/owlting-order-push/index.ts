@@ -247,31 +247,12 @@ async function processRow(
         unit_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
       }] : []);
 
-  // Plan A: allocate order.final_price across stays proportionally so that
-  // sum(unitAmount * quantity) === final_price. Keeps OwlTing's displayed
-  // 房款 / total consistent with the PMS actual收金額 (含折扣、加購已在 final_price 內).
   const finalTotal = Math.round(Number(order.final_price ?? order.total_price ?? 0));
-  const origTotal = rawStayInputs.reduce((s, x) => s + x.unit_amount * x.quantity, 0);
+  // OwlNest accepts the booking but may not surface it in the calendar when
+  // RoomStay/Base is rewritten to the discounted collected amount. Keep room
+  // nights at their PMS original room_price, and put the actual receivable in
+  // ResGlobalInfo/Total + comments instead (matches the last visible payload).
   const stayInputs = rawStayInputs.map((s) => ({ ...s }));
-  if (finalTotal > 0 && origTotal > 0 && stayInputs.length > 0) {
-    let allocated = 0;
-    for (let i = 0; i < stayInputs.length; i++) {
-      const s = stayInputs[i];
-      const share = (s.unit_amount * s.quantity) / origTotal;
-      const stayTotal = i === stayInputs.length - 1
-        ? finalTotal - allocated
-        : Math.round(finalTotal * share);
-      allocated += stayTotal;
-      s.unit_amount = Math.max(0, Math.round(stayTotal / Math.max(1, s.quantity)));
-    }
-    // Fix rounding remainder on the last stay so sum matches finalTotal exactly
-    const check = stayInputs.reduce((sum, x) => sum + x.unit_amount * x.quantity, 0);
-    const diff = finalTotal - check;
-    if (diff !== 0) {
-      const last = stayInputs[stayInputs.length - 1];
-      last.unit_amount = Math.max(0, last.unit_amount + Math.round(diff / Math.max(1, last.quantity)));
-    }
-  }
 
   if (stayInputs.length === 0) {
     await finalizeFail(admin, row, baseLog, "no rooms on order", true);
