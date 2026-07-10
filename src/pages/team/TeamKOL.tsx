@@ -4312,9 +4312,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
               <TableRow>
                 <TableHead>星探</TableHead>
                 <TableHead>場域</TableHead>
-                <TableHead className="text-right">正職個人目標</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
-                <TableHead className="text-right">達標狀態</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -4328,29 +4326,18 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 if (filtered.length === 0) {
                   return (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
                         本月尚無正職個人邀約紀錄
                       </TableCell>
                     </TableRow>
                   );
                 }
                 return filtered.map((r, i) => {
-                  const reached = r.actual_count >= r.fulltime_min && r.fulltime_min > 0;
-                  const badge =
-                    r.fulltime_min <= 0 ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : reached ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">✅ 達標</Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">❌ 未達標</Badge>
-                    );
                   return (
                     <TableRow key={`${r.scout_id}-${r.venue_name}-${i}`}>
                       <TableCell>{r.scout_name}</TableCell>
                       <TableCell>{r.venue_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{!r.fulltime_min || r.fulltime_min <= 0 ? <span className="text-muted-foreground">尚未設定</span> : r.fulltime_min}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
-                      <TableCell className="text-right">{badge}</TableCell>
                     </TableRow>
                   );
                 });
