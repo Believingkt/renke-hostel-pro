@@ -146,11 +146,6 @@ Deno.serve(async (req) => {
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
 
-// Minimum spacing (seconds) between a successful Commit and a subsequent Modify
-// for the same order. OwlNest silently drops reservations when Modify lands
-// within a few seconds of Commit while its async pipeline is still ingesting.
-const MODIFY_MIN_GAP_SECONDS = 60;
-
 async function processRow(
   admin: any,
   row: QueueRow,
@@ -161,37 +156,6 @@ async function processRow(
     accommodation_id: row.accommodation_id,
     res_status: row.res_status,
   };
-
-  // Defer Modify if a successful Commit for the same order was sent very recently.
-  // We compare on the parent order (queue rows share order_id) via the queue log.
-  if (row.res_status === "Modify") {
-    const { data: parentRow } = await admin
-      .from("owlting_order_push_queue")
-      .select("order_id")
-      .eq("id", row.id)
-      .maybeSingle();
-    const orderId = parentRow?.order_id;
-    if (orderId) {
-      const cutoffIso = new Date(Date.now() - MODIFY_MIN_GAP_SECONDS * 1000).toISOString();
-      const { data: recentCommit } = await admin
-        .from("owlting_order_push_log")
-        .select("id, created_at, queue_id, owlting_order_push_queue!inner(order_id)")
-        .eq("owlting_order_push_queue.order_id", orderId)
-        .eq("res_status", "Commit")
-        .eq("success", true)
-        .gt("created_at", cutoffIso)
-        .limit(1);
-      if (recentCommit && recentCommit.length > 0) {
-        const nextRetry = new Date(Date.now() + MODIFY_MIN_GAP_SECONDS * 1000).toISOString();
-        await admin.from("owlting_order_push_queue").update({
-          status: "pending",
-          next_retry_at: nextRetry,
-          last_error: "deferred: waiting for OwlNest to finish ingesting recent Commit",
-        }).eq("id", row.id);
-        return { id: row.id, outcome: "deferred", reason: "recent commit" };
-      }
-    }
-  }
 
   // Mark sending
   await admin.from("owlting_order_push_queue").update({
@@ -220,7 +184,7 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
     .eq("id", row.order_id)
     .maybeSingle();
 
@@ -247,12 +211,31 @@ async function processRow(
         unit_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
       }] : []);
 
+  // Plan A: allocate order.final_price across stays proportionally so that
+  // sum(unitAmount * quantity) === final_price. Keeps OwlTing's displayed
+  // 房款 / total consistent with the PMS actual收金額 (含折扣、加購已在 final_price 內).
   const finalTotal = Math.round(Number(order.final_price ?? order.total_price ?? 0));
-  // OwlNest accepts the booking but may not surface it in the calendar when
-  // RoomStay/Base is rewritten to the discounted collected amount. Keep room
-  // nights at their PMS original room_price, and put the actual receivable in
-  // ResGlobalInfo/Total + comments instead (matches the last visible payload).
+  const origTotal = rawStayInputs.reduce((s, x) => s + x.unit_amount * x.quantity, 0);
   const stayInputs = rawStayInputs.map((s) => ({ ...s }));
+  if (finalTotal > 0 && origTotal > 0 && stayInputs.length > 0) {
+    let allocated = 0;
+    for (let i = 0; i < stayInputs.length; i++) {
+      const s = stayInputs[i];
+      const share = (s.unit_amount * s.quantity) / origTotal;
+      const stayTotal = i === stayInputs.length - 1
+        ? finalTotal - allocated
+        : Math.round(finalTotal * share);
+      allocated += stayTotal;
+      s.unit_amount = Math.max(0, Math.round(stayTotal / Math.max(1, s.quantity)));
+    }
+    // Fix rounding remainder on the last stay so sum matches finalTotal exactly
+    const check = stayInputs.reduce((sum, x) => sum + x.unit_amount * x.quantity, 0);
+    const diff = finalTotal - check;
+    if (diff !== 0) {
+      const last = stayInputs[stayInputs.length - 1];
+      last.unit_amount = Math.max(0, last.unit_amount + Math.round(diff / Math.max(1, last.quantity)));
+    }
+  }
 
   if (stayInputs.length === 0) {
     await finalizeFail(admin, row, baseLog, "no rooms on order", true);
@@ -367,30 +350,16 @@ async function processRow(
     });
   }
 
-  // Deposit / balance summary is sent to OwlNest's order remarks field.
-  // XML also marks this PMS channel as pay-at-hotel / not prepaid so OwlNest
-  // should keep the order 待結清 and settle manually.
+  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註，
+  // 但不改變 total_amount — 讓 OwlTing 端仍以「未結清」狀態顯示，避免收款結帳困擾。
   const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
   const paidStatus = String(order.payment_status ?? "");
-  const isFullyPaid = paidStatus === "paid" || paidStatus === "fully_paid";
-  const isDepositPaid = paidStatus === "deposit_paid";
-  const paidAmt = isFullyPaid ? finalTotal : (isDepositPaid ? depositAmt : 0);
+  const paidAmt = paidStatus === "paid" || paidStatus === "fully_paid"
+    ? finalTotal
+    : (paidStatus === "deposit_paid" ? depositAmt : 0);
   const balanceAmt = Math.max(0, finalTotal - paidAmt);
-  const remainderAmt = Math.max(0, finalTotal - depositAmt);
-  const depositLabel = isFullyPaid || isDepositPaid ? "已付" : "未付";
-  const remainderLabel = isFullyPaid ? "已付" : "未付";
-  const statusLabel = isFullyPaid ? "已全額付款" : (isDepositPaid ? "已付訂金" : "未付款");
-  const payLines = [
-    `[人客多收款狀態] ${statusLabel}`,
-    `　總額 NT$${finalTotal}`,
-    depositAmt > 0
-      ? `　訂金 NT$${depositAmt}（${depositLabel}） / 尾款 NT$${remainderAmt}（${remainderLabel}）`
-      : `　訂金 未設定 / 尾款 NT$${finalTotal}（${remainderLabel}）`,
-    `　已收 NT$${paidAmt} / 未收 NT$${balanceAmt}`,
-  ];
-  const payLine = payLines.join("\n");
+  const payLine = `[人客多收款狀態] 總額 ${finalTotal} / 已收 ${paidAmt}（${paidStatus || "unpaid"}） / 未收 ${balanceAmt}`;
   const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
-
 
   const owlOrder: OwlOrderInput = {
     order_number: order.order_number,
@@ -400,9 +369,6 @@ async function processRow(
     guest_phone: order.guest_phone,
     guest_email: order.guest_email,
     total_amount: finalTotal,
-    deposit_amount: depositAmt,
-    paid_amount: paidAmt,
-    payment_status: order.payment_status,
     notes: combinedNotes,
     roomStays: stays,
   };

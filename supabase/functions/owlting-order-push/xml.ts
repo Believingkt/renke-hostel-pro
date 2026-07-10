@@ -28,9 +28,6 @@ export interface OwlOrderInput {
   guest_phone?: string | null;
   guest_email?: string | null;
   total_amount: number;        // final_price (TWD)
-  deposit_amount?: number | null;
-  paid_amount?: number | null;
-  payment_status?: string | null;
   notes?: string | null;
   roomStays: OwlRoomStayInput[];
 }
@@ -72,12 +69,7 @@ function buildPos(): string {
   return `<POS><Source><RequestorID Type="22" ID="LAKEZE"/><BookingChannel Type="7" Primary="true"><CompanyName Code="LAKEZE">人客多 LAKEZE</CompanyName></BookingChannel></Source></POS>`;
 }
 
-function buildRoomStay(
-  hotelCode: string,
-  rs: OwlRoomStayInput,
-  checkIn: string,
-  checkOut: string,
-): string {
+function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string, checkOut: string): string {
   return [
     `<RoomStay>`,
       `<RoomTypes><RoomType RoomTypeCode="${esc(rs.roomTypeCode)}"`,
@@ -118,12 +110,19 @@ function buildResGuests(order: OwlOrderInput): string {
 }
 
 function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
+  const { first, last } = splitName(order.guest_name);
   return [
     `<ResGlobalInfo>`,
       `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
       `</HotelReservationIDs>`,
+      `<Profiles><ProfileInfo><Profile ProfileType="1"><Customer>`,
+        `<PersonName><GivenName>${esc(first)}</GivenName><Surname>${esc(last)}</Surname></PersonName>`,
+        order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
+        order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
+      `</Customer></Profile></ProfileInfo></Profiles>`,
+      order.notes ? `<Comments><Comment><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
     `</ResGlobalInfo>`,
   ].join("");
 }

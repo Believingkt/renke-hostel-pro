@@ -9,9 +9,6 @@ const order: OwlOrderInput = {
   guest_phone: "0912345678",
   guest_email: "test@example.com",
   total_amount: 6000,
-  deposit_amount: 1800,
-  paid_amount: 0,
-  payment_status: "unpaid",
   notes: "靠窗 & 高樓層",
   roomStays: [
     { roomTypeCode: 1001, ratePlanCode: 1001, roomTypeName: "雙人房", ratePlanName: "一泊一食", quantity: 1, unitAmount: 3000, adults: 2 },
@@ -107,38 +104,6 @@ Deno.test("Payload never contains credentials", () => {
   assert(!/Password/i.test(xml));
   assert(!/Username/i.test(xml));
   assert(!/UsernameToken/i.test(xml));
-});
-
-Deno.test("Notes are also sent as SpecialRequests so OwlNest 特殊需求 shows payment status", () => {
-  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
-  assertStringIncludes(xml, `<OrderRemarks><OrderRemark>靠窗 &amp; 高樓層</OrderRemark></OrderRemarks>`);
-  assertStringIncludes(xml, `<SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests>`);
-  assertStringIncludes(xml, `<ResGuest PrimaryIndicator="true" ResGuestRPH="1"><Profiles>`);
-  assertStringIncludes(xml, `</Profiles><SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests></ResGuest>`);
-  assertStringIncludes(xml, `<BasicPropertyInfo HotelCode="HOTEL001"/><Comments><Comment GuestViewable="false"><Text>靠窗 &amp; 高樓層</Text></Comment></Comments><SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests></RoomStay>`);
-  const commentCount = (xml.match(/<Comments>/g) ?? []).length;
-  assertEquals(commentCount, 3, "notes should be present on each RoomStay and ResGlobalInfo");
-  const specialRequestCount = (xml.match(/<SpecialRequests>/g) ?? []).length;
-  assertEquals(specialRequestCount, 4, "notes should be sent on each RoomStay, ResGuest, and ResGlobalInfo");
-});
-
-Deno.test("Unpaid PMS orders are marked deposit-required and pay-at-hotel", () => {
-  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
-  assertStringIncludes(xml, `<Guarantee GuaranteeType="DepositRequired"/>`);
-  assertStringIncludes(xml, `<DepositPayments><GuaranteePayment GuaranteeType="DepositRequired">`);
-  assertStringIncludes(xml, `<AmountPercent Amount="1800" CurrencyCode="TWD" DecimalPlaces="0"/>`);
-  assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="PayAtHotel"/>`);
-  assert(!xml.includes(`GuaranteeType="None"`), "unsettled deposit orders must not look like no-payment/no-guarantee bookings");
-  assert(!xml.includes(`PaymentType="Prepaid"`), "unsettled deposit orders must not be sent as prepaid");
-  assertStringIncludes(xml, `<Total AmountAfterTax="6000" CurrencyCode="TWD" Type="Net"/>`);
-});
-
-Deno.test("Fully paid PMS orders are the only payloads marked prepaid", () => {
-  const paidOrder: OwlOrderInput = { ...order, payment_status: "paid", paid_amount: 6000 };
-  const xml = buildResNotifRq(paidOrder, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
-  assertStringIncludes(xml, `<Guarantee GuaranteeType="PrePay"/>`);
-  assertStringIncludes(xml, `<GuaranteePayment GuaranteeType="PrePay">`);
-  assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="Prepaid"/>`);
 });
 
 // ---- resolveRatePlan strictly uses order.package_id ----
