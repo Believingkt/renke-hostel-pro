@@ -117,6 +117,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
+const OwlTingFieldMappingCheck = lazy(() => import("./pages/OwlTingFieldMappingCheck"));
 const OwlTingFillup = lazy(() => import("./pages/OwlTingFillup"));
 
 // AI 助理訓練中心 (Phase 2)
@@ -470,6 +471,11 @@ function App() {
                     <Route path="admin/owlting-email-ingest" element={
                       <RequireModule module="channel_manager">
                         <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owlting-field-mapping-check" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><OwlTingFieldMappingCheck /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/ai-training" element={
