@@ -6608,7 +6608,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
               <TableHead>場域</TableHead>
               <TableHead className="text-right">團隊目標數</TableHead>
               <TableHead className="text-right">兼職個人最低目標</TableHead>
-              <TableHead className="text-right">正職個人最低目標</TableHead>
               <TableHead className="text-center">星鏈場域</TableHead>
               {isManager && <TableHead className="text-right">操作</TableHead>}
             </TableRow>
@@ -6616,7 +6615,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
           <TableBody>
             {loading ? null : filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
                   尚無目標資料
                 </TableCell>
               </TableRow>
@@ -6629,7 +6628,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                   <TableCell className="text-right tabular-nums">
                     {r.personal_min == null ? "不限定" : r.personal_min}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
                   <TableCell className="text-center">{r.is_starlink ? "✅" : "－"}</TableCell>
                   {isManager && (
                     <TableCell className="text-right">
@@ -6653,9 +6651,6 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {filteredRows.reduce((sum, r) => sum + (r.personal_min ?? 0), 0)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {filteredRows.reduce((sum, r) => sum + (r.fulltime_min ?? 0), 0)}
                 </TableCell>
                 <TableCell />
                 {isManager && <TableCell />}
