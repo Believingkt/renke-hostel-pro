@@ -350,9 +350,9 @@ async function processRow(
     });
   }
 
-  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註。
-  // 同時在 ResGlobalInfo 送 <Guarantee GuaranteeType="GuaranteeRequired"/>，
-  // 讓奧丁丁維持「待結清」狀態，不會被自動判定為已結清。
+  // Deposit / balance summary is sent to OwlNest's order remarks field.
+  // XML also marks this PMS channel as pay-at-hotel / not prepaid so OwlNest
+  // should keep the order 待結清 and settle manually.
   const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
   const paidStatus = String(order.payment_status ?? "");
   const isFullyPaid = paidStatus === "paid" || paidStatus === "fully_paid";
