@@ -113,8 +113,13 @@ Deno.test("Notes are also sent as SpecialRequests so OwlNest 特殊需求 shows 
   const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
   assertStringIncludes(xml, `<OrderRemarks><OrderRemark>靠窗 &amp; 高樓層</OrderRemark></OrderRemarks>`);
   assertStringIncludes(xml, `<SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests>`);
+  assertStringIncludes(xml, `<ResGuest PrimaryIndicator="true" ResGuestRPH="1"><Profiles>`);
+  assertStringIncludes(xml, `</Profiles><SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests></ResGuest>`);
+  assertStringIncludes(xml, `<BasicPropertyInfo HotelCode="HOTEL001"/><Comments><Comment GuestViewable="false"><Text>靠窗 &amp; 高樓層</Text></Comment></Comments><SpecialRequests><SpecialRequest><Text>靠窗 &amp; 高樓層</Text></SpecialRequest></SpecialRequests></RoomStay>`);
   const commentCount = (xml.match(/<Comments>/g) ?? []).length;
   assertEquals(commentCount, 3, "notes should be present on each RoomStay and ResGlobalInfo");
+  const specialRequestCount = (xml.match(/<SpecialRequests>/g) ?? []).length;
+  assertEquals(specialRequestCount, 4, "notes should be sent on each RoomStay, ResGuest, and ResGlobalInfo");
 });
 
 Deno.test("Unpaid PMS orders are marked deposit-required and pay-at-hotel", () => {
