@@ -350,6 +350,17 @@ async function processRow(
     });
   }
 
+  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註，
+  // 但不改變 total_amount — 讓 OwlTing 端仍以「未結清」狀態顯示，避免收款結帳困擾。
+  const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
+  const paidStatus = String(order.payment_status ?? "");
+  const paidAmt = paidStatus === "paid" || paidStatus === "fully_paid"
+    ? finalTotal
+    : (paidStatus === "deposit_paid" ? depositAmt : 0);
+  const balanceAmt = Math.max(0, finalTotal - paidAmt);
+  const payLine = `[人客多收款狀態] 總額 ${finalTotal} / 已收 ${paidAmt}（${paidStatus || "unpaid"}） / 未收 ${balanceAmt}`;
+  const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
+
   const owlOrder: OwlOrderInput = {
     order_number: order.order_number,
     check_in_date: order.check_in_date,
@@ -357,8 +368,8 @@ async function processRow(
     guest_name: order.guest_name,
     guest_phone: order.guest_phone,
     guest_email: order.guest_email,
-    total_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
-    notes: order.notes ?? null,
+    total_amount: finalTotal,
+    notes: combinedNotes,
     roomStays: stays,
   };
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
