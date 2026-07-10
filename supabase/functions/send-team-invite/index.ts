@@ -31,15 +31,19 @@ const corsHeaders = {
 
 const ADMIN_INVITABLE = new Set([
   "admin",
+  "am",
   "closer",
   "scout",
   "scout_manager",
   "video",
+  "franchise",
   "franchise_internal",
   "franchise_external",
+  "franchise_manager",
   "starlink",
   "owner",
   "finance",
+  "venue_manager",
 ]);
 const SCOUT_MANAGER_INVITABLE = new Set(["scout"]);
 
