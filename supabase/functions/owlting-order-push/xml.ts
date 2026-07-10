@@ -72,6 +72,12 @@ function buildPos(): string {
   return `<POS><Source><RequestorID Type="22" ID="LAKEZE"/><BookingChannel Type="7" Primary="true"><CompanyName Code="LAKEZE">人客多 LAKEZE</CompanyName></BookingChannel></Source></POS>`;
 }
 
+function buildSpecialRequests(notes?: string | null): string {
+  return notes
+    ? `<SpecialRequests><SpecialRequest><Text>${esc(notes)}</Text></SpecialRequest></SpecialRequests>`
+    : ``;
+}
+
 function buildRoomStay(
   hotelCode: string,
   rs: OwlRoomStayInput,
@@ -82,6 +88,7 @@ function buildRoomStay(
   const comments = notes
     ? `<Comments><Comment GuestViewable="false"><Text>${esc(notes)}</Text></Comment></Comments>`
     : ``;
+  const specialRequests = buildSpecialRequests(notes);
   return [
     `<RoomStay>`,
       `<RoomTypes><RoomType RoomTypeCode="${esc(rs.roomTypeCode)}"`,
@@ -103,6 +110,9 @@ function buildRoomStay(
       `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD" Type="Net"/>`,
       `<BasicPropertyInfo HotelCode="${esc(hotelCode)}"/>`,
       comments,
+      // OwlNest 後台「特殊需求」目前看起來優先讀 RoomStay 層級。
+      // ResGlobalInfo 層級已送成功但既有訂單畫面未更新，因此同步補在每個 RoomStay。
+      specialRequests,
     `</RoomStay>`,
   ].join("");
 }
@@ -117,6 +127,9 @@ function buildResGuests(order: OwlOrderInput): string {
           order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
           order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
         `</Customer></Profile></ProfileInfo></Profiles>`,
+        // Some CM parsers bind special requests to the guest record, not ResGlobalInfo.
+        // Sending the same payment summary here replaces OwlNest's fallback "guest: <name>" text.
+        buildSpecialRequests(order.notes),
       `</ResGuest>`,
     `</ResGuests>`,
   ].join("");
@@ -187,7 +200,7 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
       // OwlNest 後台「特殊需求」欄位實際讀 SpecialRequests；沒送時它會用
       // ResGuest.PersonName 自動拼成 "guest: <name>" 顯示。我們把付款/訂金
       // 摘要（含在 order.notes 內）塞進 SpecialRequests，確保後台看得到。
-      order.notes ? `<SpecialRequests><SpecialRequest><Text>${esc(order.notes)}</Text></SpecialRequest></SpecialRequests>` : ``,
+      buildSpecialRequests(order.notes),
       // 保留 OrderRemarks / Comments / TPA 三個位置，供其他 CM parser 對應。
       orderRemarks,
       comments,
