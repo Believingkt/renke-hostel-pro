@@ -113,14 +113,14 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
   const { first, last } = splitName(order.guest_name);
   return [
     `<ResGlobalInfo>`,
-      // Guarantee node signals to OwlTing that payment is NOT prepaid via
-      // channel — the reservation should stay as 待結清 until front desk
-      // records payment manually.
-      `<Guarantee GuaranteeType="GuaranteeRequired"/>`,
       `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
       `</HotelReservationIDs>`,
+      // OwlTing/HotelNabe uses DepositPayments/GuaranteePayment to derive
+      // payment state. GuaranteeType="None" means the channel did not prepay,
+      // so the order should remain 待結清 and be settled manually in OwlTing.
+      `<DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments>`,
       `<Profiles><ProfileInfo><Profile ProfileType="1"><Customer>`,
         `<PersonName><GivenName>${esc(first)}</GivenName><Surname>${esc(last)}</Surname></PersonName>`,
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
@@ -153,6 +153,7 @@ function buildHotelReservation(
       `<RoomStays>${stays}</RoomStays>`,
       buildResGuests(order),
       buildResGlobalInfo(order, opts.uniqueId),
+      order.notes ? `<SpecialRequests><SpecialRequest><Text>${esc(order.notes)}</Text></SpecialRequest></SpecialRequests>` : ``,
     `</HotelReservation>`,
   ].join("");
 }
