@@ -6455,8 +6455,7 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     if (Number.isNaN(tt) || tt < 0) return toast.error("請輸入有效的團隊目標數");
     const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
     if (pm !== null && (Number.isNaN(pm) || pm < 0)) return toast.error("請輸入有效的兼職個人最低目標");
-    const fm = parseInt(fFulltimeMin, 10);
-    if (Number.isNaN(fm) || fm < 0) return toast.error("請輸入有效的正職個人最低目標");
+    const fm = 0;
 
     // 新增模式才檢查重複；編輯模式直接覆蓋同一筆
     if (!editing) {
