@@ -106,6 +106,19 @@ Deno.test("Payload never contains credentials", () => {
   assert(!/UsernameToken/i.test(xml));
 });
 
+Deno.test("Notes are sent to OwlNest order remarks, not SpecialRequests", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
+  assertStringIncludes(xml, `<OrderRemarks><OrderRemark>靠窗 &amp; 高樓層</OrderRemark></OrderRemarks>`);
+  assertStringIncludes(xml, `<Comments><Comment><Text>靠窗 &amp; 高樓層</Text></Comment></Comments>`);
+  assert(!xml.includes("<SpecialRequests>"), "OwlNest order remarks must not be sent as SpecialRequests");
+});
+
+Deno.test("Unpaid PMS orders are marked as pay-at-hotel", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
+  assertStringIncludes(xml, `<DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments>`);
+  assertStringIncludes(xml, `<AcceptableGuarantee PaymentType="PayAtHotel"/>`);
+});
+
 // ---- resolveRatePlan strictly uses order.package_id ----
 const pkgs = [
   { id: "pkg-a", name: "6人包區",  numeric_code: 1001 },
