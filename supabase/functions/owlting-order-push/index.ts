@@ -184,7 +184,7 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
     .eq("id", row.order_id)
     .maybeSingle();
 
@@ -199,7 +199,7 @@ async function processRow(
     .select("room_type_id, quantity, room_price")
     .eq("order_id", order.id);
 
-  const stayInputs = (orRooms && orRooms.length > 0)
+  const rawStayInputs = (orRooms && orRooms.length > 0)
     ? orRooms.map((r: any) => ({
         room_type_id: r.room_type_id,
         quantity: r.quantity ?? 1,
@@ -210,6 +210,32 @@ async function processRow(
         quantity: 1,
         unit_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
       }] : []);
+
+  // Plan A: allocate order.final_price across stays proportionally so that
+  // sum(unitAmount * quantity) === final_price. Keeps OwlTing's displayed
+  // 房款 / total consistent with the PMS actual收金額 (含折扣、加購已在 final_price 內).
+  const finalTotal = Math.round(Number(order.final_price ?? order.total_price ?? 0));
+  const origTotal = rawStayInputs.reduce((s, x) => s + x.unit_amount * x.quantity, 0);
+  const stayInputs = rawStayInputs.map((s) => ({ ...s }));
+  if (finalTotal > 0 && origTotal > 0 && stayInputs.length > 0) {
+    let allocated = 0;
+    for (let i = 0; i < stayInputs.length; i++) {
+      const s = stayInputs[i];
+      const share = (s.unit_amount * s.quantity) / origTotal;
+      const stayTotal = i === stayInputs.length - 1
+        ? finalTotal - allocated
+        : Math.round(finalTotal * share);
+      allocated += stayTotal;
+      s.unit_amount = Math.max(0, Math.round(stayTotal / Math.max(1, s.quantity)));
+    }
+    // Fix rounding remainder on the last stay so sum matches finalTotal exactly
+    const check = stayInputs.reduce((sum, x) => sum + x.unit_amount * x.quantity, 0);
+    const diff = finalTotal - check;
+    if (diff !== 0) {
+      const last = stayInputs[stayInputs.length - 1];
+      last.unit_amount = Math.max(0, last.unit_amount + Math.round(diff / Math.max(1, last.quantity)));
+    }
+  }
 
   if (stayInputs.length === 0) {
     await finalizeFail(admin, row, baseLog, "no rooms on order", true);
@@ -324,6 +350,17 @@ async function processRow(
     });
   }
 
+  // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註，
+  // 但不改變 total_amount — 讓 OwlTing 端仍以「未結清」狀態顯示，避免收款結帳困擾。
+  const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
+  const paidStatus = String(order.payment_status ?? "");
+  const paidAmt = paidStatus === "paid" || paidStatus === "fully_paid"
+    ? finalTotal
+    : (paidStatus === "deposit_paid" ? depositAmt : 0);
+  const balanceAmt = Math.max(0, finalTotal - paidAmt);
+  const payLine = `[人客多收款狀態] 總額 ${finalTotal} / 已收 ${paidAmt}（${paidStatus || "unpaid"}） / 未收 ${balanceAmt}`;
+  const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
+
   const owlOrder: OwlOrderInput = {
     order_number: order.order_number,
     check_in_date: order.check_in_date,
@@ -331,8 +368,8 @@ async function processRow(
     guest_name: order.guest_name,
     guest_phone: order.guest_phone,
     guest_email: order.guest_email,
-    total_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
-    notes: order.notes ?? null,
+    total_amount: finalTotal,
+    notes: combinedNotes,
     roomStays: stays,
   };
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
