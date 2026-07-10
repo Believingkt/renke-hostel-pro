@@ -184,7 +184,7 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
     .eq("id", row.order_id)
     .maybeSingle();
 
@@ -353,12 +353,19 @@ async function processRow(
   // Deposit / balance summary appended to Comments so it渲染在 OwlTing 訂單備註，
   // 但不改變 total_amount — 讓 OwlTing 端仍以「未結清」狀態顯示，避免收款結帳困擾。
   const depositAmt = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
-  const paidStatus = String(order.payment_status ?? "");
-  const paidAmt = paidStatus === "paid" || paidStatus === "fully_paid"
+  const paidStatus = String(order.payment_status ?? "").toLowerCase();
+  const rawPaid = Math.round(Number((order as any).paid_amount ?? 0));
+  const isFullyPaid = paidStatus === "paid" || paidStatus === "fully_paid";
+  const isDepositPaid = paidStatus === "deposit_paid";
+  const paidAmt = isFullyPaid
     ? finalTotal
-    : (paidStatus === "deposit_paid" ? depositAmt : 0);
+    : (isDepositPaid ? (rawPaid > 0 ? rawPaid : depositAmt) : Math.max(0, rawPaid));
   const balanceAmt = Math.max(0, finalTotal - paidAmt);
-  const payLine = `[人客多收款狀態] 總額 ${finalTotal} / 已收 ${paidAmt}（${paidStatus || "unpaid"}） / 未收 ${balanceAmt}`;
+  const remainingAmt = Math.max(0, finalTotal - depositAmt);
+  const statusLabel = isFullyPaid ? "已結清" : (isDepositPaid ? "已付訂金" : "未付");
+  const depositLabel = (isFullyPaid || isDepositPaid || paidAmt >= depositAmt) && depositAmt > 0 ? "已付" : "未付";
+  const balanceLabel = isFullyPaid || paidAmt >= finalTotal ? "已付" : "未付";
+  const payLine = `[人客多收款狀態] 付款狀態：${statusLabel}｜訂金 ${depositAmt}(${depositLabel})｜尾款 ${remainingAmt}(${balanceLabel})｜已收 ${paidAmt}｜未收 ${balanceAmt}`;
   const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
 
   const owlOrder: OwlOrderInput = {
