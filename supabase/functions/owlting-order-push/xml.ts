@@ -28,6 +28,9 @@ export interface OwlOrderInput {
   guest_phone?: string | null;
   guest_email?: string | null;
   total_amount: number;        // final_price (TWD)
+  deposit_amount?: number | null;
+  paid_amount?: number | null;
+  payment_status?: string | null;
   notes?: string | null;
   roomStays: OwlRoomStayInput[];
 }
@@ -119,10 +122,51 @@ function buildResGuests(order: OwlOrderInput): string {
   ].join("");
 }
 
+function buildPaymentMarkers(order: OwlOrderInput): string {
+  const paymentStatus = String(order.payment_status ?? "");
+  const isFullyPaid = paymentStatus === "paid" || paymentStatus === "fully_paid";
+  const isDepositPaid = paymentStatus === "deposit_paid";
+  const depositAmount = Math.max(0, Math.round(Number(order.deposit_amount ?? 0)));
+  const paidAmount = Math.max(0, Math.round(Number(order.paid_amount ?? 0)));
+
+  if (isFullyPaid) {
+    return [
+      `<Guarantee GuaranteeType="PrePay"/>`,
+      `<DepositPayments><GuaranteePayment GuaranteeType="PrePay"><AmountPercent Amount="${esc(order.total_amount)}" CurrencyCode="TWD" DecimalPlaces="0"/>`,
+      order.notes ? `<Description><Text>${esc(order.notes)}</Text></Description>` : ``,
+      `</GuaranteePayment></DepositPayments>`,
+      `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="Prepaid"/></AcceptableGuarantees></BookingRule></BookingRules>`,
+    ].join("");
+  }
+
+  const guaranteeType = depositAmount > 0
+    ? (isDepositPaid || paidAmount > 0 ? "Deposit" : "DepositRequired")
+    : "GuaranteeRequired";
+
+  return [
+    `<Guarantee GuaranteeType="${guaranteeType}"/>`,
+    depositAmount > 0
+      ? [
+          `<DepositPayments><GuaranteePayment GuaranteeType="${guaranteeType}">`,
+            `<AmountPercent Amount="${esc(depositAmount)}" CurrencyCode="TWD" DecimalPlaces="0"/>`,
+            order.notes ? `<Description><Text>${esc(order.notes)}</Text></Description>` : ``,
+          `</GuaranteePayment></DepositPayments>`,
+        ].join("")
+      : ``,
+    `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="PayAtHotel"/></AcceptableGuarantees></BookingRule></BookingRules>`,
+  ].join("");
+}
+
 function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
   const { first, last } = splitName(order.guest_name);
   const orderRemarks = order.notes
     ? `<OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks>`
+    : ``;
+  const comments = order.notes
+    ? `<Comments><Comment GuestViewable="false" Name="OrderRemark"><Text>${esc(order.notes)}</Text></Comment></Comments>`
+    : ``;
+  const tpaRemarks = order.notes
+    ? `<TPA_Extensions><OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></TPA_Extensions>`
     : ``;
   return [
     `<ResGlobalInfo>`,
@@ -130,23 +174,22 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
       `<HotelReservationIDs>`,
         `<HotelReservationID ResID_Type="14" ResID_Value="${esc(uniqueId)}" ResID_Source="LAKEZE"/>`,
       `</HotelReservationIDs>`,
-      // For PMS-originated unpaid/deposit-only orders, do NOT send
-      // DepositPayments: many OTA receivers treat the presence of that block as
-      // prepayment metadata. The standard "pay at hotel" signal is Guarantee
-      // None + BookingRules/AcceptableGuarantee PaymentType=PayAtHotel.
-      `<Guarantee GuaranteeType="None" GuaranteeCode="None"/>`,
-      // Some OwlNest views map payment state from booking rules rather than
-      // GuaranteePayment. Explicitly mark this PMS channel as pay-at-hotel.
-      `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="PayAtHotel"/></AcceptableGuarantees></BookingRule></BookingRules>`,
+      // OwlNest marked PMS-originated orders as settled when only Total was sent.
+      // Send explicit OTA payment markers instead: DepositRequired/Deposit for
+      // deposit workflows, PayAtHotel for unsettled balances, and PrePay only
+      // when the PMS order is actually fully paid.
+      buildPaymentMarkers(order),
       `<Profiles><ProfileInfo><Profile ProfileType="1"><Customer>`,
         `<PersonName><GivenName>${esc(first)}</GivenName><Surname>${esc(last)}</Surname></PersonName>`,
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
         order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
       `</Customer></Profile></ProfileInfo></Profiles>`,
       // OwlNest's 「訂單備註」 is not the OTA SpecialRequests field. Send a
-      // dedicated OrderRemarks node while keeping Comments for OTA compatibility.
+      // dedicated OrderRemarks node while keeping Comments/TPA mirrors for
+      // channel-manager parsers that map only one of these locations.
       orderRemarks,
-      order.notes ? `<Comments><Comment GuestViewable="false"><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
+      comments,
+      tpaRemarks,
     `</ResGlobalInfo>`,
   ].join("");
 }
