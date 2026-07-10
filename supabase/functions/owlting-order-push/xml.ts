@@ -111,6 +111,9 @@ function buildResGuests(order: OwlOrderInput): string {
 
 function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
   const { first, last } = splitName(order.guest_name);
+  const orderRemarks = order.notes
+    ? `<OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks>`
+    : ``;
   return [
     `<ResGlobalInfo>`,
       `<Total AmountAfterTax="${esc(order.total_amount)}" CurrencyCode="TWD"/>`,
@@ -121,11 +124,17 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
       // payment state. GuaranteeType="None" means the channel did not prepay,
       // so the order should remain 待結清 and be settled manually in OwlTing.
       `<DepositPayments><GuaranteePayment GuaranteeType="None"/></DepositPayments>`,
+      // Some OwlNest views map payment state from booking rules rather than
+      // GuaranteePayment. Explicitly mark this PMS channel as pay-at-hotel.
+      `<BookingRules><BookingRule><AcceptableGuarantees><AcceptableGuarantee PaymentType="PayAtHotel"/></AcceptableGuarantees></BookingRule></BookingRules>`,
       `<Profiles><ProfileInfo><Profile ProfileType="1"><Customer>`,
         `<PersonName><GivenName>${esc(first)}</GivenName><Surname>${esc(last)}</Surname></PersonName>`,
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
         order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
       `</Customer></Profile></ProfileInfo></Profiles>`,
+      // OwlNest's 「訂單備註」 is not the OTA SpecialRequests field. Send a
+      // dedicated OrderRemarks node while keeping Comments for OTA compatibility.
+      orderRemarks,
       order.notes ? `<Comments><Comment><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
     `</ResGlobalInfo>`,
   ].join("");
@@ -153,7 +162,7 @@ function buildHotelReservation(
       `<RoomStays>${stays}</RoomStays>`,
       buildResGuests(order),
       buildResGlobalInfo(order, opts.uniqueId),
-      order.notes ? `<SpecialRequests><SpecialRequest><Text>${esc(order.notes)}</Text></SpecialRequest></SpecialRequests>` : ``,
+      order.notes ? `<TPA_Extensions><OrderRemarks><OrderRemark>${esc(order.notes)}</OrderRemark></OrderRemarks></TPA_Extensions>` : ``,
     `</HotelReservation>`,
   ].join("");
 }
