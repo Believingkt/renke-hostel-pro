@@ -6004,7 +6004,6 @@ export type Database = {
           last_error: string | null
           next_retry_at: string | null
           order_id: string | null
-          order_snapshot: Json | null
           res_status: Database["public"]["Enums"]["owlting_res_status"]
           sent_at: string | null
           status: Database["public"]["Enums"]["owlting_push_status"]
@@ -6018,7 +6017,6 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           order_id?: string | null
-          order_snapshot?: Json | null
           res_status: Database["public"]["Enums"]["owlting_res_status"]
           sent_at?: string | null
           status?: Database["public"]["Enums"]["owlting_push_status"]
@@ -6032,7 +6030,6 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           order_id?: string | null
-          order_snapshot?: Json | null
           res_status?: Database["public"]["Enums"]["owlting_res_status"]
           sent_at?: string | null
           status?: Database["public"]["Enums"]["owlting_push_status"]
