@@ -184,7 +184,7 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
     .eq("id", row.order_id)
     .maybeSingle();
 
@@ -199,7 +199,7 @@ async function processRow(
     .select("room_type_id, quantity, room_price")
     .eq("order_id", order.id);
 
-  const stayInputs = (orRooms && orRooms.length > 0)
+  const rawStayInputs = (orRooms && orRooms.length > 0)
     ? orRooms.map((r: any) => ({
         room_type_id: r.room_type_id,
         quantity: r.quantity ?? 1,
@@ -210,6 +210,32 @@ async function processRow(
         quantity: 1,
         unit_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
       }] : []);
+
+  // Plan A: allocate order.final_price across stays proportionally so that
+  // sum(unitAmount * quantity) === final_price. Keeps OwlTing's displayed
+  // 房款 / total consistent with the PMS actual收金額 (含折扣、加購已在 final_price 內).
+  const finalTotal = Math.round(Number(order.final_price ?? order.total_price ?? 0));
+  const origTotal = rawStayInputs.reduce((s, x) => s + x.unit_amount * x.quantity, 0);
+  const stayInputs = rawStayInputs.map((s) => ({ ...s }));
+  if (finalTotal > 0 && origTotal > 0 && stayInputs.length > 0) {
+    let allocated = 0;
+    for (let i = 0; i < stayInputs.length; i++) {
+      const s = stayInputs[i];
+      const share = (s.unit_amount * s.quantity) / origTotal;
+      const stayTotal = i === stayInputs.length - 1
+        ? finalTotal - allocated
+        : Math.round(finalTotal * share);
+      allocated += stayTotal;
+      s.unit_amount = Math.max(0, Math.round(stayTotal / Math.max(1, s.quantity)));
+    }
+    // Fix rounding remainder on the last stay so sum matches finalTotal exactly
+    const check = stayInputs.reduce((sum, x) => sum + x.unit_amount * x.quantity, 0);
+    const diff = finalTotal - check;
+    if (diff !== 0) {
+      const last = stayInputs[stayInputs.length - 1];
+      last.unit_amount = Math.max(0, last.unit_amount + Math.round(diff / Math.max(1, last.quantity)));
+    }
+  }
 
   if (stayInputs.length === 0) {
     await finalizeFail(admin, row, baseLog, "no rooms on order", true);
