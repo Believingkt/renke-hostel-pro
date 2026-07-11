@@ -529,6 +529,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{nt(totals.total)}</TableCell>
                       <TableCell className="text-right tabular-nums text-primary">{nt(totals.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{nt(totals.depositPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{nt(totals.fullPaid)}</TableCell>
                       <TableCell className="text-right tabular-nums">{nt(totals.pending)}</TableCell>
                       <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
