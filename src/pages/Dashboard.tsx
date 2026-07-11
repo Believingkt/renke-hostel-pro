@@ -253,6 +253,13 @@ const Dashboard = () => {
         }
       />
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">總覽</TabsTrigger>
+          <TabsTrigger value="sources">訂單來源分析</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-0">
       {/* 統計卡片 */}
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         {isLoading ? (
