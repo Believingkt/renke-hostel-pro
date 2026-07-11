@@ -26,7 +26,7 @@ interface Props {
   accommodationId: string;
 }
 
-type RangeMode = "month" | "last3" | "last6" | "year";
+type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
   order_source: string | null;
