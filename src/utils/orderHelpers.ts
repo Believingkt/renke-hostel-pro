@@ -63,6 +63,7 @@ export const getOrderSourceConfig = (source: string, otaCode?: string | null) =>
     official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200" },
     franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200" },
     owner_provided: { label: "業主自帶", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+    accommodation_voucher: { label: "住宿票卷", className: "bg-cyan-100 text-cyan-700 border-cyan-200" },
     hotelnabe: { label: "hotelnabe", className: "bg-sky-100 text-sky-700 border-sky-200" },
     owlting: { label: "奧丁丁", className: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
   };
@@ -114,6 +115,7 @@ export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
   official_use: "公務使用",
   franchise_diff: "加盟價差",
   owner_provided: "業主自帶",
+  accommodation_voucher: "住宿票卷",
   hotelnabe: "旭海 HotelNabe (Channel Manager)",
   owlting: "奧丁丁 OwlNest (OTA 聚合)",
 };
