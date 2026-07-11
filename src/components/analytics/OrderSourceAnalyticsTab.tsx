@@ -45,6 +45,8 @@ interface SourceStat {
   count: number;
   total: number;
   paid: number;
+  depositPaid: number;
+  fullPaid: number;
   pending: number;
   rate: number;
   breakdown?: SourceStat[];
@@ -181,14 +183,19 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         count: 0,
         total: 0,
         paid: 0,
+        depositPaid: 0,
+        fullPaid: 0,
         pending: 0,
         rate: 0,
       };
       const total = Number(o.final_price) || 0;
       const paid = Number(o.paid_amount) || 0;
+      const isFullPaid = o.payment_status === "paid";
       cur.count += 1;
       cur.total += total;
       cur.paid += paid;
+      if (isFullPaid) cur.fullPaid += paid;
+      else if (paid > 0) cur.depositPaid += paid;
       cur.pending += Math.max(0, total - paid);
       map.set(key, cur);
 
@@ -206,12 +213,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           count: 0,
           total: 0,
           paid: 0,
+          depositPaid: 0,
+          fullPaid: 0,
           pending: 0,
           rate: 0,
         };
         sub.count += 1;
         sub.total += total;
         sub.paid += paid;
+        if (isFullPaid) sub.fullPaid += paid;
+        else if (paid > 0) sub.depositPaid += paid;
         sub.pending += Math.max(0, total - paid);
         inner.set(ota, sub);
       }
@@ -235,10 +246,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         acc.count += s.count;
         acc.total += s.total;
         acc.paid += s.paid;
+        acc.depositPaid += s.depositPaid;
+        acc.fullPaid += s.fullPaid;
         acc.pending += s.pending;
         return acc;
       },
-      { count: 0, total: 0, paid: 0, pending: 0 },
+      { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 },
     );
     return { stats: arr, totals };
   }, [orders]);
@@ -365,7 +378,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-primary">{nt(totals.paid)}</div>
-                <p className="text-xs text-muted-foreground mt-1">含訂金＋已付清</p>
+                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  <div className="flex justify-between gap-2">
+                    <span>已付訂金</span>
+                    <span className="tabular-nums font-medium text-foreground">{nt(totals.depositPaid)}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>已付清</span>
+                    <span className="tabular-nums font-medium text-foreground">{nt(totals.fullPaid)}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -438,6 +460,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-right">訂單數</TableHead>
                   <TableHead className="text-right">訂單總額</TableHead>
                   <TableHead className="text-right">已收</TableHead>
+                  <TableHead className="text-right">└ 已付訂金</TableHead>
+                  <TableHead className="text-right">└ 已付清</TableHead>
                   <TableHead className="text-right">待收</TableHead>
                   <TableHead className="text-right">收款率</TableHead>
                 </TableRow>
@@ -445,7 +469,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -477,6 +501,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
                             <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.depositPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.fullPaid)}</TableCell>
                             <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
                             <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
@@ -489,6 +515,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.depositPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.fullPaid)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
@@ -501,6 +529,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{nt(totals.total)}</TableCell>
                       <TableCell className="text-right tabular-nums text-primary">{nt(totals.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{nt(totals.depositPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{nt(totals.fullPaid)}</TableCell>
                       <TableCell className="text-right tabular-nums">{nt(totals.pending)}</TableCell>
                       <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
