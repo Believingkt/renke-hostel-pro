@@ -317,6 +317,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 { k: "last3", label: "近3月" },
                 { k: "last6", label: "近6月" },
                 { k: "year", label: "今年" },
+                { k: "custom", label: "自訂" },
               ] as { k: RangeMode; label: string }[]
             ).map((r) => (
               <Button
@@ -330,6 +331,13 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </Button>
             ))}
           </div>
+          {rangeMode === "custom" && (
+            <DateRangePicker
+              dateRange={customRange}
+              onDateRangeChange={setCustomRange}
+              allowFutureDates
+            />
+          )}
         </div>
         <span className="text-xs text-muted-foreground">統計基準：入住日期</span>
       </div>
