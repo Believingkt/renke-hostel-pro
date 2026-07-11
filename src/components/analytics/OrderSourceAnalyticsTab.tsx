@@ -96,12 +96,22 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         rangeLabel: "近 6 個月",
       };
     }
+    if (rangeMode === "year") {
+      return {
+        rangeStart: new Date(today.getFullYear(), 0, 1),
+        rangeEnd: new Date(today.getFullYear(), 11, 31),
+        rangeLabel: `${today.getFullYear()} 年`,
+      };
+    }
+    // custom
+    const from = customRange?.from ?? startOfMonth(today);
+    const to = customRange?.to ?? customRange?.from ?? endOfMonth(today);
     return {
-      rangeStart: new Date(today.getFullYear(), 0, 1),
-      rangeEnd: new Date(today.getFullYear(), 11, 31),
-      rangeLabel: `${today.getFullYear()} 年`,
+      rangeStart: from,
+      rangeEnd: to,
+      rangeLabel: `${format(from, "yyyy/MM/dd")} – ${format(to, "yyyy/MM/dd")}`,
     };
-  }, [rangeMode, monthCursor]);
+  }, [rangeMode, monthCursor, customRange]);
 
   // Fetch orders for KPI/table/bar
   useEffect(() => {
