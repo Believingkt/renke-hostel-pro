@@ -56,6 +56,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const toggleExpand = (src: string) => {
+    setExpandedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(src)) next.delete(src);
+      else next.add(src);
+      return next;
+    });
+  };
 
   // Compute filter range for KPI/table/bar
   const { rangeStart, rangeEnd, rangeLabel } = useMemo(() => {
