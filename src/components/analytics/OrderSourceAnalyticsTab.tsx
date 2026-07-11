@@ -378,7 +378,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-primary">{nt(totals.paid)}</div>
-                <p className="text-xs text-muted-foreground mt-1">含訂金＋已付清</p>
+                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  <div className="flex justify-between gap-2">
+                    <span>已付訂金</span>
+                    <span className="tabular-nums font-medium text-foreground">{nt(totals.depositPaid)}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>已付清</span>
+                    <span className="tabular-nums font-medium text-foreground">{nt(totals.fullPaid)}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card>
