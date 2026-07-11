@@ -486,7 +486,11 @@ export default function OwnerSettlement() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
-                            <Badge variant="secondary">{r.order.owner_direct ? "業主自帶" : "來源不抽成"}</Badge>
+                            <Badge variant="secondary">
+                              {r.order.owner_direct
+                                ? "業主自帶"
+                                : `不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
+                            </Badge>
                           ) : (
                             <span className="text-destructive">-{fmt(r.commission)}</span>
                           )}
