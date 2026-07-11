@@ -24,6 +24,8 @@ import { MonthlyOccupancyRateChart } from "@/components/charts/MonthlyOccupancyR
 import { MonthlyAveragePriceChart } from "@/components/charts/MonthlyAveragePriceChart";
 import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
 
 type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
 const CHART_LABELS: Record<ChartKey, string> = {
@@ -251,6 +253,13 @@ const Dashboard = () => {
         }
       />
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">總覽</TabsTrigger>
+          <TabsTrigger value="sources">訂單來源分析</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-0">
       {/* 統計卡片 */}
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         {isLoading ? (
@@ -445,8 +454,15 @@ const Dashboard = () => {
       <div className="px-2 md:px-0">
         <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} />
       </div>
+        </TabsContent>
+
+        <TabsContent value="sources" className="mt-0">
+          <OrderSourceAnalyticsTab accommodationId={accommodationId!} />
+        </TabsContent>
+      </Tabs>
 
     </div>
+
   );
 
   return (
