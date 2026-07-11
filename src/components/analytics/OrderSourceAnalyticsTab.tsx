@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,10 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight } from "lucide-react";
+import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
+
 
 interface Props {
   accommodationId: string;
@@ -28,6 +30,7 @@ type RangeMode = "month" | "last3" | "last6" | "year";
 
 interface OrderRow {
   order_source: string | null;
+  ota_channel: string | null;
   check_in_date: string;
   final_price: number | null;
   paid_amount: number | null;
@@ -42,6 +45,7 @@ interface SourceStat {
   paid: number;
   pending: number;
   rate: number;
+  breakdown?: SourceStat[];
 }
 
 const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
@@ -52,6 +56,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const toggleExpand = (src: string) => {
+    setExpandedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(src)) next.delete(src);
+      else next.add(src);
+      return next;
+    });
+  };
 
   // Compute filter range for KPI/table/bar
   const { rangeStart, rangeEnd, rangeLabel } = useMemo(() => {
@@ -92,7 +105,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(rangeStart, "yyyy-MM-dd"))
@@ -121,7 +134,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       const end = endOfMonth(today);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(start, "yyyy-MM-dd"))
@@ -139,9 +152,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown)
   const { stats, totals } = useMemo(() => {
     const map = new Map<string, SourceStat>();
+    const subMap = new Map<string, Map<string, SourceStat>>();
     for (const o of orders ?? []) {
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
@@ -161,11 +175,44 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       cur.paid += paid;
       cur.pending += Math.max(0, total - paid);
       map.set(key, cur);
+
+      if (key === "owlting" || key === "hotelnabe") {
+        const ota = (o.ota_channel || "").toString().trim().toLowerCase() || "unknown";
+        const subLabel =
+          key === "owlting"
+            ? (ota === "unknown" ? "未指定" : (OWLTING_OTA_DISPLAY_NAMES[ota] ?? ota))
+            : (ota === "unknown" ? "未指定" : ota);
+        if (!subMap.has(key)) subMap.set(key, new Map());
+        const inner = subMap.get(key)!;
+        const sub = inner.get(ota) ?? {
+          source: `${key}:${ota}`,
+          label: subLabel,
+          count: 0,
+          total: 0,
+          paid: 0,
+          pending: 0,
+          rate: 0,
+        };
+        sub.count += 1;
+        sub.total += total;
+        sub.paid += paid;
+        sub.pending += Math.max(0, total - paid);
+        inner.set(ota, sub);
+      }
     }
-    const arr = Array.from(map.values()).map((s) => ({
-      ...s,
-      rate: s.total > 0 ? (s.paid / s.total) * 100 : 0,
-    }));
+    const arr = Array.from(map.values()).map((s) => {
+      const inner = subMap.get(s.source);
+      const breakdown = inner
+        ? Array.from(inner.values())
+            .map((x) => ({ ...x, rate: x.total > 0 ? (x.paid / x.total) * 100 : 0 }))
+            .sort((a, b) => b.total - a.total)
+        : undefined;
+      return {
+        ...s,
+        rate: s.total > 0 ? (s.paid / s.total) * 100 : 0,
+        breakdown,
+      };
+    });
     arr.sort((a, b) => b.total - a.total);
     const totals = arr.reduce(
       (acc, s) => {
@@ -378,16 +425,53 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   </TableRow>
                 ) : (
                   <>
-                    {stats.map((s) => (
-                      <TableRow key={s.source}>
-                        <TableCell className="whitespace-nowrap">{s.label}</TableCell>
-                        <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                        <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
-                      </TableRow>
-                    ))}
+                    {stats.map((s) => {
+                      const hasBreakdown = !!s.breakdown && s.breakdown.length > 0;
+                      const isOpen = expandedSources.has(s.source);
+                      return (
+                        <Fragment key={s.source}>
+                          <TableRow>
+                            <TableCell className="whitespace-nowrap">
+                              {hasBreakdown ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(s.source)}
+                                  className="inline-flex items-center gap-1 hover:text-primary"
+                                >
+                                  <ChevronDown
+                                    className={`h-3.5 w-3.5 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                                  />
+                                  {s.label}
+                                  <span className="text-xs text-muted-foreground">
+                                    ({s.breakdown!.length})
+                                  </span>
+                                </button>
+                              ) : (
+                                s.label
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                            <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
+                          </TableRow>
+                          {hasBreakdown && isOpen &&
+                            s.breakdown!.map((sub) => (
+                              <TableRow key={sub.source} className="bg-muted/20">
+                                <TableCell className="whitespace-nowrap pl-8 text-muted-foreground">
+                                  └ {sub.label}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
+                              </TableRow>
+                            ))}
+                        </Fragment>
+                      );
+                    })}
                     <TableRow className="font-semibold bg-muted/40">
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
