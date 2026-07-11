@@ -143,9 +143,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown)
   const { stats, totals } = useMemo(() => {
     const map = new Map<string, SourceStat>();
+    const subMap = new Map<string, Map<string, SourceStat>>();
     for (const o of orders ?? []) {
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
@@ -165,11 +166,44 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       cur.paid += paid;
       cur.pending += Math.max(0, total - paid);
       map.set(key, cur);
+
+      if (key === "owlting" || key === "hotelnabe") {
+        const ota = (o.ota_channel || "").toString().trim().toLowerCase() || "unknown";
+        const subLabel =
+          key === "owlting"
+            ? (ota === "unknown" ? "未指定" : (OWLTING_OTA_DISPLAY_NAMES[ota] ?? ota))
+            : (ota === "unknown" ? "未指定" : ota);
+        if (!subMap.has(key)) subMap.set(key, new Map());
+        const inner = subMap.get(key)!;
+        const sub = inner.get(ota) ?? {
+          source: `${key}:${ota}`,
+          label: subLabel,
+          count: 0,
+          total: 0,
+          paid: 0,
+          pending: 0,
+          rate: 0,
+        };
+        sub.count += 1;
+        sub.total += total;
+        sub.paid += paid;
+        sub.pending += Math.max(0, total - paid);
+        inner.set(ota, sub);
+      }
     }
-    const arr = Array.from(map.values()).map((s) => ({
-      ...s,
-      rate: s.total > 0 ? (s.paid / s.total) * 100 : 0,
-    }));
+    const arr = Array.from(map.values()).map((s) => {
+      const inner = subMap.get(s.source);
+      const breakdown = inner
+        ? Array.from(inner.values())
+            .map((x) => ({ ...x, rate: x.total > 0 ? (x.paid / x.total) * 100 : 0 }))
+            .sort((a, b) => b.total - a.total)
+        : undefined;
+      return {
+        ...s,
+        rate: s.total > 0 ? (s.paid / s.total) * 100 : 0,
+        breakdown,
+      };
+    });
     arr.sort((a, b) => b.total - a.total);
     const totals = arr.reduce(
       (acc, s) => {
