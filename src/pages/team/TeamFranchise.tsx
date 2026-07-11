@@ -3463,8 +3463,20 @@ function MemberDistributionTab({ currentUserId, canManage = true, canDelete = tr
   }, []);
 
   const handleSubmit = async () => {
-    if (!form.project_name.trim() || form.unit_price <= 0 || form.year < 2000 || form.month < 1 || form.month > 12) {
-      toast.error("請完整填寫表單");
+    if (!form.project_name.trim()) {
+      toast.error("請選擇專案名稱");
+      return;
+    }
+    if (!Number.isFinite(form.year) || form.year < 2000) {
+      toast.error("請填寫正確年份（需 ≥ 2000）");
+      return;
+    }
+    if (!Number.isFinite(form.month) || form.month < 1 || form.month > 12) {
+      toast.error("請填寫正確月份（1-12）");
+      return;
+    }
+    if (!Number.isFinite(form.unit_price) || form.unit_price <= 0) {
+      toast.error("每單位金額必須大於 0");
       return;
     }
     setSaving(true);
