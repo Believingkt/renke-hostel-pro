@@ -55,6 +55,10 @@ const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  }));
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
