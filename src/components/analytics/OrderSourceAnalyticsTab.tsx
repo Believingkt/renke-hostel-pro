@@ -469,7 +469,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
                             ))}
-                        </>
+                        </Fragment>
                       );
                     })}
                     <TableRow className="font-semibold bg-muted/40">
