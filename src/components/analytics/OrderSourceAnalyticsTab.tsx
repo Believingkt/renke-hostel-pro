@@ -20,13 +20,15 @@ import {
 import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import type { DateRange } from "react-day-picker";
 
 
 interface Props {
   accommodationId: string;
 }
 
-type RangeMode = "month" | "last3" | "last6" | "year";
+type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
   order_source: string | null;
@@ -53,6 +55,10 @@ const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  }));
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,12 +96,22 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         rangeLabel: "近 6 個月",
       };
     }
+    if (rangeMode === "year") {
+      return {
+        rangeStart: new Date(today.getFullYear(), 0, 1),
+        rangeEnd: new Date(today.getFullYear(), 11, 31),
+        rangeLabel: `${today.getFullYear()} 年`,
+      };
+    }
+    // custom
+    const from = customRange?.from ?? startOfMonth(today);
+    const to = customRange?.to ?? customRange?.from ?? endOfMonth(today);
     return {
-      rangeStart: new Date(today.getFullYear(), 0, 1),
-      rangeEnd: new Date(today.getFullYear(), 11, 31),
-      rangeLabel: `${today.getFullYear()} 年`,
+      rangeStart: from,
+      rangeEnd: to,
+      rangeLabel: `${format(from, "yyyy/MM/dd")} – ${format(to, "yyyy/MM/dd")}`,
     };
-  }, [rangeMode, monthCursor]);
+  }, [rangeMode, monthCursor, customRange]);
 
   // Fetch orders for KPI/table/bar
   useEffect(() => {
@@ -301,6 +317,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 { k: "last3", label: "近3月" },
                 { k: "last6", label: "近6月" },
                 { k: "year", label: "今年" },
+                { k: "custom", label: "自訂" },
               ] as { k: RangeMode; label: string }[]
             ).map((r) => (
               <Button
@@ -314,6 +331,13 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </Button>
             ))}
           </div>
+          {rangeMode === "custom" && (
+            <DateRangePicker
+              dateRange={customRange}
+              onDateRangeChange={setCustomRange}
+              allowFutureDates
+            />
+          )}
         </div>
         <span className="text-xs text-muted-foreground">統計基準：入住日期</span>
       </div>
