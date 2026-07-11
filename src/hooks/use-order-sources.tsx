@@ -35,6 +35,7 @@ const RAW_LABEL_MAP: Record<string, string> = {
   points_starchain: "星鏈會員",
   official_use: "公務使用",
   franchise_diff: "加盟價差",
+  accommodation_voucher: "住宿票卷",
 };
 
 /**
