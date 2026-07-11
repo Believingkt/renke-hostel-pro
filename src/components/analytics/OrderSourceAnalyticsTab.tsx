@@ -45,6 +45,8 @@ interface SourceStat {
   count: number;
   total: number;
   paid: number;
+  depositPaid: number;
+  fullPaid: number;
   pending: number;
   rate: number;
   breakdown?: SourceStat[];
