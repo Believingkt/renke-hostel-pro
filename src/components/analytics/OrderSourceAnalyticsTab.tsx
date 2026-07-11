@@ -45,6 +45,7 @@ interface SourceStat {
   paid: number;
   pending: number;
   rate: number;
+  breakdown?: SourceStat[];
 }
 
 const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
