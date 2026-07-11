@@ -17,8 +17,10 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight } from "lucide-react";
+import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
+import { useState as useStateReact } from "react";
 
 interface Props {
   accommodationId: string;
@@ -28,6 +30,7 @@ type RangeMode = "month" | "last3" | "last6" | "year";
 
 interface OrderRow {
   order_source: string | null;
+  ota_channel: string | null;
   check_in_date: string;
   final_price: number | null;
   paid_amount: number | null;
