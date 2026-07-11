@@ -454,8 +454,15 @@ const Dashboard = () => {
       <div className="px-2 md:px-0">
         <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} />
       </div>
+        </TabsContent>
+
+        <TabsContent value="sources" className="mt-0">
+          <OrderSourceAnalyticsTab accommodationId={accommodationId!} />
+        </TabsContent>
+      </Tabs>
 
     </div>
+
   );
 
   return (
