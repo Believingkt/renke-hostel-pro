@@ -429,8 +429,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       const hasBreakdown = !!s.breakdown && s.breakdown.length > 0;
                       const isOpen = expandedSources.has(s.source);
                       return (
-                        <>
-                          <TableRow key={s.source}>
+                        <Fragment key={s.source}>
+                          <TableRow>
                             <TableCell className="whitespace-nowrap">
                               {hasBreakdown ? (
                                 <button
