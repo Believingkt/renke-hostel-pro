@@ -460,6 +460,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-right">訂單數</TableHead>
                   <TableHead className="text-right">訂單總額</TableHead>
                   <TableHead className="text-right">已收</TableHead>
+                  <TableHead className="text-right">└ 已付訂金</TableHead>
+                  <TableHead className="text-right">└ 已付清</TableHead>
                   <TableHead className="text-right">待收</TableHead>
                   <TableHead className="text-right">收款率</TableHead>
                 </TableRow>
@@ -467,7 +469,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
