@@ -65,7 +65,12 @@ export default function OwnerSettlementSettings() {
       const accQuery = supabase.from("accommodation_info").select("id, name");
       if (currentAccommodationId) accQuery.eq("id", currentAccommodationId);
 
-      const [settingRes, accRes, ordersRes] = await Promise.all([
+      const configuredQuery = supabase
+        .from("accommodation_order_sources")
+        .select("accommodation_id, name");
+      if (currentAccommodationId) configuredQuery.eq("accommodation_id", currentAccommodationId);
+
+      const [settingRes, accRes, ordersRes, configuredRes] = await Promise.all([
         supabase
           .from("system_settings")
           .select("setting_value")
@@ -73,6 +78,7 @@ export default function OwnerSettlementSettings() {
           .maybeSingle(),
         accQuery.order("name", { ascending: true }),
         ordersQuery,
+        configuredQuery,
       ]);
 
       if (settingRes.data?.setting_value) {
@@ -88,6 +94,13 @@ export default function OwnerSettlementSettings() {
       for (const row of (ordersRes.data ?? []) as Array<{ accommodation_id: string | null; order_source: string | null }>) {
         if (!row.accommodation_id || !row.order_source) continue;
         const src = row.order_source.trim();
+        if (!src) continue;
+        if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
+        sourcesByAcc.get(row.accommodation_id)!.add(src);
+      }
+      for (const row of (configuredRes.data ?? []) as Array<{ accommodation_id: string | null; name: string | null }>) {
+        if (!row.accommodation_id || !row.name) continue;
+        const src = row.name.trim();
         if (!src) continue;
         if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
         sourcesByAcc.get(row.accommodation_id)!.add(src);
