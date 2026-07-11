@@ -183,14 +183,19 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         count: 0,
         total: 0,
         paid: 0,
+        depositPaid: 0,
+        fullPaid: 0,
         pending: 0,
         rate: 0,
       };
       const total = Number(o.final_price) || 0;
       const paid = Number(o.paid_amount) || 0;
+      const isFullPaid = o.payment_status === "paid";
       cur.count += 1;
       cur.total += total;
       cur.paid += paid;
+      if (isFullPaid) cur.fullPaid += paid;
+      else if (paid > 0) cur.depositPaid += paid;
       cur.pending += Math.max(0, total - paid);
       map.set(key, cur);
 
@@ -208,12 +213,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           count: 0,
           total: 0,
           paid: 0,
+          depositPaid: 0,
+          fullPaid: 0,
           pending: 0,
           rate: 0,
         };
         sub.count += 1;
         sub.total += total;
         sub.paid += paid;
+        if (isFullPaid) sub.fullPaid += paid;
+        else if (paid > 0) sub.depositPaid += paid;
         sub.pending += Math.max(0, total - paid);
         inner.set(ota, sub);
       }
@@ -237,10 +246,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         acc.count += s.count;
         acc.total += s.total;
         acc.paid += s.paid;
+        acc.depositPaid += s.depositPaid;
+        acc.fullPaid += s.fullPaid;
         acc.pending += s.pending;
         return acc;
       },
-      { count: 0, total: 0, paid: 0, pending: 0 },
+      { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 },
     );
     return { stats: arr, totals };
   }, [orders]);
