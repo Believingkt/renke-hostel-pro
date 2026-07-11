@@ -96,7 +96,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(rangeStart, "yyyy-MM-dd"))
