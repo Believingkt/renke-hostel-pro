@@ -501,6 +501,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
                             <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.depositPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.fullPaid)}</TableCell>
                             <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
                             <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
@@ -513,6 +515,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.depositPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.fullPaid)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
