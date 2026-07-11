@@ -115,6 +115,7 @@ export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
   official_use: "公務使用",
   franchise_diff: "加盟價差",
   owner_provided: "業主自帶",
+  accommodation_voucher: "住宿票卷",
   hotelnabe: "旭海 HotelNabe (Channel Manager)",
   owlting: "奧丁丁 OwlNest (OTA 聚合)",
 };
