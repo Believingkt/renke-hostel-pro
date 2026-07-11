@@ -425,16 +425,53 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   </TableRow>
                 ) : (
                   <>
-                    {stats.map((s) => (
-                      <TableRow key={s.source}>
-                        <TableCell className="whitespace-nowrap">{s.label}</TableCell>
-                        <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                        <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
-                      </TableRow>
-                    ))}
+                    {stats.map((s) => {
+                      const hasBreakdown = !!s.breakdown && s.breakdown.length > 0;
+                      const isOpen = expandedSources.has(s.source);
+                      return (
+                        <>
+                          <TableRow key={s.source}>
+                            <TableCell className="whitespace-nowrap">
+                              {hasBreakdown ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(s.source)}
+                                  className="inline-flex items-center gap-1 hover:text-primary"
+                                >
+                                  <ChevronDown
+                                    className={`h-3.5 w-3.5 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                                  />
+                                  {s.label}
+                                  <span className="text-xs text-muted-foreground">
+                                    ({s.breakdown!.length})
+                                  </span>
+                                </button>
+                              ) : (
+                                s.label
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                            <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
+                          </TableRow>
+                          {hasBreakdown && isOpen &&
+                            s.breakdown!.map((sub) => (
+                              <TableRow key={sub.source} className="bg-muted/20">
+                                <TableCell className="whitespace-nowrap pl-8 text-muted-foreground">
+                                  └ {sub.label}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
+                              </TableRow>
+                            ))}
+                        </>
+                      );
+                    })}
                     <TableRow className="font-semibold bg-muted/40">
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
