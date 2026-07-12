@@ -450,7 +450,9 @@ export function KolStatsTab() {
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
-          const isFulltime = isFulltimeAt(s);
+          const isExternal = !s.is_scout_team_member;
+          // External scout：稀有度獎金無 30 位門檻，強制 fulltime 抑制邏輯不生效
+          const isFulltime = isExternal ? false : isFulltimeAt(s);
 
           // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
           const periodQualified = rows.filter(
