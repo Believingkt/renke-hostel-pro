@@ -525,7 +525,7 @@ export default function TeamHome() {
             }
           }
         }
-        }
+
 
         // ===== Franchise =====
         let franchiseInternalSum = 0;
