@@ -142,7 +142,42 @@ serve(async (req) => {
 
     const teamTargets = teamTargetsRes.data ?? [];
     const fulltimeTargets = fulltimeTargetsRes.data ?? [];
-    const profiles = profilesRes.data ?? [];
+    const teamScouts = (profilesRes.data ?? []).map((p) => ({
+      ...p,
+      is_external: false as boolean,
+    }));
+    const teamScoutIdSet = new Set(teamScouts.map((p) => p.user_id as string));
+
+    // 外部星探：user_roles.role ∈ (scout, scout_manager) 但 is_scout_team_member = false
+    // 這批人只計算 KOL 分潤與稀有度（無門檻），不計底薪 / 個人目標 / 團隊獎金
+    const { data: scoutRoleRows, error: scoutRolesErr } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["scout", "scout_manager"]);
+    if (scoutRolesErr) throw scoutRolesErr;
+
+    const externalUserIds = Array.from(
+      new Set((scoutRoleRows ?? []).map((r) => r.user_id as string)),
+    ).filter((uid) => !!uid && !teamScoutIdSet.has(uid));
+
+    let externalScouts: Array<
+      typeof teamScouts[number]
+    > = [];
+    if (externalUserIds.length > 0) {
+      const { data: extProfiles, error: extErr } = await supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name, employment_type, fulltime_start_yearmonth, managed_venue")
+        .in("user_id", externalUserIds)
+        .eq("is_scout_team_member", false);
+      if (extErr) throw extErr;
+      externalScouts = (extProfiles ?? []).map((p) => ({
+        ...p,
+        is_external: true as boolean,
+      }));
+    }
+
+    const externalScoutIds = new Set(externalScouts.map((p) => p.user_id as string));
+    const profiles = [...teamScouts, ...externalScouts];
 
     // venue_name → accommodation_id
     const venueToAccId = new Map<string, string>();
@@ -209,8 +244,9 @@ serve(async (req) => {
     const allKpiMonthInvites = kpiMonthInvitesRes.data ?? [];
 
     // 正職星探集合（employment_type='fulltime' 且 fulltime_start_yearmonth <= currentYM）
+    // 只從 teamScouts 判斷；externalScouts 不視為正職
     const fulltimeScoutIds = new Set<string>(
-      profiles
+      teamScouts
         .filter(
           (p) =>
             p.employment_type === "fulltime" &&
@@ -233,7 +269,10 @@ serve(async (req) => {
         const accId = t.accommodation_id as string;
         const cnt = allKpiMonthInvites.filter((i) => {
           if (i.accommodation_id !== accId) return false;
-          const isFT = fulltimeScoutIds.has(i.scout_id as string);
+          const sid = i.scout_id as string;
+          // 外部星探不計入團隊達標
+          if (externalScoutIds.has(sid)) return false;
+          const isFT = fulltimeScoutIds.has(sid);
           return isFT ? ["SR", "SSR", "UR"].includes(i.rarity ?? "") : true;
         }).length;
         teamActualByAcc.set(accId, cnt);
@@ -264,8 +303,10 @@ serve(async (req) => {
 
     for (const scout of profiles) {
       const scoutId = scout.user_id as string;
+      const isExternal = !!(scout as any).is_external;
       const startYM = scout.fulltime_start_yearmonth as string | null;
       const isFulltime =
+        !isExternal &&
         scout.employment_type === "fulltime" &&
         !!startYM &&
         startYM <= currentYM;
@@ -285,8 +326,10 @@ serve(async (req) => {
         achieved: boolean;
       }> = [];
 
-      // period=25 不做個人達標判斷（底薪/團隊獎金都不發）
-      if (period !== 10) {
+      // period=25 或外部星探不做個人達標判斷（底薪/團隊獎金都不發）
+      if (isExternal) {
+        individualAchieved = false;
+      } else if (period !== 10) {
         individualAchieved = false;
       } else if (isFulltime) {
         // 正職個人目標保留現行邏輯（依 fulltime_min，check_in_date 上月整月 SR/SSR/UR）
@@ -407,7 +450,8 @@ serve(async (req) => {
       }
 
       // ===== 團隊獎金 =====
-      const teamBonus = teamAchieved ? teamBonusAmount : 0;
+      // 團隊獎金：外部星探不屬於團隊機制，強制 0
+      const teamBonus = !isExternal && teamAchieved ? teamBonusAmount : 0;
 
       const totalPayout = baseSalary + rarityBonus + kolCommission + teamBonus;
 
@@ -419,7 +463,7 @@ serve(async (req) => {
       };
 
       const individualSnapshot = {
-        employment_type: isFulltime ? "fulltime" : "parttime",
+        employment_type: isExternal ? "external" : isFulltime ? "fulltime" : "parttime",
         venue_breakdown: venueBreakdown,
         individual_achieved: individualAchieved,
       };
