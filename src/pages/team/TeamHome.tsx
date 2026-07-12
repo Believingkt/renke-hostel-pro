@@ -143,6 +143,9 @@ export default function TeamHome() {
           prevMonthEndDate,
           prevY,
           prevM,
+          periodStart,
+          periodEnd,
+          currentMonthKey,
         } = monthInfo;
 
         // profile id (for scout / franchise external)
