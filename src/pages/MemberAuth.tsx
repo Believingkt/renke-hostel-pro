@@ -302,8 +302,8 @@ const MemberAuth = () => {
 
     logLoginAttempt("attempt", "facebook");
     setFbLoading(true);
-    let redirected = false;
     try {
+
       const appId = FACEBOOK_APP_ID;
       const state = crypto.randomUUID();
       const redirectUri = `${PROD_ORIGIN}/member/auth/facebook-callback`;
