@@ -86,6 +86,23 @@ export default function TeamHome() {
     const nextM = now.m === 12 ? 1 : now.m + 1;
     const prevY = now.m === 1 ? now.y - 1 : now.y;
     const prevM = now.m === 1 ? 12 : now.m - 1;
+
+    // 期別判斷：日 <=20 → 當月 25 日期（當月 6 - 當月 20）
+    //           日 >20  → 次月 10 日期（當月 21 - 次月 5）
+    const isEarlyPeriod = now.d <= 20;
+    let periodStart: string;
+    let periodEnd: string;
+    let periodLabel: string;
+    if (isEarlyPeriod) {
+      periodStart = taipeiDateStr(now.y, now.m, 6);
+      periodEnd = taipeiDateStr(now.y, now.m, 20);
+      periodLabel = `${now.m} 月 25 日期預估（${now.m}/6 - ${now.m}/20 入住）`;
+    } else {
+      periodStart = taipeiDateStr(now.y, now.m, 21);
+      periodEnd = taipeiDateStr(nextY, nextM, 5);
+      periodLabel = `${nextM} 月 10 日期預估（${now.m}/21 - ${nextM}/5 入住）`;
+    }
+
     return {
       y: now.y,
       m: now.m,
@@ -99,6 +116,9 @@ export default function TeamHome() {
       prevMonthEndDate: taipeiDateStr(now.y, now.m, 1),
       prevY,
       prevM,
+      periodStart,
+      periodEnd,
+      periodLabel,
       nextMonthLabel: `${nextY} 年 ${nextM} 月`,
     };
   }, []);
@@ -123,19 +143,29 @@ export default function TeamHome() {
           prevMonthEndDate,
           prevY,
           prevM,
+          periodStart,
+          periodEnd,
+          currentMonthKey,
         } = monthInfo;
 
         // profile id (for scout / franchise external)
         let profileId: string | null = null;
         let scoutTeamMember = false;
+        let myEmploymentType: string | null = null;
+        let myFulltimeStart: string | null = null;
         if (showScout || showFranchise) {
           const { data } = await supabase
             .from("team_member_profiles")
-            .select("id, is_scout_team_member")
+            .select("id, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("user_id", userId)
             .maybeSingle();
           profileId = (data?.id as string | undefined) ?? null;
-          scoutTeamMember = !!(data as { is_scout_team_member?: boolean } | null)?.is_scout_team_member;
+          const d = data as
+            | { is_scout_team_member?: boolean; employment_type?: string; fulltime_start_yearmonth?: string }
+            | null;
+          scoutTeamMember = !!d?.is_scout_team_member;
+          myEmploymentType = d?.employment_type ?? null;
+          myFulltimeStart = d?.fulltime_start_yearmonth ?? null;
         }
 
         // ===== Closer / Video =====
@@ -337,15 +367,15 @@ export default function TeamHome() {
             }
           }
 
-          // KOL 分潤: orders in current month matching cid codes
+          // KOL 分潤: 期別內 check_in_date 且 discount_code 對應 cid
           if (cidUpperSet.size > 0 && commissionRate > 0) {
             const { data: kolOrders } = await supabase
               .from("orders")
-              .select("final_price, discount_code, order_status, order_date")
+              .select("final_price, discount_code, order_status, check_in_date")
               .neq("order_status", "cancelled")
               .not("discount_code", "is", null)
-              .gte("order_date", monthStartIso)
-              .lt("order_date", monthEndIso);
+              .gte("check_in_date", periodStart)
+              .lte("check_in_date", periodEnd);
 
             let sumPrice = 0;
             for (const o of kolOrders ?? []) {
@@ -356,8 +386,13 @@ export default function TeamHome() {
             scoutSum = sumPrice * commissionRate;
           }
 
-          // 稀有度獎金: 本月 check_in_date 落在當月且 kpi_qualified、非 error、invited_at 非空、rarity != 'ck'
-          const [{ data: rarityRows }, { data: monthKols }] = await Promise.all([
+          // 稀有度獎金：期別內 check_in_date（正職前 30 筆歸零，31 筆起才發）
+          const isFullTime =
+            myEmploymentType === "fulltime" &&
+            !!myFulltimeStart &&
+            myFulltimeStart <= currentMonthKey;
+
+          const [{ data: rarityRows }, { data: periodKols }] = await Promise.all([
             supabase
               .from("kol_rarity_settings")
               .select("rarity, bonus_amount, effective_from")
@@ -365,26 +400,31 @@ export default function TeamHome() {
               .order("effective_from", { ascending: false }),
             supabase
               .from("kol_profiles")
-              .select("rarity, check_in_date, invited_at, is_error, kpi_qualified")
+              .select("rarity, check_in_date, invited_at, is_error, kpi_qualified, created_at")
               .eq("scout_id", userId)
               .eq("kpi_qualified", true)
               .eq("is_error", false)
               .not("invited_at", "is", null)
-              .gte("check_in_date", monthStartDate)
-              .lt("check_in_date", monthEndDate),
+              .gte("check_in_date", periodStart)
+              .lte("check_in_date", periodEnd)
+              .order("created_at", { ascending: true }),
           ]);
 
           const rarityMap = new Map<string, number>();
           for (const r of (rarityRows ?? []) as any[]) {
             if (!rarityMap.has(r.rarity)) rarityMap.set(r.rarity, Number(r.bonus_amount ?? 0));
           }
-          for (const r of (monthKols ?? []) as any[]) {
+          const rows = ((periodKols ?? []) as any[]).filter((r) => {
             const rar = String(r.rarity ?? "");
-            if (!rar || rar === "ck") continue;
+            return rar && rar !== "ck";
+          });
+          const rarityStartIdx = isFullTime ? 30 : 0;
+          for (let i = rarityStartIdx; i < rows.length; i++) {
+            const rar = String(rows[i].rarity ?? "");
             raritySum += rarityMap.get(rar) ?? 0;
           }
 
-          // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計
+          // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
           if (scoutTeamMember) {
             const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
               supabase
@@ -401,13 +441,12 @@ export default function TeamHome() {
                 .eq("month", prevM),
               supabase
                 .from("kol_profiles")
-                .select("venue_name, invited_at")
+                .select("venue_name, kpi_month")
                 .eq("scout_id", userId)
                 .eq("kpi_qualified", true)
                 .eq("is_error", false)
                 .not("invited_at", "is", null)
-                .gte("invited_at", prevMonthStartDate)
-                .lt("invited_at", prevMonthEndDate),
+                .eq("kpi_month", prevMonthStartDate),
             ]);
 
             const baseSalaryAmount = Number((salaryRow as any)?.base_salary ?? 0);
@@ -420,47 +459,62 @@ export default function TeamHome() {
               }))
               .filter((t) => t.personal_min > 0 || t.target_count > 0);
 
-            // 個人達標
             if (targetList.length > 0) {
-              let allPersonalOk = true;
-              for (const t of targetList) {
-                if (t.personal_min <= 0) continue;
-                const actual = ((myPrevKols ?? []) as any[]).filter(
-                  (r) => (r.venue_name ?? "—") === t.venue_name,
-                ).length;
-                if (actual < t.personal_min) {
-                  allPersonalOk = false;
-                  break;
+              // 個人達標（底薪）— 兼職才發，正職不發底薪
+              if (!isFullTime) {
+                let allPersonalOk = true;
+                for (const t of targetList) {
+                  if (t.personal_min <= 0) continue;
+                  const actual = ((myPrevKols ?? []) as any[]).filter(
+                    (r) => (r.venue_name ?? "—") === t.venue_name,
+                  ).length;
+                  if (actual < t.personal_min) {
+                    allPersonalOk = false;
+                    break;
+                  }
                 }
+                if (allPersonalOk) baseSalary = baseSalaryAmount;
               }
-              if (allPersonalOk) baseSalary = baseSalaryAmount;
 
-              // 團隊達標: 全部 scout team members 的上月 invited_at
+              // 團隊達標：所有 scout team members，兼職全計、正職只計 SR/SSR/UR
               const { data: allScouts } = await supabase
                 .from("team_member_profiles")
-                .select("user_id")
+                .select("user_id, employment_type, fulltime_start_yearmonth")
                 .eq("is_scout_team_member", true);
-              const scoutIds = ((allScouts ?? []) as any[])
-                .map((s) => s.user_id as string)
-                .filter(Boolean);
+              const scoutRows = ((allScouts ?? []) as any[]).filter((s) => !!s.user_id);
+              const scoutIds = scoutRows.map((s) => s.user_id as string);
+              const fulltimeSet = new Set<string>(
+                scoutRows
+                  .filter(
+                    (s) =>
+                      s.employment_type === "fulltime" &&
+                      !!s.fulltime_start_yearmonth &&
+                      String(s.fulltime_start_yearmonth) <= currentMonthKey,
+                  )
+                  .map((s) => s.user_id as string),
+              );
 
               if (scoutIds.length > 0) {
                 const { data: teamKols } = await supabase
                   .from("kol_profiles")
-                  .select("venue_name, scout_id, invited_at")
+                  .select("venue_name, scout_id, rarity, kpi_month")
                   .in("scout_id", scoutIds)
                   .eq("kpi_qualified", true)
                   .eq("is_error", false)
                   .not("invited_at", "is", null)
-                  .gte("invited_at", prevMonthStartDate)
-                  .lt("invited_at", prevMonthEndDate);
+                  .eq("kpi_month", prevMonthStartDate);
 
+                const rareSet = new Set(["SR", "SSR", "UR"]);
                 let teamOk = true;
                 for (const t of targetList) {
                   if (t.target_count <= 0) continue;
-                  const total = ((teamKols ?? []) as any[]).filter(
-                    (r) => (r.venue_name ?? "—") === t.venue_name,
-                  ).length;
+                  const total = ((teamKols ?? []) as any[]).filter((r) => {
+                    if ((r.venue_name ?? "—") !== t.venue_name) return false;
+                    if (fulltimeSet.has(r.scout_id)) {
+                      return rareSet.has(String(r.rarity ?? "").toUpperCase());
+                    }
+                    return true;
+                  }).length;
                   if (total < t.target_count) {
                     teamOk = false;
                     break;
@@ -472,6 +526,7 @@ export default function TeamHome() {
           }
         }
 
+
         // ===== Franchise =====
         let franchiseInternalSum = 0;
         let franchiseExternalSum = 0;
@@ -482,7 +537,7 @@ export default function TeamHome() {
           const nextM3 = ((monthInfo.m + 3 - 1) % 12) + 1;
           const wideEnd = taipeiDateStr(nextY3, nextM3, 1);
 
-          const currentMonthKey = monthInfo.currentMonthKey;
+          // currentMonthKey already destructured above
           const matches = (r: any, dateField: string) => {
             const ep = (r?.early_payout_month ?? null) as string | null;
             if (ep) return ep === currentMonthKey;
@@ -617,8 +672,8 @@ export default function TeamHome() {
     const rarityM = multOf("scout_rarity");
     const baseM = multOf("scout_base");
     const teamM = multOf("scout_team");
-    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM });
+    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
       key: "scout_base",
       title: "底薪",
