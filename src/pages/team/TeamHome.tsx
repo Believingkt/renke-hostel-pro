@@ -424,7 +424,7 @@ export default function TeamHome() {
             raritySum += rarityMap.get(rar) ?? 0;
           }
 
-          // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計
+          // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
           if (scoutTeamMember) {
             const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
               supabase
@@ -441,13 +441,12 @@ export default function TeamHome() {
                 .eq("month", prevM),
               supabase
                 .from("kol_profiles")
-                .select("venue_name, invited_at")
+                .select("venue_name, kpi_month")
                 .eq("scout_id", userId)
                 .eq("kpi_qualified", true)
                 .eq("is_error", false)
                 .not("invited_at", "is", null)
-                .gte("invited_at", prevMonthStartDate)
-                .lt("invited_at", prevMonthEndDate),
+                .eq("kpi_month", prevMonthStartDate),
             ]);
 
             const baseSalaryAmount = Number((salaryRow as any)?.base_salary ?? 0);
@@ -460,47 +459,62 @@ export default function TeamHome() {
               }))
               .filter((t) => t.personal_min > 0 || t.target_count > 0);
 
-            // 個人達標
             if (targetList.length > 0) {
-              let allPersonalOk = true;
-              for (const t of targetList) {
-                if (t.personal_min <= 0) continue;
-                const actual = ((myPrevKols ?? []) as any[]).filter(
-                  (r) => (r.venue_name ?? "—") === t.venue_name,
-                ).length;
-                if (actual < t.personal_min) {
-                  allPersonalOk = false;
-                  break;
+              // 個人達標（底薪）— 兼職才發，正職不發底薪
+              if (!isFullTime) {
+                let allPersonalOk = true;
+                for (const t of targetList) {
+                  if (t.personal_min <= 0) continue;
+                  const actual = ((myPrevKols ?? []) as any[]).filter(
+                    (r) => (r.venue_name ?? "—") === t.venue_name,
+                  ).length;
+                  if (actual < t.personal_min) {
+                    allPersonalOk = false;
+                    break;
+                  }
                 }
+                if (allPersonalOk) baseSalary = baseSalaryAmount;
               }
-              if (allPersonalOk) baseSalary = baseSalaryAmount;
 
-              // 團隊達標: 全部 scout team members 的上月 invited_at
+              // 團隊達標：所有 scout team members，兼職全計、正職只計 SR/SSR/UR
               const { data: allScouts } = await supabase
                 .from("team_member_profiles")
-                .select("user_id")
+                .select("user_id, employment_type, fulltime_start_yearmonth")
                 .eq("is_scout_team_member", true);
-              const scoutIds = ((allScouts ?? []) as any[])
-                .map((s) => s.user_id as string)
-                .filter(Boolean);
+              const scoutRows = ((allScouts ?? []) as any[]).filter((s) => !!s.user_id);
+              const scoutIds = scoutRows.map((s) => s.user_id as string);
+              const fulltimeSet = new Set<string>(
+                scoutRows
+                  .filter(
+                    (s) =>
+                      s.employment_type === "fulltime" &&
+                      !!s.fulltime_start_yearmonth &&
+                      String(s.fulltime_start_yearmonth) <= currentMonthKey,
+                  )
+                  .map((s) => s.user_id as string),
+              );
 
               if (scoutIds.length > 0) {
                 const { data: teamKols } = await supabase
                   .from("kol_profiles")
-                  .select("venue_name, scout_id, invited_at")
+                  .select("venue_name, scout_id, rarity, kpi_month")
                   .in("scout_id", scoutIds)
                   .eq("kpi_qualified", true)
                   .eq("is_error", false)
                   .not("invited_at", "is", null)
-                  .gte("invited_at", prevMonthStartDate)
-                  .lt("invited_at", prevMonthEndDate);
+                  .eq("kpi_month", prevMonthStartDate);
 
+                const rareSet = new Set(["SR", "SSR", "UR"]);
                 let teamOk = true;
                 for (const t of targetList) {
                   if (t.target_count <= 0) continue;
-                  const total = ((teamKols ?? []) as any[]).filter(
-                    (r) => (r.venue_name ?? "—") === t.venue_name,
-                  ).length;
+                  const total = ((teamKols ?? []) as any[]).filter((r) => {
+                    if ((r.venue_name ?? "—") !== t.venue_name) return false;
+                    if (fulltimeSet.has(r.scout_id)) {
+                      return rareSet.has(String(r.rarity ?? "").toUpperCase());
+                    }
+                    return true;
+                  }).length;
                   if (total < t.target_count) {
                     teamOk = false;
                     break;
@@ -510,6 +524,7 @@ export default function TeamHome() {
               }
             }
           }
+        }
         }
 
         // ===== Franchise =====
