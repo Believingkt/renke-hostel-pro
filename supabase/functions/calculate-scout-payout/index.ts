@@ -244,8 +244,9 @@ serve(async (req) => {
     const allKpiMonthInvites = kpiMonthInvitesRes.data ?? [];
 
     // 正職星探集合（employment_type='fulltime' 且 fulltime_start_yearmonth <= currentYM）
+    // 只從 teamScouts 判斷；externalScouts 不視為正職
     const fulltimeScoutIds = new Set<string>(
-      profiles
+      teamScouts
         .filter(
           (p) =>
             p.employment_type === "fulltime" &&
