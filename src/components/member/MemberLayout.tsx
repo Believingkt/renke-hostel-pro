@@ -119,9 +119,6 @@ const MemberLayout = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-          </div>
-        </div>
-      </header>
 
       {/* Desktop top nav */}
       {!isMobile && (
