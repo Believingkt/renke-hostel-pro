@@ -142,7 +142,42 @@ serve(async (req) => {
 
     const teamTargets = teamTargetsRes.data ?? [];
     const fulltimeTargets = fulltimeTargetsRes.data ?? [];
-    const profiles = profilesRes.data ?? [];
+    const teamScouts = (profilesRes.data ?? []).map((p) => ({
+      ...p,
+      is_external: false as boolean,
+    }));
+    const teamScoutIdSet = new Set(teamScouts.map((p) => p.user_id as string));
+
+    // 外部星探：user_roles.role ∈ (scout, scout_manager) 但 is_scout_team_member = false
+    // 這批人只計算 KOL 分潤與稀有度（無門檻），不計底薪 / 個人目標 / 團隊獎金
+    const { data: scoutRoleRows, error: scoutRolesErr } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["scout", "scout_manager"]);
+    if (scoutRolesErr) throw scoutRolesErr;
+
+    const externalUserIds = Array.from(
+      new Set((scoutRoleRows ?? []).map((r) => r.user_id as string)),
+    ).filter((uid) => !!uid && !teamScoutIdSet.has(uid));
+
+    let externalScouts: Array<
+      typeof teamScouts[number]
+    > = [];
+    if (externalUserIds.length > 0) {
+      const { data: extProfiles, error: extErr } = await supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name, employment_type, fulltime_start_yearmonth, managed_venue")
+        .in("user_id", externalUserIds)
+        .eq("is_scout_team_member", false);
+      if (extErr) throw extErr;
+      externalScouts = (extProfiles ?? []).map((p) => ({
+        ...p,
+        is_external: true as boolean,
+      }));
+    }
+
+    const externalScoutIds = new Set(externalScouts.map((p) => p.user_id as string));
+    const profiles = [...teamScouts, ...externalScouts];
 
     // venue_name → accommodation_id
     const venueToAccId = new Map<string, string>();
