@@ -368,7 +368,7 @@ export function KolStatsTab() {
             .not("discount_code", "is", null)
             .neq("order_status", "cancelled");
           if (range) {
-            q = q.gte("order_date", range.start).lt("order_date", range.endExclusive);
+            q = q.gte("check_in_date", range.start).lt("check_in_date", range.endExclusive);
           }
           const { data: orders, error: ordErr } = await q;
           if (ordErr) throw ordErr;
