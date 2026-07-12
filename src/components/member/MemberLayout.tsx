@@ -98,10 +98,27 @@ const MemberLayout = () => {
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">訂房</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 text-destructive px-2 sm:px-3">
+            <Button variant="ghost" size="sm" onClick={() => setLogoutOpen(true)} className="gap-1 text-destructive px-2 sm:px-3">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">登出</span>
             </Button>
+          </div>
+        </div>
+      </header>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認登出</AlertDialogTitle>
+            <AlertDialogDescription>確定要登出會員中心嗎？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>確認登出</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
           </div>
         </div>
       </header>
