@@ -172,19 +172,14 @@ serve(async (req) => {
       });
     }
 
-    // 抓取範圍：涵蓋期別區間 + 當月區間（用於底薪/團隊達標）
-    // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
+    // 上月月份（作為 kpi_month 篩選基準與底薪/團隊獎金計算月）
+    // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月 kpi_month」達標為準
     // period=25 不計算底薪與團隊獎金
     // 若未來修改此邏輯，必須同步更新 KolStatsTab.tsx、TeamCommission.tsx 的說明文字
     const targetMonthRaw = month - 1;
     const targetYear = targetMonthRaw < 1 ? year - 1 : year;
     const targetMonth = targetMonthRaw < 1 ? 12 : targetMonthRaw;
     const monthStart = `${targetYear}-${pad(targetMonth)}-01`;
-    const nextTargetMonth = targetMonth === 12 ? 1 : targetMonth + 1;
-    const nextTargetYear = targetMonth === 12 ? targetYear + 1 : targetYear;
-    const monthEndExclusive = `${nextTargetYear}-${pad(nextTargetMonth)}-01`;
-    const fetchStart = periodStart < monthStart ? periodStart : monthStart;
-    const fetchEndExclusive = periodEnd > monthEndExclusive ? periodEnd : monthEndExclusive;
 
     // ===== 三、撈有效邀約 =====
     // (a) 期別區間（稀有度獎金 / KOL 分潤參考用）：check_in_date ∈ [periodStart, periodEnd)
