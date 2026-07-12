@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
 import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
