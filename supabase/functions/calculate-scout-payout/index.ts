@@ -435,9 +435,7 @@ serve(async (req) => {
           accommodation_id: t.accommodation_id,
           venue_name: t.venue_name,
           target_count: Number(t.target_count ?? 0),
-          actual: allMonthInvites.filter(
-            (i) => i.accommodation_id === t.accommodation_id,
-          ).length,
+          actual: teamActualByAcc.get(t.accommodation_id as string) ?? 0,
         })),
       };
 
