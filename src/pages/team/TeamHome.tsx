@@ -672,8 +672,8 @@ export default function TeamHome() {
     const rarityM = multOf("scout_rarity");
     const baseM = multOf("scout_base");
     const teamM = multOf("scout_team");
-    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM });
+    cards.push({ key: "scout_kol", title: "KOL 分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
       key: "scout_base",
       title: "底薪",
