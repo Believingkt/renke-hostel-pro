@@ -197,11 +197,15 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+        const [profilesRes, rolesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
           supabase
             .from("team_member_profiles")
             .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("is_scout_team_member", true),
+          supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .in("role", ["scout", "scout_manager"] as never),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -230,13 +234,33 @@ export function KolStatsTab() {
         ]);
 
         if (profilesRes.error) throw profilesRes.error;
+        if (rolesRes.error) throw rolesRes.error;
         if (rarityRes.error) throw rarityRes.error;
         if (tierRes.error) throw tierRes.error;
         if (salaryRes.error) throw salaryRes.error;
         if (accsRes.error) throw accsRes.error;
         if (targetsRes.error) throw targetsRes.error;
 
-        const scouts: ScoutProfile[] = (profilesRes.data ?? []) as ScoutProfile[];
+        const teamScouts: ScoutProfile[] = (profilesRes.data ?? []) as ScoutProfile[];
+        const teamScoutIdSet = new Set(teamScouts.map((s) => s.user_id));
+
+        // 補齊 external scout：有 scout / scout_manager role 但不是團隊成員
+        const roleUserIds = Array.from(
+          new Set(((rolesRes.data ?? []) as Array<{ user_id: string }>).map((r) => r.user_id)),
+        ).filter((uid) => !teamScoutIdSet.has(uid));
+
+        let externalScouts: ScoutProfile[] = [];
+        if (roleUserIds.length > 0) {
+          const { data: extData, error: extErr } = await supabase
+            .from("team_member_profiles")
+            .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+            .in("user_id", roleUserIds)
+            .eq("is_scout_team_member", false);
+          if (extErr) throw extErr;
+          externalScouts = (extData ?? []) as ScoutProfile[];
+        }
+
+        const scouts: ScoutProfile[] = [...teamScouts, ...externalScouts];
         const scoutIds = scouts.map((s) => s.user_id);
 
         const rarityMap = new Map<string, number>();
