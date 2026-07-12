@@ -205,7 +205,7 @@ export function KolStatsTab() {
           supabase
             .from("user_roles")
             .select("user_id, role")
-            .in("role", ["scout", "scout_manager"] as never),
+            .in("role", ["scout", "scout_manager"]),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
