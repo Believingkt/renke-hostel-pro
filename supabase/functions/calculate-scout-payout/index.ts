@@ -186,25 +186,43 @@ serve(async (req) => {
     const fetchStart = periodStart < monthStart ? periodStart : monthStart;
     const fetchEndExclusive = periodEnd > monthEndExclusive ? periodEnd : monthEndExclusive;
 
-    // ===== 三、撈有效邀約（kpi_qualified + 非錯誤 + invited_at 非空 + check_in_date 在抓取範圍） =====
-    const { data: monthInvitesRaw, error: monthInvErr } = await supabase
-      .from("kol_profiles")
-      .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
-      .eq("is_error", false)
-      .eq("kpi_qualified", true)
-      .not("invited_at", "is", null)
-      .gte("check_in_date", fetchStart)
-      .lt("check_in_date", fetchEndExclusive);
-    if (monthInvErr) throw monthInvErr;
+    // ===== 三、撈有效邀約 =====
+    // (a) 期別區間（稀有度獎金 / KOL 分潤參考用）：check_in_date ∈ [periodStart, periodEnd)
+    // (b) kpi_month = 上月（底薪 / 團隊達標用）：kpi_month = prevMonthStart（YYYY-MM-01）
+    const prevMonthStart = monthStart; // 已是上月 1 日 YYYY-MM-01
+    const [periodInvitesRes, kpiMonthInvitesRes] = await Promise.all([
+      supabase
+        .from("kol_profiles")
+        .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
+        .eq("is_error", false)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
+        .gte("check_in_date", periodStart)
+        .lt("check_in_date", periodEnd),
+      supabase
+        .from("kol_profiles")
+        .select("scout_id, accommodation_id, rarity")
+        .eq("is_error", false)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
+        .eq("kpi_month", prevMonthStart),
+    ]);
+    if (periodInvitesRes.error) throw periodInvitesRes.error;
+    if (kpiMonthInvitesRes.error) throw kpiMonthInvitesRes.error;
 
-    const allInvites = monthInvitesRaw ?? [];
-    // 當月內（底薪/個人/團隊達標用）：check_in_date ∈ [monthStart, monthEndExclusive)
-    const allMonthInvites = allInvites.filter(
-      (i) => i.check_in_date && i.check_in_date >= monthStart && i.check_in_date < monthEndExclusive,
-    );
-    // 期別內（稀有度獎金用）：check_in_date ∈ [periodStart, periodEnd)
-    const allPeriodInvites = allInvites.filter(
-      (i) => i.check_in_date && i.check_in_date >= periodStart && i.check_in_date < periodEnd,
+    const allPeriodInvites = periodInvitesRes.data ?? [];
+    const allKpiMonthInvites = kpiMonthInvitesRes.data ?? [];
+
+    // 正職星探集合（employment_type='fulltime' 且 fulltime_start_yearmonth <= currentYM）
+    const fulltimeScoutIds = new Set<string>(
+      profiles
+        .filter(
+          (p) =>
+            p.employment_type === "fulltime" &&
+            !!p.fulltime_start_yearmonth &&
+            (p.fulltime_start_yearmonth as string) <= currentYM,
+        )
+        .map((p) => p.user_id as string),
     );
 
     // ===== 七、團隊獎金：每個 scout_team_targets 館別「上月」有效邀約數 >= target_count =====
