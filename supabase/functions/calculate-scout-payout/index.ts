@@ -463,7 +463,7 @@ serve(async (req) => {
       };
 
       const individualSnapshot = {
-        employment_type: isFulltime ? "fulltime" : "parttime",
+        employment_type: isExternal ? "external" : isFulltime ? "fulltime" : "parttime",
         venue_breakdown: venueBreakdown,
         individual_achieved: individualAchieved,
       };
