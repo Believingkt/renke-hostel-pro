@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
 import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
@@ -20,6 +30,7 @@ const MemberLayout = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [memberName, setMemberName] = useState("");
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   useEffect(() => {
     const ensureMember = async (user: any) => {
@@ -87,13 +98,27 @@ const MemberLayout = () => {
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">訂房</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 text-destructive px-2 sm:px-3">
+            <Button variant="ghost" size="sm" onClick={() => setLogoutOpen(true)} className="gap-1 text-destructive px-2 sm:px-3">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">登出</span>
             </Button>
           </div>
         </div>
       </header>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認登出</AlertDialogTitle>
+            <AlertDialogDescription>確定要登出會員中心嗎？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>確認登出</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Desktop top nav */}
       {!isMobile && (
