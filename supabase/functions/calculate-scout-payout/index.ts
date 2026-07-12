@@ -269,7 +269,10 @@ serve(async (req) => {
         const accId = t.accommodation_id as string;
         const cnt = allKpiMonthInvites.filter((i) => {
           if (i.accommodation_id !== accId) return false;
-          const isFT = fulltimeScoutIds.has(i.scout_id as string);
+          const sid = i.scout_id as string;
+          // 外部星探不計入團隊達標
+          if (externalScoutIds.has(sid)) return false;
+          const isFT = fulltimeScoutIds.has(sid);
           return isFT ? ["SR", "SSR", "UR"].includes(i.rarity ?? "") : true;
         }).length;
         teamActualByAcc.set(accId, cnt);
