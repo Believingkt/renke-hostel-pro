@@ -172,53 +172,73 @@ serve(async (req) => {
       });
     }
 
-    // 抓取範圍：涵蓋期別區間 + 當月區間（用於底薪/團隊達標）
-    // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
+    // 上月月份（作為 kpi_month 篩選基準與底薪/團隊獎金計算月）
+    // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月 kpi_month」達標為準
     // period=25 不計算底薪與團隊獎金
     // 若未來修改此邏輯，必須同步更新 KolStatsTab.tsx、TeamCommission.tsx 的說明文字
     const targetMonthRaw = month - 1;
     const targetYear = targetMonthRaw < 1 ? year - 1 : year;
     const targetMonth = targetMonthRaw < 1 ? 12 : targetMonthRaw;
     const monthStart = `${targetYear}-${pad(targetMonth)}-01`;
-    const nextTargetMonth = targetMonth === 12 ? 1 : targetMonth + 1;
-    const nextTargetYear = targetMonth === 12 ? targetYear + 1 : targetYear;
-    const monthEndExclusive = `${nextTargetYear}-${pad(nextTargetMonth)}-01`;
-    const fetchStart = periodStart < monthStart ? periodStart : monthStart;
-    const fetchEndExclusive = periodEnd > monthEndExclusive ? periodEnd : monthEndExclusive;
 
-    // ===== 三、撈有效邀約（kpi_qualified + 非錯誤 + invited_at 非空 + check_in_date 在抓取範圍） =====
-    const { data: monthInvitesRaw, error: monthInvErr } = await supabase
-      .from("kol_profiles")
-      .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
-      .eq("is_error", false)
-      .eq("kpi_qualified", true)
-      .not("invited_at", "is", null)
-      .gte("check_in_date", fetchStart)
-      .lt("check_in_date", fetchEndExclusive);
-    if (monthInvErr) throw monthInvErr;
+    // ===== 三、撈有效邀約 =====
+    // (a) 期別區間（稀有度獎金 / KOL 分潤參考用）：check_in_date ∈ [periodStart, periodEnd)
+    // (b) kpi_month = 上月（底薪 / 團隊達標用）：kpi_month = prevMonthStart（YYYY-MM-01）
+    const prevMonthStart = monthStart; // 已是上月 1 日 YYYY-MM-01
+    const [periodInvitesRes, kpiMonthInvitesRes] = await Promise.all([
+      supabase
+        .from("kol_profiles")
+        .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
+        .eq("is_error", false)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
+        .gte("check_in_date", periodStart)
+        .lt("check_in_date", periodEnd),
+      supabase
+        .from("kol_profiles")
+        .select("scout_id, accommodation_id, rarity")
+        .eq("is_error", false)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
+        .eq("kpi_month", prevMonthStart),
+    ]);
+    if (periodInvitesRes.error) throw periodInvitesRes.error;
+    if (kpiMonthInvitesRes.error) throw kpiMonthInvitesRes.error;
 
-    const allInvites = monthInvitesRaw ?? [];
-    // 當月內（底薪/個人/團隊達標用）：check_in_date ∈ [monthStart, monthEndExclusive)
-    const allMonthInvites = allInvites.filter(
-      (i) => i.check_in_date && i.check_in_date >= monthStart && i.check_in_date < monthEndExclusive,
+    const allPeriodInvites = periodInvitesRes.data ?? [];
+    const allKpiMonthInvites = kpiMonthInvitesRes.data ?? [];
+
+    // 正職星探集合（employment_type='fulltime' 且 fulltime_start_yearmonth <= currentYM）
+    const fulltimeScoutIds = new Set<string>(
+      profiles
+        .filter(
+          (p) =>
+            p.employment_type === "fulltime" &&
+            !!p.fulltime_start_yearmonth &&
+            (p.fulltime_start_yearmonth as string) <= currentYM,
+        )
+        .map((p) => p.user_id as string),
     );
-    // 期別內（稀有度獎金用）：check_in_date ∈ [periodStart, periodEnd)
-    const allPeriodInvites = allInvites.filter(
-      (i) => i.check_in_date && i.check_in_date >= periodStart && i.check_in_date < periodEnd,
-    );
 
-    // ===== 七、團隊獎金：每個 scout_team_targets 館別「上月」有效邀約數 >= target_count =====
-    // period=25 不計算團隊獎金（直接 false）
+    // ===== 七、團隊獎金：以 kpi_month = 上月 為基準 =====
+    // 兼職貢獻 = kpi_qualified 全部邀約
+    // 正職貢獻 = kpi_qualified 且 rarity ∈ {SR,SSR,UR}
+    // 每個 scout_team_targets 館別 (兼職 + 正職 SR/SSR/UR) >= target_count 才算達標
+    // period=25 不計算團隊獎金
+    const teamActualByAcc = new Map<string, number>();
     let teamAchieved = false;
     if (period === 10 && teamTargets.length > 0) {
       teamAchieved = true;
       for (const t of teamTargets) {
-        const cnt = allMonthInvites.filter(
-          (i) => i.accommodation_id === t.accommodation_id,
-        ).length;
+        const accId = t.accommodation_id as string;
+        const cnt = allKpiMonthInvites.filter((i) => {
+          if (i.accommodation_id !== accId) return false;
+          const isFT = fulltimeScoutIds.has(i.scout_id as string);
+          return isFT ? ["SR", "SSR", "UR"].includes(i.rarity ?? "") : true;
+        }).length;
+        teamActualByAcc.set(accId, cnt);
         if (cnt < Number(t.target_count ?? 0)) {
           teamAchieved = false;
-          break;
         }
       }
     }
@@ -250,8 +270,9 @@ serve(async (req) => {
         !!startYM &&
         startYM <= currentYM;
 
-      // 該星探當月有效邀約（底薪/個人達標用）與期別內邀約（稀有度獎金用）
-      const myMonthInvites = allMonthInvites.filter((i) => i.scout_id === scoutId);
+      // 該星探 kpi_month=上月 邀約（底薪/兼職個人達標 & 團隊達標用）
+      // 該星探期別內邀約（稀有度獎金用）
+      const myKpiMonthInvites = allKpiMonthInvites.filter((i) => i.scout_id === scoutId);
       const myPeriodInvites = allPeriodInvites.filter((i) => i.scout_id === scoutId);
 
       // ===== 四、個人達標 =====
@@ -268,12 +289,15 @@ serve(async (req) => {
       if (period !== 10) {
         individualAchieved = false;
       } else if (isFulltime) {
+        // 正職個人目標保留現行邏輯（依 fulltime_min，check_in_date 上月整月 SR/SSR/UR）
+        // 注意：正職底薪為 0，此判斷僅用於 snapshot；不影響發放。
+        // 為維持向下相容，這裡沿用 kpi_month 邀約 SR/SSR/UR 累計。
         if (fulltimeByAcc.size === 0) {
           individualAchieved = false;
         } else {
           individualAchieved = true;
           for (const [accId, minCount] of fulltimeByAcc.entries()) {
-            const actual = myMonthInvites.filter(
+            const actual = myKpiMonthInvites.filter(
               (i) =>
                 i.accommodation_id === accId &&
                 ["SR", "SSR", "UR"].includes(i.rarity ?? ""),
@@ -289,13 +313,14 @@ serve(async (req) => {
           }
         }
       } else {
+        // 兼職：以 kpi_month = 上月 為基準
         if (teamTargets.length === 0) {
           individualAchieved = false;
         } else {
           individualAchieved = true;
           for (const t of teamTargets) {
             const required = Number(t.personal_min ?? 0);
-            const actual = myMonthInvites.filter(
+            const actual = myKpiMonthInvites.filter(
               (i) => i.accommodation_id === t.accommodation_id,
             ).length;
             const achieved = actual >= required;
@@ -316,15 +341,15 @@ serve(async (req) => {
         !isFulltime && period === 10 && individualAchieved ? baseSalaryAmount : 0;
 
       // ===== 五、稀有度獎金 =====
-      // 正職：當月（check_in_date ∈ 當月）SR/SSR/UR 超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
-      // 兼職：期別內每筆 rarity 都計獎（維持原邏輯）
+      // 正職：期別內 SR/SSR/UR 累計超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
+      // 兼職：期別內每筆 rarity 都計獎
       let rarityBonus = 0;
       if (isFulltime) {
-        const myMonthRare = myMonthInvites
+        const myPeriodRare = myPeriodInvites
           .filter((i) => ["SR", "SSR", "UR"].includes(i.rarity ?? ""))
           .sort((a, b) => ((a as any).created_at || "").localeCompare((b as any).created_at || ""));
-        if (myMonthRare.length > 30) {
-          for (const inv of myMonthRare.slice(30)) {
+        if (myPeriodRare.length > 30) {
+          for (const inv of myPeriodRare.slice(30)) {
             if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
           }
         }
@@ -366,10 +391,10 @@ serve(async (req) => {
       if (cidUpperSet.size > 0 && commissionRate > 0) {
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, discount_code, order_date")
+          .select("final_price, discount_code, check_in_date")
           .not("discount_code", "is", null)
-          .gte("order_date", periodStart)
-          .lt("order_date", periodEnd)
+          .gte("check_in_date", periodStart)
+          .lt("check_in_date", periodEnd)
           .neq("order_status", "cancelled");
         if (ordErr) throw ordErr;
 
@@ -405,9 +430,7 @@ serve(async (req) => {
           accommodation_id: t.accommodation_id,
           venue_name: t.venue_name,
           target_count: Number(t.target_count ?? 0),
-          actual: allMonthInvites.filter(
-            (i) => i.accommodation_id === t.accommodation_id,
-          ).length,
+          actual: teamActualByAcc.get(t.accommodation_id as string) ?? 0,
         })),
       };
 
