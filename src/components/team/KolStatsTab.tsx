@@ -549,7 +549,8 @@ export function KolStatsTab() {
           let monthlySuccess = 0;
           let individualAchieved = false;
           let venueBreakdown: ScoutStats["venueBreakdown"] = [];
-          if (showSalary && prevMonthStart) {
+          // External scout：不參與個人目標、團隊達標貢獻
+          if (showSalary && prevMonthStart && !isExternal) {
             // 【修改一】兼職個人目標獎金（底薪）改用 kpi_month = prevMonthStart
             // 個人達標各館比對 personal_min（kpi_qualified、非錯誤、invited_at 非空）
             const monthRows = rows.filter(
