@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,11 +25,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users, Copy, AlertCircle } from "lucide-react";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
+import { detectInAppBrowser, inAppBrowserLabel, shouldBlockOAuthInApp } from "@/utils/inAppBrowser";
+import { reportFrontendError } from "@/utils/errorReporter";
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
+
+// Always use the canonical production origin for OAuth redirect URIs so that
+// the resulting Supabase session lands on booking.lakeze.com (not on preview
+// domains or www variants where the session cookie would end up orphaned).
+const PROD_ORIGIN = "https://booking.lakeze.com";
+const OAUTH_LAUNCH_TIMEOUT_MS = 15000;
+
+function logLoginAttempt(
+  phase: "attempt" | "success" | "failure",
+  provider: string,
+  extra: Record<string, unknown> = {},
+) {
+  const payload = {
+    phase,
+    provider,
+    ua: typeof navigator !== "undefined" ? navigator.userAgent.substring(0, 200) : "",
+    href: typeof window !== "undefined" ? window.location.href : "",
+    ...extra,
+  };
+  console.log(`[MemberAuth] login ${phase}`, payload);
+  if (phase === "failure") {
+    void reportFrontendError({
+      category: "auth_login",
+      step: `${provider}_${phase}`,
+      errorMessage: String(extra.error || `${provider} login failed`),
+      context: payload,
+    });
+  }
+}
 
 const MemberAuth = () => {
   const navigate = useNavigate();
@@ -43,7 +82,33 @@ const MemberAuth = () => {
   const [signupAddress, setSignupAddress] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+
+  // Email OTP fallback (works even when social login is broken)
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // In-app browser guidance dialog
+  const [guide, setGuide] = useState<{ target: "line" | "facebook"; current: "line" | "facebook" | "instagram" } | null>(null);
+
+  // URL-level error message (from callback redirects like ?error=line_login_failed)
+  const urlError = searchParams.get("error");
+  const urlReason = searchParams.get("reason");
+
+  useEffect(() => {
+    if (!urlError) return;
+    const map: Record<string, string> = {
+      line_login_failed: "LINE 登入失敗，請重試",
+      facebook_login_failed: "Facebook 登入失敗，請重試",
+    };
+    toast.error(map[urlError] || "登入失敗，請重試");
+    logLoginAttempt("failure", urlError, { reason: urlReason });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlError]);
+
   const throttle = useLoginThrottle(`member:${loginEmail.toLowerCase().trim()}`);
+
 
   // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
   useEffect(() => {
@@ -225,16 +290,24 @@ const MemberAuth = () => {
   // ----- Facebook Login (Custom OAuth — same architecture as LINE) -----
   const handleFacebookLogin = () => {
     if (fbLoading || lineLoading || loading) return;
+
+    // In-app browser guardrail: cross-provider is blocked (e.g. FB login inside
+    // LINE's in-app browser routinely fails silently).
+    const current = detectInAppBrowser();
+    if (shouldBlockOAuthInApp("facebook", current) && current) {
+      setGuide({ target: "facebook", current });
+      logLoginAttempt("failure", "facebook", { blocked_in_app: current });
+      return;
+    }
+
+    logLoginAttempt("attempt", "facebook");
     setFbLoading(true);
     try {
+
       const appId = FACEBOOK_APP_ID;
       const state = crypto.randomUUID();
-      const isProdHost = window.location.hostname === "booking.lakeze.com";
-      const redirectUri = isProdHost
-        ? "https://booking.lakeze.com/member/auth/facebook-callback"
-        : `${window.location.origin}/member/auth/facebook-callback`;
+      const redirectUri = `${PROD_ORIGIN}/member/auth/facebook-callback`;
 
-      // localStorage so iOS Safari new-tab callback can still validate.
       localStorage.setItem("fb_oauth_state", state);
       localStorage.setItem("fb_oauth_redirect_uri", redirectUri);
       localStorage.setItem("fb_oauth_ts", String(Date.now()));
@@ -246,15 +319,24 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("scope", "public_profile,email");
 
-      // 10s timeout — if redirect hasn't happened by then, recover button.
+      // 15s timeout — if redirect hasn't happened by then, recover button.
       window.setTimeout(() => {
-        toast.error("網路不穩，請再試一次");
+        toast.error("登入啟動失敗，請檢查網路後重試", {
+          action: { label: "重試", onClick: () => handleFacebookLogin() },
+        });
+        logLoginAttempt("failure", "facebook", { error: "launch_timeout" });
         setFbLoading(false);
-      }, 10000);
+      }, OAUTH_LAUNCH_TIMEOUT_MS);
 
+      redirected = true;
       window.location.href = authorizeUrl.toString();
+
     } catch (error: any) {
-      toast.error(error.message || "Facebook 登入啟動失敗");
+      const msg = error?.message || "登入啟動失敗，請檢查網路後重試";
+      toast.error(msg, {
+        action: { label: "重試", onClick: () => handleFacebookLogin() },
+      });
+      logLoginAttempt("failure", "facebook", { error: msg });
       setFbLoading(false);
     }
   };
@@ -262,18 +344,22 @@ const MemberAuth = () => {
   // ----- LINE Login v2.1 (OIDC) — manual authorize redirect -----
   const handleLineLogin = () => {
     if (fbLoading || lineLoading || loading) return;
+
+    const current = detectInAppBrowser();
+    if (shouldBlockOAuthInApp("line", current) && current) {
+      setGuide({ target: "line", current });
+      logLoginAttempt("failure", "line", { blocked_in_app: current });
+      return;
+    }
+
+    logLoginAttempt("attempt", "line");
     setLineLoading(true);
     try {
       const channelId = LINE_CHANNEL_ID;
       const state = crypto.randomUUID();
       const nonce = crypto.randomUUID();
-      const isProdHost = window.location.hostname === "booking.lakeze.com";
-      const redirectUri = isProdHost
-        ? "https://booking.lakeze.com/member/auth/line-callback"
-        : `${window.location.origin}/member/auth/line-callback`;
+      const redirectUri = `${PROD_ORIGIN}/member/auth/line-callback`;
 
-      // Use localStorage so iOS Safari opening the callback in a new tab
-      // (universal link from LINE app) can still validate state.
       localStorage.setItem("line_oauth_state", state);
       localStorage.setItem("line_oauth_nonce", nonce);
       localStorage.setItem("line_oauth_redirect_uri", redirectUri);
@@ -288,16 +374,80 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("nonce", nonce);
 
       window.setTimeout(() => {
-        toast.error("網路不穩，請再試一次");
+        toast.error("登入啟動失敗，請檢查網路後重試", {
+          action: { label: "重試", onClick: () => handleLineLogin() },
+        });
+        logLoginAttempt("failure", "line", { error: "launch_timeout" });
         setLineLoading(false);
-      }, 10000);
+      }, OAUTH_LAUNCH_TIMEOUT_MS);
 
       window.location.href = authorizeUrl.toString();
     } catch (error: any) {
-      toast.error(error.message || "LINE 登入啟動失敗");
+      const msg = error?.message || "登入啟動失敗，請檢查網路後重試";
+      toast.error(msg, {
+        action: { label: "重試", onClick: () => handleLineLogin() },
+      });
+      logLoginAttempt("failure", "line", { error: msg });
       setLineLoading(false);
     }
   };
+
+  // ----- Email OTP fallback (6-digit code) -----
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpEmail.trim()) {
+      toast.error("請輸入 Email");
+      return;
+    }
+    logLoginAttempt("attempt", "email_otp");
+    setOtpLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: otpEmail.trim(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${PROD_ORIGIN}/member/profile`,
+        },
+      });
+      if (error) throw error;
+      setOtpSent(true);
+      toast.success("驗證碼已寄出，請至信箱查收");
+    } catch (error: any) {
+      const msg = error?.message || "驗證碼寄送失敗，請重試";
+      toast.error(msg);
+      logLoginAttempt("failure", "email_otp", { step: "send", error: msg });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      toast.error("請輸入 6 碼驗證碼");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: otpEmail.trim(),
+        token: otpCode.trim(),
+        type: "email",
+      });
+      if (error) throw error;
+      await ensureMemberProfile();
+      logLoginAttempt("success", "email_otp");
+      toast.success("登入成功");
+      navigate(redirectTo);
+    } catch (error: any) {
+      const msg = error?.message || "驗證碼錯誤或已過期";
+      toast.error(msg);
+      logLoginAttempt("failure", "email_otp", { step: "verify", error: msg });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
 
   const ensureMemberProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -520,7 +670,93 @@ const MemberAuth = () => {
               )}
             </Button>
 
+            {/* Email OTP fallback — always available so guests can log in even
+                when social login is temporarily broken. */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-card px-2 text-muted-foreground">或使用 Email 驗證碼</span>
+              </div>
+            </div>
 
+            {!otpSent ? (
+              <form onSubmit={handleSendOtp} className="space-y-2">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                    value={otpEmail}
+                    onChange={(e) => setOtpEmail(e.target.value)}
+                    required
+                    disabled={otpLoading}
+                    autoComplete="email"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
+                  disabled={otpLoading || loading || fbLoading || lineLoading}
+                >
+                  {otpLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      寄送中…
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      寄送 Email 驗證碼
+                    </>
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  驗證碼已寄至 <strong>{otpEmail}</strong>
+                </p>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="6 碼驗證碼"
+                  className="text-center tracking-widest focus-visible:ring-[hsl(24,100%,50%)]"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                  disabled={otpLoading}
+                  autoComplete="one-time-code"
+                />
+                <Button
+                  type="submit"
+                  className="w-full bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
+                  disabled={otpLoading}
+                >
+                  {otpLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      驗證中…
+                    </>
+                  ) : (
+                    "確認登入"
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  className="w-full text-xs text-muted-foreground hover:underline"
+                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                  disabled={otpLoading}
+                >
+                  重新寄送 / 更改 Email
+                </button>
+              </form>
+            )}
 
           </CardContent>
         </Card>
@@ -532,8 +768,54 @@ const MemberAuth = () => {
           </a>
         </p>
       </div>
+
+      {/* In-app browser guidance dialog */}
+      <Dialog open={!!guide} onOpenChange={(o) => !o && setGuide(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-[hsl(24,100%,50%)]" />
+              請切換到系統瀏覽器
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm leading-relaxed">
+              您目前在 {inAppBrowserLabel(guide?.current ?? null)} 內建瀏覽器中，
+              無法使用 {guide?.target === "line" ? "LINE" : "Facebook"} 登入。
+              <br /><br />
+              請點擊右上角選單 → 選擇「以其他瀏覽器開啟」（或「用 Safari／Chrome 開啟」），
+              再回到此頁面登入。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success("網址已複製");
+                } catch {
+                  toast.error("複製失敗，請手動複製網址");
+                }
+              }}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              複製此頁網址
+            </Button>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setGuide(null)}
+            >
+              我知道了
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default MemberAuth;
