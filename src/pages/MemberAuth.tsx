@@ -675,7 +675,93 @@ const MemberAuth = () => {
               )}
             </Button>
 
+            {/* Email OTP fallback — always available so guests can log in even
+                when social login is temporarily broken. */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-card px-2 text-muted-foreground">或使用 Email 驗證碼</span>
+              </div>
+            </div>
 
+            {!otpSent ? (
+              <form onSubmit={handleSendOtp} className="space-y-2">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                    value={otpEmail}
+                    onChange={(e) => setOtpEmail(e.target.value)}
+                    required
+                    disabled={otpLoading}
+                    autoComplete="email"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
+                  disabled={otpLoading || loading || fbLoading || lineLoading}
+                >
+                  {otpLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      寄送中…
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      寄送 Email 驗證碼
+                    </>
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  驗證碼已寄至 <strong>{otpEmail}</strong>
+                </p>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="6 碼驗證碼"
+                  className="text-center tracking-widest focus-visible:ring-[hsl(24,100%,50%)]"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                  disabled={otpLoading}
+                  autoComplete="one-time-code"
+                />
+                <Button
+                  type="submit"
+                  className="w-full bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
+                  disabled={otpLoading}
+                >
+                  {otpLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      驗證中…
+                    </>
+                  ) : (
+                    "確認登入"
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  className="w-full text-xs text-muted-foreground hover:underline"
+                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                  disabled={otpLoading}
+                >
+                  重新寄送 / 更改 Email
+                </button>
+              </form>
+            )}
 
           </CardContent>
         </Card>
@@ -687,8 +773,54 @@ const MemberAuth = () => {
           </a>
         </p>
       </div>
+
+      {/* In-app browser guidance dialog */}
+      <Dialog open={!!guide} onOpenChange={(o) => !o && setGuide(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-[hsl(24,100%,50%)]" />
+              請切換到系統瀏覽器
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm leading-relaxed">
+              您目前在 {inAppBrowserLabel(guide?.current ?? null)} 內建瀏覽器中，
+              無法使用 {guide?.target === "line" ? "LINE" : "Facebook"} 登入。
+              <br /><br />
+              請點擊右上角選單 → 選擇「以其他瀏覽器開啟」（或「用 Safari／Chrome 開啟」），
+              再回到此頁面登入。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success("網址已複製");
+                } catch {
+                  toast.error("複製失敗，請手動複製網址");
+                }
+              }}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              複製此頁網址
+            </Button>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setGuide(null)}
+            >
+              我知道了
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default MemberAuth;
