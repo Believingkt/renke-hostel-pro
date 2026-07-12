@@ -225,18 +225,25 @@ serve(async (req) => {
         .map((p) => p.user_id as string),
     );
 
-    // ===== 七、團隊獎金：每個 scout_team_targets 館別「上月」有效邀約數 >= target_count =====
-    // period=25 不計算團隊獎金（直接 false）
+    // ===== 七、團隊獎金：以 kpi_month = 上月 為基準 =====
+    // 兼職貢獻 = kpi_qualified 全部邀約
+    // 正職貢獻 = kpi_qualified 且 rarity ∈ {SR,SSR,UR}
+    // 每個 scout_team_targets 館別 (兼職 + 正職 SR/SSR/UR) >= target_count 才算達標
+    // period=25 不計算團隊獎金
+    const teamActualByAcc = new Map<string, number>();
     let teamAchieved = false;
     if (period === 10 && teamTargets.length > 0) {
       teamAchieved = true;
       for (const t of teamTargets) {
-        const cnt = allMonthInvites.filter(
-          (i) => i.accommodation_id === t.accommodation_id,
-        ).length;
+        const accId = t.accommodation_id as string;
+        const cnt = allKpiMonthInvites.filter((i) => {
+          if (i.accommodation_id !== accId) return false;
+          const isFT = fulltimeScoutIds.has(i.scout_id as string);
+          return isFT ? ["SR", "SSR", "UR"].includes(i.rarity ?? "") : true;
+        }).length;
+        teamActualByAcc.set(accId, cnt);
         if (cnt < Number(t.target_count ?? 0)) {
           teamAchieved = false;
-          break;
         }
       }
     }
