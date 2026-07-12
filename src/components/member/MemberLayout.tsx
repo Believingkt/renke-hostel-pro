@@ -30,6 +30,7 @@ const MemberLayout = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [memberName, setMemberName] = useState("");
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   useEffect(() => {
     const ensureMember = async (user: any) => {
