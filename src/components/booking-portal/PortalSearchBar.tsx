@@ -464,7 +464,7 @@ const PortalSearchBar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-10 justify-start text-left font-normal border-border text-foreground gap-2"
+                  className="h-10 justify-start text-left font-normal border-border text-foreground gap-2 hover:bg-transparent hover:text-foreground"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   {adults} 大人{totalChildren > 0 ? ` · ${totalChildren} 兒童` : ""}
