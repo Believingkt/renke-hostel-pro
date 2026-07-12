@@ -521,7 +521,7 @@ const PortalSearchBar = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full h-12 justify-start text-left font-normal border-border text-base"
+                  "w-full h-12 justify-start text-left font-normal border-border text-base hover:bg-transparent hover:text-foreground"
                 )}
               >
                 {isLoadingAvailability ? (
