@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,11 +25,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users, Copy, AlertCircle } from "lucide-react";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
+import { detectInAppBrowser, inAppBrowserLabel, shouldBlockOAuthInApp } from "@/utils/inAppBrowser";
+import { reportFrontendError } from "@/utils/errorReporter";
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
+
+// Always use the canonical production origin for OAuth redirect URIs so that
+// the resulting Supabase session lands on booking.lakeze.com (not on preview
+// domains or www variants where the session cookie would end up orphaned).
+const PROD_ORIGIN = "https://booking.lakeze.com";
+const OAUTH_LAUNCH_TIMEOUT_MS = 15000;
+
+function logLoginAttempt(
+  phase: "attempt" | "success" | "failure",
+  provider: string,
+  extra: Record<string, unknown> = {},
+) {
+  const payload = {
+    phase,
+    provider,
+    ua: typeof navigator !== "undefined" ? navigator.userAgent.substring(0, 200) : "",
+    href: typeof window !== "undefined" ? window.location.href : "",
+    ...extra,
+  };
+  console.log(`[MemberAuth] login ${phase}`, payload);
+  if (phase === "failure") {
+    void reportFrontendError({
+      category: "auth_login",
+      step: `${provider}_${phase}`,
+      errorMessage: String(extra.error || `${provider} login failed`),
+      context: payload,
+    });
+  }
+}
 
 const MemberAuth = () => {
   const navigate = useNavigate();
@@ -43,7 +82,33 @@ const MemberAuth = () => {
   const [signupAddress, setSignupAddress] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+
+  // Email OTP fallback (works even when social login is broken)
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // In-app browser guidance dialog
+  const [guide, setGuide] = useState<{ target: "line" | "facebook"; current: "line" | "facebook" | "instagram" } | null>(null);
+
+  // URL-level error message (from callback redirects like ?error=line_login_failed)
+  const urlError = searchParams.get("error");
+  const urlReason = searchParams.get("reason");
+
+  useEffect(() => {
+    if (!urlError) return;
+    const map: Record<string, string> = {
+      line_login_failed: "LINE 登入失敗，請重試",
+      facebook_login_failed: "Facebook 登入失敗，請重試",
+    };
+    toast.error(map[urlError] || "登入失敗，請重試");
+    logLoginAttempt("failure", urlError, { reason: urlReason });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlError]);
+
   const throttle = useLoginThrottle(`member:${loginEmail.toLowerCase().trim()}`);
+
 
   // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
   useEffect(() => {
