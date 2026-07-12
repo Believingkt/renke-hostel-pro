@@ -290,16 +290,24 @@ const MemberAuth = () => {
   // ----- Facebook Login (Custom OAuth — same architecture as LINE) -----
   const handleFacebookLogin = () => {
     if (fbLoading || lineLoading || loading) return;
+
+    // In-app browser guardrail: cross-provider is blocked (e.g. FB login inside
+    // LINE's in-app browser routinely fails silently).
+    const current = detectInAppBrowser();
+    if (shouldBlockOAuthInApp("facebook", current) && current) {
+      setGuide({ target: "facebook", current });
+      logLoginAttempt("failure", "facebook", { blocked_in_app: current });
+      return;
+    }
+
+    logLoginAttempt("attempt", "facebook");
     setFbLoading(true);
+    let redirected = false;
     try {
       const appId = FACEBOOK_APP_ID;
       const state = crypto.randomUUID();
-      const isProdHost = window.location.hostname === "booking.lakeze.com";
-      const redirectUri = isProdHost
-        ? "https://booking.lakeze.com/member/auth/facebook-callback"
-        : `${window.location.origin}/member/auth/facebook-callback`;
+      const redirectUri = `${PROD_ORIGIN}/member/auth/facebook-callback`;
 
-      // localStorage so iOS Safari new-tab callback can still validate.
       localStorage.setItem("fb_oauth_state", state);
       localStorage.setItem("fb_oauth_redirect_uri", redirectUri);
       localStorage.setItem("fb_oauth_ts", String(Date.now()));
@@ -311,15 +319,29 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("scope", "public_profile,email");
 
-      // 10s timeout — if redirect hasn't happened by then, recover button.
+      // 15s timeout — if redirect hasn't happened by then, recover button.
       window.setTimeout(() => {
-        toast.error("網路不穩，請再試一次");
+        if (!redirected) return;
+        // If we get here after `redirected=true`, the page navigation succeeded
+        // and this handler is stale (browser is unloading). No-op.
+      }, OAUTH_LAUNCH_TIMEOUT_MS);
+      window.setTimeout(() => {
+        // Recovery path: if the browser never navigated, restore UI.
+        toast.error("登入啟動失敗，請檢查網路後重試", {
+          action: { label: "重試", onClick: () => handleFacebookLogin() },
+        });
+        logLoginAttempt("failure", "facebook", { error: "launch_timeout" });
         setFbLoading(false);
-      }, 10000);
+      }, OAUTH_LAUNCH_TIMEOUT_MS);
 
+      redirected = true;
       window.location.href = authorizeUrl.toString();
     } catch (error: any) {
-      toast.error(error.message || "Facebook 登入啟動失敗");
+      const msg = error?.message || "登入啟動失敗，請檢查網路後重試";
+      toast.error(msg, {
+        action: { label: "重試", onClick: () => handleFacebookLogin() },
+      });
+      logLoginAttempt("failure", "facebook", { error: msg });
       setFbLoading(false);
     }
   };
@@ -327,18 +349,22 @@ const MemberAuth = () => {
   // ----- LINE Login v2.1 (OIDC) — manual authorize redirect -----
   const handleLineLogin = () => {
     if (fbLoading || lineLoading || loading) return;
+
+    const current = detectInAppBrowser();
+    if (shouldBlockOAuthInApp("line", current) && current) {
+      setGuide({ target: "line", current });
+      logLoginAttempt("failure", "line", { blocked_in_app: current });
+      return;
+    }
+
+    logLoginAttempt("attempt", "line");
     setLineLoading(true);
     try {
       const channelId = LINE_CHANNEL_ID;
       const state = crypto.randomUUID();
       const nonce = crypto.randomUUID();
-      const isProdHost = window.location.hostname === "booking.lakeze.com";
-      const redirectUri = isProdHost
-        ? "https://booking.lakeze.com/member/auth/line-callback"
-        : `${window.location.origin}/member/auth/line-callback`;
+      const redirectUri = `${PROD_ORIGIN}/member/auth/line-callback`;
 
-      // Use localStorage so iOS Safari opening the callback in a new tab
-      // (universal link from LINE app) can still validate state.
       localStorage.setItem("line_oauth_state", state);
       localStorage.setItem("line_oauth_nonce", nonce);
       localStorage.setItem("line_oauth_redirect_uri", redirectUri);
@@ -353,16 +379,80 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("nonce", nonce);
 
       window.setTimeout(() => {
-        toast.error("網路不穩，請再試一次");
+        toast.error("登入啟動失敗，請檢查網路後重試", {
+          action: { label: "重試", onClick: () => handleLineLogin() },
+        });
+        logLoginAttempt("failure", "line", { error: "launch_timeout" });
         setLineLoading(false);
-      }, 10000);
+      }, OAUTH_LAUNCH_TIMEOUT_MS);
 
       window.location.href = authorizeUrl.toString();
     } catch (error: any) {
-      toast.error(error.message || "LINE 登入啟動失敗");
+      const msg = error?.message || "登入啟動失敗，請檢查網路後重試";
+      toast.error(msg, {
+        action: { label: "重試", onClick: () => handleLineLogin() },
+      });
+      logLoginAttempt("failure", "line", { error: msg });
       setLineLoading(false);
     }
   };
+
+  // ----- Email OTP fallback (6-digit code) -----
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpEmail.trim()) {
+      toast.error("請輸入 Email");
+      return;
+    }
+    logLoginAttempt("attempt", "email_otp");
+    setOtpLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: otpEmail.trim(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${PROD_ORIGIN}/member/profile`,
+        },
+      });
+      if (error) throw error;
+      setOtpSent(true);
+      toast.success("驗證碼已寄出，請至信箱查收");
+    } catch (error: any) {
+      const msg = error?.message || "驗證碼寄送失敗，請重試";
+      toast.error(msg);
+      logLoginAttempt("failure", "email_otp", { step: "send", error: msg });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      toast.error("請輸入 6 碼驗證碼");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: otpEmail.trim(),
+        token: otpCode.trim(),
+        type: "email",
+      });
+      if (error) throw error;
+      await ensureMemberProfile();
+      logLoginAttempt("success", "email_otp");
+      toast.success("登入成功");
+      navigate(redirectTo);
+    } catch (error: any) {
+      const msg = error?.message || "驗證碼錯誤或已過期";
+      toast.error(msg);
+      logLoginAttempt("failure", "email_otp", { step: "verify", error: msg });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
 
   const ensureMemberProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
