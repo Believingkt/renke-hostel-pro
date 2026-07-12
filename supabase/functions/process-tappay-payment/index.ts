@@ -199,6 +199,26 @@ serve(async (req) => {
     });
 
     if (result.status === 0) {
+      // Sync guest_email ONLY after TapPay accepted the payment (status 0),
+      // so an unauthenticated caller with a fake prime can't overwrite it.
+      try {
+        const supaUrl = Deno.env.get('SUPABASE_URL');
+        const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supaUrl && svcKey && cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cardholder.email)) {
+          const admin = createClient(supaUrl, svcKey);
+          const { error: emailUpdateErr } = await admin
+            .from('orders')
+            .update({ guest_email: cardholder.email })
+            .eq('order_number', orderId);
+          if (emailUpdateErr) {
+            console.warn('guest_email update returned error (non-blocking):', emailUpdateErr);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to sync guest_email to order (non-blocking):', e);
+      }
+
+
       // Check if 3D Secure redirect is required
       if (result.payment_url) {
         console.log('3D Secure redirect required:', { 
