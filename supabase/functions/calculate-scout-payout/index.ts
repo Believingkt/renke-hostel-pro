@@ -326,8 +326,10 @@ serve(async (req) => {
         achieved: boolean;
       }> = [];
 
-      // period=25 不做個人達標判斷（底薪/團隊獎金都不發）
-      if (period !== 10) {
+      // period=25 或外部星探不做個人達標判斷（底薪/團隊獎金都不發）
+      if (isExternal) {
+        individualAchieved = false;
+      } else if (period !== 10) {
         individualAchieved = false;
       } else if (isFulltime) {
         // 正職個人目標保留現行邏輯（依 fulltime_min，check_in_date 上月整月 SR/SSR/UR）
