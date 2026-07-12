@@ -95,7 +95,7 @@ interface ScoutProfile {
   display_name: string | null;
   is_scout_team_member: boolean;
   employment_type: string | null;
-  fulltime_start_yearmonth: number | null;
+  fulltime_start_yearmonth: string | null;
 }
 interface KolProfileRow {
   scout_id: string | null;
