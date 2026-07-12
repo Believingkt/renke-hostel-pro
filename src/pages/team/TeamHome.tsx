@@ -86,6 +86,23 @@ export default function TeamHome() {
     const nextM = now.m === 12 ? 1 : now.m + 1;
     const prevY = now.m === 1 ? now.y - 1 : now.y;
     const prevM = now.m === 1 ? 12 : now.m - 1;
+
+    // 期別判斷：日 <=20 → 當月 25 日期（當月 6 - 當月 20）
+    //           日 >20  → 次月 10 日期（當月 21 - 次月 5）
+    const isEarlyPeriod = now.d <= 20;
+    let periodStart: string;
+    let periodEnd: string;
+    let periodLabel: string;
+    if (isEarlyPeriod) {
+      periodStart = taipeiDateStr(now.y, now.m, 6);
+      periodEnd = taipeiDateStr(now.y, now.m, 20);
+      periodLabel = `${now.m} 月 25 日期預估（${now.m}/6 - ${now.m}/20 入住）`;
+    } else {
+      periodStart = taipeiDateStr(now.y, now.m, 21);
+      periodEnd = taipeiDateStr(nextY, nextM, 5);
+      periodLabel = `${nextM} 月 10 日期預估（${now.m}/21 - ${nextM}/5 入住）`;
+    }
+
     return {
       y: now.y,
       m: now.m,
@@ -99,6 +116,9 @@ export default function TeamHome() {
       prevMonthEndDate: taipeiDateStr(now.y, now.m, 1),
       prevY,
       prevM,
+      periodStart,
+      periodEnd,
+      periodLabel,
       nextMonthLabel: `${nextY} 年 ${nextM} 月`,
     };
   }, []);
