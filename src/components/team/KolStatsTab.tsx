@@ -731,7 +731,7 @@ export function KolStatsTab() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  stats.map((s) => (
+                  stats.filter((s) => (s.kol_commission + s.rarity_bonus + s.base_salary + s.team_bonus) > 0).map((s) => (
                     <TableRow
                       key={s.scout_id}
                       className="cursor-pointer hover:bg-muted/50"
