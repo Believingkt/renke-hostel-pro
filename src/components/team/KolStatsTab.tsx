@@ -597,13 +597,14 @@ export function KolStatsTab() {
 
         let teamBonusPayout = 0;
         if (showSalary && targetsList.length > 0) {
-          // 團隊達標：各 target 館別「所有星探」上月邀約總數 >= target_count
+          // 【修改二】團隊達標：各 target 館別
+          // 兼職邀約數（全部 kpi_qualified）＋ 正職 SR/SSR/UR 邀約數 >= target_count
           let teamAchieved = true;
           for (const t of targetsList) {
-            const total = periodFiltered.reduce((sum, r) => {
-              const vb = r.venueBreakdown.find((v) => v.venue_name === t.venue_name);
-              return sum + (vb?.actual ?? 0);
-            }, 0);
+            let total = 0;
+            for (const contrib of teamContribBy.values()) {
+              total += contrib.get(t.venue_name) ?? 0;
+            }
             if (total < t.target_count) {
               teamAchieved = false;
               break;
