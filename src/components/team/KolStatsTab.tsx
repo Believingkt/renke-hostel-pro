@@ -110,6 +110,7 @@ interface KolProfileRow {
   is_error: boolean | null;
   venue_name: string | null;
   invited_at: string | null;
+  created_at: string | null;
 }
 
 interface ScoutStats {
