@@ -367,15 +367,15 @@ export default function TeamHome() {
             }
           }
 
-          // KOL 分潤: orders in current month matching cid codes
+          // KOL 分潤: 期別內 check_in_date 且 discount_code 對應 cid
           if (cidUpperSet.size > 0 && commissionRate > 0) {
             const { data: kolOrders } = await supabase
               .from("orders")
-              .select("final_price, discount_code, order_status, order_date")
+              .select("final_price, discount_code, order_status, check_in_date")
               .neq("order_status", "cancelled")
               .not("discount_code", "is", null)
-              .gte("order_date", monthStartIso)
-              .lt("order_date", monthEndIso);
+              .gte("check_in_date", periodStart)
+              .lte("check_in_date", periodEnd);
 
             let sumPrice = 0;
             for (const o of kolOrders ?? []) {
@@ -386,8 +386,13 @@ export default function TeamHome() {
             scoutSum = sumPrice * commissionRate;
           }
 
-          // 稀有度獎金: 本月 check_in_date 落在當月且 kpi_qualified、非 error、invited_at 非空、rarity != 'ck'
-          const [{ data: rarityRows }, { data: monthKols }] = await Promise.all([
+          // 稀有度獎金：期別內 check_in_date（正職前 30 筆歸零，31 筆起才發）
+          const isFullTime =
+            myEmploymentType === "fulltime" &&
+            !!myFulltimeStart &&
+            myFulltimeStart <= currentMonthKey;
+
+          const [{ data: rarityRows }, { data: periodKols }] = await Promise.all([
             supabase
               .from("kol_rarity_settings")
               .select("rarity, bonus_amount, effective_from")
@@ -395,22 +400,27 @@ export default function TeamHome() {
               .order("effective_from", { ascending: false }),
             supabase
               .from("kol_profiles")
-              .select("rarity, check_in_date, invited_at, is_error, kpi_qualified")
+              .select("rarity, check_in_date, invited_at, is_error, kpi_qualified, created_at")
               .eq("scout_id", userId)
               .eq("kpi_qualified", true)
               .eq("is_error", false)
               .not("invited_at", "is", null)
-              .gte("check_in_date", monthStartDate)
-              .lt("check_in_date", monthEndDate),
+              .gte("check_in_date", periodStart)
+              .lte("check_in_date", periodEnd)
+              .order("created_at", { ascending: true }),
           ]);
 
           const rarityMap = new Map<string, number>();
           for (const r of (rarityRows ?? []) as any[]) {
             if (!rarityMap.has(r.rarity)) rarityMap.set(r.rarity, Number(r.bonus_amount ?? 0));
           }
-          for (const r of (monthKols ?? []) as any[]) {
+          const rows = ((periodKols ?? []) as any[]).filter((r) => {
             const rar = String(r.rarity ?? "");
-            if (!rar || rar === "ck") continue;
+            return rar && rar !== "ck";
+          });
+          const rarityStartIdx = isFullTime ? 30 : 0;
+          for (let i = rarityStartIdx; i < rows.length; i++) {
+            const rar = String(rows[i].rarity ?? "");
             raritySum += rarityMap.get(rar) ?? 0;
           }
 
