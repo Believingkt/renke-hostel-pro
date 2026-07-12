@@ -321,12 +321,6 @@ const MemberAuth = () => {
 
       // 15s timeout — if redirect hasn't happened by then, recover button.
       window.setTimeout(() => {
-        if (!redirected) return;
-        // If we get here after `redirected=true`, the page navigation succeeded
-        // and this handler is stale (browser is unloading). No-op.
-      }, OAUTH_LAUNCH_TIMEOUT_MS);
-      window.setTimeout(() => {
-        // Recovery path: if the browser never navigated, restore UI.
         toast.error("登入啟動失敗，請檢查網路後重試", {
           action: { label: "重試", onClick: () => handleFacebookLogin() },
         });
@@ -336,6 +330,7 @@ const MemberAuth = () => {
 
       redirected = true;
       window.location.href = authorizeUrl.toString();
+
     } catch (error: any) {
       const msg = error?.message || "登入啟動失敗，請檢查網路後重試";
       toast.error(msg, {
