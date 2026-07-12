@@ -396,18 +396,23 @@ export function KolStatsTab() {
           }
         }
 
-        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
-        // period=25 不發放底薪與團隊獎金，因此不需要計算 monthStart/monthEnd
-        let monthStart: string | null = null;
-        let monthEnd: string | null = null;
+        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放
+        // 個人達標與團隊達標皆以 kpi_month = prevMonthStart（上月 YYYY-MM-01）為準
+        let prevMonthStart: string | null = null;
+        let selectedYM: string | null = null; // YYYYMM 字串，判定正職是否在職
         if (showSalary && month) {
           const targetYear = month === 1 ? effYear - 1 : effYear;
           const targetMonth = month === 1 ? 12 : month - 1;
-          monthStart = `${targetYear}-${pad(targetMonth)}-01`;
-          monthEnd = targetMonth === 12
-            ? `${targetYear + 1}-01-01`
-            : `${targetYear}-${pad(targetMonth + 1)}-01`;
+          prevMonthStart = `${targetYear}-${pad(targetMonth)}-01`;
+          selectedYM = `${targetYear}${pad(targetMonth)}`;
         }
+        const isFulltimeAt = (p: ScoutProfile): boolean => {
+          if (!selectedYM) return false;
+          if (p.employment_type !== "fulltime") return false;
+          const start = (p.fulltime_start_yearmonth ?? "").toString().replace(/[^0-9]/g, "").slice(0, 6);
+          if (start.length !== 6) return false;
+          return start <= selectedYM;
+        };
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
