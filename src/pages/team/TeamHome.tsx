@@ -537,7 +537,7 @@ export default function TeamHome() {
           const nextM3 = ((monthInfo.m + 3 - 1) % 12) + 1;
           const wideEnd = taipeiDateStr(nextY3, nextM3, 1);
 
-          const currentMonthKey = monthInfo.currentMonthKey;
+          // currentMonthKey already destructured above
           const matches = (r: any, dateField: string) => {
             const ep = (r?.early_payout_month ?? null) as string | null;
             if (ep) return ep === currentMonthKey;
