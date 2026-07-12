@@ -66,8 +66,16 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
 
+  // Return a structured error including `reason` so the frontend callback can
+  // route to /member/auth?error=line_login_failed&reason=<step> with a
+  // meaningful message.
+  const fail = (reason: string, message: string, status = 400, extra: Record<string, unknown> = {}) => {
+    console.error(`[line-oauth-exchange] FAIL step=${reason}`, { message, ...extra });
+    return json({ error: message, reason, step: reason, ...extra }, status);
+  };
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method !== "POST") return json({ error: "Method not allowed", reason: "method" }, 405);
 
   const channelId = Deno.env.get("LINE_CHANNEL_ID");
   const channelSecret = Deno.env.get("LINE_CHANNEL_SECRET");
@@ -76,24 +84,31 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
   if (!channelId || !channelSecret) {
-    return json({ error: "LINE 登入尚未設定，請先填入 LINE_CHANNEL_ID 與 LINE_CHANNEL_SECRET" }, 500);
+    return fail("config_missing", "LINE 登入尚未設定，請先填入 LINE_CHANNEL_ID 與 LINE_CHANNEL_SECRET", 500);
   }
   if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-    return json({ error: "後端環境變數缺失（SUPABASE_URL / SERVICE_ROLE / ANON）" }, 500);
+    return fail("config_missing", "後端環境變數缺失（SUPABASE_URL / SERVICE_ROLE / ANON）", 500);
   }
 
   let body: ExchangeBody;
   try {
     body = await req.json();
-  } catch {
-    return json({ error: "請求格式錯誤" }, 400);
+  } catch (err) {
+    console.error("[line-oauth-exchange] invalid json body", err);
+    return fail("bad_request", "請求格式錯誤");
   }
   const { code, redirectUri, expectedNonce } = body;
   if (!code || !redirectUri || !expectedNonce) {
-    return json({ error: "缺少必要參數（code / redirectUri / expectedNonce）" }, 400);
+    return fail("bad_request", "缺少必要參數（code / redirectUri / expectedNonce）", 400, {
+      have_code: !!code,
+      have_redirectUri: !!redirectUri,
+      have_expectedNonce: !!expectedNonce,
+    });
   }
 
-  // ── 1. Exchange code -> id_token ────────────────────────────────────────
+  console.log("[line-oauth-exchange] start", { redirectUri, code_len: code.length });
+
+  // ── 1. Exchange code -> id_token (with 1 retry on network error) ────────
   const tokenParams = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -102,42 +117,70 @@ Deno.serve(async (req) => {
     client_secret: channelSecret,
   });
 
-  let tokenJson: any;
-  try {
-    const resp = await fetch("https://api.line.me/oauth2/v2.1/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: tokenParams.toString(),
-    });
-    tokenJson = await resp.json();
-    if (!resp.ok) {
-      console.error("LINE token exchange failed", tokenJson);
-      return json({ error: tokenJson?.error_description || "LINE 授權碼交換失敗" }, 400);
+  const attemptTokenExchange = async (): Promise<{ ok: true; json: any } | { ok: false; networkError?: unknown; httpBody?: string; status?: number }> => {
+    try {
+      const resp = await fetch("https://api.line.me/oauth2/v2.1/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenParams.toString(),
+      });
+      const text = await resp.text();
+      let parsed: any = null;
+      try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+      if (!resp.ok) {
+        return { ok: false, httpBody: text, status: resp.status };
+      }
+      return { ok: true, json: parsed };
+    } catch (err) {
+      return { ok: false, networkError: err };
     }
-  } catch (err) {
-    console.error("LINE token endpoint error", err);
-    return json({ error: "無法連線到 LINE 登入服務" }, 502);
+  };
+
+  let tokenAttempt = await attemptTokenExchange();
+  if (!tokenAttempt.ok && "networkError" in tokenAttempt) {
+    console.warn("[line-oauth-exchange] token exchange network error, retrying once", tokenAttempt.networkError);
+    tokenAttempt = await attemptTokenExchange();
   }
+  if (!tokenAttempt.ok) {
+    if ("networkError" in tokenAttempt) {
+      console.error("[line-oauth-exchange] token exchange network error (final)", tokenAttempt.networkError);
+      return fail("token_network", "無法連線到 LINE 登入服務", 502);
+    }
+    console.error("[line-oauth-exchange] token exchange HTTP error", {
+      status: tokenAttempt.status,
+      body: tokenAttempt.httpBody,
+    });
+    let parsed: any = null;
+    try { parsed = tokenAttempt.httpBody ? JSON.parse(tokenAttempt.httpBody) : null; } catch { /* ignore */ }
+    return fail(
+      "token_exchange",
+      parsed?.error_description || parsed?.error || "LINE 授權碼交換失敗",
+      400,
+      { line_status: tokenAttempt.status, line_body: tokenAttempt.httpBody?.substring(0, 500) },
+    );
+  }
+  const tokenJson = tokenAttempt.json;
 
   const idToken: string | undefined = tokenJson.id_token;
-  if (!idToken) return json({ error: "LINE 未回傳 id_token，請確認已啟用 OpenID Connect" }, 400);
+  if (!idToken) return fail("id_token_missing", "LINE 未回傳 id_token，請確認已啟用 OpenID Connect");
 
   // ── 2. Verify id_token claims ───────────────────────────────────────────
   let claims: Record<string, any>;
   try {
     claims = decodeJwtPayload(idToken);
   } catch (err) {
-    console.error("id_token decode failed", err);
-    return json({ error: "無法解析 LINE id_token" }, 400);
+    console.error("[line-oauth-exchange] id_token decode failed", err);
+    return fail("id_token_decode", "無法解析 LINE id_token");
   }
-  if (claims.iss !== "https://access.line.me") return json({ error: "id_token 簽發者不正確" }, 400);
-  if (claims.aud !== channelId) return json({ error: "id_token 對象不正確" }, 400);
-  if (claims.nonce !== expectedNonce) return json({ error: "nonce 驗證失敗，請重新登入" }, 400);
+  if (claims.iss !== "https://access.line.me") return fail("id_token_iss", "id_token 簽發者不正確", 400, { iss: claims.iss });
+  if (claims.aud !== channelId) return fail("id_token_aud", "id_token 對象不正確", 400, { aud: claims.aud });
+  if (claims.nonce !== expectedNonce) return fail("id_token_nonce", "nonce 驗證失敗，請重新登入");
   const exp = typeof claims.exp === "number" ? claims.exp : 0;
-  if (exp && exp * 1000 < Date.now()) return json({ error: "LINE id_token 已過期" }, 400);
+  if (exp && exp * 1000 < Date.now()) return fail("id_token_expired", "LINE id_token 已過期");
 
   const lineSub = String(claims.sub || "");
-  if (!lineSub) return json({ error: "LINE id_token 缺少 sub" }, 400);
+  if (!lineSub) return fail("id_token_sub_missing", "LINE id_token 缺少 sub");
+
 
   const displayName = (claims.name as string) || "LINE 使用者";
   const picture = (claims.picture as string) || null;
