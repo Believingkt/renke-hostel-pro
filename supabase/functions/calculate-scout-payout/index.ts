@@ -396,10 +396,10 @@ serve(async (req) => {
       if (cidUpperSet.size > 0 && commissionRate > 0) {
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, discount_code, order_date")
+          .select("final_price, discount_code, check_in_date")
           .not("discount_code", "is", null)
-          .gte("order_date", periodStart)
-          .lt("order_date", periodEnd)
+          .gte("check_in_date", periodStart)
+          .lt("check_in_date", periodEnd)
           .neq("order_status", "cancelled");
         if (ordErr) throw ordErr;
 
