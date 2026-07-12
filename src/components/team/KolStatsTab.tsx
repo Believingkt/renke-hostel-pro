@@ -706,7 +706,7 @@ export function KolStatsTab() {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">等級名稱</TableHead>
                   <TableHead className="whitespace-nowrap">星探</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">全部累積邀約</TableHead>
                   <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
                   <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
                   <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
