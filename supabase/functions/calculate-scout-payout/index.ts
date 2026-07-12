@@ -275,8 +275,9 @@ serve(async (req) => {
         !!startYM &&
         startYM <= currentYM;
 
-      // 該星探當月有效邀約（底薪/個人達標用）與期別內邀約（稀有度獎金用）
-      const myMonthInvites = allMonthInvites.filter((i) => i.scout_id === scoutId);
+      // 該星探 kpi_month=上月 邀約（底薪/兼職個人達標 & 團隊達標用）
+      // 該星探期別內邀約（稀有度獎金用）
+      const myKpiMonthInvites = allKpiMonthInvites.filter((i) => i.scout_id === scoutId);
       const myPeriodInvites = allPeriodInvites.filter((i) => i.scout_id === scoutId);
 
       // ===== 四、個人達標 =====
@@ -293,12 +294,15 @@ serve(async (req) => {
       if (period !== 10) {
         individualAchieved = false;
       } else if (isFulltime) {
+        // 正職個人目標保留現行邏輯（依 fulltime_min，check_in_date 上月整月 SR/SSR/UR）
+        // 注意：正職底薪為 0，此判斷僅用於 snapshot；不影響發放。
+        // 為維持向下相容，這裡沿用 kpi_month 邀約 SR/SSR/UR 累計。
         if (fulltimeByAcc.size === 0) {
           individualAchieved = false;
         } else {
           individualAchieved = true;
           for (const [accId, minCount] of fulltimeByAcc.entries()) {
-            const actual = myMonthInvites.filter(
+            const actual = myKpiMonthInvites.filter(
               (i) =>
                 i.accommodation_id === accId &&
                 ["SR", "SSR", "UR"].includes(i.rarity ?? ""),
@@ -314,13 +318,14 @@ serve(async (req) => {
           }
         }
       } else {
+        // 兼職：以 kpi_month = 上月 為基準
         if (teamTargets.length === 0) {
           individualAchieved = false;
         } else {
           individualAchieved = true;
           for (const t of teamTargets) {
             const required = Number(t.personal_min ?? 0);
-            const actual = myMonthInvites.filter(
+            const actual = myKpiMonthInvites.filter(
               (i) => i.accommodation_id === t.accommodation_id,
             ).length;
             const achieved = actual >= required;
@@ -341,15 +346,15 @@ serve(async (req) => {
         !isFulltime && period === 10 && individualAchieved ? baseSalaryAmount : 0;
 
       // ===== 五、稀有度獎金 =====
-      // 正職：當月（check_in_date ∈ 當月）SR/SSR/UR 超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
-      // 兼職：期別內每筆 rarity 都計獎（維持原邏輯）
+      // 正職：期別內 SR/SSR/UR 累計超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
+      // 兼職：期別內每筆 rarity 都計獎
       let rarityBonus = 0;
       if (isFulltime) {
-        const myMonthRare = myMonthInvites
+        const myPeriodRare = myPeriodInvites
           .filter((i) => ["SR", "SSR", "UR"].includes(i.rarity ?? ""))
           .sort((a, b) => ((a as any).created_at || "").localeCompare((b as any).created_at || ""));
-        if (myMonthRare.length > 30) {
-          for (const inv of myMonthRare.slice(30)) {
+        if (myPeriodRare.length > 30) {
+          for (const inv of myPeriodRare.slice(30)) {
             if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
           }
         }
