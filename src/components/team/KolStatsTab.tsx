@@ -197,11 +197,15 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+        const [profilesRes, rolesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
           supabase
             .from("team_member_profiles")
             .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("is_scout_team_member", true),
+          supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .in("role", ["scout", "scout_manager"]),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -230,13 +234,33 @@ export function KolStatsTab() {
         ]);
 
         if (profilesRes.error) throw profilesRes.error;
+        if (rolesRes.error) throw rolesRes.error;
         if (rarityRes.error) throw rarityRes.error;
         if (tierRes.error) throw tierRes.error;
         if (salaryRes.error) throw salaryRes.error;
         if (accsRes.error) throw accsRes.error;
         if (targetsRes.error) throw targetsRes.error;
 
-        const scouts: ScoutProfile[] = (profilesRes.data ?? []) as ScoutProfile[];
+        const teamScouts: ScoutProfile[] = (profilesRes.data ?? []) as ScoutProfile[];
+        const teamScoutIdSet = new Set(teamScouts.map((s) => s.user_id));
+
+        // 補齊 external scout：有 scout / scout_manager role 但不是團隊成員
+        const roleUserIds = Array.from(
+          new Set(((rolesRes.data ?? []) as Array<{ user_id: string }>).map((r) => r.user_id)),
+        ).filter((uid) => !teamScoutIdSet.has(uid));
+
+        let externalScouts: ScoutProfile[] = [];
+        if (roleUserIds.length > 0) {
+          const { data: extData, error: extErr } = await supabase
+            .from("team_member_profiles")
+            .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+            .in("user_id", roleUserIds)
+            .eq("is_scout_team_member", false);
+          if (extErr) throw extErr;
+          externalScouts = (extData ?? []) as ScoutProfile[];
+        }
+
+        const scouts: ScoutProfile[] = [...teamScouts, ...externalScouts];
         const scoutIds = scouts.map((s) => s.user_id);
 
         const rarityMap = new Map<string, number>();
@@ -426,7 +450,9 @@ export function KolStatsTab() {
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
-          const isFulltime = isFulltimeAt(s);
+          const isExternal = !s.is_scout_team_member;
+          // External scout：稀有度獎金無 30 位門檻，強制 fulltime 抑制邏輯不生效
+          const isFulltime = isExternal ? false : isFulltimeAt(s);
 
           // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
           const periodQualified = rows.filter(
@@ -523,7 +549,8 @@ export function KolStatsTab() {
           let monthlySuccess = 0;
           let individualAchieved = false;
           let venueBreakdown: ScoutStats["venueBreakdown"] = [];
-          if (showSalary && prevMonthStart) {
+          // External scout：不參與個人目標、團隊達標貢獻
+          if (showSalary && prevMonthStart && !isExternal) {
             // 【修改一】兼職個人目標獎金（底薪）改用 kpi_month = prevMonthStart
             // 個人達標各館比對 personal_min（kpi_qualified、非錯誤、invited_at 非空）
             const monthRows = rows.filter(
