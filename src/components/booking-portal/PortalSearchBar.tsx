@@ -208,11 +208,11 @@ const PortalSearchBar = ({
           <p className="text-xs text-muted-foreground">18 歲以上</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onAdultsChange(Math.max(1, adults - 1))} disabled={adults <= 1}>
+          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onAdultsChange(Math.max(1, adults - 1))} disabled={adults <= 1}>
             <Minus className="h-4 w-4" />
           </Button>
           <span className="w-7 text-center text-base font-medium tabular-nums">{adults}</span>
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onAdultsChange(Math.min(20, adults + 1))} disabled={adults >= 20}>
+          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onAdultsChange(Math.min(20, adults + 1))} disabled={adults >= 20}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -226,11 +226,11 @@ const PortalSearchBar = ({
               <p className="text-xs text-muted-foreground">0–2 歲</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onInfantsChange!(Math.max(0, (infants || 0) - 1))} disabled={(infants || 0) <= 0}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onInfantsChange!(Math.max(0, (infants || 0) - 1))} disabled={(infants || 0) <= 0}>
                 <Minus className="h-4 w-4" />
               </Button>
               <span className="w-7 text-center text-base font-medium tabular-nums">{infants || 0}</span>
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onInfantsChange!(Math.min(10, (infants || 0) + 1))} disabled={(infants || 0) >= 10}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onInfantsChange!(Math.min(10, (infants || 0) + 1))} disabled={(infants || 0) >= 10}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -241,11 +241,11 @@ const PortalSearchBar = ({
               <p className="text-xs text-muted-foreground">3–6 歲</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onToddlersChange!(Math.max(0, (toddlers || 0) - 1))} disabled={(toddlers || 0) <= 0}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onToddlersChange!(Math.max(0, (toddlers || 0) - 1))} disabled={(toddlers || 0) <= 0}>
                 <Minus className="h-4 w-4" />
               </Button>
               <span className="w-7 text-center text-base font-medium tabular-nums">{toddlers || 0}</span>
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onToddlersChange!(Math.min(10, (toddlers || 0) + 1))} disabled={(toddlers || 0) >= 10}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onToddlersChange!(Math.min(10, (toddlers || 0) + 1))} disabled={(toddlers || 0) >= 10}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -256,11 +256,11 @@ const PortalSearchBar = ({
               <p className="text-xs text-muted-foreground">7–12 歲</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
                 <Minus className="h-4 w-4" />
               </Button>
               <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -273,11 +273,11 @@ const PortalSearchBar = ({
             <p className="text-xs text-muted-foreground">0–12 歲</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
               <Minus className="h-4 w-4" />
             </Button>
             <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -356,7 +356,7 @@ const PortalSearchBar = ({
     head_cell: "text-muted-foreground font-normal text-[0.75rem] flex-1 text-center",
     row: "flex w-full mt-1",
     cell: "flex-1 h-11 text-center text-[15px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-primary/10 hover:text-primary",
+    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-muted hover:text-foreground",
     caption_label: "text-base font-medium",
   };
 
@@ -420,7 +420,7 @@ const PortalSearchBar = ({
                   key={s}
                   type="button"
                   onClick={() => onSearchQueryChange(s)}
-                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
                   {s}
                 </button>
@@ -507,7 +507,7 @@ const PortalSearchBar = ({
                   key={s}
                   type="button"
                   onClick={() => onSearchQueryChange(s)}
-                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
                   {s}
                 </button>
