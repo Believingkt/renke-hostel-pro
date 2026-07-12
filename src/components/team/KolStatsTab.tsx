@@ -199,7 +199,7 @@ export function KolStatsTab() {
         const [profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
           supabase
             .from("team_member_profiles")
-            .select("user_id, display_name, is_scout_team_member")
+            .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("is_scout_team_member", true),
           supabase
             .from("kol_rarity_settings")
