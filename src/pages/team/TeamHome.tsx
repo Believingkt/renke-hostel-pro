@@ -148,14 +148,21 @@ export default function TeamHome() {
         // profile id (for scout / franchise external)
         let profileId: string | null = null;
         let scoutTeamMember = false;
+        let myEmploymentType: string | null = null;
+        let myFulltimeStart: string | null = null;
         if (showScout || showFranchise) {
           const { data } = await supabase
             .from("team_member_profiles")
-            .select("id, is_scout_team_member")
+            .select("id, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("user_id", userId)
             .maybeSingle();
           profileId = (data?.id as string | undefined) ?? null;
-          scoutTeamMember = !!(data as { is_scout_team_member?: boolean } | null)?.is_scout_team_member;
+          const d = data as
+            | { is_scout_team_member?: boolean; employment_type?: string; fulltime_start_yearmonth?: string }
+            | null;
+          scoutTeamMember = !!d?.is_scout_team_member;
+          myEmploymentType = d?.employment_type ?? null;
+          myFulltimeStart = d?.fulltime_start_yearmonth ?? null;
         }
 
         // ===== Closer / Video =====
