@@ -356,7 +356,7 @@ const PortalSearchBar = ({
     head_cell: "text-muted-foreground font-normal text-[0.75rem] flex-1 text-center",
     row: "flex w-full mt-1",
     cell: "flex-1 h-11 text-center text-[15px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-primary/10 hover:text-primary",
+    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-muted hover:text-foreground",
     caption_label: "text-base font-medium",
   };
 
@@ -420,7 +420,7 @@ const PortalSearchBar = ({
                   key={s}
                   type="button"
                   onClick={() => onSearchQueryChange(s)}
-                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
                   {s}
                 </button>
@@ -507,7 +507,7 @@ const PortalSearchBar = ({
                   key={s}
                   type="button"
                   onClick={() => onSearchQueryChange(s)}
-                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
                   {s}
                 </button>
