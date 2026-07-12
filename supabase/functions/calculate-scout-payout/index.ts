@@ -303,8 +303,10 @@ serve(async (req) => {
 
     for (const scout of profiles) {
       const scoutId = scout.user_id as string;
+      const isExternal = !!(scout as any).is_external;
       const startYM = scout.fulltime_start_yearmonth as string | null;
       const isFulltime =
+        !isExternal &&
         scout.employment_type === "fulltime" &&
         !!startYM &&
         startYM <= currentYM;
