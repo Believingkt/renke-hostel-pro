@@ -450,7 +450,8 @@ serve(async (req) => {
       }
 
       // ===== 團隊獎金 =====
-      const teamBonus = teamAchieved ? teamBonusAmount : 0;
+      // 團隊獎金：外部星探不屬於團隊機制，強制 0
+      const teamBonus = !isExternal && teamAchieved ? teamBonusAmount : 0;
 
       const totalPayout = baseSalary + rarityBonus + kolCommission + teamBonus;
 
