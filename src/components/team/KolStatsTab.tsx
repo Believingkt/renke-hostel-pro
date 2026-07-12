@@ -94,6 +94,8 @@ interface ScoutProfile {
   user_id: string;
   display_name: string | null;
   is_scout_team_member: boolean;
+  employment_type: string | null;
+  fulltime_start_yearmonth: string | null;
 }
 interface KolProfileRow {
   scout_id: string | null;
@@ -108,6 +110,7 @@ interface KolProfileRow {
   is_error: boolean | null;
   venue_name: string | null;
   invited_at: string | null;
+  created_at: string | null;
 }
 
 interface ScoutStats {
@@ -197,7 +200,7 @@ export function KolStatsTab() {
         const [profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
           supabase
             .from("team_member_profiles")
-            .select("user_id, display_name, is_scout_team_member")
+            .select("user_id, display_name, is_scout_team_member, employment_type, fulltime_start_yearmonth")
             .eq("is_scout_team_member", true),
           supabase
             .from("kol_rarity_settings")
@@ -287,7 +290,7 @@ export function KolStatsTab() {
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name, invited_at",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name, invited_at, created_at",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
@@ -393,18 +396,28 @@ export function KolStatsTab() {
           }
         }
 
-        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
-        // period=25 不發放底薪與團隊獎金，因此不需要計算 monthStart/monthEnd
-        let monthStart: string | null = null;
-        let monthEnd: string | null = null;
+        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放
+        // 個人達標與團隊達標皆以 kpi_month = prevMonthStart（上月 YYYY-MM-01）為準
+        let prevMonthStart: string | null = null;
+        let selectedYM: string | null = null; // YYYYMM 字串，判定正職是否在職
         if (showSalary && month) {
           const targetYear = month === 1 ? effYear - 1 : effYear;
           const targetMonth = month === 1 ? 12 : month - 1;
-          monthStart = `${targetYear}-${pad(targetMonth)}-01`;
-          monthEnd = targetMonth === 12
-            ? `${targetYear + 1}-01-01`
-            : `${targetYear}-${pad(targetMonth + 1)}-01`;
+          prevMonthStart = `${targetYear}-${pad(targetMonth)}-01`;
+          selectedYM = `${targetYear}${pad(targetMonth)}`;
         }
+        const isFulltimeAt = (p: ScoutProfile): boolean => {
+          if (!selectedYM) return false;
+          if (p.employment_type !== "fulltime") return false;
+          const start = (p.fulltime_start_yearmonth ?? "").toString().replace(/[^0-9]/g, "").slice(0, 6);
+          if (start.length !== 6) return false;
+          return start <= selectedYM;
+        };
+
+        // 供團隊獎金計算用：per scout per venue 的實際貢獻數
+        // - 兼職：kpi_qualified=true 的全部邀約
+        // - 正職：kpi_qualified=true 且 rarity ∈ {SR,SSR,UR}
+        const teamContribBy: Map<string, Map<string, number>> = new Map();
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
@@ -413,6 +426,7 @@ export function KolStatsTab() {
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
+          const isFulltime = isFulltimeAt(s);
 
           // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
           const periodQualified = rows.filter(
@@ -431,11 +445,32 @@ export function KolStatsTab() {
             UR: 0,
             ck: 0,
           };
+          // 【修改三】正職：期別內 SR/SSR/UR 依 created_at 升序，> 30 位才發，
+          // 只取第 31 筆起依稀有度費率加總。N/R 不受影響（仍照 rarity_bonus 加總）。
+          const fulltimeExcludedIds = new Set<string>();
+          if (isFulltime) {
+            const highRarity = periodQualified
+              .filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
+              .slice()
+              .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+            const excluded = highRarity.length > 30 ? highRarity.slice(0, 30) : highRarity;
+            for (const r of excluded) {
+              // 使用 name + created_at + rarity 組合鍵，避免 kol_profiles 無 id 欄位
+              fulltimeExcludedIds.add(`${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`);
+            }
+          }
+
           let rarityBonus = 0;
           const qualifiedKols: ScoutStats["qualifiedKols"] = [];
           for (const r of periodQualified) {
             const rar = (r.rarity ?? "") as Rarity;
-            const bonus = rarityMap.get(rar) ?? 0;
+            const bonusFull = rarityMap.get(rar) ?? 0;
+            const key = `${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`;
+            const suppress =
+              isFulltime &&
+              (rar === "SR" || rar === "SSR" || rar === "UR") &&
+              fulltimeExcludedIds.has(key);
+            const bonus = suppress ? 0 : bonusFull;
             if (RARITIES.includes(rar)) {
               rarityCounts[rar] += 1;
               rarityBonus += bonus;
@@ -470,7 +505,6 @@ export function KolStatsTab() {
               pmsOrderCount += ord.count;
               pmsOrderTotal += ord.total;
               for (const o of ord.orders) {
-                // 館別以訂單實際的 accommodation_id 為準，避免同一折扣碼對應多筆 kol_profiles 時誤判
                 const venueFromOrder = o.accommodation_id ? accIdToName.get(o.accommodation_id) : undefined;
                 orderItems.push({
                   venue_name: venueFromOrder ?? venueByCid.get(code) ?? "",
@@ -489,35 +523,23 @@ export function KolStatsTab() {
           let monthlySuccess = 0;
           let individualAchieved = false;
           let venueBreakdown: ScoutStats["venueBreakdown"] = [];
-          if (showSalary && monthStart && monthEnd) {
-            // 底薪/個人達標：上月整月 check_in_date + kpi_qualified + 非錯誤 + invited_at 非空
-            // 各館各自比對 personal_min（與 Edge Function 對齊）
+          if (showSalary && prevMonthStart) {
+            // 【修改一】兼職個人目標獎金（底薪）改用 kpi_month = prevMonthStart
+            // 個人達標各館比對 personal_min（kpi_qualified、非錯誤、invited_at 非空）
             const monthRows = rows.filter(
               (r) =>
                 r.kpi_qualified === true &&
                 !r.is_error &&
                 !!r.invited_at &&
-                r.check_in_date &&
-                r.check_in_date >= monthStart! &&
-                r.check_in_date < monthEnd!,
+                r.kpi_month === prevMonthStart,
             );
             monthlySuccess = monthRows.length;
-            // 各場域個人目標：改以 invited_at（填寫日期）切月，
-            // 與列表「填寫日期」顯示一致；其他統計（monthlySuccess 等）仍以 check_in_date 切月。
-            const venueMonthRows = rows.filter(
-              (r) =>
-                r.kpi_qualified === true &&
-                !r.is_error &&
-                !!r.invited_at &&
-                r.invited_at >= monthStart! &&
-                r.invited_at < monthEnd!,
-            );
             if (targetsList.length === 0) {
               individualAchieved = false;
             } else {
               individualAchieved = true;
               venueBreakdown = targetsList.map((t) => {
-                const actual = venueMonthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
                 return {
@@ -528,8 +550,20 @@ export function KolStatsTab() {
                 };
               });
             }
+
+            // 【修改二】團隊獎金貢獻：兼職 → 全部；正職 → 只算 SR/SSR/UR
+            const teamRows = isFulltime
+              ? monthRows.filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
+              : monthRows;
+            const perVenue = new Map<string, number>();
+            for (const r of teamRows) {
+              const v = r.venue_name ?? "—";
+              perVenue.set(v, (perVenue.get(v) ?? 0) + 1);
+            }
+            teamContribBy.set(s.user_id, perVenue);
           }
-          const baseSalaryPayout = showSalary && s.is_scout_team_member && individualAchieved ? baseSalary : 0;
+          const baseSalaryPayout =
+            showSalary && s.is_scout_team_member && !isFulltime && individualAchieved ? baseSalary : 0;
 
           return {
             scout_id: s.user_id,
@@ -563,13 +597,14 @@ export function KolStatsTab() {
 
         let teamBonusPayout = 0;
         if (showSalary && targetsList.length > 0) {
-          // 團隊達標：各 target 館別「所有星探」上月邀約總數 >= target_count
+          // 【修改二】團隊達標：各 target 館別
+          // 兼職邀約數（全部 kpi_qualified）＋ 正職 SR/SSR/UR 邀約數 >= target_count
           let teamAchieved = true;
           for (const t of targetsList) {
-            const total = periodFiltered.reduce((sum, r) => {
-              const vb = r.venueBreakdown.find((v) => v.venue_name === t.venue_name);
-              return sum + (vb?.actual ?? 0);
-            }, 0);
+            let total = 0;
+            for (const contrib of teamContribBy.values()) {
+              total += contrib.get(t.venue_name) ?? 0;
+            }
             if (total < t.target_count) {
               teamAchieved = false;
               break;
