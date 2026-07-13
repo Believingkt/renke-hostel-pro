@@ -102,9 +102,7 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
             mode="single"
             selected={isValidDate ? dateObj : undefined}
             defaultMonth={isValidDate ? dateObj : (fallbackValid ? fallbackObj : undefined)}
-            onSelect={(date) =
-            weekStartsOn={0}
-          > {
+            onSelect={(date) => {
               if (date) {
                 const iso = format(date, "yyyy-MM-dd");
                 onChange(iso);
@@ -114,6 +112,7 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
             }}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
+            weekStartsOn={0}
           />
         </PopoverContent>
       </Popover>
