@@ -592,6 +592,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                   }
                   return isBefore(date, today);
                 }}
+                weekStartsOn={0}
               />
             </PopoverContent>
           </Popover>
