@@ -1690,6 +1690,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   }
                 }}
                 disabled={undefined}
+                weekStartsOn={0}
               />
             </PopoverContent>
           </Popover>
@@ -1739,6 +1740,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   if (!form.check_in_date) return true;
                   return !isAfter(date, parseISO(form.check_in_date));
                 }}
+                weekStartsOn={0}
               />
             </PopoverContent>
           </Popover>
