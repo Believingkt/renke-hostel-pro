@@ -160,19 +160,22 @@ export default function OwnerSettlementSettings() {
       toast.error("行銷費不可為負數");
       return;
     }
+    const settingKey = currentAccommodationId
+      ? perAccKey(currentAccommodationId)
+      : GLOBAL_SETTING_KEY;
     setSaving(true);
     const { data: existing } = await supabase
       .from("system_settings")
       .select("setting_key")
-      .eq("setting_key", "owner_settlement_config")
+      .eq("setting_key", settingKey)
       .maybeSingle();
 
     const payload = {
-      setting_key: "owner_settlement_config",
+      setting_key: settingKey,
       setting_value: config as any,
     };
     const { error } = existing
-      ? await supabase.from("system_settings").update(payload).eq("setting_key", "owner_settlement_config")
+      ? await supabase.from("system_settings").update(payload).eq("setting_key", settingKey)
       : await supabase.from("system_settings").insert(payload);
 
     setSaving(false);
@@ -180,7 +183,8 @@ export default function OwnerSettlementSettings() {
       toast.error(`儲存失敗：${error.message}`);
       return;
     }
-    toast.success("設定已儲存");
+    setUsingFallback(false);
+    toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
   };
 
   if (loading) return null;
