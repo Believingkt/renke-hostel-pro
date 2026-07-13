@@ -1087,7 +1087,7 @@ const KolDiscount = () => {
               </div>
               <div className="grid gap-2">
                 <Label>生效日期</Label>
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1108,7 +1108,7 @@ const KolDiscount = () => {
               </div>
               <div className="grid gap-2">
                 <Label>到期日期（選填）</Label>
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -1192,7 +1192,7 @@ const KolDiscount = () => {
               <div className="grid gap-2">
                 <Label>適用入住日期範圍（選填）</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -1229,7 +1229,7 @@ const KolDiscount = () => {
                     </PopoverContent>
                   </Popover>
                   
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -1678,7 +1678,7 @@ const KolDiscount = () => {
             </div>
             <div className="grid gap-2">
               <Label>生效日期</Label>
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1699,7 +1699,7 @@ const KolDiscount = () => {
             </div>
             <div className="grid gap-2">
               <Label>到期日期（選填）</Label>
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -1783,7 +1783,7 @@ const KolDiscount = () => {
             <div className="grid gap-2">
               <Label>適用入住日期範圍（選填）</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -1820,7 +1820,7 @@ const KolDiscount = () => {
                   </PopoverContent>
                 </Popover>
                 
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
