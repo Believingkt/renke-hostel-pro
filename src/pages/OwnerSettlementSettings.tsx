@@ -206,7 +206,11 @@ export default function OwnerSettlementSettings() {
     <div className="container mx-auto py-6 space-y-6">
       <AdminPageHeader
         title="業主月結設定"
-        description="編輯全站業主月結的服務費率與行銷費基數"
+        description={
+          currentAccommodationId
+            ? `目前編輯：${accName || "此民宿"}（每間民宿獨立設定，不影響其他民宿）`
+            : "尚未選擇民宿，此處編輯的是全站預設值（僅套用於尚未設定的民宿）"
+        }
         icon={Settings}
         action={
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
@@ -215,6 +219,11 @@ export default function OwnerSettlementSettings() {
           </Button>
         }
       />
+      {currentAccommodationId && usingFallback && (
+        <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
+        </div>
+      )}
 
       <Card>
         <CardHeader>
