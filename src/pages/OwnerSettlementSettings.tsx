@@ -40,7 +40,7 @@ export default function OwnerSettlementSettings() {
   const { currentAccommodationId } = useAccommodation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
+  
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
   const [accName, setAccName] = useState<string>("");
@@ -54,12 +54,6 @@ export default function OwnerSettlementSettings() {
         setLoading(false);
         return;
       }
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const allowed = (roles ?? []).some((r: any) => ["super_admin", "admin"].includes(r.role));
-      setCanEdit(allowed);
 
       const ordersQuery = supabase
         .from("orders")
@@ -189,18 +183,6 @@ export default function OwnerSettlementSettings() {
 
   if (loading) return null;
 
-  if (!canEdit) {
-    return (
-      <div className="container mx-auto py-6">
-        <AdminPageHeader title="業主月結設定" icon={Settings} />
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            僅限管理員（admin / super_admin）存取此設定頁面。
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
