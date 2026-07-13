@@ -32,6 +32,9 @@ interface AccommodationGroup {
   sources: string[];
 }
 
+const GLOBAL_SETTING_KEY = "owner_settlement_config";
+const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
+
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
   const { currentAccommodationId } = useAccommodation();
@@ -40,6 +43,8 @@ export default function OwnerSettlementSettings() {
   const [canEdit, setCanEdit] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
+  const [accName, setAccName] = useState<string>("");
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -70,24 +75,43 @@ export default function OwnerSettlementSettings() {
         .select("accommodation_id, name");
       if (currentAccommodationId) configuredQuery.eq("accommodation_id", currentAccommodationId);
 
+      const settingKeys = currentAccommodationId
+        ? [perAccKey(currentAccommodationId), GLOBAL_SETTING_KEY]
+        : [GLOBAL_SETTING_KEY];
+
       const [settingRes, accRes, ordersRes, configuredRes] = await Promise.all([
         supabase
           .from("system_settings")
-          .select("setting_value")
-          .eq("setting_key", "owner_settlement_config")
-          .maybeSingle(),
+          .select("setting_key, setting_value")
+          .in("setting_key", settingKeys),
         accQuery.order("name", { ascending: true }),
         ordersQuery,
         configuredQuery,
       ]);
 
-      if (settingRes.data?.setting_value) {
-        const raw = settingRes.data.setting_value as any;
+      const rows = (settingRes.data ?? []) as Array<{ setting_key: string; setting_value: any }>;
+      const perAcc = currentAccommodationId
+        ? rows.find((r) => r.setting_key === perAccKey(currentAccommodationId))
+        : undefined;
+      const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
+      const picked = perAcc ?? global;
+      setUsingFallback(!!currentAccommodationId && !perAcc);
+      if (picked?.setting_value) {
+        const raw = picked.setting_value as any;
         setConfig({
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
         });
+      } else {
+        setConfig(DEFAULT_CONFIG);
+      }
+
+      const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
+      if (currentAccommodationId) {
+        setAccName(accList.find((a) => a.id === currentAccommodationId)?.name ?? "");
+      } else {
+        setAccName("");
       }
 
       const sourcesByAcc = new Map<string, Set<string>>();
@@ -105,7 +129,7 @@ export default function OwnerSettlementSettings() {
         if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
         sourcesByAcc.get(row.accommodation_id)!.add(src);
       }
-      const nextGroups: AccommodationGroup[] = ((accRes.data ?? []) as Array<{ id: string; name: string }>)
+      const nextGroups: AccommodationGroup[] = accList
         .map((a) => ({
           id: a.id,
           name: a.name,
@@ -136,19 +160,22 @@ export default function OwnerSettlementSettings() {
       toast.error("行銷費不可為負數");
       return;
     }
+    const settingKey = currentAccommodationId
+      ? perAccKey(currentAccommodationId)
+      : GLOBAL_SETTING_KEY;
     setSaving(true);
     const { data: existing } = await supabase
       .from("system_settings")
       .select("setting_key")
-      .eq("setting_key", "owner_settlement_config")
+      .eq("setting_key", settingKey)
       .maybeSingle();
 
     const payload = {
-      setting_key: "owner_settlement_config",
+      setting_key: settingKey,
       setting_value: config as any,
     };
     const { error } = existing
-      ? await supabase.from("system_settings").update(payload).eq("setting_key", "owner_settlement_config")
+      ? await supabase.from("system_settings").update(payload).eq("setting_key", settingKey)
       : await supabase.from("system_settings").insert(payload);
 
     setSaving(false);
@@ -156,7 +183,8 @@ export default function OwnerSettlementSettings() {
       toast.error(`儲存失敗：${error.message}`);
       return;
     }
-    toast.success("設定已儲存");
+    setUsingFallback(false);
+    toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
   };
 
   if (loading) return null;
@@ -178,7 +206,11 @@ export default function OwnerSettlementSettings() {
     <div className="container mx-auto py-6 space-y-6">
       <AdminPageHeader
         title="業主月結設定"
-        description="編輯全站業主月結的服務費率與行銷費基數"
+        description={
+          currentAccommodationId
+            ? `目前編輯：${accName || "此民宿"}（每間民宿獨立設定，不影響其他民宿）`
+            : "尚未選擇民宿，此處編輯的是全站預設值（僅套用於尚未設定的民宿）"
+        }
         icon={Settings}
         action={
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
@@ -187,6 +219,11 @@ export default function OwnerSettlementSettings() {
           </Button>
         }
       />
+      {currentAccommodationId && usingFallback && (
+        <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
+        </div>
+      )}
 
       <Card>
         <CardHeader>
