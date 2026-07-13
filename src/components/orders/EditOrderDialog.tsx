@@ -841,6 +841,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                       }
                     }}
                     disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
+                    weekStartsOn={0}
                   />
                 </PopoverContent>
               </Popover>
