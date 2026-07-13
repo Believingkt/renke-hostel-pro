@@ -102,7 +102,9 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
             mode="single"
             selected={isValidDate ? dateObj : undefined}
             defaultMonth={isValidDate ? dateObj : (fallbackValid ? fallbackObj : undefined)}
-            onSelect={(date) => {
+            onSelect={(date) =
+            weekStartsOn={0}
+          > {
               if (date) {
                 const iso = format(date, "yyyy-MM-dd");
                 onChange(iso);
