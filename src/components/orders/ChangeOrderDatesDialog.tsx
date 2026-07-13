@@ -255,6 +255,7 @@ function InventoryRangeCalendar({
             );
           },
         }}
+        weekStartsOn={0}
       />
       <div className="border-t px-3 py-2 text-[10px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded bg-emerald-50 border border-emerald-200" />充足</span>
