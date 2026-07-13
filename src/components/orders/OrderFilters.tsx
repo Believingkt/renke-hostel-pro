@@ -112,6 +112,7 @@ function DatePickerInput({ value, onChange, placeholder, fallbackDate }: { value
             }}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
+            weekStartsOn={0}
           />
         </PopoverContent>
       </Popover>
