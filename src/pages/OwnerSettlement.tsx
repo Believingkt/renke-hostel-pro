@@ -124,9 +124,8 @@ export default function OwnerSettlement() {
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("system_settings")
-          .select("setting_value")
-          .eq("setting_key", "owner_settlement_config")
-          .maybeSingle(),
+          .select("setting_key, setting_value")
+          .in("setting_key", [`owner_settlement_config:${currentAccommodationId}`, "owner_settlement_config"]),
         supabase.from("accommodation_info").select("building_count").eq("id", currentAccommodationId).maybeSingle(),
         supabase
           .from("pricing_templates")
