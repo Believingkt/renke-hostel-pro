@@ -534,9 +534,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                 mode="single"
                 selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
                 defaultMonth={form.check_in_date ? parseISO(form.check_in_date) : undefined}
-                onSelect={(date) =
-            weekStartsOn={0}
-          > {
+                onSelect={(date) => {
                   if (date && !isNaN(date.getTime())) {
                     const newCheckIn = format(date, "yyyy-MM-dd");
                     if (form.check_out_date && !isAfter(parseISO(form.check_out_date), date)) {
