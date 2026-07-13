@@ -1690,6 +1690,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   }
                 }}
                 disabled={undefined}
+                weekStartsOn={0}
               />
             </PopoverContent>
           </Popover>
