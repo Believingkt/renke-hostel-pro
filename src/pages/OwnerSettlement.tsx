@@ -161,13 +161,16 @@ export default function OwnerSettlement() {
           price_3_meals: r.price_3_meals,
         }))
       );
-      if (configRes.data?.setting_value) {
-        const raw = configRes.data.setting_value as any;
+      const cfgRows = (configRes.data ?? []) as Array<{ setting_key: string; setting_value: any }>;
+      const perAccCfg = cfgRows.find((r) => r.setting_key === `owner_settlement_config:${currentAccommodationId}`);
+      const globalCfg = cfgRows.find((r) => r.setting_key === "owner_settlement_config");
+      const rawCfg = (perAccCfg ?? globalCfg)?.setting_value as any;
+      if (rawCfg) {
         setConfig({
-          commission_rate: raw.commission_rate ?? 15,
-          marketing_fee_base: raw.marketing_fee_base ?? 53000,
-          marketing_fee_per_extra_property: raw.marketing_fee_per_extra_property ?? 3000,
-          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+          commission_rate: rawCfg.commission_rate ?? 15,
+          marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
+          marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
+          exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
         });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
