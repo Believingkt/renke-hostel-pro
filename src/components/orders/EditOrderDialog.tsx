@@ -887,6 +887,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                       if (!editForm.check_in_date) return true;
                       return !isAfter(date, parseISO(editForm.check_in_date));
                     }}
+                    weekStartsOn={0}
                   />
                 </PopoverContent>
               </Popover>
