@@ -16,7 +16,7 @@ export const useOrderNotifications = (enabled: boolean = true) => {
     if (!accommodationId || !enabled) return;
 
     const channel = supabase
-      .channel(`notifications-${accommodationId}`)
+      .channel(`notifications-${accommodationId}-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         "postgres_changes",
         {
