@@ -828,7 +828,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                     mode="single"
                     selected={editForm.check_in_date ? parseISO(editForm.check_in_date) : undefined}
                     defaultMonth={editForm.check_in_date ? parseISO(editForm.check_in_date) : undefined}
-                    onSelect={(date) => {
+                    onSelect={(date) =
+            weekStartsOn={0}
+          > {
                       if (date && !isNaN(date.getTime())) {
                         const newCheckIn = format(date, "yyyy-MM-dd");
                         if (editForm.check_out_date && !isAfter(parseISO(editForm.check_out_date), date)) {
@@ -868,7 +870,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                     mode="single"
                     selected={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
                     defaultMonth={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
-                    onSelect={(date) => {
+                    onSelect={(date) =
+            weekStartsOn={0}
+          > {
                       if (date && !isNaN(date.getTime())) {
                         if (editForm.check_in_date && isAfter(date, parseISO(editForm.check_in_date))) {
                           setEditForm({...editForm, check_out_date: format(date, "yyyy-MM-dd")});

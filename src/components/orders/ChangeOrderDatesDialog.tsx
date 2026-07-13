@@ -198,7 +198,9 @@ function InventoryRangeCalendar({
         onMonthChange={setMonth}
         showOutsideDays={false}
         onSelect={handleSelect}
-        disabled={(date) => {
+        disabled={(date) =
+            weekStartsOn={0}
+          > {
           if (date < minDate) return true;
           // 若尚未選擇入住日或已完整選好 → 該日需有庫存
           const needCapacity = !inDate || (!!inDate && !!outDate);
