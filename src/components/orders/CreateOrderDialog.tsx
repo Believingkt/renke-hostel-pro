@@ -2376,7 +2376,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   <Input
                     type="number"
                     min="1"
-                    max={roomSelections.length > 0 ? maxGuestCount : 30}
                     value={form.guest_count}
                     onChange={(e) => {
                       const raw = parseInt(e.target.value) || 1;
@@ -2386,8 +2385,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     inputMode="numeric"
                   />
                   {overCap && (
-                    <p className="text-[11px] text-destructive">
-                      已超過所選房型合計上限 {maxGuestCount} 人，請增加房間數或改選容納人數較多的房型
+                    <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                      提醒：已超過所選房型合計上限 {maxGuestCount} 人，如確認為包棟加人可直接建立。
                     </p>
                   )}
                 </div>
