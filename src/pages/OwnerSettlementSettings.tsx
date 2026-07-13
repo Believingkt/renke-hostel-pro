@@ -32,6 +32,9 @@ interface AccommodationGroup {
   sources: string[];
 }
 
+const GLOBAL_SETTING_KEY = "owner_settlement_config";
+const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
+
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
   const { currentAccommodationId } = useAccommodation();
@@ -40,6 +43,8 @@ export default function OwnerSettlementSettings() {
   const [canEdit, setCanEdit] = useState(false);
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
+  const [accName, setAccName] = useState<string>("");
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -70,24 +75,43 @@ export default function OwnerSettlementSettings() {
         .select("accommodation_id, name");
       if (currentAccommodationId) configuredQuery.eq("accommodation_id", currentAccommodationId);
 
+      const settingKeys = currentAccommodationId
+        ? [perAccKey(currentAccommodationId), GLOBAL_SETTING_KEY]
+        : [GLOBAL_SETTING_KEY];
+
       const [settingRes, accRes, ordersRes, configuredRes] = await Promise.all([
         supabase
           .from("system_settings")
-          .select("setting_value")
-          .eq("setting_key", "owner_settlement_config")
-          .maybeSingle(),
+          .select("setting_key, setting_value")
+          .in("setting_key", settingKeys),
         accQuery.order("name", { ascending: true }),
         ordersQuery,
         configuredQuery,
       ]);
 
-      if (settingRes.data?.setting_value) {
-        const raw = settingRes.data.setting_value as any;
+      const rows = (settingRes.data ?? []) as Array<{ setting_key: string; setting_value: any }>;
+      const perAcc = currentAccommodationId
+        ? rows.find((r) => r.setting_key === perAccKey(currentAccommodationId))
+        : undefined;
+      const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
+      const picked = perAcc ?? global;
+      setUsingFallback(!!currentAccommodationId && !perAcc);
+      if (picked?.setting_value) {
+        const raw = picked.setting_value as any;
         setConfig({
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
         });
+      } else {
+        setConfig(DEFAULT_CONFIG);
+      }
+
+      const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
+      if (currentAccommodationId) {
+        setAccName(accList.find((a) => a.id === currentAccommodationId)?.name ?? "");
+      } else {
+        setAccName("");
       }
 
       const sourcesByAcc = new Map<string, Set<string>>();
@@ -105,7 +129,7 @@ export default function OwnerSettlementSettings() {
         if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
         sourcesByAcc.get(row.accommodation_id)!.add(src);
       }
-      const nextGroups: AccommodationGroup[] = ((accRes.data ?? []) as Array<{ id: string; name: string }>)
+      const nextGroups: AccommodationGroup[] = accList
         .map((a) => ({
           id: a.id,
           name: a.name,
