@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Admins and finance can view system settings" ON public.system_settings;
+CREATE POLICY "Authenticated can view system settings" ON public.system_settings FOR SELECT TO authenticated USING (true);
