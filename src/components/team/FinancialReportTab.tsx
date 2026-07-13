@@ -294,12 +294,34 @@ export default function FinancialReportTab() {
             }
           }
 
-          // Row 1 累計（依館別）
+          // Row 2 累計（KOL，依館別）— 先算，並收集 KOL 訂單 ID 供 Row 1 排除
+          const kolOrderIds = new Set<string>();
+          for (const o of row2List) {
+            if (o.guest_name === "保留單") continue;
+            const price = Number(o.final_price ?? 0);
+            if (!(price > 0)) continue;
+            if (!o.order_date) continue;
+            const orderDateStr = toTaipeiDateStr(o.order_date);
+            if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
+            const dc = String(o.discount_code ?? "").toUpperCase();
+            if (!dc || !kolCodeSet.has(dc)) continue;
+            if (o.id) kolOrderIds.add(o.id);
+            const w = getWeekIndex(orderDateStr, weeks);
+            if (w < 0) continue;
+            const accId = o.accommodation_id;
+            if (!accId) continue;
+            const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
+            b[w] += price;
+            r2ByAcc.set(accId, b);
+          }
+
+          // Row 1 累計（依館別）— 排除已計入 Row 2 的 KOL 訂單，避免重複
           for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
             const price = Number(o.final_price ?? 0);
             if (!(price > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;
+            if (kolOrderIds.has(o.id)) continue;
             if (!o.order_date) continue;
             const basisStr = toTaipeiDateStr(o.order_date);
             if (basisStr < monthStart || basisStr > monthEnd) continue;
@@ -310,25 +332,6 @@ export default function FinancialReportTab() {
             const b = r1ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += price;
             r1ByAcc.set(accId, b);
-          }
-
-          // Row 2 累計（KOL，依館別）
-          for (const o of row2List) {
-            if (o.guest_name === "保留單") continue;
-            const price = Number(o.final_price ?? 0);
-            if (!(price > 0)) continue;
-            if (!o.order_date) continue;
-            const orderDateStr = toTaipeiDateStr(o.order_date);
-            if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
-            const dc = String(o.discount_code ?? "").toUpperCase();
-            if (!dc || !kolCodeSet.has(dc)) continue;
-            const w = getWeekIndex(orderDateStr, weeks);
-            if (w < 0) continue;
-            const accId = o.accommodation_id;
-            if (!accId) continue;
-            const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
-            b[w] += price;
-            r2ByAcc.set(accId, b);
           }
         }
 
