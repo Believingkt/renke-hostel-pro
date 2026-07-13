@@ -551,6 +551,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                 modifiersClassNames={{
                   available: "border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100",
                 }}
+                weekStartsOn={0}
               />
             </PopoverContent>
           </Popover>
