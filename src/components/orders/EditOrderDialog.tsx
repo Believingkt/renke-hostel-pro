@@ -868,9 +868,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                     mode="single"
                     selected={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
                     defaultMonth={editForm.check_out_date ? parseISO(editForm.check_out_date) : undefined}
-                    onSelect={(date) =
-            weekStartsOn={0}
-          > {
+                    onSelect={(date) => {
                       if (date && !isNaN(date.getTime())) {
                         if (editForm.check_in_date && isAfter(date, parseISO(editForm.check_in_date))) {
                           setEditForm({...editForm, check_out_date: format(date, "yyyy-MM-dd")});
