@@ -17,7 +17,13 @@ const MemberRecentViews = () => {
       setItems(mockRecentViews as any);
       return;
     }
+    // paint immediately from cache, then refresh from cloud
     setItems(getRecentViews());
+    (async () => {
+      const { fetchRecentViews } = await import("@/lib/recentViews");
+      const remote = await fetchRecentViews();
+      setItems(remote);
+    })();
   }, []);
 
   const remove = (id: string) => {
