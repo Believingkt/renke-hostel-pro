@@ -4650,6 +4650,50 @@ export type Database = {
           },
         ]
       }
+      member_recent_views: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          member_id: string
+          name: string | null
+          path: string | null
+          region: string | null
+          viewed_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          member_id: string
+          name?: string | null
+          path?: string | null
+          region?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          member_id?: string
+          name?: string | null
+          path?: string | null
+          region?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_recent_views_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_saved_cards: {
         Row: {
           brand: string | null
