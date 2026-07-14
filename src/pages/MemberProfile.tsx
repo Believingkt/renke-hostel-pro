@@ -252,8 +252,7 @@ const MemberProfile = () => {
         <div className="px-1 pb-2 text-sm font-medium text-muted-foreground">福利</div>
         <MenuGroup>
           <MenuRow icon={Share2} label="邀請好友賺獎勵" onClick={() => navigate("/booking")} />
-          <MenuRow icon={Gift} label="紅利點數兌換" onClick={() => navigate("/member/points")} />
-          </MenuGroup>
+          <MenuRow icon={Gift} label="紅利點數兌換" onClick={() => navigate("/member/points")} last />
         </MenuGroup>
       </div>
 
