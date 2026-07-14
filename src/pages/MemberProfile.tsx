@@ -71,6 +71,7 @@ const MemberProfile = () => {
       return;
     }
     setSaving(true);
+    try {
       const { error } = await supabase
         .from("platform_members")
         .update({
