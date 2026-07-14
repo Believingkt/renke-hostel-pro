@@ -9,9 +9,11 @@ import { SEOHead } from "@/components/SEOHead";
 import { StructuredData } from "@/components/StructuredData";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { Button } from "@/components/ui/button";
-import { User, LogIn, ArrowLeft } from "lucide-react";
+import { User, LogIn, ArrowLeft, Heart } from "lucide-react";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { useState } from "react";
+import { pushRecentView } from "@/lib/recentViews";
+import { useToast } from "@/hooks/use-toast";
 
 // Content sections (same as Index page)
 import HeroSection from "@/components/HeroSection";
