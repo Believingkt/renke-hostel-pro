@@ -181,6 +181,9 @@ function App() {
                       <Route path="profile" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberProfile /></Suspense>
                       } />
+                      <Route path="profile/edit" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberProfileEdit /></Suspense>
+                      } />
                       <Route path="points" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberPoints /></Suspense>
                       } />
