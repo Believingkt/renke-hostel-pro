@@ -295,6 +295,18 @@ export default function TeamNotification() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">業績通報設定</h2>
 
+      <Card>
+        <CardContent className="py-4 text-sm space-y-2 text-muted-foreground">
+          <p><span className="font-semibold text-foreground">「本月累積訂房業績」</span>＝本月「成交」的訂單全額</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><span className="font-medium text-foreground">時間口徑：</span>以落在本月為準 → 看訂單「什麼時候成交/下單」</li>
+            <li><span className="font-medium text-foreground">金額歸屬：</span>整張訂單的全額計入該月，不會依入住夜數拆分</li>
+            <li><span className="font-medium text-foreground">篩選：</span>排除保留單、取消單（天送另排除團媽/票卷訂房）</li>
+            <li>邏輯與 PMS「成交大師」列表一致</li>
+          </ul>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
         {/* Left list */}
         <Card>
