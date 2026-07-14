@@ -247,6 +247,18 @@ const BookingAccommodation = () => {
           <div className="hidden md:flex flex-1" />
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFavorite}
+              disabled={favLoading}
+              aria-label={isFavorite ? "取消收藏" : "加入收藏"}
+              className="rounded-full"
+            >
+              <Heart
+                className={`h-5 w-5 transition ${isFavorite ? "fill-[hsl(24,100%,50%)] text-[hsl(24,100%,50%)]" : "text-muted-foreground"}`}
+              />
+            </Button>
             {isLoggedIn ? (
               <Button
                 variant="ghost"
