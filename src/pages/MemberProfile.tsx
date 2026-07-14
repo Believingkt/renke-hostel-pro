@@ -87,11 +87,11 @@ const MemberProfile = () => {
       const [{ data: points }, { count: couponCount }, { count: upcomingCount }, { count: totalOrders }] =
         await Promise.all([
           supabase.from("member_points").select("balance").eq("member_id", member.id).maybeSingle(),
-          supabase
+          (supabase as any)
             .from("member_coupons")
             .select("id", { count: "exact", head: true })
             .eq("member_id", member.id)
-            .eq("status", "active" as any),
+            .eq("status", "active"),
           supabase
             .from("orders")
             .select("id", { count: "exact", head: true })

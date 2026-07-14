@@ -135,20 +135,20 @@ export function RichTextEditor({
       )}>
         <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap">
           <MenuButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
+            onClick={() => (editor.chain().focus() as any).toggleBold().run()}
             isActive={editor.isActive('bold')}
             icon={Bold}
             title="粗體"
           />
           <MenuButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
+            onClick={() => (editor.chain().focus() as any).toggleItalic().run()}
             isActive={editor.isActive('italic')}
             icon={Italic}
             title="斜體"
           />
           <div className="w-px h-6 bg-border mx-1" />
           <MenuButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            onClick={() => (editor.chain().focus() as any).toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive('heading', { level: 2 })}
             icon={Heading2}
             title="標題"
@@ -212,13 +212,13 @@ export function RichTextEditor({
 
           <div className="w-px h-6 bg-border mx-1" />
           <MenuButton
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            onClick={() => (editor.chain().focus() as any).toggleBulletList().run()}
             isActive={editor.isActive('bulletList')}
             icon={List}
             title="項目符號"
           />
           <MenuButton
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            onClick={() => (editor.chain().focus() as any).toggleOrderedList().run()}
             isActive={editor.isActive('orderedList')}
             icon={ListOrdered}
             title="編號清單"
