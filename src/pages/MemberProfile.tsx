@@ -20,6 +20,15 @@ import {
   Crown,
   Settings,
   Share2,
+  History,
+  CreditCard,
+  ShieldCheck,
+  Trash2,
+  HelpCircle,
+  Sparkles,
+  Crown,
+  Settings,
+  Share2,
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 
@@ -238,7 +247,11 @@ const MemberProfile = () => {
         />
         <MenuRow icon={Ticket} label="優惠券" onClick={() => navigate("/member/coupons")} />
         <MenuRow icon={Gift} label="紅利點數" onClick={() => navigate("/member/points")} />
-        <MenuRow icon={UserRound} label="個人資料" onClick={() => navigate("/member/profile/edit")} last />
+        <MenuRow icon={UserRound} label="個人資料" onClick={() => navigate("/member/profile/edit")} />
+        <MenuRow icon={History} label="最近瀏覽" onClick={() => navigate("/member/recent-views")} />
+        <MenuRow icon={CreditCard} label="卡片管理" onClick={() => navigate("/member/cards")} />
+        <MenuRow icon={ClipboardList} label="常用資訊" onClick={() => navigate("/member/common-info")} />
+        <MenuRow icon={Heart} label="已收藏" onClick={() => navigate("/member/favorites")} last />
       </MenuGroup>
 
       {/* 福利 */}
