@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
+import { initMemberPreviewFromUrl, isMemberPreview, mockMemberName } from "@/lib/memberPreviewMock";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,12 @@ const MemberLayout = () => {
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   useEffect(() => {
+    initMemberPreviewFromUrl();
+    if (isMemberPreview()) {
+      setMemberName(mockMemberName);
+      return;
+    }
+
     const ensureMember = async (user: any) => {
       if (!user) return;
       const { data: existing } = await supabase
