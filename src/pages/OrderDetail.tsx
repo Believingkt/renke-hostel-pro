@@ -1034,7 +1034,7 @@ const OrderDetailPage = () => {
 
       const { error } = await supabase
         .from("orders")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", order.id);
 
       if (error) throw error;
@@ -1261,7 +1261,7 @@ const OrderDetailPage = () => {
         if (!order.checked_in_at) patch.checked_in_at = new Date().toISOString();
       }
       if (action === "undo_checkout") patch.checked_out_at = null;
-      const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
+      const { error } = await supabase.from("orders").update(patch as any).eq("id", order.id);
       if (error) throw error;
       try {
         const { data: { user } } = await supabase.auth.getUser();

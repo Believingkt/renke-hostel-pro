@@ -269,7 +269,7 @@ export default function Reception() {
       }
       if (action === "undo_checkout") patch.checked_out_at = null;
 
-      const { error } = await supabase.from("orders").update(patch).eq("id", o.id);
+      const { error } = await supabase.from("orders").update(patch as any).eq("id", o.id);
       if (error) throw error;
 
       toast({
@@ -302,7 +302,7 @@ export default function Reception() {
       if (newStatus === "paid" && o.final_price != null) {
         patch.paid_amount = o.final_price;
       }
-      const { error } = await supabase.from("orders").update(patch).eq("id", o.id);
+      const { error } = await supabase.from("orders").update(patch as any).eq("id", o.id);
       if (error) throw error;
       // Optimistic local update
       setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, payment_status: newStatus } : x)));

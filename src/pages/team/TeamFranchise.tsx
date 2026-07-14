@@ -1431,7 +1431,7 @@ function OrdersTab({
                     early_payout_month: (detailForm.early_payout_month as string | null) ?? null,
                     notes: (detailForm.notes as string)?.trim() || null,
                   };
-                  const { error } = await supabase.from("franchise_orders").update(payload).eq("id", detailOrder.id);
+                  const { error } = await supabase.from("franchise_orders").update(payload as any).eq("id", detailOrder.id);
                   setDetailSaving(false);
                   if (error) {
                     toast.error("儲存失敗：" + error.message);

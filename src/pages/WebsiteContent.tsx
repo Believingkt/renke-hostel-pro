@@ -2111,7 +2111,7 @@ const WebsiteContent = () => {
       const updateField = cropLogoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
       const { error: dbError } = await supabase
         .from('accommodation_info')
-        .update({ [updateField]: publicUrl })
+        .update({ [updateField]: publicUrl } as any)
         .eq('id', accommodationId);
 
       if (dbError) throw dbError;
@@ -2167,7 +2167,7 @@ const WebsiteContent = () => {
       const updateField = deleteLogoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
       const { error: updateError } = await supabase
         .from('accommodation_info')
-        .update({ [updateField]: null })
+        .update({ [updateField]: null } as any)
         .eq('id', accommodationId);
 
       if (updateError) throw updateError;

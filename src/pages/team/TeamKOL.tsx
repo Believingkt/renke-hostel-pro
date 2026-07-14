@@ -1064,7 +1064,7 @@ function InvitationsTab({
     let err;
     let newId: string | null = null;
     if (editingId) {
-      ({ error: err } = await supabase.from("kol_profiles").update(payload).eq("id", editingId));
+      ({ error: err } = await supabase.from("kol_profiles").update(payload as any).eq("id", editingId));
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
@@ -2864,7 +2864,7 @@ function ProspectsTab({
       screenshot_url: toNullable(form.screenshot_url),
     };
     const { error } = editingId
-      ? await supabase.from("kol_prospects").update(payload).eq("id", editingId)
+      ? await supabase.from("kol_prospects").update(payload as any).eq("id", editingId)
       : await supabase.from("kol_prospects").insert(payload);
     setSaving(false);
     if (error) {
