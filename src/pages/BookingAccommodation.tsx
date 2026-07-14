@@ -41,6 +41,10 @@ const BookingAccommodation = () => {
   const { setCurrentAccommodationId } = useAccommodation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
+  const [memberId, setMemberId] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const { toast } = useToast();
 
   const {
     info,
