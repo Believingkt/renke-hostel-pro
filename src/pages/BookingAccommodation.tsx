@@ -115,14 +115,68 @@ const BookingAccommodation = () => {
         setIsLoggedIn(true);
         const { data: member } = await supabase
           .from("platform_members")
-          .select("name")
+          .select("id, name")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (member) setMemberName(member.name);
+        if (member) {
+          setMemberName(member.name);
+          setMemberId(member.id);
+          if (accId) {
+            const { data: fav } = await (supabase as any)
+              .from("member_favorites")
+              .select("id")
+              .eq("member_id", member.id)
+              .eq("accommodation_id", accId)
+              .maybeSingle();
+            setIsFavorite(!!fav);
+          }
+        }
       }
     };
     checkAuth();
-  }, []);
+  }, [accId]);
+
+  // Track recent view (localStorage)
+  useEffect(() => {
+    if (!info || !accId) return;
+    const region = [(info as any).region_1, (info as any).region_2].filter(Boolean).join(" ") || null;
+    const image_url = heroPhotos?.[0]?.photo_url || galleryPhotos?.[0]?.photo_url || null;
+    const path = (info as any).short_url_alias ? `/${(info as any).short_url_alias}` : `/booking/${accId}`;
+    pushRecentView({
+      accommodation_id: accId,
+      name: info.name,
+      region,
+      image_url,
+      path,
+      viewed_at: new Date().toISOString(),
+    });
+  }, [accId, info, heroPhotos, galleryPhotos]);
+
+  const toggleFavorite = async () => {
+    if (!isLoggedIn || !memberId) {
+      toast({ title: "請先登入會員", description: "登入後即可收藏喜愛的住宿" });
+      navigate(`/member/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!accId) return;
+    setFavLoading(true);
+    if (isFavorite) {
+      const { error } = await (supabase as any)
+        .from("member_favorites")
+        .delete()
+        .eq("member_id", memberId)
+        .eq("accommodation_id", accId);
+      if (!error) { setIsFavorite(false); toast({ title: "已取消收藏" }); }
+      else toast({ title: "操作失敗", description: error.message, variant: "destructive" });
+    } else {
+      const { error } = await (supabase as any)
+        .from("member_favorites")
+        .insert({ member_id: memberId, accommodation_id: accId });
+      if (!error) { setIsFavorite(true); toast({ title: "已加入收藏" }); }
+      else toast({ title: "操作失敗", description: error.message, variant: "destructive" });
+    }
+    setFavLoading(false);
+  };
 
   if (isLoading) {
     return null;
