@@ -407,7 +407,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
 
       const { error } = await supabase
         .from("split_records")
-        .update(updateData)
+        .update(updateData as any)
         .in("id", recordIds);
 
       if (error) throw error;

@@ -328,7 +328,6 @@ const MemberAuth = () => {
         setFbLoading(false);
       }, OAUTH_LAUNCH_TIMEOUT_MS);
 
-      redirected = true;
       window.location.href = authorizeUrl.toString();
 
     } catch (error: any) {

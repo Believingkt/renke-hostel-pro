@@ -859,7 +859,7 @@ export default function TeamOrders() {
       if (exists) {
         const { error } = await supabase
           .from("order_meta")
-          .update(payload)
+          .update(payload as any)
           .eq("order_id", editOrder.id);
         if (error) throw error;
       } else {
