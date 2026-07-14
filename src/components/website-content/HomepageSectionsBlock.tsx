@@ -151,7 +151,7 @@ export const HomepageSectionsBlock = ({
     try {
       const { error } = await supabase
         .from("accommodation_info")
-        .update(updates)
+        .update(updates as any)
         .eq("id", accommodationId);
 
       if (error) throw error;

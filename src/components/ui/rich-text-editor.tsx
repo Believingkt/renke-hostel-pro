@@ -56,13 +56,13 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit as any,
       TextStyle,
       Color,
       Placeholder.configure({
         placeholder,
       }),
-    ],
+    ] as any,
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());

@@ -119,7 +119,7 @@ export function SystemHealthMonitor() {
   const handleToggle = async (id: string, field: keyof AlertRecipient, value: boolean) => {
     const { error } = await supabase
       .from("alert_recipients")
-      .update({ [field]: value })
+      .update({ [field]: value } as any)
       .eq("id", id);
     if (error) {
       toast.error("更新失敗");
