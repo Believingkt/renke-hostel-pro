@@ -4430,6 +4430,53 @@ export type Database = {
         }
         Relationships: []
       }
+      member_common_info: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          dietary_notes: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          member_id: string
+          preferred_bed_type: string | null
+          special_requests: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          dietary_notes?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          member_id: string
+          preferred_bed_type?: string | null
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          dietary_notes?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          member_id?: string
+          preferred_bed_type?: string | null
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_common_info_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_coupon_distributions: {
         Row: {
           coupon_id: string
@@ -4471,6 +4518,35 @@ export type Database = {
           },
           {
             foreignKeyName: "member_coupon_distributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_favorites: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_favorites_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "platform_members"
@@ -4569,6 +4645,56 @@ export type Database = {
             foreignKeyName: "member_points_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: true
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_saved_cards: {
+        Row: {
+          brand: string | null
+          card_holder: string
+          created_at: string
+          expiry_month: number
+          expiry_year: number
+          id: string
+          is_default: boolean
+          last_four: string
+          member_id: string
+          nickname: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          card_holder: string
+          created_at?: string
+          expiry_month: number
+          expiry_year: number
+          id?: string
+          is_default?: boolean
+          last_four: string
+          member_id: string
+          nickname?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          card_holder?: string
+          created_at?: string
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          is_default?: boolean
+          last_four?: string
+          member_id?: string
+          nickname?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_saved_cards_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "platform_members"
             referencedColumns: ["id"]
           },
