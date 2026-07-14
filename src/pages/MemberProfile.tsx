@@ -22,13 +22,6 @@ import {
   Share2,
   History,
   CreditCard,
-  ShieldCheck,
-  Trash2,
-  HelpCircle,
-  Sparkles,
-  Crown,
-  Settings,
-  Share2,
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 
