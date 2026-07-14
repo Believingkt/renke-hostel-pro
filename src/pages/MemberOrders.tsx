@@ -25,6 +25,7 @@ import {
 import { format, differenceInCalendarDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
+import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
 
 interface MemberOrder {
   id: string;
@@ -85,6 +86,11 @@ const MemberOrders = () => {
   }, []);
 
   const loadOrders = async () => {
+    if (isMemberPreview()) {
+      setOrders(mockOrders as any);
+      setLoading(false);
+      return;
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser();

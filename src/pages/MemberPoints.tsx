@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Gift, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
+import { isMemberPreview, mockPoints } from "@/lib/memberPreviewMock";
 
 interface PointTransaction {
   id: string;
@@ -34,6 +35,14 @@ const MemberPoints = () => {
   }, []);
 
   const loadPoints = async () => {
+    if (isMemberPreview()) {
+      setBalance(mockPoints.balance);
+      setLifetimeEarned(mockPoints.lifetime_earned);
+      setLifetimeUsed(mockPoints.lifetime_used);
+      setTransactions(mockPoints.transactions as any);
+      setLoading(false);
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

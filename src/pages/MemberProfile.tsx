@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
+import { isMemberPreview, mockProfile } from "@/lib/memberPreviewMock";
 
 const MemberProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,17 @@ const MemberProfile = () => {
   }, []);
 
   const loadProfile = async () => {
+    if (isMemberPreview()) {
+      setMemberId(mockProfile.id);
+      setName(mockProfile.name);
+      setPhone(mockProfile.phone);
+      setEmail(mockProfile.email);
+      setGender(mockProfile.gender);
+      setNationality(mockProfile.nationality);
+      setIsSyntheticEmail(false);
+      setLoading(false);
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -54,6 +66,10 @@ const MemberProfile = () => {
   };
 
   const handleSave = async () => {
+    if (isMemberPreview()) {
+      toast.info("預覽模式：資料不會實際儲存");
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase

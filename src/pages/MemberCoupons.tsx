@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Ticket, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { isMemberPreview, mockCoupons } from "@/lib/memberPreviewMock";
 
 interface Coupon {
   id: string;
@@ -28,6 +29,11 @@ const MemberCoupons = () => {
   }, []);
 
   const loadCoupons = async () => {
+    if (isMemberPreview()) {
+      setCoupons(mockCoupons as any);
+      setLoading(false);
+      return;
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
