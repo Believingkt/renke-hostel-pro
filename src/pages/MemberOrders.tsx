@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +14,12 @@ import {
 import {
   Loader2,
   ShoppingBag,
-  Calendar,
   Search,
   PackagePlus,
   BedDouble,
-  Copy,
-  Check,
-  User,
+  ChevronLeft,
+  SlidersHorizontal,
+  ChevronRight,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -43,34 +42,37 @@ interface MemberOrder {
   room_photo_url: string | null;
 }
 
-type TabKey = "all" | "upcoming" | "completed" | "cancelled";
+type TabKey = "all" | "upcoming" | "history" | "refunded";
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: "all", label: "全部" },
+  { key: "all", label: "所有訂單" },
   { key: "upcoming", label: "待出發" },
-  { key: "completed", label: "已完成" },
-  { key: "cancelled", label: "已取消" },
+  { key: "history", label: "歷史" },
+  { key: "refunded", label: "已取消" },
 ];
 
 const statusLabels: Record<string, string> = {
   pending: "待確認",
   confirmed: "已確認",
   on_hold: "保留中",
-  checked_in: "已入住",
+  checked_in: "入住中",
   checked_out: "已完成",
   cancelled: "已取消",
 };
 
-const statusStyles: Record<string, string> = {
-  pending: "text-amber-600 border-amber-200 bg-amber-50",
-  confirmed: "text-emerald-700 border-emerald-200 bg-emerald-50",
-  on_hold: "text-blue-600 border-blue-200 bg-blue-50",
-  checked_in: "text-blue-600 border-blue-200 bg-blue-50",
-  checked_out: "text-muted-foreground border-border bg-muted",
-  cancelled: "text-red-600 border-red-200 bg-red-50",
+const statusColors: Record<string, string> = {
+  pending: "text-amber-600",
+  confirmed: "text-emerald-600",
+  on_hold: "text-sky-600",
+  checked_in: "text-sky-600",
+  checked_out: "text-muted-foreground",
+  cancelled: "text-red-500",
 };
 
+const ORANGE = "hsl(24,100%,50%)";
+
 const MemberOrders = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<MemberOrder[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("all");
@@ -79,7 +81,6 @@ const MemberOrders = () => {
   const [claimGuestName, setClaimGuestName] = useState("");
   const [claimPhoneLast4, setClaimPhoneLast4] = useState("");
   const [claiming, setClaiming] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -91,20 +92,15 @@ const MemberOrders = () => {
       setLoading(false);
       return;
     }
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
     const { data: member } = await supabase
       .from("platform_members")
       .select("id, email, phone, name")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!member) {
-      setLoading(false);
-      return;
-    }
+    if (!member) { setLoading(false); return; }
 
     const conditions: string[] = [`member_id.eq.${member.id}`];
     if (member.email) conditions.push(`guest_email.eq.${member.email}`);
@@ -119,13 +115,8 @@ const MemberOrders = () => {
       .order("check_in_date", { ascending: false })
       .limit(50);
 
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
+    if (error) { console.error(error); setLoading(false); return; }
 
-    // Get accommodation names
     const accIds = [...new Set((data || []).map((o) => o.accommodation_id))];
     const { data: accs } = await supabase
       .from("accommodation_info")
@@ -133,7 +124,6 @@ const MemberOrders = () => {
       .in("id", accIds);
     const accMap = new Map((accs || []).map((a) => [a.id, a.name]));
 
-    // Get room photos
     const roomTypeIds = [
       ...new Set((data || []).map((o) => o.room_type_id).filter(Boolean)),
     ];
@@ -172,43 +162,34 @@ const MemberOrders = () => {
     setLoading(false);
   };
 
-  const filteredOrders = useMemo(() => {
+  const isPast = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    return d < today;
+  };
+
+  const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (activeTab === "all") return true;
-      if (activeTab === "cancelled") return o.order_status === "cancelled";
-      if (activeTab === "completed")
-        return (
-          o.order_status === "checked_out" ||
-          (o.order_status !== "cancelled" && new Date(o.check_out_date) < today)
-        );
+      if (activeTab === "refunded") return o.order_status === "cancelled";
+      if (activeTab === "history")
+        return o.order_status !== "cancelled" && isPast(o.check_out_date);
       // upcoming
-      return (
-        o.order_status !== "cancelled" &&
-        o.order_status !== "checked_out" &&
-        new Date(o.check_out_date) >= today
-      );
+      return o.order_status !== "cancelled" && !isPast(o.check_out_date);
     });
   }, [orders, activeTab]);
 
   const tabCounts = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const counts: Record<TabKey, number> = { all: orders.length, upcoming: 0, completed: 0, cancelled: 0 };
+    const counts: Record<TabKey, number> = { all: orders.length, upcoming: 0, history: 0, refunded: 0 };
     orders.forEach((o) => {
-      if (o.order_status === "cancelled") counts.cancelled++;
-      else if (o.order_status === "checked_out" || new Date(o.check_out_date) < today) counts.completed++;
+      if (o.order_status === "cancelled") counts.refunded++;
+      else if (isPast(o.check_out_date)) counts.history++;
       else counts.upcoming++;
     });
     return counts;
   }, [orders]);
-
-  const handleCopy = (orderNumber: string) => {
-    navigator.clipboard.writeText(orderNumber);
-    setCopiedId(orderNumber);
-    setTimeout(() => setCopiedId(null), 1500);
-  };
 
   const handleClaim = async () => {
     const last4 = claimPhoneLast4.replace(/\D/g, "");
@@ -244,197 +225,216 @@ const MemberOrders = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const activeTabLabel = tabs.find((t) => t.key === activeTab)?.label || "所有訂單";
 
   return (
-    <>
-      {/* Page Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          我的訂單
-        </h1>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setClaimOpen(true)}
-          className="text-sm text-muted-foreground gap-1"
-        >
-          <Search className="h-4 w-4" />
-          找不到訂單？
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-5 overflow-x-auto scrollbar-none">
-        {tabs.map((tab) => (
+    <div className="-mx-4 -mt-4">
+      {/* Sticky header — back / title / search */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
+        <div className="flex items-center h-12 px-2">
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              activeTab === tab.key
-                ? "text-white"
-                : "bg-muted text-muted-foreground hover:bg-accent"
-            }`}
-            style={
-              activeTab === tab.key
-                ? { background: "hsl(25, 70%, 50%)" }
-                : undefined
-            }
+            onClick={() => navigate("/member/profile")}
+            className="p-2 -ml-1 text-foreground"
+            aria-label="返回"
           >
-            {tab.label}
-            {tabCounts[tab.key] > 0 && activeTab !== tab.key && (
-              <span className="ml-1 text-sm">({tabCounts[tab.key]})</span>
-            )}
+            <ChevronLeft className="h-5 w-5" />
           </button>
-        ))}
-      </div>
-
-      {/* Order List */}
-      {filteredOrders.length === 0 ? (
-        <div className="text-center py-16 space-y-3">
-          <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/30" />
-          <p className="text-muted-foreground">
-            {activeTab === "all" ? "尚無訂房紀錄" : "此分類沒有訂單"}
-          </p>
-          {activeTab === "all" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setClaimOpen(true)}
-            >
-              <PackagePlus className="h-4 w-4 mr-1.5" />
-              認領歷史訂單
-            </Button>
-          )}
+          <h1 className="flex-1 text-center text-base font-semibold">{activeTabLabel}</h1>
+          <button
+            onClick={() => setClaimOpen(true)}
+            className="p-2 -mr-1 text-foreground"
+            aria-label="搜尋訂單"
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => {
-            const nights = differenceInCalendarDays(
-              new Date(order.check_out_date),
-              new Date(order.check_in_date)
-            );
-            const statusLabel =
-              statusLabels[order.order_status] || order.order_status;
-            const statusStyle =
-              statusStyles[order.order_status] || "text-muted-foreground border-border bg-muted";
 
+        {/* Underline tabs */}
+        <div className="flex gap-1 px-2 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
             return (
-              <div
-                key={order.id}
-                className="bg-white rounded-xl border border-border overflow-hidden shadow-sm"
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="relative px-3 py-2.5 text-sm whitespace-nowrap transition-colors"
+                style={{
+                  color: active ? ORANGE : "hsl(var(--muted-foreground))",
+                  fontWeight: active ? 600 : 500,
+                }}
               >
-                {/* Order header */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-                    <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">訂單編號：</span>
-                    <span className="font-mono text-foreground truncate">
-                      {order.order_number}
-                    </span>
-                    <button
-                      onClick={() => handleCopy(order.order_number)}
-                      className="shrink-0 p-0.5 hover:text-foreground transition-colors"
-                    >
-                      {copiedId === order.order_number ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`shrink-0 text-sm font-medium ${statusStyle}`}
-                  >
-                    {statusLabel}
-                  </Badge>
-                </div>
-
-                {/* Order body */}
-                <div className="p-4">
-                  <div className="flex gap-3">
-                    {/* Room photo */}
-                    <div className="w-24 h-20 sm:w-28 sm:h-24 rounded-lg overflow-hidden bg-muted shrink-0">
-                      {order.room_photo_url ? (
-                        <img
-                          src={order.room_photo_url}
-                          alt={order.room_type_name || "房型"}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BedDouble
-                            className="h-8 w-8"
-                            style={{ color: "hsl(25, 50%, 80%)" }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-foreground text-base truncate">
-                          {order.accommodation_name}
-                        </h3>
-                        <p className="font-bold text-foreground whitespace-nowrap">
-                          NT${order.final_price.toLocaleString()}
-                        </p>
-                      </div>
-
-                      {/* Stay details */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 shrink-0" />
-                          {format(new Date(order.check_in_date), "M月d日", {
-                            locale: zhTW,
-                          })}{" "}
-                          -{" "}
-                          {format(new Date(order.check_out_date), "M月d日", {
-                            locale: zhTW,
-                          })}
-                        </span>
-                        <span>{nights} 晚</span>
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                        {order.room_type_name && (
-                          <span className="flex items-center gap-1">
-                            <BedDouble className="h-3.5 w-3.5 shrink-0" />
-                            {order.room_type_name}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <User className="h-3.5 w-3.5 shrink-0" />
-                          {order.guest_name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Order date */}
-                  {order.order_date && (
-                    <p className="text-sm text-muted-foreground mt-3 pt-2.5 border-t border-border/60">
-                      預訂日期：
-                      {format(new Date(order.order_date), "yyyy年M月d日", {
-                        locale: zhTW,
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
+                {tab.label}
+                {tabCounts[tab.key] > 0 && (
+                  <span className="ml-1 text-xs opacity-80">({tabCounts[tab.key]})</span>
+                )}
+                {active && (
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[2px] w-6 rounded-full"
+                    style={{ background: ORANGE }}
+                  />
+                )}
+              </button>
             );
           })}
         </div>
-      )}
+
+        {/* Filter chips */}
+        <div className="flex gap-2 px-3 py-2.5 overflow-x-auto scrollbar-none border-t">
+          <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-border text-xs text-foreground bg-background whitespace-nowrap">
+            <SlidersHorizontal className="h-3 w-3" /> 篩選
+          </button>
+          <button className="px-3 py-1.5 rounded-full border text-xs whitespace-nowrap"
+            style={{ borderColor: ORANGE, color: ORANGE, background: "hsl(24 100% 50% / 0.06)" }}>
+            住宿
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-3 py-3">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="text-center py-16 space-y-3">
+            <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              {activeTab === "all" ? "尚無訂房紀錄" : "此分類沒有訂單"}
+            </p>
+            {activeTab === "all" && (
+              <Button variant="outline" size="sm" onClick={() => setClaimOpen(true)}>
+                <PackagePlus className="h-4 w-4 mr-1.5" />
+                認領歷史訂單
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredOrders.map((order) => {
+              const nights = differenceInCalendarDays(
+                new Date(order.check_out_date),
+                new Date(order.check_in_date)
+              );
+              const statusLabel = statusLabels[order.order_status] || order.order_status;
+              const statusColor = statusColors[order.order_status] || "text-muted-foreground";
+              const past = isPast(order.check_out_date);
+              const cancelled = order.order_status === "cancelled";
+              const pointsEarned = Math.round(order.final_price * 0.04);
+              const earnedLabel = past || order.order_status === "checked_out" ? "您已賺得" : "您將賺得";
+
+              return (
+                <button
+                  key={order.id}
+                  onClick={() => navigate(`/member/orders/${order.order_number}`)}
+                  className="w-full text-left bg-card rounded-2xl border border-border overflow-hidden active:scale-[0.99] transition"
+                >
+                  {/* Card head: type + status */}
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <BedDouble className="h-4 w-4" style={{ color: ORANGE }} />
+                      <span>住宿</span>
+                    </div>
+                    <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
+                  </div>
+
+                  {/* Body */}
+                  <div className="px-4 pb-4">
+                    <h3 className="text-[15px] font-semibold text-foreground leading-snug">
+                      {order.accommodation_name}
+                    </h3>
+                    {order.room_type_name && (
+                      <p className="mt-0.5 text-sm text-muted-foreground truncate">
+                        {order.room_type_name}
+                      </p>
+                    )}
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {format(new Date(order.check_in_date), "M月d日", { locale: zhTW })}
+                      {" - "}
+                      {format(new Date(order.check_out_date), "M月d日", { locale: zhTW })}
+                      <span className="mx-1.5 text-muted-foreground/50">·</span>
+                      1 間房 {nights} 晚
+                    </p>
+
+                    {/* Points earned */}
+                    {!cancelled && (
+                      <div className="mt-1.5 flex items-center gap-1 text-sm" style={{ color: ORANGE }}>
+                        <span>{earnedLabel}：{pointsEarned} 點</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+
+                    {/* Price + refund line */}
+                    <div className="mt-3 flex items-end justify-between">
+                      <div className="flex-1" />
+                      <div className="text-right">
+                        {cancelled ? (
+                          <>
+                            <p className="text-sm text-muted-foreground line-through">
+                              線上預付 NT${order.final_price.toLocaleString()}
+                            </p>
+                            <p className="text-sm font-medium text-red-500 mt-0.5">
+                              已退款 NT${order.final_price.toLocaleString()}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            線上預付{" "}
+                            <span className="text-foreground font-bold text-base ml-1">
+                              NT${order.final_price.toLocaleString()}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="mt-3 pt-3 border-t border-border/70 flex justify-end gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/booking/${order.accommodation_id}`);
+                        }}
+                        className="px-4 py-1.5 rounded-full border text-sm font-medium"
+                        style={{ borderColor: ORANGE, color: ORANGE }}
+                      >
+                        再次預訂
+                      </button>
+                      {past && !cancelled && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/member/orders/${order.order_number}?review=1`);
+                          }}
+                          className="px-4 py-1.5 rounded-full border text-sm font-medium"
+                          style={{ borderColor: ORANGE, color: ORANGE }}
+                        >
+                          撰寫評論
+                        </button>
+                      )}
+                      {!past && !cancelled && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/member/orders/${order.order_number}`);
+                          }}
+                          className="px-4 py-1.5 rounded-full border text-sm font-medium"
+                          style={{ borderColor: ORANGE, color: ORANGE }}
+                        >
+                          修改訂單
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
+              已顯示所有{activeTabLabel}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Claim Dialog */}
       <Dialog open={claimOpen} onOpenChange={setClaimOpen}>
@@ -445,7 +445,7 @@ const MemberOrders = () => {
               認領歷史訂單
             </DialogTitle>
             <DialogDescription className="text-left">
-              輸入您過去的訂單編號、訂房姓名與聯絡電話末4碼，即可將該訂單綁定到您的會員帳號
+              輸入您過去的訂單編號、訂房姓名與聯絡電話末 4 碼，即可將訂單綁定到會員帳號
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -454,9 +454,7 @@ const MemberOrders = () => {
               <Input
                 placeholder="例如：RK5M72B9"
                 value={claimOrderNumber}
-                onChange={(e) =>
-                  setClaimOrderNumber(e.target.value.toUpperCase())
-                }
+                onChange={(e) => setClaimOrderNumber(e.target.value.toUpperCase())}
                 className="font-mono"
               />
             </div>
@@ -469,7 +467,7 @@ const MemberOrders = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>聯絡電話末4碼</Label>
+              <Label>聯絡電話末 4 碼</Label>
               <Input
                 inputMode="numeric"
                 maxLength={4}
@@ -484,17 +482,16 @@ const MemberOrders = () => {
             <Button
               onClick={handleClaim}
               disabled={claiming}
-              className="w-full"
+              className="w-full text-white"
+              style={{ background: ORANGE }}
             >
-              {claiming && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
+              {claiming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               確認認領
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
