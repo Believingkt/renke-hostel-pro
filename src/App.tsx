@@ -38,6 +38,7 @@ const MemberProfileEdit = lazy(() => import("./pages/MemberProfileEdit"));
 const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
+const MemberMessages = lazy(() => import("./pages/MemberMessages"));
 const MemberResetPassword = lazy(() => import("./pages/MemberResetPassword"));
 const MemberLineCallback = lazy(() => import("./pages/MemberLineCallback"));
 const MemberFacebookCallback = lazy(() => import("./pages/MemberFacebookCallback"));
@@ -192,6 +193,9 @@ function App() {
                       } />
                       <Route path="orders" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
+                      } />
+                      <Route path="messages" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberMessages /></Suspense>
                       } />
                     </Route>
                     <Route path="member/reset-password" element={
