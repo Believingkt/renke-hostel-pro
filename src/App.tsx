@@ -39,6 +39,10 @@ const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
 const MemberMessages = lazy(() => import("./pages/MemberMessages"));
+const MemberRecentViews = lazy(() => import("./pages/MemberRecentViews"));
+const MemberCards = lazy(() => import("./pages/MemberCards"));
+const MemberCommonInfo = lazy(() => import("./pages/MemberCommonInfo"));
+const MemberFavorites = lazy(() => import("./pages/MemberFavorites"));
 const MemberResetPassword = lazy(() => import("./pages/MemberResetPassword"));
 const MemberLineCallback = lazy(() => import("./pages/MemberLineCallback"));
 const MemberFacebookCallback = lazy(() => import("./pages/MemberFacebookCallback"));
@@ -196,6 +200,18 @@ function App() {
                       } />
                       <Route path="messages" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberMessages /></Suspense>
+                      } />
+                      <Route path="recent-views" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberRecentViews /></Suspense>
+                      } />
+                      <Route path="cards" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberCards /></Suspense>
+                      } />
+                      <Route path="common-info" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberCommonInfo /></Suspense>
+                      } />
+                      <Route path="favorites" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberFavorites /></Suspense>
                       } />
                     </Route>
                     <Route path="member/reset-password" element={
