@@ -244,7 +244,7 @@ const MemberProfile = () => {
         <MenuRow icon={History} label="最近瀏覽" onClick={() => navigate("/member/recent-views")} />
         <MenuRow icon={CreditCard} label="卡片管理" onClick={() => navigate("/member/cards")} />
         <MenuRow icon={ClipboardList} label="常用資訊" onClick={() => navigate("/member/common-info")} />
-        <MenuRow icon={Heart} label="已收藏" onClick={() => navigate("/member/favorites")} last />
+        <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} last />
       </MenuGroup>
 
       {/* 福利 */}
