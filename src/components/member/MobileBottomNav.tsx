@@ -1,13 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Ticket, Gift, User, Home } from "lucide-react";
+import { MessageCircle, User, Home, CalendarCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const navItems = [
   { path: "/booking", label: "首頁", icon: Home },
-  { path: "/member/orders", label: "訂單", icon: ShoppingBag },
-  { path: "/member/coupons", label: "優惠券", icon: Ticket },
-  { path: "/member/points", label: "紅利", icon: Gift },
-  { path: "/member/profile", label: "我的", icon: User },
+  { path: "/member/messages", label: "訊息", icon: MessageCircle },
+  { path: "/member/orders", label: "行程", icon: CalendarCheck },
+  { path: "/member/profile", label: "我的帳號", icon: User },
 ];
 
 interface MobileBottomNavProps {
