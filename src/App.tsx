@@ -34,6 +34,7 @@ const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
+const MemberProfileEdit = lazy(() => import("./pages/MemberProfileEdit"));
 const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
