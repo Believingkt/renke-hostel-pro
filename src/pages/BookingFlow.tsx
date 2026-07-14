@@ -4953,7 +4953,7 @@ const BookingFlow = () => {
             <div
               className="md:hidden"
               aria-hidden="true"
-              style={{ height: keyboardInset > 0 ? `${keyboardInset + 80}px` : "8rem" }}
+              style={{ height: keyboardInset > 0 ? `${keyboardInset + 80}px` : "11rem" }}
             />
             {/* Navigation Buttons */}
             <div
