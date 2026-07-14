@@ -184,3 +184,86 @@ export const mockProfile = {
   gender: "male",
   nationality: "台灣",
 };
+
+export const mockFavorites = [
+  {
+    id: "mock-f-1",
+    accommodation_id: "mock-acc-1",
+    accommodation_name: "森山民宿",
+    region: "宜蘭 頭城",
+    image_url: null as string | null,
+    path: "/booking/mock-acc-1",
+    created_at: "2026-07-10T10:00:00Z",
+  },
+  {
+    id: "mock-f-2",
+    accommodation_id: "mock-acc-2",
+    accommodation_name: "雲岫海景",
+    region: "花蓮 秀林",
+    image_url: null,
+    path: "/booking/mock-acc-2",
+    created_at: "2026-06-25T10:00:00Z",
+  },
+];
+
+export const mockRecentViews = [
+  {
+    accommodation_id: "mock-acc-2",
+    name: "雲岫海景",
+    region: "花蓮 秀林",
+    image_url: null as string | null,
+    path: "/booking/mock-acc-2",
+    viewed_at: new Date().toISOString(),
+  },
+  {
+    accommodation_id: "mock-acc-1",
+    name: "森山民宿",
+    region: "宜蘭 頭城",
+    image_url: null,
+    path: "/booking/mock-acc-1",
+    viewed_at: new Date(Date.now() - 3600_000 * 6).toISOString(),
+  },
+  {
+    accommodation_id: "mock-acc-3",
+    name: "田松 Villa",
+    region: "南投 埔里",
+    image_url: null,
+    path: "/booking/mock-acc-3",
+    viewed_at: new Date(Date.now() - 86400_000).toISOString(),
+  },
+];
+
+export const mockCards = [
+  {
+    id: "mock-card-1",
+    card_holder: "WANG XIAOMING",
+    last_four: "5147",
+    brand: "VISA",
+    expiry_month: 8,
+    expiry_year: 2028,
+    is_default: true,
+    nickname: "主要信用卡",
+  },
+  {
+    id: "mock-card-2",
+    card_holder: "WANG XIAOMING",
+    last_four: "3221",
+    brand: "MASTER",
+    expiry_month: 3,
+    expiry_year: 2027,
+    is_default: false,
+    nickname: null as string | null,
+  },
+];
+
+export const mockCommonInfo = {
+  contact_email: "preview@example.com",
+  contact_phone: "+886-912-345-678",
+  address: "台北市信義區松高路 1 號",
+  emergency_contact_name: "王大明",
+  emergency_contact_phone: "+886-987-654-321",
+  preferred_bed_type: "雙人床",
+  dietary_notes: "無忌口",
+  special_requests: "希望安靜樓層",
+};
+
