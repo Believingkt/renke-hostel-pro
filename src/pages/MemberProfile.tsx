@@ -244,7 +244,7 @@ const MemberProfile = () => {
         <MenuRow icon={History} label="最近瀏覽" onClick={() => navigate("/member/recent-views")} />
         <MenuRow icon={CreditCard} label="卡片管理" onClick={() => navigate("/member/cards")} />
         <MenuRow icon={ClipboardList} label="常用資訊" onClick={() => navigate("/member/common-info")} />
-        <MenuRow icon={Heart} label="已收藏" onClick={() => navigate("/member/favorites")} last />
+        <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} last />
       </MenuGroup>
 
       {/* 福利 */}
@@ -252,8 +252,7 @@ const MemberProfile = () => {
         <div className="px-1 pb-2 text-sm font-medium text-muted-foreground">福利</div>
         <MenuGroup>
           <MenuRow icon={Share2} label="邀請好友賺獎勵" onClick={() => navigate("/booking")} />
-          <MenuRow icon={Gift} label="紅利點數兌換" onClick={() => navigate("/member/points")} />
-          <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/booking")} last />
+          <MenuRow icon={Gift} label="紅利點數兌換" onClick={() => navigate("/member/points")} last />
         </MenuGroup>
       </div>
 
