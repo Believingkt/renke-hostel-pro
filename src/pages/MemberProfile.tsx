@@ -253,7 +253,7 @@ const MemberProfile = () => {
         <MenuGroup>
           <MenuRow icon={Share2} label="邀請好友賺獎勵" onClick={() => navigate("/booking")} />
           <MenuRow icon={Gift} label="紅利點數兌換" onClick={() => navigate("/member/points")} />
-          <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/booking")} last />
+          </MenuGroup>
         </MenuGroup>
       </div>
 
