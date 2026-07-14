@@ -34,6 +34,7 @@ const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
+const MemberProfileEdit = lazy(() => import("./pages/MemberProfileEdit"));
 const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
@@ -179,6 +180,9 @@ function App() {
                     }>
                       <Route path="profile" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberProfile /></Suspense>
+                      } />
+                      <Route path="profile/edit" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberProfileEdit /></Suspense>
                       } />
                       <Route path="points" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberPoints /></Suspense>

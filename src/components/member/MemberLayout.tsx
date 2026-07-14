@@ -132,7 +132,7 @@ const MemberLayout = () => {
         <nav className="border-b bg-white">
           <div className="max-w-4xl mx-auto px-4 flex gap-1">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <Link
                   key={item.path}
