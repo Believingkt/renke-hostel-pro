@@ -627,6 +627,68 @@ const MemberAuth = () => {
             </div>
             */}
 
+            {/* Preview-only quick test login */}
+            {(() => {
+              const h = typeof window !== "undefined" ? window.location.hostname : "";
+              const isPreview =
+                h === "localhost" ||
+                h === "127.0.0.1" ||
+                h.includes("lovableproject.com") ||
+                h.includes("lovable.app");
+              if (!isPreview) return null;
+              const handleTestLogin = async () => {
+                try {
+                  let email = localStorage.getItem("preview_test_email") || "";
+                  let password = localStorage.getItem("preview_test_password") || "";
+                  if (!email || !password) {
+                    const inputEmail = window.prompt("輸入測試會員 Email：", email);
+                    if (!inputEmail) return;
+                    const inputPassword = window.prompt("輸入測試會員密碼：", password);
+                    if (!inputPassword) return;
+                    email = inputEmail.trim();
+                    password = inputPassword;
+                    localStorage.setItem("preview_test_email", email);
+                    localStorage.setItem("preview_test_password", password);
+                  }
+                  setLoading(true);
+                  const { error } = await supabase.auth.signInWithPassword({ email, password });
+                  if (error) {
+                    toast.error(`測試登入失敗：${error.message}`);
+                    localStorage.removeItem("preview_test_password");
+                    return;
+                  }
+                  toast.success("測試登入成功");
+                  navigate("/member/orders", { replace: true });
+                } finally {
+                  setLoading(false);
+                }
+              };
+              const handleClearTestCreds = () => {
+                localStorage.removeItem("preview_test_email");
+                localStorage.removeItem("preview_test_password");
+                toast.success("已清除測試帳號設定");
+              };
+              return (
+                <div className="mb-4 p-3 rounded-md border border-dashed border-violet-400 bg-violet-50">
+                  <p className="text-xs text-violet-700 mb-2 font-medium">🧪 預覽環境測試登入</p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                      size="sm"
+                      onClick={handleTestLogin}
+                      disabled={loading}
+                    >
+                      使用測試帳號登入 → /member/orders
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={handleClearTestCreds}>
+                      重設
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Social login buttons */}
             <Button
               variant="outline"
