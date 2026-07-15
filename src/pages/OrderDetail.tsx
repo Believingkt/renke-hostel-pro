@@ -1978,7 +1978,7 @@ const OrderDetailPage = () => {
             <>
               {/* 桌面：全部按鈕平鋪 */}
               <div className="hidden sm:flex sm:flex-row gap-2">
-                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && !isNonPayableCurrency && (
                   <Button onClick={() => setShowPaymentDialog(true)} className="text-sm">
                     <CreditCard className="h-4 w-4 mr-2" />線上收款
                   </Button>
