@@ -67,6 +67,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         orderSource: "kol",
         checkInDate: order.check_in_date,
         packageId: (order as any).package_id ?? null,
+        packageIds: [(order as any).package_id ?? null, (order as any).room_type_id ?? null],
         excludeOrderId: order.id,
         isAdmin,
         confirmOverride: (status) =>
