@@ -193,11 +193,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown)
-  const { stats, totals } = useMemo(() => {
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown) — grouped by currency
+  const aggregate = (rows: OrderRow[]) => {
     const map = new Map<string, SourceStat>();
     const subMap = new Map<string, Map<string, SourceStat>>();
-    for (const o of orders ?? []) {
+    for (const o of rows) {
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
       const cur = map.get(key) ?? {
@@ -277,9 +277,25 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 },
     );
     return { stats: arr, totals };
+  };
+
+  const perCurrency = useMemo(() => {
+    const buckets = new Map<string, OrderRow[]>();
+    for (const o of orders ?? []) {
+      const c = (o.currency || "TWD").toUpperCase();
+      if (!buckets.has(c)) buckets.set(c, []);
+      buckets.get(c)!.push(o);
+    }
+    // Ensure TWD appears first even if empty (so layout stays same for other properties)
+    const currencies = Array.from(buckets.keys());
+    currencies.sort((a, b) => (a === "TWD" ? -1 : b === "TWD" ? 1 : a.localeCompare(b)));
+    return currencies.map((c) => ({ currency: c, ...aggregate(buckets.get(c)!) }));
   }, [orders]);
 
-  const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
+  const twdBucket = perCurrency.find((b) => b.currency === "TWD");
+  const stats = twdBucket?.stats ?? [];
+  const totals = twdBucket?.totals ?? { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 };
+  const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
 
   // Monthly trend: 6 months x each source total
   const trendData = useMemo(() => {
