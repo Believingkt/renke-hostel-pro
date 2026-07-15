@@ -814,7 +814,8 @@ const OrderDetailPage = () => {
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
       checkInDate: order.check_in_date,
-      excludeOrderId: order.id, // 排除本訂單自身
+      packageId: (editForm as any).package_id ?? (order as any).package_id ?? null,
+      excludeOrderId: order.id,
       isAdmin: isAdminUser,
       confirmOverride: (status) =>
         new Promise<boolean>((resolve) => {
@@ -822,6 +823,7 @@ const OrderDetailPage = () => {
             yearMonth: status.yearMonth,
             used: status.used,
             quota: status.quota!,
+            packageName: status.packageName,
             resolve,
           });
         }),
