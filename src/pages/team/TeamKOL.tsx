@@ -5791,9 +5791,16 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                       </>
                     )}
                   </section>
+
+                  {editVenue && (
+                    <section className="space-y-3">
+                      <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
+                    </section>
+                  )}
                 </>
               )}
             </div>
+
 
             <SheetFooter>
               {readOnly ? (
