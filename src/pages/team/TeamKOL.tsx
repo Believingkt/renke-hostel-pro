@@ -4769,6 +4769,10 @@ interface VenueRow {
   name: string;
   type: string | null;
   is_active: boolean;
+  accommodation_id: string | null;
+  room_type_id: string | null;
+  parent_name: string | null;
+  hasSettings: boolean;
 }
 
 interface VenueSettingsRow {
