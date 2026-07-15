@@ -66,6 +66,7 @@ const fmt = (n: number, symbol: string) => `${symbol}${Math.round(n).toLocaleStr
 const nt = (n: number) => fmt(n, "NT$");
 
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
+  const isTraveldays = accommodationId === TRAVELDAYS_ACC_ID;
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
@@ -76,6 +77,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+
+  // Traveldays 專屬：檢視模式與匯率
+  const [viewMode, setViewMode] = useState<"separate" | "consolidated">("separate");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("TWD");
+  const [exchangeRate, setExchangeRate] = useState<number>(0.21); // 1 JPY = 0.21 TWD 預設
+  const [rateInput, setRateInput] = useState<string>("0.21");
   const toggleExpand = (src: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
