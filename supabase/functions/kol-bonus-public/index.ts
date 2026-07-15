@@ -28,7 +28,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { data: kol, error: kolErr } = await admin
       .from("kol_profiles")
-      .select("id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at")
+      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
       .eq("public_token", token)
       .maybeSingle();
 
@@ -46,6 +46,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // 優先用 venue_id 從 kol_venues 取得顯示名稱；fallback 用 venue_name 欄位
+    let displayVenueName: string | null = null;
+    if (kol.venue_id) {
+      const { data: kv } = await admin
+        .from("kol_venues")
+        .select("name")
+        .eq("id", kol.venue_id)
+        .maybeSingle();
+      displayVenueName = (kv?.name as string | null) ?? null;
+    }
+    displayVenueName = displayVenueName ?? (kol.venue_name as string | null);
+
 
     const code = (kol.cid_code ?? "").trim();
     if (!code) {
@@ -88,7 +101,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           id: kol.id,
           name: kol.name,
           cid_code: kol.cid_code,
-          venue_name: kol.venue_name,
+          venue_id: kol.venue_id,
+          venue_name: displayVenueName,
           accommodation_id: kol.accommodation_id,
           token_expires_at: kol.token_expires_at,
         },
