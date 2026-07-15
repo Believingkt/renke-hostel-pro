@@ -52,18 +52,20 @@ export async function fetchKolQuotaStatus(params: {
   accommodationId: string;
   checkInDate: string; // yyyy-MM-dd
   packageId?: string | null;
+  packageIds?: Array<string | null | undefined>;
   excludeOrderId?: string | null;
 }): Promise<KolQuotaStatus> {
-  const { accommodationId, checkInDate, packageId, excludeOrderId } = params;
+  const { accommodationId, checkInDate, packageId, packageIds, excludeOrderId } = params;
   const yearMonth = checkInDate.slice(0, 7);
 
   const config = await fetchAccommodationConfig(accommodationId);
 
   // 決定實際採用哪個範圍的額度
-  const inTracked = !!packageId && config.trackedPackageIds.includes(packageId);
+  const candidatePackageIds = Array.from(new Set([packageId, ...(packageIds ?? [])].filter(Boolean) as string[]));
+  const trackedPackageId = candidatePackageIds.find((id) => config.trackedPackageIds.includes(id)) ?? null;
   const useScope: "shared" | "package" =
-    config.mode === "per_package" && inTracked ? "package" : "shared";
-  const effectivePackageId = useScope === "package" ? packageId! : null;
+    config.mode === "per_package" && !!trackedPackageId ? "package" : "shared";
+  const effectivePackageId = useScope === "package" ? trackedPackageId! : null;
 
   // 撈 quota row
   let quotaQuery = supabase
@@ -133,19 +135,20 @@ export async function ensureKolQuotaPermit(opts: {
   orderSource: string | null | undefined;
   checkInDate: string | null | undefined;
   packageId?: string | null;
+  packageIds?: Array<string | null | undefined>;
   excludeOrderId?: string | null;
   isAdmin: boolean;
   confirmOverride: (status: KolQuotaStatus) => Promise<boolean>;
   onOverride?: (status: KolQuotaStatus) => void;
 }): Promise<boolean> {
-  const { accommodationId, orderSource, checkInDate, packageId, excludeOrderId, confirmOverride, onOverride } = opts;
+  const { accommodationId, orderSource, checkInDate, packageId, packageIds, excludeOrderId, confirmOverride, onOverride } = opts;
 
   if (orderSource !== "kol") return true;
   if (!accommodationId || !checkInDate) return true;
 
   let status: KolQuotaStatus;
   try {
-    status = await fetchKolQuotaStatus({ accommodationId, checkInDate, packageId, excludeOrderId });
+    status = await fetchKolQuotaStatus({ accommodationId, checkInDate, packageId, packageIds, excludeOrderId });
   } catch (e) {
     console.error("[KolQuota] 查詢失敗", e);
     return true;
