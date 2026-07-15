@@ -26,6 +26,8 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
+import { TraveldaysOverviewPanel } from "@/components/analytics/TraveldaysOverviewPanel";
+import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
 
 type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
 const CHART_LABELS: Record<ChartKey, string> = {
