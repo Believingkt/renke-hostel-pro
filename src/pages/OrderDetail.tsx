@@ -282,9 +282,19 @@ const OrderDetailPage = () => {
   const handleCurrencyModeChange = useCallback(async (m: "TWD" | "SEC") => {
     if (!order?.id) return;
     const code = (await import("@/lib/orderDisplayCurrency")).modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
+    // 若目前顯示幣別和目標一致，不動
+    const currentUpper = (orderDisplayCurrency || "TWD").toUpperCase();
+    if (currentUpper === code.toUpperCase()) return;
+    // 編輯中且已有金額欄位非零 → 切幣別會導致數字被重新解讀，先確認並清零
+    const hasAmounts = isEditing && [editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount].some(v => Number(v) > 0);
+    if (hasAmounts) {
+      const ok = window.confirm(`切換幣別會清空目前的金額 / 折扣 / 加購 / 已收金額（避免 NT$ 與 ${secondaryCurrencyConfig?.symbol || "外幣"} 混算錯誤）。確定切換嗎？`);
+      if (!ok) return;
+      setEditForm(f => ({ ...f, total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0 }));
+    }
     setOrderDisplayCurrency(code);
     (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
-  }, [order?.id, secondaryCurrencyConfig?.code]);
+  }, [order?.id, secondaryCurrencyConfig?.code, secondaryCurrencyConfig?.symbol, orderDisplayCurrency, isEditing, editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount]);
   // 訂單顯示貨幣前綴（旅行日 JPY 時原幣顯示，其他 TWD）
   const orderCurrencyPrefix = useMemo(() => {
     if (!secondaryCurrencyConfig) return "NT$";
