@@ -24,6 +24,11 @@ interface DualCurrencyInputProps {
   onModeChange?: (mode: "TWD" | "SEC") => void;
   /** 外部強制指定當前模式（編輯既有訂單時用，例：訂單是 JPY 就強制 SEC） */
   forcedMode?: "TWD" | "SEC" | null;
+  /**
+   * 原幣模式：不做匯率換算。value 與 onChange 都以當前選擇的幣別「原值」為單位。
+   * 用於旅行日民宿：訂單金額實際就以 JPY 或 TWD 存原數字，不需要換算。
+   */
+  rawMode?: boolean;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
