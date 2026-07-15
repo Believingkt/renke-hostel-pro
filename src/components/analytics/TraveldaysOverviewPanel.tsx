@@ -40,11 +40,21 @@ export function TraveldaysOverviewPanel({ accommodationId }: Props) {
       const from = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       const { data } = await supabase
         .from("orders")
-        .select("order_date, check_in_date, check_out_date, final_price, currency, order_status, order_source, guest_count")
+        .select("order_date, check_in_date, check_out_date, final_price, order_status, order_source, guest_count, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .gte("order_date", from);
       if (cancelled) return;
-      setRows((data || []) as Row[]);
+      const mapped: Row[] = (data || []).map((r: any) => ({
+        order_date: r.order_date,
+        check_in_date: r.check_in_date,
+        check_out_date: r.check_out_date,
+        final_price: r.final_price,
+        order_status: r.order_status,
+        order_source: r.order_source,
+        guest_count: r.guest_count,
+        currency: (r.order_meta?.display_currency || "TWD").toUpperCase(),
+      }));
+      setRows(mapped);
     })();
     return () => { cancelled = true; };
   }, [accommodationId]);
