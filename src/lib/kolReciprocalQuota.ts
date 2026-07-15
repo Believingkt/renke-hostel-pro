@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
  *   - per_package:
  *     - 訂單包棟屬於「追蹤清單 (kol_quota_tracked_package_ids)」→ 使用該包棟專屬額度
  *       - 未設定該月專屬額度 → 視為 0（禁止建立，允許管理員強制覆寫）
- *     - 訂單包棟未在追蹤清單、或訂單無 package_id → 併入全館共用額度
+ *     - 訂單包棟未在追蹤清單、或訂單無 package_id/包棟房型 → 併入全館共用額度
  * - 軟攔截：超額時呼叫 confirmFn 由 UI 決定是否強制
  */
 
@@ -52,18 +52,20 @@ export async function fetchKolQuotaStatus(params: {
   accommodationId: string;
   checkInDate: string; // yyyy-MM-dd
   packageId?: string | null;
+  packageIds?: Array<string | null | undefined>;
   excludeOrderId?: string | null;
 }): Promise<KolQuotaStatus> {
-  const { accommodationId, checkInDate, packageId, excludeOrderId } = params;
+  const { accommodationId, checkInDate, packageId, packageIds, excludeOrderId } = params;
   const yearMonth = checkInDate.slice(0, 7);
 
   const config = await fetchAccommodationConfig(accommodationId);
 
   // 決定實際採用哪個範圍的額度
-  const inTracked = !!packageId && config.trackedPackageIds.includes(packageId);
+  const candidatePackageIds = Array.from(new Set([packageId, ...(packageIds ?? [])].filter(Boolean) as string[]));
+  const trackedPackageId = candidatePackageIds.find((id) => config.trackedPackageIds.includes(id)) ?? null;
   const useScope: "shared" | "package" =
-    config.mode === "per_package" && inTracked ? "package" : "shared";
-  const effectivePackageId = useScope === "package" ? packageId! : null;
+    config.mode === "per_package" && !!trackedPackageId ? "package" : "shared";
+  const effectivePackageId = useScope === "package" ? trackedPackageId! : null;
 
   // 撈 quota row
   let quotaQuery = supabase
@@ -81,6 +83,8 @@ export async function fetchKolQuotaStatus(params: {
     _year_month: yearMonth,
     _exclude_order_id: excludeOrderId ?? null,
     _package_id: effectivePackageId as any,
+    _tracked_package_ids: config.trackedPackageIds as any,
+    _shared_untracked_only: useScope === "shared" && config.mode === "per_package",
   } as any);
 
   let packageName: string | null = null;
@@ -91,6 +95,14 @@ export async function fetchKolQuotaStatus(params: {
       .eq("id", effectivePackageId)
       .maybeSingle();
     packageName = (pkg as any)?.name ?? null;
+    if (!packageName) {
+      const { data: roomTypePkg } = await supabase
+        .from("room_types")
+        .select("name")
+        .eq("id", effectivePackageId)
+        .maybeSingle();
+      packageName = (roomTypePkg as any)?.name ?? null;
+    }
   }
 
   let quota: number | null = quotaRes.data?.quota ?? null;
@@ -123,19 +135,20 @@ export async function ensureKolQuotaPermit(opts: {
   orderSource: string | null | undefined;
   checkInDate: string | null | undefined;
   packageId?: string | null;
+  packageIds?: Array<string | null | undefined>;
   excludeOrderId?: string | null;
   isAdmin: boolean;
   confirmOverride: (status: KolQuotaStatus) => Promise<boolean>;
   onOverride?: (status: KolQuotaStatus) => void;
 }): Promise<boolean> {
-  const { accommodationId, orderSource, checkInDate, packageId, excludeOrderId, confirmOverride, onOverride } = opts;
+  const { accommodationId, orderSource, checkInDate, packageId, packageIds, excludeOrderId, confirmOverride, onOverride } = opts;
 
   if (orderSource !== "kol") return true;
   if (!accommodationId || !checkInDate) return true;
 
   let status: KolQuotaStatus;
   try {
-    status = await fetchKolQuotaStatus({ accommodationId, checkInDate, packageId, excludeOrderId });
+    status = await fetchKolQuotaStatus({ accommodationId, checkInDate, packageId, packageIds, excludeOrderId });
   } catch (e) {
     console.error("[KolQuota] 查詢失敗", e);
     return true;

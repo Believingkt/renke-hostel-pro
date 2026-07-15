@@ -1124,7 +1124,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       accommodationId: currentAccommodationId,
       orderSource: form.order_source || "manual",
       checkInDate: form.check_in_date,
-      packageId: (form as any).package_id ?? null,
+      packageId: effectivePackageId,
+      packageIds: [
+        effectivePackageId,
+        ...roomSelections
+          .filter((sel) => roomTypes.find((rt) => rt.id === sel.room_type_id)?.is_exclusive_package)
+          .map((sel) => sel.room_type_id),
+      ],
       isAdmin,
       confirmOverride: (status) =>
         new Promise<boolean>((resolve) => {

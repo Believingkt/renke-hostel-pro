@@ -815,6 +815,13 @@ const OrderDetailPage = () => {
       orderSource: editForm.order_source,
       checkInDate: order.check_in_date,
       packageId: (editForm as any).package_id ?? (order as any).package_id ?? null,
+      packageIds: [
+        (editForm as any).package_id ?? (order as any).package_id ?? null,
+        exclusiveRoomTypeId,
+        ...editOrderRooms
+          .filter((r) => roomTypes.find((t) => t.id === r.room_type_id)?.is_exclusive_package)
+          .map((r) => r.room_type_id),
+      ],
       excludeOrderId: order.id,
       isAdmin: isAdminUser,
       confirmOverride: (status) =>
