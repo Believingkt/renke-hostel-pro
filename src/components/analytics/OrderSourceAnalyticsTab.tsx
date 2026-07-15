@@ -22,6 +22,10 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns
 import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
+import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 interface Props {
@@ -62,6 +66,7 @@ const fmt = (n: number, symbol: string) => `${symbol}${Math.round(n).toLocaleStr
 const nt = (n: number) => fmt(n, "NT$");
 
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
+  const isTraveldays = accommodationId === TRAVELDAYS_ACC_ID;
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
@@ -72,6 +77,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+
+  // Traveldays 專屬：檢視模式與匯率
+  const [viewMode, setViewMode] = useState<"separate" | "consolidated">("separate");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("TWD");
+  const [exchangeRate, setExchangeRate] = useState<number>(0.21); // 1 JPY = 0.21 TWD 預設
+  const [rateInput, setRateInput] = useState<string>("0.21");
   const toggleExpand = (src: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
@@ -279,26 +290,64 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     return { stats: arr, totals };
   };
 
-  const perCurrency = useMemo(() => {
-    const buckets = new Map<string, OrderRow[]>();
+  // 依 viewMode 決定要進入計算的訂單集合
+  // - separate: 只取 selectedCurrency（TWD 或 JPY）
+  // - consolidated: 全部訂單，JPY 依匯率換算成 TWD
+  const transformRows = (rows: OrderRow[] | null): OrderRow[] => {
+    if (!rows) return [];
+    if (!isTraveldays) {
+      // 非旅行日：維持原本行為 (TWD 主 bucket)
+      return rows.filter((o) => (o.currency || "TWD").toUpperCase() === "TWD");
+    }
+    if (viewMode === "separate") {
+      return rows.filter((o) => (o.currency || "TWD").toUpperCase() === selectedCurrency);
+    }
+    // consolidated：JPY → TWD (乘以匯率)
+    return rows.map((o) => {
+      const cur = (o.currency || "TWD").toUpperCase();
+      if (cur === "TWD") return o;
+      const mult = cur === "JPY" ? exchangeRate : 1;
+      return {
+        ...o,
+        currency: "TWD",
+        final_price: (Number(o.final_price) || 0) * mult,
+        paid_amount: (Number(o.paid_amount) || 0) * mult,
+      };
+    });
+  };
+
+  const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+  const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+
+  const activeAggregate = useMemo(() => aggregate(activeRows), [activeRows]);
+  const stats = activeAggregate.stats;
+  const totals = activeAggregate.totals;
+
+  // 旅行日 separate 模式下：計算另一幣別的總覽（並排顯示用）
+  const separateBuckets = useMemo(() => {
+    if (!isTraveldays || viewMode !== "separate") return [] as Array<{ currency: string; total: number; count: number }>;
+    const map = new Map<string, { total: number; count: number }>();
     for (const o of orders ?? []) {
       const c = (o.currency || "TWD").toUpperCase();
-      if (!buckets.has(c)) buckets.set(c, []);
-      buckets.get(c)!.push(o);
+      const cur = map.get(c) ?? { total: 0, count: 0 };
+      cur.total += Number(o.final_price) || 0;
+      cur.count += 1;
+      map.set(c, cur);
     }
-    // Ensure TWD appears first even if empty (so layout stays same for other properties)
-    const currencies = Array.from(buckets.keys());
-    currencies.sort((a, b) => (a === "TWD" ? -1 : b === "TWD" ? 1 : a.localeCompare(b)));
-    return currencies.map((c) => ({ currency: c, ...aggregate(buckets.get(c)!) }));
-  }, [orders]);
+    return Array.from(map.entries())
+      .map(([currency, v]) => ({ currency, ...v }))
+      .sort((a, b) => (a.currency === "TWD" ? -1 : b.currency === "TWD" ? 1 : a.currency.localeCompare(b.currency)));
+  }, [orders, isTraveldays, viewMode]);
 
-  const twdBucket = perCurrency.find((b) => b.currency === "TWD");
-  const stats = twdBucket?.stats ?? [];
-  const totals = twdBucket?.totals ?? { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 };
-  const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
+  // 顯示幣別符號：consolidated 一律 NT$，separate 依 selectedCurrency
+  const activeSymbol = (!isTraveldays || viewMode === "consolidated")
+    ? "NT$"
+    : (CURRENCY_LABEL[selectedCurrency]?.symbol ?? selectedCurrency);
+  const f = (n: number) => fmt(n, activeSymbol);
+
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend helper: 6 months x each source total for a given currency subset
+  // Monthly trend helper
   const buildTrend = (rows: OrderRow[]) => {
     const today = new Date();
     const months: string[] = [];
@@ -333,22 +382,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     return { data, keys };
   };
 
-  const trendByCurrency = useMemo(() => {
-    if (!trendOrders) return new Map<string, { data: any[]; keys: string[] }>();
-    const buckets = new Map<string, OrderRow[]>();
-    for (const o of trendOrders) {
-      const c = (o.currency || "TWD").toUpperCase();
-      if (!buckets.has(c)) buckets.set(c, []);
-      buckets.get(c)!.push(o);
-    }
-    const result = new Map<string, { data: any[]; keys: string[] }>();
-    for (const [c, rows] of buckets) result.set(c, buildTrend(rows));
-    return result;
-  }, [trendOrders]);
+  const activeTrend = useMemo(() => buildTrend(activeTrendRows), [activeTrendRows]);
+  const trendData = activeTrend.data;
+  const trendKeys = activeTrend.keys;
 
-  const twdTrend = trendByCurrency.get("TWD") ?? { data: [], keys: [] };
-  const trendData = twdTrend.data;
-  const trendKeys = twdTrend.keys;
 
 
 
@@ -356,6 +393,72 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* 旅行日專屬：檢視模式切換 */}
+      {isTraveldays && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">檢視模式</Label>
+                <div className="flex bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewMode === "separate" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="px-3"
+                    onClick={() => setViewMode("separate")}
+                  >
+                    分開顯示
+                  </Button>
+                  <Button
+                    variant={viewMode === "consolidated" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="px-3"
+                    onClick={() => setViewMode("consolidated")}
+                  >
+                    合併估算總額
+                  </Button>
+                </div>
+              </div>
+              {viewMode === "separate" ? (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">幣別</Label>
+                  <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                    <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TWD">TWD (NT$)</SelectItem>
+                      <SelectItem value="JPY">JPY (¥)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">匯率 1 JPY =</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    onBlur={() => {
+                      const n = Number(rateInput);
+                      if (Number.isFinite(n) && n > 0) setExchangeRate(n);
+                      else setRateInput(String(exchangeRate));
+                    }}
+                    className="h-9 w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">TWD</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground ml-auto">
+                {viewMode === "separate"
+                  ? "TWD 與 JPY 分開統計，不相加"
+                  : `JPY 依匯率 ${exchangeRate} 換算為 TWD 後合併計算`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Range controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -421,7 +524,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><DollarSign className="h-4 w-4" />訂單總額</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{nt(totals.total)}</div>
+                <div className="text-2xl font-bold">{f(totals.total)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{rangeLabel} · {totals.count} 筆</p>
               </CardContent>
             </Card>
@@ -430,15 +533,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><Wallet className="h-4 w-4" />已收金額</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">{nt(totals.paid)}</div>
+                <div className="text-2xl font-bold text-primary">{f(totals.paid)}</div>
                 <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   <div className="flex justify-between gap-2">
                     <span>已付訂金</span>
-                    <span className="tabular-nums font-medium text-foreground">{nt(totals.depositPaid)}</span>
+                    <span className="tabular-nums font-medium text-foreground">{f(totals.depositPaid)}</span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span>已付清</span>
-                    <span className="tabular-nums font-medium text-foreground">{nt(totals.fullPaid)}</span>
+                    <span className="tabular-nums font-medium text-foreground">{f(totals.fullPaid)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -448,7 +551,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><Hourglass className="h-4 w-4" />待收尾款</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{nt(totals.pending)}</div>
+                <div className="text-2xl font-bold">{f(totals.pending)}</div>
                 <p className="text-xs text-muted-foreground mt-1">總額 − 已收</p>
               </CardContent>
             </Card>
@@ -487,7 +590,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: 8,
                     }}
-                    formatter={(v: number) => nt(v)}
+                    formatter={(v: number) => f(v)}
                   />
                   <Legend />
                   <Bar dataKey="paid" name="已收" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
@@ -552,11 +655,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                               )}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                            <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.depositPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.fullPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">{f(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.depositPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.fullPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
                             <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
@@ -566,11 +669,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                   └ {sub.label}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.depositPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.fullPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-primary/80">{f(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.depositPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.fullPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.pending)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
                             ))}
@@ -580,11 +683,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                     <TableRow className="font-semibold bg-muted/40">
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-primary">{nt(totals.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.depositPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.fullPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.pending)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-primary">{f(totals.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.depositPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.fullPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.pending)}</TableCell>
                       <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
                   </>
@@ -595,102 +698,27 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Extra currency buckets (e.g. JPY 純內部記帳，不走金流) */}
-      {extraCurrencyBuckets.map((bucket) => {
-        const meta = CURRENCY_LABEL[bucket.currency] ?? { label: `${bucket.currency} 營收`, symbol: bucket.currency };
-        const f = (n: number) => fmt(n, meta.symbol);
-        const rate = bucket.totals.total > 0 ? (bucket.totals.paid / bucket.totals.total) * 100 : 0;
-        return (
-          <Card key={bucket.currency} className="border-dashed">
-            <CardHeader>
-              <CardTitle className="text-base">{meta.label}</CardTitle>
-              <CardDescription>此幣別為純內部記帳，不與台幣營收合併，也不經過第三方金流</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">訂單總額</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.total)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{bucket.totals.count} 筆</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">已收金額</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.paid)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">收款率 {rate.toFixed(1)}%</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">訂金已收</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.depositPaid)}</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">尚未收款</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.pending)}</div>
-                </div>
-              </div>
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>來源</TableHead>
-                      <TableHead className="text-right">訂單數</TableHead>
-                      <TableHead className="text-right">總額</TableHead>
-                      <TableHead className="text-right">已收</TableHead>
-                      <TableHead className="text-right">未收</TableHead>
-                      <TableHead className="text-right">收款率</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bucket.stats.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">尚無資料</TableCell></TableRow>
-                    ) : (
-                      bucket.stats.map((s) => (
-                        <TableRow key={s.source}>
-                          <TableCell>{s.label}</TableCell>
-                          <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.paid)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              {(() => {
-                const t = trendByCurrency.get(bucket.currency);
-                if (!t || t.data.length === 0 || t.keys.length === 0) return null;
-                return (
-                  <div>
-                    <div className="text-sm font-medium mb-2">月趨勢（近 6 個月，Top 5 來源）</div>
-                    <div className="h-[260px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={t.data}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--popover))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: 8,
-                            }}
-                            formatter={(v: number) => f(v)}
-                          />
-                          <Legend />
-                          {t.keys.map((k, i) => (
-                            <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
-                          ))}
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* 分開檢視模式下，顯示另一幣別的並排總覽 (旅行日專屬) */}
+      {isTraveldays && viewMode === "separate" && separateBuckets.length > 1 && (
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+          {separateBuckets.map((b) => {
+            const meta = CURRENCY_LABEL[b.currency] ?? { label: `${b.currency} 營收`, symbol: b.currency };
+            const isActive = b.currency === selectedCurrency;
+            return (
+              <button
+                key={b.currency}
+                type="button"
+                onClick={() => setSelectedCurrency(b.currency)}
+                className={`rounded-lg border p-4 text-left transition ${isActive ? "border-primary bg-primary/5" : "hover:border-primary/40"}`}
+              >
+                <div className="text-xs text-muted-foreground">{meta.label}</div>
+                <div className="text-2xl font-bold tabular-nums mt-1">{fmt(b.total, meta.symbol)}</div>
+                <div className="text-xs text-muted-foreground mt-1">{b.count} 筆 {isActive && "· 目前檢視"}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
 
 
@@ -716,7 +744,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: 8,
                     }}
-                    formatter={(v: number) => nt(v)}
+                    formatter={(v: number) => f(v)}
                   />
                   <Legend />
                   {trendKeys.map((k, i) => (
