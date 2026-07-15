@@ -5721,7 +5721,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
       const { error } = await supabase.from("kol_venue_settings" as any).insert(payload);
       if (error) {
         setSaving(false);
-        toast.error(`建立失敗：${error.message}`);
+        toast.error(humanizeVenueSettingsError(error.message));
         return;
       }
     }
