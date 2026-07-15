@@ -167,7 +167,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       const end = endOfMonth(today);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(start, "yyyy-MM-dd"))
@@ -177,7 +177,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         console.error(error);
         setTrendOrders([]);
       } else {
-        setTrendOrders((data ?? []) as OrderRow[]);
+        setTrendOrders(((data ?? []) as any[]).map((r) => ({
+          order_source: r.order_source,
+          ota_channel: r.ota_channel,
+          check_in_date: r.check_in_date,
+          final_price: r.final_price,
+          paid_amount: r.paid_amount,
+          payment_status: r.payment_status,
+          currency: (r.order_meta?.display_currency || "TWD").toUpperCase(),
+        })) as OrderRow[]);
       }
     })();
     return () => {
