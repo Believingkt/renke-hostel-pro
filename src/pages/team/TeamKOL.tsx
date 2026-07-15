@@ -4999,6 +4999,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       toast.error("請輸入場域名稱");
       return;
     }
+    const vErrMsg = validateVenueSettings(settings);
+    if (vErrMsg) {
+      toast.error(vErrMsg);
+      return;
+    }
     setSaving(true);
     // 1. 更新 kol_venues
     const { error: vErr } = await supabase
