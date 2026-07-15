@@ -5052,7 +5052,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         .eq("venue_id", venueId);
       if (sErr) {
         setSaving(false);
-        toast.error(`更新邀約規則失敗：${sErr.message}`);
+        toast.error(humanizeVenueSettingsError(sErr.message));
         return;
       }
     } else {
