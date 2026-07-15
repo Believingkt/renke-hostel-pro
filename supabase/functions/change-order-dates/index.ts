@@ -64,7 +64,7 @@ serve(async (req) => {
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .select(
-        "id, accommodation_id, order_number, order_status, order_source, payment_status, check_in_date, check_out_date, notes",
+        "id, accommodation_id, order_number, order_status, order_source, payment_status, check_in_date, check_out_date, notes, package_id, room_type_id",
       )
       .eq("id", body.orderId)
       .maybeSingle();
@@ -119,6 +119,37 @@ serve(async (req) => {
       const oldMonth = order.check_in_date.slice(0, 7);
       const newMonth = body.newCheckIn.slice(0, 7);
       if (oldMonth !== newMonth) {
+        const { data: quotaConfig } = await supabase
+          .from("accommodation_info")
+          .select("kol_quota_mode, kol_quota_tracked_package_ids")
+          .eq("id", order.accommodation_id)
+          .maybeSingle();
+        const quotaMode = (quotaConfig as any)?.kol_quota_mode || "shared";
+        const trackedPackageIds = ((quotaConfig as any)?.kol_quota_tracked_package_ids || []) as string[];
+        const orderScopeIds = [order.package_id, order.room_type_id].filter(Boolean) as string[];
+        const trackedPackageId = quotaMode === "per_package"
+          ? orderScopeIds.find((id) => trackedPackageIds.includes(id)) ?? null
+          : null;
+        const sharedUntrackedOnly = !trackedPackageId && quotaMode === "per_package";
+
+        let newQuotaQuery = supabase
+          .from("kol_reciprocal_monthly_quotas")
+          .select("quota")
+          .eq("accommodation_id", order.accommodation_id)
+          .eq("year_month", newMonth);
+        newQuotaQuery = trackedPackageId
+          ? newQuotaQuery.eq("package_id", trackedPackageId)
+          : newQuotaQuery.is("package_id", null);
+
+        let oldQuotaQuery = supabase
+          .from("kol_reciprocal_monthly_quotas")
+          .select("quota")
+          .eq("accommodation_id", order.accommodation_id)
+          .eq("year_month", oldMonth);
+        oldQuotaQuery = trackedPackageId
+          ? oldQuotaQuery.eq("package_id", trackedPackageId)
+          : oldQuotaQuery.is("package_id", null);
+
         // 同時查新月與舊月 quota / used（舊月扣掉當前訂單後的實際佔用）
         const [
           newQuotaRes,
@@ -126,27 +157,23 @@ serve(async (req) => {
           oldQuotaRes,
           oldCountRes,
         ] = await Promise.all([
-          supabase
-            .from("kol_reciprocal_monthly_quotas")
-            .select("quota")
-            .eq("accommodation_id", order.accommodation_id)
-            .eq("year_month", newMonth)
-            .maybeSingle(),
+          newQuotaQuery.maybeSingle(),
           supabase.rpc("count_kol_reciprocal_orders", {
             _accommodation_id: order.accommodation_id,
             _year_month: newMonth,
             _exclude_order_id: order.id,
+            _package_id: trackedPackageId,
+            _tracked_package_ids: trackedPackageIds,
+            _shared_untracked_only: sharedUntrackedOnly,
           }),
-          supabase
-            .from("kol_reciprocal_monthly_quotas")
-            .select("quota")
-            .eq("accommodation_id", order.accommodation_id)
-            .eq("year_month", oldMonth)
-            .maybeSingle(),
+          oldQuotaQuery.maybeSingle(),
           supabase.rpc("count_kol_reciprocal_orders", {
             _accommodation_id: order.accommodation_id,
             _year_month: oldMonth,
             _exclude_order_id: order.id,
+            _package_id: trackedPackageId,
+            _tracked_package_ids: trackedPackageIds,
+            _shared_untracked_only: sharedUntrackedOnly,
           }),
         ]);
         const newQuota = newQuotaRes.data?.quota ?? null;
