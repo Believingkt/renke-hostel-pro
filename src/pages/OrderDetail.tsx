@@ -1965,6 +1965,24 @@ const OrderDetailPage = () => {
         <div className="flex flex-row gap-2 w-full sm:w-auto">
           {isEditing ? (
             <>
+              {secondaryCurrencyConfig && (
+                <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs self-center">
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyModeChange("TWD")}
+                    className={`px-2.5 py-1 rounded ${currencyForcedMode === "TWD" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                  >
+                    NT$ 台幣
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyModeChange("SEC")}
+                    className={`px-2.5 py-1 rounded ${currencyForcedMode === "SEC" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                  >
+                    {secondaryCurrencyConfig.symbol} {secondaryCurrencyConfig.code}
+                  </button>
+                </div>
+              )}
               <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="flex-1 sm:flex-none sm:w-auto text-sm h-11">
                 <Save className="h-4 w-4 mr-2" />
                 {isSavingEdit ? "儲存中..." : "儲存"}
