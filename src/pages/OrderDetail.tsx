@@ -2152,7 +2152,7 @@ const OrderDetailPage = () => {
                 (() => {
                   const o = order as any;
                   const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
-                  if (unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
+                  if (!isNonPayableCurrency && unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
                     const created = new Date(o.payment_link_created_at);
                     if (Date.now() > created.getTime() + 3 * 24 * 60 * 60 * 1000) return 'overdue';
                   }
