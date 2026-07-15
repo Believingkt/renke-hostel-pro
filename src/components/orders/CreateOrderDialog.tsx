@@ -2518,6 +2518,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <DualCurrencyInput
             id="create-discount-amount"
             config={secondaryCurrencyConfig}
+            rawMode={!!secondaryCurrencyConfig}
             storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
             inputClassName="h-12 text-base sm:h-10 sm:text-sm"
             placeholder="0"
