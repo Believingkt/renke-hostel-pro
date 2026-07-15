@@ -69,7 +69,41 @@ function buildPos(): string {
   return `<POS><Source><RequestorID Type="22" ID="LAKEZE"/><BookingChannel Type="7" Primary="true"><CompanyName Code="LAKEZE">人客多 LAKEZE</CompanyName></BookingChannel></Source></POS>`;
 }
 
+function daysBetweenIso(a: string, b: string): number {
+  const d1 = Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10));
+  const d2 = Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10));
+  return Math.max(1, Math.round((d2 - d1) / 86400000));
+}
+
+function addDaysIso(d: string, n: number): string {
+  const dt = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * Split a per-room stay total into per-night amounts whose sum equals the
+ * total exactly. Remainder cents go on the LAST nights so the first night
+ * stays a "clean" nightly rate. Exported for unit tests.
+ */
+export function splitNightlyAmounts(total: number, nights: number): number[] {
+  const n = Math.max(1, Math.floor(nights));
+  const base = Math.floor(total / n);
+  const rem = total - base * n;
+  const arr = new Array(n).fill(base);
+  for (let i = 0; i < rem; i++) arr[n - 1 - i] += 1;
+  return arr;
+}
+
 function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string, checkOut: string): string {
+  const nights = daysBetweenIso(checkIn, checkOut);
+  const perNight = splitNightlyAmounts(rs.unitAmount, nights);
+  const rateBlocks = perNight.map((amt, i) => {
+    const eff = addDaysIso(checkIn, i);
+    const exp = addDaysIso(checkIn, i + 1);
+    return `<Rate UnitMultiplier="1" RateTimeUnit="Day" EffectiveDate="${esc(eff)}" ExpireDate="${esc(exp)}"><Base AmountAfterTax="${esc(amt)}" CurrencyCode="TWD"/></Rate>`;
+  }).join("");
+
   return [
     `<RoomStay>`,
       `<RoomTypes><RoomType RoomTypeCode="${esc(rs.roomTypeCode)}"`,
@@ -80,7 +114,7 @@ function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string,
       `</RatePlans>`,
       `<RoomRates>`,
         `<RoomRate RoomTypeCode="${esc(rs.roomTypeCode)}" RatePlanCode="${esc(rs.ratePlanCode)}" NumberOfUnits="${esc(rs.quantity)}">`,
-          `<Rates><Rate UnitMultiplier="1" RateTimeUnit="Day" EffectiveDate="${esc(checkIn)}" ExpireDate="${esc(checkOut)}"><Base AmountAfterTax="${esc(rs.unitAmount)}" CurrencyCode="TWD"/></Rate></Rates>`,
+          `<Rates>${rateBlocks}</Rates>`,
         `</RoomRate>`,
       `</RoomRates>`,
       `<GuestCounts>`,
