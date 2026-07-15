@@ -10,7 +10,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCa
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
-import { formatSecondary } from "@/lib/currency";
+import { supabase } from "@/integrations/supabase/client";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrdersTableProps {
