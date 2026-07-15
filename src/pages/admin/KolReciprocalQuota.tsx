@@ -366,6 +366,8 @@ export default function KolReciprocalQuota() {
                   accommodationId={currentAccommodationId}
                   yearMonth={r.year_month}
                   packageId={r.package_id}
+                  mode={mode}
+                  trackedPackageIds={trackedIds}
                   overrideOrderIds={overrideOrderIds}
                 />
               </PopoverContent>
@@ -634,14 +636,17 @@ interface UsedOrder {
   check_out_date: string | null;
   guest_name: string | null;
   package_id: string | null;
+  room_type_id: string | null;
 }
 
 function UsedOrdersList({
-  accommodationId, yearMonth, packageId, overrideOrderIds,
+  accommodationId, yearMonth, packageId, mode, trackedPackageIds, overrideOrderIds,
 }: {
   accommodationId: string | null;
   yearMonth: string;
   packageId: string | null;
+  mode: Mode;
+  trackedPackageIds: string[];
   overrideOrderIds: Set<string>;
 }) {
   const [list, setList] = useState<UsedOrder[] | null>(null);
@@ -654,17 +659,24 @@ function UsedOrdersList({
     (async () => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, check_in_date, check_out_date, guest_name, order_status, package_id")
+        .select("id, order_number, check_in_date, check_out_date, guest_name, order_status, package_id, room_type_id")
         .eq("accommodation_id", accommodationId)
         .eq("order_source", "kol")
         .gte("check_in_date", start)
         .lt("check_in_date", end)
         .order("check_in_date", { ascending: true });
-      if (packageId) q = q.eq("package_id", packageId);
       const { data } = await q;
-      setList(((data ?? []) as any[]).filter(o => o.order_status !== "cancelled"));
+      const filtered = ((data ?? []) as any[]).filter((o) => {
+        if (o.order_status === "cancelled") return false;
+        if (packageId) return o.package_id === packageId || o.room_type_id === packageId;
+        if (mode === "per_package") {
+          return !trackedPackageIds.some((id) => o.package_id === id || o.room_type_id === id);
+        }
+        return true;
+      });
+      setList(filtered);
     })();
-  }, [accommodationId, yearMonth, packageId]);
+  }, [accommodationId, yearMonth, packageId, mode, trackedPackageIds]);
 
   if (list === null) return <div className="p-3 text-sm text-muted-foreground">載入中…</div>;
   if (list.length === 0) return <div className="p-3 text-sm text-muted-foreground">無資料</div>;
