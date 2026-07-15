@@ -298,18 +298,14 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend: 6 months x each source total (TWD only)
-  const trendData = useMemo(() => {
-    if (!trendOrders) return [];
-    const twdOrders = trendOrders.filter((o) => (o.currency || "TWD").toUpperCase() === "TWD");
+  // Monthly trend helper: 6 months x each source total for a given currency subset
+  const buildTrend = (rows: OrderRow[]) => {
     const today = new Date();
     const months: string[] = [];
-    for (let i = 5; i >= 0; i--) {
-      months.push(format(subMonths(today, i), "yyyy-MM"));
-    }
-    // pick top 5 sources by total across whole window
+    for (let i = 5; i >= 0; i--) months.push(format(subMonths(today, i), "yyyy-MM"));
+
     const totalsBySource = new Map<string, number>();
-    for (const o of twdOrders) {
+    for (const o of rows) {
       const src = o.order_source || "unknown";
       totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + (Number(o.final_price) || 0));
     }
@@ -320,7 +316,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
     const byMonth = new Map<string, Record<string, number>>();
     for (const m of months) byMonth.set(m, {});
-    for (const o of twdOrders) {
+    for (const o of rows) {
       const m = o.check_in_date?.slice(0, 7);
       if (!m || !byMonth.has(m)) continue;
       const src = o.order_source || "unknown";
@@ -328,17 +324,33 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       const row = byMonth.get(m)!;
       row[src] = (row[src] ?? 0) + (Number(o.final_price) || 0);
     }
-    return months.map((m) => {
+    const data = months.map((m) => {
       const row: Record<string, string | number> = { month: format(new Date(`${m}-01`), "M月") };
       for (const src of topSources) row[getOrderSourceConfig(src).label] = byMonth.get(m)?.[src] ?? 0;
       return row;
     });
+    const keys = data.length === 0 ? [] : Object.keys(data[0]).filter((k) => k !== "month");
+    return { data, keys };
+  };
+
+  const trendByCurrency = useMemo(() => {
+    if (!trendOrders) return new Map<string, { data: any[]; keys: string[] }>();
+    const buckets = new Map<string, OrderRow[]>();
+    for (const o of trendOrders) {
+      const c = (o.currency || "TWD").toUpperCase();
+      if (!buckets.has(c)) buckets.set(c, []);
+      buckets.get(c)!.push(o);
+    }
+    const result = new Map<string, { data: any[]; keys: string[] }>();
+    for (const [c, rows] of buckets) result.set(c, buildTrend(rows));
+    return result;
   }, [trendOrders]);
 
-  const trendKeys = useMemo(() => {
-    if (trendData.length === 0) return [];
-    return Object.keys(trendData[0]).filter((k) => k !== "month");
-  }, [trendData]);
+  const twdTrend = trendByCurrency.get("TWD") ?? { data: [], keys: [] };
+  const trendData = twdTrend.data;
+  const trendKeys = twdTrend.keys;
+
+
 
   const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
