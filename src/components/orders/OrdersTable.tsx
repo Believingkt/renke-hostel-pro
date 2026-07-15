@@ -11,7 +11,6 @@ import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 
 interface OrdersTableProps {
   orders: Order[];
