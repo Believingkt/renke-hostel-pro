@@ -66,6 +66,7 @@ export function KolQuotaConfirmDialog({
   yearMonth,
   used,
   quota,
+  packageName,
   oldStatus,
   onCancel,
   onConfirm,
@@ -84,6 +85,9 @@ export function KolQuotaConfirmDialog({
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
+                {packageName ? (
+                  <>包棟 <span className="font-semibold text-foreground">{packageName}</span>｜</>
+                ) : null}
                 目標月份 <span className="font-semibold text-foreground">{yearMonth}</span>{" "}
                 的 KOL 互惠額度不足。強制覆寫將寫入稽核日誌。
               </p>
