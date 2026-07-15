@@ -4193,33 +4193,54 @@ export type Database = {
       }
       kol_venues: {
         Row: {
+          accommodation_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           is_active: boolean | null
           name: string
+          room_type_id: string | null
           type: string | null
           updated_at: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
           name: string
+          room_type_id?: string | null
           type?: string | null
           updated_at?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
+          room_type_id?: string | null
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kol_venues_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_venues_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       line_binding_tokens: {
         Row: {
