@@ -2903,7 +2903,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
       >
         <DialogHeader className="px-4 md:px-6 py-3 md:py-4 border-b shrink-0">
-          <DialogTitle className="text-xl md:text-2xl">新增訂單</DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-xl md:text-2xl">新增訂單</DialogTitle>
+            {secondaryCurrencyConfig && (
+              <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleCurrencyModeChange("TWD")}
+                  className={`px-2.5 py-1 rounded ${createForcedMode === "TWD" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                >
+                  NT$ 台幣
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCurrencyModeChange("SEC")}
+                  className={`px-2.5 py-1 rounded ${createForcedMode === "SEC" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                >
+                  {secondaryCurrencyConfig.symbol} {secondaryCurrencyConfig.code}
+                </button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6">
