@@ -86,7 +86,7 @@ serve(async (req) => {
         .eq("month", month),
       supabase
         .from("scout_fulltime_targets")
-        .select("venue_name, fulltime_min")
+        .select("venue_id, venue_name, fulltime_min")
         .eq("year", year)
         .eq("month", month),
       supabase
