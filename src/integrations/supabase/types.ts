@@ -3792,6 +3792,7 @@ export type Database = {
           task_pre_stay: boolean | null
           token_expires_at: string | null
           updated_at: string | null
+          venue_id: string | null
           venue_name: string | null
         }
         Insert: {
@@ -3842,6 +3843,7 @@ export type Database = {
           task_pre_stay?: boolean | null
           token_expires_at?: string | null
           updated_at?: string | null
+          venue_id?: string | null
           venue_name?: string | null
         }
         Update: {
@@ -3892,6 +3894,7 @@ export type Database = {
           task_pre_stay?: boolean | null
           token_expires_at?: string | null
           updated_at?: string | null
+          venue_id?: string | null
           venue_name?: string | null
         }
         Relationships: [
@@ -3929,6 +3932,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_member_profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4093,6 +4103,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           rule_code: string
+          venue_id: string | null
           venue_name: string
           website_type: string | null
         }
@@ -4102,6 +4113,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           rule_code: string
+          venue_id?: string | null
           venue_name: string
           website_type?: string | null
         }
@@ -4111,10 +4123,19 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           rule_code?: string
+          venue_id?: string | null
           venue_name?: string
           website_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kol_venue_link_rules_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kol_venue_settings: {
         Row: {
@@ -4139,6 +4160,7 @@ export type Database = {
           special_start: string | null
           special_weekdays: number[] | null
           updated_at: string | null
+          venue_id: string | null
           venue_name: string
         }
         Insert: {
@@ -4163,6 +4185,7 @@ export type Database = {
           special_start?: string | null
           special_weekdays?: number[] | null
           updated_at?: string | null
+          venue_id?: string | null
           venue_name: string
         }
         Update: {
@@ -4187,9 +4210,18 @@ export type Database = {
           special_start?: string | null
           special_weekdays?: number[] | null
           updated_at?: string | null
+          venue_id?: string | null
           venue_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kol_venue_settings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kol_venues: {
         Row: {
@@ -7801,6 +7833,7 @@ export type Database = {
           id: string
           month: number
           target_count: number
+          venue_id: string | null
           venue_name: string
           year: number
         }
@@ -7810,6 +7843,7 @@ export type Database = {
           id?: string
           month: number
           target_count?: number
+          venue_id?: string | null
           venue_name: string
           year: number
         }
@@ -7819,10 +7853,19 @@ export type Database = {
           id?: string
           month?: number
           target_count?: number
+          venue_id?: string | null
           venue_name?: string
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scout_fulltime_targets_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scout_monthly_payouts: {
         Row: {
@@ -8023,6 +8066,7 @@ export type Database = {
           personal_min: number | null
           target_count: number
           updated_at: string | null
+          venue_id: string | null
           venue_name: string | null
           year: number
         }
@@ -8036,6 +8080,7 @@ export type Database = {
           personal_min?: number | null
           target_count?: number
           updated_at?: string | null
+          venue_id?: string | null
           venue_name?: string | null
           year: number
         }
@@ -8049,6 +8094,7 @@ export type Database = {
           personal_min?: number | null
           target_count?: number
           updated_at?: string | null
+          venue_id?: string | null
           venue_name?: string | null
           year?: number
         }
@@ -8066,6 +8112,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_member_profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scout_team_targets_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
           },
         ]
       }
