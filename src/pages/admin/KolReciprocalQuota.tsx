@@ -93,7 +93,7 @@ export default function KolReciprocalQuota() {
         .from("accommodation_packages")
         .select("id, name")
         .eq("accommodation_id", currentAccommodationId)
-        .eq("is_active", true)
+        .eq("enabled", true)
         .order("sort_order", { ascending: true }),
       supabase
         .from("kol_reciprocal_monthly_quotas")
