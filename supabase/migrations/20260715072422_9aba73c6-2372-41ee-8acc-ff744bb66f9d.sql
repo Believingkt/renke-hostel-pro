@@ -1,0 +1,1 @@
+UPDATE accommodation_info SET show_about_section=true, show_facilities_section=true, show_gallery_section=true, show_location_section=true, show_faq_section=true WHERE id='fb894708-d807-42b0-aaba-d4329ab34467';
