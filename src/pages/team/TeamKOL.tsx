@@ -76,17 +76,20 @@ interface KolVenue {
   name: string;
   type: string | null;
   is_active: boolean;
+  accommodation_id?: string | null;
+  room_type_id?: string | null;
 }
 
 // 館別下拉的合併選項
 interface VenueOption {
-  // 複合 value：PMS 用 "acc:<uuid>"，自訂場域用 "venue:<name>"
+  // 複合 value：PMS 用 "acc:<uuid>"，自訂場域用 "venue:<venue_id>"
   value: string;
   label: string;
   source: "pms" | "venue";
   badge: string; // 小標籤文字
   accommodation_id: string | null; // PMS 時為 uuid，venue 時 null
   venue_name: string | null; // venue 時為名稱，PMS 時 null
+  venue_id: string | null; // kol_venues.id
 }
 
 interface Scout {
