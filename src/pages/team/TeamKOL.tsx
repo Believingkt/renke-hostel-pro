@@ -5674,6 +5674,10 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     if (!editVenueId) {
       toast.error("找不到對應的場域主檔（kol_venues 需先建立母館紀錄）");
       return;
+    const vErrMsg = validateVenueSettings(settings);
+    if (vErrMsg) {
+      toast.error(vErrMsg);
+      return;
     }
     setSaving(true);
     const payload: Partial<VenueSettingsRow> = {
