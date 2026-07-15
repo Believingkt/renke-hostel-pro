@@ -84,18 +84,12 @@ export default function KolReciprocalQuota() {
     if (!currentAccommodationId) return;
     setLoading(true);
 
-    const [accRes, pkgRes, roomTypePkgRes, quotaRes] = await Promise.all([
+    const [accRes, roomTypePkgRes, quotaRes] = await Promise.all([
       (supabase as any)
         .from("accommodation_info")
         .select("kol_quota_mode, kol_quota_tracked_package_ids")
         .eq("id", currentAccommodationId)
         .maybeSingle(),
-      supabase
-        .from("accommodation_packages")
-        .select("id, name")
-        .eq("accommodation_id", currentAccommodationId)
-        .eq("enabled", true)
-        .order("display_order", { ascending: true }),
       supabase
         .from("room_types")
         .select("id, name")
@@ -113,10 +107,11 @@ export default function KolReciprocalQuota() {
     const loadedTrackedIds = ((accRes.data as any)?.kol_quota_tracked_package_ids as string[]) || [];
     setMode(loadedMode);
     setTrackedIds(loadedTrackedIds);
-    const mergedPackages: PackageOption[] = [
-      ...(((pkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name, source: "package" as const }))),
-      ...(((roomTypePkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name, source: "room_type" as const }))),
-    ].filter((p, index, arr) => arr.findIndex((x) => x.id === p.id) === index);
+    const mergedPackages: PackageOption[] = (((roomTypePkgRes.data as any[]) || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      source: "room_type" as const,
+    })));
     setPackages(mergedPackages);
     const list = ((quotaRes.data as any[]) || []) as QuotaRow[];
     setRows(list);
