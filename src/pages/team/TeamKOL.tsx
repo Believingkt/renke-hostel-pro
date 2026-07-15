@@ -4228,13 +4228,29 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       return;
     }
     setSaving(true);
-    const { error } = await (supabase.from("scout_fulltime_targets" as any) as any).insert({
-      year,
-      month,
-      venue_name: name,
-      target_count: t,
-      fulltime_min: fm,
-    });
+    // 解析 venue_id（透過 accommodation_info → kol_venues 母館）
+    const { data: acc } = await supabase.from("accommodation_info").select("id").eq("name", name).maybeSingle();
+    let venueId: string | null = null;
+    if (acc?.id) {
+      const { data: kv } = await supabase
+        .from("kol_venues" as any)
+        .select("id")
+        .eq("accommodation_id", acc.id)
+        .is("room_type_id", null)
+        .maybeSingle();
+      venueId = (kv as any)?.id ?? null;
+    }
+    const { error } = await (supabase.from("scout_fulltime_targets" as any) as any).upsert(
+      {
+        year,
+        month,
+        venue_id: venueId,
+        venue_name: name,
+        target_count: t,
+        fulltime_min: fm,
+      },
+      { onConflict: "year,month,venue_id" },
+    );
     setSaving(false);
     if (error) {
       toast.error(error.message);
