@@ -10,7 +10,6 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCa
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
-import { formatSecondary } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrdersTableProps {
@@ -50,24 +49,13 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
     return () => { cancelled = true; };
   }, [orders, secondaryConfig]);
 
-  const renderAmount = (order: Order, twd: number) => {
-    if (!secondaryConfig) return <>NT$ {twd.toLocaleString()}</>;
-    const orderCur = displayCurrencyMap.get(order.id);
-    const isSecPrimary = !!orderCur && orderCur.toUpperCase() === secondaryConfig.code.toUpperCase();
-    if (isSecPrimary) {
-      return (
-        <span className="inline-flex flex-col leading-tight">
-          <span>{formatSecondary(twd, secondaryConfig)}</span>
-          <span className="text-[11px] text-muted-foreground font-normal">≈ NT$ {twd.toLocaleString()}</span>
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex flex-col leading-tight">
-        <span>NT$ {twd.toLocaleString()}</span>
-        <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
-      </span>
-    );
+  const currencyPrefix = (order: Order) => {
+    if (!secondaryConfig) return "NT$";
+    const orderCur = (displayCurrencyMap.get(order.id) || "TWD").toUpperCase();
+    return orderCur === secondaryConfig.code.toUpperCase() ? secondaryConfig.symbol : "NT$";
+  };
+  const renderAmount = (order: Order, amount: number) => {
+    return <>{currencyPrefix(order)} {amount.toLocaleString()}</>;
   };
   const location = useLocation();
   const navigate = useNavigate();
@@ -181,15 +169,15 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           const balancePaid = order.payment_status === 'paid';
                           return (
                             <div className="text-xs text-muted-foreground font-normal leading-tight mt-0.5">
-                              <div>訂金 NT$ {dep.toLocaleString()} <span className={depositPaid ? 'text-primary' : 'text-destructive'}>{depositPaid ? '已付' : '未付'}</span></div>
-                              <div>尾款 NT$ {(order.final_price - dep).toLocaleString()} <span className={balancePaid ? 'text-primary' : 'text-destructive'}>{balancePaid ? '已付' : '未付'}</span></div>
+                              <div>訂金 {currencyPrefix(order)} {dep.toLocaleString()} <span className={depositPaid ? 'text-primary' : 'text-destructive'}>{depositPaid ? '已付' : '未付'}</span></div>
+                              <div>尾款 {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()} <span className={balancePaid ? 'text-primary' : 'text-destructive'}>{balancePaid ? '已付' : '未付'}</span></div>
                             </div>
                           );
                         }
                         if (order.paid_amount > 0 && order.paid_amount < order.final_price) {
                           return (
                             <div className="text-xs text-muted-foreground font-normal">
-                              已付 NT$ {order.paid_amount.toLocaleString()}
+                              已付 {currencyPrefix(order)} {order.paid_amount.toLocaleString()}
                             </div>
                           );
                         }
@@ -454,14 +442,14 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground pl-5">訂金:</span>
                             <span className="font-medium">
-                              NT$ {dep.toLocaleString()}
+                              {currencyPrefix(order)} {dep.toLocaleString()}
                               <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>{depositPaid ? '已付' : '未付'}</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground pl-5">尾款:</span>
                             <span className="font-medium">
-                              NT$ {(order.final_price - dep).toLocaleString()}
+                              {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()}
                               <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>{balancePaid ? '已付' : '未付'}</span>
                             </span>
                           </div>
@@ -472,7 +460,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       return (
                         <div className="flex items-center justify-between text-sm mb-2">
                           <span className="text-muted-foreground pl-5">已付:</span>
-                          <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
+                          <span className="font-medium">{currencyPrefix(order)} {order.paid_amount.toLocaleString()}</span>
                         </div>
                       );
                     }

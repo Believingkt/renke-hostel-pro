@@ -24,6 +24,11 @@ interface DualCurrencyInputProps {
   onModeChange?: (mode: "TWD" | "SEC") => void;
   /** 外部強制指定當前模式（編輯既有訂單時用，例：訂單是 JPY 就強制 SEC） */
   forcedMode?: "TWD" | "SEC" | null;
+  /**
+   * 原幣模式：不做匯率換算。value 與 onChange 都以當前選擇的幣別「原值」為單位。
+   * 用於旅行日民宿：訂單金額實際就以 JPY 或 TWD 存原數字，不需要換算。
+   */
+  rawMode?: boolean;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
@@ -55,6 +60,7 @@ export function DualCurrencyInput({
   id,
   onModeChange,
   forcedMode,
+  rawMode,
 }: DualCurrencyInputProps) {
   const hasSecondary = !!(config && config.rate > 0);
   const [mode, setMode] = useState<"TWD" | "SEC">(() => forcedMode ?? readPref(storageKey, hasSecondary));
@@ -68,9 +74,14 @@ export function DualCurrencyInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedMode]);
 
-  // value (TWD) 變動且未聚焦時，同步顯示值
+  // value 變動且未聚焦時，同步顯示值
   useEffect(() => {
     if (focused) return;
+    if (rawMode) {
+      // 原幣模式：外部 value 就是當前幣別的原值，直接顯示
+      setDraft(value > 0 ? String(value) : "");
+      return;
+    }
     if (mode === "TWD") {
       setDraft(value > 0 ? String(value) : "");
     } else if (hasSecondary && config) {
@@ -87,7 +98,7 @@ export function DualCurrencyInput({
       const sec = Math.round(value * config.rate);
       setDraft(sec > 0 ? String(sec) : "");
     }
-  }, [value, mode, hasSecondary, config, focused, storageKey]);
+  }, [value, mode, hasSecondary, config, focused, storageKey, rawMode]);
 
   const handleChange = (raw: string) => {
     const cleaned = raw.replace(/[^\d]/g, "");
@@ -95,6 +106,11 @@ export function DualCurrencyInput({
     const n = parseInt(cleaned, 10);
     if (!Number.isFinite(n) || n <= 0) {
       onChange(0);
+      return;
+    }
+    if (rawMode) {
+      // 原幣模式：不換算，回傳使用者輸入的原值
+      onChange(n);
       return;
     }
     if (mode === "TWD" || !hasSecondary || !config) {
@@ -122,10 +138,11 @@ export function DualCurrencyInput({
   };
 
   const hint = useMemo(() => {
+    if (rawMode) return "";
     if (!hasSecondary || !config) return "";
     if (mode === "TWD") return `≈ ${formatSecondary(value, config)}`;
     return `≈ ${formatTWD(value)}`;
-  }, [value, mode, hasSecondary, config]);
+  }, [value, mode, hasSecondary, config, rawMode]);
 
   const currencyLabel = mode === "TWD" ? "NT$" : config?.symbol || "";
 
