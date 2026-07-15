@@ -292,6 +292,11 @@ const OrderDetailPage = () => {
     return cur === secondaryCurrencyConfig.code.toUpperCase() ? secondaryCurrencyConfig.symbol : "NT$";
   }, [orderDisplayCurrency, secondaryCurrencyConfig]);
   const isRawCurrency = !!secondaryCurrencyConfig;
+  // 旅行日 JPY 訂單：純內部記帳，不走任何第三方金流
+  const isNonPayableCurrency = useMemo(() => {
+    const cur = (orderDisplayCurrency || "").toUpperCase();
+    return cur !== "" && cur !== "TWD";
+  }, [orderDisplayCurrency]);
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
