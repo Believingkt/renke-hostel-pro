@@ -5714,7 +5714,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
         .eq("venue_id", editVenueId);
       if (error) {
         setSaving(false);
-        toast.error(`更新失敗：${error.message}`);
+        toast.error(humanizeVenueSettingsError(error.message));
         return;
       }
     } else {
