@@ -657,10 +657,41 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   </TableBody>
                 </Table>
               </div>
+              {(() => {
+                const t = trendByCurrency.get(bucket.currency);
+                if (!t || t.data.length === 0 || t.keys.length === 0) return null;
+                return (
+                  <div>
+                    <div className="text-sm font-medium mb-2">月趨勢（近 6 個月，Top 5 來源）</div>
+                    <div className="h-[260px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={t.data}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--popover))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: 8,
+                            }}
+                            formatter={(v: number) => f(v)}
+                          />
+                          <Legend />
+                          {t.keys.map((k, i) => (
+                            <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         );
       })}
+
 
 
       {/* Monthly trend */}
