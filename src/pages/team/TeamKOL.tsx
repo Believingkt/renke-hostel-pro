@@ -4892,11 +4892,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [filterName, setFilterName] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
-  useEffect(() => {
-    setPage(1);
-  }, [filterName, filterType, filterStatus]);
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
@@ -4912,18 +4907,36 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("kol_venues" as any)
-      .select("id, name, type, is_active")
-      .order("name");
-    if (error) toast.error(error.message);
-    setRows((data ?? []) as unknown as VenueRow[]);
+    const [{ data: venueRows, error: vErr }, { data: accoms }, { data: settingsRows }] = await Promise.all([
+      supabase
+        .from("kol_venues" as any)
+        .select("id, name, type, is_active, accommodation_id, room_type_id")
+        .order("name"),
+      supabase.from("accommodation_info").select("id, name"),
+      supabase.from("kol_venue_settings" as any).select("venue_id"),
+    ]);
+    if (vErr) toast.error(vErr.message);
+    const accNameMap = new Map<string, string>();
+    ((accoms ?? []) as any[]).forEach((a) => accNameMap.set(a.id, a.name));
+    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
+    const enriched: VenueRow[] = ((venueRows ?? []) as any[]).map((v) => ({
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      is_active: v.is_active,
+      accommodation_id: v.accommodation_id ?? null,
+      room_type_id: v.room_type_id ?? null,
+      parent_name: v.accommodation_id ? accNameMap.get(v.accommodation_id) ?? null : null,
+      hasSettings: settingsSet.has(v.id),
+    }));
+    setRows(enriched);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
 
   const handleAdd = async () => {
     const n = newName.trim();
