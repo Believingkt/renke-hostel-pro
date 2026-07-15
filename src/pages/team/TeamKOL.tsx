@@ -5059,7 +5059,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       const { error: sErr } = await supabase.from("kol_venue_settings" as any).insert(payload);
       if (sErr) {
         setSaving(false);
-        toast.error(`建立邀約規則失敗：${sErr.message}`);
+        toast.error(humanizeVenueSettingsError(sErr.message));
         return;
       }
     }
