@@ -37,6 +37,7 @@ interface OrderRow {
   final_price: number | null;
   paid_amount: number | null;
   payment_status: string | null;
+  currency: string; // "TWD" | "JPY" | ...
 }
 
 interface SourceStat {
@@ -52,7 +53,13 @@ interface SourceStat {
   breakdown?: SourceStat[];
 }
 
-const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
+const CURRENCY_LABEL: Record<string, { label: string; symbol: string }> = {
+  TWD: { label: "台幣營收", symbol: "NT$" },
+  JPY: { label: "日幣營收（純記帳）", symbol: "¥" },
+};
+
+const fmt = (n: number, symbol: string) => `${symbol}${Math.round(n).toLocaleString()}`;
+const nt = (n: number) => fmt(n, "NT$");
 
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
