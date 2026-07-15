@@ -131,8 +131,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [secondaryCurrencyConfig?.code]);
+  const createAmountsRef = useRef<{ manualDiscount: number; deposit: number; secDeposit: number }>({ manualDiscount: 0, deposit: 0, secDeposit: 0 });
+  const createClearAmountsRef = useRef<() => void>(() => {});
   const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
     const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
+    if ((createDisplayCurrency || "TWD").toUpperCase() === code.toUpperCase()) return;
+    const { manualDiscount, deposit, secDeposit } = createAmountsRef.current;
+    const hasAmounts = manualDiscount > 0 || deposit > 0 || secDeposit > 0;
+    if (hasAmounts) {
+      const ok = window.confirm(`切換幣別會清空手動折扣 / 訂金 / 押金（避免 NT$ 與 ${secondaryCurrencyConfig?.symbol || "外幣"} 混算錯誤）。確定切換嗎？`);
+      if (!ok) return;
+      createClearAmountsRef.current();
+    }
     setCreateDisplayCurrency(code);
   };
   const createForcedMode: "TWD" | "SEC" | null = secondaryCurrencyConfig
@@ -257,6 +267,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     security_deposit_amount: 5000,
     package_id: "" as string,
   });
+
+  // Sync amount refs for the currency-toggle guard defined above
+  useEffect(() => {
+    const md = manualDiscountInputRef.current ? parseInt(manualDiscountInputRef.current, 10) || 0 : 0;
+    createAmountsRef.current = {
+      manualDiscount: md,
+      deposit: Number(form.deposit_amount) || 0,
+      secDeposit: Number(form.security_deposit_amount) || 0,
+    };
+    createClearAmountsRef.current = () => {
+      manualDiscountInputRef.current = null;
+      setManualDiscountStr(null);
+      setForm(f => ({ ...f, deposit_amount: 0, security_deposit_amount: 0 }));
+    };
+  }, [form.deposit_amount, form.security_deposit_amount, manualDiscountStr]);
+
 
   // 對應的方案清單（accommodation_packages），下單時寫入 orders.package_id
   const [accommodationPackages, setAccommodationPackages] = useState<

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -279,12 +279,23 @@ const OrderDetailPage = () => {
     if (!orderDisplayCurrency) return null;
     return orderDisplayCurrency.toUpperCase() === secondaryCurrencyConfig.code.toUpperCase() ? "SEC" : "TWD";
   }, [orderDisplayCurrency, secondaryCurrencyConfig]);
+  const editFormAmountsRef = useRef<{ total_price: number; discount_amount: number; addon_total: number; paid_amount: number; isEditing: boolean }>({ total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0, isEditing: false });
+  const clearEditAmountsRef = useRef<() => void>(() => {});
   const handleCurrencyModeChange = useCallback(async (m: "TWD" | "SEC") => {
     if (!order?.id) return;
     const code = (await import("@/lib/orderDisplayCurrency")).modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
+    const currentUpper = (orderDisplayCurrency || "TWD").toUpperCase();
+    if (currentUpper === code.toUpperCase()) return;
+    const { total_price, discount_amount, addon_total, paid_amount, isEditing: editing } = editFormAmountsRef.current;
+    const hasAmounts = editing && [total_price, discount_amount, addon_total, paid_amount].some(v => Number(v) > 0);
+    if (hasAmounts) {
+      const ok = window.confirm(`切換幣別會清空目前的金額 / 折扣 / 加購 / 已收金額（避免 NT$ 與 ${secondaryCurrencyConfig?.symbol || "外幣"} 混算錯誤）。確定切換嗎？`);
+      if (!ok) return;
+      clearEditAmountsRef.current();
+    }
     setOrderDisplayCurrency(code);
     (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
-  }, [order?.id, secondaryCurrencyConfig?.code]);
+  }, [order?.id, secondaryCurrencyConfig?.code, secondaryCurrencyConfig?.symbol, orderDisplayCurrency]);
   // 訂單顯示貨幣前綴（旅行日 JPY 時原幣顯示，其他 TWD）
   const orderCurrencyPrefix = useMemo(() => {
     if (!secondaryCurrencyConfig) return "NT$";
@@ -472,6 +483,17 @@ const OrderDetailPage = () => {
     addon_note: "",
     extra_addon_amount: 0,
   });
+  // Sync amount refs for the currency-toggle guard defined above
+  useEffect(() => {
+    editFormAmountsRef.current = {
+      total_price: Number(editForm.total_price) || 0,
+      discount_amount: Number(editForm.discount_amount) || 0,
+      addon_total: Number(editForm.addon_total) || 0,
+      paid_amount: Number(editForm.paid_amount) || 0,
+      isEditing,
+    };
+    clearEditAmountsRef.current = () => setEditForm(f => ({ ...f, total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0 }));
+  }, [editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount, isEditing]);
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
 
