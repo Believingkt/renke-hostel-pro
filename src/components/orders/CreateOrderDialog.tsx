@@ -2913,6 +2913,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           yearMonth={kolQuotaPrompt.yearMonth}
           used={kolQuotaPrompt.used}
           quota={kolQuotaPrompt.quota}
+          packageName={kolQuotaPrompt.packageName}
           onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
           onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
         />
