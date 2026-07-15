@@ -5370,7 +5370,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                           </Field>
                           <Field label="計算方式">
-                            {textInput(settings.calc_type, (v) => setSettings((p) => ({ ...p, calc_type: v })))}
+                            <Select
+                              value={settings.calc_type || ""}
+                              onValueChange={(v) => setSettings((p) => ({ ...p, calc_type: v }))}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="請選擇" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="每日">每日</SelectItem>
+                                <SelectItem value="每週">每週</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </Field>
                           <Field label="每日上限">
                             {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
@@ -5857,7 +5868,18 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                       {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                     </Field>
                     <Field label="計算方式">
-                      {textInput(settings.calc_type, (v) => setSettings((p) => ({ ...p, calc_type: v })))}
+                      <Select
+                        value={settings.calc_type || ""}
+                        onValueChange={(v) => setSettings((p) => ({ ...p, calc_type: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="請選擇" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="每日">每日</SelectItem>
+                          <SelectItem value="每週">每週</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <Field label="每日上限">
                       {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
