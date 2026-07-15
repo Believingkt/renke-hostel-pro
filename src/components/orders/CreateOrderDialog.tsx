@@ -2527,7 +2527,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             id="create-discount-amount"
             config={secondaryCurrencyConfig}
             rawMode={!!secondaryCurrencyConfig}
-            storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
+            storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
             inputClassName="h-12 text-base sm:h-10 sm:text-sm"
             placeholder="0"
             value={manualDiscountStr !== null ? (parseInt(manualDiscountStr, 10) || 0) : (totals.discount > 0 ? totals.discount : 0)}
@@ -2796,7 +2796,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
               rawMode={!!secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.deposit_amount}
               onChange={(v) => {
@@ -2849,7 +2849,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <DualCurrencyInput
               config={secondaryCurrencyConfig}
               rawMode={!!secondaryCurrencyConfig}
-              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
               inputClassName="h-12 text-base sm:h-10 sm:text-sm"
               value={form.security_deposit_amount}
               onChange={(v) => setForm({ ...form, security_deposit_amount: v })}
