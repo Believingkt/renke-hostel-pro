@@ -285,6 +285,13 @@ const OrderDetailPage = () => {
     setOrderDisplayCurrency(code);
     (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
   }, [order?.id, secondaryCurrencyConfig?.code]);
+  // 訂單顯示貨幣前綴（旅行日 JPY 時原幣顯示，其他 TWD）
+  const orderCurrencyPrefix = useMemo(() => {
+    if (!secondaryCurrencyConfig) return "NT$";
+    const cur = (orderDisplayCurrency || "TWD").toUpperCase();
+    return cur === secondaryCurrencyConfig.code.toUpperCase() ? secondaryCurrencyConfig.symbol : "NT$";
+  }, [orderDisplayCurrency, secondaryCurrencyConfig]);
+  const isRawCurrency = !!secondaryCurrencyConfig;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
@@ -2677,7 +2684,7 @@ const OrderDetailPage = () => {
                             )}
                             {displayRoomPrice > 0 && (
                               <div className="text-xs text-muted-foreground text-right">
-                                NT$ {displayRoomPrice.toLocaleString()}
+                                {orderCurrencyPrefix} {displayRoomPrice.toLocaleString()}
                               </div>
                             )}
                           </div>
@@ -2845,7 +2852,7 @@ const OrderDetailPage = () => {
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
                         {or.room_types?.name || "房型"} × {or.quantity} 間
                       </span>
-                      <span className="font-medium text-base md:text-base">NT$ {displayRoomPrice.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayRoomPrice.toLocaleString()}</span>
                     </div>
                   );
                 })}
@@ -2867,7 +2874,7 @@ const OrderDetailPage = () => {
                     {isEditing ? (
                       <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
-                      <span className="font-medium text-base md:text-base">NT$ {displayTotal.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayTotal.toLocaleString()}</span>
                     )}
                   </div>
                 </>
@@ -2881,9 +2888,9 @@ const OrderDetailPage = () => {
                 <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
               ) : (
                 order.discount_amount > 0 ? (
-                  <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
+                  <span className="font-medium text-base md:text-base text-destructive">- {orderCurrencyPrefix} {order.discount_amount.toLocaleString()}</span>
                 ) : (
-                  <span className="font-medium text-base md:text-base">NT$ 0</span>
+                  <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} 0</span>
                 )
               )}
             </div>
@@ -2970,7 +2977,7 @@ const OrderDetailPage = () => {
                   {items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center gap-2">
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">{item.label}</span>
-                      <span className="font-medium text-base md:text-base">NT$ {item.amount.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {item.amount.toLocaleString()}</span>
                     </div>
                   ))}
                   {addonNote && (
@@ -2982,7 +2989,7 @@ const OrderDetailPage = () => {
                   {items.length > 1 && (
                     <div className="flex justify-between items-center gap-2 pt-1">
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                      <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {addonTotal.toLocaleString()}</span>
                     </div>
                   )}
                 </>
@@ -2998,9 +3005,9 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm font-semibold">實收金額</span>
                     <div className="flex flex-col items-end leading-tight">
                       <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                        NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                        {orderCurrencyPrefix} {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
                       </span>
-                      {secondaryCurrencyConfig && (
+                      {secondaryCurrencyConfig && !isRawCurrency && (
                         <span className="text-[11px] text-muted-foreground">
                           ≈ {formatSecondary(
                             isEditing
@@ -3051,7 +3058,7 @@ const OrderDetailPage = () => {
                             </div>
                           ) : (
                             <span className="font-medium text-base md:text-base">
-                              NT$ {dep.toLocaleString()}
+                              {orderCurrencyPrefix} {dep.toLocaleString()}
                               <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>
                                 {depositPaid ? '已付' : '未付'}
                               </span>
@@ -3081,7 +3088,7 @@ const OrderDetailPage = () => {
                             </div>
                           ) : (
                             <span className="font-medium text-base md:text-base">
-                              NT$ {balance.toLocaleString()}
+                              {orderCurrencyPrefix} {balance.toLocaleString()}
                               <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>
                                 {balancePaid ? '已付' : '未付'}
                               </span>
@@ -3097,14 +3104,14 @@ const OrderDetailPage = () => {
                     {isEditing ? (
                       <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
                     ) : (
-                      <span className="font-medium text-base md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base text-primary">{orderCurrencyPrefix} {order.paid_amount.toLocaleString()}</span>
                     )}
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
                     <span className="font-medium text-base md:text-base text-destructive">
-                      NT$ {isEditing
+                      {orderCurrencyPrefix} {isEditing
                         ? ((editForm.total_price + editForm.addon_total - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
                         : (effectiveFinalPrice - order.paid_amount).toLocaleString()
                       }
@@ -3170,7 +3177,7 @@ const OrderDetailPage = () => {
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm text-muted-foreground flex-shrink-0">應繳金額</span>
                 <span className="font-semibold text-base text-primary">
-                  NT$ {Math.max(0, (order.final_price || 0) - (order.paid_amount || 0)).toLocaleString()}
+                  {orderCurrencyPrefix} {Math.max(0, (order.final_price || 0) - (order.paid_amount || 0)).toLocaleString()}
                 </span>
               </div>
               {expireAt && (
@@ -3230,11 +3237,11 @@ const OrderDetailPage = () => {
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-sm md:text-sm text-muted-foreground">單價</span>
-                      <span className="text-base md:text-sm">NT$ {petAddon.price_per_unit.toLocaleString()} / {petAddon.unit_label} / 晚</span>
+                      <span className="text-base md:text-sm">{orderCurrencyPrefix} {petAddon.price_per_unit.toLocaleString()} / {petAddon.unit_label} / 晚</span>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                      <span className="font-medium text-sm">NT$ {editForm.pet_plan_price.toLocaleString()}</span>
+                      <span className="font-medium text-sm">{orderCurrencyPrefix} {editForm.pet_plan_price.toLocaleString()}</span>
                     </div>
                     <Separator />
                   </div>
@@ -3283,7 +3290,7 @@ const OrderDetailPage = () => {
                             }}
                           />
                           <span className="text-muted-foreground">份</span>
-                          <span className="font-medium ml-auto">NT$ {detail.price.toLocaleString()}</span>
+                          <span className="font-medium ml-auto">{orderCurrencyPrefix} {detail.price.toLocaleString()}</span>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -3341,7 +3348,7 @@ const OrderDetailPage = () => {
                           <Separator className="my-2" />
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                            <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
+                            <span className="font-medium text-sm">{orderCurrencyPrefix} {editForm.meal_plan_total.toLocaleString()}</span>
                           </div>
                         </>
                       )}
@@ -3356,13 +3363,13 @@ const OrderDetailPage = () => {
                       {editForm.meal_plan_details.map((detail, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm md:text-sm">
                           <span className="text-muted-foreground">{format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份</span>
-                          <span className="font-medium ml-auto">NT$ {detail.price.toLocaleString()}</span>
+                          <span className="font-medium ml-auto">{orderCurrencyPrefix} {detail.price.toLocaleString()}</span>
                         </div>
                       ))}
                       <Separator className="my-2" />
                       <div className="flex justify-between items-center gap-2">
                         <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                        <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
+                        <span className="font-medium text-sm">{orderCurrencyPrefix} {editForm.meal_plan_total.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -3415,11 +3422,11 @@ const OrderDetailPage = () => {
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-sm md:text-sm text-muted-foreground">單價</span>
-                          <span className="text-base md:text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
+                          <span className="text-base md:text-sm">{orderCurrencyPrefix} {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                          <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
+                          <span className="font-medium text-sm">{orderCurrencyPrefix} {total.toLocaleString()}</span>
                         </div>
                       </div>
                     </React.Fragment>
@@ -3436,7 +3443,7 @@ const OrderDetailPage = () => {
                     <div className="flex justify-between items-center gap-2 pt-2">
                       <span className="text-sm md:text-sm font-semibold">加購總計</span>
                       <span className="font-bold text-lg md:text-lg text-primary">
-                        NT$ {grandTotal.toLocaleString()}
+                        {orderCurrencyPrefix} {grandTotal.toLocaleString()}
                       </span>
                     </div>
                   </>
@@ -3474,7 +3481,7 @@ const OrderDetailPage = () => {
                           </div>
                           <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                             <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                            <span className="font-medium text-base md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                            <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {order.pet_plan_price.toLocaleString()}</span>
                           </div>
                         </div>
                       </>
@@ -3493,13 +3500,13 @@ const OrderDetailPage = () => {
                                 <span className="text-muted-foreground flex-shrink-0">
                                   {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
                                 </span>
-                                <span className="font-medium">NT$ {detail.price.toLocaleString()}</span>
+                                <span className="font-medium">{orderCurrencyPrefix} {detail.price.toLocaleString()}</span>
                               </div>
                             ))}
                             <Separator className="my-2" />
                             <div className="flex justify-between items-center gap-2">
                               <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                              <span className="font-medium text-base md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
+                              <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {order.meal_plan_total.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -3516,7 +3523,7 @@ const OrderDetailPage = () => {
                           </div>
                           <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                             <span className="text-sm md:text-sm text-muted-foreground">小計</span>
-                            <span className="font-medium text-base md:text-base">NT$ {addon.total.toLocaleString()}</span>
+                            <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {addon.total.toLocaleString()}</span>
                           </div>
                         </div>
                       </React.Fragment>
@@ -3526,7 +3533,7 @@ const OrderDetailPage = () => {
                     <div className="flex justify-between items-center gap-2 pt-2">
                       <span className="text-sm md:text-sm font-semibold">加購總計</span>
                       <span className="font-bold text-lg md:text-lg text-primary">
-                        NT$ {grandTotal.toLocaleString()}
+                        {orderCurrencyPrefix} {grandTotal.toLocaleString()}
                       </span>
                     </div>
                   </>
@@ -3665,7 +3672,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold">實收金額</span>
               <span className={`font-bold text-lg ${editFinalPrice < 0 ? 'text-destructive' : ''}`}>
-                NT$ {editFinalPrice.toLocaleString()}
+                {orderCurrencyPrefix} {editFinalPrice.toLocaleString()}
               </span>
             </div>
             <Separator />
