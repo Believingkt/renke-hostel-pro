@@ -50,13 +50,13 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
     return () => { cancelled = true; };
   }, [orders, secondaryConfig]);
 
-  const renderAmount = (order: Order, amount: number) => {
-    if (!secondaryConfig) return <>NT$ {amount.toLocaleString()}</>;
-    // 旅行日等副幣別民宿：金額以原幣儲存（不做換算），依 display_currency 決定前綴
+  const currencyPrefix = (order: Order) => {
+    if (!secondaryConfig) return "NT$";
     const orderCur = (displayCurrencyMap.get(order.id) || "TWD").toUpperCase();
-    const isSec = orderCur === secondaryConfig.code.toUpperCase();
-    const prefix = isSec ? secondaryConfig.symbol : "NT$";
-    return <>{prefix} {amount.toLocaleString()}</>;
+    return orderCur === secondaryConfig.code.toUpperCase() ? secondaryConfig.symbol : "NT$";
+  };
+  const renderAmount = (order: Order, amount: number) => {
+    return <>{currencyPrefix(order)} {amount.toLocaleString()}</>;
   };
   const location = useLocation();
   const navigate = useNavigate();
