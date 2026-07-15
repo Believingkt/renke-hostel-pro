@@ -133,6 +133,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, [secondaryCurrencyConfig?.code]);
   const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
     const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
+    if ((createDisplayCurrency || "TWD").toUpperCase() === code.toUpperCase()) return;
+    // 若已輸入手動折扣、訂金、押金 → 提示會清空
+    const manualDiscount = manualDiscountInputRef.current ? parseInt(manualDiscountInputRef.current, 10) : 0;
+    const deposit = Number(form?.deposit_amount) || 0;
+    const secDeposit = Number(form?.security_deposit_amount) || 0;
+    const hasAmounts = (manualDiscount > 0) || (deposit > 0) || (secDeposit > 0);
+    if (hasAmounts) {
+      const ok = window.confirm(`切換幣別會清空手動折扣 / 訂金 / 押金（避免 NT$ 與 ${secondaryCurrencyConfig?.symbol || "外幣"} 混算錯誤）。確定切換嗎？`);
+      if (!ok) return;
+      manualDiscountInputRef.current = "";
+      setManualDiscountStr(null);
+      setForm(f => ({ ...f, deposit_amount: 0, security_deposit_amount: 0 }));
+    }
     setCreateDisplayCurrency(code);
   };
   const createForcedMode: "TWD" | "SEC" | null = secondaryCurrencyConfig
