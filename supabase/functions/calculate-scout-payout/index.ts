@@ -179,16 +179,36 @@ serve(async (req) => {
     const externalScoutIds = new Set(externalScouts.map((p) => p.user_id as string));
     const profiles = [...teamScouts, ...externalScouts];
 
-    // venue_name → accommodation_id
-    const venueToAccId = new Map<string, string>();
+    // 正職目標：優先用 venue_id → kol_venues.accommodation_id；fallback 用 venue_name → accommodation_info
+    const fulltimeVenueIds = Array.from(
+      new Set(
+        (fulltimeTargets ?? [])
+          .map((t: any) => t.venue_id as string | null)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    const venueIdToAccId = new Map<string, string>();
+    if (fulltimeVenueIds.length > 0) {
+      const { data: kvRows, error: kvErr } = await supabase
+        .from("kol_venues")
+        .select("id, accommodation_id")
+        .in("id", fulltimeVenueIds);
+      if (kvErr) throw kvErr;
+      for (const kv of kvRows ?? []) {
+        if (kv.accommodation_id) venueIdToAccId.set(kv.id as string, kv.accommodation_id as string);
+      }
+    }
+    // fallback: venue_name → accommodation_id（過渡期）
+    const venueNameToAccId = new Map<string, string>();
     for (const a of accsRes.data ?? []) {
-      if (a.name) venueToAccId.set(a.name, a.id as string);
+      if (a.name) venueNameToAccId.set(a.name, a.id as string);
     }
 
-    // 正職目標 venue_name → accommodation_id + fulltime_min
     const fulltimeByAcc = new Map<string, number>();
     for (const t of fulltimeTargets) {
-      const accId = venueToAccId.get(t.venue_name ?? "");
+      const accId =
+        (t.venue_id ? venueIdToAccId.get(t.venue_id as string) : undefined) ??
+        venueNameToAccId.get(t.venue_name ?? "");
       if (accId) fulltimeByAcc.set(accId, Number(t.fulltime_min ?? 0));
     }
 
