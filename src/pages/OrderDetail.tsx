@@ -2626,7 +2626,7 @@ const OrderDetailPage = () => {
                               <DualCurrencyInput
                                 config={secondaryCurrencyConfig}
                                 rawMode={!!secondaryCurrencyConfig}
-                                storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
+                                storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig}
                                 className="w-full"
                                 inputClassName="h-8 text-xs"
                                 value={or.room_price}
@@ -2886,7 +2886,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayTotal.toLocaleString()}</span>
                     )}
@@ -2899,7 +2899,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
+                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-base md:text-base text-destructive">- {orderCurrencyPrefix} {order.discount_amount.toLocaleString()}</span>
@@ -2932,14 +2932,14 @@ const OrderDetailPage = () => {
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                    <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.addon_total} onChange={(v) => setEditForm(f => ({ ...f, addon_total: v }))} />
+                    <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.addon_total} onChange={(v) => setEditForm(f => ({ ...f, addon_total: v }))} />
                   </div>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購金額</span>
                     <DualCurrencyInput
                       config={secondaryCurrencyConfig}
                       rawMode={!!secondaryCurrencyConfig}
-                      storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange}
+                      storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig}
                       className="w-[150px]"
                       inputClassName="h-10 text-base md:h-8 md:text-sm"
                       placeholder="0"
@@ -3116,7 +3116,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base text-primary">{orderCurrencyPrefix} {order.paid_amount.toLocaleString()}</span>
                     )}
