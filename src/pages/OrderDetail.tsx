@@ -2004,7 +2004,7 @@ const OrderDetailPage = () => {
               </div>
               {/* 手機：主 CTA + 更多 */}
               <div className="flex sm:hidden gap-2 w-full">
-                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' ? (
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && !isNonPayableCurrency ? (
                   <Button onClick={() => setShowPaymentDialog(true)} className="flex-1 text-sm h-11">
                     <CreditCard className="h-4 w-4 mr-1.5" />收款
                   </Button>
