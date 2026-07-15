@@ -29,6 +29,8 @@ interface DualCurrencyInputProps {
    * 用於旅行日民宿：訂單金額實際就以 JPY 或 TWD 存原數字，不需要換算。
    */
   rawMode?: boolean;
+  /** 隱藏內建的幣別切換按鈕（用於整張訂單一鍵切換時） */
+  hideToggle?: boolean;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
@@ -61,6 +63,7 @@ export function DualCurrencyInput({
   onModeChange,
   forcedMode,
   rawMode,
+  hideToggle,
 }: DualCurrencyInputProps) {
   const hasSecondary = !!(config && config.rate > 0);
   const [mode, setMode] = useState<"TWD" | "SEC">(() => forcedMode ?? readPref(storageKey, hasSecondary));
@@ -165,16 +168,22 @@ export function DualCurrencyInput({
               inputClassName,
             )}
           />
-          <button
-            type="button"
-            onClick={toggle}
-            disabled={disabled}
-            className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
-            tabIndex={-1}
-            title="切換輸入幣別"
-          >
-            {currencyLabel}
-          </button>
+          {hideToggle ? (
+            <span className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground select-none">
+              {currencyLabel}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={toggle}
+              disabled={disabled}
+              className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
+              tabIndex={-1}
+              title="切換輸入幣別"
+            >
+              {currencyLabel}
+            </button>
+          )}
         </div>
       ) : (
         <Input
