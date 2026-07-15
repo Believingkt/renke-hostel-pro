@@ -5172,96 +5172,142 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
           });
           if (loading) return null;
           if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
-          const totalCount = filtered.length;
-          const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-          const currentPage = Math.min(page, totalPages);
-          const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+          // 分組：PMS 母館 / 子館別（依 accommodation_id 分組） / 外部合作場域
+          const parents = filtered
+            .filter((r) => r.accommodation_id && !r.room_type_id)
+            .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+          const childrenByParent = new Map<string, VenueRow[]>();
+          filtered
+            .filter((r) => r.room_type_id)
+            .forEach((r) => {
+              const key = r.accommodation_id ?? "__orphan__";
+              const arr = childrenByParent.get(key) ?? [];
+              arr.push(r);
+              childrenByParent.set(key, arr);
+            });
+          childrenByParent.forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant")));
+          const externals = filtered
+            .filter((r) => !r.accommodation_id && !r.room_type_id)
+            .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+
+          // 母館不在列表時的孤立子館
+          const orphanChildren: VenueRow[] = [];
+          childrenByParent.forEach((arr, key) => {
+            if (!parents.some((p) => p.accommodation_id === key)) orphanChildren.push(...arr);
+          });
+
+          const levelBadge = (r: VenueRow) => {
+            if (r.accommodation_id && !r.room_type_id)
+              return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">PMS</Badge>;
+            if (r.room_type_id)
+              return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">子館</Badge>;
+            return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">合作</Badge>;
+          };
+
+          const renderRow = (r: VenueRow, indent = false) => (
+            <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
+              <TableCell className={indent ? "pl-8" : ""}>
+                <div className="flex items-center gap-2">
+                  {indent && <span className="text-muted-foreground text-xs">└</span>}
+                  <span>{r.name}</span>
+                  {levelBadge(r)}
+                </div>
+              </TableCell>
+              <TableCell>{r.type || "-"}</TableCell>
+              <TableCell>
+                {r.is_active ? (
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                    啟用
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                    停用
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {r.hasSettings ? (
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                    已設定
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                    未設定
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                {isManager && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEdit(r, "edit");
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleActive(r);
+                      }}
+                    >
+                      {r.is_active ? "停用" : "啟用"}
+                    </Button>
+                  </>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+
+          const SectionHeader = ({ label }: { label: string }) => (
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableCell colSpan={5} className="text-xs font-medium text-muted-foreground py-1.5">
+                {label}
+              </TableCell>
+            </TableRow>
+          );
+
           return (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>場域名稱</TableHead>
-                    <TableHead>類型</TableHead>
-                    <TableHead>狀態</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paged.map((r) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell>{r.type || "-"}</TableCell>
-                      <TableCell>
-                        {r.is_active ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                            啟用
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                            停用
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {isManager && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEdit(r, "edit");
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleActive(r);
-                              }}
-                            >
-                              {r.is_active ? "停用" : "啟用"}
-                            </Button>
-                          </>
-                        )}
-                      </TableCell>
+              <div className="text-xs text-muted-foreground">共 {filtered.length} 筆</div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>場域名稱</TableHead>
+                      <TableHead>類型</TableHead>
+                      <TableHead>啟用</TableHead>
+                      <TableHead>設定</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-muted-foreground">
-                  共 {totalCount} 筆，第 {currentPage} / {totalPages} 頁
-                </p>
-                {totalPages > 1 && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      上一頁
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      下一頁
-                    </Button>
-                  </div>
-                )}
+                  </TableHeader>
+                  <TableBody>
+                    {parents.length > 0 && <SectionHeader label="PMS 母館" />}
+                    {parents.map((p) => (
+                      <>
+                        {renderRow(p)}
+                        {(childrenByParent.get(p.accommodation_id!) ?? []).map((c) => renderRow(c, true))}
+                      </>
+                    ))}
+                    {orphanChildren.length > 0 && <SectionHeader label="子館別（無對應母館）" />}
+                    {orphanChildren.map((c) => renderRow(c, true))}
+                    {externals.length > 0 && <SectionHeader label="外部合作場域" />}
+                    {externals.map((e) => renderRow(e))}
+                  </TableBody>
+                </Table>
               </div>
             </>
           );
         })()}
+
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogContent className="overflow-x-hidden">
