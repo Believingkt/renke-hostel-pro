@@ -170,15 +170,15 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           const balancePaid = order.payment_status === 'paid';
                           return (
                             <div className="text-xs text-muted-foreground font-normal leading-tight mt-0.5">
-                              <div>訂金 NT$ {dep.toLocaleString()} <span className={depositPaid ? 'text-primary' : 'text-destructive'}>{depositPaid ? '已付' : '未付'}</span></div>
-                              <div>尾款 NT$ {(order.final_price - dep).toLocaleString()} <span className={balancePaid ? 'text-primary' : 'text-destructive'}>{balancePaid ? '已付' : '未付'}</span></div>
+                              <div>訂金 {currencyPrefix(order)} {dep.toLocaleString()} <span className={depositPaid ? 'text-primary' : 'text-destructive'}>{depositPaid ? '已付' : '未付'}</span></div>
+                              <div>尾款 {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()} <span className={balancePaid ? 'text-primary' : 'text-destructive'}>{balancePaid ? '已付' : '未付'}</span></div>
                             </div>
                           );
                         }
                         if (order.paid_amount > 0 && order.paid_amount < order.final_price) {
                           return (
                             <div className="text-xs text-muted-foreground font-normal">
-                              已付 NT$ {order.paid_amount.toLocaleString()}
+                              已付 {currencyPrefix(order)} {order.paid_amount.toLocaleString()}
                             </div>
                           );
                         }
