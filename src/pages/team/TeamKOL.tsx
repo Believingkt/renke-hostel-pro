@@ -5276,7 +5276,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                             <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
-                            <Item label="個人目標" value={showText(settings.personal_target)} />
                             <Item label="群組名稱" value={showText(settings.group_name)} />
                             <Item label="計算方式" value={showText(settings.calc_type)} />
                             <Item label="每日上限" value={showText(settings.daily_limit)} />
@@ -5361,11 +5360,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Field label="個人目標">
-                            {numInput(settings.personal_target, (v) =>
-                              setSettings((p) => ({ ...p, personal_target: v })),
-                            )}
-                          </Field>
                           <Field label="群組名稱">
                             {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                           </Field>
@@ -5796,7 +5790,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                           <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
-                          <Item label="個人目標" value={showText(settings.personal_target)} />
+                          
                           <Item label="群組名稱" value={showText(settings.group_name)} />
                           <Item label="計算方式" value={showText(settings.calc_type)} />
                           <Item label="每日上限" value={showText(settings.daily_limit)} />
@@ -5859,11 +5853,6 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Field label="個人目標">
-                      {numInput(settings.personal_target, (v) =>
-                        setSettings((p) => ({ ...p, personal_target: v })),
-                      )}
-                    </Field>
                     <Field label="群組名稱">
                       {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                     </Field>
