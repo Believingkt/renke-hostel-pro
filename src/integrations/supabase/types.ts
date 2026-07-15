@@ -340,6 +340,8 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_active: boolean
+          kol_quota_mode: string
+          kol_quota_tracked_package_ids: string[]
           latitude: number | null
           line_id: string | null
           longitude: number | null
@@ -436,6 +438,8 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_active?: boolean
+          kol_quota_mode?: string
+          kol_quota_tracked_package_ids?: string[]
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
@@ -532,6 +536,8 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_active?: boolean
+          kol_quota_mode?: string
+          kol_quota_tracked_package_ids?: string[]
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
@@ -4024,6 +4030,7 @@ export type Database = {
           created_at: string
           id: string
           note: string | null
+          package_id: string | null
           quota: number
           updated_at: string
           year_month: string
@@ -4033,6 +4040,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          package_id?: string | null
           quota?: number
           updated_at?: string
           year_month: string
@@ -4042,6 +4050,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          package_id?: string | null
           quota?: number
           updated_at?: string
           year_month?: string
@@ -4052,6 +4061,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_reciprocal_monthly_quotas_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -8933,14 +8949,24 @@ export type Database = {
       }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
-      count_kol_reciprocal_orders: {
-        Args: {
-          _accommodation_id: string
-          _exclude_order_id?: string
-          _year_month: string
-        }
-        Returns: number
-      }
+      count_kol_reciprocal_orders:
+        | {
+            Args: {
+              _accommodation_id: string
+              _exclude_order_id?: string
+              _year_month: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              _accommodation_id: string
+              _exclude_order_id?: string
+              _package_id?: string
+              _year_month: string
+            }
+            Returns: number
+          }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {
