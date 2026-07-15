@@ -29,6 +29,8 @@ interface DualCurrencyInputProps {
    * 用於旅行日民宿：訂單金額實際就以 JPY 或 TWD 存原數字，不需要換算。
    */
   rawMode?: boolean;
+  /** 隱藏內建的幣別切換按鈕（用於整張訂單一鍵切換時） */
+  hideToggle?: boolean;
 }
 
 const LS_PREFIX = "lakeze-input-currency";
