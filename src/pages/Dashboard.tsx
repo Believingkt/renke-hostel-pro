@@ -317,6 +317,7 @@ const Dashboard = () => {
                 isUpdating={isLiveUpdating}
               />
             )}
+          </>
         )}
       </div>
 
