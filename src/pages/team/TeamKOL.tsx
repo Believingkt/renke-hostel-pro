@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -443,7 +444,6 @@ export default function TeamKOL() {
         <TabsContent value="venues" className="mt-4">
           <div className="space-y-4">
             <VenuesCard isManager={isManager} />
-            <PmsVenueSettingsCard isManager={isManager} />
           </div>
         </TabsContent>
 
@@ -4770,6 +4770,10 @@ interface VenueRow {
   name: string;
   type: string | null;
   is_active: boolean;
+  accommodation_id: string | null;
+  room_type_id: string | null;
+  parent_name: string | null;
+  hasSettings: boolean;
 }
 
 interface VenueSettingsRow {
@@ -4876,6 +4880,198 @@ function humanizeVenueSettingsError(message: string): string {
   return message;
 }
 
+interface MonthlyLimitRow {
+  id: string;
+  venue_id: string;
+  year_month: string;
+  monthly_limit: number;
+  note: string | null;
+}
+
+function MonthlyLimitsSection({ venueId, canEdit }: { venueId: string; canEdit: boolean }) {
+  const [rows, setRows] = useState<MonthlyLimitRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const [limitVal, setLimitVal] = useState<string>("");
+  const [noteVal, setNoteVal] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!venueId) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_venue_monthly_limits" as any)
+      .select("id, venue_id, year_month, monthly_limit, note")
+      .eq("venue_id", venueId)
+      .order("year_month", { ascending: false });
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as unknown as MonthlyLimitRow[]);
+    setLoading(false);
+  }, [venueId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleSave = async () => {
+    if (limitVal.trim() === "") {
+      toast.error("尚未填寫月上限");
+      return;
+    }
+    const n = parseInt(limitVal, 10);
+    if (Number.isNaN(n) || n < 0) {
+      toast.error("月上限需為 0 或正整數");
+      return;
+    }
+    const ym = `${year}-${String(month).padStart(2, "0")}`;
+    setSaving(true);
+    const { error } = await supabase
+      .from("kol_venue_monthly_limits" as any)
+      .upsert(
+        { venue_id: venueId, year_month: ym, monthly_limit: n, note: noteVal.trim() || null },
+        { onConflict: "venue_id,year_month" },
+      );
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已儲存");
+    setLimitVal("");
+    setNoteVal("");
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("kol_venue_monthly_limits" as any).delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已刪除");
+    setDeleteId(null);
+    load();
+  };
+
+  const yearOpts = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
+
+  return (
+    <Accordion type="single" collapsible className="border rounded-md">
+      <AccordionItem value="monthly" className="border-0">
+        <AccordionTrigger className="px-3 py-2 text-sm">逐月上限設定</AccordionTrigger>
+        <AccordionContent className="px-3 pb-3 space-y-3">
+          {canEdit && (
+            <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-xs">年份</Label>
+                  <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {yearOpts.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">月份</Label>
+                  <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">月上限</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={limitVal}
+                    onChange={(e) => setLimitVal(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">備註</Label>
+                  <Input value={noteVal} onChange={(e) => setNoteVal(e.target.value)} placeholder="（選填）" />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? "儲存中…" : "儲存"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                當月紀錄填 0 = 當月停邀；不填此表格 = 沿用上方固定月上限；固定月上限留空 = 不限制
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <p className="text-xs text-muted-foreground text-center py-2">載入中…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">尚無逐月紀錄</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>月份</TableHead>
+                    <TableHead>月上限</TableHead>
+                    <TableHead>備註</TableHead>
+                    {canEdit && <TableHead className="text-right">操作</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.year_month}</TableCell>
+                      <TableCell>{r.monthly_limit}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.note || "-"}</TableCell>
+                      {canEdit && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => setDeleteId(r.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>刪除逐月上限？</AlertDialogTitle>
+                <AlertDialogDescription>此操作無法復原。</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>刪除</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
 
 
 function VenuesCard({ isManager }: { isManager: boolean }) {
@@ -4889,11 +5085,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [filterName, setFilterName] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
-  useEffect(() => {
-    setPage(1);
-  }, [filterName, filterType, filterStatus]);
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
@@ -4909,18 +5100,36 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("kol_venues" as any)
-      .select("id, name, type, is_active")
-      .order("name");
-    if (error) toast.error(error.message);
-    setRows((data ?? []) as unknown as VenueRow[]);
+    const [{ data: venueRows, error: vErr }, { data: accoms }, { data: settingsRows }] = await Promise.all([
+      supabase
+        .from("kol_venues" as any)
+        .select("id, name, type, is_active, accommodation_id, room_type_id")
+        .order("name"),
+      supabase.from("accommodation_info").select("id, name"),
+      supabase.from("kol_venue_settings" as any).select("venue_id"),
+    ]);
+    if (vErr) toast.error(vErr.message);
+    const accNameMap = new Map<string, string>();
+    ((accoms ?? []) as any[]).forEach((a) => accNameMap.set(a.id, a.name));
+    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
+    const enriched: VenueRow[] = ((venueRows ?? []) as any[]).map((v) => ({
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      is_active: v.is_active,
+      accommodation_id: v.accommodation_id ?? null,
+      room_type_id: v.room_type_id ?? null,
+      parent_name: v.accommodation_id ? accNameMap.get(v.accommodation_id) ?? null : null,
+      hasSettings: settingsSet.has(v.id),
+    }));
+    setRows(enriched);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
 
   const handleAdd = async () => {
     const n = newName.trim();
@@ -5156,96 +5365,140 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
           });
           if (loading) return null;
           if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
-          const totalCount = filtered.length;
-          const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-          const currentPage = Math.min(page, totalPages);
-          const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+          // 分組：PMS 母館 / 子館別（依 accommodation_id 分組） / 外部合作場域
+          const parents = filtered
+            .filter((r) => r.accommodation_id && !r.room_type_id)
+            .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+          const childrenByParent = new Map<string, VenueRow[]>();
+          filtered
+            .filter((r) => r.room_type_id)
+            .forEach((r) => {
+              const key = r.accommodation_id ?? "__orphan__";
+              const arr = childrenByParent.get(key) ?? [];
+              arr.push(r);
+              childrenByParent.set(key, arr);
+            });
+          childrenByParent.forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant")));
+          const externals = filtered
+            .filter((r) => !r.accommodation_id && !r.room_type_id)
+            .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+
+          // 母館不在列表時的孤立子館
+          const orphanChildren: VenueRow[] = [];
+          childrenByParent.forEach((arr, key) => {
+            if (!parents.some((p) => p.accommodation_id === key)) orphanChildren.push(...arr);
+          });
+
+          const levelBadge = (r: VenueRow) => {
+            if (r.accommodation_id && !r.room_type_id)
+              return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">PMS</Badge>;
+            if (r.room_type_id)
+              return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">子館</Badge>;
+            return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">合作</Badge>;
+          };
+
+          const renderRow = (r: VenueRow, indent = false) => (
+            <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
+              <TableCell className={indent ? "pl-8" : ""}>
+                <div className="flex items-center gap-2">
+                  {indent && <span className="text-muted-foreground text-xs">└</span>}
+                  <span>{r.name}</span>
+                  {levelBadge(r)}
+                </div>
+              </TableCell>
+              <TableCell>{r.type || "-"}</TableCell>
+              <TableCell>
+                {r.is_active ? (
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                    啟用
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                    停用
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {r.hasSettings ? (
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                    已設定
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                    未設定
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                {isManager && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEdit(r, "edit");
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleActive(r);
+                      }}
+                    >
+                      {r.is_active ? "停用" : "啟用"}
+                    </Button>
+                  </>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+
+          const SectionHeader = ({ label }: { label: string }) => (
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableCell colSpan={5} className="text-xs font-medium text-muted-foreground py-1.5">
+                {label}
+              </TableCell>
+            </TableRow>
+          );
+
           return (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>場域名稱</TableHead>
-                    <TableHead>類型</TableHead>
-                    <TableHead>狀態</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paged.map((r) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell>{r.type || "-"}</TableCell>
-                      <TableCell>
-                        {r.is_active ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                            啟用
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                            停用
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {isManager && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEdit(r, "edit");
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleActive(r);
-                              }}
-                            >
-                              {r.is_active ? "停用" : "啟用"}
-                            </Button>
-                          </>
-                        )}
-                      </TableCell>
+              <div className="text-xs text-muted-foreground">共 {filtered.length} 筆</div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>場域名稱</TableHead>
+                      <TableHead>類型</TableHead>
+                      <TableHead>啟用</TableHead>
+                      <TableHead>設定</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-muted-foreground">
-                  共 {totalCount} 筆，第 {currentPage} / {totalPages} 頁
-                </p>
-                {totalPages > 1 && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      上一頁
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      下一頁
-                    </Button>
-                  </div>
-                )}
+                  </TableHeader>
+                  <TableBody>
+                    {parents.length > 0 && <SectionHeader label="PMS 母館" />}
+                    {parents.flatMap((p) => [
+                      renderRow(p),
+                      ...(childrenByParent.get(p.accommodation_id!) ?? []).map((c) => renderRow(c, true)),
+                    ])}
+                    {orphanChildren.length > 0 && <SectionHeader label="子館別（無對應母館）" />}
+                    {orphanChildren.map((c) => renderRow(c, true))}
+                    {externals.length > 0 && <SectionHeader label="外部合作場域" />}
+                    {externals.map((e) => renderRow(e))}
+                  </TableBody>
+                </Table>
               </div>
             </>
           );
         })()}
+
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogContent className="overflow-x-hidden">
@@ -5538,9 +5791,16 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                       </>
                     )}
                   </section>
+
+                  {editVenue && (
+                    <section className="space-y-3">
+                      <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
+                    </section>
+                  )}
                 </>
               )}
             </div>
+
 
             <SheetFooter>
               {readOnly ? (
@@ -5565,498 +5825,9 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   );
 }
 
-// ============================================================
-// ====== PMS 民宿設定（kol_venue_settings by accommodation_info） ======
-// ============================================================
-interface PmsAccomRow {
-  id: string;
-  name: string;
-  hasSettings: boolean;
-}
 
-function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
-  const [rows, setRows] = useState<(PmsAccomRow & { venue_id: string | null })[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editVenueId, setEditVenueId] = useState<string | null>(null);
-  const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
-  const [loadingSettings, setLoadingSettings] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [{ data: accoms, error: aErr }, { data: venueRows, error: vErr }, { data: settingsRows, error: sErr }] = await Promise.all([
-      supabase
-        .from("accommodation_info")
-        .select("id, name")
-        .eq("is_active", true)
-        .neq("name", "奧丁丁測試")
-        .order("name"),
-      supabase.from("kol_venues" as any).select("id, accommodation_id, room_type_id"),
-      supabase.from("kol_venue_settings" as any).select("venue_id"),
-    ]);
-    if (aErr) toast.error(aErr.message);
-    if (vErr) toast.error(vErr.message);
-    if (sErr) toast.error(sErr.message);
-    // 建立 accommodation_id → kol_venues.id 母館映射
-    const accToVenueId = new Map<string, string>();
-    ((venueRows ?? []) as any[]).forEach((v) => {
-      if (v.accommodation_id && !v.room_type_id) accToVenueId.set(v.accommodation_id, v.id);
-    });
-    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
-    setRows(
-      ((accoms ?? []) as any[]).map((a) => {
-        const vid = accToVenueId.get(a.id) ?? null;
-        return {
-          id: a.id,
-          name: a.name,
-          venue_id: vid,
-          hasSettings: vid ? settingsSet.has(vid) : false,
-        };
-      }),
-    );
-    setLoading(false);
-  }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const loadSettings = async (name: string, venueId: string | null) => {
-    setLoadingSettings(true);
-    setSettings(EMPTY_SETTINGS(name, venueId));
-    if (!venueId) {
-      setLoadingSettings(false);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("kol_venue_settings" as any)
-      .select("*")
-      .eq("venue_id", venueId)
-      .maybeSingle();
-    if (error && error.code !== "PGRST116") toast.error(error.message);
-    if (data) setSettings(data as unknown as VenueSettingsRow);
-    setLoadingSettings(false);
-  };
-
-  const openEdit = async (name: string, venueId: string | null) => {
-    setEditName(name);
-    setEditVenueId(venueId);
-    setEditOpen(true);
-    await loadSettings(name, venueId);
-  };
-
-  const openView = async (name: string, venueId: string | null) => {
-    setEditName(name);
-    setEditVenueId(venueId);
-    setViewOpen(true);
-    await loadSettings(name, venueId);
-  };
-
-  const switchToEdit = () => {
-    setViewOpen(false);
-    setEditOpen(true);
-  };
-
-  const toggleWeekday = (field: "allowed_weekdays" | "special_weekdays", day: number) => {
-    setSettings((prev) => {
-      const cur = prev[field] ?? [];
-      const next = cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day].sort((a, b) => a - b);
-      return { ...prev, [field]: next };
-    });
-  };
-
-  const saveEdit = async () => {
-    const n = editName.trim();
-    if (!n) return;
-    if (!editVenueId) {
-      toast.error("找不到對應的場域主檔（kol_venues 需先建立母館紀錄）");
-      return;
-    }
-    const vErrMsg = validateVenueSettings(settings);
-    if (vErrMsg) {
-      toast.error(vErrMsg);
-      return;
-    }
-    setSaving(true);
-    const payload: Partial<VenueSettingsRow> = {
-      venue_id: editVenueId,
-      venue_name: n,
-      group_name: settings.group_name || null,
-      calc_type: settings.calc_type || null,
-      daily_limit: settings.daily_limit,
-      collab_start: settings.collab_start || null,
-      collab_end: settings.collab_end || null,
-      allowed_weekdays: settings.allowed_weekdays,
-      special_start: settings.special_start || null,
-      special_end: settings.special_end || null,
-      special_limit: settings.special_limit,
-      special_weekdays: settings.special_weekdays,
-      monthly_limit: settings.monthly_limit,
-      link_rule: settings.link_rule || null,
-      order_number_rule: settings.order_number_rule || null,
-      is_active: settings.is_active,
-      is_starlink: settings.is_starlink,
-      personal_target: settings.personal_target,
-      contact_email: settings.contact_email?.trim() || null,
-      has_external_platform: settings.has_external_platform,
-    };
-    const { data: existing } = await supabase
-      .from("kol_venue_settings" as any)
-      .select("id")
-      .eq("venue_id", editVenueId)
-      .maybeSingle();
-    if (existing) {
-      const { error } = await supabase
-        .from("kol_venue_settings" as any)
-        .update(payload)
-        .eq("venue_id", editVenueId);
-      if (error) {
-        setSaving(false);
-        toast.error(humanizeVenueSettingsError(error.message));
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("kol_venue_settings" as any).insert(payload);
-      if (error) {
-        setSaving(false);
-        toast.error(humanizeVenueSettingsError(error.message));
-        return;
-      }
-    }
-    setSaving(false);
-    toast.success("已儲存");
-    setEditOpen(false);
-    load();
-  };
-
-  const numInput = (val: number | null, set: (v: number | null) => void) => (
-    <Input
-      type="number"
-      value={val ?? ""}
-      onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))}
-      className="h-9"
-    />
-  );
-  const textInput = (val: string | null, set: (v: string) => void) => (
-    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
-  );
-  const dateInput = (val: string | null, set: (v: string) => void) => (
-    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
-  );
-
-  return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div>
-          <h3 className="font-semibold">PMS場域管理</h3>
-          <p className="text-xs text-muted-foreground">
-            管理 PMS 民宿的 KOL 庫存設定（入住配額、允許星期等）
-          </p>
-        </div>
-
-        {loading ? null : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>民宿名稱</TableHead>
-                <TableHead>設定狀態</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow
-                  key={r.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => openView(r.name, r.venue_id)}
-                >
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell>
-                    {r.hasSettings ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                        已設定
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                        未設定
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isManager && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(r.name, r.venue_id);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-
-        <Sheet open={viewOpen} onOpenChange={setViewOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto overflow-x-hidden">
-            <SheetHeader>
-              <div className="flex items-center justify-between gap-2 pr-8">
-                <SheetTitle>場域明細 — {editName}</SheetTitle>
-                {isManager && (
-                  <Button size="sm" onClick={switchToEdit}>
-                    <Pencil className="mr-1 h-4 w-4" />
-                    編輯
-                  </Button>
-                )}
-              </div>
-            </SheetHeader>
-
-            <div className="space-y-6 py-4">
-              {(() => {
-                const dash = "—";
-                const showText = (v: any) => (v === null || v === undefined || v === "" ? dash : String(v));
-                const showBool = (v: boolean, on = "啟用", off = "停用") => (v ? `✓ ${on}` : `✗ ${off}`);
-                const showDays = (arr: number[] | null | undefined) =>
-                  arr && arr.length > 0
-                    ? arr
-                        .slice()
-                        .sort((a, b) => a - b)
-                        .map((i) => WEEKDAYS[i])
-                        .join("、")
-                    : dash;
-                const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                    <div className="text-sm">{value}</div>
-                  </div>
-                );
-                return (
-                  <>
-                    <section className="space-y-3">
-                      <h4 className="font-semibold text-sm">基本資訊</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                        <Item label="民宿名稱" value={showText(editName)} />
-                        <Item label="設定狀態" value={showBool(settings.is_active)} />
-                      </div>
-                    </section>
-                    <section className="space-y-3">
-                      <h4 className="font-semibold text-sm">邀約規則設定</h4>
-                      {loadingSettings ? (
-                        <p className="text-xs text-muted-foreground">載入中…</p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                          <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
-                          
-                          <Item label="群組名稱" value={showText(settings.group_name)} />
-                          <Item label="計算方式" value={showText(settings.calc_type)} />
-                          <Item label="每日上限" value={showText(settings.daily_limit)} />
-                          <Item label="每月上限" value={showText(settings.monthly_limit)} />
-                          <Item label="合作開始日" value={showText(settings.collab_start)} />
-                          <Item label="合作結束日" value={showText(settings.collab_end)} />
-                          <div className="col-span-2">
-                            <Item label="可邀星期" value={showDays(settings.allowed_weekdays)} />
-                          </div>
-                          <Item label="特殊期間開始" value={showText(settings.special_start)} />
-                          <Item label="特殊期間結束" value={showText(settings.special_end)} />
-                          <Item label="特殊期間上限" value={showText(settings.special_limit)} />
-                          <div className="col-span-2">
-                            <Item label="特殊期間可邀星期" value={showDays(settings.special_weekdays)} />
-                          </div>
-                          <div className="col-span-2">
-                            <Item label="連結規則" value={showText(settings.link_rule)} />
-                          </div>
-                          <div className="col-span-2">
-                            <Item label="訂單編號規則" value={showText(settings.order_number_rule)} />
-                          </div>
-                          <Item label="聯絡 Email" value={showText(settings.contact_email)} />
-                          <Item label="有外部訂房平台" value={showBool(settings.has_external_platform, "是", "否")} />
-                        </div>
-                      )}
-                    </section>
-                  </>
-                );
-              })()}
-            </div>
-
-            <SheetFooter>
-              <Button variant="outline" onClick={() => setViewOpen(false)}>
-                關閉
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
-
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-            <DialogHeader>
-              <DialogTitle>編輯 PMS 民宿設定 — {editName}</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              {loadingSettings ? (
-                <p className="text-xs text-muted-foreground">載入中…</p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="pms-starlink"
-                      checked={settings.is_starlink}
-                      onCheckedChange={(v) => setSettings((p) => ({ ...p, is_starlink: v === true }))}
-                    />
-                    <Label htmlFor="pms-starlink" className="cursor-pointer">
-                      星鏈場域
-                    </Label>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Field label="群組名稱">
-                      {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
-                    </Field>
-                    <Field label="計算方式">
-                      <Select
-                        value={settings.calc_type || ""}
-                        onValueChange={(v) => setSettings((p) => ({ ...p, calc_type: v }))}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="請選擇" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="每日">每日</SelectItem>
-                          <SelectItem value="每週">每週</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="每日上限">
-                      {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
-                    </Field>
-                    <Field label="每月上限">
-                      {numInput(settings.monthly_limit, (v) => setSettings((p) => ({ ...p, monthly_limit: v })))}
-                    </Field>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Field label="合作開始日">
-                      {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
-                    </Field>
-                    <Field label="合作結束日">
-                      {dateInput(settings.collab_end, (v) => setSettings((p) => ({ ...p, collab_end: v })))}
-                    </Field>
-                  </div>
-
-                  <Field label="可邀星期">
-                    <div className="flex flex-wrap gap-3">
-                      {WEEKDAYS.map((w, idx) => (
-                        <label key={`pms-aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={(settings.allowed_weekdays ?? []).includes(idx)}
-                            onCheckedChange={() => toggleWeekday("allowed_weekdays", idx)}
-                          />
-                          {w}
-                        </label>
-                      ))}
-                    </div>
-                  </Field>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Field label="特殊期間開始">
-                      {dateInput(settings.special_start, (v) => setSettings((p) => ({ ...p, special_start: v })))}
-                    </Field>
-                    <Field label="特殊期間結束">
-                      {dateInput(settings.special_end, (v) => setSettings((p) => ({ ...p, special_end: v })))}
-                    </Field>
-                    <Field label="特殊期間上限">
-                      {numInput(settings.special_limit, (v) => setSettings((p) => ({ ...p, special_limit: v })))}
-                    </Field>
-                  </div>
-
-                  <Field label="特殊期間可邀星期">
-                    <div className="flex flex-wrap gap-3">
-                      {WEEKDAYS.map((w, idx) => (
-                        <label key={`pms-sw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={(settings.special_weekdays ?? []).includes(idx)}
-                            onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
-                          />
-                          {w}
-                        </label>
-                      ))}
-                    </div>
-                  </Field>
-
-                  <Field label="連結規則">
-                    {textInput(settings.link_rule, (v) => setSettings((p) => ({ ...p, link_rule: v })))}
-                  </Field>
-                  <Field label="訂單編號規則">
-                    {textInput(settings.order_number_rule, (v) =>
-                      setSettings((p) => ({ ...p, order_number_rule: v })),
-                    )}
-                  </Field>
-                  <Field label="聯絡 Email">
-                    <Input
-                      type="email"
-                      placeholder="負責人 Email"
-                      value={settings.contact_email ?? ""}
-                      onChange={(e) => setSettings((p) => ({ ...p, contact_email: e.target.value }))}
-                    />
-                  </Field>
-
-                  <div className="flex items-start justify-between gap-3 rounded-md border p-3">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="pms-external-platform" className="cursor-pointer">
-                        有外部訂房平台
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        開啟後建立邀約時將額外通知此 Email
-                      </p>
-                    </div>
-                    <Switch
-                      id="pms-external-platform"
-                      checked={settings.has_external_platform}
-                      onCheckedChange={(v) =>
-                        setSettings((p) => ({ ...p, has_external_platform: v === true }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="pms-active"
-                      checked={settings.is_active}
-                      onCheckedChange={(v) => setSettings((p) => ({ ...p, is_active: v === true }))}
-                    />
-                    <Label htmlFor="pms-active" className="cursor-pointer">
-                      啟用此設定
-                    </Label>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
-                取消
-              </Button>
-              <Button onClick={saveEdit} disabled={saving || loadingSettings}>
-                {saving ? "儲存中…" : "儲存"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
-  );
-}
 
 
 
