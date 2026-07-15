@@ -21,6 +21,7 @@ interface Props {
   yearMonth: string;
   used: number;
   quota: number;
+  packageName?: string | null;
   /** 舊月份（改期跨月時用），若提供會與新月份並列顯示 */
   oldStatus?: QuotaStatus | null;
   onCancel: () => void;
