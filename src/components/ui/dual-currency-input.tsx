@@ -138,10 +138,11 @@ export function DualCurrencyInput({
   };
 
   const hint = useMemo(() => {
+    if (rawMode) return "";
     if (!hasSecondary || !config) return "";
     if (mode === "TWD") return `≈ ${formatSecondary(value, config)}`;
     return `≈ ${formatTWD(value)}`;
-  }, [value, mode, hasSecondary, config]);
+  }, [value, mode, hasSecondary, config, rawMode]);
 
   const currencyLabel = mode === "TWD" ? "NT$" : config?.symbol || "";
 
