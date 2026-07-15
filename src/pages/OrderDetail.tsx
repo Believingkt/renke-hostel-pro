@@ -219,7 +219,7 @@ const OrderDetailPage = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -814,7 +814,8 @@ const OrderDetailPage = () => {
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
       checkInDate: order.check_in_date,
-      excludeOrderId: order.id, // 排除本訂單自身
+      packageId: (editForm as any).package_id ?? (order as any).package_id ?? null,
+      excludeOrderId: order.id,
       isAdmin: isAdminUser,
       confirmOverride: (status) =>
         new Promise<boolean>((resolve) => {
@@ -822,6 +823,7 @@ const OrderDetailPage = () => {
             yearMonth: status.yearMonth,
             used: status.used,
             quota: status.quota!,
+            packageName: status.packageName,
             resolve,
           });
         }),
@@ -3723,6 +3725,7 @@ const OrderDetailPage = () => {
           yearMonth={kolQuotaPrompt.yearMonth}
           used={kolQuotaPrompt.used}
           quota={kolQuotaPrompt.quota}
+          packageName={kolQuotaPrompt.packageName}
           onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
           onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
         />

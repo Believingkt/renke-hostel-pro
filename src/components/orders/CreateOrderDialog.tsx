@@ -138,7 +138,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   // Deposit flow removed: orders always require full payment upfront.
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
@@ -1124,6 +1124,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       accommodationId: currentAccommodationId,
       orderSource: form.order_source || "manual",
       checkInDate: form.check_in_date,
+      packageId: (form as any).package_id ?? null,
       isAdmin,
       confirmOverride: (status) =>
         new Promise<boolean>((resolve) => {
@@ -1131,6 +1132,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             yearMonth: status.yearMonth,
             used: status.used,
             quota: status.quota!,
+            packageName: status.packageName,
             resolve,
           });
         }),
@@ -2911,6 +2913,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           yearMonth={kolQuotaPrompt.yearMonth}
           used={kolQuotaPrompt.used}
           quota={kolQuotaPrompt.quota}
+          packageName={kolQuotaPrompt.packageName}
           onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
           onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
         />

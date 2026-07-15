@@ -21,6 +21,7 @@ interface Props {
   yearMonth: string;
   used: number;
   quota: number;
+  packageName?: string | null;
   /** 舊月份（改期跨月時用），若提供會與新月份並列顯示 */
   oldStatus?: QuotaStatus | null;
   onCancel: () => void;
@@ -65,6 +66,7 @@ export function KolQuotaConfirmDialog({
   yearMonth,
   used,
   quota,
+  packageName,
   oldStatus,
   onCancel,
   onConfirm,
@@ -83,6 +85,9 @@ export function KolQuotaConfirmDialog({
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
+                {packageName ? (
+                  <>包棟 <span className="font-semibold text-foreground">{packageName}</span>｜</>
+                ) : null}
                 目標月份 <span className="font-semibold text-foreground">{yearMonth}</span>{" "}
                 的 KOL 互惠額度不足。強制覆寫將寫入稽核日誌。
               </p>

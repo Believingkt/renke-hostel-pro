@@ -26,7 +26,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
   const [selectedSource, setSelectedSource] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; resolve: (v: boolean) => void } | null>(null);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
 
   useEffect(() => {
     if (open && order) {
@@ -66,6 +66,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         accommodationId,
         orderSource: "kol",
         checkInDate: order.check_in_date,
+        packageId: (order as any).package_id ?? null,
         excludeOrderId: order.id,
         isAdmin,
         confirmOverride: (status) =>
@@ -74,6 +75,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
               yearMonth: status.yearMonth,
               used: status.used,
               quota: status.quota!,
+              packageName: status.packageName,
               resolve,
             });
           }),
@@ -208,6 +210,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
           yearMonth={kolQuotaPrompt.yearMonth}
           used={kolQuotaPrompt.used}
           quota={kolQuotaPrompt.quota}
+          packageName={kolQuotaPrompt.packageName}
           onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
           onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
         />
