@@ -290,26 +290,64 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     return { stats: arr, totals };
   };
 
-  const perCurrency = useMemo(() => {
-    const buckets = new Map<string, OrderRow[]>();
+  // 依 viewMode 決定要進入計算的訂單集合
+  // - separate: 只取 selectedCurrency（TWD 或 JPY）
+  // - consolidated: 全部訂單，JPY 依匯率換算成 TWD
+  const transformRows = (rows: OrderRow[] | null): OrderRow[] => {
+    if (!rows) return [];
+    if (!isTraveldays) {
+      // 非旅行日：維持原本行為 (TWD 主 bucket)
+      return rows.filter((o) => (o.currency || "TWD").toUpperCase() === "TWD");
+    }
+    if (viewMode === "separate") {
+      return rows.filter((o) => (o.currency || "TWD").toUpperCase() === selectedCurrency);
+    }
+    // consolidated：JPY → TWD (乘以匯率)
+    return rows.map((o) => {
+      const cur = (o.currency || "TWD").toUpperCase();
+      if (cur === "TWD") return o;
+      const mult = cur === "JPY" ? exchangeRate : 1;
+      return {
+        ...o,
+        currency: "TWD",
+        final_price: (Number(o.final_price) || 0) * mult,
+        paid_amount: (Number(o.paid_amount) || 0) * mult,
+      };
+    });
+  };
+
+  const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+  const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+
+  const activeAggregate = useMemo(() => aggregate(activeRows), [activeRows]);
+  const stats = activeAggregate.stats;
+  const totals = activeAggregate.totals;
+
+  // 旅行日 separate 模式下：計算另一幣別的總覽（並排顯示用）
+  const separateBuckets = useMemo(() => {
+    if (!isTraveldays || viewMode !== "separate") return [] as Array<{ currency: string; total: number; count: number }>;
+    const map = new Map<string, { total: number; count: number }>();
     for (const o of orders ?? []) {
       const c = (o.currency || "TWD").toUpperCase();
-      if (!buckets.has(c)) buckets.set(c, []);
-      buckets.get(c)!.push(o);
+      const cur = map.get(c) ?? { total: 0, count: 0 };
+      cur.total += Number(o.final_price) || 0;
+      cur.count += 1;
+      map.set(c, cur);
     }
-    // Ensure TWD appears first even if empty (so layout stays same for other properties)
-    const currencies = Array.from(buckets.keys());
-    currencies.sort((a, b) => (a === "TWD" ? -1 : b === "TWD" ? 1 : a.localeCompare(b)));
-    return currencies.map((c) => ({ currency: c, ...aggregate(buckets.get(c)!) }));
-  }, [orders]);
+    return Array.from(map.entries())
+      .map(([currency, v]) => ({ currency, ...v }))
+      .sort((a, b) => (a.currency === "TWD" ? -1 : b.currency === "TWD" ? 1 : a.currency.localeCompare(b.currency)));
+  }, [orders, isTraveldays, viewMode]);
 
-  const twdBucket = perCurrency.find((b) => b.currency === "TWD");
-  const stats = twdBucket?.stats ?? [];
-  const totals = twdBucket?.totals ?? { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 };
-  const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
+  // 顯示幣別符號：consolidated 一律 NT$，separate 依 selectedCurrency
+  const activeSymbol = (!isTraveldays || viewMode === "consolidated")
+    ? "NT$"
+    : (CURRENCY_LABEL[selectedCurrency]?.symbol ?? selectedCurrency);
+  const f = (n: number) => fmt(n, activeSymbol);
+
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend helper: 6 months x each source total for a given currency subset
+  // Monthly trend helper
   const buildTrend = (rows: OrderRow[]) => {
     const today = new Date();
     const months: string[] = [];
@@ -344,22 +382,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     return { data, keys };
   };
 
-  const trendByCurrency = useMemo(() => {
-    if (!trendOrders) return new Map<string, { data: any[]; keys: string[] }>();
-    const buckets = new Map<string, OrderRow[]>();
-    for (const o of trendOrders) {
-      const c = (o.currency || "TWD").toUpperCase();
-      if (!buckets.has(c)) buckets.set(c, []);
-      buckets.get(c)!.push(o);
-    }
-    const result = new Map<string, { data: any[]; keys: string[] }>();
-    for (const [c, rows] of buckets) result.set(c, buildTrend(rows));
-    return result;
-  }, [trendOrders]);
+  const activeTrend = useMemo(() => buildTrend(activeTrendRows), [activeTrendRows]);
+  const trendData = activeTrend.data;
+  const trendKeys = activeTrend.keys;
 
-  const twdTrend = trendByCurrency.get("TWD") ?? { data: [], keys: [] };
-  const trendData = twdTrend.data;
-  const trendKeys = twdTrend.keys;
 
 
 
