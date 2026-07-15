@@ -443,14 +443,14 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground pl-5">訂金:</span>
                             <span className="font-medium">
-                              NT$ {dep.toLocaleString()}
+                              {currencyPrefix(order)} {dep.toLocaleString()}
                               <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>{depositPaid ? '已付' : '未付'}</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground pl-5">尾款:</span>
                             <span className="font-medium">
-                              NT$ {(order.final_price - dep).toLocaleString()}
+                              {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()}
                               <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>{balancePaid ? '已付' : '未付'}</span>
                             </span>
                           </div>
@@ -461,7 +461,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       return (
                         <div className="flex items-center justify-between text-sm mb-2">
                           <span className="text-muted-foreground pl-5">已付:</span>
-                          <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
+                          <span className="font-medium">{currencyPrefix(order)} {order.paid_amount.toLocaleString()}</span>
                         </div>
                       );
                     }
