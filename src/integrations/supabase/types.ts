@@ -4137,6 +4137,47 @@ export type Database = {
           },
         ]
       }
+      kol_venue_monthly_limits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          monthly_limit: number
+          note: string | null
+          updated_at: string
+          venue_id: string
+          year_month: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          monthly_limit: number
+          note?: string | null
+          updated_at?: string
+          venue_id: string
+          year_month: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          monthly_limit?: number
+          note?: string | null
+          updated_at?: string
+          venue_id?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_venue_monthly_limits_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kol_venue_settings: {
         Row: {
           allowed_weekdays: number[]
@@ -8990,10 +9031,15 @@ export type Database = {
           has_booking: boolean
         }[]
       }
-      check_kol_inventory: {
-        Args: { p_check_in_date: string; p_venue_name: string }
-        Returns: string
-      }
+      check_kol_inventory:
+        | {
+            Args: { p_check_in_date: string; p_venue_id: string }
+            Returns: string
+          }
+        | {
+            Args: { p_check_in_date: string; p_venue_name: string }
+            Returns: string
+          }
       check_rls_enabled: {
         Args: never
         Returns: {
