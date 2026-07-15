@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
  *   - per_package:
  *     - 訂單包棟屬於「追蹤清單 (kol_quota_tracked_package_ids)」→ 使用該包棟專屬額度
  *       - 未設定該月專屬額度 → 視為 0（禁止建立，允許管理員強制覆寫）
- *     - 訂單包棟未在追蹤清單、或訂單無 package_id → 併入全館共用額度
+ *     - 訂單包棟未在追蹤清單、或訂單無 package_id/包棟房型 → 併入全館共用額度
  * - 軟攔截：超額時呼叫 confirmFn 由 UI 決定是否強制
  */
 
@@ -81,6 +81,8 @@ export async function fetchKolQuotaStatus(params: {
     _year_month: yearMonth,
     _exclude_order_id: excludeOrderId ?? null,
     _package_id: effectivePackageId as any,
+    _tracked_package_ids: config.trackedPackageIds as any,
+    _shared_untracked_only: useScope === "shared" && config.mode === "per_package",
   } as any);
 
   let packageName: string | null = null;
@@ -91,6 +93,14 @@ export async function fetchKolQuotaStatus(params: {
       .eq("id", effectivePackageId)
       .maybeSingle();
     packageName = (pkg as any)?.name ?? null;
+    if (!packageName) {
+      const { data: roomTypePkg } = await supabase
+        .from("room_types")
+        .select("name")
+        .eq("id", effectivePackageId)
+        .maybeSingle();
+      packageName = (roomTypePkg as any)?.name ?? null;
+    }
   }
 
   let quota: number | null = quotaRes.data?.quota ?? null;
