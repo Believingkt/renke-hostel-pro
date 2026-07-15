@@ -135,6 +135,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
     setCreateDisplayCurrency(code);
   };
+  const createForcedMode: "TWD" | "SEC" | null = secondaryCurrencyConfig
+    ? (createDisplayCurrency === "TWD" ? "TWD" : "SEC")
+    : null;
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
