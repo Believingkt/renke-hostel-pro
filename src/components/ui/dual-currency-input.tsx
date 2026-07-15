@@ -168,16 +168,22 @@ export function DualCurrencyInput({
               inputClassName,
             )}
           />
-          <button
-            type="button"
-            onClick={toggle}
-            disabled={disabled}
-            className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
-            tabIndex={-1}
-            title="切換輸入幣別"
-          >
-            {currencyLabel}
-          </button>
+          {hideToggle ? (
+            <span className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground select-none">
+              {currencyLabel}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={toggle}
+              disabled={disabled}
+              className="mr-1.5 shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
+              tabIndex={-1}
+              title="切換輸入幣別"
+            >
+              {currencyLabel}
+            </button>
+          )}
         </div>
       ) : (
         <Input
