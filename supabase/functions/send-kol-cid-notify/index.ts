@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
+      .select("id, name, venue_id, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
       .eq("id", kol_profile_id)
       .maybeSingle();
 
@@ -63,27 +63,60 @@ Deno.serve(async (req) => {
       });
     }
 
-    // venue settings (optional context)
-    const { data: venueSetting } = await supabase
-      .from("kol_venue_settings")
-      .select("is_starlink, contact_email, has_external_platform")
-      .eq("venue_name", profile.venue_name)
-      .maybeSingle();
+    // 優先用 venue_id 從 kol_venues 取得館別名稱與 accommodation_id
+    let venueDisplayName: string | null = null;
+    let venueAccommodationId: string | null = null;
+    if (profile.venue_id) {
+      const { data: kv } = await supabase
+        .from("kol_venues")
+        .select("name, accommodation_id")
+        .eq("id", profile.venue_id)
+        .maybeSingle();
+      if (kv) {
+        venueDisplayName = kv.name as string | null;
+        venueAccommodationId = kv.accommodation_id as string | null;
+      }
+    }
+    // Fallback（過渡期）：用 venue_name 查 accommodation_info
+    if (!venueAccommodationId && profile.venue_name) {
+      const { data: accInfo } = await supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .eq("name", profile.venue_name)
+        .maybeSingle();
+      if (accInfo) {
+        venueAccommodationId = accInfo.id as string;
+        venueDisplayName = venueDisplayName ?? (accInfo.name as string);
+      }
+    }
+    const displayVenue = venueDisplayName ?? profile.venue_name ?? "-";
 
-    // accommodation_info match
-    const { data: accInfo } = await supabase
-      .from("accommodation_info")
-      .select("name")
-      .eq("name", profile.venue_name)
-      .maybeSingle();
+    // venue settings (optional context) — 優先用 venue_id
+    let venueSetting: { is_starlink?: unknown; contact_email?: unknown; has_external_platform?: unknown } | null = null;
+    if (profile.venue_id) {
+      const { data } = await supabase
+        .from("kol_venue_settings")
+        .select("is_starlink, contact_email, has_external_platform")
+        .eq("venue_id", profile.venue_id)
+        .maybeSingle();
+      venueSetting = data ?? null;
+    }
+    if (!venueSetting && profile.venue_name) {
+      const { data } = await supabase
+        .from("kol_venue_settings")
+        .select("is_starlink, contact_email, has_external_platform")
+        .eq("venue_name", profile.venue_name)
+        .maybeSingle();
+      venueSetting = data ?? null;
+    }
 
-    const venueType = accInfo?.name ? "PMS內部" : "非PMS";
+    const venueType = venueAccommodationId ? "PMS內部" : "非PMS";
     const createdAt = formatTaiwanTime(new Date());
 
-    const subject = `【KOL折扣碼_協助設定通知】${profile.venue_name} - ${profile.name} - ${profile.cid_code}`;
+    const subject = `【KOL折扣碼_協助設定通知】${displayVenue} - ${profile.name} - ${profile.cid_code}`;
     const text = [
       "請夥伴協助新增折扣碼🙏🙏",
-      `館別：${profile.venue_name ?? "-"}`,
+      `館別：${displayVenue}`,
       `類型：${venueType}`,
       `KOL名稱：${profile.name ?? "-"}`,
       `折扣碼 / CID：${profile.cid_code ?? "-"}`,
