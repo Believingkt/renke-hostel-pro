@@ -814,7 +814,7 @@ const OrderDetailPage = () => {
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
       checkInDate: order.check_in_date,
-      packageId: (editForm as any).package_id ?? (order as any).package_id ?? selectedPackageRoomTypeId ?? null,
+      packageId: (editForm as any).package_id ?? (order as any).package_id ?? exclusiveRoomTypeId ?? null,
       excludeOrderId: order.id,
       isAdmin: isAdminUser,
       confirmOverride: (status) =>
