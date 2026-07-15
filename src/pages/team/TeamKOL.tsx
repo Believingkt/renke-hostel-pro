@@ -6562,15 +6562,26 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
       .eq("name", fVenue.trim())
       .maybeSingle();
     const accId = acc?.id ?? null;
+    let venueId: string | null = null;
+    if (accId) {
+      const { data: kv } = await supabase
+        .from("kol_venues" as any)
+        .select("id")
+        .eq("accommodation_id", accId)
+        .is("room_type_id", null)
+        .maybeSingle();
+      venueId = (kv as any)?.id ?? null;
+    }
     const { data: authData } = await supabase.auth.getUser();
 
     try {
-      // Upsert：以 (year, month, accommodation_id) / (year, month, venue_name) 為唯一鍵
+      // Upsert：以 (year, month, venue_id) 為唯一鍵
       const [r1, r2] = await Promise.all([
         (supabase.from("scout_team_targets" as any) as any).upsert(
           {
             year: filterYear,
             month: m,
+            venue_id: venueId,
             venue_name: fVenue.trim(),
             target_count: tt,
             personal_min: pm,
@@ -6578,17 +6589,18 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
             accommodation_id: accId,
             created_by: authData.user?.id ?? null,
           },
-          { onConflict: "year,month,accommodation_id" }
+          { onConflict: "year,month,venue_id" }
         ),
         (supabase.from("scout_fulltime_targets" as any) as any).upsert(
           {
             year: filterYear,
             month: m,
+            venue_id: venueId,
             venue_name: fVenue.trim(),
             target_count: tt,
             fulltime_min: fm,
           },
-          { onConflict: "year,month,venue_name" }
+          { onConflict: "year,month,venue_id" }
         ),
       ]);
       if (r1.error) throw r1.error;
