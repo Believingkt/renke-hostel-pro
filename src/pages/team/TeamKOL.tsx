@@ -5677,7 +5677,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                 <TableRow
                   key={r.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => openView(r.name)}
+                  onClick={() => openView(r.name, r.venue_id)}
                 >
                   <TableCell>{r.name}</TableCell>
                   <TableCell>
@@ -5699,7 +5699,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                         className="h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openEdit(r.name);
+                          openEdit(r.name, r.venue_id);
                         }}
                       >
                         <Pencil className="h-4 w-4" />
