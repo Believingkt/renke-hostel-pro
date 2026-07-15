@@ -268,6 +268,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     package_id: "" as string,
   });
 
+  // Sync amount refs for the currency-toggle guard defined above
+  useEffect(() => {
+    const md = manualDiscountInputRef.current ? parseInt(manualDiscountInputRef.current, 10) || 0 : 0;
+    createAmountsRef.current = {
+      manualDiscount: md,
+      deposit: Number(form.deposit_amount) || 0,
+      secDeposit: Number(form.security_deposit_amount) || 0,
+    };
+    createClearAmountsRef.current = () => {
+      manualDiscountInputRef.current = null;
+      setManualDiscountStr(null);
+      setForm(f => ({ ...f, deposit_amount: 0, security_deposit_amount: 0 }));
+    };
+  }, [form.deposit_amount, form.security_deposit_amount, manualDiscountStr]);
+
+
   // 對應的方案清單（accommodation_packages），下單時寫入 orders.package_id
   const [accommodationPackages, setAccommodationPackages] = useState<
     Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; enabled: boolean }>
