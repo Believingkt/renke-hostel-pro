@@ -60,6 +60,7 @@ export function DualCurrencyInput({
   id,
   onModeChange,
   forcedMode,
+  rawMode,
 }: DualCurrencyInputProps) {
   const hasSecondary = !!(config && config.rate > 0);
   const [mode, setMode] = useState<"TWD" | "SEC">(() => forcedMode ?? readPref(storageKey, hasSecondary));
