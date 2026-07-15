@@ -4750,6 +4750,7 @@ interface VenueRow {
 
 interface VenueSettingsRow {
   id?: string;
+  venue_id: string | null;
   venue_name: string;
   group_name: string | null;
   calc_type: string | null;
@@ -4773,7 +4774,8 @@ interface VenueSettingsRow {
 
 const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
 
-const EMPTY_SETTINGS = (venue_name: string): VenueSettingsRow => ({
+const EMPTY_SETTINGS = (venue_name: string, venue_id: string | null = null): VenueSettingsRow => ({
+  venue_id,
   venue_name,
   group_name: null,
   calc_type: null,
@@ -4846,24 +4848,31 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("kol_venues" as any).insert({ name: n, type: newType, is_active: true });
+    const { data: inserted, error } = await supabase
+      .from("kol_venues" as any)
+      .insert({ name: n, type: newType, is_active: true })
+      .select("id")
+      .single();
     if (error) {
       setSaving(false);
       toast.error(error.message);
       return;
     }
+    const newVenueId = (inserted as any)?.id ?? null;
     // 同步建立 kol_venue_settings 預設記錄（若不存在）
-    const { data: existing } = await supabase
-      .from("kol_venue_settings" as any)
-      .select("id")
-      .eq("venue_name", n)
-      .maybeSingle();
-    if (!existing) {
-      const { error: sErr } = await supabase
+    if (newVenueId) {
+      const { data: existing } = await supabase
         .from("kol_venue_settings" as any)
-        .insert({ venue_name: n, is_active: true, is_starlink: false });
-      if (sErr) {
-        toast.error(`場域已建立，但邀約規則建立失敗：${sErr.message}`);
+        .select("id")
+        .eq("venue_id", newVenueId)
+        .maybeSingle();
+      if (!existing) {
+        const { error: sErr } = await supabase
+          .from("kol_venue_settings" as any)
+          .insert({ venue_id: newVenueId, venue_name: n, is_active: true, is_starlink: false });
+        if (sErr) {
+          toast.error(`場域已建立，但邀約規則建立失敗：${sErr.message}`);
+        }
       }
     }
     setSaving(false);
@@ -4881,13 +4890,13 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     setEditType(r.type || "其他");
     setEditActive(r.is_active);
     setOriginalVenueName(r.name);
-    setSettings(EMPTY_SETTINGS(r.name));
+    setSettings(EMPTY_SETTINGS(r.name, r.id));
     setEditOpen(true);
     setLoadingSettings(true);
     const { data, error } = await supabase
       .from("kol_venue_settings" as any)
       .select("*")
-      .eq("venue_name", r.name)
+      .eq("venue_id", r.id)
       .maybeSingle();
     if (error && error.code !== "PGRST116") toast.error(error.message);
     if (data) setSettings(data as unknown as VenueSettingsRow);
@@ -4921,8 +4930,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       return;
     }
     // 名稱同步：現在只需要更新 kol_venues.name，kol_venue_settings 已改用 venue_id 關聯
-    // 3. upsert kol_venue_settings
+    // 3. upsert kol_venue_settings（依 venue_id 關聯）
+    const venueId = editVenue.id;
     const payload: Partial<VenueSettingsRow> = {
+      venue_id: venueId,
       venue_name: n,
       group_name: settings.group_name || null,
       calc_type: settings.calc_type || null,
@@ -4946,13 +4957,13 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     const { data: existing } = await supabase
       .from("kol_venue_settings" as any)
       .select("id")
-      .eq("venue_name", n)
+      .eq("venue_id", venueId)
       .maybeSingle();
     if (existing) {
       const { error: sErr } = await supabase
         .from("kol_venue_settings" as any)
         .update(payload)
-        .eq("venue_name", n);
+        .eq("venue_id", venueId);
       if (sErr) {
         setSaving(false);
         toast.error(`更新邀約規則失敗：${sErr.message}`);
@@ -5473,35 +5484,47 @@ interface PmsAccomRow {
 }
 
 function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
-  const [rows, setRows] = useState<PmsAccomRow[]>([]);
+  const [rows, setRows] = useState<(PmsAccomRow & { venue_id: string | null })[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editVenueId, setEditVenueId] = useState<string | null>(null);
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: accoms, error: aErr }, { data: settingsRows, error: sErr }] = await Promise.all([
+    const [{ data: accoms, error: aErr }, { data: venueRows, error: vErr }, { data: settingsRows, error: sErr }] = await Promise.all([
       supabase
         .from("accommodation_info")
         .select("id, name")
         .eq("is_active", true)
         .neq("name", "奧丁丁測試")
         .order("name"),
-      supabase.from("kol_venue_settings" as any).select("venue_name"),
+      supabase.from("kol_venues" as any).select("id, accommodation_id, room_type_id"),
+      supabase.from("kol_venue_settings" as any).select("venue_id"),
     ]);
     if (aErr) toast.error(aErr.message);
+    if (vErr) toast.error(vErr.message);
     if (sErr) toast.error(sErr.message);
-    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_name));
+    // 建立 accommodation_id → kol_venues.id 母館映射
+    const accToVenueId = new Map<string, string>();
+    ((venueRows ?? []) as any[]).forEach((v) => {
+      if (v.accommodation_id && !v.room_type_id) accToVenueId.set(v.accommodation_id, v.id);
+    });
+    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
     setRows(
-      ((accoms ?? []) as any[]).map((a) => ({
-        id: a.id,
-        name: a.name,
-        hasSettings: settingsSet.has(a.name),
-      })),
+      ((accoms ?? []) as any[]).map((a) => {
+        const vid = accToVenueId.get(a.id) ?? null;
+        return {
+          id: a.id,
+          name: a.name,
+          venue_id: vid,
+          hasSettings: vid ? settingsSet.has(vid) : false,
+        };
+      }),
     );
     setLoading(false);
   }, []);
@@ -5510,29 +5533,35 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     load();
   }, [load]);
 
-  const loadSettings = async (name: string) => {
+  const loadSettings = async (name: string, venueId: string | null) => {
     setLoadingSettings(true);
-    setSettings(EMPTY_SETTINGS(name));
+    setSettings(EMPTY_SETTINGS(name, venueId));
+    if (!venueId) {
+      setLoadingSettings(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("kol_venue_settings" as any)
       .select("*")
-      .eq("venue_name", name)
+      .eq("venue_id", venueId)
       .maybeSingle();
     if (error && error.code !== "PGRST116") toast.error(error.message);
     if (data) setSettings(data as unknown as VenueSettingsRow);
     setLoadingSettings(false);
   };
 
-  const openEdit = async (name: string) => {
+  const openEdit = async (name: string, venueId: string | null) => {
     setEditName(name);
+    setEditVenueId(venueId);
     setEditOpen(true);
-    await loadSettings(name);
+    await loadSettings(name, venueId);
   };
 
-  const openView = async (name: string) => {
+  const openView = async (name: string, venueId: string | null) => {
     setEditName(name);
+    setEditVenueId(venueId);
     setViewOpen(true);
-    await loadSettings(name);
+    await loadSettings(name, venueId);
   };
 
   const switchToEdit = () => {
@@ -5551,8 +5580,13 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
   const saveEdit = async () => {
     const n = editName.trim();
     if (!n) return;
+    if (!editVenueId) {
+      toast.error("找不到對應的場域主檔（kol_venues 需先建立母館紀錄）");
+      return;
+    }
     setSaving(true);
     const payload: Partial<VenueSettingsRow> = {
+      venue_id: editVenueId,
       venue_name: n,
       group_name: settings.group_name || null,
       calc_type: settings.calc_type || null,
@@ -5576,13 +5610,13 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     const { data: existing } = await supabase
       .from("kol_venue_settings" as any)
       .select("id")
-      .eq("venue_name", n)
+      .eq("venue_id", editVenueId)
       .maybeSingle();
     if (existing) {
       const { error } = await supabase
         .from("kol_venue_settings" as any)
         .update(payload)
-        .eq("venue_name", n);
+        .eq("venue_id", editVenueId);
       if (error) {
         setSaving(false);
         toast.error(`更新失敗：${error.message}`);
