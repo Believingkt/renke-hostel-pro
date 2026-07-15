@@ -1124,6 +1124,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       accommodationId: currentAccommodationId,
       orderSource: form.order_source || "manual",
       checkInDate: form.check_in_date,
+      packageId: (form as any).package_id ?? null,
       isAdmin,
       confirmOverride: (status) =>
         new Promise<boolean>((resolve) => {
@@ -1131,6 +1132,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             yearMonth: status.yearMonth,
             used: status.used,
             quota: status.quota!,
+            packageName: status.packageName,
             resolve,
           });
         }),
