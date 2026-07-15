@@ -4821,6 +4821,63 @@ const EMPTY_SETTINGS = (venue_name: string, venue_id: string | null = null): Ven
   has_external_platform: false,
 });
 
+/**
+ * 場域設定儲存前的欄位防呆檢查。
+ * 回傳中文錯誤訊息；若通過則回傳 null。
+ */
+function validateVenueSettings(s: VenueSettingsRow): string | null {
+  if (!s.group_name || !s.group_name.trim()) return "尚未填寫組別名稱";
+  if (!s.calc_type || !s.calc_type.trim()) return "尚未選擇計算方式（每日 / 每週）";
+  if (s.daily_limit === null || s.daily_limit === undefined || Number.isNaN(s.daily_limit)) {
+    return "尚未填寫每日上限";
+  }
+  if (!Array.isArray(s.allowed_weekdays) || s.allowed_weekdays.length === 0) {
+    return "尚未勾選合作星期";
+  }
+  if (s.collab_start && s.collab_end && s.collab_start > s.collab_end) {
+    return "合作起始日不可晚於合作結束日";
+  }
+  // 特殊區間：有填任一欄位就需要完整填寫
+  const hasSpecial =
+    !!s.special_start ||
+    !!s.special_end ||
+    s.special_limit !== null ||
+    (Array.isArray(s.special_weekdays) && s.special_weekdays.length > 0);
+  if (hasSpecial) {
+    if (!s.special_start) return "尚未填寫特殊區間起始日";
+    if (!s.special_end) return "尚未填寫特殊區間結束日";
+    if (s.special_start > s.special_end) return "特殊區間起始日不可晚於結束日";
+    if (s.special_limit === null || s.special_limit === undefined) {
+      return "尚未填寫特殊區間每日上限";
+    }
+    if (!Array.isArray(s.special_weekdays) || s.special_weekdays.length === 0) {
+      return "尚未勾選特殊區間星期";
+    }
+  }
+  return null;
+}
+
+/** 將 Postgres 錯誤訊息轉為對應欄位的中文防呆說明 */
+function humanizeVenueSettingsError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("allowed_weekdays")) return "尚未勾選合作星期";
+  if (m.includes("special_weekdays")) return "尚未勾選特殊區間星期";
+  if (m.includes("monthly_limit")) return "尚未填寫月上限";
+  if (m.includes("daily_limit")) return "尚未填寫每日上限";
+  if (m.includes("special_limit")) return "尚未填寫特殊區間每日上限";
+  if (m.includes("calc_type")) return "尚未選擇計算方式（每日 / 每週）";
+  if (m.includes("group_name")) return "尚未填寫組別名稱";
+  if (m.includes("venue_name")) return "尚未填寫場域名稱";
+  if (m.includes("collab_start")) return "尚未填寫合作起始日";
+  if (m.includes("collab_end")) return "尚未填寫合作結束日";
+  if (m.includes("special_start")) return "尚未填寫特殊區間起始日";
+  if (m.includes("special_end")) return "尚未填寫特殊區間結束日";
+  if (m.includes("contact_email")) return "聯絡信箱格式錯誤";
+  return message;
+}
+
+
+
 function VenuesCard({ isManager }: { isManager: boolean }) {
   const [rows, setRows] = useState<VenueRow[]>([]);
   const [loading, setLoading] = useState(true);
