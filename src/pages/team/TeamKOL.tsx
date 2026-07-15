@@ -4880,6 +4880,198 @@ function humanizeVenueSettingsError(message: string): string {
   return message;
 }
 
+interface MonthlyLimitRow {
+  id: string;
+  venue_id: string;
+  year_month: string;
+  monthly_limit: number;
+  note: string | null;
+}
+
+function MonthlyLimitsSection({ venueId, canEdit }: { venueId: string; canEdit: boolean }) {
+  const [rows, setRows] = useState<MonthlyLimitRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const [limitVal, setLimitVal] = useState<string>("");
+  const [noteVal, setNoteVal] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!venueId) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_venue_monthly_limits" as any)
+      .select("id, venue_id, year_month, monthly_limit, note")
+      .eq("venue_id", venueId)
+      .order("year_month", { ascending: false });
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as unknown as MonthlyLimitRow[]);
+    setLoading(false);
+  }, [venueId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleSave = async () => {
+    if (limitVal.trim() === "") {
+      toast.error("尚未填寫月上限");
+      return;
+    }
+    const n = parseInt(limitVal, 10);
+    if (Number.isNaN(n) || n < 0) {
+      toast.error("月上限需為 0 或正整數");
+      return;
+    }
+    const ym = `${year}-${String(month).padStart(2, "0")}`;
+    setSaving(true);
+    const { error } = await supabase
+      .from("kol_venue_monthly_limits" as any)
+      .upsert(
+        { venue_id: venueId, year_month: ym, monthly_limit: n, note: noteVal.trim() || null },
+        { onConflict: "venue_id,year_month" },
+      );
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已儲存");
+    setLimitVal("");
+    setNoteVal("");
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("kol_venue_monthly_limits" as any).delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已刪除");
+    setDeleteId(null);
+    load();
+  };
+
+  const yearOpts = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
+
+  return (
+    <Accordion type="single" collapsible className="border rounded-md">
+      <AccordionItem value="monthly" className="border-0">
+        <AccordionTrigger className="px-3 py-2 text-sm">逐月上限設定</AccordionTrigger>
+        <AccordionContent className="px-3 pb-3 space-y-3">
+          {canEdit && (
+            <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-xs">年份</Label>
+                  <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {yearOpts.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">月份</Label>
+                  <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">月上限</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={limitVal}
+                    onChange={(e) => setLimitVal(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">備註</Label>
+                  <Input value={noteVal} onChange={(e) => setNoteVal(e.target.value)} placeholder="（選填）" />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? "儲存中…" : "儲存"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                當月紀錄填 0 = 當月停邀；不填此表格 = 沿用上方固定月上限；固定月上限留空 = 不限制
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <p className="text-xs text-muted-foreground text-center py-2">載入中…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">尚無逐月紀錄</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>月份</TableHead>
+                    <TableHead>月上限</TableHead>
+                    <TableHead>備註</TableHead>
+                    {canEdit && <TableHead className="text-right">操作</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.year_month}</TableCell>
+                      <TableCell>{r.monthly_limit}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.note || "-"}</TableCell>
+                      {canEdit && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => setDeleteId(r.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>刪除逐月上限？</AlertDialogTitle>
+                <AlertDialogDescription>此操作無法復原。</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>刪除</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
 
 
 function VenuesCard({ isManager }: { isManager: boolean }) {
