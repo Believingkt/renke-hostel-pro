@@ -5291,12 +5291,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   </TableHeader>
                   <TableBody>
                     {parents.length > 0 && <SectionHeader label="PMS 母館" />}
-                    {parents.map((p) => (
-                      <>
-                        {renderRow(p)}
-                        {(childrenByParent.get(p.accommodation_id!) ?? []).map((c) => renderRow(c, true))}
-                      </>
-                    ))}
+                    {parents.flatMap((p) => [
+                      renderRow(p),
+                      ...(childrenByParent.get(p.accommodation_id!) ?? []).map((c) => renderRow(c, true)),
+                    ])}
                     {orphanChildren.length > 0 && <SectionHeader label="子館別（無對應母館）" />}
                     {orphanChildren.map((c) => renderRow(c, true))}
                     {externals.length > 0 && <SectionHeader label="外部合作場域" />}
