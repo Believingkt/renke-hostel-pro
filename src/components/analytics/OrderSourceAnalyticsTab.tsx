@@ -296,10 +296,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const stats = twdBucket?.stats ?? [];
   const totals = twdBucket?.totals ?? { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 };
   const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
+  const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend: 6 months x each source total
+  // Monthly trend: 6 months x each source total (TWD only)
   const trendData = useMemo(() => {
     if (!trendOrders) return [];
+    const twdOrders = trendOrders.filter((o) => (o.currency || "TWD").toUpperCase() === "TWD");
     const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
