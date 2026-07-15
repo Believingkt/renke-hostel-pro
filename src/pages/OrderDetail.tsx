@@ -285,6 +285,13 @@ const OrderDetailPage = () => {
     setOrderDisplayCurrency(code);
     (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
   }, [order?.id, secondaryCurrencyConfig?.code]);
+  // 訂單顯示貨幣前綴（旅行日 JPY 時原幣顯示，其他 TWD）
+  const orderCurrencyPrefix = useMemo(() => {
+    if (!secondaryCurrencyConfig) return "NT$";
+    const cur = (orderDisplayCurrency || "TWD").toUpperCase();
+    return cur === secondaryCurrencyConfig.code.toUpperCase() ? secondaryCurrencyConfig.symbol : "NT$";
+  }, [orderDisplayCurrency, secondaryCurrencyConfig]);
+  const isRawCurrency = !!secondaryCurrencyConfig;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
