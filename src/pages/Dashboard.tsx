@@ -26,8 +26,6 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
-import { TraveldaysOverviewPanel } from "@/components/analytics/TraveldaysOverviewPanel";
-import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
 
 type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
 const CHART_LABELS: Record<ChartKey, string> = {
@@ -262,9 +260,6 @@ const Dashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
-      {accommodationId === TRAVELDAYS_ACC_ID && (
-        <TraveldaysOverviewPanel accommodationId={accommodationId} />
-      )}
       {/* 統計卡片 */}
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         {isLoading ? (
@@ -307,16 +302,14 @@ const Dashboard = () => {
               variant="blue"
               isUpdating={isLiveUpdating}
             />
-            {accommodationId !== TRAVELDAYS_ACC_ID && (
-              <StatCard
-                title="本月營收"
-                value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
-                change={stats.revenueChange}
-                icon={DollarSign}
-                variant="cyan"
-                isUpdating={isLiveUpdating}
-              />
-            )}
+            <StatCard
+              title="本月營收"
+              value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
+              change={stats.revenueChange}
+              icon={DollarSign}
+              variant="cyan"
+              isUpdating={isLiveUpdating}
+            />
           </>
         )}
       </div>
