@@ -309,7 +309,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     }
     // pick top 5 sources by total across whole window
     const totalsBySource = new Map<string, number>();
-    for (const o of trendOrders) {
+    for (const o of twdOrders) {
       const src = o.order_source || "unknown";
       totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + (Number(o.final_price) || 0));
     }
@@ -320,7 +320,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
     const byMonth = new Map<string, Record<string, number>>();
     for (const m of months) byMonth.set(m, {});
-    for (const o of trendOrders) {
+    for (const o of twdOrders) {
       const m = o.check_in_date?.slice(0, 7);
       if (!m || !byMonth.has(m)) continue;
       const src = o.order_source || "unknown";
