@@ -5825,14 +5825,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   );
 }
 
-// ============================================================
-// ====== PMS 民宿設定（kol_venue_settings by accommodation_info） ======
-// ============================================================
-interface PmsAccomRow {
-  id: string;
-  name: string;
-  hasSettings: boolean;
-}
+
+
 
 
 
