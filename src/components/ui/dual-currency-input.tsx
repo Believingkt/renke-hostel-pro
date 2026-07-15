@@ -74,9 +74,14 @@ export function DualCurrencyInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedMode]);
 
-  // value (TWD) 變動且未聚焦時，同步顯示值
+  // value 變動且未聚焦時，同步顯示值
   useEffect(() => {
     if (focused) return;
+    if (rawMode) {
+      // 原幣模式：外部 value 就是當前幣別的原值，直接顯示
+      setDraft(value > 0 ? String(value) : "");
+      return;
+    }
     if (mode === "TWD") {
       setDraft(value > 0 ? String(value) : "");
     } else if (hasSecondary && config) {
@@ -93,7 +98,7 @@ export function DualCurrencyInput({
       const sec = Math.round(value * config.rate);
       setDraft(sec > 0 ? String(sec) : "");
     }
-  }, [value, mode, hasSecondary, config, focused, storageKey]);
+  }, [value, mode, hasSecondary, config, focused, storageKey, rawMode]);
 
   const handleChange = (raw: string) => {
     const cleaned = raw.replace(/[^\d]/g, "");
@@ -101,6 +106,11 @@ export function DualCurrencyInput({
     const n = parseInt(cleaned, 10);
     if (!Number.isFinite(n) || n <= 0) {
       onChange(0);
+      return;
+    }
+    if (rawMode) {
+      // 原幣模式：不換算，回傳使用者輸入的原值
+      onChange(n);
       return;
     }
     if (mode === "TWD" || !hasSecondary || !config) {
