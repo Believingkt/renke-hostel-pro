@@ -191,6 +191,7 @@ export default function KolReciprocalQuota() {
     setMode(nextMode);
     setTrackedIds(nextTracked);
     toast({ title: "已更新設定" });
+    load();
   };
 
   const toggleTracked = (pkgId: string) => {
