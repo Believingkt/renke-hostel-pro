@@ -3005,9 +3005,9 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm font-semibold">實收金額</span>
                     <div className="flex flex-col items-end leading-tight">
                       <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                        NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                        {orderCurrencyPrefix} {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
                       </span>
-                      {secondaryCurrencyConfig && (
+                      {secondaryCurrencyConfig && !isRawCurrency && (
                         <span className="text-[11px] text-muted-foreground">
                           ≈ {formatSecondary(
                             isEditing
