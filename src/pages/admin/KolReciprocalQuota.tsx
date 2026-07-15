@@ -41,6 +41,7 @@ interface QuotaRow {
 interface PackageOption {
   id: string;
   name: string;
+  source: "package" | "room_type";
 }
 
 type Mode = "shared" | "per_package";
@@ -83,7 +84,7 @@ export default function KolReciprocalQuota() {
     if (!currentAccommodationId) return;
     setLoading(true);
 
-    const [accRes, pkgRes, quotaRes] = await Promise.all([
+    const [accRes, pkgRes, roomTypePkgRes, quotaRes] = await Promise.all([
       (supabase as any)
         .from("accommodation_info")
         .select("kol_quota_mode, kol_quota_tracked_package_ids")
@@ -96,15 +97,27 @@ export default function KolReciprocalQuota() {
         .eq("enabled", true)
         .order("display_order", { ascending: true }),
       supabase
+        .from("room_types")
+        .select("id, name")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_exclusive_package", true)
+        .order("display_order", { ascending: true }),
+      supabase
         .from("kol_reciprocal_monthly_quotas")
         .select("id, year_month, quota, note, package_id")
         .eq("accommodation_id", currentAccommodationId)
         .order("year_month", { ascending: false }),
     ]);
 
-    setMode(((accRes.data as any)?.kol_quota_mode as Mode) || "shared");
-    setTrackedIds(((accRes.data as any)?.kol_quota_tracked_package_ids as string[]) || []);
-    setPackages(((pkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name })));
+    const loadedMode = ((accRes.data as any)?.kol_quota_mode as Mode) || "shared";
+    const loadedTrackedIds = ((accRes.data as any)?.kol_quota_tracked_package_ids as string[]) || [];
+    setMode(loadedMode);
+    setTrackedIds(loadedTrackedIds);
+    const mergedPackages: PackageOption[] = [
+      ...(((pkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name, source: "package" as const }))),
+      ...(((roomTypePkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name, source: "room_type" as const }))),
+    ].filter((p, index, arr) => arr.findIndex((x) => x.id === p.id) === index);
+    setPackages(mergedPackages);
     const list = ((quotaRes.data as any[]) || []) as QuotaRow[];
     setRows(list);
 
@@ -119,7 +132,7 @@ export default function KolReciprocalQuota() {
       const maxEnd = format(new Date(maxY, maxM, 1), "yyyy-MM-dd");
       const { data: ordersData } = await supabase
         .from("orders")
-        .select("id, check_in_date, order_status, package_id")
+        .select("id, check_in_date, order_status, package_id, room_type_id")
         .eq("accommodation_id", currentAccommodationId)
         .eq("order_source", "kol")
         .gte("check_in_date", minStart)
@@ -128,12 +141,15 @@ export default function KolReciprocalQuota() {
       for (const o of (ordersData ?? []) as any[]) {
         if (o.order_status === "cancelled") continue;
         const ym = (o.check_in_date as string).slice(0, 7);
-        // 該訂單分別計入：全館 key 與（若有 package_id）該包棟 key
+        const packageIds = [o.package_id, o.room_type_id].filter(Boolean) as string[];
         const sharedKey = `${ym}::${SHARED_KEY}`;
-        usage[sharedKey] = (usage[sharedKey] ?? 0) + 1;
-        (dates[sharedKey] ||= []).push({ date: o.check_in_date, orderId: o.id });
-        if (o.package_id) {
-          const pkgKey = `${ym}::${o.package_id}`;
+        const trackedByThisOrder = packageIds.some((id) => loadedTrackedIds.includes(id));
+        if (loadedMode !== "per_package" || !trackedByThisOrder) {
+          usage[sharedKey] = (usage[sharedKey] ?? 0) + 1;
+          (dates[sharedKey] ||= []).push({ date: o.check_in_date, orderId: o.id });
+        }
+        for (const packageId of packageIds) {
+          const pkgKey = `${ym}::${packageId}`;
           usage[pkgKey] = (usage[pkgKey] ?? 0) + 1;
           (dates[pkgKey] ||= []).push({ date: o.check_in_date, orderId: o.id });
         }
