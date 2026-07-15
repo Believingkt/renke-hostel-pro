@@ -4821,6 +4821,63 @@ const EMPTY_SETTINGS = (venue_name: string, venue_id: string | null = null): Ven
   has_external_platform: false,
 });
 
+/**
+ * 場域設定儲存前的欄位防呆檢查。
+ * 回傳中文錯誤訊息；若通過則回傳 null。
+ */
+function validateVenueSettings(s: VenueSettingsRow): string | null {
+  if (!s.group_name || !s.group_name.trim()) return "尚未填寫組別名稱";
+  if (!s.calc_type || !s.calc_type.trim()) return "尚未選擇計算方式（每日 / 每週）";
+  if (s.daily_limit === null || s.daily_limit === undefined || Number.isNaN(s.daily_limit)) {
+    return "尚未填寫每日上限";
+  }
+  if (!Array.isArray(s.allowed_weekdays) || s.allowed_weekdays.length === 0) {
+    return "尚未勾選合作星期";
+  }
+  if (s.collab_start && s.collab_end && s.collab_start > s.collab_end) {
+    return "合作起始日不可晚於合作結束日";
+  }
+  // 特殊區間：有填任一欄位就需要完整填寫
+  const hasSpecial =
+    !!s.special_start ||
+    !!s.special_end ||
+    s.special_limit !== null ||
+    (Array.isArray(s.special_weekdays) && s.special_weekdays.length > 0);
+  if (hasSpecial) {
+    if (!s.special_start) return "尚未填寫特殊區間起始日";
+    if (!s.special_end) return "尚未填寫特殊區間結束日";
+    if (s.special_start > s.special_end) return "特殊區間起始日不可晚於結束日";
+    if (s.special_limit === null || s.special_limit === undefined) {
+      return "尚未填寫特殊區間每日上限";
+    }
+    if (!Array.isArray(s.special_weekdays) || s.special_weekdays.length === 0) {
+      return "尚未勾選特殊區間星期";
+    }
+  }
+  return null;
+}
+
+/** 將 Postgres 錯誤訊息轉為對應欄位的中文防呆說明 */
+function humanizeVenueSettingsError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("allowed_weekdays")) return "尚未勾選合作星期";
+  if (m.includes("special_weekdays")) return "尚未勾選特殊區間星期";
+  if (m.includes("monthly_limit")) return "尚未填寫月上限";
+  if (m.includes("daily_limit")) return "尚未填寫每日上限";
+  if (m.includes("special_limit")) return "尚未填寫特殊區間每日上限";
+  if (m.includes("calc_type")) return "尚未選擇計算方式（每日 / 每週）";
+  if (m.includes("group_name")) return "尚未填寫組別名稱";
+  if (m.includes("venue_name")) return "尚未填寫場域名稱";
+  if (m.includes("collab_start")) return "尚未填寫合作起始日";
+  if (m.includes("collab_end")) return "尚未填寫合作結束日";
+  if (m.includes("special_start")) return "尚未填寫特殊區間起始日";
+  if (m.includes("special_end")) return "尚未填寫特殊區間結束日";
+  if (m.includes("contact_email")) return "聯絡信箱格式錯誤";
+  return message;
+}
+
+
+
 function VenuesCard({ isManager }: { isManager: boolean }) {
   const [rows, setRows] = useState<VenueRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4942,6 +4999,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       toast.error("請輸入場域名稱");
       return;
     }
+    const vErrMsg = validateVenueSettings(settings);
+    if (vErrMsg) {
+      toast.error(vErrMsg);
+      return;
+    }
     setSaving(true);
     // 1. 更新 kol_venues
     const { error: vErr } = await supabase
@@ -4990,14 +5052,14 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         .eq("venue_id", venueId);
       if (sErr) {
         setSaving(false);
-        toast.error(`更新邀約規則失敗：${sErr.message}`);
+        toast.error(humanizeVenueSettingsError(sErr.message));
         return;
       }
     } else {
       const { error: sErr } = await supabase.from("kol_venue_settings" as any).insert(payload);
       if (sErr) {
         setSaving(false);
-        toast.error(`建立邀約規則失敗：${sErr.message}`);
+        toast.error(humanizeVenueSettingsError(sErr.message));
         return;
       }
     }
@@ -5613,6 +5675,11 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
       toast.error("找不到對應的場域主檔（kol_venues 需先建立母館紀錄）");
       return;
     }
+    const vErrMsg = validateVenueSettings(settings);
+    if (vErrMsg) {
+      toast.error(vErrMsg);
+      return;
+    }
     setSaving(true);
     const payload: Partial<VenueSettingsRow> = {
       venue_id: editVenueId,
@@ -5648,14 +5715,14 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
         .eq("venue_id", editVenueId);
       if (error) {
         setSaving(false);
-        toast.error(`更新失敗：${error.message}`);
+        toast.error(humanizeVenueSettingsError(error.message));
         return;
       }
     } else {
       const { error } = await supabase.from("kol_venue_settings" as any).insert(payload);
       if (error) {
         setSaving(false);
-        toast.error(`建立失敗：${error.message}`);
+        toast.error(humanizeVenueSettingsError(error.message));
         return;
       }
     }
