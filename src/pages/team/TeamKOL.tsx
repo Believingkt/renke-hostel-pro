@@ -101,6 +101,7 @@ interface Scout {
 interface KolRow {
   id: string;
   accommodation_id: string | null;
+  venue_id: string | null;
   venue_name: string | null;
   name: string | null;
   ig_handle: string | null;
@@ -148,6 +149,7 @@ interface FormState {
   // 複合下拉選中的 value（"acc:<uuid>" 或 "venue:<name>"）
   accommodation_select: string;
   accommodation_id: string;
+  venue_id: string;
   venue_name: string;
   name: string;
   ig_handle: string;
@@ -181,6 +183,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   accommodation_select: "",
   accommodation_id: "",
+  venue_id: "",
   venue_name: "",
   name: "",
   ig_handle: "",
@@ -486,6 +489,13 @@ function InvitationsTab({
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
+    // 從 kol_venues 建立 accommodation_id → venue_id 的映射（PMS 母館）
+    const accToVenueId = new Map<string, string>();
+    for (const v of venues) {
+      if (v.accommodation_id && !v.room_type_id) {
+        accToVenueId.set(v.accommodation_id, v.id);
+      }
+    }
     const pms: VenueOption[] = accommodations
       .filter((a) => a.is_active !== false)
       .map((a) => ({
@@ -495,16 +505,18 @@ function InvitationsTab({
         badge: "民宿",
         accommodation_id: a.id,
         venue_name: null,
+        venue_id: accToVenueId.get(a.id) ?? null,
       }));
     const v: VenueOption[] = venues
-      .filter((x) => x.is_active)
+      .filter((x) => x.is_active && !x.accommodation_id && !x.room_type_id)
       .map((x) => ({
-        value: `venue:${x.name}`,
+        value: `venue:${x.id}`,
         label: x.name,
         source: "venue",
         badge: x.type || "其他",
         accommodation_id: null,
         venue_name: x.name,
+        venue_id: x.id,
       }));
     return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
   }, [accommodations, venues]);
@@ -558,7 +570,7 @@ function InvitationsTab({
         supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
-          .select("id, name, type, is_active")
+          .select("id, name, type, is_active, accommodation_id, room_type_id")
           .order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
         supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
@@ -643,7 +655,7 @@ function InvitationsTab({
       if (filterAcc.startsWith("acc:")) {
         q = q.eq("accommodation_id", filterAcc.slice(4));
       } else if (filterAcc.startsWith("venue:")) {
-        q = q.eq("venue_name", filterAcc.slice(6));
+        q = q.eq("venue_id", filterAcc.slice(6));
       }
     }
     if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
@@ -839,13 +851,16 @@ function InvitationsTab({
     }
   }, [form.check_in_date]); // eslint-disable-line
 
-  // 入住日期 + 館別 → 呼叫 check_kol_inventory RPC
+  // 入住日期 + 館別 → 呼叫 check_kol_inventory RPC (venue_id 版)
   useEffect(() => {
     const date = form.check_in_date;
-    const venueName = form.accommodation_id
-      ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
-      : form.venue_name || null;
-    if (!date || !venueName) {
+    // 優先用 form.venue_id；若尚未帶入，用 accommodation_id 從 venues 查
+    let venueId: string | null = form.venue_id || null;
+    if (!venueId && form.accommodation_id) {
+      const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
+      venueId = v?.id ?? null;
+    }
+    if (!date || !venueId) {
       if (form.inventory_status !== "") {
         setForm((f) => ({ ...f, inventory_status: "" }));
       }
@@ -854,7 +869,7 @@ function InvitationsTab({
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase.rpc("check_kol_inventory" as any, {
-        p_venue_name: venueName,
+        p_venue_id: venueId,
         p_check_in_date: date,
       });
       if (cancelled) return;
@@ -867,7 +882,7 @@ function InvitationsTab({
     return () => {
       cancelled = true;
     };
-  }, [form.accommodation_id, form.venue_name, form.check_in_date, accommodations]); // eslint-disable-line
+  }, [form.accommodation_id, form.venue_id, form.check_in_date, venues]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
   // 填入訂單編號 → 「訂房確認中」；清空 → null。
@@ -949,10 +964,11 @@ function InvitationsTab({
       id: row.id,
       accommodation_select: row.accommodation_id
         ? `acc:${row.accommodation_id}`
-        : row.venue_name
-          ? `venue:${row.venue_name}`
+        : row.venue_id
+          ? `venue:${row.venue_id}`
           : "",
       accommodation_id: row.accommodation_id ?? "",
+      venue_id: row.venue_id ?? "",
       venue_name: row.venue_name ?? "",
       name: row.name ?? "",
       ig_handle: row.ig_handle ?? "",
@@ -991,7 +1007,7 @@ function InvitationsTab({
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
   const handleSave = async () => {
-    if (!form.accommodation_id && !form.venue_name) {
+    if (!form.accommodation_id && !form.venue_id) {
       toast.error("請選擇館別");
       return;
     }
@@ -1024,8 +1040,15 @@ function InvitationsTab({
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
       : form.venue_name || null;
+    // 解析 venue_id：優先用 form.venue_id；若是 PMS 且尚未帶入，從 venues 反查
+    let resolvedVenueId: string | null = form.venue_id || null;
+    if (!resolvedVenueId && form.accommodation_id) {
+      const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
+      resolvedVenueId = v?.id ?? null;
+    }
     const payload: Record<string, any> = {
       accommodation_id: form.accommodation_id || null,
+      venue_id: resolvedVenueId,
       venue_name: resolvedVenueName,
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
@@ -2108,6 +2131,7 @@ function InvitationsTab({
                     ...form,
                     accommodation_select: v,
                     accommodation_id: opt?.accommodation_id ?? "",
+                    venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
                   });
                 }}
@@ -4896,13 +4920,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       toast.error(`更新場域失敗：${vErr.message}`);
       return;
     }
-    // 2. 若名稱已變更，同步更新 kol_venue_settings.venue_name
-    if (originalVenueName && originalVenueName !== n) {
-      await supabase
-        .from("kol_venue_settings" as any)
-        .update({ venue_name: n })
-        .eq("venue_name", originalVenueName);
-    }
+    // 名稱同步：現在只需要更新 kol_venues.name，kol_venue_settings 已改用 venue_id 關聯
     // 3. upsert kol_venue_settings
     const payload: Partial<VenueSettingsRow> = {
       venue_name: n,
