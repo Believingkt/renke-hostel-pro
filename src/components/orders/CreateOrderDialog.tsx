@@ -2903,7 +2903,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
       >
         <DialogHeader className="px-4 md:px-6 py-3 md:py-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 pr-10">
             <DialogTitle className="text-xl md:text-2xl">新增訂單</DialogTitle>
             {secondaryCurrencyConfig && (
               <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
