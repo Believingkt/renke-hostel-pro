@@ -50,24 +50,13 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
     return () => { cancelled = true; };
   }, [orders, secondaryConfig]);
 
-  const renderAmount = (order: Order, twd: number) => {
-    if (!secondaryConfig) return <>NT$ {twd.toLocaleString()}</>;
-    const orderCur = displayCurrencyMap.get(order.id);
-    const isSecPrimary = !!orderCur && orderCur.toUpperCase() === secondaryConfig.code.toUpperCase();
-    if (isSecPrimary) {
-      return (
-        <span className="inline-flex flex-col leading-tight">
-          <span>{formatSecondary(twd, secondaryConfig)}</span>
-          <span className="text-[11px] text-muted-foreground font-normal">≈ NT$ {twd.toLocaleString()}</span>
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex flex-col leading-tight">
-        <span>NT$ {twd.toLocaleString()}</span>
-        <span className="text-[11px] text-muted-foreground font-normal">≈ {formatSecondary(twd, secondaryConfig)}</span>
-      </span>
-    );
+  const renderAmount = (order: Order, amount: number) => {
+    if (!secondaryConfig) return <>NT$ {amount.toLocaleString()}</>;
+    // 旅行日等副幣別民宿：金額以原幣儲存（不做換算），依 display_currency 決定前綴
+    const orderCur = (displayCurrencyMap.get(order.id) || "TWD").toUpperCase();
+    const isSec = orderCur === secondaryConfig.code.toUpperCase();
+    const prefix = isSec ? secondaryConfig.symbol : "NT$";
+    return <>{prefix} {amount.toLocaleString()}</>;
   };
   const location = useLocation();
   const navigate = useNavigate();
