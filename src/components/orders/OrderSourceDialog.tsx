@@ -66,6 +66,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         accommodationId,
         orderSource: "kol",
         checkInDate: order.check_in_date,
+        packageId: (order as any).package_id ?? null,
         excludeOrderId: order.id,
         isAdmin,
         confirmOverride: (status) =>
@@ -74,6 +75,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
               yearMonth: status.yearMonth,
               used: status.used,
               quota: status.quota!,
+              packageName: status.packageName,
               resolve,
             });
           }),
