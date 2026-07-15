@@ -632,102 +632,27 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Extra currency buckets (e.g. JPY 純內部記帳，不走金流) */}
-      {extraCurrencyBuckets.map((bucket) => {
-        const meta = CURRENCY_LABEL[bucket.currency] ?? { label: `${bucket.currency} 營收`, symbol: bucket.currency };
-        const f = (n: number) => fmt(n, meta.symbol);
-        const rate = bucket.totals.total > 0 ? (bucket.totals.paid / bucket.totals.total) * 100 : 0;
-        return (
-          <Card key={bucket.currency} className="border-dashed">
-            <CardHeader>
-              <CardTitle className="text-base">{meta.label}</CardTitle>
-              <CardDescription>此幣別為純內部記帳，不與台幣營收合併，也不經過第三方金流</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">訂單總額</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.total)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{bucket.totals.count} 筆</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">已收金額</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.paid)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">收款率 {rate.toFixed(1)}%</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">訂金已收</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.depositPaid)}</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">尚未收款</div>
-                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.pending)}</div>
-                </div>
-              </div>
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>來源</TableHead>
-                      <TableHead className="text-right">訂單數</TableHead>
-                      <TableHead className="text-right">總額</TableHead>
-                      <TableHead className="text-right">已收</TableHead>
-                      <TableHead className="text-right">未收</TableHead>
-                      <TableHead className="text-right">收款率</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bucket.stats.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">尚無資料</TableCell></TableRow>
-                    ) : (
-                      bucket.stats.map((s) => (
-                        <TableRow key={s.source}>
-                          <TableCell>{s.label}</TableCell>
-                          <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.paid)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              {(() => {
-                const t = trendByCurrency.get(bucket.currency);
-                if (!t || t.data.length === 0 || t.keys.length === 0) return null;
-                return (
-                  <div>
-                    <div className="text-sm font-medium mb-2">月趨勢（近 6 個月，Top 5 來源）</div>
-                    <div className="h-[260px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={t.data}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--popover))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: 8,
-                            }}
-                            formatter={(v: number) => f(v)}
-                          />
-                          <Legend />
-                          {t.keys.map((k, i) => (
-                            <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
-                          ))}
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* 分開檢視模式下，顯示另一幣別的並排總覽 (旅行日專屬) */}
+      {isTraveldays && viewMode === "separate" && separateBuckets.length > 1 && (
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+          {separateBuckets.map((b) => {
+            const meta = CURRENCY_LABEL[b.currency] ?? { label: `${b.currency} 營收`, symbol: b.currency };
+            const isActive = b.currency === selectedCurrency;
+            return (
+              <button
+                key={b.currency}
+                type="button"
+                onClick={() => setSelectedCurrency(b.currency)}
+                className={`rounded-lg border p-4 text-left transition ${isActive ? "border-primary bg-primary/5" : "hover:border-primary/40"}`}
+              >
+                <div className="text-xs text-muted-foreground">{meta.label}</div>
+                <div className="text-2xl font-bold tabular-nums mt-1">{fmt(b.total, meta.symbol)}</div>
+                <div className="text-xs text-muted-foreground mt-1">{b.count} 筆 {isActive && "· 目前檢視"}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
 
 
