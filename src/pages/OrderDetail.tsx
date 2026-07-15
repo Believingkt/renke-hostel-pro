@@ -292,6 +292,11 @@ const OrderDetailPage = () => {
     return cur === secondaryCurrencyConfig.code.toUpperCase() ? secondaryCurrencyConfig.symbol : "NT$";
   }, [orderDisplayCurrency, secondaryCurrencyConfig]);
   const isRawCurrency = !!secondaryCurrencyConfig;
+  // 旅行日 JPY 訂單：純內部記帳，不走任何第三方金流
+  const isNonPayableCurrency = useMemo(() => {
+    const cur = (orderDisplayCurrency || "").toUpperCase();
+    return cur !== "" && cur !== "TWD";
+  }, [orderDisplayCurrency]);
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
@@ -1973,7 +1978,7 @@ const OrderDetailPage = () => {
             <>
               {/* 桌面：全部按鈕平鋪 */}
               <div className="hidden sm:flex sm:flex-row gap-2">
-                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && !isNonPayableCurrency && (
                   <Button onClick={() => setShowPaymentDialog(true)} className="text-sm">
                     <CreditCard className="h-4 w-4 mr-2" />線上收款
                   </Button>
@@ -1999,7 +2004,7 @@ const OrderDetailPage = () => {
               </div>
               {/* 手機：主 CTA + 更多 */}
               <div className="flex sm:hidden gap-2 w-full">
-                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' ? (
+                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && !isNonPayableCurrency ? (
                   <Button onClick={() => setShowPaymentDialog(true)} className="flex-1 text-sm h-11">
                     <CreditCard className="h-4 w-4 mr-1.5" />收款
                   </Button>
@@ -2147,7 +2152,7 @@ const OrderDetailPage = () => {
                 (() => {
                   const o = order as any;
                   const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
-                  if (unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
+                  if (!isNonPayableCurrency && unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
                     const created = new Date(o.payment_link_created_at);
                     if (Date.now() > created.getTime() + 3 * 24 * 60 * 60 * 1000) return 'overdue';
                   }

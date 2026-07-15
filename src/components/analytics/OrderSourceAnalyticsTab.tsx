@@ -37,6 +37,7 @@ interface OrderRow {
   final_price: number | null;
   paid_amount: number | null;
   payment_status: string | null;
+  currency: string; // "TWD" | "JPY" | ...
 }
 
 interface SourceStat {
@@ -52,7 +53,13 @@ interface SourceStat {
   breakdown?: SourceStat[];
 }
 
-const nt = (n: number) => `NT$${Math.round(n).toLocaleString()}`;
+const CURRENCY_LABEL: Record<string, { label: string; symbol: string }> = {
+  TWD: { label: "台幣營收", symbol: "NT$" },
+  JPY: { label: "日幣營收（純記帳）", symbol: "¥" },
+};
+
+const fmt = (n: number, symbol: string) => `${symbol}${Math.round(n).toLocaleString()}`;
+const nt = (n: number) => fmt(n, "NT$");
 
 export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
@@ -123,7 +130,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(rangeStart, "yyyy-MM-dd"))
@@ -133,7 +140,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         console.error(error);
         setOrders([]);
       } else {
-        setOrders((data ?? []) as OrderRow[]);
+        setOrders(((data ?? []) as any[]).map((r) => ({
+          order_source: r.order_source,
+          ota_channel: r.ota_channel,
+          check_in_date: r.check_in_date,
+          final_price: r.final_price,
+          paid_amount: r.paid_amount,
+          payment_status: r.payment_status,
+          currency: (r.order_meta?.display_currency || "TWD").toUpperCase(),
+        })) as OrderRow[]);
       }
       setLoading(false);
     })();
@@ -152,7 +167,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       const end = endOfMonth(today);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status")
+        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .gte("check_in_date", format(start, "yyyy-MM-dd"))
@@ -162,7 +177,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         console.error(error);
         setTrendOrders([]);
       } else {
-        setTrendOrders((data ?? []) as OrderRow[]);
+        setTrendOrders(((data ?? []) as any[]).map((r) => ({
+          order_source: r.order_source,
+          ota_channel: r.ota_channel,
+          check_in_date: r.check_in_date,
+          final_price: r.final_price,
+          paid_amount: r.paid_amount,
+          payment_status: r.payment_status,
+          currency: (r.order_meta?.display_currency || "TWD").toUpperCase(),
+        })) as OrderRow[]);
       }
     })();
     return () => {
@@ -170,11 +193,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown)
-  const { stats, totals } = useMemo(() => {
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown) — grouped by currency
+  const aggregate = (rows: OrderRow[]) => {
     const map = new Map<string, SourceStat>();
     const subMap = new Map<string, Map<string, SourceStat>>();
-    for (const o of orders ?? []) {
+    for (const o of rows) {
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
       const cur = map.get(key) ?? {
@@ -254,13 +277,31 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 },
     );
     return { stats: arr, totals };
+  };
+
+  const perCurrency = useMemo(() => {
+    const buckets = new Map<string, OrderRow[]>();
+    for (const o of orders ?? []) {
+      const c = (o.currency || "TWD").toUpperCase();
+      if (!buckets.has(c)) buckets.set(c, []);
+      buckets.get(c)!.push(o);
+    }
+    // Ensure TWD appears first even if empty (so layout stays same for other properties)
+    const currencies = Array.from(buckets.keys());
+    currencies.sort((a, b) => (a === "TWD" ? -1 : b === "TWD" ? 1 : a.localeCompare(b)));
+    return currencies.map((c) => ({ currency: c, ...aggregate(buckets.get(c)!) }));
   }, [orders]);
 
+  const twdBucket = perCurrency.find((b) => b.currency === "TWD");
+  const stats = twdBucket?.stats ?? [];
+  const totals = twdBucket?.totals ?? { count: 0, total: 0, paid: 0, depositPaid: 0, fullPaid: 0, pending: 0 };
+  const extraCurrencyBuckets = perCurrency.filter((b) => b.currency !== "TWD");
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend: 6 months x each source total
+  // Monthly trend: 6 months x each source total (TWD only)
   const trendData = useMemo(() => {
     if (!trendOrders) return [];
+    const twdOrders = trendOrders.filter((o) => (o.currency || "TWD").toUpperCase() === "TWD");
     const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
@@ -268,7 +309,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     }
     // pick top 5 sources by total across whole window
     const totalsBySource = new Map<string, number>();
-    for (const o of trendOrders) {
+    for (const o of twdOrders) {
       const src = o.order_source || "unknown";
       totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + (Number(o.final_price) || 0));
     }
@@ -279,7 +320,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
     const byMonth = new Map<string, Record<string, number>>();
     for (const m of months) byMonth.set(m, {});
-    for (const o of trendOrders) {
+    for (const o of twdOrders) {
       const m = o.check_in_date?.slice(0, 7);
       if (!m || !byMonth.has(m)) continue;
       const src = o.order_source || "unknown";
@@ -541,6 +582,74 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Extra currency buckets (e.g. JPY 純內部記帳，不走金流) */}
+      {extraCurrencyBuckets.map((bucket) => {
+        const meta = CURRENCY_LABEL[bucket.currency] ?? { label: `${bucket.currency} 營收`, symbol: bucket.currency };
+        const f = (n: number) => fmt(n, meta.symbol);
+        const rate = bucket.totals.total > 0 ? (bucket.totals.paid / bucket.totals.total) * 100 : 0;
+        return (
+          <Card key={bucket.currency} className="border-dashed">
+            <CardHeader>
+              <CardTitle className="text-base">{meta.label}</CardTitle>
+              <CardDescription>此幣別為純內部記帳，不與台幣營收合併，也不經過第三方金流</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">訂單總額</div>
+                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.total)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{bucket.totals.count} 筆</div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">已收金額</div>
+                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.paid)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">收款率 {rate.toFixed(1)}%</div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">訂金已收</div>
+                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.depositPaid)}</div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">尚未收款</div>
+                  <div className="text-xl font-semibold tabular-nums">{f(bucket.totals.pending)}</div>
+                </div>
+              </div>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>來源</TableHead>
+                      <TableHead className="text-right">訂單數</TableHead>
+                      <TableHead className="text-right">總額</TableHead>
+                      <TableHead className="text-right">已收</TableHead>
+                      <TableHead className="text-right">未收</TableHead>
+                      <TableHead className="text-right">收款率</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bucket.stats.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">尚無資料</TableCell></TableRow>
+                    ) : (
+                      bucket.stats.map((s) => (
+                        <TableRow key={s.source}>
+                          <TableCell>{s.label}</TableCell>
+                          <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                          <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{f(s.paid)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
 
       {/* Monthly trend */}
       <Card>
