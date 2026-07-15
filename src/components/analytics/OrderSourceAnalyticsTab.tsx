@@ -458,7 +458,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><DollarSign className="h-4 w-4" />訂單總額</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{nt(totals.total)}</div>
+                <div className="text-2xl font-bold">{f(totals.total)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{rangeLabel} · {totals.count} 筆</p>
               </CardContent>
             </Card>
@@ -467,15 +467,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><Wallet className="h-4 w-4" />已收金額</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">{nt(totals.paid)}</div>
+                <div className="text-2xl font-bold text-primary">{f(totals.paid)}</div>
                 <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   <div className="flex justify-between gap-2">
                     <span>已付訂金</span>
-                    <span className="tabular-nums font-medium text-foreground">{nt(totals.depositPaid)}</span>
+                    <span className="tabular-nums font-medium text-foreground">{f(totals.depositPaid)}</span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span>已付清</span>
-                    <span className="tabular-nums font-medium text-foreground">{nt(totals.fullPaid)}</span>
+                    <span className="tabular-nums font-medium text-foreground">{f(totals.fullPaid)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -485,7 +485,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <CardDescription className="flex items-center gap-1"><Hourglass className="h-4 w-4" />待收尾款</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{nt(totals.pending)}</div>
+                <div className="text-2xl font-bold">{f(totals.pending)}</div>
                 <p className="text-xs text-muted-foreground mt-1">總額 − 已收</p>
               </CardContent>
             </Card>
@@ -524,7 +524,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: 8,
                     }}
-                    formatter={(v: number) => nt(v)}
+                    formatter={(v: number) => f(v)}
                   />
                   <Legend />
                   <Bar dataKey="paid" name="已收" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
@@ -589,11 +589,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                               )}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                            <TableCell className="text-right tabular-nums">{nt(s.total)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-primary">{nt(s.paid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.depositPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{nt(s.fullPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{nt(s.pending)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">{f(s.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.depositPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.fullPaid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
                             <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
@@ -603,11 +603,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                   └ {sub.label}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.total)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-primary/80">{nt(sub.paid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.depositPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.fullPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{nt(sub.pending)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-primary/80">{f(sub.paid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.depositPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.fullPaid)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.pending)}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
                             ))}
@@ -617,11 +617,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                     <TableRow className="font-semibold bg-muted/40">
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-primary">{nt(totals.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.depositPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.fullPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{nt(totals.pending)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-primary">{f(totals.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.depositPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.fullPaid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{f(totals.pending)}</TableCell>
                       <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
                   </>
