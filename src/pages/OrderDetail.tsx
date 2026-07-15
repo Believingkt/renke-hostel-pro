@@ -483,6 +483,17 @@ const OrderDetailPage = () => {
     addon_note: "",
     extra_addon_amount: 0,
   });
+  // Sync amount refs for the currency-toggle guard defined above
+  useEffect(() => {
+    editFormAmountsRef.current = {
+      total_price: Number(editForm.total_price) || 0,
+      discount_amount: Number(editForm.discount_amount) || 0,
+      addon_total: Number(editForm.addon_total) || 0,
+      paid_amount: Number(editForm.paid_amount) || 0,
+      isEditing,
+    };
+    clearEditAmountsRef.current = () => setEditForm(f => ({ ...f, total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0 }));
+  }, [editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount, isEditing]);
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
 
