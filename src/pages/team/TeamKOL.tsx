@@ -3580,17 +3580,25 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       return;
     }
     setSaving(true);
-    // 嘗試解析 accommodation_id
+    // 解析 accommodation_id 與 venue_id（venue_id 為主要關聯鍵）
     const { data: acc } = await supabase.from("accommodation_info").select("id").eq("name", name).maybeSingle();
     if (!acc?.id) {
       setSaving(false);
       toast.error("找不到對應的場域，請確認館別名稱");
       return;
     }
+    const { data: kv } = await supabase
+      .from("kol_venues" as any)
+      .select("id")
+      .eq("accommodation_id", acc.id)
+      .is("room_type_id", null)
+      .maybeSingle();
+    const venueId = (kv as any)?.id ?? null;
     const { error } = await (supabase.from("scout_team_targets" as any) as any).upsert(
       {
         year,
         month,
+        venue_id: venueId,
         venue_name: name,
         target_count: t,
         personal_min: pm,
@@ -3598,7 +3606,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
         accommodation_id: acc.id,
         created_by: currentUserId,
       },
-      { onConflict: "year,month,accommodation_id" },
+      { onConflict: "year,month,venue_id" },
     );
     setSaving(false);
     if (error) {
