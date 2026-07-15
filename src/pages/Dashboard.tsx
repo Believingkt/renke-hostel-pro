@@ -307,15 +307,16 @@ const Dashboard = () => {
               variant="blue"
               isUpdating={isLiveUpdating}
             />
-            <StatCard
-              title="本月營收"
-              value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
-              change={stats.revenueChange}
-              icon={DollarSign}
-              variant="cyan"
-              isUpdating={isLiveUpdating}
-            />
-          </>
+            {accommodationId !== TRAVELDAYS_ACC_ID && (
+              <StatCard
+                title="本月營收"
+                value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
+                change={stats.revenueChange}
+                icon={DollarSign}
+                variant="cyan"
+                isUpdating={isLiveUpdating}
+              />
+            )}
         )}
       </div>
 
