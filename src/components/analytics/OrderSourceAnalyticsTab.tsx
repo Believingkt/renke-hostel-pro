@@ -678,7 +678,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: 8,
                     }}
-                    formatter={(v: number) => nt(v)}
+                    formatter={(v: number) => f(v)}
                   />
                   <Legend />
                   {trendKeys.map((k, i) => (
