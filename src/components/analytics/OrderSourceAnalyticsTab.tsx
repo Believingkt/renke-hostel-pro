@@ -393,6 +393,72 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* 旅行日專屬：檢視模式切換 */}
+      {isTraveldays && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">檢視模式</Label>
+                <div className="flex bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewMode === "separate" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="px-3"
+                    onClick={() => setViewMode("separate")}
+                  >
+                    分開顯示
+                  </Button>
+                  <Button
+                    variant={viewMode === "consolidated" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="px-3"
+                    onClick={() => setViewMode("consolidated")}
+                  >
+                    合併估算總額
+                  </Button>
+                </div>
+              </div>
+              {viewMode === "separate" ? (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">幣別</Label>
+                  <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                    <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TWD">TWD (NT$)</SelectItem>
+                      <SelectItem value="JPY">JPY (¥)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">匯率 1 JPY =</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    onBlur={() => {
+                      const n = Number(rateInput);
+                      if (Number.isFinite(n) && n > 0) setExchangeRate(n);
+                      else setRateInput(String(exchangeRate));
+                    }}
+                    className="h-9 w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">TWD</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground ml-auto">
+                {viewMode === "separate"
+                  ? "TWD 與 JPY 分開統計，不相加"
+                  : `JPY 依匯率 ${exchangeRate} 換算為 TWD 後合併計算`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Range controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
