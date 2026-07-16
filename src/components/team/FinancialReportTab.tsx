@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 
 /* ---------- helpers ---------- */
@@ -803,7 +804,7 @@ export default function FinancialReportTab() {
         </div>
 
 
-        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
+        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} year={year} month={month} />}
       </CardContent>
     </Card>
   );
@@ -819,36 +820,108 @@ interface FeeRow {
   note: string | null;
 }
 
-function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
+interface CompareRow {
+  accId: string;
+  accName: string;
+  consultingRate: number | null;
+  consultingIsFallback: boolean;
+  ownerRate: number | null;
+}
+
+function ConsultingFeeSettingsBlock({
+  canManage,
+  year,
+  month,
+}: {
+  canManage: boolean;
+  year: number;
+  month: number;
+}) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<FeeRow[]>([]);
   const [accs, setAccs] = useState<AccOption[]>([]);
+  const [compareRows, setCompareRows] = useState<CompareRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     effective_from: new Date().toISOString().slice(0, 10),
     ratePercent: "",
-    accommodation_id: "all" as string,
+    accommodation_id: "",
     note: "",
   });
+
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: feeData }, { data: accData }] = await Promise.all([
+      const [{ data: feeData }, { data: accData }, { data: settingsData }] = await Promise.all([
         supabase
           .from("consulting_fee_settings")
           .select("id, rate, accommodation_id, effective_from, note")
           .order("effective_from", { ascending: false }),
-        supabase.from("accommodation_info").select("id, name").order("name"),
+        supabase
+          .from("accommodation_info")
+          .select("id, name, is_active")
+          .eq("is_active", true)
+          .neq("name", "奧丁丁測試")
+          .order("name"),
+        supabase
+          .from("system_settings")
+          .select("setting_key, setting_value")
+          .like("setting_key", "owner_settlement_config%"),
       ]);
-      setRows((feeData ?? []) as FeeRow[]);
-      setAccs(((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+      const feeRows = (feeData ?? []) as FeeRow[];
+      setRows(feeRows);
+      const accList = ((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name }));
+      setAccs(accList);
+
+      // Build owner_settlement rate map
+      const perAccOwner = new Map<string, number>();
+      let globalOwner: number | null = null;
+      for (const r of (settingsData ?? []) as any[]) {
+        const key: string = r.setting_key;
+        const rate = Number(r.setting_value?.commission_rate);
+        if (!Number.isFinite(rate)) continue;
+        if (key === "owner_settlement_config") {
+          globalOwner = rate;
+        } else if (key.startsWith("owner_settlement_config:")) {
+          perAccOwner.set(key.slice("owner_settlement_config:".length), rate);
+        }
+      }
+
+      // Pick consulting fee for each acc as of monthStart
+      const pickConsulting = (accId: string): { rate: number | null; fallback: boolean } => {
+        const specific = feeRows.find(
+          (f) => f.accommodation_id === accId && f.effective_from <= monthStart,
+        );
+        if (specific) return { rate: Number(specific.rate), fallback: false };
+        const fallback = feeRows.find(
+          (f) => f.accommodation_id == null && f.effective_from <= monthStart,
+        );
+        if (fallback) return { rate: Number(fallback.rate), fallback: true };
+        return { rate: null, fallback: false };
+      };
+
+      const compare: CompareRow[] = accList.map((a) => {
+        const { rate, fallback } = pickConsulting(a.id);
+        const owner = perAccOwner.has(a.id)
+          ? perAccOwner.get(a.id)!
+          : globalOwner;
+        return {
+          accId: a.id,
+          accName: a.name,
+          consultingRate: rate,
+          consultingIsFallback: fallback,
+          ownerRate: owner,
+        };
+      });
+      setCompareRows(compare);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [monthStart]);
 
   useEffect(() => {
     load();
@@ -866,13 +939,17 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
       toast.error("請輸入有效的生效日期與費率");
       return;
     }
+    if (!form.accommodation_id) {
+      toast.error("請選擇適用館別");
+      return;
+    }
     const rate = pct / 100;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("consulting_fee_settings").insert({
         rate,
-        accommodation_id: form.accommodation_id === "all" ? null : form.accommodation_id,
+        accommodation_id: form.accommodation_id,
         effective_from: form.effective_from,
         note: form.note.trim() || null,
         created_by: user?.id ?? null,
@@ -883,7 +960,7 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
       setForm({
         effective_from: new Date().toISOString().slice(0, 10),
         ratePercent: "",
-        accommodation_id: "all",
+        accommodation_id: "",
         note: "",
       });
       await load();
@@ -952,10 +1029,9 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="請選擇館別" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">全館通用</SelectItem>
                           {accs.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
                               {a.name}
@@ -992,6 +1068,86 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
               </Dialog>
             </div>
           )}
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="text-sm font-medium">
+                各館費率比對（{year}/{String(month).padStart(2, "0")}）
+              </div>
+              <div className="text-xs text-muted-foreground">
+                比對「管顧費率」與業主月結「服務費」是否一致
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">館別</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">管顧費率</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">業主月結服務費</TableHead>
+                    <TableHead className="whitespace-nowrap">狀態</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6">
+                        <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                        載入中…
+                      </TableCell>
+                    </TableRow>
+                  ) : compareRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        尚無館別資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    compareRows.map((r) => {
+                      const cHas = r.consultingRate != null;
+                      const oHas = r.ownerRate != null;
+                      const cStr = cHas
+                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
+                        : "未設定";
+                      const oStr = oHas ? `${(r.ownerRate! * 100).toFixed(2)}%` : "未設定";
+                      let status: JSX.Element;
+                      if (!cHas || !oHas) {
+                        status = (
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">
+                            ？ 未設定
+                          </Badge>
+                        );
+                      } else if (Math.abs(r.consultingRate! - r.ownerRate!) < 1e-9) {
+                        status = (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">
+                            ✓ 一致
+                          </Badge>
+                        );
+                      } else {
+                        status = (
+                          <div className="space-y-1">
+                            <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">
+                              ⚠ 不一致
+                            </Badge>
+                            <div className="text-[11px] text-muted-foreground">
+                              請至 /admin/owner-settlement-settings 或財務報表費率設定調整
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <TableRow key={r.accId}>
+                          <TableCell className="whitespace-nowrap">{r.accName}</TableCell>
+                          <TableCell className="text-right tabular-nums whitespace-nowrap">{cStr}</TableCell>
+                          <TableCell className="text-right tabular-nums whitespace-nowrap">{oStr}</TableCell>
+                          <TableCell className="whitespace-nowrap">{status}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
