@@ -679,13 +679,16 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                             {accMap.get(id) ?? id.slice(0, 6)}
                           </Badge>
                         ))}
-                        {(g.custom_venue_names ?? []).map((n) => (
-                          <Badge key={n} variant="outline" className="text-xs">
-                            {n}
-                          </Badge>
-                        ))}
+                        {(g.custom_venue_ids ?? []).map((id) => {
+                          const v = venues.find((x) => x.id === id);
+                          return (
+                            <Badge key={id} variant="outline" className="text-xs">
+                              {v?.name ?? id.slice(0, 6)}
+                            </Badge>
+                          );
+                        })}
                         {(g.accommodation_ids ?? []).length === 0 &&
-                          (g.custom_venue_names ?? []).length === 0 && (
+                          (g.custom_venue_ids ?? []).length === 0 && (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                       </div>
