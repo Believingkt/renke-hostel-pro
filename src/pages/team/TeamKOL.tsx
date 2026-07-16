@@ -5643,6 +5643,15 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
 
+  const editVenueHasChildren =
+    !!editVenue &&
+    !!editVenue.accommodation_id &&
+    !editVenue.room_type_id &&
+    rows.some((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id);
+  const editVenueChildren = editVenueHasChildren && editVenue
+    ? rows.filter((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id)
+    : [];
+
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
