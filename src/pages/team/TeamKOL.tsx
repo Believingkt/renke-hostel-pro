@@ -822,6 +822,20 @@ function InvitationsTab({
       setSortDir("asc");
     }
   };
+
+  // 展開的主要記錄 id 集合
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // 場域 id → venue（供子館別名稱查詢）
+  const venueByIdAll = useMemo(() => new Map(venues.map((v) => [v.id, v])), [venues]);
   const getSortIcon = (field: SortKey) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
     return sortDir === "asc"
