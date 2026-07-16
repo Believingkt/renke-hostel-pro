@@ -576,6 +576,18 @@ function InvitationsTab({
   const [cancelTarget, setCancelTarget] = useState<KolRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
+  // 設為附屬記錄：搜尋主要記錄 Dialog
+  const [linkSubsidiaryTarget, setLinkSubsidiaryTarget] = useState<KolRow | null>(null);
+  const [linkSearchQuery, setLinkSearchQuery] = useState("");
+  const [linkSearchResults, setLinkSearchResults] = useState<KolRow[]>([]);
+  const [linkSearching, setLinkSearching] = useState(false);
+  const [linkConfirm, setLinkConfirm] = useState<{ child: KolRow; parent: KolRow } | null>(null);
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+
+  // 取消附屬關係
+  const [unlinkTarget, setUnlinkTarget] = useState<KolRow | null>(null);
+  const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
+
   // 載入下拉資料
   useEffect(() => {
     (async () => {
