@@ -5684,7 +5684,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   {/* 區塊一：基本資訊 */}
                   <section className="space-y-3">
                     <h4 className="font-semibold text-sm">基本資訊</h4>
-                    <Field label="場域名稱">
+                    <Field label="場域名稱" required>
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} disabled={readOnly} />
                     </Field>
                     <Field label="類型">
