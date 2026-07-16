@@ -574,11 +574,21 @@ export default function FinancialReportTab() {
             }
             hasAnyRate = true;
             const monthStayTotal = stay.reduce((a, b) => a + b, 0);
-            if (cfg.threshold > 0 && monthStayTotal < cfg.threshold) {
-              row5ByAcc.set(accId, emptyBuckets(weekCount));
-              continue;
+            if (cfg.threshold > 0) {
+              // 累進制：僅超過門檻的部分計費，並按各週住房營收比例分配
+              if (monthStayTotal <= cfg.threshold) {
+                row5ByAcc.set(accId, emptyBuckets(weekCount));
+                continue;
+              }
+              const billableBase = monthStayTotal - cfg.threshold;
+              row5ByAcc.set(
+                accId,
+                stay.map((v) => (monthStayTotal > 0 ? (v / monthStayTotal) * billableBase * cfg.rate : 0)),
+              );
+            } else {
+              // 無門檻：整月住房營收 × 費率
+              row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
             }
-            row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
           }
         }
         const row5Total = emptyBuckets(weekCount);
@@ -826,7 +836,7 @@ export default function FinancialReportTab() {
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
-            住房營收 × 管顧費率,費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
+            住房營收 × 管顧費率。若設有業績門檻,僅超過門檻的部分金額計費。費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
           </p>
           <p className="text-amber-600 dark:text-amber-500">
             ⚠️ 各列日期基準不同,對帳時請特別注意。
