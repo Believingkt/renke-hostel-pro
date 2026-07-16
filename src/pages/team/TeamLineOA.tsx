@@ -1271,10 +1271,11 @@ function MembersTab({ selfUserId = null }: { selfUserId?: string | null }) {
                                     <div className="text-xs font-medium mb-1.5">📊 業績通報訂閱館別</div>
                                     <VenuePicker
                                       accommodations={accommodations}
+                                      venues={[]}
                                       selectedIds={editingAmIds}
-                                      selectedCustom={[]}
+                                      selectedVenueIds={[]}
                                       onChangeIds={setEditingAmIds}
-                                      onChangeCustom={() => {}}
+                                      onChangeVenueIds={() => {}}
                                     />
                                     <div className="flex gap-1 mt-2">
                                       <Button
