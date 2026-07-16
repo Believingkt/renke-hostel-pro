@@ -1026,6 +1026,11 @@ function InvitationsTab({
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
+      primary_sub_venue_id: (() => {
+        if (!row.venue_id) return "";
+        const vRow = venues.find((v) => v.id === row.venue_id);
+        return vRow?.room_type_id ? row.venue_id : "";
+      })(),
     });
     setDupWarning(null);
     setSheetOpen(true);
