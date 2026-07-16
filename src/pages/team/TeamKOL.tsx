@@ -1223,6 +1223,87 @@ function InvitationsTab({
     });
   };
 
+  // 搜尋可作為主要記錄的候選（只顯示 primary_profile_id IS NULL 且排除自己）
+  useEffect(() => {
+    if (!linkSubsidiaryTarget) {
+      setLinkSearchResults([]);
+      return;
+    }
+    const q = linkSearchQuery.trim();
+    if (!q) {
+      setLinkSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setLinkSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("*")
+        .is("primary_profile_id" as any, null)
+        .neq("id", linkSubsidiaryTarget.id)
+        .or(`name.ilike.%${q}%,ig_handle.ilike.%${q}%`)
+        .limit(20);
+      if (cancelled) return;
+      const list = (data ?? []) as unknown as KolRow[];
+      // 補上館別名稱
+      const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+      const venueMap = new Map(venues.map((v) => [v.id, v.name]));
+      for (const r of list) {
+        r._accommodation_name = r.accommodation_id
+          ? accMap.get(r.accommodation_id) ?? ""
+          : r.venue_id
+            ? venueMap.get(r.venue_id) ?? r.venue_name ?? ""
+            : r.venue_name ?? "";
+      }
+      setLinkSearchResults(list);
+      setLinkSearching(false);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [linkSearchQuery, linkSubsidiaryTarget, accommodations, venues]);
+
+  const handleConfirmLinkSubsidiary = async () => {
+    if (!linkConfirm) return;
+    setLinkSubmitting(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ primary_profile_id: linkConfirm.parent.id, kpi_qualified: false } as any)
+      .eq("id", linkConfirm.child.id);
+    setLinkSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已設為附屬記錄");
+    setLinkConfirm(null);
+    setLinkSubsidiaryTarget(null);
+    setLinkSearchQuery("");
+    setLinkSearchResults([]);
+    fetchRows();
+  };
+
+  const handleUnlinkSubsidiary = async () => {
+    if (!unlinkTarget) return;
+    setUnlinkSubmitting(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ primary_profile_id: null } as any)
+      .eq("id", unlinkTarget.id);
+    setUnlinkSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已取消附屬關係");
+    setUnlinkTarget(null);
+    fetchRows();
+  };
+
+
+
   const handleReportError = async () => {
     if (!errorTarget) return;
     if (!errorReason.trim()) {
