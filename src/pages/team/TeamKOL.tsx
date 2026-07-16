@@ -1758,169 +1758,247 @@ function InvitationsTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedRows.map((r) => {
-
-                  const igUrl = r.ig_handle || null;
-                  const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
-                  const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
-                  const codeOrCid = codeOrCidValue ?? "-";
-                  const isPmsCreated = codeOrCidValue
-                    ? pmsCodesSet.has(codeOrCidValue.trim().toUpperCase())
-                    : false;
-                  const codeOrCidClass = codeOrCidValue && (r.cid_configured || isPmsCreated)
-                    ? "text-green-600 font-medium"
-                    : "";
-                  return (
-                    <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
-                      <TableCell className="max-w-[180px]">
-                        <div className="flex items-center gap-2 max-w-[180px]">
-                          {igUrl ? (
+                {(() => {
+                  const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean } = {}) => {
+                    const igUrl = r.ig_handle || null;
+                    const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
+                    const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
+                    const codeOrCid = codeOrCidValue ?? "-";
+                    const isPmsCreated = codeOrCidValue
+                      ? pmsCodesSet.has(codeOrCidValue.trim().toUpperCase())
+                      : false;
+                    const codeOrCidClass = codeOrCidValue && (r.cid_configured || isPmsCreated)
+                      ? "text-green-600 font-medium"
+                      : "";
+                    const subs = groupedRows.subMap.get(r.id) ?? [];
+                    const hasSubs = subs.length > 0;
+                    const expanded = expandedRows.has(r.id);
+                    return (
+                      <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
+                        <TableCell className="max-w-[200px]">
+                          <div className="flex items-center gap-1 max-w-[200px]">
+                            {hasSubs ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}
+                                className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted shrink-0"
+                                aria-label={expanded ? "收合附屬記錄" : "展開附屬記錄"}
+                              >
+                                {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                            ) : (
+                              <span className="inline-block h-5 w-5 shrink-0" />
+                            )}
+                            {igUrl ? (
+                              <a
+                                href={igUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline truncate"
+                                title={r.name ?? ""}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {r.name ?? "-"}
+                              </a>
+                            ) : (
+                              <span className="truncate" title={r.name ?? ""}>
+                                {r.name ?? "-"}
+                              </span>
+                            )}
+                            {r.is_error && (
+                              <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 shrink-0">
+                                填錯
+                              </Badge>
+                            )}
+                            {opts.isOrphan && (
+                              <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 shrink-0">
+                                孤兒附屬
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
+                        <TableCell className="min-w-[240px] max-w-[280px] align-top">
+                          {r.ig_handle ? (
                             <a
-                              href={igUrl}
+                              href={r.ig_handle}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-primary hover:underline truncate"
-                              title={r.name ?? ""}
+                              className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
+                              title={r.ig_handle}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {r.name ?? "-"}
+                              {r.ig_handle}
                             </a>
                           ) : (
-                            <span className="truncate" title={r.name ?? ""}>
-                              {r.name ?? "-"}
-                            </span>
+                            <span className="text-muted-foreground">-</span>
                           )}
-                          {r.is_error && (
-                            <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 shrink-0">
-                              填錯
+                        </TableCell>
+                        <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
+                        <TableCell>
+                          {r.rarity && (
+                            <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
+                              {r.rarity}
                             </Badge>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
-                      <TableCell className="min-w-[240px] max-w-[280px] align-top">
-                        {r.ig_handle ? (
-                          <a
-                            href={r.ig_handle}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
-                            title={r.ig_handle}
-                            onClick={(e) => e.stopPropagation()}
+                        </TableCell>
+                        <TableCell>
+                          {r.kpi_qualified ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                              <Check className="h-3 w-3" />
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{r._accommodation_name}</TableCell>
+                        <TableCell>{r.check_in_date ?? "-"}</TableCell>
+                        <TableCell>{r.day_of_week ?? "-"}</TableCell>
+                        <TableCell>{r._scout_name}</TableCell>
+                        <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
+                        <TableCell>
+                          {contractStatus && !contractStatus.empty ? (
+                            contractStatus.plain ? (
+                              <span>{contractStatus.label}</span>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  contractStatus.done
+                                    ? "bg-green-100 text-green-700 border-green-200"
+                                    : "bg-orange-100 text-orange-700 border-orange-200"
+                                }
+                              >
+                                {contractStatus.label}
+                              </Badge>
+                            )
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {[
+                              { ok: !!r.task_pre_stay, label: "前" },
+                              { ok: !!r.task_post_story, label: "後" },
+                              { ok: !!r.task_ig_collab, label: "協" },
+                            ].map((t, i) => (
+                              <span
+                                key={i}
+                                title={t.label === "前" ? "入住前四件套" : t.label === "後" ? "入住後限動" : "IG 協作"}
+                                className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                                  t.ok ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
+                                }`}
+                              >
+                                {t.ok ? <Check className="h-3 w-3" /> : t.label}
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {r.publish_date ? (
+                            r.publish_url ? (
+                              <a
+                                href={r.publish_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline inline-flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {r.publish_date}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              r.publish_date
+                            )
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {r.invited_at ? (
+                            r.invited_at.slice(0, 10)
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => openEdit(r)}
+                            aria-label="編輯"
                           >
-                            {r.ig_handle}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
-                      <TableCell>
-                        {r.rarity && (
-                          <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
-                            {r.rarity}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {r.kpi_qualified ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                            <Check className="h-3 w-3" />
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{r._accommodation_name}</TableCell>
-                      <TableCell>{r.check_in_date ?? "-"}</TableCell>
-                      <TableCell>{r.day_of_week ?? "-"}</TableCell>
-                      <TableCell>{r._scout_name}</TableCell>
-                      <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
-                      <TableCell>
-                        {contractStatus && !contractStatus.empty ? (
-                          contractStatus.plain ? (
-                            <span>{contractStatus.label}</span>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className={
-                                contractStatus.done
-                                  ? "bg-green-100 text-green-700 border-green-200"
-                                  : "bg-orange-100 text-orange-700 border-orange-200"
-                              }
-                            >
-                              {contractStatus.label}
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  };
+
+                  const renderSubRow = (sub: KolRow) => {
+                    const vRow = sub.venue_id ? venueByIdAll.get(sub.venue_id) : null;
+                    const subVenueName = vRow?.name ?? sub.venue_name ?? "-";
+                    const contractStatus = computeContractProgress(sub.publish_url, sub.publish_date, sub.contract_file_url);
+                    return (
+                      <TableRow
+                        key={sub.id}
+                        className="cursor-pointer hover:bg-muted/50 bg-muted/20"
+                        onClick={() => setViewingRow(sub)}
+                      >
+                        <TableCell colSpan={16} className="whitespace-normal">
+                          <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
+                            <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
+                              附屬
                             </Badge>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {[
-                            { ok: !!r.task_pre_stay, label: "前" },
-                            { ok: !!r.task_post_story, label: "後" },
-                            { ok: !!r.task_ig_collab, label: "協" },
-                          ].map((t, i) => (
-                            <span
-                              key={i}
-                              title={t.label === "前" ? "入住前四件套" : t.label === "後" ? "入住後限動" : "IG 協作"}
-                              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                                t.ok ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
-                              }`}
-                            >
-                              {t.ok ? <Check className="h-3 w-3" /> : t.label}
+                            <span className="font-medium">{subVenueName}</span>
+                            <span className="text-muted-foreground">
+                              入住：{sub.check_in_date ?? "-"}
                             </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {r.publish_date ? (
-                          r.publish_url ? (
-                            <a
-                              href={r.publish_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline inline-flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {r.publish_date}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          ) : (
-                            r.publish_date
-                          )
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {r.invited_at ? (
-                          r.invited_at.slice(0, 10)
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => openEdit(r)}
-                          aria-label="編輯"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                            {sub.publish_date && (
+                              <span className="text-muted-foreground">
+                                發布：{sub.publish_date}
+                              </span>
+                            )}
+                            {contractStatus && !contractStatus.empty && (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  contractStatus.done
+                                    ? "bg-green-100 text-green-700 border-green-200"
+                                    : "bg-orange-100 text-orange-700 border-orange-200"
+                                }
+                              >
+                                {contractStatus.label}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  };
+
+                  const nodes: React.ReactNode[] = [];
+                  for (const p of groupedRows.primaries) {
+                    nodes.push(renderMainRow(p));
+                    if (expandedRows.has(p.id)) {
+                      for (const sub of (groupedRows.subMap.get(p.id) ?? [])) {
+                        nodes.push(renderSubRow(sub));
+                      }
+                    }
+                  }
+                  for (const o of groupedRows.orphans) {
+                    nodes.push(renderMainRow(o, { isOrphan: true }));
+                  }
+                  return nodes;
+                })()}
               </TableBody>
             </Table>
           </div>
         </Card>
       )}
+
 
       {/* 分頁 */}
       {!loading && totalCount > 0 && (
