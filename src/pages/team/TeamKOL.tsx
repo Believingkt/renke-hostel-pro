@@ -1090,6 +1090,7 @@ function InvitationsTab({
       kol_direct_ticket_link: toNullable(form.kol_direct_ticket_link),
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
+      primary_profile_id: form.primary_profile_id || null,
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
     payload.follower_count = followerParsed.value;
