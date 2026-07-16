@@ -2435,10 +2435,13 @@ function InvitationsTab({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">
+        {label}
+        {required && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
       {children}
     </div>
   );
