@@ -88,6 +88,7 @@ interface TargetRow {
   month: number;
   personal_min: number;
   target_count: number | null;
+  venue_id: string | null;
   venue_name: string | null;
 }
 interface ScoutProfile {
@@ -108,6 +109,7 @@ interface KolProfileRow {
   cid_code: string | null;
   order_number: string | null;
   is_error: boolean | null;
+  venue_id: string | null;
   venue_name: string | null;
   invited_at: string | null;
   created_at: string | null;
@@ -131,9 +133,9 @@ interface ScoutStats {
   base_salary: number;
   team_bonus: number;
   total: number;
-  targets: Array<{ venue_name: string; personal_min: number; target_count: number }>;
+  targets: Array<{ key: string; venue_id: string | null; venue_name: string; personal_min: number; target_count: number }>;
   total_personal_min: number;
-  venueBreakdown: Array<{ venue_name: string; personal_min: number; actual: number; achieved: boolean }>;
+  venueBreakdown: Array<{ key: string; venue_id: string | null; venue_name: string; personal_min: number; actual: number; achieved: boolean }>;
   qualifiedKols: Array<{
     name: string;
     rarity: string;
@@ -227,7 +229,7 @@ export function KolStatsTab() {
           showSalary && month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min, target_count, venue_name")
+                .select("year, month, personal_min, target_count, venue_id, venue_name")
                 .eq("year", month === 1 ? effYear - 1 : effYear)
                 .eq("month", month === 1 ? 12 : month - 1)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
@@ -293,10 +295,16 @@ export function KolStatsTab() {
           ((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]),
         );
 
+        // 分組 key：venue_id 優先，NULL 時用 name:<venue_name> 作為 fallback
+        const groupKey = (venueId: string | null | undefined, venueName: string | null | undefined) =>
+          venueId ? `id:${venueId}` : `name:${venueName ?? "—"}`;
+
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
         const targetsList = targetRows
           .filter((t) => Number(t.personal_min || 0) > 0)
           .map((t) => ({
+            key: groupKey(t.venue_id, t.venue_name),
+            venue_id: (t.venue_id ?? null) as string | null,
             venue_name: t.venue_name ?? "—",
             personal_min: Number(t.personal_min || 0),
             target_count: Number(t.target_count || 0),
@@ -314,7 +322,7 @@ export function KolStatsTab() {
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name, invited_at, created_at",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_id, venue_name, invited_at, created_at",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
@@ -566,10 +574,12 @@ export function KolStatsTab() {
             } else {
               individualAchieved = true;
               venueBreakdown = targetsList.map((t) => {
-                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const actual = monthRows.filter((r) => groupKey(r.venue_id, r.venue_name) === t.key).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
                 return {
+                  key: t.key,
+                  venue_id: t.venue_id,
                   venue_name: t.venue_name,
                   personal_min: t.personal_min,
                   actual,
@@ -584,8 +594,8 @@ export function KolStatsTab() {
               : monthRows;
             const perVenue = new Map<string, number>();
             for (const r of teamRows) {
-              const v = r.venue_name ?? "—";
-              perVenue.set(v, (perVenue.get(v) ?? 0) + 1);
+              const k = groupKey(r.venue_id, r.venue_name);
+              perVenue.set(k, (perVenue.get(k) ?? 0) + 1);
             }
             teamContribBy.set(s.user_id, perVenue);
           }
@@ -630,7 +640,7 @@ export function KolStatsTab() {
           for (const t of targetsList) {
             let total = 0;
             for (const contrib of teamContribBy.values()) {
-              total += contrib.get(t.venue_name) ?? 0;
+              total += contrib.get(t.key) ?? 0;
             }
             if (total < t.target_count) {
               teamAchieved = false;

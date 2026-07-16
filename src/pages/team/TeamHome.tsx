@@ -436,12 +436,12 @@ export default function TeamHome() {
                 .maybeSingle(),
               supabase
                 .from("scout_team_targets")
-                .select("venue_name, personal_min, target_count")
+                .select("venue_id, venue_name, personal_min, target_count")
                 .eq("year", prevY)
                 .eq("month", prevM),
               supabase
                 .from("kol_profiles")
-                .select("venue_name, kpi_month")
+                .select("venue_id, venue_name, kpi_month")
                 .eq("scout_id", userId)
                 .eq("kpi_qualified", true)
                 .eq("is_error", false)
@@ -451,8 +451,13 @@ export default function TeamHome() {
 
             const baseSalaryAmount = Number((salaryRow as any)?.base_salary ?? 0);
             const teamBonusAmount = Number((salaryRow as any)?.team_bonus ?? 0);
+            // 分組 key：venue_id 優先，NULL 時用 name:<venue_name> 作為 fallback
+            const groupKey = (venueId: string | null | undefined, venueName: string | null | undefined) =>
+              venueId ? `id:${venueId}` : `name:${venueName ?? "—"}`;
             const targetList = ((targetsData ?? []) as any[])
               .map((t) => ({
+                key: groupKey(t.venue_id, t.venue_name),
+                venue_id: (t.venue_id ?? null) as string | null,
                 venue_name: (t.venue_name ?? "—") as string,
                 personal_min: Number(t.personal_min ?? 0),
                 target_count: Number(t.target_count ?? 0),
@@ -466,7 +471,7 @@ export default function TeamHome() {
                 for (const t of targetList) {
                   if (t.personal_min <= 0) continue;
                   const actual = ((myPrevKols ?? []) as any[]).filter(
-                    (r) => (r.venue_name ?? "—") === t.venue_name,
+                    (r) => groupKey(r.venue_id, r.venue_name) === t.key,
                   ).length;
                   if (actual < t.personal_min) {
                     allPersonalOk = false;
@@ -475,6 +480,7 @@ export default function TeamHome() {
                 }
                 if (allPersonalOk) baseSalary = baseSalaryAmount;
               }
+
 
               // 團隊達標：所有 scout team members，兼職全計、正職只計 SR/SSR/UR
               const { data: allScouts } = await supabase
@@ -497,7 +503,7 @@ export default function TeamHome() {
               if (scoutIds.length > 0) {
                 const { data: teamKols } = await supabase
                   .from("kol_profiles")
-                  .select("venue_name, scout_id, rarity, kpi_month")
+                  .select("venue_id, venue_name, scout_id, rarity, kpi_month")
                   .in("scout_id", scoutIds)
                   .eq("kpi_qualified", true)
                   .eq("is_error", false)
@@ -509,7 +515,7 @@ export default function TeamHome() {
                 for (const t of targetList) {
                   if (t.target_count <= 0) continue;
                   const total = ((teamKols ?? []) as any[]).filter((r) => {
-                    if ((r.venue_name ?? "—") !== t.venue_name) return false;
+                    if (groupKey(r.venue_id, r.venue_name) !== t.key) return false;
                     if (fulltimeSet.has(r.scout_id)) {
                       return rareSet.has(String(r.rarity ?? "").toUpperCase());
                     }

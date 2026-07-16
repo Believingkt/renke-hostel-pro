@@ -79,7 +79,8 @@ type PushTarget = {
   is_active: boolean;
   event_types: string[];
   accommodation_ids: string[];
-  custom_venue_names: string[];
+  custom_venue_ids: string[];
+  custom_venue_names?: string[]; // DEPRECATED，過渡期保留
 };
 
 type MemberProfile = {
@@ -98,6 +99,11 @@ type EventType = {
 };
 
 type AccommodationOption = {
+  id: string;
+  name: string;
+};
+
+type VenueOption = {
   id: string;
   name: string;
 };
@@ -419,7 +425,7 @@ type GroupFormState = {
   roles: string[];
   event_types: string[];
   accommodation_ids: string[];
-  custom_venue_names: string[];
+  custom_venue_ids: string[];
   is_active: boolean;
 };
 
@@ -431,7 +437,7 @@ function emptyGroupForm(): GroupFormState {
     roles: [],
     event_types: [],
     accommodation_ids: [],
-    custom_venue_names: [],
+    custom_venue_ids: [],
     is_active: true,
   };
 }
@@ -444,6 +450,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
   const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [venues, setVenues] = useState<VenueOption[]>([]);
   const [form, setForm] = useState<GroupFormState | null>(null);
   const [venueInput, setVenueInput] = useState("");
 
@@ -454,6 +461,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       { data: roleRows },
       { data: evts },
       { data: accs },
+      { data: vns },
     ] = await Promise.all([
       supabase
         .from("line_push_targets")
@@ -464,16 +472,19 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       supabase.from("user_roles").select("role"),
       supabase.from("line_event_types").select("*").eq("is_active", true).order("label"),
       supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
+      supabase.from("kol_venues").select("id, name").order("name").limit(1000),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     setEventTypes((evts ?? []) as EventType[]);
     setAccommodations((accs ?? []) as AccommodationOption[]);
+    setVenues((vns ?? []) as VenueOption[]);
     const chanMap = new Map((chans ?? []).map((c: any) => [c.id, c.channel_name]));
     setList(
       ((targets ?? []) as any[]).map((t) => ({
         ...t,
         event_types: t.event_types ?? [],
         accommodation_ids: t.accommodation_ids ?? [],
+        custom_venue_ids: t.custom_venue_ids ?? [],
         custom_venue_names: t.custom_venue_names ?? [],
         channel_name: t.channel_id ? chanMap.get(t.channel_id) : undefined,
       })) as (PushTarget & { channel_name?: string })[]
@@ -498,7 +509,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       roles: g.roles ?? [],
       event_types: g.event_types ?? [],
       accommodation_ids: g.accommodation_ids ?? [],
-      custom_venue_names: g.custom_venue_names ?? [],
+      custom_venue_ids: g.custom_venue_ids ?? [],
       is_active: g.is_active,
     });
     setVenueInput("");
@@ -523,7 +534,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       roles: form.roles,
       event_types: form.event_types,
       accommodation_ids: form.accommodation_ids,
-      custom_venue_names: form.custom_venue_names,
+      custom_venue_ids: form.custom_venue_ids,
       is_active: form.is_active,
     };
     // 允許同一個 (target_type, target_id) 有多筆訂閱規則
@@ -571,19 +582,24 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
     if (!form) return;
     const v = venueInput.trim();
     if (!v) return;
-    if (form.custom_venue_names.includes(v)) {
+    const match = venues.find((x) => x.name === v);
+    if (!match) {
+      toast.error(`找不到場域「${v}」，請從場域列表輸入正確名稱`);
+      return;
+    }
+    if (form.custom_venue_ids.includes(match.id)) {
       setVenueInput("");
       return;
     }
-    setForm({ ...form, custom_venue_names: [...form.custom_venue_names, v] });
+    setForm({ ...form, custom_venue_ids: [...form.custom_venue_ids, match.id] });
     setVenueInput("");
   };
 
-  const removeVenueTag = (v: string) => {
+  const removeVenueTag = (id: string) => {
     if (!form) return;
     setForm({
       ...form,
-      custom_venue_names: form.custom_venue_names.filter((x) => x !== v),
+      custom_venue_ids: form.custom_venue_ids.filter((x) => x !== id),
     });
   };
 
@@ -663,13 +679,16 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                             {accMap.get(id) ?? id.slice(0, 6)}
                           </Badge>
                         ))}
-                        {(g.custom_venue_names ?? []).map((n) => (
-                          <Badge key={n} variant="outline" className="text-xs">
-                            {n}
-                          </Badge>
-                        ))}
+                        {(g.custom_venue_ids ?? []).map((id) => {
+                          const v = venues.find((x) => x.id === id);
+                          return (
+                            <Badge key={id} variant="outline" className="text-xs">
+                              {v?.name ?? id.slice(0, 6)}
+                            </Badge>
+                          );
+                        })}
                         {(g.accommodation_ids ?? []).length === 0 &&
-                          (g.custom_venue_names ?? []).length === 0 && (
+                          (g.custom_venue_ids ?? []).length === 0 && (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                       </div>
@@ -700,7 +719,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                                           id: undefined,
                                           event_types: [],
                                           accommodation_ids: [],
-                                          custom_venue_names: [],
+                                          custom_venue_ids: [],
                                           display_name: prev.display_name || "",
                                         }
                                       : prev,
@@ -839,13 +858,14 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                 <div className="mt-2">
                   <VenuePicker
                     accommodations={accommodations}
+                    venues={venues}
                     selectedIds={form.accommodation_ids}
-                    selectedCustom={form.custom_venue_names}
+                    selectedVenueIds={form.custom_venue_ids}
                     onChangeIds={(ids) =>
                       setForm({ ...form, accommodation_ids: ids })
                     }
-                    onChangeCustom={(names) =>
-                      setForm({ ...form, custom_venue_names: names })
+                    onChangeVenueIds={(ids) =>
+                      setForm({ ...form, custom_venue_ids: ids })
                     }
                   />
                 </div>
@@ -1254,10 +1274,11 @@ function MembersTab({ selfUserId = null }: { selfUserId?: string | null }) {
                                     <div className="text-xs font-medium mb-1.5">📊 業績通報訂閱館別</div>
                                     <VenuePicker
                                       accommodations={accommodations}
+                                      venues={[]}
                                       selectedIds={editingAmIds}
-                                      selectedCustom={[]}
+                                      selectedVenueIds={[]}
                                       onChangeIds={setEditingAmIds}
-                                      onChangeCustom={() => {}}
+                                      onChangeVenueIds={() => {}}
                                     />
                                     <div className="flex gap-1 mt-2">
                                       <Button
@@ -1543,34 +1564,34 @@ function EventsTab() {
 
 function VenuePicker({
   accommodations,
+  venues,
   selectedIds,
-  selectedCustom,
+  selectedVenueIds,
   onChangeIds,
-  onChangeCustom,
+  onChangeVenueIds,
 }: {
   accommodations: { id: string; name: string }[];
+  venues: { id: string; name: string }[];
   selectedIds: string[];
-  selectedCustom: string[];
+  selectedVenueIds: string[];
   onChangeIds: (ids: string[]) => void;
-  onChangeCustom: (names: string[]) => void;
+  onChangeVenueIds: (ids: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const total = selectedIds.length + selectedCustom.length;
+  const total = selectedIds.length + selectedVenueIds.length;
   const summary = total === 0 ? "全部館別" : `已選擇 ${total} 個館別`;
 
   const kw = search.trim().toLowerCase();
+  // 排除已在 accommodations 中的（避免重複顯示同一個 PMS 館別）
+  const accNameSet = new Set(accommodations.map((a) => a.name));
+  const venueList = venues.filter((v) => !accNameSet.has(v.name));
   const filteredAcc = accommodations.filter((a) =>
     !kw ? true : a.name.toLowerCase().includes(kw)
   );
-  const filteredCustom = selectedCustom.filter((n) =>
-    !kw ? true : n.toLowerCase().includes(kw)
+  const filteredVenues = venueList.filter((v) =>
+    !kw ? true : v.name.toLowerCase().includes(kw)
   );
-
-  const exactExists =
-    !!search.trim() &&
-    (accommodations.some((a) => a.name === search.trim()) ||
-      selectedCustom.includes(search.trim()));
 
   const toggleId = (id: string) => {
     onChangeIds(
@@ -1579,18 +1600,12 @@ function VenuePicker({
         : [...selectedIds, id]
     );
   };
-  const toggleCustom = (n: string) => {
-    onChangeCustom(
-      selectedCustom.includes(n)
-        ? selectedCustom.filter((x) => x !== n)
-        : [...selectedCustom, n]
+  const toggleVenue = (id: string) => {
+    onChangeVenueIds(
+      selectedVenueIds.includes(id)
+        ? selectedVenueIds.filter((x) => x !== id)
+        : [...selectedVenueIds, id]
     );
-  };
-  const addCustom = () => {
-    const v = search.trim();
-    if (!v || exactExists) return;
-    onChangeCustom([...selectedCustom, v]);
-    setSearch("");
   };
 
   return (
@@ -1612,14 +1627,8 @@ function VenuePicker({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜尋或輸入新自訂館別"
+              placeholder="搜尋館別"
               className="h-8"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustom();
-                }
-              }}
             />
           </div>
           {total > 0 && (
@@ -1635,21 +1644,24 @@ function VenuePicker({
                   </Badge>
                 );
               })}
-              {selectedCustom.map((n) => (
-                <Badge key={n} variant="secondary" className="gap-1">
-                  {n}
-                  <button type="button" onClick={() => toggleCustom(n)}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+              {selectedVenueIds.map((id) => {
+                const v = venues.find((x) => x.id === id);
+                return (
+                  <Badge key={id} variant="secondary" className="gap-1">
+                    {v?.name ?? id}
+                    <button type="button" onClick={() => toggleVenue(id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           )}
           <div
             className="max-h-[240px] overflow-y-auto overscroll-contain p-1"
             style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
           >
-            {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
+            {filteredAcc.length === 0 && filteredVenues.length === 0 && (
               <div className="px-2 py-3 text-xs text-muted-foreground text-center">
                 無館別
               </div>
@@ -1670,36 +1682,20 @@ function VenuePicker({
               );
             })}
 
-            {filteredCustom.map((n) => (
-              <button
-                type="button"
-                key={`c-${n}`}
-                onClick={() => toggleCustom(n)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-              >
-                <Checkbox checked className="pointer-events-none" />
-                <span className="flex-1">{n}</span>
-                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                  未建立
-                </Badge>
-              </button>
-            ))}
-
-            {search.trim() && !exactExists && (
-              <button
-                type="button"
-                onClick={addCustom}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left border-t mt-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="flex-1">
-                  新增自訂館別「{search.trim()}」
-                </span>
-                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                  未建立
-                </Badge>
-              </button>
-            )}
+            {filteredVenues.map((v) => {
+              const checked = selectedVenueIds.includes(v.id);
+              return (
+                <button
+                  type="button"
+                  key={`v-${v.id}`}
+                  onClick={() => toggleVenue(v.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                >
+                  <Checkbox checked={checked} className="pointer-events-none" />
+                  <span className="flex-1">{v.name}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="p-2 border-t flex justify-end">
             <Button size="sm" onClick={() => setOpen(false)}>
