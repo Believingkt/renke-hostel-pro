@@ -874,11 +874,16 @@ function InvitationsTab({
   // 入住日期 + 館別 → 呼叫 check_kol_inventory RPC (venue_id 版)
   useEffect(() => {
     const date = form.check_in_date;
-    // 優先用 form.venue_id；若尚未帶入，用 accommodation_id 從 venues 查
-    let venueId: string | null = form.venue_id || null;
-    if (!venueId && form.accommodation_id) {
-      const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
-      venueId = v?.id ?? null;
+    // 若已勾選子館別，改以主要子館別作為庫存查詢對象
+    let venueId: string | null = null;
+    if (form.selected_sub_venues.length > 0 && form.primary_sub_venue_id) {
+      venueId = form.primary_sub_venue_id;
+    } else {
+      venueId = form.venue_id || null;
+      if (!venueId && form.accommodation_id) {
+        const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
+        venueId = v?.id ?? null;
+      }
     }
     if (!date || !venueId) {
       if (form.inventory_status !== "") {
@@ -902,7 +907,7 @@ function InvitationsTab({
     return () => {
       cancelled = true;
     };
-  }, [form.accommodation_id, form.venue_id, form.check_in_date, venues]); // eslint-disable-line
+  }, [form.accommodation_id, form.venue_id, form.check_in_date, form.selected_sub_venues, form.primary_sub_venue_id, venues]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
   // 填入訂單編號 → 「訂房確認中」；清空 → null。
