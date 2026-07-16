@@ -1150,8 +1150,12 @@ function ConsultingFeeSettingsBlock({
                     compareRows.map((r) => {
                       const cHas = r.consultingRate != null;
                       const oHas = r.ownerRate != null;
+                      const thresholdSuffix =
+                        cHas && r.consultingThreshold > 0
+                          ? `（門檻 ${fmtMoney(r.consultingThreshold)}）`
+                          : "";
                       const cStr = cHas
-                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
+                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}${thresholdSuffix}`
                         : "未設定";
                       const oStr = oHas ? `${r.ownerRate!.toFixed(2)}%` : "未設定";
                       let status: JSX.Element;
