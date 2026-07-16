@@ -532,26 +532,31 @@ export default function FinancialReportTab() {
         if (franchiseAccIds.length > 0) {
           const { data: feeRows } = await supabase
             .from("consulting_fee_settings")
-            .select("rate, accommodation_id, effective_from")
+            .select("rate, revenue_threshold, accommodation_id, effective_from")
             .lte("effective_from", monthStart)
             .order("effective_from", { ascending: false });
           const fees = (feeRows ?? []) as any[];
-          const pickRate = (accId: string): number | null => {
+          const pickRateConfig = (accId: string): { rate: number; threshold: number } | null => {
             const specific = fees.find((f) => f.accommodation_id === accId);
-            if (specific) return Number(specific.rate);
+            if (specific) return { rate: Number(specific.rate), threshold: Number(specific.revenue_threshold ?? 0) || 0 };
             const fallback = fees.find((f) => f.accommodation_id == null);
-            if (fallback) return Number(fallback.rate);
+            if (fallback) return { rate: Number(fallback.rate), threshold: Number(fallback.revenue_threshold ?? 0) || 0 };
             return null;
           };
           for (const accId of franchiseAccIds) {
             const stay = row4ByAcc.get(accId) ?? emptyBuckets(weekCount);
-            const rate = pickRate(accId);
-            if (rate == null) {
+            const cfg = pickRateConfig(accId);
+            if (cfg == null) {
               row5ByAcc.set(accId, emptyBuckets(weekCount));
               continue;
             }
             hasAnyRate = true;
-            row5ByAcc.set(accId, stay.map((v) => v * rate));
+            const monthStayTotal = stay.reduce((a, b) => a + b, 0);
+            if (cfg.threshold > 0 && monthStayTotal < cfg.threshold) {
+              row5ByAcc.set(accId, emptyBuckets(weekCount));
+              continue;
+            }
+            row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
           }
         }
         const row5Total = emptyBuckets(weekCount);
@@ -815,6 +820,7 @@ export default function FinancialReportTab() {
 interface FeeRow {
   id: string;
   rate: number;
+  revenue_threshold: number | null;
   accommodation_id: string | null;
   effective_from: string;
   note: string | null;
@@ -824,6 +830,7 @@ interface CompareRow {
   accId: string;
   accName: string;
   consultingRate: number | null;
+  consultingThreshold: number;
   consultingIsFallback: boolean;
   ownerRate: number | null;
 }
@@ -847,6 +854,7 @@ function ConsultingFeeSettingsBlock({
   const [form, setForm] = useState({
     effective_from: new Date().toISOString().slice(0, 10),
     ratePercent: "",
+    revenueThreshold: "0",
     accommodation_id: "",
     note: "",
   });
@@ -859,7 +867,7 @@ function ConsultingFeeSettingsBlock({
       const [{ data: feeData }, { data: accData }, { data: settingsData }] = await Promise.all([
         supabase
           .from("consulting_fee_settings")
-          .select("id, rate, accommodation_id, effective_from, note")
+          .select("id, rate, revenue_threshold, accommodation_id, effective_from, note")
           .order("effective_from", { ascending: false }),
         supabase
           .from("accommodation_info")
@@ -892,20 +900,32 @@ function ConsultingFeeSettingsBlock({
       }
 
       // Pick consulting fee for each acc as of monthStart
-      const pickConsulting = (accId: string): { rate: number | null; fallback: boolean } => {
+      const pickConsulting = (
+        accId: string,
+      ): { rate: number | null; threshold: number; fallback: boolean } => {
         const specific = feeRows.find(
           (f) => f.accommodation_id === accId && f.effective_from <= monthStart,
         );
-        if (specific) return { rate: Number(specific.rate), fallback: false };
+        if (specific)
+          return {
+            rate: Number(specific.rate),
+            threshold: Number(specific.revenue_threshold ?? 0) || 0,
+            fallback: false,
+          };
         const fallback = feeRows.find(
           (f) => f.accommodation_id == null && f.effective_from <= monthStart,
         );
-        if (fallback) return { rate: Number(fallback.rate), fallback: true };
-        return { rate: null, fallback: false };
+        if (fallback)
+          return {
+            rate: Number(fallback.rate),
+            threshold: Number(fallback.revenue_threshold ?? 0) || 0,
+            fallback: true,
+          };
+        return { rate: null, threshold: 0, fallback: false };
       };
 
       const compare: CompareRow[] = accList.map((a) => {
-        const { rate, fallback } = pickConsulting(a.id);
+        const { rate, threshold, fallback } = pickConsulting(a.id);
         const owner = perAccOwner.has(a.id)
           ? perAccOwner.get(a.id)!
           : globalOwner;
@@ -913,6 +933,7 @@ function ConsultingFeeSettingsBlock({
           accId: a.id,
           accName: a.name,
           consultingRate: rate,
+          consultingThreshold: threshold,
           consultingIsFallback: fallback,
           ownerRate: owner,
         };
@@ -943,12 +964,14 @@ function ConsultingFeeSettingsBlock({
       toast.error("請選擇適用館別");
       return;
     }
+    const threshold = Math.max(0, Math.round(Number(form.revenueThreshold) || 0));
     const rate = pct / 100;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("consulting_fee_settings").insert({
         rate,
+        revenue_threshold: threshold,
         accommodation_id: form.accommodation_id,
         effective_from: form.effective_from,
         note: form.note.trim() || null,
@@ -960,6 +983,7 @@ function ConsultingFeeSettingsBlock({
       setForm({
         effective_from: new Date().toISOString().slice(0, 10),
         ratePercent: "",
+        revenueThreshold: "0",
         accommodation_id: "",
         note: "",
       });
@@ -1019,6 +1043,22 @@ function ConsultingFeeSettingsBlock({
                           setForm((f) => ({ ...f, ratePercent: e.target.value }))
                         }
                       />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>業績門檻（元）</Label>
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                        value={form.revenueThreshold}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, revenueThreshold: e.target.value }))
+                        }
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        填 0 = 不設門檻，直接套用費率；填金額（例如 150000）= 當月住房營收需達此金額才開始計費
+                      </p>
                     </div>
                     <div className="space-y-1">
                       <Label>適用館別</Label>
@@ -1110,8 +1150,12 @@ function ConsultingFeeSettingsBlock({
                     compareRows.map((r) => {
                       const cHas = r.consultingRate != null;
                       const oHas = r.ownerRate != null;
+                      const thresholdSuffix =
+                        cHas && r.consultingThreshold > 0
+                          ? `（門檻 ${fmtMoney(r.consultingThreshold)}）`
+                          : "";
                       const cStr = cHas
-                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
+                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}${thresholdSuffix}`
                         : "未設定";
                       const oStr = oHas ? `${r.ownerRate!.toFixed(2)}%` : "未設定";
                       let status: JSX.Element;
@@ -1178,6 +1222,11 @@ function ConsultingFeeSettingsBlock({
                       <TableCell className="whitespace-nowrap">{r.effective_from}</TableCell>
                       <TableCell className="text-right tabular-nums whitespace-nowrap">
                         {(Number(r.rate) * 100).toFixed(2)}%
+                        {Number(r.revenue_threshold ?? 0) > 0 && (
+                          <div className="text-[11px] text-muted-foreground">
+                            門檻 {fmtMoney(Number(r.revenue_threshold))}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {r.accommodation_id
