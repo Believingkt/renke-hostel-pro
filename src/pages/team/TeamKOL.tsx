@@ -2375,6 +2375,7 @@ function InvitationsTab({
                     accommodation_id: opt?.accommodation_id ?? "",
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
+                    primary_sub_venue_id: "",
                   });
                 }}
               >
