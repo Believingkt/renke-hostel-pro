@@ -6104,11 +6104,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <Item label="計算方式" value={showText(settings.calc_type)} />
                             <Item label="每日上限" value={showText(settings.daily_limit)} />
                             <Item label="每月上限" value={showText(settings.monthly_limit)} />
-                            {editVenue && (
-                              <div className="col-span-2">
-                                <MonthlyLimitsReadOnlyList venueId={editVenue.id} />
-                              </div>
-                            )}
                             <Item label="合作開始日" value={showText(settings.collab_start)} />
                             <Item label="合作結束日" value={showText(settings.collab_end)} />
                             <div className="col-span-2">
