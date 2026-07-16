@@ -183,6 +183,7 @@ interface FormState {
   follower_count_input: string;
   follower_count_original: number | null;
   primary_profile_id: string | null;
+  primary_sub_venue_id: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -218,6 +219,8 @@ const EMPTY_FORM: FormState = {
   follower_count_input: "",
   follower_count_original: null,
   primary_profile_id: null,
+  primary_sub_venue_id: "",
+
 };
 
 interface RaritySetting {
@@ -762,9 +765,18 @@ function InvitationsTab({
       return "訂房確認中";
     };
 
+    const venueById = new Map(venues.map((v) => [v.id, v]));
+    const resolveVenueDisplay = (r: any): string => {
+      const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
+      if (vRow && vRow.room_type_id) {
+        const parentName = r.accommodation_id ? accMap.get(r.accommodation_id) : null;
+        return parentName ? `${vRow.name}（${parentName}）` : vRow.name;
+      }
+      return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
+    };
     const enriched = (data ?? []).map((r: any) => ({
       ...r,
-      _accommodation_name: r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-"),
+      _accommodation_name: resolveVenueDisplay(r),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
       _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
@@ -1023,6 +1035,11 @@ function InvitationsTab({
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
+      primary_sub_venue_id: (() => {
+        if (!row.venue_id) return "";
+        const vRow = venues.find((v) => v.id === row.venue_id);
+        return vRow?.room_type_id ? row.venue_id : "";
+      })(),
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -1066,8 +1083,8 @@ function InvitationsTab({
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
       : form.venue_name || null;
-    // 解析 venue_id：優先用 form.venue_id；若是 PMS 且尚未帶入，從 venues 反查
-    let resolvedVenueId: string | null = form.venue_id || null;
+    // 解析 venue_id：優先用 primary_sub_venue_id（子館別），再退回 form.venue_id / PMS 母館
+    let resolvedVenueId: string | null = form.primary_sub_venue_id || form.venue_id || null;
     if (!resolvedVenueId && form.accommodation_id) {
       const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
       resolvedVenueId = v?.id ?? null;
@@ -2358,6 +2375,7 @@ function InvitationsTab({
                     accommodation_id: opt?.accommodation_id ?? "",
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
+                    primary_sub_venue_id: "",
                   });
                 }}
               >
@@ -2376,6 +2394,31 @@ function InvitationsTab({
                 </SelectContent>
               </Select>
             </Field>
+
+            {form.accommodation_id && venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id) && (
+              <Field label="子館別（選填）">
+                <Select
+                  value={form.primary_sub_venue_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, primary_sub_venue_id: v === "__none__" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇子館別" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">不指定（記入母館）</SelectItem>
+                    {venues
+                      .filter((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
+                      .map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  選擇後將以子館別記錄，但仍計入母館的團隊目標與獎金
+                </p>
+              </Field>
+            )}
+
 
             <Field label="入住日期">
               <Input
