@@ -30,6 +30,8 @@ import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2, ArrowUpDow
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
+import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
 
 // ====== 型別 & 常數 ======
@@ -296,6 +298,7 @@ function calcDayOfWeek(dateStr: string): string {
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
   const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
+  const { currentAccommodationId } = useAccommodation();
 
   const [tab, setTab] = useState("invitations");
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
@@ -401,6 +404,7 @@ export default function TeamKOL() {
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
             {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
             <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
+            {isManager && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
             <TabsTrigger value="settings">設定</TabsTrigger>
           </TabsList>
         </div>
@@ -450,6 +454,12 @@ export default function TeamKOL() {
         <TabsContent value="settings" className="mt-4">
           <SettingsTab isManager={isManager} />
         </TabsContent>
+
+        {isManager && (
+          <TabsContent value="reciprocal_quota" className="mt-4">
+            <KolReciprocalQuotaTab isManager={isManager} accommodationId={currentAccommodationId} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
