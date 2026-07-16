@@ -534,7 +534,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       roles: form.roles,
       event_types: form.event_types,
       accommodation_ids: form.accommodation_ids,
-      custom_venue_names: form.custom_venue_names,
+      custom_venue_ids: form.custom_venue_ids,
       is_active: form.is_active,
     };
     // 允許同一個 (target_type, target_id) 有多筆訂閱規則
