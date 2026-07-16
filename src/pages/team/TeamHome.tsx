@@ -503,7 +503,7 @@ export default function TeamHome() {
               if (scoutIds.length > 0) {
                 const { data: teamKols } = await supabase
                   .from("kol_profiles")
-                  .select("venue_name, scout_id, rarity, kpi_month")
+                  .select("venue_id, venue_name, scout_id, rarity, kpi_month")
                   .in("scout_id", scoutIds)
                   .eq("kpi_qualified", true)
                   .eq("is_error", false)
@@ -515,7 +515,7 @@ export default function TeamHome() {
                 for (const t of targetList) {
                   if (t.target_count <= 0) continue;
                   const total = ((teamKols ?? []) as any[]).filter((r) => {
-                    if ((r.venue_name ?? "—") !== t.venue_name) return false;
+                    if (groupKey(r.venue_id, r.venue_name) !== t.key) return false;
                     if (fulltimeSet.has(r.scout_id)) {
                       return rareSet.has(String(r.rarity ?? "").toUpperCase());
                     }
