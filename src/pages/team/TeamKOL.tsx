@@ -1925,6 +1925,49 @@ function InvitationsTab({
                   編輯
                 </Button>
               )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                !viewingRow.primary_profile_id &&
+                viewingRow.accommodation_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openCreateSubsidiary(viewingRow)}
+                  >
+                    新增附屬記錄
+                  </Button>
+                )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                !viewingRow.primary_profile_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      setLinkSubsidiaryTarget(viewingRow);
+                      setLinkSearchQuery("");
+                      setLinkSearchResults([]);
+                      setViewingRow(null);
+                    }}
+                  >
+                    設為附屬記錄
+                  </Button>
+                )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                viewingRow.primary_profile_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setUnlinkTarget(viewingRow);
+                      setViewingRow(null);
+                    }}
+                  >
+                    取消附屬關係
+                  </Button>
+                )}
             </div>
           </SheetHeader>
           {viewingRow &&
