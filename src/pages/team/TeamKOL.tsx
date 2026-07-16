@@ -2435,10 +2435,13 @@ function InvitationsTab({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">
+        {label}
+        {required && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
       {children}
     </div>
   );
@@ -5681,7 +5684,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   {/* 區塊一：基本資訊 */}
                   <section className="space-y-3">
                     <h4 className="font-semibold text-sm">基本資訊</h4>
-                    <Field label="場域名稱">
+                    <Field label="場域名稱" required>
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} disabled={readOnly} />
                     </Field>
                     <Field label="類型">
@@ -5731,10 +5734,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Field label="群組名稱">
+                          <Field label="群組名稱" required>
                             {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                           </Field>
-                          <Field label="計算方式">
+                          <Field label="計算方式" required>
                             <Select
                               value={settings.calc_type || ""}
                               onValueChange={(v) => setSettings((p) => ({ ...p, calc_type: v }))}
@@ -5748,7 +5751,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                               </SelectContent>
                             </Select>
                           </Field>
-                          <Field label="每日上限">
+                          <Field label="每日上限" required>
                             {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
                           </Field>
                           <Field label="每月上限">
@@ -5769,7 +5772,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                         </div>
 
-                        <Field label="可邀星期">
+                        <Field label="可邀星期" required>
                           <div className="flex flex-wrap gap-3">
                             {WEEKDAYS.map((w, idx) => (
                               <label key={`aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
