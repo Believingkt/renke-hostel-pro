@@ -299,7 +299,7 @@ export function KolStatsTab() {
         const { data: kolVenuesData } = await supabase
           .from("kol_venues" as any)
           .select("id, accommodation_id, room_type_id");
-        const kvs = (kolVenuesData ?? []) as Array<{ id: string; accommodation_id: string | null; room_type_id: string | null }>;
+        const kvs = ((kolVenuesData ?? []) as unknown) as Array<{ id: string; accommodation_id: string | null; room_type_id: string | null }>;
         const childToParent = new Map<string, string>();
         for (const v of kvs) {
           if (v.room_type_id) {
