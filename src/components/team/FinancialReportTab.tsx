@@ -804,7 +804,7 @@ export default function FinancialReportTab() {
         </div>
 
 
-        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} />}
+        {canViewFees && <ConsultingFeeSettingsBlock canManage={canManageFees} year={year} month={month} />}
       </CardContent>
     </Card>
   );
