@@ -855,13 +855,14 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                 <div className="mt-2">
                   <VenuePicker
                     accommodations={accommodations}
+                    venues={venues}
                     selectedIds={form.accommodation_ids}
-                    selectedCustom={form.custom_venue_names}
+                    selectedVenueIds={form.custom_venue_ids}
                     onChangeIds={(ids) =>
                       setForm({ ...form, accommodation_ids: ids })
                     }
-                    onChangeCustom={(names) =>
-                      setForm({ ...form, custom_venue_names: names })
+                    onChangeVenueIds={(ids) =>
+                      setForm({ ...form, custom_venue_ids: ids })
                     }
                   />
                 </div>
