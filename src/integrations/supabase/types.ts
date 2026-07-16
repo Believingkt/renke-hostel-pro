@@ -3780,6 +3780,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           order_number: string | null
+          primary_profile_id: string | null
           public_token: string | null
           publish_date: string | null
           publish_url: string | null
@@ -3831,6 +3832,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          primary_profile_id?: string | null
           public_token?: string | null
           publish_date?: string | null
           publish_url?: string | null
@@ -3882,6 +3884,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          primary_profile_id?: string | null
           public_token?: string | null
           publish_date?: string | null
           publish_url?: string | null
@@ -3924,6 +3927,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
             referencedColumns: ["id"]
           },
           {
