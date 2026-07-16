@@ -636,7 +636,7 @@ export function KolReciprocalQuotaTab({ isManager, accommodationId }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSave}>{editing ? "編輯" : "儲存"}</Button>
+            <Button onClick={handleSave}>儲存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
