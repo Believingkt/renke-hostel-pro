@@ -574,11 +574,21 @@ export default function FinancialReportTab() {
             }
             hasAnyRate = true;
             const monthStayTotal = stay.reduce((a, b) => a + b, 0);
-            if (cfg.threshold > 0 && monthStayTotal < cfg.threshold) {
-              row5ByAcc.set(accId, emptyBuckets(weekCount));
-              continue;
+            if (cfg.threshold > 0) {
+              // 累進制：僅超過門檻的部分計費，並按各週住房營收比例分配
+              if (monthStayTotal <= cfg.threshold) {
+                row5ByAcc.set(accId, emptyBuckets(weekCount));
+                continue;
+              }
+              const billableBase = monthStayTotal - cfg.threshold;
+              row5ByAcc.set(
+                accId,
+                stay.map((v) => (monthStayTotal > 0 ? (v / monthStayTotal) * billableBase * cfg.rate : 0)),
+              );
+            } else {
+              // 無門檻：整月住房營收 × 費率
+              row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
             }
-            row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
           }
         }
         const row5Total = emptyBuckets(weekCount);
