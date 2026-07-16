@@ -783,7 +783,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, showSubsidiary]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
