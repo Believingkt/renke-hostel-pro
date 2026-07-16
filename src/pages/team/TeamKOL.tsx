@@ -4917,6 +4917,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [originalVenueName, setOriginalVenueName] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const [groupNameOptions, setGroupNameOptions] = useState<string[]>([]);
   const readOnly = viewMode === "view";
 
   const load = useCallback(async () => {
@@ -4927,12 +4928,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         .select("id, name, type, is_active, accommodation_id, room_type_id")
         .order("name"),
       supabase.from("accommodation_info").select("id, name"),
-      supabase.from("kol_venue_settings" as any).select("venue_id"),
+      supabase.from("kol_venue_settings" as any).select("venue_id, group_name"),
     ]);
     if (vErr) toast.error(vErr.message);
     const accNameMap = new Map<string, string>();
     ((accoms ?? []) as any[]).forEach((a) => accNameMap.set(a.id, a.name));
     const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
+    const groupSet = new Set<string>();
+    ((settingsRows ?? []) as any[]).forEach((r) => {
+      const g = (r.group_name || "").trim();
+      if (g) groupSet.add(g);
+    });
+    setGroupNameOptions(Array.from(groupSet).sort((a, b) => a.localeCompare(b, "zh-Hant")));
     const enriched: VenueRow[] = ((venueRows ?? []) as any[]).map((v) => ({
       id: v.id,
       name: v.name,
@@ -5497,7 +5504,21 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="群組名稱" required>
-                            {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
+                            <Input
+                              value={settings.group_name ?? ""}
+                              onChange={(e) => setSettings((p) => ({ ...p, group_name: e.target.value }))}
+                              className="h-9"
+                              disabled={readOnly}
+                              list="kol-venue-group-name-options"
+                              placeholder="輸入或選擇既有群組"
+                            />
+                            <datalist id="kol-venue-group-name-options">
+                              {groupNameOptions
+                                .filter((g) => g !== (settings.group_name ?? ""))
+                                .map((g) => (
+                                  <option key={g} value={g} />
+                                ))}
+                            </datalist>
                           </Field>
                           <Field label="計算方式" required>
                             <Select
