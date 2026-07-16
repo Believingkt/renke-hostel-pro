@@ -225,6 +225,8 @@ const EMPTY_FORM: FormState = {
   follower_count_original: null,
   selected_sub_venues: [],
   primary_sub_venue_id: null,
+  sub_venue_dates: {},
+  existing_subs: [],
 };
 
 interface RaritySetting {
