@@ -1068,6 +1068,86 @@ function ConsultingFeeSettingsBlock({
               </Dialog>
             </div>
           )}
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="text-sm font-medium">
+                各館費率比對（{year}/{String(month).padStart(2, "0")}）
+              </div>
+              <div className="text-xs text-muted-foreground">
+                比對「管顧費率」與業主月結「服務費」是否一致
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">館別</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">管顧費率</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">業主月結服務費</TableHead>
+                    <TableHead className="whitespace-nowrap">狀態</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6">
+                        <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                        載入中…
+                      </TableCell>
+                    </TableRow>
+                  ) : compareRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        尚無館別資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    compareRows.map((r) => {
+                      const cHas = r.consultingRate != null;
+                      const oHas = r.ownerRate != null;
+                      const cStr = cHas
+                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
+                        : "未設定";
+                      const oStr = oHas ? `${(r.ownerRate! * 100).toFixed(2)}%` : "未設定";
+                      let status: React.ReactNode;
+                      if (!cHas || !oHas) {
+                        status = (
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">
+                            ？ 未設定
+                          </Badge>
+                        );
+                      } else if (Math.abs(r.consultingRate! - r.ownerRate!) < 1e-9) {
+                        status = (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">
+                            ✓ 一致
+                          </Badge>
+                        );
+                      } else {
+                        status = (
+                          <div className="space-y-1">
+                            <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">
+                              ⚠ 不一致
+                            </Badge>
+                            <div className="text-[11px] text-muted-foreground">
+                              請至 /admin/owner-settlement-settings 或財務報表費率設定調整
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <TableRow key={r.accId}>
+                          <TableCell className="whitespace-nowrap">{r.accName}</TableCell>
+                          <TableCell className="text-right tabular-nums whitespace-nowrap">{cStr}</TableCell>
+                          <TableCell className="text-right tabular-nums whitespace-nowrap">{oStr}</TableCell>
+                          <TableCell className="whitespace-nowrap">{status}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
