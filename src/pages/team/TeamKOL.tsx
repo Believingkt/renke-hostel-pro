@@ -765,9 +765,18 @@ function InvitationsTab({
       return "訂房確認中";
     };
 
+    const venueById = new Map(venues.map((v) => [v.id, v]));
+    const resolveVenueDisplay = (r: any): string => {
+      const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
+      if (vRow && vRow.room_type_id) {
+        const parentName = r.accommodation_id ? accMap.get(r.accommodation_id) : null;
+        return parentName ? `${vRow.name}（${parentName}）` : vRow.name;
+      }
+      return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
+    };
     const enriched = (data ?? []).map((r: any) => ({
       ...r,
-      _accommodation_name: r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-"),
+      _accommodation_name: resolveVenueDisplay(r),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
       _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
