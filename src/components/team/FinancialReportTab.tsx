@@ -1045,6 +1045,22 @@ function ConsultingFeeSettingsBlock({
                       />
                     </div>
                     <div className="space-y-1">
+                      <Label>業績門檻（元）</Label>
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                        value={form.revenueThreshold}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, revenueThreshold: e.target.value }))
+                        }
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        填 0 = 不設門檻，直接套用費率；填金額（例如 150000）= 當月住房營收需達此金額才開始計費
+                      </p>
+                    </div>
+                    <div className="space-y-1">
                       <Label>適用館別</Label>
                       <Select
                         value={form.accommodation_id}
