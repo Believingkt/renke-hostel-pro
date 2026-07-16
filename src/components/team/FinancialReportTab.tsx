@@ -858,6 +858,14 @@ function ConsultingFeeSettingsBlock({
     accommodation_id: "",
     note: "",
   });
+  const [editRow, setEditRow] = useState<CompareRow | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    effective_from: "",
+    ratePercent: "",
+    revenueThreshold: "0",
+    note: "",
+  });
 
   const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
