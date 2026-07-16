@@ -820,36 +820,108 @@ interface FeeRow {
   note: string | null;
 }
 
-function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
+interface CompareRow {
+  accId: string;
+  accName: string;
+  consultingRate: number | null;
+  consultingIsFallback: boolean;
+  ownerRate: number | null;
+}
+
+function ConsultingFeeSettingsBlock({
+  canManage,
+  year,
+  month,
+}: {
+  canManage: boolean;
+  year: number;
+  month: number;
+}) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<FeeRow[]>([]);
   const [accs, setAccs] = useState<AccOption[]>([]);
+  const [compareRows, setCompareRows] = useState<CompareRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     effective_from: new Date().toISOString().slice(0, 10),
     ratePercent: "",
-    accommodation_id: "all" as string,
+    accommodation_id: "",
     note: "",
   });
+
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: feeData }, { data: accData }] = await Promise.all([
+      const [{ data: feeData }, { data: accData }, { data: settingsData }] = await Promise.all([
         supabase
           .from("consulting_fee_settings")
           .select("id, rate, accommodation_id, effective_from, note")
           .order("effective_from", { ascending: false }),
-        supabase.from("accommodation_info").select("id, name").order("name"),
+        supabase
+          .from("accommodation_info")
+          .select("id, name, is_active")
+          .eq("is_active", true)
+          .neq("name", "奧丁丁測試")
+          .order("name"),
+        supabase
+          .from("system_settings")
+          .select("setting_key, setting_value")
+          .like("setting_key", "owner_settlement_config%"),
       ]);
-      setRows((feeData ?? []) as FeeRow[]);
-      setAccs(((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
+      const feeRows = (feeData ?? []) as FeeRow[];
+      setRows(feeRows);
+      const accList = ((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name }));
+      setAccs(accList);
+
+      // Build owner_settlement rate map
+      const perAccOwner = new Map<string, number>();
+      let globalOwner: number | null = null;
+      for (const r of (settingsData ?? []) as any[]) {
+        const key: string = r.setting_key;
+        const rate = Number(r.setting_value?.commission_rate);
+        if (!Number.isFinite(rate)) continue;
+        if (key === "owner_settlement_config") {
+          globalOwner = rate;
+        } else if (key.startsWith("owner_settlement_config:")) {
+          perAccOwner.set(key.slice("owner_settlement_config:".length), rate);
+        }
+      }
+
+      // Pick consulting fee for each acc as of monthStart
+      const pickConsulting = (accId: string): { rate: number | null; fallback: boolean } => {
+        const specific = feeRows.find(
+          (f) => f.accommodation_id === accId && f.effective_from <= monthStart,
+        );
+        if (specific) return { rate: Number(specific.rate), fallback: false };
+        const fallback = feeRows.find(
+          (f) => f.accommodation_id == null && f.effective_from <= monthStart,
+        );
+        if (fallback) return { rate: Number(fallback.rate), fallback: true };
+        return { rate: null, fallback: false };
+      };
+
+      const compare: CompareRow[] = accList.map((a) => {
+        const { rate, fallback } = pickConsulting(a.id);
+        const owner = perAccOwner.has(a.id)
+          ? perAccOwner.get(a.id)!
+          : globalOwner;
+        return {
+          accId: a.id,
+          accName: a.name,
+          consultingRate: rate,
+          consultingIsFallback: fallback,
+          ownerRate: owner,
+        };
+      });
+      setCompareRows(compare);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [monthStart]);
 
   useEffect(() => {
     load();
@@ -867,13 +939,17 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
       toast.error("請輸入有效的生效日期與費率");
       return;
     }
+    if (!form.accommodation_id) {
+      toast.error("請選擇適用館別");
+      return;
+    }
     const rate = pct / 100;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("consulting_fee_settings").insert({
         rate,
-        accommodation_id: form.accommodation_id === "all" ? null : form.accommodation_id,
+        accommodation_id: form.accommodation_id,
         effective_from: form.effective_from,
         note: form.note.trim() || null,
         created_by: user?.id ?? null,
@@ -884,7 +960,7 @@ function ConsultingFeeSettingsBlock({ canManage }: { canManage: boolean }) {
       setForm({
         effective_from: new Date().toISOString().slice(0, 10),
         ratePercent: "",
-        accommodation_id: "all",
+        accommodation_id: "",
         note: "",
       });
       await load();
