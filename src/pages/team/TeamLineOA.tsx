@@ -461,6 +461,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       { data: roleRows },
       { data: evts },
       { data: accs },
+      { data: vns },
     ] = await Promise.all([
       supabase
         .from("line_push_targets")
@@ -471,16 +472,19 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       supabase.from("user_roles").select("role"),
       supabase.from("line_event_types").select("*").eq("is_active", true).order("label"),
       supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
+      supabase.from("kol_venues").select("id, name").order("name").limit(1000),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     setEventTypes((evts ?? []) as EventType[]);
     setAccommodations((accs ?? []) as AccommodationOption[]);
+    setVenues((vns ?? []) as VenueOption[]);
     const chanMap = new Map((chans ?? []).map((c: any) => [c.id, c.channel_name]));
     setList(
       ((targets ?? []) as any[]).map((t) => ({
         ...t,
         event_types: t.event_types ?? [],
         accommodation_ids: t.accommodation_ids ?? [],
+        custom_venue_ids: t.custom_venue_ids ?? [],
         custom_venue_names: t.custom_venue_names ?? [],
         channel_name: t.channel_id ? chanMap.get(t.channel_id) : undefined,
       })) as (PushTarget & { channel_name?: string })[]
