@@ -4917,6 +4917,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [originalVenueName, setOriginalVenueName] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const [groupNameOptions, setGroupNameOptions] = useState<string[]>([]);
   const readOnly = viewMode === "view";
 
   const load = useCallback(async () => {
