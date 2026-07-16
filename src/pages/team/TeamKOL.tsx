@@ -457,7 +457,7 @@ export default function TeamKOL() {
 
         {isManager && (
           <TabsContent value="reciprocal_quota" className="mt-4">
-            <KolReciprocalQuotaTab isManager={isManager} accommodationId={currentAccommodationId} />
+            <KolReciprocalQuotaTab isManager={isManager} defaultAccommodationId={currentAccommodationId} />
           </TabsContent>
         )}
       </Tabs>
