@@ -1086,7 +1086,11 @@ function ConsultingFeeSettingsBlock({
                           setForm((f) => ({ ...f, effective_from: e.target.value }))
                         }
                       />
+                      <p className="text-xs text-muted-foreground">
+                        設定於當月 1 日（含）之前 → 費率歸屬當月；2 日（含）之後 → 費率從下個月開始生效
+                      </p>
                     </div>
+
                     <div className="space-y-1">
                       <Label>費率 (%)</Label>
                       <Input
