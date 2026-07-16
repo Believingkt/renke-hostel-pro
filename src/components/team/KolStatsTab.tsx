@@ -295,10 +295,16 @@ export function KolStatsTab() {
           ((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]),
         );
 
+        // 分組 key：venue_id 優先，NULL 時用 name:<venue_name> 作為 fallback
+        const groupKey = (venueId: string | null | undefined, venueName: string | null | undefined) =>
+          venueId ? `id:${venueId}` : `name:${venueName ?? "—"}`;
+
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
         const targetsList = targetRows
           .filter((t) => Number(t.personal_min || 0) > 0)
           .map((t) => ({
+            key: groupKey(t.venue_id, t.venue_name),
+            venue_id: (t.venue_id ?? null) as string | null,
             venue_name: t.venue_name ?? "—",
             personal_min: Number(t.personal_min || 0),
             target_count: Number(t.target_count || 0),
