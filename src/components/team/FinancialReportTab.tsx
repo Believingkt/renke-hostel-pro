@@ -964,12 +964,14 @@ function ConsultingFeeSettingsBlock({
       toast.error("請選擇適用館別");
       return;
     }
+    const threshold = Math.max(0, Math.round(Number(form.revenueThreshold) || 0));
     const rate = pct / 100;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("consulting_fee_settings").insert({
         rate,
+        revenue_threshold: threshold,
         accommodation_id: form.accommodation_id,
         effective_from: form.effective_from,
         note: form.note.trim() || null,
@@ -981,6 +983,7 @@ function ConsultingFeeSettingsBlock({
       setForm({
         effective_from: new Date().toISOString().slice(0, 10),
         ratePercent: "",
+        revenueThreshold: "0",
         accommodation_id: "",
         note: "",
       });
