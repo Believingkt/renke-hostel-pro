@@ -5772,7 +5772,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                         </div>
 
-                        <Field label="可邀星期">
+                        <Field label="可邀星期" required>
                           <div className="flex flex-wrap gap-3">
                             {WEEKDAYS.map((w, idx) => (
                               <label key={`aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
