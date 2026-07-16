@@ -2164,8 +2164,11 @@ function InvitationsTab({
                     accommodation_id: opt?.accommodation_id ?? "",
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
+                    selected_sub_venues: [],
+                    primary_sub_venue_id: null,
                   });
                 }}
+                disabled={!!editingId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
@@ -2182,6 +2185,65 @@ function InvitationsTab({
                 </SelectContent>
               </Select>
             </Field>
+
+            {/* 子館別多選（僅在選中母館且該母館有子館別時顯示；編輯模式隱藏） */}
+            {!editingId && form.accommodation_id && (() => {
+              const subs = venues.filter(
+                (x) => x.is_active && x.accommodation_id === form.accommodation_id && x.room_type_id,
+              );
+              if (subs.length === 0) return null;
+              return (
+                <Field label="子館別（多選）">
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="text-xs text-muted-foreground">請勾選此次入住的子館別（可多選）；未勾選則以母館為邀約單位。</p>
+                    <div className="space-y-1">
+                      {subs.map((sv) => {
+                        const checked = form.selected_sub_venues.includes(sv.id);
+                        return (
+                          <label key={sv.id} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const next = v
+                                  ? [...form.selected_sub_venues, sv.id]
+                                  : form.selected_sub_venues.filter((x) => x !== sv.id);
+                                let primary = form.primary_sub_venue_id;
+                                if (!next.includes(primary ?? "")) primary = next[0] ?? null;
+                                setForm({ ...form, selected_sub_venues: next, primary_sub_venue_id: primary });
+                              }}
+                            />
+                            <span>{sv.name}</span>
+                            {sv.type && <span className="text-[10px] text-muted-foreground">{sv.type}</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {form.selected_sub_venues.length > 0 && (
+                      <div className="border-t pt-2">
+                        <p className="text-xs text-muted-foreground mb-1">主要館別（計入邀約數量與獎金，其他為附屬記錄）</p>
+                        <div className="space-y-1">
+                          {form.selected_sub_venues.map((svId) => {
+                            const sv = subs.find((s) => s.id === svId);
+                            if (!sv) return null;
+                            return (
+                              <label key={svId} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="primary_sub_venue"
+                                  checked={form.primary_sub_venue_id === svId}
+                                  onChange={() => setForm({ ...form, primary_sub_venue_id: svId })}
+                                />
+                                <span>{sv.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Field>
+              );
+            })()}
 
             <Field label="入住日期">
               <Input
