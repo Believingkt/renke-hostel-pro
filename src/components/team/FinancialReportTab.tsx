@@ -1003,6 +1003,54 @@ function ConsultingFeeSettingsBlock({
     }
   };
 
+  const openEdit = (r: CompareRow) => {
+    setEditRow(r);
+    setEditForm({
+      effective_from: monthStart,
+      ratePercent:
+        r.consultingRate != null ? (r.consultingRate * 100).toString() : "",
+      revenueThreshold: String(r.consultingThreshold ?? 0),
+      note: "",
+    });
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editRow) return;
+    const pct = Number(editForm.ratePercent);
+    if (!editForm.effective_from || !Number.isFinite(pct) || pct < 0) {
+      toast.error("請輸入有效的生效日期與費率");
+      return;
+    }
+    const threshold = Math.max(
+      0,
+      Math.round(Number(editForm.revenueThreshold) || 0),
+    );
+    const rate = pct / 100;
+    setEditSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("consulting_fee_settings").insert({
+        rate,
+        revenue_threshold: threshold,
+        accommodation_id: editRow.accId,
+        effective_from: editForm.effective_from,
+        note: editForm.note.trim() || null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+      toast.success(`已新增 ${editRow.accName} 費率設定`);
+      if (editForm.effective_from > monthStart) {
+        toast.info("注意：生效日晚於當月起始日，本月報表將沿用舊費率");
+      }
+      setEditRow(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message ?? "新增失敗");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   return (
     <div className="pt-4 border-t mt-4">
       <button
