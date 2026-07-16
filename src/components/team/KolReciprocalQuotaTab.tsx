@@ -462,16 +462,44 @@ export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Pro
     );
   };
 
+  const accSelector = (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <Label className="text-sm shrink-0">管理館別</Label>
+          <Select
+            value={selectedAccId ?? undefined}
+            onValueChange={(v) => setSelectedAccId(v)}
+            disabled={accListLoading || accList.length === 0}
+          >
+            <SelectTrigger className="sm:max-w-xs">
+              <SelectValue placeholder={accListLoading ? "載入中…" : "請選擇館別"} />
+            </SelectTrigger>
+            <SelectContent>
+              {accList.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (!currentAccommodationId) {
     return (
-      <div className="p-6 text-center text-muted-foreground text-sm">
-        請先在上方選擇館別，才能設定 KOL 互惠額度。
+      <div className="space-y-4">
+        {accSelector}
+        <div className="p-6 text-center text-muted-foreground text-sm">
+          {accListLoading ? "載入館別中…" : "請先選擇館別"}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {accSelector}
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => setCalOpen(true)}>
           <CalendarDays className="h-4 w-4 mr-2" />
