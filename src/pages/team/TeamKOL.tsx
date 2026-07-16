@@ -5122,7 +5122,467 @@ function MonthlyLimitsSection({ venueId, canEdit }: { venueId: string; canEdit: 
 }
 
 
-function VenuesCard({ isManager }: { isManager: boolean }) {
+interface ReciprocalPackageOpt { id: string; name: string; }
+interface ReciprocalQuotaRow {
+  id: string;
+  year_month: string;
+  package_id: string | null;
+  quota: number;
+  note: string | null;
+}
+const RQ_SHARED = "__shared__";
+
+function KolReciprocalQuotaAccordion({
+  accommodationId,
+  canEdit,
+}: {
+  accommodationId: string;
+  canEdit: boolean;
+}) {
+  const [mode, setMode] = useState<"shared" | "per_package">("shared");
+  const [trackedIds, setTrackedIds] = useState<string[]>([]);
+  const [packages, setPackages] = useState<ReciprocalPackageOpt[]>([]);
+  const [rows, setRows] = useState<ReciprocalQuotaRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingCfg, setSavingCfg] = useState(false);
+
+  const now = new Date();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<ReciprocalQuotaRow | null>(null);
+  const [deletingRow, setDeletingRow] = useState<ReciprocalQuotaRow | null>(null);
+  const [form, setForm] = useState({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    package_id: RQ_SHARED as string,
+    quota: "",
+    note: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const packageNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of packages) m[p.id] = p.name;
+    return m;
+  }, [packages]);
+
+  const load = useCallback(async () => {
+    if (!accommodationId) return;
+    setLoading(true);
+    const [accRes, pkgRes, rowRes] = await Promise.all([
+      (supabase as any)
+        .from("accommodation_info")
+        .select("kol_quota_mode, kol_quota_tracked_package_ids")
+        .eq("id", accommodationId)
+        .maybeSingle(),
+      supabase
+        .from("room_types")
+        .select("id, name, display_order")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_exclusive_package", true)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .select("id, year_month, package_id, quota, note")
+        .eq("accommodation_id", accommodationId)
+        .order("year_month", { ascending: false }),
+    ]);
+    setMode(((accRes.data as any)?.kol_quota_mode as any) || "shared");
+    setTrackedIds(((accRes.data as any)?.kol_quota_tracked_package_ids as string[]) || []);
+    setPackages(((pkgRes.data as any[]) || []).map((p) => ({ id: p.id, name: p.name })));
+    const list = ((rowRes.data as any[]) || []) as ReciprocalQuotaRow[];
+    // 排序：year_month DESC, package_id NULLS FIRST
+    list.sort((a, b) => {
+      if (a.year_month !== b.year_month) return a.year_month < b.year_month ? 1 : -1;
+      const an = a.package_id === null ? 0 : 1;
+      const bn = b.package_id === null ? 0 : 1;
+      return an - bn;
+    });
+    setRows(list);
+    setLoading(false);
+  }, [accommodationId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const persistConfig = async (nextMode: "shared" | "per_package", nextTracked: string[]) => {
+    if (!canEdit) return;
+    setSavingCfg(true);
+    const { error } = await (supabase as any).rpc("update_kol_quota_config", {
+      p_accommodation_id: accommodationId,
+      p_mode: nextMode,
+      p_tracked_ids: nextTracked,
+    });
+    setSavingCfg(false);
+    if (error) {
+      toast.error(`儲存失敗：${error.message}`);
+      return;
+    }
+    setMode(nextMode);
+    setTrackedIds(nextTracked);
+    toast.success("已更新額度模式");
+  };
+
+  const toggleTracked = (pkgId: string) => {
+    if (!canEdit) return;
+    const next = trackedIds.includes(pkgId)
+      ? trackedIds.filter((x) => x !== pkgId)
+      : [...trackedIds, pkgId];
+    persistConfig(mode, next);
+  };
+
+  const openCreate = () => {
+    setEditingRow(null);
+    setForm({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      package_id: RQ_SHARED,
+      quota: "",
+      note: "",
+    });
+    setDialogOpen(true);
+  };
+  const openEdit = (r: ReciprocalQuotaRow) => {
+    setEditingRow(r);
+    const [y, m] = r.year_month.split("-").map(Number);
+    setForm({
+      year: y,
+      month: m,
+      package_id: r.package_id ?? RQ_SHARED,
+      quota: String(r.quota),
+      note: r.note ?? "",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSaveRow = async () => {
+    const qNum = parseInt(form.quota, 10);
+    if (Number.isNaN(qNum) || qNum < 0) {
+      toast.error("額度需為 0 或正整數");
+      return;
+    }
+    const ym = `${form.year}-${String(form.month).padStart(2, "0")}`;
+    const pkgId = form.package_id === RQ_SHARED ? null : form.package_id;
+    setSaving(true);
+
+    if (editingRow) {
+      const { error } = await supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .update({ quota: qNum, note: form.note.trim() || null })
+        .eq("id", editingRow.id);
+      setSaving(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("已更新");
+    } else {
+      // 手動 upsert：因 package_id NULL / NOT NULL 是兩個 partial unique index
+      let q = supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .select("id")
+        .eq("accommodation_id", accommodationId)
+        .eq("year_month", ym);
+      q = pkgId ? q.eq("package_id", pkgId) : q.is("package_id", null);
+      const { data: exist } = await q.maybeSingle();
+      if (exist?.id) {
+        const { error } = await supabase
+          .from("kol_reciprocal_monthly_quotas")
+          .update({ quota: qNum, note: form.note.trim() || null })
+          .eq("id", (exist as any).id);
+        setSaving(false);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from("kol_reciprocal_monthly_quotas")
+          .insert({
+            accommodation_id: accommodationId,
+            year_month: ym,
+            package_id: pkgId,
+            quota: qNum,
+            note: form.note.trim() || null,
+          } as any);
+        setSaving(false);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      }
+      toast.success("已新增");
+    }
+    setDialogOpen(false);
+    load();
+  };
+
+  const handleDeleteRow = async () => {
+    if (!deletingRow) return;
+    const { error } = await supabase
+      .from("kol_reciprocal_monthly_quotas")
+      .delete()
+      .eq("id", deletingRow.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已刪除");
+    setDeletingRow(null);
+    load();
+  };
+
+  const scopeLabel = (r: ReciprocalQuotaRow) =>
+    r.package_id ? packageNameById[r.package_id] ?? "（已刪除包棟）" : "全館共用";
+
+  const yearOpts = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, now.getFullYear() + 2];
+
+  return (
+    <Accordion type="single" collapsible className="border rounded-md">
+      <AccordionItem value="reciprocal-quota" className="border-0">
+        <AccordionTrigger className="px-3 py-2 text-sm">互惠額度設定</AccordionTrigger>
+        <AccordionContent className="px-3 pb-3 space-y-4">
+          {loading ? (
+            <p className="text-xs text-muted-foreground text-center py-2">載入中…</p>
+          ) : (
+            <>
+              {/* 區塊一：額度模式 */}
+              <div className="space-y-2">
+                <div className="text-xs font-medium">額度模式</div>
+                {canEdit ? (
+                  <div className="space-y-2">
+                    <label
+                      className={`flex items-start gap-2 rounded-md border p-2 cursor-pointer ${mode === "shared" ? "border-primary bg-primary/5" : ""}`}
+                    >
+                      <Checkbox
+                        checked={mode === "shared"}
+                        onCheckedChange={() => persistConfig("shared", trackedIds)}
+                        disabled={savingCfg}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">全館共用</div>
+                        <div className="text-xs text-muted-foreground">
+                          整家民宿共用同一個月度上限，任何 KOL 訂單都計入
+                        </div>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex items-start gap-2 rounded-md border p-2 cursor-pointer ${mode === "per_package" ? "border-primary bg-primary/5" : ""}`}
+                    >
+                      <Checkbox
+                        checked={mode === "per_package"}
+                        onCheckedChange={() => persistConfig("per_package", trackedIds)}
+                        disabled={savingCfg}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">分棟設定</div>
+                        <div className="text-xs text-muted-foreground">
+                          勾選的包棟各自獨立計算額度；未勾選的包棟訂單併入「全館共用」計算
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="text-sm rounded-md border p-2 bg-muted/30">
+                    {mode === "shared" ? "全館共用" : "分棟設定"}
+                  </div>
+                )}
+
+                {mode === "per_package" && (
+                  <div className="space-y-1 rounded-md border p-2">
+                    <div className="text-xs font-medium">獨立追蹤的包棟</div>
+                    {packages.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">此民宿尚未設定包棟房型</p>
+                    ) : canEdit ? (
+                      <div className="flex flex-col gap-1">
+                        {packages.map((p) => (
+                          <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={trackedIds.includes(p.id)}
+                              onCheckedChange={() => toggleTracked(p.id)}
+                              disabled={savingCfg}
+                            />
+                            {p.name}
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm">
+                        {trackedIds.length === 0
+                          ? <span className="text-muted-foreground">尚未勾選任何包棟</span>
+                          : trackedIds.map((id) => packageNameById[id] ?? "（已刪除）").join("、")}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 區塊二：每月額度列表 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium">每月額度</div>
+                  {canEdit && (
+                    <Button size="sm" variant="outline" onClick={openCreate}>
+                      <Plus className="h-4 w-4 mr-1" />新增
+                    </Button>
+                  )}
+                </div>
+                {rows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">尚無額度設定</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>月份</TableHead>
+                          <TableHead>範圍</TableHead>
+                          <TableHead>上限</TableHead>
+                          <TableHead>備註</TableHead>
+                          {canEdit && <TableHead className="text-right">操作</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{r.year_month}</TableCell>
+                            <TableCell>
+                              {r.package_id ? (
+                                <Badge variant="secondary">{scopeLabel(r)}</Badge>
+                              ) : (
+                                <Badge variant="outline">全館共用</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="tabular-nums">{r.quota}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{r.note || "—"}</TableCell>
+                            {canEdit && (
+                              <TableCell className="text-right whitespace-nowrap">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeletingRow(r)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="overflow-x-hidden">
+              <DialogHeader>
+                <DialogTitle>{editingRow ? "編輯月份額度" : "新增月份額度"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">年份</Label>
+                    <Select
+                      value={String(form.year)}
+                      onValueChange={(v) => setForm((p) => ({ ...p, year: parseInt(v, 10) }))}
+                      disabled={!!editingRow}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {yearOpts.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">月份</Label>
+                    <Select
+                      value={String(form.month)}
+                      onValueChange={(v) => setForm((p) => ({ ...p, month: parseInt(v, 10) }))}
+                      disabled={!!editingRow}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">範圍</Label>
+                  {mode === "per_package" ? (
+                    <Select
+                      value={form.package_id}
+                      onValueChange={(v) => setForm((p) => ({ ...p, package_id: v }))}
+                      disabled={!!editingRow}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={RQ_SHARED}>全館共用</SelectItem>
+                        {packages.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="text-sm rounded-md border p-2 bg-muted/30">全館共用</div>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs">額度上限 <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={form.quota}
+                    onChange={(e) => setForm((p) => ({ ...p, quota: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">備註</Label>
+                  <Textarea
+                    value={form.note}
+                    onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))}
+                    placeholder="（選填）"
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>取消</Button>
+                <Button onClick={handleSaveRow} disabled={saving}>
+                  {saving ? "儲存中…" : "儲存"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={!!deletingRow} onOpenChange={(o) => !o && setDeletingRow(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>刪除月份額度？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {deletingRow ? `${deletingRow.year_month}（${scopeLabel(deletingRow)}）此操作無法復原。` : ""}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteRow}>刪除</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+
   const [rows, setRows] = useState<VenueRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
