@@ -6015,7 +6015,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   {/* 區塊二：邀約規則 */}
                   <section className="space-y-3">
                     <h4 className="font-semibold text-sm">邀約規則設定</h4>
-                    {loadingSettings ? (
+                    {editVenueHasChildren ? (
+                      <div className="space-y-2 rounded-md border border-dashed p-3 text-sm">
+                        <p>此館別下設有子館別，請至各子館別個別設定邀約規則。</p>
+                        {editVenueChildren.length > 0 && (
+                          <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                            {editVenueChildren.map((c) => (
+                              <li key={c.id}>{c.name}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : loadingSettings ? (
                       <p className="text-xs text-muted-foreground">載入中…</p>
                     ) : (
                       <>
