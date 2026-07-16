@@ -1160,16 +1160,28 @@ function InvitationsTab({
       payload.kpi_qualified = form.kpi_qualified;
     }
 
-    const hasSubs = !editingId && form.selected_sub_venues.length > 0 && !!form.primary_sub_venue_id;
+    // 新增模式：勾選子館別即拆分主附屬。編輯模式：也可增/減附屬子館別。
+    const hasSubsCreate = !editingId && form.selected_sub_venues.length > 0 && !!form.primary_sub_venue_id;
+    const hasSubsEdit = !!editingId && form.selected_sub_venues.length > 0 && !!form.primary_sub_venue_id;
+
+    // 取得子館別的最終入住日期（空字串 → fallback 主要日期）
+    const resolveSubDates = (svId: string) => {
+      const d = form.sub_venue_dates[svId];
+      return {
+        check_in_date: d?.check_in_date || payload.check_in_date || null,
+        check_out_date: d?.check_out_date || payload.check_out_date || null,
+      };
+    };
 
     let err;
     let newId: string | null = null;
     if (editingId) {
       ({ error: err } = await supabase.from("kol_profiles").update(payload as any).eq("id", editingId));
+      newId = editingId;
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
-      if (hasSubs) {
+      if (hasSubsCreate) {
         // 情境 B：主要記錄使用 primary_sub_venue_id 作為 venue_id
         payload.venue_id = form.primary_sub_venue_id;
         const primarySub = venues.find((v) => v.id === form.primary_sub_venue_id);
@@ -1186,12 +1198,54 @@ function InvitationsTab({
       return;
     }
 
-    // 情境 B：主要記錄建立成功後，建立其餘子館別的附屬記錄
-    if (hasSubs && newId) {
-      const subIds = form.selected_sub_venues.filter((id) => id !== form.primary_sub_venue_id);
-      if (subIds.length > 0) {
-        const subPayloads = subIds.map((svId) => {
+    // 建立/更新/刪除附屬記錄
+    if ((hasSubsCreate || hasSubsEdit) && newId) {
+      const primaryVenueId = form.primary_sub_venue_id;
+      const subIds = form.selected_sub_venues.filter((id) => id !== primaryVenueId);
+
+      // 編輯模式：更新既有 & 刪除已取消勾選
+      if (hasSubsEdit) {
+        const existingByVenue = new Map(form.existing_subs.map((s) => [s.venue_id, s]));
+        // 刪除：既有但不在新勾選內
+        const toDelete = form.existing_subs.filter((s) => !subIds.includes(s.venue_id));
+        if (toDelete.length > 0) {
+          const { error: delErr } = await supabase
+            .from("kol_profiles")
+            .delete()
+            .in("id", toDelete.map((s) => s.id));
+          if (delErr) toast.error(`附屬記錄刪除失敗：${delErr.message}`);
+        }
+        // 更新既有的日期（venue 保留）
+        for (const svId of subIds) {
+          const existing = existingByVenue.get(svId);
+          if (!existing) continue;
+          const dates = resolveSubDates(svId);
+          const { error: upErr } = await supabase
+            .from("kol_profiles")
+            .update({
+              check_in_date: dates.check_in_date,
+              check_out_date: dates.check_out_date,
+              // 同步基本欄位（名稱等），避免資訊不同步
+              name: payload.name,
+              ig_handle: payload.ig_handle,
+              rarity: payload.rarity,
+              scout_id: payload.scout_id,
+              invited_at: payload.invited_at,
+              follower_count: payload.follower_count,
+              kol_tags: payload.kol_tags,
+            } as any)
+            .eq("id", existing.id);
+          if (upErr) toast.error(`附屬記錄更新失敗：${upErr.message}`);
+        }
+      }
+
+      // 新增：新勾選但尚未存在的
+      const existingVenueIds = new Set(form.existing_subs.map((s) => s.venue_id));
+      const toInsertIds = subIds.filter((id) => !existingVenueIds.has(id));
+      if (toInsertIds.length > 0) {
+        const subPayloads = toInsertIds.map((svId) => {
           const sv = venues.find((v) => v.id === svId);
+          const dates = resolveSubDates(svId);
           return {
             accommodation_id: form.accommodation_id || null,
             venue_id: svId,
@@ -1201,8 +1255,8 @@ function InvitationsTab({
             rarity: payload.rarity,
             scout_id: payload.scout_id,
             invited_at: payload.invited_at,
-            check_in_date: payload.check_in_date,
-            check_out_date: payload.check_out_date,
+            check_in_date: dates.check_in_date,
+            check_out_date: dates.check_out_date,
             day_of_week: payload.day_of_week,
             inventory_status: null,
             booking_status: null,
