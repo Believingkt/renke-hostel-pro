@@ -5504,7 +5504,21 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="群組名稱" required>
-                            {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
+                            <Input
+                              value={settings.group_name ?? ""}
+                              onChange={(e) => setSettings((p) => ({ ...p, group_name: e.target.value }))}
+                              className="h-9"
+                              disabled={readOnly}
+                              list="kol-venue-group-name-options"
+                              placeholder="輸入或選擇既有群組"
+                            />
+                            <datalist id="kol-venue-group-name-options">
+                              {groupNameOptions
+                                .filter((g) => g !== (settings.group_name ?? ""))
+                                .map((g) => (
+                                  <option key={g} value={g} />
+                                ))}
+                            </datalist>
                           </Field>
                           <Field label="計算方式" required>
                             <Select
