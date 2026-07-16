@@ -1186,19 +1186,22 @@ function ConsultingFeeSettingsBlock({
                     <TableHead className="text-right whitespace-nowrap">管顧費率</TableHead>
                     <TableHead className="text-right whitespace-nowrap">業主月結服務費</TableHead>
                     <TableHead className="whitespace-nowrap">狀態</TableHead>
+                    {canManage && (
+                      <TableHead className="w-10 whitespace-nowrap"></TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6">
+                      <TableCell colSpan={canManage ? 5 : 4} className="text-center py-6">
                         <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
                         載入中…
                       </TableCell>
                     </TableRow>
                   ) : compareRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={canManage ? 5 : 4} className="text-center py-6 text-muted-foreground">
                         尚無館別資料
                       </TableCell>
                     </TableRow>
@@ -1240,6 +1243,18 @@ function ConsultingFeeSettingsBlock({
                           <TableCell className="text-right tabular-nums whitespace-nowrap">{cStr}</TableCell>
                           <TableCell className="text-right tabular-nums whitespace-nowrap">{oStr}</TableCell>
                           <TableCell className="whitespace-nowrap">{status}</TableCell>
+                          {canManage && (
+                            <TableCell className="whitespace-nowrap">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEdit(r)}
+                                aria-label={`編輯 ${r.accName} 費率`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })
@@ -1248,6 +1263,82 @@ function ConsultingFeeSettingsBlock({
               </Table>
             </div>
           </div>
+          {canManage && (
+            <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
+              <DialogContent className="overflow-x-hidden">
+                <DialogHeader>
+                  <DialogTitle>設定 {editRow?.accName} 費率</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>生效日期</Label>
+                    <Input
+                      type="date"
+                      value={editForm.effective_from}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, effective_from: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>費率 (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="例如 10 表示 10%"
+                      value={editForm.ratePercent}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, ratePercent: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>業績門檻（元）</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="0"
+                      placeholder="0"
+                      value={editForm.revenueThreshold}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, revenueThreshold: e.target.value }))
+                      }
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      填 0 = 不設門檻；填金額（例如 150000）= 當月住房營收需達此金額才開始計費
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>備註</Label>
+                    <Textarea
+                      value={editForm.note}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, note: e.target.value }))
+                      }
+                      rows={2}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    將新增一筆費率版本記錄，不影響歷史資料
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditRow(null)}
+                    disabled={editSaving}
+                  >
+                    取消
+                  </Button>
+                  <Button onClick={handleEditSubmit} disabled={editSaving}>
+                    {editSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                    儲存
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
