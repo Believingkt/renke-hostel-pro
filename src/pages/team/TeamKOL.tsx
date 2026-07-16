@@ -2032,7 +2032,22 @@ function InvitationsTab({
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg overflow-x-hidden">
           <SheetHeader>
             <SheetTitle className="pr-12">邀約明細</SheetTitle>
+            {viewingRow?.primary_profile_id && (() => {
+              const parent = sortedRows.find((x) => x.id === viewingRow.primary_profile_id)
+                ?? groupedRows.primaries.find((x) => x.id === viewingRow.primary_profile_id);
+              const parentVenue = parent?.venue_id ? venueByIdAll.get(parent.venue_id) : null;
+              const parentSubName = parentVenue?.name ?? parent?.venue_name ?? parent?._accommodation_name ?? "-";
+              return (
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
+                    附屬記錄
+                  </Badge>
+                  <span className="text-muted-foreground">主要館別：{parentSubName}</span>
+                </div>
+              );
+            })()}
             <div className="flex flex-wrap items-center gap-2 mt-2">
+
               {viewingRow && viewingRow.booking_status !== "已取消" && (
                 <Button
                   size="sm"
