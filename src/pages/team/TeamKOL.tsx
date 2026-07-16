@@ -182,6 +182,7 @@ interface FormState {
   kol_direct_ticket_link: string;
   follower_count_input: string;
   follower_count_original: number | null;
+  primary_profile_id: string | null;
 }
 
 const EMPTY_FORM: FormState = {
