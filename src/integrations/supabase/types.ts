@@ -2134,6 +2134,7 @@ export type Database = {
           id: string
           note: string | null
           rate: number
+          revenue_threshold: number | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -2143,6 +2144,7 @@ export type Database = {
           id?: string
           note?: string | null
           rate: number
+          revenue_threshold?: number | null
         }
         Update: {
           accommodation_id?: string | null
@@ -2152,6 +2154,7 @@ export type Database = {
           id?: string
           note?: string | null
           rate?: number
+          revenue_threshold?: number | null
         }
         Relationships: [
           {
