@@ -854,6 +854,7 @@ function ConsultingFeeSettingsBlock({
   const [form, setForm] = useState({
     effective_from: new Date().toISOString().slice(0, 10),
     ratePercent: "",
+    revenueThreshold: "0",
     accommodation_id: "",
     note: "",
   });
