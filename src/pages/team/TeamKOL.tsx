@@ -4888,6 +4888,57 @@ interface MonthlyLimitRow {
   note: string | null;
 }
 
+function MonthlyLimitsReadOnlyList({ venueId }: { venueId: string }) {
+  const [rows, setRows] = useState<MonthlyLimitRow[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!venueId) return;
+      const { data } = await supabase
+        .from("kol_venue_monthly_limits" as any)
+        .select("id, venue_id, year_month, monthly_limit, note")
+        .eq("venue_id", venueId)
+        .order("year_month", { ascending: true });
+      if (!cancelled) setRows((data ?? []) as unknown as MonthlyLimitRow[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId]);
+
+  if (rows.length === 0) return null;
+
+  const currentYm = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  })
+    .format(new Date())
+    .slice(0, 7); // YYYY-MM
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-xs text-muted-foreground">逐月調整</div>
+      <ul className="space-y-1">
+        {rows.map((r) => {
+          const isCurrent = r.year_month === currentYm;
+          return (
+            <li key={r.id} className="flex items-center gap-2 text-sm">
+              <span className="font-medium tabular-nums">{r.year_month}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="tabular-nums">{r.monthly_limit}</span>
+              {r.note && <span className="text-xs text-muted-foreground">（{r.note}）</span>}
+              {isCurrent && (
+                <span className="text-xs text-orange-600 dark:text-orange-500">已調整</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function MonthlyLimitsSection({ venueId, canEdit }: { venueId: string; canEdit: boolean }) {
   const [rows, setRows] = useState<MonthlyLimitRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -5595,6 +5646,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <Item label="計算方式" value={showText(settings.calc_type)} />
                             <Item label="每日上限" value={showText(settings.daily_limit)} />
                             <Item label="每月上限" value={showText(settings.monthly_limit)} />
+                            {editVenue && (
+                              <div className="col-span-2">
+                                <MonthlyLimitsReadOnlyList venueId={editVenue.id} />
+                              </div>
+                            )}
                             <Item label="合作開始日" value={showText(settings.collab_start)} />
                             <Item label="合作結束日" value={showText(settings.collab_end)} />
                             <div className="col-span-2">
@@ -5700,6 +5756,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                         </div>
 
+                        {editVenue && (
+                          <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="合作開始日">
                             {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
@@ -5792,11 +5852,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     )}
                   </section>
 
-                  {editVenue && (
-                    <section className="space-y-3">
-                      <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
-                    </section>
-                  )}
                 </>
               )}
             </div>
