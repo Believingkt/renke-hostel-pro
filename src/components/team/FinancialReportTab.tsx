@@ -649,6 +649,9 @@ export default function FinancialReportTab() {
     <Card className="mt-4">
       <CardHeader>
         <CardTitle>財務報表</CardTitle>
+        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          報表數據為即時查詢：訂房組 / KOL 業績以「下單日」計入當月，住房營收與管顧費用以「入住日～退房日」逐夜分攤計入當月，因此新月份切換至下月 1 日起即可看到當月資料，隨訂單新增／異動即時更新，無需等待排程。分潤發放快照（closer_commission_snapshots）另於每月 10 日自動產生，僅供發放對帳，不影響本表數字。
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
