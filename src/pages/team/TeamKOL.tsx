@@ -5756,6 +5756,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                         </div>
 
+                        {editVenue && (
+                          <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="合作開始日">
                             {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
