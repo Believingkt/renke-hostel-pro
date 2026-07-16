@@ -185,6 +185,10 @@ interface FormState {
   // 旅行日子館別多筆主附屬支援
   selected_sub_venues: string[];
   primary_sub_venue_id: string | null;
+  // 每個子館別可個別覆蓋入住/退房日期（空字串 = 沿用主要日期）
+  sub_venue_dates: Record<string, { check_in_date: string; check_out_date: string }>;
+  // 編輯模式：目前資料庫已存在的附屬記錄
+  existing_subs: Array<{ id: string; venue_id: string; check_in_date: string | null; check_out_date: string | null }>;
 }
 
 const EMPTY_FORM: FormState = {
