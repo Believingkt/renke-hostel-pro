@@ -705,7 +705,7 @@ export default function TeamCommissionStatsTab() {
                             });
                           return (
                             <TableRow
-                              key={`${r.uid}-${b.accId}`}
+                              key={`${r.uid}-${b.accId}-${b.rate}`}
                               className="bg-muted/30 cursor-pointer hover:bg-muted/60"
                               onClick={openSheet}
                             >
