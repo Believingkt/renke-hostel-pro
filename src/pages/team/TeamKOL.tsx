@@ -1131,10 +1131,84 @@ function InvitationsTab({
     }
 
     setSaving(false);
-    toast.success(editingId ? "已更新邀約" : "已新增邀約");
+    const isNewPrimary = !editingId && !form.primary_profile_id && !!newId;
+    const hasChildVenues =
+      isNewPrimary && !!form.accommodation_id
+        ? venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
+        : false;
     setSheetOpen(false);
     setProspectLink(null);
     fetchRows();
+    if (editingId) {
+      toast.success("已更新邀約");
+    } else if (isNewPrimary && hasChildVenues) {
+      const savedId = newId!;
+      const savedAccommodationId = form.accommodation_id;
+      const savedScoutId = form.scout_id;
+      const savedName = form.name.trim();
+      const savedIg = form.ig_handle.trim();
+      toast.success("主要記錄已儲存。如需新增附屬館別記錄，請點選下方按鈕", {
+        duration: 10000,
+        action: {
+          label: "新增附屬記錄",
+          onClick: () => {
+            openCreateSubsidiaryFromValues({
+              primaryId: savedId,
+              accommodationId: savedAccommodationId,
+              scoutId: savedScoutId,
+              name: savedName,
+              igHandle: savedIg,
+            });
+          },
+        },
+      });
+    } else {
+      toast.success("已新增邀約");
+    }
+  };
+
+  const openCreateSubsidiaryFromValues = (opts: {
+    primaryId: string;
+    accommodationId: string;
+    scoutId: string;
+    name: string;
+    igHandle: string;
+  }) => {
+    const parentVenue = venues.find(
+      (v) => v.accommodation_id === opts.accommodationId && !v.room_type_id,
+    );
+    setEditingId(null);
+    setForm({
+      ...EMPTY_FORM,
+      primary_profile_id: opts.primaryId,
+      accommodation_select: `acc:${opts.accommodationId}`,
+      accommodation_id: opts.accommodationId,
+      venue_id: parentVenue?.id ?? "",
+      venue_name: "",
+      name: opts.name,
+      ig_handle: opts.igHandle,
+      scout_id: opts.scoutId || currentUserId,
+      check_in_date: "",
+      check_out_date: "",
+    });
+    setDupWarning(null);
+    setProspectLink(null);
+    setSheetOpen(true);
+  };
+
+  const openCreateSubsidiary = (parentRow: KolRow) => {
+    if (!parentRow.accommodation_id) {
+      toast.error("僅 PMS 館別的邀約才可新增附屬記錄");
+      return;
+    }
+    setViewingRow(null);
+    openCreateSubsidiaryFromValues({
+      primaryId: parentRow.id,
+      accommodationId: parentRow.accommodation_id,
+      scoutId: parentRow.scout_id ?? "",
+      name: parentRow.name ?? "",
+      igHandle: parentRow.ig_handle ?? "",
+    });
   };
 
   const handleReportError = async () => {
