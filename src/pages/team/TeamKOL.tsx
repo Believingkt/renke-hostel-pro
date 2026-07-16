@@ -667,6 +667,9 @@ function InvitationsTab({
     const to = from + PAGE_SIZE - 1;
 
     let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
+    if (!showSubsidiary) {
+      q = q.is("primary_profile_id", null);
+    }
 
     if (filterAcc !== "all") {
       if (filterAcc.startsWith("acc:")) {
