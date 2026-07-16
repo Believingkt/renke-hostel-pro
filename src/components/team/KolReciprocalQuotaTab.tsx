@@ -49,12 +49,49 @@ type Mode = "shared" | "per_package";
 
 interface Props {
   isManager: boolean;
-  accommodationId: string | null;
+  defaultAccommodationId?: string | null;
 }
 
-export function KolReciprocalQuotaTab({ isManager, accommodationId }: Props) {
+interface AccommodationOption {
+  id: string;
+  name: string;
+}
+
+export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Props) {
   const editable = isManager;
-  const currentAccommodationId = accommodationId;
+
+  const [accList, setAccList] = useState<AccommodationOption[]>([]);
+  const [accListLoading, setAccListLoading] = useState(true);
+  const [selectedAccId, setSelectedAccId] = useState<string | null>(null);
+  const currentAccommodationId = selectedAccId;
+
+  useEffect(() => {
+    (async () => {
+      setAccListLoading(true);
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .eq("is_active", true)
+        .neq("name", "奧丁丁測試")
+        .order("name", { ascending: true });
+      if (error) {
+        toast({ title: "館別載入失敗", description: error.message, variant: "destructive" });
+        setAccListLoading(false);
+        return;
+      }
+      const list = (data ?? []) as AccommodationOption[];
+      setAccList(list);
+      setSelectedAccId((prev) => {
+        if (prev && list.some((a) => a.id === prev)) return prev;
+        if (defaultAccommodationId && list.some((a) => a.id === defaultAccommodationId)) {
+          return defaultAccommodationId;
+        }
+        return list[0]?.id ?? null;
+      });
+      setAccListLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultAccommodationId]);
 
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [packages, setPackages] = useState<PackageOption[]>([]);
