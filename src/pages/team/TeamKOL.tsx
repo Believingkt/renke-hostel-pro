@@ -774,7 +774,7 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, showSubsidiary]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
