@@ -4928,12 +4928,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         .select("id, name, type, is_active, accommodation_id, room_type_id")
         .order("name"),
       supabase.from("accommodation_info").select("id, name"),
-      supabase.from("kol_venue_settings" as any).select("venue_id"),
+      supabase.from("kol_venue_settings" as any).select("venue_id, group_name"),
     ]);
     if (vErr) toast.error(vErr.message);
     const accNameMap = new Map<string, string>();
     ((accoms ?? []) as any[]).forEach((a) => accNameMap.set(a.id, a.name));
     const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_id).filter(Boolean));
+    const groupSet = new Set<string>();
+    ((settingsRows ?? []) as any[]).forEach((r) => {
+      const g = (r.group_name || "").trim();
+      if (g) groupSet.add(g);
+    });
+    setGroupNameOptions(Array.from(groupSet).sort((a, b) => a.localeCompare(b, "zh-Hant")));
     const enriched: VenueRow[] = ((venueRows ?? []) as any[]).map((v) => ({
       id: v.id,
       name: v.name,
