@@ -103,6 +103,11 @@ type AccommodationOption = {
   name: string;
 };
 
+type VenueOption = {
+  id: string;
+  name: string;
+};
+
 const WEBHOOK_URL =
   "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/line-webhook";
 
