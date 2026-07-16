@@ -477,15 +477,43 @@ export default function FinancialReportTab() {
         }
         row3Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
+        /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）---- */
+        const { data: feeRowsAll } = await supabase
+          .from("consulting_fee_settings")
+          .select("rate, revenue_threshold, accommodation_id, effective_from")
+          .lte("effective_from", monthStart)
+          .order("effective_from", { ascending: false });
+        const fees = (feeRowsAll ?? []) as any[];
+        const consultingAccIds = Array.from(
+          new Set(fees.map((f) => f.accommodation_id).filter(Boolean) as string[])
+        );
+
+        // Row 4/5 適用館別 = 特許加盟館 ∪ 有管顧費率設定的館
+        const stayAccIdSet = new Set<string>([...franchiseAccIds, ...consultingAccIds]);
+        const stayAccIds = Array.from(stayAccIdSet);
+
+        // 補齊名稱對照
+        const stayAccNameMap = new Map<string, string>(franchiseAccNameMap);
+        const missingNameIds = stayAccIds.filter((id) => !stayAccNameMap.has(id));
+        if (missingNameIds.length > 0) {
+          const { data: extraAccs } = await supabase
+            .from("accommodation_info")
+            .select("id, name")
+            .in("id", missingNameIds);
+          for (const a of (extraAccs ?? []) as any[]) {
+            stayAccNameMap.set(a.id, a.name);
+          }
+        }
+
         /* ---- Row 4: 住房營收 (stay-range overlap，按晚均分) ---- */
         const row4ByAcc = new Map<string, number[]>();
-        for (const id of franchiseAccIds) row4ByAcc.set(id, emptyBuckets(weekCount));
+        for (const id of stayAccIds) row4ByAcc.set(id, emptyBuckets(weekCount));
 
-        if (franchiseAccIds.length > 0) {
+        if (stayAccIds.length > 0) {
           const { data: stayOrders } = await supabase
             .from("orders")
             .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id")
-            .in("accommodation_id", franchiseAccIds)
+            .in("accommodation_id", stayAccIds)
             .eq("order_status", "confirmed")
             .lte("check_in_date", monthEnd)
             .gte("check_out_date", monthStart);
@@ -520,7 +548,7 @@ export default function FinancialReportTab() {
           for (let i = 0; i < weekCount; i++) row4Total[i] += b[i];
           row4Children.push({
             key: `row4-${accId}`,
-            label: franchiseAccNameMap.get(accId) ?? accId,
+            label: stayAccNameMap.get(accId) ?? accId,
             buckets: b,
           });
         }
@@ -529,13 +557,7 @@ export default function FinancialReportTab() {
         /* ---- Row 5: 管顧費用 = 住房營收 × 費率（依館別、依生效日取最新） ---- */
         const row5ByAcc = new Map<string, number[]>();
         let hasAnyRate = false;
-        if (franchiseAccIds.length > 0) {
-          const { data: feeRows } = await supabase
-            .from("consulting_fee_settings")
-            .select("rate, revenue_threshold, accommodation_id, effective_from")
-            .lte("effective_from", monthStart)
-            .order("effective_from", { ascending: false });
-          const fees = (feeRows ?? []) as any[];
+        if (stayAccIds.length > 0) {
           const pickRateConfig = (accId: string): { rate: number; threshold: number } | null => {
             const specific = fees.find((f) => f.accommodation_id === accId);
             if (specific) return { rate: Number(specific.rate), threshold: Number(specific.revenue_threshold ?? 0) || 0 };
@@ -543,7 +565,7 @@ export default function FinancialReportTab() {
             if (fallback) return { rate: Number(fallback.rate), threshold: Number(fallback.revenue_threshold ?? 0) || 0 };
             return null;
           };
-          for (const accId of franchiseAccIds) {
+          for (const accId of stayAccIds) {
             const stay = row4ByAcc.get(accId) ?? emptyBuckets(weekCount);
             const cfg = pickRateConfig(accId);
             if (cfg == null) {
@@ -565,7 +587,7 @@ export default function FinancialReportTab() {
           for (let i = 0; i < weekCount; i++) row5Total[i] += b[i];
           row5Children.push({
             key: `row5-${accId}`,
-            label: franchiseAccNameMap.get(accId) ?? accId,
+            label: stayAccNameMap.get(accId) ?? accId,
             buckets: b,
           });
         }
