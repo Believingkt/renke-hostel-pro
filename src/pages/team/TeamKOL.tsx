@@ -6220,12 +6220,13 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                           <Field label="每月上限">
                             {numInput(settings.monthly_limit, (v) => setSettings((p) => ({ ...p, monthly_limit: v })))}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              填寫後作為每月預設值；若互惠額度已設定當月專屬上限，則以互惠額度為準
+                            </p>
                           </Field>
                         </div>
 
-                        {editVenue && (
-                          <MonthlyLimitsSection venueId={editVenue.id} canEdit={isManager && !readOnly} />
-                        )}
+
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="合作開始日">
