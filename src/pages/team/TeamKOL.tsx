@@ -5607,6 +5607,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         return;
       }
     }
+    }
     setSaving(false);
     toast.success("已更新");
     setEditOpen(false);
