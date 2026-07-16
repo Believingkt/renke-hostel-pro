@@ -2379,13 +2379,18 @@ function InvitationsTab({
                 value={form.accommodation_select}
                 onValueChange={(v) => {
                   const opt = accommodationOptions.find((o) => o.value === v);
+                  const nextAccId = opt?.accommodation_id ?? "";
+                  // 若母館底下有子館別，預設選第一個
+                  const firstChild = nextAccId
+                    ? venues.find((x) => x.accommodation_id === nextAccId && x.room_type_id)
+                    : null;
                   setForm({
                     ...form,
                     accommodation_select: v,
-                    accommodation_id: opt?.accommodation_id ?? "",
+                    accommodation_id: nextAccId,
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
-                    primary_sub_venue_id: "",
+                    primary_sub_venue_id: firstChild?.id ?? "",
                   });
                 }}
               >
@@ -2406,16 +2411,15 @@ function InvitationsTab({
             </Field>
 
             {form.accommodation_id && venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id) && (
-              <Field label="子館別（選填）">
+              <Field label="子館別 *">
                 <Select
-                  value={form.primary_sub_venue_id || "__none__"}
-                  onValueChange={(v) => setForm({ ...form, primary_sub_venue_id: v === "__none__" ? "" : v })}
+                  value={form.primary_sub_venue_id || ""}
+                  onValueChange={(v) => setForm({ ...form, primary_sub_venue_id: v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="選擇子館別" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">不指定（記入母館）</SelectItem>
                     {venues
                       .filter((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
                       .map((v) => (
@@ -2424,10 +2428,11 @@ function InvitationsTab({
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  選擇後將以子館別記錄，但仍計入母館的團隊目標與獎金
+                  此館別下有多個子館別，請選擇實際入住的子館別
                 </p>
               </Field>
             )}
+
 
 
             <Field label="入住日期">
