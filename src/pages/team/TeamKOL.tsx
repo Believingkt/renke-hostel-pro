@@ -5734,10 +5734,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Field label="群組名稱">
+                          <Field label="群組名稱" required>
                             {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
                           </Field>
-                          <Field label="計算方式">
+                          <Field label="計算方式" required>
                             <Select
                               value={settings.calc_type || ""}
                               onValueChange={(v) => setSettings((p) => ({ ...p, calc_type: v }))}
@@ -5751,7 +5751,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                               </SelectContent>
                             </Select>
                           </Field>
-                          <Field label="每日上限">
+                          <Field label="每日上限" required>
                             {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
                           </Field>
                           <Field label="每月上限">
