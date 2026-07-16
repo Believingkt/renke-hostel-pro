@@ -574,10 +574,12 @@ export function KolStatsTab() {
             } else {
               individualAchieved = true;
               venueBreakdown = targetsList.map((t) => {
-                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const actual = monthRows.filter((r) => groupKey(r.venue_id, r.venue_name) === t.key).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
                 return {
+                  key: t.key,
+                  venue_id: t.venue_id,
                   venue_name: t.venue_name,
                   personal_min: t.personal_min,
                   actual,
@@ -592,8 +594,8 @@ export function KolStatsTab() {
               : monthRows;
             const perVenue = new Map<string, number>();
             for (const r of teamRows) {
-              const v = r.venue_name ?? "—";
-              perVenue.set(v, (perVenue.get(v) ?? 0) + 1);
+              const k = groupKey(r.venue_id, r.venue_name);
+              perVenue.set(k, (perVenue.get(k) ?? 0) + 1);
             }
             teamContribBy.set(s.user_id, perVenue);
           }
