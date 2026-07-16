@@ -2911,7 +2911,7 @@ function InvitationsTab({
           <AlertDialogHeader>
             <AlertDialogTitle>確認設為附屬記錄</AlertDialogTitle>
             <AlertDialogDescription>
-              確定將此記錄設為「{linkConfirm?.parent.name ?? ""} - {linkConfirm?.parent._accommodation_name ?? ""}」的附屬記錄嗎？此操作會將 kpi_qualified 設為 false。
+              確定將此記錄設為「{linkConfirm?.parent.name ?? ""} - {linkConfirm?.parent._accommodation_name ?? ""}」的附屬記錄嗎？此操作會將「累積資格」設為不打勾。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
