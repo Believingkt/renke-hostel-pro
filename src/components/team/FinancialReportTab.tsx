@@ -867,7 +867,7 @@ function ConsultingFeeSettingsBlock({
       const [{ data: feeData }, { data: accData }, { data: settingsData }] = await Promise.all([
         supabase
           .from("consulting_fee_settings")
-          .select("id, rate, accommodation_id, effective_from, note")
+          .select("id, rate, revenue_threshold, accommodation_id, effective_from, note")
           .order("effective_from", { ascending: false }),
         supabase
           .from("accommodation_info")
@@ -900,20 +900,32 @@ function ConsultingFeeSettingsBlock({
       }
 
       // Pick consulting fee for each acc as of monthStart
-      const pickConsulting = (accId: string): { rate: number | null; fallback: boolean } => {
+      const pickConsulting = (
+        accId: string,
+      ): { rate: number | null; threshold: number; fallback: boolean } => {
         const specific = feeRows.find(
           (f) => f.accommodation_id === accId && f.effective_from <= monthStart,
         );
-        if (specific) return { rate: Number(specific.rate), fallback: false };
+        if (specific)
+          return {
+            rate: Number(specific.rate),
+            threshold: Number(specific.revenue_threshold ?? 0) || 0,
+            fallback: false,
+          };
         const fallback = feeRows.find(
           (f) => f.accommodation_id == null && f.effective_from <= monthStart,
         );
-        if (fallback) return { rate: Number(fallback.rate), fallback: true };
-        return { rate: null, fallback: false };
+        if (fallback)
+          return {
+            rate: Number(fallback.rate),
+            threshold: Number(fallback.revenue_threshold ?? 0) || 0,
+            fallback: true,
+          };
+        return { rate: null, threshold: 0, fallback: false };
       };
 
       const compare: CompareRow[] = accList.map((a) => {
-        const { rate, fallback } = pickConsulting(a.id);
+        const { rate, threshold, fallback } = pickConsulting(a.id);
         const owner = perAccOwner.has(a.id)
           ? perAccOwner.get(a.id)!
           : globalOwner;
@@ -921,6 +933,7 @@ function ConsultingFeeSettingsBlock({
           accId: a.id,
           accName: a.name,
           consultingRate: rate,
+          consultingThreshold: threshold,
           consultingIsFallback: fallback,
           ownerRate: owner,
         };
