@@ -2656,6 +2656,101 @@ function InvitationsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 設為附屬記錄：搜尋主要記錄 Dialog */}
+      <Dialog
+        open={!!linkSubsidiaryTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setLinkSubsidiaryTarget(null);
+            setLinkSearchQuery("");
+            setLinkSearchResults([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>選擇主要記錄</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              將「{linkSubsidiaryTarget?.name ?? ""}」設為以下某筆邀約的附屬記錄。輸入 KOL 名稱或 IG 帳號進行搜尋。
+            </p>
+            <Input
+              placeholder="搜尋 KOL 名稱或 IG 帳號"
+              value={linkSearchQuery}
+              onChange={(e) => setLinkSearchQuery(e.target.value)}
+            />
+            <div className="max-h-80 overflow-y-auto border rounded-md divide-y">
+              {linkSearching && (
+                <div className="p-3 text-xs text-muted-foreground">搜尋中…</div>
+              )}
+              {!linkSearching && linkSearchQuery.trim() && linkSearchResults.length === 0 && (
+                <div className="p-3 text-xs text-muted-foreground">找不到符合的記錄</div>
+              )}
+              {!linkSearching && !linkSearchQuery.trim() && (
+                <div className="p-3 text-xs text-muted-foreground">請輸入關鍵字搜尋</div>
+              )}
+              {linkSearchResults.map((r) => (
+                <button
+                  type="button"
+                  key={r.id}
+                  className="w-full text-left p-3 hover:bg-muted/50 text-sm"
+                  onClick={() => {
+                    if (linkSubsidiaryTarget) {
+                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r });
+                    }
+                  }}
+                >
+                  <div className="font-medium">{r.name ?? "-"}</div>
+                  <div className="text-xs text-muted-foreground break-all">
+                    {r.ig_handle ?? "-"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 設為附屬記錄確認 */}
+      <AlertDialog open={!!linkConfirm} onOpenChange={(o) => !o && !linkSubmitting && setLinkConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認設為附屬記錄</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定將此記錄設為「{linkConfirm?.parent.name ?? ""} - {linkConfirm?.parent._accommodation_name ?? ""}」的附屬記錄嗎？此操作會將 kpi_qualified 設為 false。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={linkSubmitting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLinkSubsidiary} disabled={linkSubmitting}>
+              {linkSubmitting ? "處理中..." : "確認"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 取消附屬關係確認 */}
+      <AlertDialog open={!!unlinkTarget} onOpenChange={(o) => !o && !unlinkSubmitting && setUnlinkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認取消附屬關係</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要將「{unlinkTarget?.name ?? ""}」的附屬關係取消嗎？取消後此記錄會恢復為獨立的主要記錄，kpi_qualified 不會自動改回符合資格。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkSubmitting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnlinkSubsidiary} disabled={unlinkSubmitting}>
+              {unlinkSubmitting ? "處理中..." : "確認取消"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
