@@ -1118,6 +1118,8 @@ function InvitationsTab({
       payload.kpi_qualified = form.kpi_qualified;
     }
 
+    const hasSubs = !editingId && form.selected_sub_venues.length > 0 && !!form.primary_sub_venue_id;
+
     let err;
     let newId: string | null = null;
     if (editingId) {
@@ -1125,6 +1127,13 @@ function InvitationsTab({
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
+      if (hasSubs) {
+        // 情境 B：主要記錄使用 primary_sub_venue_id 作為 venue_id
+        payload.venue_id = form.primary_sub_venue_id;
+        const primarySub = venues.find((v) => v.id === form.primary_sub_venue_id);
+        payload.venue_name = primarySub?.name ?? payload.venue_name;
+        payload.primary_profile_id = null;
+      }
       const { data: inserted, error } = await supabase.from("kol_profiles").insert(payload).select("id").single();
       err = error;
       newId = inserted?.id ?? null;
@@ -1134,6 +1143,58 @@ function InvitationsTab({
       toast.error(err.message);
       return;
     }
+
+    // 情境 B：主要記錄建立成功後，建立其餘子館別的附屬記錄
+    if (hasSubs && newId) {
+      const subIds = form.selected_sub_venues.filter((id) => id !== form.primary_sub_venue_id);
+      if (subIds.length > 0) {
+        const subPayloads = subIds.map((svId) => {
+          const sv = venues.find((v) => v.id === svId);
+          return {
+            accommodation_id: form.accommodation_id || null,
+            venue_id: svId,
+            venue_name: sv?.name ?? null,
+            name: payload.name,
+            ig_handle: payload.ig_handle,
+            rarity: payload.rarity,
+            scout_id: payload.scout_id,
+            invited_at: payload.invited_at,
+            check_in_date: payload.check_in_date,
+            check_out_date: payload.check_out_date,
+            day_of_week: payload.day_of_week,
+            inventory_status: null,
+            booking_status: null,
+            cid_code: null,
+            companion_cid: null,
+            short_url: null,
+            contract_progress: null,
+            contract_file_url: null,
+            task_pre_stay: false,
+            task_post_story: false,
+            task_ig_collab: false,
+            publish_url: null,
+            publish_date: null,
+            order_number: null,
+            inventory_count: 0,
+            kol_tags: payload.kol_tags,
+            kol_direct_ticket_link: null,
+            kpi_eligible: false,
+            kpi_month: null,
+            kpi_qualified: false,
+            follower_count: payload.follower_count,
+            follower_count_updated_at: payload.follower_count_updated_at ?? null,
+            created_by: currentUserId,
+            is_error: false,
+            primary_profile_id: newId,
+          } as Record<string, any>;
+        });
+        const { error: subErr } = await supabase.from("kol_profiles").insert(subPayloads as any);
+        if (subErr) {
+          toast.error(`附屬記錄建立失敗：${subErr.message}`);
+        }
+      }
+    }
+
 
     // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
     if (!editingId && prospectLink && newId) {
