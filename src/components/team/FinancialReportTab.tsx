@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Pencil, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 
