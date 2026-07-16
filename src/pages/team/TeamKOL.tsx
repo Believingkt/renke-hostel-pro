@@ -1054,6 +1054,16 @@ function InvitationsTab({
       toast.error("請選擇館別");
       return;
     }
+    // 子館別必填：若母館底下有子館別，必須選一個
+    if (form.accommodation_id) {
+      const hasChildren = venues.some(
+        (v) => v.accommodation_id === form.accommodation_id && v.room_type_id,
+      );
+      if (hasChildren && !form.primary_sub_venue_id) {
+        toast.error("請選擇子館別");
+        return;
+      }
+    }
     if (!form.name.trim()) {
       toast.error("請輸入 KOL 名稱");
       return;
