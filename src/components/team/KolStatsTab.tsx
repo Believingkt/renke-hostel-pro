@@ -88,6 +88,7 @@ interface TargetRow {
   month: number;
   personal_min: number;
   target_count: number | null;
+  venue_id: string | null;
   venue_name: string | null;
 }
 interface ScoutProfile {
@@ -108,6 +109,7 @@ interface KolProfileRow {
   cid_code: string | null;
   order_number: string | null;
   is_error: boolean | null;
+  venue_id: string | null;
   venue_name: string | null;
   invited_at: string | null;
   created_at: string | null;
