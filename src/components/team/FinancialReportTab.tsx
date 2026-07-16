@@ -1069,12 +1069,17 @@ function ConsultingFeeSettingsBlock({
             </div>
           )}
           <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="text-sm font-medium">
-                各館費率比對（{year}/{String(month).padStart(2, "0")}）
+            <div className="space-y-1">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-sm font-medium">
+                  各館費率比對（{year}/{String(month).padStart(2, "0")}）
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  比對「管顧費率」與業主月結「服務費」是否一致
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                比對「管顧費率」與業主月結「服務費」是否一致
+              <div className="text-[11px] text-muted-foreground">
+                若管顧費率與業主月結服務費不一致，請至 /admin/owner-settlement-settings 或財務報表費率設定調整
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -1108,7 +1113,7 @@ function ConsultingFeeSettingsBlock({
                       const cStr = cHas
                         ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
                         : "未設定";
-                      const oStr = oHas ? `${(r.ownerRate! * 100).toFixed(2)}%` : "未設定";
+                      const oStr = oHas ? `${r.ownerRate!.toFixed(2)}%` : "未設定";
                       let status: JSX.Element;
                       if (!cHas || !oHas) {
                         status = (
@@ -1116,7 +1121,7 @@ function ConsultingFeeSettingsBlock({
                             ？ 未設定
                           </Badge>
                         );
-                      } else if (Math.abs(r.consultingRate! - r.ownerRate!) < 1e-9) {
+                      } else if (Math.abs(r.consultingRate! * 100 - r.ownerRate!) < 1e-6) {
                         status = (
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">
                             ✓ 一致
@@ -1124,14 +1129,9 @@ function ConsultingFeeSettingsBlock({
                         );
                       } else {
                         status = (
-                          <div className="space-y-1">
-                            <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">
-                              ⚠ 不一致
-                            </Badge>
-                            <div className="text-[11px] text-muted-foreground">
-                              請至 /admin/owner-settlement-settings 或財務報表費率設定調整
-                            </div>
-                          </div>
+                          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">
+                            ⚠ 不一致
+                          </Badge>
                         );
                       }
                       return (
