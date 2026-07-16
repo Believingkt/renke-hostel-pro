@@ -836,7 +836,7 @@ export default function FinancialReportTab() {
           </p>
           <p>
             <span className="font-medium text-foreground">管顧費用：</span>
-            住房營收 × 管顧費率,費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
+            住房營收 × 管顧費率。若設有業績門檻,僅超過門檻的部分金額計費。費率以當月起始日為基準取最新一筆設定,優先套用館別專屬費率。
           </p>
           <p className="text-amber-600 dark:text-amber-500">
             ⚠️ 各列日期基準不同,對帳時請特別注意。
