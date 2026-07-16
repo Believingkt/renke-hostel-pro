@@ -2304,8 +2304,8 @@ function InvitationsTab({
               </Select>
             </Field>
 
-            {/* 子館別多選（僅在選中母館且該母館有子館別時顯示；編輯模式隱藏） */}
-            {!editingId && form.accommodation_id && (() => {
+            {/* 子館別多選（選中母館且該母館有子館別時顯示；編輯模式下主要館別固定不可改） */}
+            {form.accommodation_id && (() => {
               const subs = venues.filter(
                 (x) => x.is_active && x.accommodation_id === form.accommodation_id && x.room_type_id,
               );
@@ -2313,48 +2313,120 @@ function InvitationsTab({
               return (
                 <Field label="子館別（多選）">
                   <div className="space-y-2 rounded-md border p-3">
-                    <p className="text-xs text-muted-foreground">請勾選此次入住的子館別（可多選）；未勾選則以母館為邀約單位。</p>
+                    <p className="text-xs text-muted-foreground">
+                      {editingId
+                        ? "可勾選/取消其他子館別作為附屬記錄；主要館別為此邀約自身，無法在此變更。"
+                        : "請勾選此次入住的子館別（可多選）；未勾選則以母館為邀約單位。"}
+                    </p>
                     <div className="space-y-1">
                       {subs.map((sv) => {
                         const checked = form.selected_sub_venues.includes(sv.id);
+                        const isPrimaryInEdit = !!editingId && form.primary_sub_venue_id === sv.id;
                         return (
                           <label key={sv.id} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
                             <Checkbox
                               checked={checked}
+                              disabled={isPrimaryInEdit}
                               onCheckedChange={(v) => {
                                 const next = v
                                   ? [...form.selected_sub_venues, sv.id]
                                   : form.selected_sub_venues.filter((x) => x !== sv.id);
                                 let primary = form.primary_sub_venue_id;
-                                if (!next.includes(primary ?? "")) primary = next[0] ?? null;
-                                setForm({ ...form, selected_sub_venues: next, primary_sub_venue_id: primary });
+                                if (!editingId && !next.includes(primary ?? "")) primary = next[0] ?? null;
+                                const dates = { ...form.sub_venue_dates };
+                                if (v && !dates[sv.id]) {
+                                  dates[sv.id] = { check_in_date: "", check_out_date: "" };
+                                }
+                                setForm({ ...form, selected_sub_venues: next, primary_sub_venue_id: primary, sub_venue_dates: dates });
                               }}
                             />
                             <span>{sv.name}</span>
                             {sv.type && <span className="text-[10px] text-muted-foreground">{sv.type}</span>}
+                            {isPrimaryInEdit && <span className="text-[10px] text-primary">主要</span>}
                           </label>
                         );
                       })}
                     </div>
                     {form.selected_sub_venues.length > 0 && (
-                      <div className="border-t pt-2">
-                        <p className="text-xs text-muted-foreground mb-1">主要館別（計入邀約數量與獎金，其他為附屬記錄）</p>
-                        <div className="space-y-1">
-                          {form.selected_sub_venues.map((svId) => {
-                            const sv = subs.find((s) => s.id === svId);
-                            if (!sv) return null;
-                            return (
-                              <label key={svId} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="primary_sub_venue"
-                                  checked={form.primary_sub_venue_id === svId}
-                                  onChange={() => setForm({ ...form, primary_sub_venue_id: svId })}
-                                />
-                                <span>{sv.name}</span>
-                              </label>
-                            );
-                          })}
+                      <div className="border-t pt-2 space-y-2">
+                        {!editingId && (
+                          <>
+                            <p className="text-xs text-muted-foreground mb-1">主要館別（計入邀約數量與獎金，其他為附屬記錄）</p>
+                            <div className="space-y-1">
+                              {form.selected_sub_venues.map((svId) => {
+                                const sv = subs.find((s) => s.id === svId);
+                                if (!sv) return null;
+                                return (
+                                  <label key={svId} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name="primary_sub_venue"
+                                      checked={form.primary_sub_venue_id === svId}
+                                      onChange={() => setForm({ ...form, primary_sub_venue_id: svId })}
+                                    />
+                                    <span>{sv.name}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                        <div className="border-t pt-2">
+                          <p className="text-xs text-muted-foreground mb-2">個別入住日期（留空則沿用下方主要日期）</p>
+                          <div className="space-y-2">
+                            {form.selected_sub_venues.map((svId) => {
+                              const sv = subs.find((s) => s.id === svId);
+                              if (!sv) return null;
+                              const isPrimary = form.primary_sub_venue_id === svId;
+                              const d = form.sub_venue_dates[svId] ?? { check_in_date: "", check_out_date: "" };
+                              return (
+                                <div key={svId} className="rounded border p-2">
+                                  <div className="text-xs mb-1 flex items-center gap-2">
+                                    <span className="font-medium">{sv.name}</span>
+                                    {isPrimary && <span className="text-[10px] text-primary">主要</span>}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Input
+                                      type="date"
+                                      value={isPrimary ? form.check_in_date : d.check_in_date}
+                                      onChange={(e) => {
+                                        if (isPrimary) {
+                                          setForm({ ...form, check_in_date: e.target.value });
+                                        } else {
+                                          setForm({
+                                            ...form,
+                                            sub_venue_dates: {
+                                              ...form.sub_venue_dates,
+                                              [svId]: { ...d, check_in_date: e.target.value },
+                                            },
+                                          });
+                                        }
+                                      }}
+                                      placeholder="入住"
+                                    />
+                                    <Input
+                                      type="date"
+                                      value={isPrimary ? form.check_out_date : d.check_out_date}
+                                      onChange={(e) => {
+                                        if (isPrimary) {
+                                          setForm({ ...form, check_out_date: e.target.value });
+                                        } else {
+                                          setForm({
+                                            ...form,
+                                            sub_venue_dates: {
+                                              ...form.sub_venue_dates,
+                                              [svId]: { ...d, check_out_date: e.target.value },
+                                            },
+                                          });
+                                        }
+                                      }}
+                                      placeholder="退房"
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}
