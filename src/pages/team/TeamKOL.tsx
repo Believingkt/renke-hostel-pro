@@ -182,6 +182,9 @@ interface FormState {
   kol_direct_ticket_link: string;
   follower_count_input: string;
   follower_count_original: number | null;
+  // 旅行日子館別多筆主附屬支援
+  selected_sub_venues: string[];
+  primary_sub_venue_id: string | null;
 }
 
 const EMPTY_FORM: FormState = {
@@ -216,6 +219,8 @@ const EMPTY_FORM: FormState = {
   kol_direct_ticket_link: "",
   follower_count_input: "",
   follower_count_original: null,
+  selected_sub_venues: [],
+  primary_sub_venue_id: null,
 };
 
 interface RaritySetting {
