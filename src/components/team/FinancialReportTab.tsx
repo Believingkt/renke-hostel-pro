@@ -1029,10 +1029,9 @@ function ConsultingFeeSettingsBlock({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="請選擇館別" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">全館通用</SelectItem>
                           {accs.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
                               {a.name}
