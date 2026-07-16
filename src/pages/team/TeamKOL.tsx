@@ -5535,10 +5535,16 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       toast.error("請輸入場域名稱");
       return;
     }
-    const vErrMsg = validateVenueSettings(settings);
-    if (vErrMsg) {
-      toast.error(vErrMsg);
-      return;
+    const editVenueHasChildren =
+      !!editVenue.accommodation_id &&
+      !editVenue.room_type_id &&
+      rows.some((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id);
+    if (!editVenueHasChildren) {
+      const vErrMsg = validateVenueSettings(settings);
+      if (vErrMsg) {
+        toast.error(vErrMsg);
+        return;
+      }
     }
     setSaving(true);
     // 1. 更新 kol_venues
@@ -5552,7 +5558,9 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       return;
     }
     // 名稱同步：現在只需要更新 kol_venues.name，kol_venue_settings 已改用 venue_id 關聯
-    // 3. upsert kol_venue_settings（依 venue_id 關聯）
+    // 3. upsert kol_venue_settings（依 venue_id 關聯）；有子館別的母館不寫入邀約規則
+    if (!editVenueHasChildren) {
+
     const venueId = editVenue.id;
     const payload: Partial<VenueSettingsRow> = {
       venue_id: venueId,
@@ -5599,6 +5607,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         return;
       }
     }
+    }
     setSaving(false);
     toast.success("已更新");
     setEditOpen(false);
@@ -5633,6 +5642,15 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const dateInput = (val: string | null, set: (v: string) => void) => (
     <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
+
+  const editVenueHasChildren =
+    !!editVenue &&
+    !!editVenue.accommodation_id &&
+    !editVenue.room_type_id &&
+    rows.some((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id);
+  const editVenueChildren = editVenueHasChildren && editVenue
+    ? rows.filter((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id)
+    : [];
 
   return (
     <Card>
@@ -5913,7 +5931,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                       </section>
                       <section className="space-y-3">
                         <h4 className="font-semibold text-sm">邀約規則設定</h4>
-                        {loadingSettings ? (
+                        {editVenueHasChildren ? (
+                          <div className="space-y-2 rounded-md border border-dashed p-3 text-sm">
+                            <p>此館別下設有子館別，請至各子館別個別設定邀約規則。</p>
+                            {editVenueChildren.length > 0 && (
+                              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                                {editVenueChildren.map((c) => (
+                                  <li key={c.id}>{c.name}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ) : loadingSettings ? (
                           <p className="text-xs text-muted-foreground">載入中…</p>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
@@ -5944,6 +5973,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </div>
                         )}
                       </section>
+
                     </>
                   );
                 })()
@@ -5985,7 +6015,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   {/* 區塊二：邀約規則 */}
                   <section className="space-y-3">
                     <h4 className="font-semibold text-sm">邀約規則設定</h4>
-                    {loadingSettings ? (
+                    {editVenueHasChildren ? (
+                      <div className="space-y-2 rounded-md border border-dashed p-3 text-sm">
+                        <p>此館別下設有子館別，請至各子館別個別設定邀約規則。</p>
+                        {editVenueChildren.length > 0 && (
+                          <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                            {editVenueChildren.map((c) => (
+                              <li key={c.id}>{c.name}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : loadingSettings ? (
                       <p className="text-xs text-muted-foreground">載入中…</p>
                     ) : (
                       <>
