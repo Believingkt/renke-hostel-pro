@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
   if (body.event_type) {
     const { data: evTargets, error: evErr } = await supabase
       .from("line_push_targets")
-      .select("target_id, event_types, accommodation_ids, custom_venue_names")
+      .select("target_id, event_types, accommodation_ids, custom_venue_ids, custom_venue_names")
       .eq("is_active", true)
       .contains("event_types", [body.event_type]);
     if (evErr) {
@@ -123,15 +123,35 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // 解析請求場域的 venue_id / venue_name（用 venue_id 優先，name fallback）
+    let reqVenueId: string | null = null;
+    let reqVenueName: string | null = body.venue_name ?? null;
+    if (body.venue_name) {
+      const { data: vRow } = await supabase
+        .from("kol_venues")
+        .select("id, name")
+        .eq("name", body.venue_name)
+        .maybeSingle();
+      if (vRow) {
+        reqVenueId = (vRow as any).id;
+        reqVenueName = (vRow as any).name;
+      }
+    }
+
     (evTargets ?? []).forEach((t: any) => {
       if (!t.target_id) return;
       const accIds: string[] = t.accommodation_ids ?? [];
-      const venueNames: string[] = t.custom_venue_names ?? [];
-      const isAllVenues = accIds.length === 0 && venueNames.length === 0;
+      const venueIds: string[] = t.custom_venue_ids ?? [];
+      const legacyVenueNames: string[] = t.custom_venue_names ?? [];
+      const isAllVenues =
+        accIds.length === 0 && venueIds.length === 0 && legacyVenueNames.length === 0;
       if (!isAllVenues) {
         const accMatch = body.accommodation_id && accIds.includes(body.accommodation_id);
-        const venueMatch = body.venue_name && venueNames.includes(body.venue_name);
-        if (!accMatch && !venueMatch) return;
+        const venueIdMatch = reqVenueId && venueIds.includes(reqVenueId);
+        // 過渡期 fallback：venue_id 為 NULL 或未回填時，比對 custom_venue_names
+        const venueNameMatch = reqVenueName && legacyVenueNames.includes(reqVenueName);
+        if (!accMatch && !venueIdMatch && !venueNameMatch) return;
       }
       targetSet.add(t.target_id);
     });
