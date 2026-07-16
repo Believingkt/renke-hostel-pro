@@ -1560,34 +1560,34 @@ function EventsTab() {
 
 function VenuePicker({
   accommodations,
+  venues,
   selectedIds,
-  selectedCustom,
+  selectedVenueIds,
   onChangeIds,
-  onChangeCustom,
+  onChangeVenueIds,
 }: {
   accommodations: { id: string; name: string }[];
+  venues: { id: string; name: string }[];
   selectedIds: string[];
-  selectedCustom: string[];
+  selectedVenueIds: string[];
   onChangeIds: (ids: string[]) => void;
-  onChangeCustom: (names: string[]) => void;
+  onChangeVenueIds: (ids: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const total = selectedIds.length + selectedCustom.length;
+  const total = selectedIds.length + selectedVenueIds.length;
   const summary = total === 0 ? "全部館別" : `已選擇 ${total} 個館別`;
 
   const kw = search.trim().toLowerCase();
+  // 排除已在 accommodations 中的（避免重複顯示同一個 PMS 館別）
+  const accNameSet = new Set(accommodations.map((a) => a.name));
+  const venueList = venues.filter((v) => !accNameSet.has(v.name));
   const filteredAcc = accommodations.filter((a) =>
     !kw ? true : a.name.toLowerCase().includes(kw)
   );
-  const filteredCustom = selectedCustom.filter((n) =>
-    !kw ? true : n.toLowerCase().includes(kw)
+  const filteredVenues = venueList.filter((v) =>
+    !kw ? true : v.name.toLowerCase().includes(kw)
   );
-
-  const exactExists =
-    !!search.trim() &&
-    (accommodations.some((a) => a.name === search.trim()) ||
-      selectedCustom.includes(search.trim()));
 
   const toggleId = (id: string) => {
     onChangeIds(
@@ -1596,18 +1596,12 @@ function VenuePicker({
         : [...selectedIds, id]
     );
   };
-  const toggleCustom = (n: string) => {
-    onChangeCustom(
-      selectedCustom.includes(n)
-        ? selectedCustom.filter((x) => x !== n)
-        : [...selectedCustom, n]
+  const toggleVenue = (id: string) => {
+    onChangeVenueIds(
+      selectedVenueIds.includes(id)
+        ? selectedVenueIds.filter((x) => x !== id)
+        : [...selectedVenueIds, id]
     );
-  };
-  const addCustom = () => {
-    const v = search.trim();
-    if (!v || exactExists) return;
-    onChangeCustom([...selectedCustom, v]);
-    setSearch("");
   };
 
   return (
@@ -1629,14 +1623,8 @@ function VenuePicker({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜尋或輸入新自訂館別"
+              placeholder="搜尋館別"
               className="h-8"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustom();
-                }
-              }}
             />
           </div>
           {total > 0 && (
@@ -1652,21 +1640,24 @@ function VenuePicker({
                   </Badge>
                 );
               })}
-              {selectedCustom.map((n) => (
-                <Badge key={n} variant="secondary" className="gap-1">
-                  {n}
-                  <button type="button" onClick={() => toggleCustom(n)}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+              {selectedVenueIds.map((id) => {
+                const v = venues.find((x) => x.id === id);
+                return (
+                  <Badge key={id} variant="secondary" className="gap-1">
+                    {v?.name ?? id}
+                    <button type="button" onClick={() => toggleVenue(id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           )}
           <div
             className="max-h-[240px] overflow-y-auto overscroll-contain p-1"
             style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
           >
-            {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
+            {filteredAcc.length === 0 && filteredVenues.length === 0 && (
               <div className="px-2 py-3 text-xs text-muted-foreground text-center">
                 無館別
               </div>
@@ -1687,36 +1678,20 @@ function VenuePicker({
               );
             })}
 
-            {filteredCustom.map((n) => (
-              <button
-                type="button"
-                key={`c-${n}`}
-                onClick={() => toggleCustom(n)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-              >
-                <Checkbox checked className="pointer-events-none" />
-                <span className="flex-1">{n}</span>
-                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                  未建立
-                </Badge>
-              </button>
-            ))}
-
-            {search.trim() && !exactExists && (
-              <button
-                type="button"
-                onClick={addCustom}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left border-t mt-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="flex-1">
-                  新增自訂館別「{search.trim()}」
-                </span>
-                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                  未建立
-                </Badge>
-              </button>
-            )}
+            {filteredVenues.map((v) => {
+              const checked = selectedVenueIds.includes(v.id);
+              return (
+                <button
+                  type="button"
+                  key={`v-${v.id}`}
+                  onClick={() => toggleVenue(v.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                >
+                  <Checkbox checked={checked} className="pointer-events-none" />
+                  <span className="flex-1">{v.name}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="p-2 border-t flex justify-end">
             <Button size="sm" onClick={() => setOpen(false)}>
