@@ -451,9 +451,26 @@ export default function TeamHome() {
 
             const baseSalaryAmount = Number((salaryRow as any)?.base_salary ?? 0);
             const teamBonusAmount = Number((salaryRow as any)?.team_bonus ?? 0);
-            // 分組 key：venue_id 優先，NULL 時用 name:<venue_name> 作為 fallback
-            const groupKey = (venueId: string | null | undefined, venueName: string | null | undefined) =>
-              venueId ? `id:${venueId}` : `name:${venueName ?? "—"}`;
+
+            // 子館別 → 母館 venue_id normalize（用於 JOIN scout_team_targets）
+            const { data: kolVenuesData } = await supabase
+              .from("kol_venues" as any)
+              .select("id, accommodation_id, room_type_id");
+            const kvs = ((kolVenuesData ?? []) as unknown) as Array<{ id: string; accommodation_id: string | null; room_type_id: string | null }>;
+            const childToParent = new Map<string, string>();
+            for (const v of kvs) {
+              if (v.room_type_id) {
+                const parent = kvs.find((p) => p.accommodation_id === v.accommodation_id && !p.room_type_id);
+                if (parent) childToParent.set(v.id, parent.id);
+              }
+            }
+            const normVenueId = (vid: string | null | undefined) =>
+              vid ? (childToParent.get(vid) ?? vid) : null;
+            // 分組 key：先 normalize 子館別 → 母館，NULL 時用 name:<venue_name> 作為 fallback
+            const groupKey = (venueId: string | null | undefined, venueName: string | null | undefined) => {
+              const rid = normVenueId(venueId);
+              return rid ? `id:${rid}` : `name:${venueName ?? "—"}`;
+            };
             const targetList = ((targetsData ?? []) as any[])
               .map((t) => ({
                 key: groupKey(t.venue_id, t.venue_name),
