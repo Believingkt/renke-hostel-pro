@@ -184,7 +184,7 @@ export default function TeamCommissionStatsTab() {
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [metaMap, setMetaMap] = useState<Map<string, MetaLite>>(new Map());
   const [commissionByAcc, setCommissionByAcc] = useState<
-    Map<string, CommissionRow>
+    Map<string, CommissionRow[]>
   >(new Map());
   const [nameMapByUserId, setNameMapByUserId] = useState<Map<string, string>>(
     new Map(),
