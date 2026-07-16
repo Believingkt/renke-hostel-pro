@@ -532,26 +532,31 @@ export default function FinancialReportTab() {
         if (franchiseAccIds.length > 0) {
           const { data: feeRows } = await supabase
             .from("consulting_fee_settings")
-            .select("rate, accommodation_id, effective_from")
+            .select("rate, revenue_threshold, accommodation_id, effective_from")
             .lte("effective_from", monthStart)
             .order("effective_from", { ascending: false });
           const fees = (feeRows ?? []) as any[];
-          const pickRate = (accId: string): number | null => {
+          const pickRateConfig = (accId: string): { rate: number; threshold: number } | null => {
             const specific = fees.find((f) => f.accommodation_id === accId);
-            if (specific) return Number(specific.rate);
+            if (specific) return { rate: Number(specific.rate), threshold: Number(specific.revenue_threshold ?? 0) || 0 };
             const fallback = fees.find((f) => f.accommodation_id == null);
-            if (fallback) return Number(fallback.rate);
+            if (fallback) return { rate: Number(fallback.rate), threshold: Number(fallback.revenue_threshold ?? 0) || 0 };
             return null;
           };
           for (const accId of franchiseAccIds) {
             const stay = row4ByAcc.get(accId) ?? emptyBuckets(weekCount);
-            const rate = pickRate(accId);
-            if (rate == null) {
+            const cfg = pickRateConfig(accId);
+            if (cfg == null) {
               row5ByAcc.set(accId, emptyBuckets(weekCount));
               continue;
             }
             hasAnyRate = true;
-            row5ByAcc.set(accId, stay.map((v) => v * rate));
+            const monthStayTotal = stay.reduce((a, b) => a + b, 0);
+            if (cfg.threshold > 0 && monthStayTotal < cfg.threshold) {
+              row5ByAcc.set(accId, emptyBuckets(weekCount));
+              continue;
+            }
+            row5ByAcc.set(accId, stay.map((v) => v * cfg.rate));
           }
         }
         const row5Total = emptyBuckets(weekCount);
