@@ -975,6 +975,10 @@ function InvitationsTab({
       toast.error("您沒有權限編輯這筆紀錄");
       return;
     }
+    if (row.primary_profile_id) {
+      toast.error("此為附屬記錄，請從主要記錄編輯");
+      return;
+    }
     setEditingId(row.id);
     setForm({
       id: row.id,
