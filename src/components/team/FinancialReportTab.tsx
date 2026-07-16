@@ -820,6 +820,7 @@ export default function FinancialReportTab() {
 interface FeeRow {
   id: string;
   rate: number;
+  revenue_threshold: number | null;
   accommodation_id: string | null;
   effective_from: string;
   note: string | null;
@@ -829,6 +830,7 @@ interface CompareRow {
   accId: string;
   accName: string;
   consultingRate: number | null;
+  consultingThreshold: number;
   consultingIsFallback: boolean;
   ownerRate: number | null;
 }
