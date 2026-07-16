@@ -5558,7 +5558,9 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       return;
     }
     // 名稱同步：現在只需要更新 kol_venues.name，kol_venue_settings 已改用 venue_id 關聯
-    // 3. upsert kol_venue_settings（依 venue_id 關聯）
+    // 3. upsert kol_venue_settings（依 venue_id 關聯）；有子館別的母館不寫入邀約規則
+    if (!editVenueHasChildren) {
+
     const venueId = editVenue.id;
     const payload: Partial<VenueSettingsRow> = {
       venue_id: venueId,
