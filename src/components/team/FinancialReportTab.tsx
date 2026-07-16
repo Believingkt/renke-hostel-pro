@@ -587,7 +587,7 @@ export default function FinancialReportTab() {
           for (let i = 0; i < weekCount; i++) row5Total[i] += b[i];
           row5Children.push({
             key: `row5-${accId}`,
-            label: franchiseAccNameMap.get(accId) ?? accId,
+            label: stayAccNameMap.get(accId) ?? accId,
             buckets: b,
           });
         }
