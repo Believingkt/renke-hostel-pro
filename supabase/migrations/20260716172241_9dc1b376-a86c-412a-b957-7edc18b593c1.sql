@@ -1,0 +1,1 @@
+DELETE FROM public.consulting_fee_settings WHERE id = '0f800ac8-515a-4512-8355-1342aa40d835';
