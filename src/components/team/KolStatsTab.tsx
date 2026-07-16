@@ -229,7 +229,7 @@ export function KolStatsTab() {
           showSalary && month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min, target_count, venue_name")
+                .select("year, month, personal_min, target_count, venue_id, venue_name")
                 .eq("year", month === 1 ? effYear - 1 : effYear)
                 .eq("month", month === 1 ? 12 : month - 1)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
