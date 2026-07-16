@@ -6319,15 +6319,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     )}
                   </section>
 
-                  {editVenue?.accommodation_id && !editVenue?.room_type_id && (
-                    <section className="space-y-3">
-                      <h4 className="font-semibold text-sm">互惠額度設定</h4>
-                      <KolReciprocalQuotaAccordion
-                        accommodationId={editVenue.accommodation_id}
-                        canEdit={isManager && !readOnly}
-                      />
-                    </section>
-                  )}
                 </>
               )}
             </div>
