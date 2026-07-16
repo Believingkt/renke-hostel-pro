@@ -719,7 +719,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                                           id: undefined,
                                           event_types: [],
                                           accommodation_ids: [],
-                                          custom_venue_names: [],
+                                          custom_venue_ids: [],
                                           display_name: prev.display_name || "",
                                         }
                                       : prev,
