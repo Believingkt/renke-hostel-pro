@@ -9224,6 +9224,14 @@ export type Database = {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
       }
+      update_kol_quota_config: {
+        Args: {
+          p_accommodation_id: string
+          p_mode: string
+          p_tracked_ids: string[]
+        }
+        Returns: undefined
+      }
       upsert_owlting_credentials: {
         Args: {
           p_accommodation_id: string
