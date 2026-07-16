@@ -891,6 +891,30 @@ function InvitationsTab({
     </TableHead>
   );
 
+  // 依 primary_profile_id 分組：主要記錄 / 附屬記錄 / 孤兒附屬
+  const groupedRows = useMemo(() => {
+    const primaries: KolRow[] = [];
+    const subMap = new Map<string, KolRow[]>();
+    const orphans: KolRow[] = [];
+    const primaryIds = new Set(
+      sortedRows.filter((r) => !r.primary_profile_id).map((r) => r.id),
+    );
+    for (const r of sortedRows) {
+      if (!r.primary_profile_id) {
+        primaries.push(r);
+      } else if (primaryIds.has(r.primary_profile_id)) {
+        const arr = subMap.get(r.primary_profile_id) ?? [];
+        arr.push(r);
+        subMap.set(r.primary_profile_id, arr);
+      } else {
+        orphans.push(r);
+      }
+    }
+    return { primaries, subMap, orphans };
+  }, [sortedRows]);
+
+
+
 
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
