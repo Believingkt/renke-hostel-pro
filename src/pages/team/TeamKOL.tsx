@@ -1888,8 +1888,8 @@ function InvitationsTab({
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg overflow-x-hidden">
           <SheetHeader>
-            <div className="flex items-center gap-2 pr-12">
-              <SheetTitle className="flex-1">邀約明細</SheetTitle>
+            <SheetTitle className="pr-12">邀約明細</SheetTitle>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {viewingRow && viewingRow.booking_status !== "已取消" && (
                 <Button
                   size="sm"
