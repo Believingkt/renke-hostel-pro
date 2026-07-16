@@ -1650,6 +1650,11 @@ function InvitationsTab({
                               填錯
                             </Badge>
                           )}
+                          {r.primary_profile_id && (
+                            <Badge variant="outline" className="bg-muted text-muted-foreground shrink-0">
+                              附屬
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
