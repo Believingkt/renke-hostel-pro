@@ -5582,6 +5582,7 @@ function KolReciprocalQuotaAccordion({
   );
 }
 
+function VenuesCard({ isManager }: { isManager: boolean }) {
 
   const [rows, setRows] = useState<VenueRow[]>([]);
   const [loading, setLoading] = useState(true);
