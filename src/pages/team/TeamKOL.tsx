@@ -141,6 +141,7 @@ interface KolRow {
   created_at: string | null;
   follower_count: number | null;
   follower_count_updated_at: string | null;
+  primary_profile_id?: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -181,6 +182,7 @@ interface FormState {
   kol_direct_ticket_link: string;
   follower_count_input: string;
   follower_count_original: number | null;
+  primary_profile_id: string | null;
 }
 
 const EMPTY_FORM: FormState = {
@@ -215,6 +217,7 @@ const EMPTY_FORM: FormState = {
   kol_direct_ticket_link: "",
   follower_count_input: "",
   follower_count_original: null,
+  primary_profile_id: null,
 };
 
 interface RaritySetting {
@@ -572,6 +575,18 @@ function InvitationsTab({
   // 取消邀約 Dialog
   const [cancelTarget, setCancelTarget] = useState<KolRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
+
+  // 設為附屬記錄：搜尋主要記錄 Dialog
+  const [linkSubsidiaryTarget, setLinkSubsidiaryTarget] = useState<KolRow | null>(null);
+  const [linkSearchQuery, setLinkSearchQuery] = useState("");
+  const [linkSearchResults, setLinkSearchResults] = useState<KolRow[]>([]);
+  const [linkSearching, setLinkSearching] = useState(false);
+  const [linkConfirm, setLinkConfirm] = useState<{ child: KolRow; parent: KolRow } | null>(null);
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+
+  // 取消附屬關係
+  const [unlinkTarget, setUnlinkTarget] = useState<KolRow | null>(null);
+  const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
   // 載入下拉資料
   useEffect(() => {
@@ -1007,6 +1022,7 @@ function InvitationsTab({
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
+      primary_profile_id: row.primary_profile_id ?? null,
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -1086,6 +1102,7 @@ function InvitationsTab({
       kol_direct_ticket_link: toNullable(form.kol_direct_ticket_link),
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
+      primary_profile_id: form.primary_profile_id || null,
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
     payload.follower_count = followerParsed.value;
@@ -1126,11 +1143,166 @@ function InvitationsTab({
     }
 
     setSaving(false);
-    toast.success(editingId ? "已更新邀約" : "已新增邀約");
+    const isNewPrimary = !editingId && !form.primary_profile_id && !!newId;
+    const hasChildVenues =
+      isNewPrimary && !!form.accommodation_id
+        ? venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
+        : false;
     setSheetOpen(false);
     setProspectLink(null);
     fetchRows();
+    if (editingId) {
+      toast.success("已更新邀約");
+    } else if (isNewPrimary && hasChildVenues) {
+      const savedId = newId!;
+      const savedAccommodationId = form.accommodation_id;
+      const savedScoutId = form.scout_id;
+      const savedName = form.name.trim();
+      const savedIg = form.ig_handle.trim();
+      toast.success("主要記錄已儲存。如需新增附屬館別記錄，請點選下方按鈕", {
+        duration: 10000,
+        action: {
+          label: "新增附屬記錄",
+          onClick: () => {
+            openCreateSubsidiaryFromValues({
+              primaryId: savedId,
+              accommodationId: savedAccommodationId,
+              scoutId: savedScoutId,
+              name: savedName,
+              igHandle: savedIg,
+            });
+          },
+        },
+      });
+    } else {
+      toast.success("已新增邀約");
+    }
   };
+
+  const openCreateSubsidiaryFromValues = (opts: {
+    primaryId: string;
+    accommodationId: string;
+    scoutId: string;
+    name: string;
+    igHandle: string;
+  }) => {
+    const parentVenue = venues.find(
+      (v) => v.accommodation_id === opts.accommodationId && !v.room_type_id,
+    );
+    setEditingId(null);
+    setForm({
+      ...EMPTY_FORM,
+      primary_profile_id: opts.primaryId,
+      accommodation_select: `acc:${opts.accommodationId}`,
+      accommodation_id: opts.accommodationId,
+      venue_id: parentVenue?.id ?? "",
+      venue_name: "",
+      name: opts.name,
+      ig_handle: opts.igHandle,
+      scout_id: opts.scoutId || currentUserId,
+      check_in_date: "",
+      check_out_date: "",
+    });
+    setDupWarning(null);
+    setProspectLink(null);
+    setSheetOpen(true);
+  };
+
+  const openCreateSubsidiary = (parentRow: KolRow) => {
+    if (!parentRow.accommodation_id) {
+      toast.error("僅 PMS 館別的邀約才可新增附屬記錄");
+      return;
+    }
+    setViewingRow(null);
+    openCreateSubsidiaryFromValues({
+      primaryId: parentRow.id,
+      accommodationId: parentRow.accommodation_id,
+      scoutId: parentRow.scout_id ?? "",
+      name: parentRow.name ?? "",
+      igHandle: parentRow.ig_handle ?? "",
+    });
+  };
+
+  // 搜尋可作為主要記錄的候選（只顯示 primary_profile_id IS NULL 且排除自己）
+  useEffect(() => {
+    if (!linkSubsidiaryTarget) {
+      setLinkSearchResults([]);
+      return;
+    }
+    const q = linkSearchQuery.trim();
+    if (!q) {
+      setLinkSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setLinkSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("*")
+        .is("primary_profile_id" as any, null)
+        .neq("id", linkSubsidiaryTarget.id)
+        .or(`name.ilike.%${q}%,ig_handle.ilike.%${q}%`)
+        .limit(20);
+      if (cancelled) return;
+      const list = (data ?? []) as unknown as KolRow[];
+      // 補上館別名稱
+      const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+      const venueMap = new Map(venues.map((v) => [v.id, v.name]));
+      for (const r of list) {
+        r._accommodation_name = r.accommodation_id
+          ? accMap.get(r.accommodation_id) ?? ""
+          : r.venue_id
+            ? venueMap.get(r.venue_id) ?? r.venue_name ?? ""
+            : r.venue_name ?? "";
+      }
+      setLinkSearchResults(list);
+      setLinkSearching(false);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [linkSearchQuery, linkSubsidiaryTarget, accommodations, venues]);
+
+  const handleConfirmLinkSubsidiary = async () => {
+    if (!linkConfirm) return;
+    setLinkSubmitting(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ primary_profile_id: linkConfirm.parent.id, kpi_qualified: false } as any)
+      .eq("id", linkConfirm.child.id);
+    setLinkSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已設為附屬記錄");
+    setLinkConfirm(null);
+    setLinkSubsidiaryTarget(null);
+    setLinkSearchQuery("");
+    setLinkSearchResults([]);
+    fetchRows();
+  };
+
+  const handleUnlinkSubsidiary = async () => {
+    if (!unlinkTarget) return;
+    setUnlinkSubmitting(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ primary_profile_id: null } as any)
+      .eq("id", unlinkTarget.id);
+    setUnlinkSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已取消附屬關係");
+    setUnlinkTarget(null);
+    fetchRows();
+  };
+
+
 
   const handleReportError = async () => {
     if (!errorTarget) return;
@@ -1753,6 +1925,49 @@ function InvitationsTab({
                   編輯
                 </Button>
               )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                !viewingRow.primary_profile_id &&
+                viewingRow.accommodation_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openCreateSubsidiary(viewingRow)}
+                  >
+                    新增附屬記錄
+                  </Button>
+                )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                !viewingRow.primary_profile_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      setLinkSubsidiaryTarget(viewingRow);
+                      setLinkSearchQuery("");
+                      setLinkSearchResults([]);
+                      setViewingRow(null);
+                    }}
+                  >
+                    設為附屬記錄
+                  </Button>
+                )}
+              {viewingRow &&
+                canEditRow(viewingRow) &&
+                viewingRow.primary_profile_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setUnlinkTarget(viewingRow);
+                      setViewingRow(null);
+                    }}
+                  >
+                    取消附屬關係
+                  </Button>
+                )}
             </div>
           </SheetHeader>
           {viewingRow &&
@@ -2441,6 +2656,101 @@ function InvitationsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 設為附屬記錄：搜尋主要記錄 Dialog */}
+      <Dialog
+        open={!!linkSubsidiaryTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setLinkSubsidiaryTarget(null);
+            setLinkSearchQuery("");
+            setLinkSearchResults([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>選擇主要記錄</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              將「{linkSubsidiaryTarget?.name ?? ""}」設為以下某筆邀約的附屬記錄。輸入 KOL 名稱或 IG 帳號進行搜尋。
+            </p>
+            <Input
+              placeholder="搜尋 KOL 名稱或 IG 帳號"
+              value={linkSearchQuery}
+              onChange={(e) => setLinkSearchQuery(e.target.value)}
+            />
+            <div className="max-h-80 overflow-y-auto border rounded-md divide-y">
+              {linkSearching && (
+                <div className="p-3 text-xs text-muted-foreground">搜尋中…</div>
+              )}
+              {!linkSearching && linkSearchQuery.trim() && linkSearchResults.length === 0 && (
+                <div className="p-3 text-xs text-muted-foreground">找不到符合的記錄</div>
+              )}
+              {!linkSearching && !linkSearchQuery.trim() && (
+                <div className="p-3 text-xs text-muted-foreground">請輸入關鍵字搜尋</div>
+              )}
+              {linkSearchResults.map((r) => (
+                <button
+                  type="button"
+                  key={r.id}
+                  className="w-full text-left p-3 hover:bg-muted/50 text-sm"
+                  onClick={() => {
+                    if (linkSubsidiaryTarget) {
+                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r });
+                    }
+                  }}
+                >
+                  <div className="font-medium">{r.name ?? "-"}</div>
+                  <div className="text-xs text-muted-foreground break-all">
+                    {r.ig_handle ?? "-"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 設為附屬記錄確認 */}
+      <AlertDialog open={!!linkConfirm} onOpenChange={(o) => !o && !linkSubmitting && setLinkConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認設為附屬記錄</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定將此記錄設為「{linkConfirm?.parent.name ?? ""} - {linkConfirm?.parent._accommodation_name ?? ""}」的附屬記錄嗎？此操作會將 kpi_qualified 設為 false。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={linkSubmitting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLinkSubsidiary} disabled={linkSubmitting}>
+              {linkSubmitting ? "處理中..." : "確認"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 取消附屬關係確認 */}
+      <AlertDialog open={!!unlinkTarget} onOpenChange={(o) => !o && !unlinkSubmitting && setUnlinkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認取消附屬關係</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要將「{unlinkTarget?.name ?? ""}」的附屬關係取消嗎？取消後此記錄會恢復為獨立的主要記錄，kpi_qualified 不會自動改回符合資格。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkSubmitting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnlinkSubsidiary} disabled={unlinkSubmitting}>
+              {unlinkSubmitting ? "處理中..." : "確認取消"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
