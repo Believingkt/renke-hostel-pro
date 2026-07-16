@@ -1407,6 +1407,11 @@ function InvitationsTab({
                 <SelectItem value="no">未符合資格</SelectItem>
               </SelectContent>
             </Select>
+
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showSubsidiary} onCheckedChange={setShowSubsidiary} />
+              顯示附屬記錄
+            </label>
           </div>
         </div>
 
