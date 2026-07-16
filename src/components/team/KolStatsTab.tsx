@@ -640,7 +640,7 @@ export function KolStatsTab() {
           for (const t of targetsList) {
             let total = 0;
             for (const contrib of teamContribBy.values()) {
-              total += contrib.get(t.venue_name) ?? 0;
+              total += contrib.get(t.key) ?? 0;
             }
             if (total < t.target_count) {
               teamAchieved = false;
