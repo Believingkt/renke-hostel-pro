@@ -509,7 +509,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       roles: g.roles ?? [],
       event_types: g.event_types ?? [],
       accommodation_ids: g.accommodation_ids ?? [],
-      custom_venue_names: g.custom_venue_names ?? [],
+      custom_venue_ids: g.custom_venue_ids ?? [],
       is_active: g.is_active,
     });
     setVenueInput("");
