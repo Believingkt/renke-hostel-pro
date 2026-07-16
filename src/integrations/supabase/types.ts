@@ -4439,6 +4439,7 @@ export type Database = {
           accommodation_ids: string[]
           channel_id: string | null
           created_at: string
+          custom_venue_ids: string[]
           custom_venue_names: string[]
           display_name: string | null
           event_types: string[]
@@ -4454,6 +4455,7 @@ export type Database = {
           accommodation_ids?: string[]
           channel_id?: string | null
           created_at?: string
+          custom_venue_ids?: string[]
           custom_venue_names?: string[]
           display_name?: string | null
           event_types?: string[]
@@ -4469,6 +4471,7 @@ export type Database = {
           accommodation_ids?: string[]
           channel_id?: string | null
           created_at?: string
+          custom_venue_ids?: string[]
           custom_venue_names?: string[]
           display_name?: string | null
           event_types?: string[]
