@@ -4923,20 +4923,14 @@ function MonthlyLimitsReadOnlyList({ venueId }: { venueId: string }) {
     <div className="space-y-1.5">
       <div className="text-xs text-muted-foreground">逐月調整</div>
       <ul className="space-y-1">
-        {rows.map((r) => {
-          const isCurrent = r.year_month === currentYm;
-          return (
-            <li key={r.id} className="flex items-center gap-2 text-sm">
-              <span className="font-medium tabular-nums">{r.year_month}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="tabular-nums">{r.monthly_limit}</span>
-              {r.note && <span className="text-xs text-muted-foreground">（{r.note}）</span>}
-              {isCurrent && (
-                <span className="text-xs text-orange-600 dark:text-orange-500">已調整</span>
-              )}
-            </li>
-          );
-        })}
+        {rows.map((r) => (
+          <li key={r.id} className="flex items-center gap-2 text-sm">
+            <span className="font-medium tabular-nums">{r.year_month}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="tabular-nums">{r.monthly_limit}</span>
+            {r.note && <span className="text-xs text-muted-foreground">（{r.note}）</span>}
+          </li>
+        ))}
       </ul>
     </div>
   );
