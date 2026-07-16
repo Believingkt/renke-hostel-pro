@@ -985,7 +985,7 @@ function InvitationsTab({
     onPrefillConsumed?.();
   }, [prefill, onPrefillConsumed, isManager, currentUserId]);
 
-  const openEdit = (row: KolRow) => {
+  const openEdit = async (row: KolRow) => {
     if (!canEditRow(row)) {
       toast.error("您沒有權限編輯這筆紀錄");
       return;
@@ -995,6 +995,39 @@ function InvitationsTab({
       return;
     }
     setEditingId(row.id);
+
+    // 載入既有的附屬記錄（含個別入住日期）
+    const { data: subRows } = await supabase
+      .from("kol_profiles")
+      .select("id, venue_id, check_in_date, check_out_date")
+      .eq("primary_profile_id", row.id);
+    const existing_subs = (subRows ?? []).map((s: any) => ({
+      id: s.id,
+      venue_id: s.venue_id,
+      check_in_date: s.check_in_date,
+      check_out_date: s.check_out_date,
+    }));
+
+    // 選中的子館別 = 主要記錄自己的 venue_id + 所有附屬的 venue_id
+    const selected_sub_venues: string[] = [];
+    const sub_venue_dates: Record<string, { check_in_date: string; check_out_date: string }> = {};
+    if (row.venue_id) {
+      selected_sub_venues.push(row.venue_id);
+      sub_venue_dates[row.venue_id] = {
+        check_in_date: row.check_in_date ?? "",
+        check_out_date: row.check_out_date ?? "",
+      };
+    }
+    for (const s of existing_subs) {
+      if (s.venue_id && !selected_sub_venues.includes(s.venue_id)) {
+        selected_sub_venues.push(s.venue_id);
+        sub_venue_dates[s.venue_id] = {
+          check_in_date: s.check_in_date ?? "",
+          check_out_date: s.check_out_date ?? "",
+        };
+      }
+    }
+
     setForm({
       id: row.id,
       accommodation_select: row.accommodation_id
@@ -1032,8 +1065,11 @@ function InvitationsTab({
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
-      selected_sub_venues: [],
-      primary_sub_venue_id: null,
+      selected_sub_venues,
+      // 編輯模式下主要館別固定為目前記錄自己的 venue_id
+      primary_sub_venue_id: row.venue_id ?? null,
+      sub_venue_dates,
+      existing_subs,
     });
     setDupWarning(null);
     setSheetOpen(true);
