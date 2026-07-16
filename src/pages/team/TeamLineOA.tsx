@@ -582,19 +582,24 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
     if (!form) return;
     const v = venueInput.trim();
     if (!v) return;
-    if (form.custom_venue_names.includes(v)) {
+    const match = venues.find((x) => x.name === v);
+    if (!match) {
+      toast.error(`找不到場域「${v}」，請從場域列表輸入正確名稱`);
+      return;
+    }
+    if (form.custom_venue_ids.includes(match.id)) {
       setVenueInput("");
       return;
     }
-    setForm({ ...form, custom_venue_names: [...form.custom_venue_names, v] });
+    setForm({ ...form, custom_venue_ids: [...form.custom_venue_ids, match.id] });
     setVenueInput("");
   };
 
-  const removeVenueTag = (v: string) => {
+  const removeVenueTag = (id: string) => {
     if (!form) return;
     setForm({
       ...form,
-      custom_venue_names: form.custom_venue_names.filter((x) => x !== v),
+      custom_venue_ids: form.custom_venue_ids.filter((x) => x !== id),
     });
   };
 
