@@ -395,12 +395,12 @@ export default function TeamCommissionStatsTab() {
       const { data: csData } = await supabase
         .from("accommodation_commission_settings")
         .select("accommodation_id, closer_rate, video_rate, effective_from")
-        .lte("effective_from", period.startDate)
         .order("effective_from", { ascending: false });
-      const csMap = new Map<string, CommissionRow>();
+      const csMap = new Map<string, CommissionRow[]>();
       (csData ?? []).forEach((r: any) => {
-        if (!csMap.has(r.accommodation_id))
-          csMap.set(r.accommodation_id, r as CommissionRow);
+        const arr = csMap.get(r.accommodation_id) ?? [];
+        arr.push(r as CommissionRow);
+        csMap.set(r.accommodation_id, arr);
       });
       setCommissionByAcc(csMap);
 
