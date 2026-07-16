@@ -141,6 +141,7 @@ interface KolRow {
   created_at: string | null;
   follower_count: number | null;
   follower_count_updated_at: string | null;
+  primary_profile_id?: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -181,6 +182,9 @@ interface FormState {
   kol_direct_ticket_link: string;
   follower_count_input: string;
   follower_count_original: number | null;
+  // 旅行日子館別多筆主附屬支援
+  selected_sub_venues: string[];
+  primary_sub_venue_id: string | null;
 }
 
 const EMPTY_FORM: FormState = {
@@ -215,6 +219,8 @@ const EMPTY_FORM: FormState = {
   kol_direct_ticket_link: "",
   follower_count_input: "",
   follower_count_original: null,
+  selected_sub_venues: [],
+  primary_sub_venue_id: null,
 };
 
 interface RaritySetting {
@@ -544,6 +550,7 @@ function InvitationsTab({
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
+  const [showSubsidiary, setShowSubsidiary] = useState<boolean>(false);
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -660,6 +667,9 @@ function InvitationsTab({
     const to = from + PAGE_SIZE - 1;
 
     let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
+    if (!showSubsidiary) {
+      q = q.is("primary_profile_id", null);
+    }
 
     if (filterAcc !== "all") {
       if (filterAcc.startsWith("acc:")) {
@@ -764,7 +774,7 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, showSubsidiary]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -773,7 +783,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, showSubsidiary]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
@@ -864,11 +874,16 @@ function InvitationsTab({
   // 入住日期 + 館別 → 呼叫 check_kol_inventory RPC (venue_id 版)
   useEffect(() => {
     const date = form.check_in_date;
-    // 優先用 form.venue_id；若尚未帶入，用 accommodation_id 從 venues 查
-    let venueId: string | null = form.venue_id || null;
-    if (!venueId && form.accommodation_id) {
-      const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
-      venueId = v?.id ?? null;
+    // 若已勾選子館別，改以主要子館別作為庫存查詢對象
+    let venueId: string | null = null;
+    if (form.selected_sub_venues.length > 0 && form.primary_sub_venue_id) {
+      venueId = form.primary_sub_venue_id;
+    } else {
+      venueId = form.venue_id || null;
+      if (!venueId && form.accommodation_id) {
+        const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
+        venueId = v?.id ?? null;
+      }
     }
     if (!date || !venueId) {
       if (form.inventory_status !== "") {
@@ -892,7 +907,7 @@ function InvitationsTab({
     return () => {
       cancelled = true;
     };
-  }, [form.accommodation_id, form.venue_id, form.check_in_date, venues]); // eslint-disable-line
+  }, [form.accommodation_id, form.venue_id, form.check_in_date, form.selected_sub_venues, form.primary_sub_venue_id, venues]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
   // 填入訂單編號 → 「訂房確認中」；清空 → null。
@@ -969,6 +984,10 @@ function InvitationsTab({
       toast.error("您沒有權限編輯這筆紀錄");
       return;
     }
+    if (row.primary_profile_id) {
+      toast.error("此為附屬記錄，請從主要記錄編輯");
+      return;
+    }
     setEditingId(row.id);
     setForm({
       id: row.id,
@@ -1007,6 +1026,8 @@ function InvitationsTab({
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
+      selected_sub_venues: [],
+      primary_sub_venue_id: null,
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -1097,6 +1118,8 @@ function InvitationsTab({
       payload.kpi_qualified = form.kpi_qualified;
     }
 
+    const hasSubs = !editingId && form.selected_sub_venues.length > 0 && !!form.primary_sub_venue_id;
+
     let err;
     let newId: string | null = null;
     if (editingId) {
@@ -1104,6 +1127,13 @@ function InvitationsTab({
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
+      if (hasSubs) {
+        // 情境 B：主要記錄使用 primary_sub_venue_id 作為 venue_id
+        payload.venue_id = form.primary_sub_venue_id;
+        const primarySub = venues.find((v) => v.id === form.primary_sub_venue_id);
+        payload.venue_name = primarySub?.name ?? payload.venue_name;
+        payload.primary_profile_id = null;
+      }
       const { data: inserted, error } = await supabase.from("kol_profiles").insert(payload).select("id").single();
       err = error;
       newId = inserted?.id ?? null;
@@ -1113,6 +1143,58 @@ function InvitationsTab({
       toast.error(err.message);
       return;
     }
+
+    // 情境 B：主要記錄建立成功後，建立其餘子館別的附屬記錄
+    if (hasSubs && newId) {
+      const subIds = form.selected_sub_venues.filter((id) => id !== form.primary_sub_venue_id);
+      if (subIds.length > 0) {
+        const subPayloads = subIds.map((svId) => {
+          const sv = venues.find((v) => v.id === svId);
+          return {
+            accommodation_id: form.accommodation_id || null,
+            venue_id: svId,
+            venue_name: sv?.name ?? null,
+            name: payload.name,
+            ig_handle: payload.ig_handle,
+            rarity: payload.rarity,
+            scout_id: payload.scout_id,
+            invited_at: payload.invited_at,
+            check_in_date: payload.check_in_date,
+            check_out_date: payload.check_out_date,
+            day_of_week: payload.day_of_week,
+            inventory_status: null,
+            booking_status: null,
+            cid_code: null,
+            companion_cid: null,
+            short_url: null,
+            contract_progress: null,
+            contract_file_url: null,
+            task_pre_stay: false,
+            task_post_story: false,
+            task_ig_collab: false,
+            publish_url: null,
+            publish_date: null,
+            order_number: null,
+            inventory_count: 0,
+            kol_tags: payload.kol_tags,
+            kol_direct_ticket_link: null,
+            kpi_eligible: false,
+            kpi_month: null,
+            kpi_qualified: false,
+            follower_count: payload.follower_count,
+            follower_count_updated_at: payload.follower_count_updated_at ?? null,
+            created_by: currentUserId,
+            is_error: false,
+            primary_profile_id: newId,
+          } as Record<string, any>;
+        });
+        const { error: subErr } = await supabase.from("kol_profiles").insert(subPayloads as any);
+        if (subErr) {
+          toast.error(`附屬記錄建立失敗：${subErr.message}`);
+        }
+      }
+    }
+
 
     // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
     if (!editingId && prospectLink && newId) {
@@ -1325,6 +1407,11 @@ function InvitationsTab({
                 <SelectItem value="no">未符合資格</SelectItem>
               </SelectContent>
             </Select>
+
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showSubsidiary} onCheckedChange={setShowSubsidiary} />
+              顯示附屬記錄
+            </label>
           </div>
         </div>
 
@@ -1480,6 +1567,11 @@ function InvitationsTab({
             </SelectContent>
           </Select>
 
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Switch checked={showSubsidiary} onCheckedChange={setShowSubsidiary} />
+            顯示附屬記錄
+          </label>
+
           <div className="flex justify-end">
             <Button onClick={openCreate}>
               <Plus className="mr-1 h-4 w-4" />
@@ -1556,6 +1648,11 @@ function InvitationsTab({
                           {r.is_error && (
                             <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 shrink-0">
                               填錯
+                            </Badge>
+                          )}
+                          {r.primary_profile_id && (
+                            <Badge variant="outline" className="bg-muted text-muted-foreground shrink-0">
+                              附屬
                             </Badge>
                           )}
                         </div>
@@ -2143,8 +2240,11 @@ function InvitationsTab({
                     accommodation_id: opt?.accommodation_id ?? "",
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
+                    selected_sub_venues: [],
+                    primary_sub_venue_id: null,
                   });
                 }}
+                disabled={!!editingId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
@@ -2161,6 +2261,65 @@ function InvitationsTab({
                 </SelectContent>
               </Select>
             </Field>
+
+            {/* 子館別多選（僅在選中母館且該母館有子館別時顯示；編輯模式隱藏） */}
+            {!editingId && form.accommodation_id && (() => {
+              const subs = venues.filter(
+                (x) => x.is_active && x.accommodation_id === form.accommodation_id && x.room_type_id,
+              );
+              if (subs.length === 0) return null;
+              return (
+                <Field label="子館別（多選）">
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="text-xs text-muted-foreground">請勾選此次入住的子館別（可多選）；未勾選則以母館為邀約單位。</p>
+                    <div className="space-y-1">
+                      {subs.map((sv) => {
+                        const checked = form.selected_sub_venues.includes(sv.id);
+                        return (
+                          <label key={sv.id} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const next = v
+                                  ? [...form.selected_sub_venues, sv.id]
+                                  : form.selected_sub_venues.filter((x) => x !== sv.id);
+                                let primary = form.primary_sub_venue_id;
+                                if (!next.includes(primary ?? "")) primary = next[0] ?? null;
+                                setForm({ ...form, selected_sub_venues: next, primary_sub_venue_id: primary });
+                              }}
+                            />
+                            <span>{sv.name}</span>
+                            {sv.type && <span className="text-[10px] text-muted-foreground">{sv.type}</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {form.selected_sub_venues.length > 0 && (
+                      <div className="border-t pt-2">
+                        <p className="text-xs text-muted-foreground mb-1">主要館別（計入邀約數量與獎金，其他為附屬記錄）</p>
+                        <div className="space-y-1">
+                          {form.selected_sub_venues.map((svId) => {
+                            const sv = subs.find((s) => s.id === svId);
+                            if (!sv) return null;
+                            return (
+                              <label key={svId} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="primary_sub_venue"
+                                  checked={form.primary_sub_venue_id === svId}
+                                  onChange={() => setForm({ ...form, primary_sub_venue_id: svId })}
+                                />
+                                <span>{sv.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Field>
+              );
+            })()}
 
             <Field label="入住日期">
               <Input
