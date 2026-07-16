@@ -1222,6 +1222,11 @@ function ConsultingFeeSettingsBlock({
                       <TableCell className="whitespace-nowrap">{r.effective_from}</TableCell>
                       <TableCell className="text-right tabular-nums whitespace-nowrap">
                         {(Number(r.rate) * 100).toFixed(2)}%
+                        {Number(r.revenue_threshold ?? 0) > 0 && (
+                          <div className="text-[11px] text-muted-foreground">
+                            門檻 {fmtMoney(Number(r.revenue_threshold))}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {r.accommodation_id
