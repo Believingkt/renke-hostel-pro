@@ -1109,7 +1109,7 @@ function ConsultingFeeSettingsBlock({
                         ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}`
                         : "未設定";
                       const oStr = oHas ? `${(r.ownerRate! * 100).toFixed(2)}%` : "未設定";
-                      let status: React.ReactNode;
+                      let status: JSX.Element;
                       if (!cHas || !oHas) {
                         status = (
                           <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">
