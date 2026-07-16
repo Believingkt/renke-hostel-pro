@@ -79,7 +79,8 @@ type PushTarget = {
   is_active: boolean;
   event_types: string[];
   accommodation_ids: string[];
-  custom_venue_names: string[];
+  custom_venue_ids: string[];
+  custom_venue_names?: string[]; // DEPRECATED，過渡期保留
 };
 
 type MemberProfile = {
