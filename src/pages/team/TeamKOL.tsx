@@ -1013,6 +1013,8 @@ function InvitationsTab({
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
+      selected_sub_venues: [],
+      primary_sub_venue_id: null,
     });
     setDupWarning(null);
     setSheetOpen(true);
