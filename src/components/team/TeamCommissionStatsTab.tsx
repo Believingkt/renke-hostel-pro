@@ -483,16 +483,26 @@ export default function TeamCommissionStatsTab() {
   }, [orders, metaMap]);
 
 
-  // 通用：依成交人/影音 + 館別 聚合
+  // 依 order_date 挑當時生效的 rate（對齊 create-commission-snapshots 發放邏輯）
+  function pickRateFor(accId: string, orderDateIso: string | null, rateKey: "closer_rate" | "video_rate"): number {
+    const list = commissionByAcc.get(accId) ?? [];
+    if (!list.length || !orderDateIso) return 0;
+    const day = orderDateIso.slice(0, 10);
+    // list 已 desc 排序，取第一筆 effective_from <= day
+    const hit = list.find((s) => s.effective_from <= day);
+    return Number(hit?.[rateKey] ?? 0);
+  }
+
+  // 通用：依成交人/影音 + 館別 + rate 聚合（同館可能拆多列）
   function buildMemberStats(field: "closer_id" | "video_creator_id", rateKey: "closer_rate" | "video_rate"): MemberStats[] {
     type Bucket = AccBreakdown;
-    const agg = new Map<string, Map<string, Bucket>>(); // uid -> accId -> bucket
-    const getBucket = (uid: string, accId: string): Bucket => {
+    const agg = new Map<string, Map<string, Bucket>>(); // uid -> `${accId}|${rate}` -> bucket
+    const getBucket = (uid: string, accId: string, rate: number): Bucket => {
       if (!agg.has(uid)) agg.set(uid, new Map());
       const accMap = agg.get(uid)!;
-      if (!accMap.has(accId)) {
-        const rate = Number(commissionByAcc.get(accId)?.[rateKey] ?? 0);
-        accMap.set(accId, {
+      const key = `${accId}|${rate}`;
+      if (!accMap.has(key)) {
+        accMap.set(key, {
           accId,
           accName: accNameMap.get(accId) ?? "—",
           rate,
@@ -506,32 +516,34 @@ export default function TeamCommissionStatsTab() {
           cancelOrders: [],
         });
       }
-      return accMap.get(accId)!;
+      return accMap.get(key)!;
     };
     validOrders.forEach((o) => {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const b = getBucket(uid, o.accommodation_id);
+      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
       b.validAmount += o.final_price || 0;
-      b.commission += (o.final_price || 0) * b.rate;
+      b.commission += (o.final_price || 0) * rate;
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const b = getBucket(uid, o.accommodation_id);
+      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
       b.cancelAmount += o.final_price || 0;
-      b.cancelCommission += (o.final_price || 0) * b.rate;
+      b.cancelCommission += (o.final_price || 0) * rate;
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
       .map(([uid, accMap]) => {
         const byAcc = Array.from(accMap.values()).sort(
-          (a, b) => b.validAmount - a.validAmount,
+          (a, b) => (a.accName === b.accName ? b.rate - a.rate : b.validAmount - a.validAmount),
         );
         const totals = byAcc.reduce(
           (acc, b) => {
