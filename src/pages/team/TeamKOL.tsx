@@ -1083,8 +1083,8 @@ function InvitationsTab({
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
       : form.venue_name || null;
-    // 解析 venue_id：優先用 form.venue_id；若是 PMS 且尚未帶入，從 venues 反查
-    let resolvedVenueId: string | null = form.venue_id || null;
+    // 解析 venue_id：優先用 primary_sub_venue_id（子館別），再退回 form.venue_id / PMS 母館
+    let resolvedVenueId: string | null = form.primary_sub_venue_id || form.venue_id || null;
     if (!resolvedVenueId && form.accommodation_id) {
       const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
       resolvedVenueId = v?.id ?? null;
