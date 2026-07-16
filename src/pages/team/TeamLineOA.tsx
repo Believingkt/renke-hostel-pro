@@ -425,7 +425,7 @@ type GroupFormState = {
   roles: string[];
   event_types: string[];
   accommodation_ids: string[];
-  custom_venue_names: string[];
+  custom_venue_ids: string[];
   is_active: boolean;
 };
 
@@ -437,7 +437,7 @@ function emptyGroupForm(): GroupFormState {
     roles: [],
     event_types: [],
     accommodation_ids: [],
-    custom_venue_names: [],
+    custom_venue_ids: [],
     is_active: true,
   };
 }
