@@ -53,17 +53,17 @@ FROM (
 -- 因此改用等價的手動查詢（bypass auth.uid() null-check）：
 SELECT
   '66b7a62a-e994-4c71-b86d-78a9ba8881ec'::uuid AS user_id,
-  'scout_manager (預期 true)' AS 說明,
+  'scout_manager (expect true)' AS note,
   EXISTS (
     SELECT 1 FROM public.user_roles
      WHERE user_id = '66b7a62a-e994-4c71-b86d-78a9ba8881ec'
        AND role = 'scout_manager'
        AND accommodation_id IS NULL
-  ) AS 有 scout_manager 角色
+  ) AS has_scout_manager
 UNION ALL
 SELECT
   'b472ef53-b395-4d72-b5a0-ea8ed2642d47'::uuid,
-  'hotel_admin (預期 false)',
+  'hotel_admin (expect false)',
   EXISTS (
     SELECT 1 FROM public.user_roles
      WHERE user_id = 'b472ef53-b395-4d72-b5a0-ea8ed2642d47'
