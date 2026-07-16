@@ -5535,10 +5535,16 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       toast.error("請輸入場域名稱");
       return;
     }
-    const vErrMsg = validateVenueSettings(settings);
-    if (vErrMsg) {
-      toast.error(vErrMsg);
-      return;
+    const editVenueHasChildren =
+      !!editVenue.accommodation_id &&
+      !editVenue.room_type_id &&
+      rows.some((v) => v.accommodation_id === editVenue.accommodation_id && v.room_type_id);
+    if (!editVenueHasChildren) {
+      const vErrMsg = validateVenueSettings(settings);
+      if (vErrMsg) {
+        toast.error(vErrMsg);
+        return;
+      }
     }
     setSaving(true);
     // 1. 更新 kol_venues
