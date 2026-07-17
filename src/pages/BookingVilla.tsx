@@ -639,12 +639,6 @@ const BookingVilla = () => {
                   Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
                   Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)} 兒童
               </span>
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <Baby className="w-4 h-4" />
-                {Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0) +
-                  Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
-                  Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)} 兒童
-              </span>
             </span>
             <span
               className="ml-auto h-9 px-5 text-sm font-bold text-white rounded-full inline-flex items-center"
