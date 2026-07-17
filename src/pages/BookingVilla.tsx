@@ -630,10 +630,6 @@ const BookingVilla = () => {
             <span className="h-5 w-px bg-border" />
             <span className="flex items-center gap-4 text-sm text-foreground font-medium">
               <span className="flex items-center gap-1.5">
-                <BedDouble className="w-4 h-4 text-muted-foreground" />
-                {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)} 間
-              </span>
-              <span className="flex items-center gap-1.5">
                 <User className="w-4 h-4 text-muted-foreground" />
                 {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)} 大人
               </span>
