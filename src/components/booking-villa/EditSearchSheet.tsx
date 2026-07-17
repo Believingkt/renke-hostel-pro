@@ -306,6 +306,37 @@ const EditSearchSheet = ({
               )}
             </div>
 
+            {/* 雙軌切換：包棟 / 散客 / 全部（雲岫） */}
+            {hasDualAxis && (
+              <div className="mb-2 flex items-center gap-1.5 rounded-full bg-muted/50 p-1">
+                {([
+                  { key: "package", label: "包棟" },
+                  { key: "common", label: "散客" },
+                  { key: "all", label: "全部" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => {
+                      setAxis(opt.key);
+                      setRange(undefined);
+                      setRangeCommitted(false);
+                    }}
+                    className={cn(
+                      "flex-1 h-8 rounded-full text-[13px] font-medium transition",
+                      axis === opt.key
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-pressed={axis === opt.key}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+
             {/* 可訂天數摘要 */}
             {availStats && availStats.count > 0 && availStats.earliest && (
               <div className="mb-2 flex items-center justify-end rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
