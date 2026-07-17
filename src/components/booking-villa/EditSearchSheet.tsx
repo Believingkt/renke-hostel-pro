@@ -167,8 +167,8 @@ const EditSearchSheet = ({
 
   // 可訂庫存摘要：僅在載入完成後計算
   const availStats = (() => {
-    if (!availableDates) return null;
-    const futureDates = Array.from(availableDates)
+    if (!effAvail) return null;
+    const futureDates = Array.from(effAvail)
       .filter((s) => {
         const d = new Date(s + "T00:00:00");
         return d >= today;
@@ -186,14 +186,14 @@ const EditSearchSheet = ({
 
   // 建議連續入住區段：從 fromDate 起找最長連續可訂區段（最多 90 天）
   const findConsecutiveRange = (fromDate: Date): { start: Date; end: Date } | null => {
-    if (!availableDates) return null;
+    if (!effAvail) return null;
     const startKey = format(fromDate, "yyyy-MM-dd");
-    if (!availableDates.has(startKey)) return null;
+    if (!effAvail.has(startKey)) return null;
     let cursor = addDays(fromDate, 1);
     let last = cursor;
     while (true) {
       const prevKey = format(addDays(cursor, -1), "yyyy-MM-dd");
-      if (!availableDates.has(prevKey)) break;
+      if (!effAvail.has(prevKey)) break;
       last = cursor;
       cursor = addDays(cursor, 1);
       if (differenceInDays(cursor, fromDate) > 90) break;
@@ -203,19 +203,19 @@ const EditSearchSheet = ({
 
   // 檢查目前 range 是否完全可訂（僅 committed 且 from+to 都存在時檢查）
   const rangeIssue: null | { reason: string; suggestion: { from: Date; to: Date } | null } = (() => {
-    if (!availableDates || !range?.from || !range?.to || !rangeCommitted) return null;
-    // 檢查 from ~ to-1 每一天是否都在 availableDates
+    if (!effAvail || !range?.from || !range?.to || !rangeCommitted) return null;
+    // 檢查 from ~ to-1 每一天是否都在 effAvail
     const days: string[] = [];
     for (let d = new Date(range.from); d < range.to; d.setDate(d.getDate() + 1)) {
       days.push(format(d, "yyyy-MM-dd"));
     }
-    const missing = days.filter((k) => !availableDates.has(k));
+    const missing = days.filter((k) => !effAvail.has(k));
     if (missing.length === 0) return null;
 
     // 建議：從 range.from 起，若當天可訂則用最長連續段；否則找下一個最早可訂日
     let suggestion: { from: Date; to: Date } | null = null;
     const fromKey = format(range.from, "yyyy-MM-dd");
-    if (availableDates.has(fromKey)) {
+    if (effAvail.has(fromKey)) {
       const seg = findConsecutiveRange(range.from);
       if (seg && seg.end > seg.start) {
         const wantedNights = Math.max(1, differenceInDays(range.to, range.from));
@@ -278,7 +278,7 @@ const EditSearchSheet = ({
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays className="w-4 h-4 text-muted-foreground" />
               <span className="text-[15px] font-medium">入住日期</span>
-              {availableDates === null ? (
+              {effAvail === null ? (
                 <span className="ml-auto text-xs text-muted-foreground">庫存載入中…</span>
               ) : range?.from && range?.to ? (
                 <span className="ml-auto text-xs text-muted-foreground">
@@ -291,7 +291,7 @@ const EditSearchSheet = ({
               ) : (
                 <span className="ml-auto text-xs text-muted-foreground">請選入住日</span>
               )}
-              {availableDates !== null && (range?.from || range?.to) && (
+              {effAvail !== null && (range?.from || range?.to) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -372,7 +372,7 @@ const EditSearchSheet = ({
                 disabled={(d) => {
                   if (d < today) return true;
                   // 庫存尚未載入完成：暫時 disable 所有日期，避免顯示假可訂
-                  if (availableDates === null) return true;
+                  if (effAvail === null) return true;
                   const dateKey = format(d, "yyyy-MM-dd");
                   // 若已選入住日但尚未選退房日：允許 from+1 ~ 第一個無庫存日（含）作為退房日
                   if (range?.from && !range?.to && !rangeCommitted) {
@@ -386,7 +386,7 @@ const EditSearchSheet = ({
                     let maxCheckout = cursor;
                     while (true) {
                       const prevKey = format(addDays(cursor, -1), "yyyy-MM-dd");
-                      const prevAvailable = availableDates.has(prevKey);
+                      const prevAvailable = effAvail.has(prevKey);
                       if (!prevAvailable) break;
                       maxCheckout = cursor;
                       cursor = addDays(cursor, 1);
@@ -394,7 +394,7 @@ const EditSearchSheet = ({
                     }
                     return d > maxCheckout;
                   }
-                  if (!availableDates.has(dateKey)) return true;
+                  if (!effAvail.has(dateKey)) return true;
                   return false;
                 }}
 
