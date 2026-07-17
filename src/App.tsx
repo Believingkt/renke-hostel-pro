@@ -14,6 +14,7 @@ import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 import { AliasResolver } from "@/components/AliasResolver";
 import { RequireModule } from "@/components/RequireModule";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 
 const { Suspense, lazy } = React;
 
@@ -149,6 +150,7 @@ const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/Admi
 
 
 function App() {
+  useVersionCheck();
   return (
     <BrowserRouter>
       <AccommodationProvider>
