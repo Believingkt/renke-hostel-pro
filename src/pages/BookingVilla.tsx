@@ -119,6 +119,8 @@ const BookingVilla = () => {
   // 微幅重疊 2px，避免 Safari 位移/四捨五入時 CTA 與選單中間露縫。
   const bottomNavOffset = bottomNavVisible && !editSearchOpen ? Math.max(0, bottomNavHeight - 2) : 0;
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [availablePackageSet, setAvailablePackageSet] = useState<Set<string> | null>(null);
+  const [availableCommonSet, setAvailableCommonSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
 
@@ -890,10 +892,12 @@ const BookingVilla = () => {
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
-          onAvailabilityComputed={({ dates, minPrice, earliestDate }) => {
+          onAvailabilityComputed={({ dates, minPrice, earliestDate, packageDates, commonDates }) => {
             setAvailableDateSet(dates);
             setAvailMinPrice(minPrice);
             setAvailEarliestDate(earliestDate);
+            setAvailablePackageSet(packageDates ?? null);
+            setAvailableCommonSet(commonDates ?? null);
           }}
           onSelectDate={(d) => {
             const next = new Date(d);
@@ -1191,6 +1195,8 @@ const BookingVilla = () => {
         toddlers={Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0)}
         rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
         availableDates={availableDateSet}
+        packageDates={availablePackageSet}
+        commonDates={availableCommonSet}
         onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+const YUNXIU_ACCOMMODATION_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
 // 「任一包棟被訂走即關閉整天」嚴格規則（散客房不參與判斷）
 const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
@@ -36,7 +37,7 @@ interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
-  onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null }) => void;
+  onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null; packageDates?: Set<string>; commonDates?: Set<string> }) => void;
 }
 
 /**
@@ -200,7 +201,19 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       };
 
       const available = new Set<string>();
+      const packageDates = new Set<string>();
+      const commonDates = new Set<string>();
+      const isYunxiu = accommodationId === YUNXIU_ACCOMMODATION_ID;
       for (const date of allDates) {
+        if (isYunxiu) {
+          // 雲岫：分軌計算「包棟」與「散客」可訂狀態
+          const pkgOk = packageRoomTypes.some((rt) => isRoomAvailable(rt, date));
+          const comOk = commonRoomTypes.some((rt) => isRoomAvailable(rt, date));
+          if (pkgOk) packageDates.add(date);
+          if (comOk) commonDates.add(date);
+          if (pkgOk || comOk) available.add(date);
+          continue;
+        }
         if (isHakuna && packageRoomTypes.length > 0) {
           // 哈庫納（散客房不計入）：
           // 條件1: 任一包棟有訂單（被訂走）→ 整天關閉
@@ -301,7 +314,12 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
             }
           }
         }
-        onAvailabilityComputed?.({ dates: available, minPrice, earliestDate });
+        onAvailabilityComputed?.({
+          dates: available,
+          minPrice,
+          earliestDate,
+          ...(isYunxiu ? { packageDates, commonDates } : {}),
+        });
       }
     };
 
