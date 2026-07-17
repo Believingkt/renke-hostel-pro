@@ -97,6 +97,8 @@ const EditSearchSheet = ({
   toddlers = 0,
   rooms,
   availableDates,
+  packageDates,
+  commonDates,
   onConfirm,
 }: EditSearchSheetProps) => {
 
