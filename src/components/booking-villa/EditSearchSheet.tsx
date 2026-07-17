@@ -172,7 +172,9 @@ const EditSearchSheet = ({
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays className="w-4 h-4 text-muted-foreground" />
               <span className="text-[15px] font-medium">入住日期</span>
-              {range?.from && range?.to ? (
+              {availableDates === null ? (
+                <span className="ml-auto text-xs text-muted-foreground">庫存載入中…</span>
+              ) : range?.from && range?.to ? (
                 <span className="ml-auto text-xs text-muted-foreground">
                   {format(range.from, "M月d日")} – {format(range.to, "M月d日")} · 共 {nights} 晚
                 </span>
@@ -183,7 +185,7 @@ const EditSearchSheet = ({
               ) : (
                 <span className="ml-auto text-xs text-muted-foreground">請選入住日</span>
               )}
-              {(range?.from || range?.to) && (
+              {availableDates !== null && (range?.from || range?.to) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -227,6 +229,8 @@ const EditSearchSheet = ({
 
                 disabled={(d) => {
                   if (d < today) return true;
+                  // 庫存尚未載入完成：暫時 disable 所有日期，避免顯示假可訂
+                  if (availableDates === null) return true;
                   const dateKey = format(d, "yyyy-MM-dd");
                   // 若已選入住日但尚未選退房日：允許 from+1 ~ 第一個無庫存日（含）作為退房日
                   if (range?.from && !range?.to && !rangeCommitted) {
@@ -240,7 +244,7 @@ const EditSearchSheet = ({
                     let maxCheckout = cursor;
                     while (true) {
                       const prevKey = format(addDays(cursor, -1), "yyyy-MM-dd");
-                      const prevAvailable = availableDates ? availableDates.has(prevKey) : true;
+                      const prevAvailable = availableDates.has(prevKey);
                       if (!prevAvailable) break;
                       maxCheckout = cursor;
                       cursor = addDays(cursor, 1);
@@ -248,7 +252,7 @@ const EditSearchSheet = ({
                     }
                     return d > maxCheckout;
                   }
-                  if (availableDates && !availableDates.has(dateKey)) return true;
+                  if (!availableDates.has(dateKey)) return true;
                   return false;
                 }}
 
