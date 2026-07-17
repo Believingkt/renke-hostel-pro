@@ -119,6 +119,8 @@ const BookingVilla = () => {
   // 微幅重疊 2px，避免 Safari 位移/四捨五入時 CTA 與選單中間露縫。
   const bottomNavOffset = bottomNavVisible && !editSearchOpen ? Math.max(0, bottomNavHeight - 2) : 0;
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [availablePackageSet, setAvailablePackageSet] = useState<Set<string> | null>(null);
+  const [availableCommonSet, setAvailableCommonSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
 
