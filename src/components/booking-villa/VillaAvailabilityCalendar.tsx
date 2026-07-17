@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+const YUNXIU_ACCOMMODATION_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
 // 「任一包棟被訂走即關閉整天」嚴格規則（散客房不參與判斷）
 const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
   "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
