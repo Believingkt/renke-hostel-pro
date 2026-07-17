@@ -140,7 +140,88 @@ const EditSearchSheet = ({
       ? Math.max(1, differenceInDays(range.to, range.from))
       : 0;
 
-  const canConfirm = !!(range?.from && range?.to && a >= 1 && r >= 1);
+  // 可訂庫存摘要：僅在載入完成後計算
+  const availStats = (() => {
+    if (!availableDates) return null;
+    const futureDates = Array.from(availableDates)
+      .filter((s) => {
+        const d = new Date(s + "T00:00:00");
+        return d >= today;
+      })
+      .sort();
+    if (futureDates.length === 0) {
+      return { count: 0, earliest: null as string | null, latest: null as string | null };
+    }
+    return {
+      count: futureDates.length,
+      earliest: futureDates[0],
+      latest: futureDates[futureDates.length - 1],
+    };
+  })();
+
+  // 建議連續入住區段：從 fromDate 起找最長連續可訂區段（最多 90 天）
+  const findConsecutiveRange = (fromDate: Date): { start: Date; end: Date } | null => {
+    if (!availableDates) return null;
+    const startKey = format(fromDate, "yyyy-MM-dd");
+    if (!availableDates.has(startKey)) return null;
+    let cursor = addDays(fromDate, 1);
+    let last = cursor;
+    while (true) {
+      const prevKey = format(addDays(cursor, -1), "yyyy-MM-dd");
+      if (!availableDates.has(prevKey)) break;
+      last = cursor;
+      cursor = addDays(cursor, 1);
+      if (differenceInDays(cursor, fromDate) > 90) break;
+    }
+    return { start: fromDate, end: last };
+  };
+
+  // 檢查目前 range 是否完全可訂（僅 committed 且 from+to 都存在時檢查）
+  const rangeIssue: null | { reason: string; suggestion: { from: Date; to: Date } | null } = (() => {
+    if (!availableDates || !range?.from || !range?.to || !rangeCommitted) return null;
+    // 檢查 from ~ to-1 每一天是否都在 availableDates
+    const days: string[] = [];
+    for (let d = new Date(range.from); d < range.to; d.setDate(d.getDate() + 1)) {
+      days.push(format(d, "yyyy-MM-dd"));
+    }
+    const missing = days.filter((k) => !availableDates.has(k));
+    if (missing.length === 0) return null;
+
+    // 建議：從 range.from 起，若當天可訂則用最長連續段；否則找下一個最早可訂日
+    let suggestion: { from: Date; to: Date } | null = null;
+    const fromKey = format(range.from, "yyyy-MM-dd");
+    if (availableDates.has(fromKey)) {
+      const seg = findConsecutiveRange(range.from);
+      if (seg && seg.end > seg.start) {
+        const wantedNights = Math.max(1, differenceInDays(range.to, range.from));
+        const maxNights = differenceInDays(seg.end, seg.start);
+        const nightsToUse = Math.min(wantedNights, maxNights);
+        suggestion = { from: seg.start, to: addDays(seg.start, nightsToUse) };
+      }
+    } else if (availStats?.earliest) {
+      const earliest = new Date(availStats.earliest + "T00:00:00");
+      const seg = findConsecutiveRange(earliest);
+      if (seg && seg.end > seg.start) {
+        const wantedNights = Math.max(1, differenceInDays(range.to, range.from));
+        const maxNights = differenceInDays(seg.end, seg.start);
+        const nightsToUse = Math.min(wantedNights, maxNights);
+        suggestion = { from: seg.start, to: addDays(seg.start, nightsToUse) };
+      }
+    }
+
+    const reason = missing.length === days.length
+      ? "所選日期目前無房型可訂"
+      : `所選期間有 ${missing.length} 天無房型可訂`;
+    return { reason, suggestion };
+  })();
+
+  const applySuggestion = () => {
+    if (!rangeIssue?.suggestion) return;
+    setRange({ from: rangeIssue.suggestion.from, to: rangeIssue.suggestion.to });
+    setRangeCommitted(true);
+  };
+
+  const canConfirm = !!(range?.from && range?.to && a >= 1 && r >= 1 && !rangeIssue);
 
   const handleConfirm = () => {
     if (!range?.from || !range?.to) return;
@@ -198,6 +279,45 @@ const EditSearchSheet = ({
                 </button>
               )}
             </div>
+
+            {/* 可訂天數摘要 */}
+            {availStats && availStats.count > 0 && (
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
+                <span>未來 12 個月共 <b className="tabular-nums">{availStats.count}</b> 天可訂</span>
+                {availStats.earliest && (
+                  <span className="tabular-nums">
+                    最早 {format(new Date(availStats.earliest + "T00:00:00"), "M月d日")}
+                  </span>
+                )}
+              </div>
+            )}
+            {availStats && availStats.count === 0 && (
+              <div className="mb-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[12px] text-amber-900">
+                目前 12 個月內無可訂日期，請洽小幫手詢問候補。
+              </div>
+            )}
+
+            {/* 目前所選日期不可訂：顯示原因與一鍵改選 */}
+            {rangeIssue && (
+              <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-900 flex items-start gap-2">
+                <span className="mt-0.5">⚠️</span>
+                <div className="flex-1 min-w-0">
+                  <div>{rangeIssue.reason}</div>
+                  {rangeIssue.suggestion ? (
+                    <button
+                      type="button"
+                      onClick={applySuggestion}
+                      className="mt-1 inline-flex items-center rounded-md bg-amber-600 text-white px-2 py-1 text-[12px] font-medium hover:bg-amber-700 transition"
+                    >
+                      改選 {format(rangeIssue.suggestion.from, "M月d日")} – {format(rangeIssue.suggestion.to, "M月d日")}
+                    </button>
+                  ) : (
+                    <div className="mt-0.5 text-muted-foreground">請於下方日曆重新選擇。</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl bg-muted/30 px-1 py-2">
               <Calendar
                 showOutsideDays={false}
