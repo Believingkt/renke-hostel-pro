@@ -172,7 +172,9 @@ const EditSearchSheet = ({
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays className="w-4 h-4 text-muted-foreground" />
               <span className="text-[15px] font-medium">入住日期</span>
-              {range?.from && range?.to ? (
+              {availableDates === null ? (
+                <span className="ml-auto text-xs text-muted-foreground">庫存載入中…</span>
+              ) : range?.from && range?.to ? (
                 <span className="ml-auto text-xs text-muted-foreground">
                   {format(range.from, "M月d日")} – {format(range.to, "M月d日")} · 共 {nights} 晚
                 </span>
@@ -183,7 +185,7 @@ const EditSearchSheet = ({
               ) : (
                 <span className="ml-auto text-xs text-muted-foreground">請選入住日</span>
               )}
-              {(range?.from || range?.to) && (
+              {availableDates !== null && (range?.from || range?.to) && (
                 <button
                   type="button"
                   onClick={() => {
