@@ -311,8 +311,7 @@ const EditSearchSheet = ({
               <div className="mb-2 flex items-center gap-1.5 rounded-full bg-muted/50 p-1">
                 {([
                   { key: "package", label: "包棟" },
-                  { key: "common", label: "散客" },
-                  { key: "all", label: "全部" },
+                  { key: "common", label: "單間房非包棟" },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
