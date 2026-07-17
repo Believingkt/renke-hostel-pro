@@ -145,6 +145,7 @@ function deriveFeatureTags(facilities: FacilityRow[]): string[] {
 const BookingPortal = () => {
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
+  const [packagedAccIds, setPackagedAccIds] = useState<Set<string>>(new Set());
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateRow[]>([]);
@@ -222,7 +223,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }, { data: pkgRows }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -265,7 +266,17 @@ const BookingPortal = () => {
           .from("portal_featured_card_photos")
           .select("accommodation_id, photo_url, display_order")
           .order("display_order", { ascending: true }),
+        (supabase as any)
+          .from("accommodation_packages")
+          .select("accommodation_id"),
       ]);
+
+      const pkgAccIds = new Set<string>(
+        ((pkgRows ?? []) as Array<{ accommodation_id: string | null }>)
+          .map((r) => r.accommodation_id)
+          .filter((v): v is string => !!v)
+      );
+      setPackagedAccIds(pkgAccIds);
 
       if (!accs || !rooms) return;
 
@@ -877,10 +888,10 @@ const BookingPortal = () => {
     if (toddlers) params.set("toddlers", String(toddlers));
     if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
-    // 僅森山使用包區階梯詳情頁（CapacityPriceLadder 為森山專屬硬編碼價目）
-    // 其他住宿走標準訂房頁
+    // 有設定包區方案的民宿走 villa 訂房頁；否則走標準訂房頁。
+    // Sensan 為保險起見一律走 villa。
     const acc = accommodations.find((a) => a.id === accId);
-    const useVilla = isSensanAccommodation(acc?.name);
+    const useVilla = packagedAccIds.has(accId) || isSensanAccommodation(acc?.name);
     const path = useVilla ? `/booking/villa/${accId}` : `/booking/${accId}`;
     navigate(`${path}${qs ? `?${qs}` : ""}`);
   };

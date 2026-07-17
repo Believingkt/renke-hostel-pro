@@ -17,6 +17,7 @@ export function AliasResolver() {
   const location = useLocation();
   const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
   const [resolvedId, setResolvedId] = useState<string | null>(null);
+  const [hasPackages, setHasPackages] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +40,15 @@ export function AliasResolver() {
         return;
       }
 
+      // 同步查詢是否設定包區方案；有 → 直接進 villa 頁，跳過 BookingAccommodation 中繼
+      const { data: pkgRows } = await (supabase as any)
+        .from("accommodation_packages")
+        .select("id")
+        .eq("accommodation_id", data.id)
+        .limit(1);
+
+      if (cancelled) return;
+
       try {
         sessionStorage.setItem("alias_accommodation_id", data.id);
         sessionStorage.setItem("alias_short_url_alias", data.short_url_alias || "");
@@ -47,6 +57,7 @@ export function AliasResolver() {
         /* silent */
       }
       setResolvedId(data.id);
+      setHasPackages(Array.isArray(pkgRows) && pkgRows.length > 0);
       setStatus("ready");
     })();
 
@@ -71,13 +82,14 @@ export function AliasResolver() {
     return <Navigate to="/booking" replace />;
   }
 
-  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，
-  // 改顯示帶人客多導航的住宿頁（/booking/{accId}）
+  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，直接進訂房頁。
+  // 有包區方案 → /booking/villa/{id}；否則 → /booking/{id}。
   if (resolvedId && typeof window !== "undefined") {
     const hostname = window.location.hostname.toLowerCase();
     const segments = location.pathname.split("/").filter(Boolean);
     if (BOOKING_DOMAINS.includes(hostname) && segments.length === 1) {
-      return <Navigate to={`/booking/${resolvedId}${location.search}`} replace />;
+      const target = hasPackages ? `/booking/villa/${resolvedId}` : `/booking/${resolvedId}`;
+      return <Navigate to={`${target}${location.search}`} replace />;
     }
   }
 
