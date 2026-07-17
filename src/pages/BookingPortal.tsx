@@ -266,7 +266,14 @@ const BookingPortal = () => {
           .from("portal_featured_card_photos")
           .select("accommodation_id, photo_url, display_order")
           .order("display_order", { ascending: true }),
+        (supabase as any)
+          .from("accommodation_packages")
+          .select("accommodation_id"),
       ]);
+
+      const pkgAccIds = new Set<string>();
+      ((arguments[0] as any) || []); // no-op to keep TS happy
+
 
       if (!accs || !rooms) return;
 
