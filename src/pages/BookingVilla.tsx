@@ -1195,6 +1195,8 @@ const BookingVilla = () => {
         toddlers={Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0)}
         rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
         availableDates={availableDateSet}
+        packageDates={availablePackageSet}
+        commonDates={availableCommonSet}
         onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));
