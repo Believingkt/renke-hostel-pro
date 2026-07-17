@@ -892,10 +892,12 @@ const BookingVilla = () => {
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
-          onAvailabilityComputed={({ dates, minPrice, earliestDate }) => {
+          onAvailabilityComputed={({ dates, minPrice, earliestDate, packageDates, commonDates }) => {
             setAvailableDateSet(dates);
             setAvailMinPrice(minPrice);
             setAvailEarliestDate(earliestDate);
+            setAvailablePackageSet(packageDates ?? null);
+            setAvailableCommonSet(commonDates ?? null);
           }}
           onSelectDate={(d) => {
             const next = new Date(d);
