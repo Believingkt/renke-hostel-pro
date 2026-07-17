@@ -145,6 +145,7 @@ function deriveFeatureTags(facilities: FacilityRow[]): string[] {
 const BookingPortal = () => {
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
+  const [packagedAccIds, setPackagedAccIds] = useState<Set<string>>(new Set());
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateRow[]>([]);
