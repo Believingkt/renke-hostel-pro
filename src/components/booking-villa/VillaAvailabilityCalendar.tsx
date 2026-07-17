@@ -314,7 +314,12 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
             }
           }
         }
-        onAvailabilityComputed?.({ dates: available, minPrice, earliestDate });
+        onAvailabilityComputed?.({
+          dates: available,
+          minPrice,
+          earliestDate,
+          ...(isYunxiu ? { packageDates, commonDates } : {}),
+        });
       }
     };
 
