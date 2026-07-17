@@ -279,6 +279,45 @@ const EditSearchSheet = ({
                 </button>
               )}
             </div>
+
+            {/* 可訂天數摘要 */}
+            {availStats && availStats.count > 0 && (
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
+                <span>未來 12 個月共 <b className="tabular-nums">{availStats.count}</b> 天可訂</span>
+                {availStats.earliest && (
+                  <span className="tabular-nums">
+                    最早 {format(new Date(availStats.earliest + "T00:00:00"), "M月d日")}
+                  </span>
+                )}
+              </div>
+            )}
+            {availStats && availStats.count === 0 && (
+              <div className="mb-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[12px] text-amber-900">
+                目前 12 個月內無可訂日期，請洽小幫手詢問候補。
+              </div>
+            )}
+
+            {/* 目前所選日期不可訂：顯示原因與一鍵改選 */}
+            {rangeIssue && (
+              <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-900 flex items-start gap-2">
+                <span className="mt-0.5">⚠️</span>
+                <div className="flex-1 min-w-0">
+                  <div>{rangeIssue.reason}</div>
+                  {rangeIssue.suggestion ? (
+                    <button
+                      type="button"
+                      onClick={applySuggestion}
+                      className="mt-1 inline-flex items-center rounded-md bg-amber-600 text-white px-2 py-1 text-[12px] font-medium hover:bg-amber-700 transition"
+                    >
+                      改選 {format(rangeIssue.suggestion.from, "M月d日")} – {format(rangeIssue.suggestion.to, "M月d日")}
+                    </button>
+                  ) : (
+                    <div className="mt-0.5 text-muted-foreground">請於下方日曆重新選擇。</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl bg-muted/30 px-1 py-2">
               <Calendar
                 showOutsideDays={false}
