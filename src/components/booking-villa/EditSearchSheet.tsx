@@ -26,6 +26,10 @@ interface EditSearchSheetProps {
   rooms: number;
   /** 可訂日集合（yyyy-MM-dd），null 表示尚未載入；非該集合內的日期將無法選取 */
   availableDates?: Set<string> | null;
+  /** 雲岫等有分軌住宿：包棟可訂日集合（若提供則顯示切換 chips） */
+  packageDates?: Set<string> | null;
+  /** 雲岫等有分軌住宿：散客可訂日集合 */
+  commonDates?: Set<string> | null;
   onConfirm: (v: {
     checkIn: Date;
     checkOut: Date;
