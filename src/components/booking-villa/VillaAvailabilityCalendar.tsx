@@ -37,7 +37,7 @@ interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
-  onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null }) => void;
+  onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null; packageDates?: Set<string>; commonDates?: Set<string> }) => void;
 }
 
 /**
