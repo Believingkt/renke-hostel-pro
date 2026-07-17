@@ -201,7 +201,19 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       };
 
       const available = new Set<string>();
+      const packageDates = new Set<string>();
+      const commonDates = new Set<string>();
+      const isYunxiu = accommodationId === YUNXIU_ACCOMMODATION_ID;
       for (const date of allDates) {
+        if (isYunxiu) {
+          // 雲岫：分軌計算「包棟」與「散客」可訂狀態
+          const pkgOk = packageRoomTypes.some((rt) => isRoomAvailable(rt, date));
+          const comOk = commonRoomTypes.some((rt) => isRoomAvailable(rt, date));
+          if (pkgOk) packageDates.add(date);
+          if (comOk) commonDates.add(date);
+          if (pkgOk || comOk) available.add(date);
+          continue;
+        }
         if (isHakuna && packageRoomTypes.length > 0) {
           // 哈庫納（散客房不計入）：
           // 條件1: 任一包棟有訂單（被訂走）→ 整天關閉
