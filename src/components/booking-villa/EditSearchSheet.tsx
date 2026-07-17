@@ -281,14 +281,11 @@ const EditSearchSheet = ({
             </div>
 
             {/* 可訂天數摘要 */}
-            {availStats && availStats.count > 0 && (
-              <div className="mb-2 flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
-                <span>未來 12 個月共 <b className="tabular-nums">{availStats.count}</b> 天可訂</span>
-                {availStats.earliest && (
-                  <span className="tabular-nums">
-                    最早 {format(new Date(availStats.earliest + "T00:00:00"), "M月d日")}
-                  </span>
-                )}
+            {availStats && availStats.count > 0 && availStats.earliest && (
+              <div className="mb-2 flex items-center justify-end rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
+                <span className="tabular-nums">
+                  最快 {format(new Date(availStats.earliest + "T00:00:00"), "M月d日")} 可訂
+                </span>
               </div>
             )}
             {availStats && availStats.count === 0 && (
