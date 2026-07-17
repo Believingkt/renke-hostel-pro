@@ -111,6 +111,25 @@ const EditSearchSheet = ({
   const [tod, setTod] = useState(toddlers);
   const [r, setR] = useState(rooms);
   const [childrenOpen, setChildrenOpen] = useState(false);
+
+  // 雲岫等雙軌住宿：包棟 / 散客 切換
+  const hasDualAxis = !!(packageDates && commonDates);
+  const autoAxis: "package" | "common" = rooms >= 2 || adults >= 6 ? "package" : "common";
+  const [axis, setAxis] = useState<"all" | "package" | "common">(autoAxis);
+  useEffect(() => {
+    if (hasDualAxis) setAxis(rooms >= 2 || a >= 6 ? "package" : "common");
+    // 只在 sheet 打開重置時同步；此 effect 由外層 open 觸發的重置區塊補齊
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const effAvail: Set<string> | null = hasDualAxis
+    ? axis === "package"
+      ? packageDates!
+      : axis === "common"
+        ? commonDates!
+        : availableDates ?? null
+    : availableDates ?? null;
+
   const [isDesktop, setIsDesktop] = useState(
     typeof window !== "undefined" ? window.matchMedia("(min-width: 640px)").matches : false
   );
