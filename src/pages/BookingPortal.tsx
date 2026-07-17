@@ -223,7 +223,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }, { data: pkgRows }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -271,9 +271,12 @@ const BookingPortal = () => {
           .select("accommodation_id"),
       ]);
 
-      const pkgAccIds = new Set<string>();
-      ((arguments[0] as any) || []); // no-op to keep TS happy
-
+      const pkgAccIds = new Set<string>(
+        ((pkgRows ?? []) as Array<{ accommodation_id: string | null }>)
+          .map((r) => r.accommodation_id)
+          .filter((v): v is string => !!v)
+      );
+      setPackagedAccIds(pkgAccIds);
 
       if (!accs || !rooms) return;
 
