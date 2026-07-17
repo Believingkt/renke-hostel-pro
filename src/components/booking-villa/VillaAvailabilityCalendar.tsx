@@ -106,12 +106,19 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         from += PAGE_SIZE;
       }
 
-      if (!inventoryRows || inventoryRows.length === 0) {
+      const isSensanAcc = accommodationId === SENSAN_ACCOMMODATION_ID;
+
+      if ((!inventoryRows || inventoryRows.length === 0) && !isSensanAcc) {
         if (!cancelled) setHasInventory(false);
         return;
       }
 
-      const allDates = Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
+      // 森山：忽略庫存未開，用完整日期範圍（未來 12 個月）計算可訂日
+      const allDates = isSensanAcc
+        ? eachDayOfInterval({ start: today, end: endOfMonth(addMonths(today, 11)) }).map((d) =>
+            formatISO(d, { representation: "date" }),
+          )
+        : Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
 
       const adjustedResults = await Promise.all(
         roomTypes.map(async (rt) => {
