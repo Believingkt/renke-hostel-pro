@@ -478,6 +478,95 @@ export default function OwlTingEmailIngest() {
               )}
             </TableBody>
           </Table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {(() => {
+              const cancelledObes = new Set(
+                rows.filter((r) => r.message_type === "cancelled" && r.obe_number).map((r) => r.obe_number as string),
+              );
+              const doneStatuses = new Set(["self_pushed", "promoted_to_booking", "skipped", "expired"]);
+              const visible = rows.filter((r) => {
+                if (showSelfPush) return true;
+                const st = stagingMap[r.id];
+                if (st && doneStatuses.has(st.pii_status)) return false;
+                if (isSelfPushSource(st?.channel_source)) return false;
+                return true;
+              });
+              if (!loading && visible.length === 0) {
+                return <div className="text-center text-muted-foreground py-8 text-sm">尚無收件記錄</div>;
+              }
+              return visible.map((r) => {
+                const st = stagingMap[r.id];
+                const selfPush = isSelfPushSource(st?.channel_source);
+                const alreadyLinked = st?.pii_status === "self_pushed";
+                const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
+                return (
+                  <div key={r.id} className="rounded-lg border p-3 space-y-2 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(r.received_at), "MM/dd HH:mm:ss")}
+                        </div>
+                        <div className="font-mono text-xs break-all">{r.obe_number ?? "—"}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"} className="text-[10px]">{r.status}</Badge>
+                        <span className="text-[11px] text-muted-foreground">
+                          {r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {st && (
+                      <div className="flex flex-wrap gap-1 items-center">
+                        <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
+                          {selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
+                        </Badge>
+                        {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                            🔒 自動預留{st.auto_order_number && <span className="ml-1 font-mono">#{st.auto_order_number}</span>}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {st?.channel_source && (
+                      <div className="text-[11px] text-muted-foreground">來源：{st.channel_source}</div>
+                    )}
+                    {st?.review_notes && (
+                      <div className="text-[11px] text-muted-foreground line-clamp-2">{st.review_notes}</div>
+                    )}
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1 min-w-[45%] h-9" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
+                        <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
+                      </Button>
+                      {selfPush ? (
+                        !alreadyLinked && st ? (
+                          <Button size="sm" variant="default" className="flex-1 min-w-[45%] h-9" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
+                            {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
+                            連結自家訂單
+                          </Button>
+                        ) : null
+                      ) : canSend ? (
+                        <>
+                          <Button size="sm" variant="outline" className="flex-1 min-w-[45%] h-9" onClick={() => sendFillupNotification(st.id)} disabled={sendingId === st.id}>
+                            {sendingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                            重發通知
+                          </Button>
+                          <Button size="sm" variant="default" className="flex-1 min-w-[45%] h-9" onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}>
+                            <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
         </CardContent>
       </Card>
 
