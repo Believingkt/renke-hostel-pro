@@ -78,34 +78,21 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Auth: caller must be admin OR a service-role caller (server-to-server, e.g. ingest auto-trigger)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const isServiceRole = !!bearer && bearer === serviceKey;
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    let callerUserId: string | null = null;
-    let callerRoles: string[] = [];
-    if (!isServiceRole) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false },
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ error: authRes.error }), {
+        status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const { data: userData } = await userClient.auth.getUser();
-      if (!userData?.user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      callerUserId = userData.user.id;
-      const { data: roleData } = await admin
-        .from("user_roles").select("role").eq("user_id", userData.user.id);
-      callerRoles = (roleData ?? []).map((r: any) => r.role);
-      // Admin check happens after we resolve accommodation_id, so staff with
-      // channel_manager=editable on that accommodation is also allowed.
     }
+    const authCtx = authRes.ctx;
+    const admin = authCtx.admin;
+    const isServiceRole = authCtx.isServiceRole;
+    const callerUserId = authCtx.userId;
 
-
-    const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
     if (!stagingId) {
       return new Response(JSON.stringify({ error: "staging_id required" }), {
