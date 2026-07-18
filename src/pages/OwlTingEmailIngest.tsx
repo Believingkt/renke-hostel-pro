@@ -241,12 +241,13 @@ export default function OwlTingEmailIngest() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       <AdminPageHeader
         title="奧丁丁訂單收件監控"
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
+              size="sm"
               variant={showSelfPush ? "default" : "outline"}
               onClick={() => setShowSelfPush((v) => !v)}
               disabled={loading}
@@ -254,11 +255,11 @@ export default function OwlTingEmailIngest() {
             >
               {showSelfPush ? "隱藏自家單" : "顯示自家單"}
             </Button>
-            <Button variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
+            <Button size="sm" variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
               {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              回填入住/退房日期
+              回填日期
             </Button>
-            <Button variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>
+            <Button size="sm" variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>
           </div>
         }
       />
