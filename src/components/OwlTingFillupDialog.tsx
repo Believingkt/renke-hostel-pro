@@ -60,6 +60,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [roomAssignments, setRoomAssignments] = useState<string[]>(["none"]);
+  // Per-assignment manual room_unit_id override; null = auto-assign
+  const [unitOverrides, setUnitOverrides] = useState<(string | null)[]>([null]);
   const [autoMatchedRoomTypeId, setAutoMatchedRoomTypeId] = useState<string | null>(null);
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
   const [guestCount, setGuestCount] = useState<string>("2");
@@ -69,20 +71,27 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
   const [paymentOverridden, setPaymentOverridden] = useState(false);
 
-  // Preview of auto-assigned units per assignment row (matches server logic)
+  // Preview of assigned units per assignment row (auto or manual)
+  type UnitInfo = { id: string; unit_number: string; nickname: string | null };
   type UnitPreviewRow =
     | { status: "idle" | "loading" }
-    | { status: "ok"; unitLabel: string; roomTypeName: string }
+    | { status: "ok"; unitLabel: string; roomTypeName: string; manual: boolean }
+    | { status: "manual_busy"; unitLabel: string; roomTypeName: string }
     | { status: "no_units"; roomTypeName: string }
     | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
     | { status: "error"; message: string };
   const [unitPreviews, setUnitPreviews] = useState<UnitPreviewRow[]>([]);
+  // Units + busy set per room_type_id, populated as assignments select room types
+  const [unitsByType, setUnitsByType] = useState<Record<string, UnitInfo[]>>({});
+  const [busyByType, setBusyByType] = useState<Record<string, Set<string>>>({});
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomAssignments(["none"]); setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setRoomAssignments(["none"]); setUnitOverrides([null]);
+    setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setUnitsByType({}); setBusyByType({});
     setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
@@ -293,6 +302,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       // B. Initialize assignment rows based on staging.room_quantity
       const qty = Math.max(1, Math.min(10, Number(stagingRow?.room_quantity ?? 1) || 1));
       setRoomAssignments(Array.from({ length: qty }, () => matched?.id ?? "none"));
+      setUnitOverrides(Array.from({ length: qty }, () => null));
 
       setPhase("form");
     } catch (e: any) {
@@ -315,92 +325,117 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const guestCountValid = isGuestCountValid(guestCount);
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
   const validAssignments = roomAssignments.filter((id) => id && id !== "none");
+  const hasManualBusy = unitPreviews.some((p) => p.status === "manual_busy");
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
     validAssignments.length > 0 &&
     guestCountValid &&
-    datesValid;
+    datesValid &&
+    !hasManualBusy;
 
-  // Compute auto-assigned room unit preview per assignment row.
-  // Mirrors server logic: pick free units in display_order, skipping already-picked units.
+  const unitLabel = (u: UnitInfo) => (u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number);
+
+  // Fetch units + busy sets for any newly-selected room_type_id and cache in state.
+  useEffect(() => {
+    if (phase !== "form" || !datesValid) return;
+    const needed = Array.from(new Set(roomAssignments.filter((r) => r && r !== "none")));
+    const missing = needed.filter((rt) => !(rt in unitsByType));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const nextUnits: Record<string, UnitInfo[]> = {};
+      const nextBusy: Record<string, Set<string>> = {};
+      for (const rtId of missing) {
+        try {
+          const { data: units } = await supabase
+            .from("room_units")
+            .select("id, unit_number, nickname, display_order")
+            .eq("room_type_id", rtId)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true })
+            .order("unit_number", { ascending: true });
+          const list = (units ?? []) as UnitInfo[];
+          nextUnits[rtId] = list;
+          if (list.length > 0) {
+            const { data: conflicts } = await supabase
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+              .in("room_unit_id", list.map((u) => u.id))
+              .neq("orders.order_status", "cancelled")
+              .lt("orders.check_in_date", checkOutDate)
+              .gt("orders.check_out_date", checkInDate);
+            nextBusy[rtId] = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
+          } else {
+            nextBusy[rtId] = new Set();
+          }
+        } catch (e) {
+          nextUnits[rtId] = [];
+          nextBusy[rtId] = new Set();
+        }
+      }
+      if (cancelled) return;
+      setUnitsByType((prev) => ({ ...prev, ...nextUnits }));
+      setBusyByType((prev) => ({ ...prev, ...nextBusy }));
+    })();
+    return () => { cancelled = true; };
+  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, unitsByType]);
+
+  // Compute preview: honor manual overrides first, then auto-pick from remaining free units.
   useEffect(() => {
     if (phase !== "form" || !datesValid) {
       setUnitPreviews([]);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const results: UnitPreviewRow[] = [];
-      // Track picked unit ids across rows sharing a room_type
-      const pickedByType = new Map<string, Set<string>>();
-      // Cache units and busy sets per room_type_id
-      const unitCache = new Map<string, { id: string; unit_number: string; nickname: string | null }[]>();
-      const busyCache = new Map<string, Set<string>>();
-      const label = (u: any) =>
-        u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
+    const results: UnitPreviewRow[] = [];
+    const pickedByType = new Map<string, Set<string>>();
 
-      for (const rtId of roomAssignments) {
-        if (!rtId || rtId === "none") {
-          results.push({ status: "idle" });
-          continue;
-        }
-        const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
-        try {
-          if (!unitCache.has(rtId)) {
-            const { data: units, error: unitsErr } = await supabase
-              .from("room_units")
-              .select("id, unit_number, nickname, display_order")
-              .eq("room_type_id", rtId)
-              .eq("is_active", true)
-              .order("display_order", { ascending: true })
-              .order("unit_number", { ascending: true });
-            if (unitsErr) throw unitsErr;
-            unitCache.set(rtId, (units ?? []) as any);
-            if (units && units.length > 0) {
-              const { data: conflicts, error: cErr } = await supabase
-                .from("order_rooms")
-                .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-                .in("room_unit_id", units.map((u) => u.id))
-                .neq("orders.order_status", "cancelled")
-                .lt("orders.check_in_date", checkOutDate)
-                .gt("orders.check_out_date", checkInDate);
-              if (cErr) throw cErr;
-              busyCache.set(
-                rtId,
-                new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
-              );
-            } else {
-              busyCache.set(rtId, new Set());
-            }
-          }
-          const units = unitCache.get(rtId)!;
-          const busy = busyCache.get(rtId)!;
-          if (units.length === 0) {
-            results.push({ status: "no_units", roomTypeName });
-            continue;
-          }
-          const picked = pickedByType.get(rtId) ?? new Set<string>();
-          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
-          if (free) {
-            picked.add(free.id);
-            pickedByType.set(rtId, picked);
-            results.push({ status: "ok", unitLabel: label(free), roomTypeName });
-          } else {
-            results.push({
-              status: "all_busy",
-              roomTypeName,
-              busyUnits: units.map(label),
-            });
-          }
-        } catch (e: any) {
-          results.push({ status: "error", message: e?.message ?? "查詢失敗" });
-        }
+    // Pass 1: mark manual overrides as picked
+    roomAssignments.forEach((rtId, idx) => {
+      const override = unitOverrides[idx];
+      if (rtId && rtId !== "none" && override) {
+        const s = pickedByType.get(rtId) ?? new Set<string>();
+        s.add(override);
+        pickedByType.set(rtId, s);
       }
-      if (!cancelled) setUnitPreviews(results);
-    })();
-    return () => { cancelled = true; };
-  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, roomTypes]);
+    });
+
+    // Pass 2: build preview per row
+    for (let i = 0; i < roomAssignments.length; i++) {
+      const rtId = roomAssignments[i];
+      if (!rtId || rtId === "none") { results.push({ status: "idle" }); continue; }
+      const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
+      const units = unitsByType[rtId];
+      const busy = busyByType[rtId];
+      if (!units || !busy) { results.push({ status: "loading" }); continue; }
+      if (units.length === 0) { results.push({ status: "no_units", roomTypeName }); continue; }
+
+      const override = unitOverrides[i];
+      if (override) {
+        const u = units.find((x) => x.id === override);
+        if (!u) { results.push({ status: "error", message: "手動指定的房號不在此房型內" }); continue; }
+        if (busy.has(u.id)) {
+          results.push({ status: "manual_busy", unitLabel: unitLabel(u), roomTypeName });
+        } else {
+          results.push({ status: "ok", unitLabel: unitLabel(u), roomTypeName, manual: true });
+        }
+        continue;
+      }
+
+      // Auto-pick, skipping busy + already picked (manual or auto in earlier rows)
+      const picked = pickedByType.get(rtId) ?? new Set<string>();
+      const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+      if (free) {
+        picked.add(free.id);
+        pickedByType.set(rtId, picked);
+        results.push({ status: "ok", unitLabel: unitLabel(free), roomTypeName, manual: false });
+      } else {
+        results.push({ status: "all_busy", roomTypeName, busyUnits: units.map(unitLabel) });
+      }
+    }
+    setUnitPreviews(results);
+  }, [phase, roomAssignments, unitOverrides, unitsByType, busyByType, datesValid, roomTypes]);
+
 
   const handleSubmit = async () => {
     if (!token) return;
@@ -429,7 +464,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           guest_phone: guestPhone.trim(),
           guest_email: guestEmail.trim(),
           room_type_id: validAssignments[0],
-          room_assignments: validAssignments.map((id) => ({ room_type_id: id })),
+          room_assignments: roomAssignments
+            .map((id, idx) => ({ room_type_id: id, room_unit_id: unitOverrides[idx] ?? null }))
+            .filter((r) => r.room_type_id && r.room_type_id !== "none"),
           guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
           check_in_date: checkInDate,
@@ -601,51 +638,106 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                     type="button"
                     size="sm"
                     variant="ghost"
-                    onClick={() =>
+                    onClick={() => {
                       setRoomAssignments((prev) =>
                         prev.length < 10 ? [...prev, autoMatchedRoomTypeId ?? "none"] : prev,
-                      )
-                    }
+                      );
+                      setUnitOverrides((prev) => (prev.length < 10 ? [...prev, null] : prev));
+                    }}
                   >
                     <Plus className="h-3.5 w-3.5 mr-1" />新增一間
                   </Button>
                 </div>
-                {roomAssignments.map((rtId, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground w-14 shrink-0">
-                      第 {idx + 1} 間
+                {roomAssignments.map((rtId, idx) => {
+                  const units = rtId && rtId !== "none" ? unitsByType[rtId] : undefined;
+                  const busy = rtId && rtId !== "none" ? busyByType[rtId] : undefined;
+                  // Units taken by earlier rows (manual or auto) — mark as 佔用 in this dropdown
+                  const takenByOtherRows = new Set<string>();
+                  roomAssignments.forEach((otherRt, j) => {
+                    if (j === idx || otherRt !== rtId) return;
+                    const ov = unitOverrides[j];
+                    if (ov) takenByOtherRows.add(ov);
+                    const p = unitPreviews[j];
+                    if (p && p.status === "ok" && !ov) {
+                      const u = units?.find((x) => unitLabel(x) === p.unitLabel);
+                      if (u) takenByOtherRows.add(u.id);
+                    }
+                  });
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground w-14 shrink-0">
+                          第 {idx + 1} 間
+                        </div>
+                        <div className="flex-1">
+                          <Select
+                            value={rtId}
+                            onValueChange={(v) => {
+                              setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)));
+                              // Reset unit override when room type changes
+                              setUnitOverrides((prev) => prev.map((x, i) => (i === idx ? null : x)));
+                            }}
+                          >
+                            <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">請選擇</SelectItem>
+                              {roomTypes.map((rt) => (
+                                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {roomAssignments.length > 1 && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setRoomAssignments((prev) => prev.filter((_, i) => i !== idx));
+                              setUnitOverrides((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            aria-label="移除此間"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                      {rtId && rtId !== "none" && (
+                        <div className="flex items-center gap-2 pl-16">
+                          <div className="text-[11px] text-muted-foreground shrink-0">房號</div>
+                          <div className="flex-1">
+                            <Select
+                              value={unitOverrides[idx] ?? "__auto__"}
+                              onValueChange={(v) =>
+                                setUnitOverrides((prev) =>
+                                  prev.map((x, i) => (i === idx ? (v === "__auto__" ? null : v) : x)),
+                                )
+                              }
+                              disabled={!units}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder={units ? "自動指派" : "載入中…"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__auto__">自動指派（依房號順序）</SelectItem>
+                                {(units ?? []).map((u) => {
+                                  const isBusy = busy?.has(u.id);
+                                  const isTaken = takenByOtherRows.has(u.id);
+                                  return (
+                                    <SelectItem key={u.id} value={u.id}>
+                                      {unitLabel(u)}
+                                      {isBusy ? "（已被其他訂單佔用）" : isTaken ? "（本單其他間已指派）" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <Select
-                        value={rtId}
-                        onValueChange={(v) =>
-                          setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)))
-                        }
-                      >
-                        <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">請選擇</SelectItem>
-                          {roomTypes.map((rt) => (
-                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {roomAssignments.length > 1 && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setRoomAssignments((prev) => prev.filter((_, i) => i !== idx))
-                        }
-                        aria-label="移除此間"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {stagingRow.room_type_name && (
                   <p className="text-[11px] text-muted-foreground">
                     信件原房型欄位：「{stagingRow.room_type_name}」
@@ -733,7 +825,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             {validAssignments.length > 0 && datesValid && (
               <div className="rounded-md border p-3 text-sm space-y-2 bg-muted/40">
                 <div className="text-xs font-medium text-muted-foreground">
-                  送出後將自動指派（依房號順序挑選第一間可用）
+                  送出後將指派房號（未手動指定則依房號順序自動挑選）
                 </div>
                 {unitPreviews.length === 0 ? (
                   <div className="text-muted-foreground flex items-center gap-2">
@@ -755,6 +847,14 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                         <div>
                           房型：<span className="font-medium">{p.roomTypeName}</span>
                           {" · "}房號：<span className="font-medium">{p.unitLabel}</span>
+                          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded ${p.manual ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                            {p.manual ? "手動指定" : "自動指派"}
+                          </span>
+                        </div>
+                      )}
+                      {p.status === "manual_busy" && (
+                        <div className="text-destructive">
+                          房型「{p.roomTypeName}」的房號「{p.unitLabel}」在此區間已被其他訂單佔用，請改選其他房號。
                         </div>
                       )}
                       {p.status === "no_units" && (

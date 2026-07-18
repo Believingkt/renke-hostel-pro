@@ -62,11 +62,18 @@ Deno.serve(async (req) => {
     const guestEmail = String(body.guest_email ?? "").trim();
     const roomTypeId = body.room_type_id ? String(body.room_type_id) : null;
     const rawAssignments = Array.isArray(body.room_assignments) ? body.room_assignments : null;
-    const roomAssignments: string[] = rawAssignments
+    type Assignment = { room_type_id: string; room_unit_id: string | null };
+    const roomAssignments: Assignment[] = rawAssignments
       ? rawAssignments
-          .map((r: any) => (r && r.room_type_id ? String(r.room_type_id) : null))
-          .filter((x: string | null): x is string => !!x)
-      : (roomTypeId ? [roomTypeId] : []);
+          .map((r: any) => {
+            if (!r || !r.room_type_id) return null;
+            return {
+              room_type_id: String(r.room_type_id),
+              room_unit_id: r.room_unit_id ? String(r.room_unit_id) : null,
+            } as Assignment;
+          })
+          .filter((x: Assignment | null): x is Assignment => !!x)
+      : (roomTypeId ? [{ room_type_id: roomTypeId, room_unit_id: null }] : []);
     const totalAmount = body.total_amount != null ? Number(body.total_amount) : null;
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
     const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
@@ -236,7 +243,7 @@ Deno.serve(async (req) => {
     const effectivePaidAmount = effectivePaymentStatus === "paid" ? resolvedTotal : 0;
 
     // Order-level room_type_id: keep first assignment for backward compat with legacy views.
-    const primaryRoomTypeId = roomAssignments[0] ?? roomTypeId ?? null;
+    const primaryRoomTypeId = roomAssignments[0]?.room_type_id ?? roomTypeId ?? null;
 
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
@@ -270,9 +277,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auto-create one order_rooms row per assignment, with sequential unit picking.
-    // Cache units + busy sets per room_type_id, and track picked units to avoid double-assign
-    // when multiple assignments share the same room_type.
+    // Create one order_rooms row per assignment.
+    // Honor manual room_unit_id when provided (validating it belongs to the room_type and is
+    // not busy / already picked in this batch); otherwise auto-pick in display_order.
     const unitCache = new Map<string, { id: string; unit_number: string }[]>();
     const busyCache = new Map<string, Set<string>>();
     const pickedByType = new Map<string, Set<string>>();
@@ -280,47 +287,69 @@ Deno.serve(async (req) => {
       ? Math.round(resolvedTotal / roomAssignments.length)
       : resolvedTotal;
 
-    for (const rtId of roomAssignments) {
-      let assignedUnitId: string | null = null;
+    // Pre-load caches for all room types involved
+    const uniqueTypes = Array.from(new Set(roomAssignments.map((a) => a.room_type_id)));
+    for (const rtId of uniqueTypes) {
+      const { data: units } = await admin
+        .from("room_units")
+        .select("id, display_order, unit_number")
+        .eq("room_type_id", rtId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("unit_number", { ascending: true });
+      unitCache.set(rtId, (units ?? []) as any);
+      if (units && units.length > 0) {
+        const { data: conflicts } = await admin
+          .from("order_rooms")
+          .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+          .in("room_unit_id", units.map((u) => u.id))
+          .neq("orders.order_status", "cancelled")
+          .lt("orders.check_in_date", finalCheckOut)
+          .gt("orders.check_out_date", finalCheckIn);
+        busyCache.set(
+          rtId,
+          new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
+        );
+      } else {
+        busyCache.set(rtId, new Set());
+      }
+    }
+
+    // Pass 1: reserve manual overrides (validate + mark as picked)
+    for (const a of roomAssignments) {
+      if (!a.room_unit_id) continue;
+      const units = unitCache.get(a.room_type_id) ?? [];
+      const busy = busyCache.get(a.room_type_id) ?? new Set<string>();
+      const picked = pickedByType.get(a.room_type_id) ?? new Set<string>();
+      const belongs = units.some((u) => u.id === a.room_unit_id);
+      if (!belongs || busy.has(a.room_unit_id) || picked.has(a.room_unit_id)) {
+        // Invalid override → drop it, will fall through to auto in pass 2
+        a.room_unit_id = null;
+        continue;
+      }
+      picked.add(a.room_unit_id);
+      pickedByType.set(a.room_type_id, picked);
+    }
+
+    // Pass 2: insert rows, auto-picking any remaining
+    for (const a of roomAssignments) {
+      let assignedUnitId: string | null = a.room_unit_id;
       try {
-        if (!unitCache.has(rtId)) {
-          const { data: units } = await admin
-            .from("room_units")
-            .select("id, display_order, unit_number")
-            .eq("room_type_id", rtId)
-            .eq("is_active", true)
-            .order("display_order", { ascending: true })
-            .order("unit_number", { ascending: true });
-          unitCache.set(rtId, (units ?? []) as any);
-          if (units && units.length > 0) {
-            const { data: conflicts } = await admin
-              .from("order_rooms")
-              .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-              .in("room_unit_id", units.map((u) => u.id))
-              .neq("orders.order_status", "cancelled")
-              .lt("orders.check_in_date", finalCheckOut)
-              .gt("orders.check_out_date", finalCheckIn);
-            busyCache.set(
-              rtId,
-              new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
-            );
-          } else {
-            busyCache.set(rtId, new Set());
+        if (!assignedUnitId) {
+          const units = unitCache.get(a.room_type_id) ?? [];
+          const busy = busyCache.get(a.room_type_id) ?? new Set<string>();
+          const picked = pickedByType.get(a.room_type_id) ?? new Set<string>();
+          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+          if (free) {
+            assignedUnitId = free.id;
+            picked.add(free.id);
+            pickedByType.set(a.room_type_id, picked);
           }
-        }
-        const units = unitCache.get(rtId)!;
-        const busy = busyCache.get(rtId)!;
-        const picked = pickedByType.get(rtId) ?? new Set<string>();
-        const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
-        if (free) {
-          assignedUnitId = free.id;
-          picked.add(free.id);
-          pickedByType.set(rtId, picked);
         }
 
         const { error: orErr } = await admin.from("order_rooms").insert({
           order_id: inserted!.id,
-          room_type_id: rtId,
+          room_type_id: a.room_type_id,
           quantity: 1,
           room_price: perRoomPrice,
           room_unit_id: assignedUnitId,
@@ -330,7 +359,7 @@ Deno.serve(async (req) => {
           if (assignedUnitId) {
             await admin.from("order_rooms").insert({
               order_id: inserted!.id,
-              room_type_id: rtId,
+              room_type_id: a.room_type_id,
               quantity: 1,
               room_price: perRoomPrice,
               room_unit_id: null,
@@ -338,7 +367,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        console.error("[owlting-fillup-submit] auto-assign room unit failed:", e);
+        console.error("[owlting-fillup-submit] assign room unit failed:", e);
       }
     }
 
