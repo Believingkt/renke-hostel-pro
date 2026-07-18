@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface BookingCalendarGridProps {
   accommodationId: string;
+  onOrderClick?: (orderId: string) => void;
 }
 
 interface RoomType {
@@ -139,7 +140,7 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
   return SOURCE_LABELS[source] || source || "官網訂房";
 };
 
-export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProps) {
+export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCalendarGridProps) {
   const navigate = useNavigate();
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
   const bodyScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1148,7 +1149,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                           left: leftPx,
                                           width: widthPx,
                                         }}
-                                        onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                        onClick={() => {
+                                          if (onOrderClick) onOrderClick(entry.orderId);
+                                          else navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } });
+                                        }}
                                       >
                                         <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
                                         <span className="font-medium truncate">{entry.guest_name}</span>

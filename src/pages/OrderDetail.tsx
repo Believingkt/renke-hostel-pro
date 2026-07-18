@@ -207,12 +207,23 @@ interface EditFormState {
   extra_addon_amount: number;
 }
 
-const OrderDetailPage = () => {
-  const { orderId } = useParams<{ orderId: string }>();
+interface OrderDetailPageProps {
+  orderId?: string;
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: OrderDetailPageProps = {}) => {
+  const params = useParams<{ orderId: string }>();
+  const orderId = orderIdProp ?? params.orderId;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParamsHook();
   const backTo = (location.state as any)?.from || "/admin/orders";
+  const goBack = () => {
+    if (embedded && onClose) onClose();
+    else navigate(backTo);
+  };
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -1284,7 +1295,7 @@ const OrderDetailPage = () => {
         }
       } catch (e) { console.error("Audit log error:", e); }
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
-      navigate(backTo);
+      goBack();
     } catch (error) {
       console.error("取消訂單失敗:", error);
       toast({ title: "取消失敗", description: "無法取消訂單，請稍後再試", variant: "destructive" });
@@ -1890,7 +1901,7 @@ const OrderDetailPage = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}>
+          <Button variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-3xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
@@ -1951,37 +1962,43 @@ const OrderDetailPage = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin/orders">訂單列表</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>訂單詳情</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      {!embedded && (
+        <>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                    <Home className="h-4 w-4" />
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/admin/orders">訂單列表</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>訂單詳情</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </>
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} className="h-9 w-9 md:h-10 md:w-10">
-            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
-          </Button>
+          {!embedded && (
+            <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 md:h-10 md:w-10">
+              <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+          )}
           <h1 className="text-3xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
         <div className="flex flex-row gap-2 w-full sm:w-auto">
@@ -3668,7 +3685,7 @@ const OrderDetailPage = () => {
             deposit_payment_method: (order as any).deposit_payment_method,
             balance_payment_method: (order as any).balance_payment_method,
           }}
-          onCancelled={() => navigate(backTo)}
+          onCancelled={goBack}
         />
       )}
 
