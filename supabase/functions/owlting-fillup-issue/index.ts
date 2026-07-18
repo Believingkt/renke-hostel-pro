@@ -132,6 +132,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Authorization: super_admin/hotel_admin globally, OR staff with
+    // channel_manager=editable on this accommodation.
+    if (!isServiceRole && callerUserId) {
+      const isGlobalAdmin = callerRoles.includes("super_admin") || callerRoles.includes("hotel_admin");
+      let allowed = isGlobalAdmin;
+      if (!allowed) {
+        const { data: accRoleRows } = await admin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId)
+          .eq("accommodation_id", accId);
+        const accRoles = (accRoleRows ?? []).map((r: any) => r.role);
+        if (accRoles.includes("super_admin") || accRoles.includes("hotel_admin")) {
+          allowed = true;
+        } else if (accRoles.includes("staff")) {
+          const { data: perm } = await admin
+            .from("staff_module_permissions")
+            .select("permission_level")
+            .eq("user_id", callerUserId)
+            .eq("accommodation_id", accId)
+            .eq("module_key", "channel_manager")
+            .maybeSingle();
+          allowed = perm?.permission_level === "editable";
+        }
+      }
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
     // Persist resolved acc on staging if missing
     if (!staging.accommodation_id) {
       await admin.from("owlting_email_parsed_staging")
