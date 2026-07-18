@@ -63,6 +63,15 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
 
+  // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
+  const [unitPreview, setUnitPreview] = useState<
+    | { status: "idle" | "loading" }
+    | { status: "ok"; unitLabel: string; roomTypeName: string }
+    | { status: "no_units"; roomTypeName: string }
+    | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
+
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
@@ -264,6 +273,58 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     roomTypeId !== "none" &&
     guestCountValid &&
     datesValid;
+
+  // Compute the auto-assigned room unit preview whenever inputs change
+  useEffect(() => {
+    if (phase !== "form" || roomTypeId === "none" || !datesValid) {
+      setUnitPreview({ status: "idle" });
+      return;
+    }
+    const roomTypeName = roomTypes.find((r) => r.id === roomTypeId)?.name ?? "";
+    let cancelled = false;
+    setUnitPreview({ status: "loading" });
+    (async () => {
+      try {
+        const { data: units, error: unitsErr } = await supabase
+          .from("room_units")
+          .select("id, unit_number, nickname, display_order")
+          .eq("room_type_id", roomTypeId)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("unit_number", { ascending: true });
+        if (unitsErr) throw unitsErr;
+        if (!units || units.length === 0) {
+          if (!cancelled) setUnitPreview({ status: "no_units", roomTypeName });
+          return;
+        }
+
+        const { data: conflicts, error: cErr } = await supabase
+          .from("order_rooms")
+          .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+          .in("room_unit_id", units.map((u) => u.id))
+          .neq("orders.order_status", "cancelled")
+          .lt("orders.check_in_date", checkOutDate)
+          .gt("orders.check_out_date", checkInDate);
+        if (cErr) throw cErr;
+        const busy = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
+        const free = units.find((u) => !busy.has(u.id));
+        const label = (u: any) => u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
+        if (cancelled) return;
+        if (free) {
+          setUnitPreview({ status: "ok", unitLabel: label(free), roomTypeName });
+        } else {
+          setUnitPreview({
+            status: "all_busy",
+            roomTypeName,
+            busyUnits: units.map(label),
+          });
+        }
+      } catch (e: any) {
+        if (!cancelled) setUnitPreview({ status: "error", message: e?.message ?? "查詢失敗" });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phase, roomTypeId, checkInDate, checkOutDate, datesValid, roomTypes]);
 
   const handleSubmit = async () => {
     if (!token) return;
@@ -490,6 +551,39 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                 )}
               </div>
             </div>
+
+            {/* Auto-assignment preview */}
+            {roomTypeId !== "none" && datesValid && (
+              <div className="rounded-md border p-3 text-sm space-y-1 bg-muted/40">
+                <div className="text-xs font-medium text-muted-foreground">送出後將自動指派</div>
+                {unitPreview.status === "loading" && (
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />查詢可用房號中…
+                  </div>
+                )}
+                {unitPreview.status === "ok" && (
+                  <div>
+                    <div>房型：<span className="font-medium">{unitPreview.roomTypeName}</span></div>
+                    <div>房號：<span className="font-medium">{unitPreview.unitLabel}</span>
+                      <span className="text-xs text-muted-foreground ml-1">（依房號順序挑選第一間可用）</span>
+                    </div>
+                  </div>
+                )}
+                {unitPreview.status === "no_units" && (
+                  <div className="text-amber-700 dark:text-amber-400">
+                    房型「{unitPreview.roomTypeName}」尚未建立任何房號，將僅指派房型、房號保留空白。
+                  </div>
+                )}
+                {unitPreview.status === "all_busy" && (
+                  <div className="text-amber-700 dark:text-amber-400">
+                    房型「{unitPreview.roomTypeName}」所有房號在此日期區間皆已被佔用（{unitPreview.busyUnits.join("、")}），將僅指派房型、房號保留空白，請人工排房。
+                  </div>
+                )}
+                {unitPreview.status === "error" && (
+                  <div className="text-destructive">預覽查詢失敗：{unitPreview.message}</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
