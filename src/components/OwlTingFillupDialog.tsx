@@ -302,6 +302,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       // B. Initialize assignment rows based on staging.room_quantity
       const qty = Math.max(1, Math.min(10, Number(stagingRow?.room_quantity ?? 1) || 1));
       setRoomAssignments(Array.from({ length: qty }, () => matched?.id ?? "none"));
+      setUnitOverrides(Array.from({ length: qty }, () => null));
 
       setPhase("form");
     } catch (e: any) {
