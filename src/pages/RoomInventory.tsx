@@ -40,6 +40,23 @@ export default function RoomInventory() {
   const [pending, setPending] = useState<PendingAction | null>(null);
   // Refs to each tab's panel to attach input listeners
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const prevAccIdRef = useRef<string | undefined>(undefined);
+
+  // Clear order tabs when the active accommodation changes — orders belong to
+  // a specific property and would be stale/irrelevant after switching.
+  useEffect(() => {
+    if (!currentAccommodationId) return;
+    if (prevAccIdRef.current && prevAccIdRef.current !== currentAccommodationId) {
+      const hasDirty = Object.values(dirtyMap).some(Boolean);
+      if (hasDirty && !window.confirm("切換民宿將關閉所有訂單分頁並捨棄未儲存的變更，確定嗎？")) {
+        // revert not possible (accommodation already switched); just close tabs
+      }
+      setTabs([]);
+      setActiveTab("calendar");
+      setDirtyMap({});
+    }
+    prevAccIdRef.current = currentAccommodationId;
+  }, [currentAccommodationId, dirtyMap]);
 
   // Restore from sessionStorage
   useEffect(() => {

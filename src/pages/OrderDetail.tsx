@@ -829,6 +829,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   }, [isEditing, order, editForm.room_type_id, orderRooms.length, editOrderRooms.length]);
 
   useEffect(() => {
+    if (embedded) return; // Ignore URL editing flag in embedded (tab) mode
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       // Wait for orderRooms to be loaded before starting edit
       // orderRooms are fetched alongside order, so once order is set they should follow
@@ -837,7 +838,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       next.delete("editing");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, order, orderRooms]);
+  }, [searchParams, order, orderRooms, embedded]);
 
   const cancelEditing = () => {
     setIsEditing(false);
