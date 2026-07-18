@@ -3685,7 +3685,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             deposit_payment_method: (order as any).deposit_payment_method,
             balance_payment_method: (order as any).balance_payment_method,
           }}
-          onCancelled={() => navigate(backTo)}
+          onCancelled={goBack}
         />
       )}
 
