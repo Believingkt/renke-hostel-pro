@@ -140,7 +140,7 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
   return SOURCE_LABELS[source] || source || "官網訂房";
 };
 
-export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProps) {
+export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCalendarGridProps) {
   const navigate = useNavigate();
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
   const bodyScrollRef = useRef<HTMLDivElement | null>(null);
