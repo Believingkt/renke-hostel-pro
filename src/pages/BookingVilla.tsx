@@ -385,7 +385,9 @@ const BookingVilla = () => {
     return dateFilteredPackages.filter((p: any) => {
       const ids: string[] = Array.isArray(p.room_type_ids) ? p.room_type_ids.filter(Boolean) : [];
       if (ids.length === 0) return true; // 沒設定房型的方案不過濾
-      return ids.every((id) => {
+      // room_type_ids 代表方案「可能用到」的房型清單（並非全部同時必要），
+      // 只要當日至少一個房型還有可訂庫存，就顯示該方案。
+      return ids.some((id) => {
         const info = roomAvailByDate[id];
         if (!info) return true; // 尚未載入該房型，保守顯示
         return !info.blocked && info.available > 0;
