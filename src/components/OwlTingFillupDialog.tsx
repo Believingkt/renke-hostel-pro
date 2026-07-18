@@ -111,7 +111,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, auto_order_id")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -119,6 +119,17 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         setPhase("error");
         return;
       }
+      // If linked to an auto-created pending order, fetch its order_number for display.
+      let autoOrderNumber: string | null = null;
+      if ((data as any).auto_order_id) {
+        const { data: ord } = await supabase
+          .from("orders")
+          .select("order_number")
+          .eq("id", (data as any).auto_order_id)
+          .maybeSingle();
+        autoOrderNumber = ord?.order_number ?? null;
+      }
+      (data as any).auto_order_number = autoOrderNumber;
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
