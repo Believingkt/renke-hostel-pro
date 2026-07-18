@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface BookingCalendarGridProps {
   accommodationId: string;
+  onOrderClick?: (orderId: string) => void;
 }
 
 interface RoomType {
