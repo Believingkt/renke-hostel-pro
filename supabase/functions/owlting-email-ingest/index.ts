@@ -3,6 +3,7 @@
 // IMPORTANT: Always return 200 so SendGrid does not retry indefinitely.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
+import { autoCreatePendingOrder, cancelAutoPendingOrders } from "../_shared/owltingAutoOrder.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -338,7 +339,30 @@ Deno.serve(async (req) => {
       const isSelfPush = chSrc.includes("人客多") || chSrc.includes("lakeze");
 
       if (stagingRow?.id && resolvedAccId && fields.message_type === "new_order" && !isSelfPush) {
-        // Real OTA new_order: issue fillup magic link (fire-and-forget)
+        // NEW: auto-create PII-pending order to lock inventory immediately.
+        const autoRes = await autoCreatePendingOrder(supabase, {
+          raw_email_id: inserted.id,
+          staging_id: stagingRow.id,
+          accommodation_id: resolvedAccId,
+          obe_number: fields.obe_number,
+          channel_source: fields.channel_source,
+          room_type_name: fields.room_type_name,
+          room_quantity: fields.room_quantity,
+          check_in_date: fields.check_in_date,
+          check_out_date: fields.check_out_date,
+          guest_count: fields.guest_count,
+          total_amount: fields.total_amount,
+        });
+        if (!autoRes.ok) {
+          console.warn("[owlting-email-ingest] auto-create pending skipped:", autoRes);
+          await supabase.from("owlting_email_parsed_staging").update({
+            auto_create_error: autoRes.skipped_reason ?? autoRes.error ?? "unknown",
+          }).eq("id", stagingRow.id);
+        } else {
+          console.log("[owlting-email-ingest] auto-created pending order", autoRes);
+        }
+
+        // Still issue fillup magic link so owner can backfill PII.
         fetch(`${supabaseUrl}/functions/v1/owlting-fillup-issue`, {
           method: "POST",
           headers: {
@@ -367,6 +391,17 @@ Deno.serve(async (req) => {
           staging_id: stagingRow.id,
           accommodation_name: fields.accommodation_name,
         });
+      }
+
+      // NEW: cancelled email → auto-cancel any PMS orders linked to this OBE.
+      if (stagingRow?.id && fields.message_type === "cancelled" && fields.obe_number) {
+        const cancelled = await cancelAutoPendingOrders(supabase, fields.obe_number);
+        if (cancelled.length > 0) {
+          console.log("[owlting-email-ingest] auto-cancelled orders for OBE", fields.obe_number, cancelled);
+          await supabase.from("owlting_email_parsed_staging").update({
+            review_notes: `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`,
+          }).eq("id", stagingRow.id);
+        }
       }
     } catch (e) {
       console.error("[owlting-email-ingest] staging insert threw:", e);

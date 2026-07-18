@@ -180,12 +180,13 @@ Deno.serve(async (req) => {
       ? Math.max(0, Math.round(totalAmount))
       : Math.max(0, Math.round(Number(staging.total_amount ?? 0)));
 
-    // Idempotency: avoid duplicate OBE inserts
+    // Idempotency: OBE already promoted (non-pending) → return as duplicate.
+    // If it's the auto-created pending order for this staging, fall through to UPDATE branch below.
     if (staging.obe_number) {
       const { data: existing } = await admin
-        .from("orders").select("id")
+        .from("orders").select("id, is_pii_pending")
         .eq("owlting_reservation_id", staging.obe_number).maybeSingle();
-      if (existing) {
+      if (existing && !existing.is_pii_pending && existing.id !== staging.auto_order_id) {
         await admin.from("owlting_email_parsed_staging").update({
           pii_status: "promoted_to_booking",
           promoted_order_id: existing.id,
@@ -245,37 +246,94 @@ Deno.serve(async (req) => {
     // Order-level room_type_id: keep first assignment for backward compat with legacy views.
     const primaryRoomTypeId = roomAssignments[0]?.room_type_id ?? roomTypeId ?? null;
 
-    // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
-    const { data: inserted, error: insErr } = await admin.from("orders").insert({
-      accommodation_id: accId,
-      room_type_id: primaryRoomTypeId,
-      check_in_date: finalCheckIn,
-      check_out_date: finalCheckOut,
-      guest_count: finalGuestCount,
-      guest_name: guestName,
-      guest_phone: guestPhone,
-      guest_email: guestEmail || null,
-      total_price: resolvedTotal,
-      final_price: resolvedTotal,
-      discount_amount: 0,
-      order_source: "owlting",
-      ota_channel: otaChannel,
-      order_status: "confirmed",
-      payment_status: effectivePaymentStatus,
-      paid_amount: effectivePaidAmount,
-      confirmed_at: nowIso,
-      requires_owner_review: true,
-      owlting_reservation_id: staging.obe_number,
-      deposit_required_amount: 0,
-      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
-    }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
+    // If email-ingest already auto-created a PII-pending order for this staging,
+    // UPDATE it in place instead of inserting a duplicate. Otherwise, INSERT a new one.
+    let inserted: {
+      id: string;
+      order_number: string;
+      accommodation_id: string;
+      room_type_id: string | null;
+      check_in_date: string;
+      check_out_date: string;
+      final_price: number;
+    } | null = null;
+    let updatedExisting = false;
 
-    if (insErr) {
-      console.error("[owlting-fillup-submit] order insert error:", insErr);
-      return new Response(JSON.stringify({ error: "訂單建立失敗", detail: insErr.message }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (staging.auto_order_id) {
+      const { data: pendingOrder } = await admin
+        .from("orders")
+        .select("id, order_number, is_pii_pending, order_status")
+        .eq("id", staging.auto_order_id)
+        .maybeSingle();
+      if (pendingOrder && pendingOrder.is_pii_pending && pendingOrder.order_status !== "cancelled") {
+        const { data: updated, error: updErr } = await admin
+          .from("orders")
+          .update({
+            room_type_id: primaryRoomTypeId,
+            check_in_date: finalCheckIn,
+            check_out_date: finalCheckOut,
+            guest_count: finalGuestCount,
+            guest_name: guestName,
+            guest_phone: guestPhone,
+            guest_email: guestEmail || null,
+            total_price: resolvedTotal,
+            final_price: resolvedTotal,
+            ota_channel: otaChannel,
+            payment_status: effectivePaymentStatus,
+            paid_amount: effectivePaidAmount,
+            is_pii_pending: false,
+            notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"}) — 補齊自動鎖房訂單`,
+          })
+          .eq("id", pendingOrder.id)
+          .select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price")
+          .single();
+        if (updErr || !updated) {
+          console.error("[owlting-fillup-submit] auto-order update failed:", updErr);
+          return new Response(JSON.stringify({ error: "訂單更新失敗", detail: updErr?.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        inserted = updated as any;
+        updatedExisting = true;
+        // Clear existing order_rooms so we can re-insert per assignment.
+        await admin.from("order_rooms").delete().eq("order_id", pendingOrder.id);
+      }
     }
+
+    if (!inserted) {
+      const { data: insertedRow, error: insErr } = await admin.from("orders").insert({
+        accommodation_id: accId,
+        room_type_id: primaryRoomTypeId,
+        check_in_date: finalCheckIn,
+        check_out_date: finalCheckOut,
+        guest_count: finalGuestCount,
+        guest_name: guestName,
+        guest_phone: guestPhone,
+        guest_email: guestEmail || null,
+        total_price: resolvedTotal,
+        final_price: resolvedTotal,
+        discount_amount: 0,
+        order_source: "owlting",
+        ota_channel: otaChannel,
+        order_status: "confirmed",
+        payment_status: effectivePaymentStatus,
+        paid_amount: effectivePaidAmount,
+        confirmed_at: nowIso,
+        requires_owner_review: true,
+        owlting_reservation_id: staging.obe_number,
+        deposit_required_amount: 0,
+        notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
+      }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
+
+      if (insErr || !insertedRow) {
+        console.error("[owlting-fillup-submit] order insert error:", insErr);
+        return new Response(JSON.stringify({ error: "訂單建立失敗", detail: insErr?.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      inserted = insertedRow as any;
+    }
+
 
     // Create one order_rooms row per assignment.
     // Honor manual room_unit_id when provided (validating it belongs to the room_type and is
