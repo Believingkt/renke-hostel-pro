@@ -59,7 +59,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
-  const [roomTypeId, setRoomTypeId] = useState<string>("none");
+  const [roomAssignments, setRoomAssignments] = useState<string[]>(["none"]);
+  const [autoMatchedRoomTypeId, setAutoMatchedRoomTypeId] = useState<string | null>(null);
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
   const [guestCount, setGuestCount] = useState<string>("2");
   const [checkInDate, setCheckInDate] = useState<string>("");
@@ -68,20 +69,21 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
   const [paymentOverridden, setPaymentOverridden] = useState(false);
 
-  // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
-  const [unitPreview, setUnitPreview] = useState<
+  // Preview of auto-assigned units per assignment row (matches server logic)
+  type UnitPreviewRow =
     | { status: "idle" | "loading" }
     | { status: "ok"; unitLabel: string; roomTypeName: string }
     | { status: "no_units"; roomTypeName: string }
     | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
-    | { status: "error"; message: string }
-  >({ status: "idle" });
+    | { status: "error"; message: string };
+  const [unitPreviews, setUnitPreviews] = useState<UnitPreviewRow[]>([]);
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
+    setRoomAssignments(["none"]); setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
   };
