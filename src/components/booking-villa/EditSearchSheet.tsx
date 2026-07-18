@@ -235,9 +235,16 @@ const EditSearchSheet = ({
       }
     }
 
+    const typeLabel = hasDualAxis
+      ? axis === "package"
+        ? "包棟房型"
+        : axis === "common"
+          ? "單間房型"
+          : "房型"
+      : "房型";
     const reason = missing.length === days.length
-      ? "所選日期目前無房型可訂"
-      : `所選期間有 ${missing.length} 天無房型可訂`;
+      ? `所選日期目前無${typeLabel}可訂`
+      : `所選期間有 ${missing.length} 天無${typeLabel}可訂`;
     return { reason, suggestion };
   })();
 
