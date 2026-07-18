@@ -1901,7 +1901,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}>
+          <Button variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-3xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
