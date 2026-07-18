@@ -231,7 +231,6 @@ export async function cancelAutoPendingOrders(
       .update({
         order_status: "cancelled",
         cancelled_at: nowIso,
-        cancellation_reason: "OwlTing OTA 取消通知（自動同步）",
       })
       .in("id", ids);
     return ids;
