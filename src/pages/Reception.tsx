@@ -116,7 +116,7 @@ export default function Reception() {
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [actingId, setActingId] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("order_number");
+  const [sortKey, setSortKey] = useState<SortKey>("room_type");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
