@@ -462,7 +462,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           guest_phone: guestPhone.trim(),
           guest_email: guestEmail.trim(),
           room_type_id: validAssignments[0],
-          room_assignments: validAssignments.map((id) => ({ room_type_id: id })),
+          room_assignments: roomAssignments
+            .map((id, idx) => ({ room_type_id: id, room_unit_id: unitOverrides[idx] ?? null }))
+            .filter((r) => r.room_type_id && r.room_type_id !== "none"),
           guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
           check_in_date: checkInDate,
