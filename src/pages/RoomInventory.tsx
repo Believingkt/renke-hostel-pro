@@ -40,6 +40,19 @@ export default function RoomInventory() {
   const [pending, setPending] = useState<PendingAction | null>(null);
   // Refs to each tab's panel to attach input listeners
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const prevAccIdRef = useRef<string | undefined>(undefined);
+
+  // Clear order tabs when the active accommodation changes — orders belong to
+  // a specific property and would be stale/irrelevant after switching.
+  useEffect(() => {
+    if (!currentAccommodationId) return;
+    if (prevAccIdRef.current && prevAccIdRef.current !== currentAccommodationId) {
+      setTabs([]);
+      setActiveTab("calendar");
+      setDirtyMap({});
+    }
+    prevAccIdRef.current = currentAccommodationId;
+  }, [currentAccommodationId]);
 
   // Restore from sessionStorage
   useEffect(() => {
