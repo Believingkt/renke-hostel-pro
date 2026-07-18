@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import {
@@ -15,6 +16,18 @@ interface UseStaffPermissionsResult {
   canEdit: (moduleKey: string) => boolean;
 }
 
+interface StaffPermissionData {
+  permissions: Record<string, ModulePermissionLevel>;
+  isStaff: boolean;
+}
+
+const EMPTY_PERMISSIONS: StaffPermissionData = {
+  permissions: {},
+  isStaff: false,
+};
+
+const STAFF_PERMISSIONS_STALE_TIME = 5 * 60 * 1000;
+
 /**
  * 取得目前登入者在當前民宿的模組權限。
  * - hotel_admin / super_admin：全部 editable。
@@ -22,57 +35,59 @@ interface UseStaffPermissionsResult {
  */
 export function useStaffPermissions(): UseStaffPermissionsResult {
   const { currentAccommodationId } = useAccommodation();
-  const [permissions, setPermissions] = useState<Record<string, ModulePermissionLevel>>({});
-  const [isStaff, setIsStaff] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
 
-    const load = async () => {
-      if (!currentAccommodationId) {
-        setIsLoading(false);
-        return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        setUserId(session?.user.id ?? null);
+        setAuthResolved(true);
       }
-      setIsLoading(true);
+    });
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        if (!cancelled) {
-          setPermissions({});
-          setIsStaff(false);
-          setIsLoading(false);
-        }
-        return;
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null);
+      setAuthResolved(true);
+    });
 
-      // 查詢角色
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const { data = EMPTY_PERMISSIONS, isLoading } = useQuery({
+    queryKey: ["staff-permissions", userId, currentAccommodationId],
+    enabled: Boolean(userId && currentAccommodationId),
+    staleTime: STAFF_PERMISSIONS_STALE_TIME,
+    gcTime: STAFF_PERMISSIONS_STALE_TIME * 2,
+    queryFn: async (): Promise<StaffPermissionData> => {
+      if (!userId || !currentAccommodationId) return EMPTY_PERMISSIONS;
+
+      // 查詢角色；React Query 會在同一頁面的 Sidebar / Route Guard 間共用這次請求
       const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("accommodation_id", currentAccommodationId);
 
       const roles = (roleRows ?? []).map((r: any) => r.role);
       const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
-      if (!cancelled) setIsStaff(isStaffOnly);
-
-      if (isAdmin) {
-        // admin → 全部 editable，不需查表
-        if (!cancelled) {
-          setPermissions({});
-          setIsLoading(false);
-        }
-        return;
+      if (isAdmin || !isStaffOnly) {
+        // admin / 非 staff → 全部 editable，不需再查模組權限表
+        return EMPTY_PERMISSIONS;
       }
 
       // staff：讀取自訂設定，套用 fallback
       const { data: rows } = await supabase
         .from("staff_module_permissions")
         .select("module_key, permission_level")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("accommodation_id", currentAccommodationId);
 
       const map: Record<string, ModulePermissionLevel> = { ...DEFAULT_STAFF_PERMISSIONS };
@@ -80,17 +95,15 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         map[r.module_key] = r.permission_level as ModulePermissionLevel;
       });
 
-      if (!cancelled) {
-        setPermissions(map);
-        setIsLoading(false);
-      }
-    };
+      return {
+        permissions: map,
+        isStaff: true,
+      };
+    },
+  });
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentAccommodationId]);
+  const permissions = data.permissions;
+  const isStaff = data.isStaff;
 
   const getLevel = (moduleKey: string): ModulePermissionLevel => {
     if (!isStaff) return "editable"; // 非 staff 一律可編輯
@@ -100,7 +113,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   return {
     permissions,
     isStaff,
-    isLoading,
+    isLoading: Boolean(currentAccommodationId) && (!authResolved || (Boolean(userId) && isLoading)),
     getLevel,
     canView: (k) => getLevel(k) !== "hidden",
     canEdit: (k) => getLevel(k) === "editable",
