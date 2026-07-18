@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     let callerUserId: string | null = null;
+    let callerRoles: string[] = [];
     if (!isServiceRole) {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -91,13 +92,11 @@ Deno.serve(async (req) => {
       callerUserId = userData.user.id;
       const { data: roleData } = await admin
         .from("user_roles").select("role").eq("user_id", userData.user.id);
-      const isAdmin = (roleData ?? []).some((r: any) => r.role === "super_admin" || r.role === "hotel_admin");
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      callerRoles = (roleData ?? []).map((r: any) => r.role);
+      // Admin check happens after we resolve accommodation_id, so staff with
+      // channel_manager=editable on that accommodation is also allowed.
     }
+
 
     const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
@@ -132,6 +131,39 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Authorization: super_admin/hotel_admin globally, OR staff with
+    // channel_manager=editable on this accommodation.
+    if (!isServiceRole && callerUserId) {
+      const isGlobalAdmin = callerRoles.includes("super_admin") || callerRoles.includes("hotel_admin");
+      let allowed = isGlobalAdmin;
+      if (!allowed) {
+        const { data: accRoleRows } = await admin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId)
+          .eq("accommodation_id", accId);
+        const accRoles = (accRoleRows ?? []).map((r: any) => r.role);
+        if (accRoles.includes("super_admin") || accRoles.includes("hotel_admin")) {
+          allowed = true;
+        } else if (accRoles.includes("staff")) {
+          const { data: perm } = await admin
+            .from("staff_module_permissions")
+            .select("permission_level")
+            .eq("user_id", callerUserId)
+            .eq("accommodation_id", accId)
+            .eq("module_key", "channel_manager")
+            .maybeSingle();
+          allowed = perm?.permission_level === "editable";
+        }
+      }
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     // Persist resolved acc on staging if missing
     if (!staging.accommodation_id) {
