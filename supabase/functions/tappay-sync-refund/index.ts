@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { getTapPayEndpoints } from "../_shared/tappay.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 
 /**
  * 管理員手動同步 TapPay 退款狀態
