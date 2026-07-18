@@ -83,14 +83,13 @@ serve(async (req) => {
     }
 
     // Permission
+    // Permission: KOL 改期允許任何在此民宿有角色的人；一般改期需 admin OR staff-orders-editable
     const { data: roleRows } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("accommodation_id", order.accommodation_id);
     const roles = new Set<string>((roleRows ?? []).map((r: any) => r.role));
-    const isAdmin =
-      roles.has("super_admin") || roles.has("hotel_admin") || roles.has("admin");
 
     if (body.mode === "kol") {
       if (order.order_source !== "kol") {
@@ -100,15 +99,18 @@ serve(async (req) => {
           corsHeaders,
         );
       }
-      // KOL 改期：任何能存取此訂單的角色皆可（roles 陣列非空即可）
       if (roles.size === 0) {
         return json({ success: false, message: "無權限存取此訂單" }, 403, corsHeaders);
       }
     } else {
-      if (!isAdmin) {
+      const authRes = await resolveCaller(req);
+      if (!authRes.ok) return json({ success: false, message: "未授權" }, authRes.status, corsHeaders);
+      const allowed = await canEditModule(authRes.ctx, order.accommodation_id, "orders");
+      if (!allowed) {
         return json({ success: false, message: "僅管理員可改動一般訂單日期" }, 403, corsHeaders);
       }
     }
+
 
     // KOL 額度處理（僅當訂單為 KOL 互惠單）
     let kolQuotaOverrideStatus: {
