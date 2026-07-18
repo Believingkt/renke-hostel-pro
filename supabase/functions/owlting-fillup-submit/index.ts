@@ -365,9 +365,9 @@ Deno.serve(async (req) => {
       try {
         // Look up room name for the email
         let roomName = staging.room_type_name ?? "—";
-        if (roomTypeId) {
+        if (primaryRoomTypeId) {
           const { data: rt } = await admin
-            .from("room_types").select("name").eq("id", roomTypeId).maybeSingle();
+            .from("room_types").select("name").eq("id", primaryRoomTypeId).maybeSingle();
           if (rt?.name) roomName = rt.name;
         }
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
