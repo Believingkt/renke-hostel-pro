@@ -502,7 +502,12 @@ export default function Reception() {
                   <Th onClick={() => toggleSort("guest_name")} active={sortKey === "guest_name"}>
                     顧客
                   </Th>
-                  <Th>房型</Th>
+                  <Th onClick={() => toggleSort("room_type")} active={sortKey === "room_type"}>
+                    房型
+                  </Th>
+                  <Th onClick={() => toggleSort("room_unit")} active={sortKey === "room_unit"}>
+                    房號
+                  </Th>
                   <Th>付款狀態</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
