@@ -98,18 +98,14 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify caller is authenticated admin (any logged-in user with role admin/super_admin)
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData } = await userClient.auth.getUser();
-  const user = userData?.user;
-  if (!user) {
-    return new Response(JSON.stringify({ error: "未登入" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  const authed = await resolveCaller(req);
+  if (!authed.ok) {
+    return authed.status === 401
+      ? unauthorizedResponse(corsHeaders, authed.error)
+      : forbiddenResponse(corsHeaders, authed.error);
   }
+  const ctx = authed.ctx;
+  const admin = ctx.admin;
 
   let payload: { accommodation_id?: string };
   try { payload = await req.json(); } catch { payload = {}; }
@@ -120,16 +116,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-  // Role check (admin / super_admin / staff)
-  const { data: roles } = await admin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
-  const roleNames = (roles ?? []).map((r: any) => r.role);
-  const isAdmin = roleNames.some((r) => ["admin", "super_admin", "staff"].includes(r));
-  if (!isAdmin) {
+  if (!(await canEditModule(ctx, accommodationId, "channel_manager"))) {
     return new Response(JSON.stringify({ error: "無權限" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
