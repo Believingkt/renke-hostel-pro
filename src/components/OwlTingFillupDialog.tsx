@@ -551,6 +551,39 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                 )}
               </div>
             </div>
+
+            {/* Auto-assignment preview */}
+            {roomTypeId !== "none" && datesValid && (
+              <div className="rounded-md border p-3 text-sm space-y-1 bg-muted/40">
+                <div className="text-xs font-medium text-muted-foreground">送出後將自動指派</div>
+                {unitPreview.status === "loading" && (
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />查詢可用房號中…
+                  </div>
+                )}
+                {unitPreview.status === "ok" && (
+                  <div>
+                    <div>房型：<span className="font-medium">{unitPreview.roomTypeName}</span></div>
+                    <div>房號：<span className="font-medium">{unitPreview.unitLabel}</span>
+                      <span className="text-xs text-muted-foreground ml-1">（依房號順序挑選第一間可用）</span>
+                    </div>
+                  </div>
+                )}
+                {unitPreview.status === "no_units" && (
+                  <div className="text-amber-700 dark:text-amber-400">
+                    房型「{unitPreview.roomTypeName}」尚未建立任何房號，將僅指派房型、房號保留空白。
+                  </div>
+                )}
+                {unitPreview.status === "all_busy" && (
+                  <div className="text-amber-700 dark:text-amber-400">
+                    房型「{unitPreview.roomTypeName}」所有房號在此日期區間皆已被佔用（{unitPreview.busyUnits.join("、")}），將僅指派房型、房號保留空白，請人工排房。
+                  </div>
+                )}
+                {unitPreview.status === "error" && (
+                  <div className="text-destructive">預覽查詢失敗：{unitPreview.message}</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
