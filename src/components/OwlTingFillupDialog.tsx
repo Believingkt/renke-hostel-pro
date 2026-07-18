@@ -823,7 +823,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             {validAssignments.length > 0 && datesValid && (
               <div className="rounded-md border p-3 text-sm space-y-2 bg-muted/40">
                 <div className="text-xs font-medium text-muted-foreground">
-                  送出後將自動指派（依房號順序挑選第一間可用）
+                  送出後將指派房號（未手動指定則依房號順序自動挑選）
                 </div>
                 {unitPreviews.length === 0 ? (
                   <div className="text-muted-foreground flex items-center gap-2">
@@ -845,6 +845,14 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                         <div>
                           房型：<span className="font-medium">{p.roomTypeName}</span>
                           {" · "}房號：<span className="font-medium">{p.unitLabel}</span>
+                          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded ${p.manual ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                            {p.manual ? "手動指定" : "自動指派"}
+                          </span>
+                        </div>
+                      )}
+                      {p.status === "manual_busy" && (
+                        <div className="text-destructive">
+                          房型「{p.roomTypeName}」的房號「{p.unitLabel}」在此區間已被其他訂單佔用，請改選其他房號。
                         </div>
                       )}
                       {p.status === "no_units" && (
