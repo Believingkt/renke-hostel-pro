@@ -2,7 +2,7 @@
 // by re-running the HTML parser against owlting_email_orders_raw.html_body.
 // POST { accommodation_id: uuid, raw_email_id?: uuid (single), overwrite?: boolean }
 // Requires authenticated admin (super_admin / hotel_admin).
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolveCaller, canEditModule, isSuperAdmin, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 
 const corsHeaders = {
