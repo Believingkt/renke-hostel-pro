@@ -130,7 +130,7 @@ export async function autoCreatePendingOrder(
         check_out_date: input.check_out_date,
         guest_count: guestCount,
         guest_name: placeholderName,
-        guest_phone: "",
+        guest_phone: "0000000000",
         guest_email: null,
         total_price: total,
         final_price: total,
