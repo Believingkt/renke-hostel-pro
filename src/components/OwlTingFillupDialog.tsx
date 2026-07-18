@@ -512,6 +512,17 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           </DialogTitle>
         </DialogHeader>
 
+        {stagingRow?.auto_order_id && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            🔒 此筆已於信件到達時自動預留庫存
+            {stagingRow.auto_order_number && (
+              <span className="ml-1 font-mono font-bold">#{stagingRow.auto_order_number}</span>
+            )}
+            ，補單提交後將直接更新此訂單並轉為正式 confirmed，不會新建。
+          </div>
+        )}
+
+
         {phase === "loading" && (
           <div className="py-12 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
