@@ -6,6 +6,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { refundTapPay } from "../_shared/tappay.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 
 interface Body {
   orderId: string;
