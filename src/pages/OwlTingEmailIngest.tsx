@@ -47,6 +47,8 @@ interface StagingLite {
   last_send_message: string | null;
   last_send_at: string | null;
   last_send_attempts: number | null;
+  auto_order_id: string | null;
+  auto_order_number?: string | null;
 }
 
 // Channel sources that indicate the OTA email was triggered by our own push
