@@ -2,7 +2,7 @@
 // link them back to the existing PMS order instead of creating a duplicate.
 // POST { staging_id: uuid }
 // Requires authenticated admin OR service-role.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolveCaller, canEditModule, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
