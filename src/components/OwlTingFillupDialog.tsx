@@ -573,7 +573,42 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </p>
                 )}
               </div>
+              <div>
+                <Label>付款狀態 <span className="text-destructive">*</span></Label>
+                <Select
+                  value={paymentStatus}
+                  onValueChange={(v) => {
+                    setPaymentStatus(v as "paid" | "unpaid");
+                    setPaymentOverridden(true);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">待結清（現場向客人收款）</SelectItem>
+                    <SelectItem value="paid">已付清（OTA 代收，入帳後撥款）</SelectItem>
+                  </SelectContent>
+                </Select>
+                {paymentDefaultedFrom ? (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    依信件來源「<span className="font-medium">{paymentDefaultedFrom}</span>」自動預設為
+                    <span className="font-medium">
+                      {" "}{paymentStatus === "unpaid" ? "待結清" : "已付清"}
+                    </span>
+                    {paymentOverridden && <span className="text-amber-600 dark:text-amber-400">（已手動覆寫）</span>}
+                    。若與實際不符請直接切換。
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠ 信件未帶來源平台，無法自動判斷，請依 OwlNest 後台實際情況選擇。
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  常見對照：Booking.com / Airbnb → 待結清；Agoda / Expedia / Trip / Klook / KKday / 官網 → 已付清。
+                </p>
+              </div>
             </div>
+
+
 
             {/* Auto-assignment preview */}
             {roomTypeId !== "none" && datesValid && (
