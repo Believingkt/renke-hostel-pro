@@ -1295,7 +1295,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         }
       } catch (e) { console.error("Audit log error:", e); }
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
-      navigate(backTo);
+      goBack();
     } catch (error) {
       console.error("取消訂單失敗:", error);
       toast({ title: "取消失敗", description: "無法取消訂單，請稍後再試", variant: "destructive" });
