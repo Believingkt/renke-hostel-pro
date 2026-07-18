@@ -36,36 +36,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const isServiceRole = !!bearer && bearer === serviceKey;
-    if (!isServiceRole) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      if (!userData?.user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const { data: roleData } = await admin
-        .from("user_roles").select("role").eq("user_id", userData.user.id);
-      const isAdmin = (roleData ?? []).some(
-        (r: any) => r.role === "super_admin" || r.role === "hotel_admin",
-      );
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const authed = await resolveCaller(req);
+    if (!authed.ok) {
+      return authed.status === 401
+        ? unauthorizedResponse(corsHeaders, authed.error)
+        : forbiddenResponse(corsHeaders, authed.error);
     }
+    const ctx = authed.ctx;
+    const admin = ctx.admin;
 
     const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
