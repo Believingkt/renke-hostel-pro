@@ -654,14 +654,14 @@ export default function Reception() {
                       <span className="text-foreground">房型：</span>{roomLabel(o)}
                     </div>
 
-                    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+                    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-h-[2.75rem]">
                       <Select
                         value={o.payment_status}
                         onValueChange={(v) => handlePaymentChange(o, v)}
                         disabled={!editable || acting}
                       >
                         <SelectTrigger
-                          className={`h-9 w-full xs:flex-1 text-xs font-medium ${paymentCls(o.payment_status)}`}
+                          className={`h-11 w-full xs:flex-1 text-xs font-medium ${paymentCls(o.payment_status)}`}
                         >
                           <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
                         </SelectTrigger>
