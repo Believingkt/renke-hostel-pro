@@ -27,27 +27,15 @@ serve(async (req) => {
     const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
     if (!partnerKey) throw new Error("TapPay credentials not configured");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Auth check - must be admin of this accommodation
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ success: false, message: "未授權" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const authed = await resolveCaller(req);
+    if (!authed.ok) {
+      return authed.status === 401
+        ? unauthorizedResponse(corsHeaders, "未授權")
+        : forbiddenResponse(corsHeaders, "無權限執行此操作");
     }
-    const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    const userId = userData?.user?.id;
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, message: "未授權" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const ctx = authed.ctx;
+    const supabase = ctx.admin;
+    const userId = ctx.userId;
 
     const { data: order } = await supabase
       .from("orders")
@@ -61,22 +49,7 @@ serve(async (req) => {
       );
     }
 
-    // Verify admin
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("accommodation_id", order.accommodation_id);
-    const isSuperAdmin = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "super_admin")
-      .maybeSingle();
-    const allowed =
-      isSuperAdmin.data ||
-      roles?.some((r: any) => r.role === "hotel_admin" || r.role === "super_admin");
-    if (!allowed) {
+    if (!(await canEditModule(ctx, order.accommodation_id, "orders"))) {
       return new Response(
         JSON.stringify({ success: false, message: "無權限執行此操作" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
