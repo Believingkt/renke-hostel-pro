@@ -358,7 +358,7 @@ export default function Reception() {
       <AdminPageHeader title="櫃檯接待" icon={ConciergeBell} />
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 px-4 sm:px-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-lg">今日櫃檯</CardTitle>
             <div className="text-sm text-muted-foreground">今日：{today}</div>
