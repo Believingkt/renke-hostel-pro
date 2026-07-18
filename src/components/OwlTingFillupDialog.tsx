@@ -332,85 +332,108 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     guestCountValid &&
     datesValid;
 
-  // Compute auto-assigned room unit preview per assignment row.
-  // Mirrors server logic: pick free units in display_order, skipping already-picked units.
+  const unitLabel = (u: UnitInfo) => (u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number);
+
+  // Fetch units + busy sets for any newly-selected room_type_id and cache in state.
+  useEffect(() => {
+    if (phase !== "form" || !datesValid) return;
+    const needed = Array.from(new Set(roomAssignments.filter((r) => r && r !== "none")));
+    const missing = needed.filter((rt) => !(rt in unitsByType));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const nextUnits: Record<string, UnitInfo[]> = {};
+      const nextBusy: Record<string, Set<string>> = {};
+      for (const rtId of missing) {
+        try {
+          const { data: units } = await supabase
+            .from("room_units")
+            .select("id, unit_number, nickname, display_order")
+            .eq("room_type_id", rtId)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true })
+            .order("unit_number", { ascending: true });
+          const list = (units ?? []) as UnitInfo[];
+          nextUnits[rtId] = list;
+          if (list.length > 0) {
+            const { data: conflicts } = await supabase
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+              .in("room_unit_id", list.map((u) => u.id))
+              .neq("orders.order_status", "cancelled")
+              .lt("orders.check_in_date", checkOutDate)
+              .gt("orders.check_out_date", checkInDate);
+            nextBusy[rtId] = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
+          } else {
+            nextBusy[rtId] = new Set();
+          }
+        } catch (e) {
+          nextUnits[rtId] = [];
+          nextBusy[rtId] = new Set();
+        }
+      }
+      if (cancelled) return;
+      setUnitsByType((prev) => ({ ...prev, ...nextUnits }));
+      setBusyByType((prev) => ({ ...prev, ...nextBusy }));
+    })();
+    return () => { cancelled = true; };
+  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, unitsByType]);
+
+  // Compute preview: honor manual overrides first, then auto-pick from remaining free units.
   useEffect(() => {
     if (phase !== "form" || !datesValid) {
       setUnitPreviews([]);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const results: UnitPreviewRow[] = [];
-      // Track picked unit ids across rows sharing a room_type
-      const pickedByType = new Map<string, Set<string>>();
-      // Cache units and busy sets per room_type_id
-      const unitCache = new Map<string, { id: string; unit_number: string; nickname: string | null }[]>();
-      const busyCache = new Map<string, Set<string>>();
-      const label = (u: any) =>
-        u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
+    const results: UnitPreviewRow[] = [];
+    const pickedByType = new Map<string, Set<string>>();
 
-      for (const rtId of roomAssignments) {
-        if (!rtId || rtId === "none") {
-          results.push({ status: "idle" });
-          continue;
-        }
-        const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
-        try {
-          if (!unitCache.has(rtId)) {
-            const { data: units, error: unitsErr } = await supabase
-              .from("room_units")
-              .select("id, unit_number, nickname, display_order")
-              .eq("room_type_id", rtId)
-              .eq("is_active", true)
-              .order("display_order", { ascending: true })
-              .order("unit_number", { ascending: true });
-            if (unitsErr) throw unitsErr;
-            unitCache.set(rtId, (units ?? []) as any);
-            if (units && units.length > 0) {
-              const { data: conflicts, error: cErr } = await supabase
-                .from("order_rooms")
-                .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-                .in("room_unit_id", units.map((u) => u.id))
-                .neq("orders.order_status", "cancelled")
-                .lt("orders.check_in_date", checkOutDate)
-                .gt("orders.check_out_date", checkInDate);
-              if (cErr) throw cErr;
-              busyCache.set(
-                rtId,
-                new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
-              );
-            } else {
-              busyCache.set(rtId, new Set());
-            }
-          }
-          const units = unitCache.get(rtId)!;
-          const busy = busyCache.get(rtId)!;
-          if (units.length === 0) {
-            results.push({ status: "no_units", roomTypeName });
-            continue;
-          }
-          const picked = pickedByType.get(rtId) ?? new Set<string>();
-          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
-          if (free) {
-            picked.add(free.id);
-            pickedByType.set(rtId, picked);
-            results.push({ status: "ok", unitLabel: label(free), roomTypeName });
-          } else {
-            results.push({
-              status: "all_busy",
-              roomTypeName,
-              busyUnits: units.map(label),
-            });
-          }
-        } catch (e: any) {
-          results.push({ status: "error", message: e?.message ?? "查詢失敗" });
-        }
+    // Pass 1: mark manual overrides as picked
+    roomAssignments.forEach((rtId, idx) => {
+      const override = unitOverrides[idx];
+      if (rtId && rtId !== "none" && override) {
+        const s = pickedByType.get(rtId) ?? new Set<string>();
+        s.add(override);
+        pickedByType.set(rtId, s);
       }
-      if (!cancelled) setUnitPreviews(results);
-    })();
-    return () => { cancelled = true; };
-  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, roomTypes]);
+    });
+
+    // Pass 2: build preview per row
+    for (let i = 0; i < roomAssignments.length; i++) {
+      const rtId = roomAssignments[i];
+      if (!rtId || rtId === "none") { results.push({ status: "idle" }); continue; }
+      const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
+      const units = unitsByType[rtId];
+      const busy = busyByType[rtId];
+      if (!units || !busy) { results.push({ status: "loading" }); continue; }
+      if (units.length === 0) { results.push({ status: "no_units", roomTypeName }); continue; }
+
+      const override = unitOverrides[i];
+      if (override) {
+        const u = units.find((x) => x.id === override);
+        if (!u) { results.push({ status: "error", message: "手動指定的房號不在此房型內" }); continue; }
+        if (busy.has(u.id)) {
+          results.push({ status: "manual_busy", unitLabel: unitLabel(u), roomTypeName });
+        } else {
+          results.push({ status: "ok", unitLabel: unitLabel(u), roomTypeName, manual: true });
+        }
+        continue;
+      }
+
+      // Auto-pick, skipping busy + already picked (manual or auto in earlier rows)
+      const picked = pickedByType.get(rtId) ?? new Set<string>();
+      const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+      if (free) {
+        picked.add(free.id);
+        pickedByType.set(rtId, picked);
+        results.push({ status: "ok", unitLabel: unitLabel(free), roomTypeName, manual: false });
+      } else {
+        results.push({ status: "all_busy", roomTypeName, busyUnits: units.map(unitLabel) });
+      }
+    }
+    setUnitPreviews(results);
+  }, [phase, roomAssignments, unitOverrides, unitsByType, busyByType, datesValid, roomTypes]);
+
 
   const handleSubmit = async () => {
     if (!token) return;
