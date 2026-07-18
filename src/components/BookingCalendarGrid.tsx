@@ -1149,7 +1149,10 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                           left: leftPx,
                                           width: widthPx,
                                         }}
-                                        onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                        onClick={() => {
+                                          if (onOrderClick) onOrderClick(entry.orderId);
+                                          else navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } });
+                                        }}
                                       >
                                         <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
                                         <span className="font-medium truncate">{entry.guest_name}</span>
