@@ -5310,6 +5310,7 @@ export type Database = {
           atm_rec_trade_id: string | null
           atm_vacc_bank_code: string | null
           atm_vacc_no: string | null
+          auto_created_from_email_id: string | null
           balance_payment_method: string | null
           cancelled_at: string | null
           check_in_date: string
@@ -5347,6 +5348,7 @@ export type Database = {
           import_project: string | null
           internal_email_sent: boolean
           internal_email_sent_at: string | null
+          is_pii_pending: boolean
           lock_whole_building: boolean
           meal_plan: string | null
           meal_plan_details: Json | null
@@ -5382,6 +5384,7 @@ export type Database = {
           atm_rec_trade_id?: string | null
           atm_vacc_bank_code?: string | null
           atm_vacc_no?: string | null
+          auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date: string
@@ -5419,6 +5422,7 @@ export type Database = {
           import_project?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
+          is_pii_pending?: boolean
           lock_whole_building?: boolean
           meal_plan?: string | null
           meal_plan_details?: Json | null
@@ -5454,6 +5458,7 @@ export type Database = {
           atm_rec_trade_id?: string | null
           atm_vacc_bank_code?: string | null
           atm_vacc_no?: string | null
+          auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date?: string
@@ -5491,6 +5496,7 @@ export type Database = {
           import_project?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
+          is_pii_pending?: boolean
           lock_whole_building?: boolean
           meal_plan?: string | null
           meal_plan_details?: Json | null
@@ -5520,6 +5526,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_auto_created_from_email_id_fkey"
+            columns: ["auto_created_from_email_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_email_orders_raw"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
@@ -5884,6 +5897,9 @@ export type Database = {
           accommodation_name: string | null
           addons: Json | null
           adult_count: number | null
+          auto_create_error: string | null
+          auto_created_at: string | null
+          auto_order_id: string | null
           channel_source: string | null
           check_in_date: string | null
           check_out_date: string | null
@@ -5931,6 +5947,9 @@ export type Database = {
           accommodation_name?: string | null
           addons?: Json | null
           adult_count?: number | null
+          auto_create_error?: string | null
+          auto_created_at?: string | null
+          auto_order_id?: string | null
           channel_source?: string | null
           check_in_date?: string | null
           check_out_date?: string | null
@@ -5978,6 +5997,9 @@ export type Database = {
           accommodation_name?: string | null
           addons?: Json | null
           adult_count?: number | null
+          auto_create_error?: string | null
+          auto_created_at?: string | null
+          auto_order_id?: string | null
           channel_source?: string | null
           check_in_date?: string | null
           check_out_date?: string | null
@@ -6026,6 +6048,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_email_parsed_staging_auto_order_id_fkey"
+            columns: ["auto_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
