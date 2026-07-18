@@ -47,20 +47,22 @@ serve(async (req) => {
       );
     }
 
-    // Check if user has admin role for this accommodation
-    const { data: userRoles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('accommodation_id', accommodationId)
-      .single();
-
-    if (rolesError || !userRoles || !['super_admin', 'hotel_admin'].includes(userRoles.role)) {
+    // Permission: admin OR staff with `orders` module editable on this accommodation
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ error: authRes.error }), {
+        status: authRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const allowed = await canEditModule(authRes.ctx, accommodationId, 'orders');
+    if (!allowed) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Admin access required' }),
+        JSON.stringify({ error: 'Unauthorized - Admin or editable orders permission required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+
 
     console.log(`Starting to clean order notes for accommodation: ${accommodationId}`);
 
