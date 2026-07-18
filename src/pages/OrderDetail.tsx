@@ -1500,50 +1500,88 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         } as OrderDetail;
         setOrder(orderObj);
 
-        // Fetch order_rooms (multi-room details)
-        const { data: orderRoomsData } = await supabase
-          .from("order_rooms")
-          .select("id, room_type_id, quantity, room_price, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
-          .eq("order_id", orderId);
-        if (orderRoomsData && orderRoomsData.length > 0) {
-          setOrderRooms(orderRoomsData as unknown as OrderRoom[]);
-        } else {
-          setOrderRooms([]);
-        }
+        // Fire all dependent lookups in parallel — they only need orderData.
+        const accId = orderData.accommodation_id;
+        const [
+          orderRoomsRes,
+          rtRes,
+          unitsRes,
+          occupiedRes,
+          templatesRes,
+          holidayRes,
+          addonRes,
+        ] = await Promise.all([
+          supabase
+            .from("order_rooms")
+            .select("id, room_type_id, quantity, room_price, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
+            .eq("order_id", orderId),
+          accId
+            ? supabase
+                .from("room_types")
+                .select("id, name, base_price, is_exclusive_package")
+                .eq("accommodation_id", accId)
+                .order("display_order", { ascending: true })
+            : Promise.resolve({ data: null } as any),
+          accId
+            ? supabase
+                .from("room_units" as any)
+                .select("id, room_type_id, unit_number, nickname, is_active")
+                .eq("accommodation_id", accId)
+                .eq("is_active", true)
+                .order("display_order", { ascending: true })
+            : Promise.resolve({ data: null } as any),
+          accId && orderData.check_in_date && orderData.check_out_date
+            ? supabase
+                .from("order_rooms")
+                .select("room_unit_id, orders!inner(id, order_number, order_status, check_in_date, check_out_date)")
+                .not("room_unit_id", "is", null)
+                .neq("order_id", orderId)
+                .eq("orders.accommodation_id", accId)
+                .neq("orders.order_status", "cancelled")
+                .lt("orders.check_in_date", orderData.check_out_date)
+                .gt("orders.check_out_date", orderData.check_in_date)
+            : Promise.resolve({ data: null } as any),
+          accId
+            ? supabase
+                .from("pricing_templates")
+                .select("id, template_name, meal_plans, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, display_order")
+                .eq("accommodation_id", accId)
+                .order("display_order", { ascending: true, nullsFirst: false })
+                .order("template_name", { ascending: true })
+            : Promise.resolve({ data: null } as any),
+          accId && orderData.check_in_date && orderData.check_out_date
+            ? supabase
+                .from("public_holidays")
+                .select("holiday_date, holiday_type")
+                .eq("accommodation_id", accId)
+                .gte("holiday_date", orderData.check_in_date)
+                .lte("holiday_date", orderData.check_out_date)
+            : Promise.resolve({ data: null } as any),
+          accId
+            ? supabase
+                .from("addon_settings")
+                .select("id, addon_type, description, unit_label, price_per_unit, max_quantity, enabled")
+                .eq("accommodation_id", accId)
+                .eq("enabled", true)
+                .order("sort_order", { ascending: true })
+                .order("created_at", { ascending: true })
+            : Promise.resolve({ data: null } as any),
+        ]);
 
-        // Fetch room types for edit mode
-        if (orderData.accommodation_id) {
-          const { data: rtData } = await supabase
-            .from("room_types")
-            .select("id, name, base_price, is_exclusive_package")
-            .eq("accommodation_id", orderData.accommodation_id)
-            .order("display_order", { ascending: true });
-          if (rtData) setRoomTypes(rtData);
+        const orderRoomsData = orderRoomsRes.data;
+        setOrderRooms(orderRoomsData && orderRoomsData.length > 0 ? (orderRoomsData as unknown as OrderRoom[]) : []);
 
-          // Fetch room units for assignment dropdown (active only)
-          const { data: unitsData } = await supabase
-            .from("room_units" as any)
-            .select("id, room_type_id, unit_number, nickname, is_active")
-            .eq("accommodation_id", orderData.accommodation_id)
-            .eq("is_active", true)
-            .order("display_order", { ascending: true });
+        if (accId) {
+          const rtData = rtRes.data as any[] | null;
+          if (rtData) setRoomTypes(rtData as any);
+
+          const unitsData = unitsRes.data as any[] | null;
           if (unitsData) {
-            // 查詢同期間已被佔用的 unit
-            const { data: occupiedData } = await supabase
-              .from("order_rooms")
-              .select("room_unit_id, orders!inner(id, order_number, order_status, check_in_date, check_out_date)")
-              .not("room_unit_id", "is", null)
-              .neq("order_id", orderId);
             const occupiedMap = new Map<string, { id: string; order_number: string }>();
-            ((occupiedData as any) || []).forEach((row: any) => {
+            (((occupiedRes as any).data as any[]) || []).forEach((row: any) => {
               const o = row.orders;
-              if (!o || o.order_status === "cancelled") return;
-              if (
-                o.check_in_date < orderData.check_out_date &&
-                o.check_out_date > orderData.check_in_date
-              ) {
-                occupiedMap.set(row.room_unit_id, { id: o.id, order_number: o.order_number });
-              }
+              if (!o) return;
+              occupiedMap.set(row.room_unit_id, { id: o.id, order_number: o.order_number });
             });
             setRoomUnits(
               (unitsData as any[]).map((u) => ({
@@ -1554,15 +1592,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             );
           }
 
-          // Fetch all pricing templates for this accommodation so edited room rows can
-          // resolve the correct room-type-specific inventory price, including holidays.
-          const { data: templatesData } = await supabase
-            .from("pricing_templates")
-            .select("id, template_name, meal_plans, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, display_order")
-            .eq("accommodation_id", orderData.accommodation_id)
-            .order("display_order", { ascending: true, nullsFirst: false })
-            .order("template_name", { ascending: true });
-
+          const templatesData = templatesRes.data as any[] | null;
           if (templatesData && templatesData.length > 0) {
             const roomTypeId = orderData.room_type_id;
             const roomTypeTemplates = roomTypeId
@@ -1572,15 +1602,14 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               : templatesData;
             setRoomTemplates(roomTypeTemplates as any);
             setAllRoomTemplates(templatesData as any);
-            // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
-            const defaultTemplate = roomTypeTemplates.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
+            const defaultTemplate = roomTypeTemplates.find((t: any) => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
             if (defaultTemplate) {
               const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
               derivedPlans.push(...plans);
             }
             for (const t of roomTypeTemplates) {
-              const name = t.template_name || "";
+              const name = (t as any).template_name || "";
               if (name.includes("二食") || name.includes("2食")) {
                 if (!derivedPlans.some(p => p.id === "2_meals")) {
                   derivedPlans.push({ id: "2_meals", name: "一泊二食", description: "" });
@@ -1593,39 +1622,23 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               }
             }
             setCustomMealPlans(derivedPlans);
+            setAllTemplates(templatesData as any);
           } else {
             setRoomTemplates([]);
             setAllRoomTemplates([]);
             setCustomMealPlans([]);
           }
 
-          if (templatesData) setAllTemplates(templatesData as any);
-
-          // Fetch public holidays covering the order date range (with margin)
-          if (orderData.check_in_date && orderData.check_out_date) {
-            const { data: holidayData } = await supabase
-              .from("public_holidays")
-              .select("holiday_date, holiday_type")
-              .eq("accommodation_id", orderData.accommodation_id)
-              .gte("holiday_date", orderData.check_in_date)
-              .lte("holiday_date", orderData.check_out_date);
-            if (holidayData) {
-              setPublicHolidays(
-                holidayData
-                  .filter((h: any) => h.holiday_type !== "work_on_weekend")
-                  .map((h: any) => h.holiday_date),
-              );
-            }
+          const holidayData = holidayRes.data as any[] | null;
+          if (holidayData) {
+            setPublicHolidays(
+              holidayData
+                .filter((h: any) => h.holiday_type !== "work_on_weekend")
+                .map((h: any) => h.holiday_date),
+            );
           }
 
-          // Fetch addon settings for edit mode
-          const { data: addonData } = await supabase
-            .from("addon_settings")
-            .select("id, addon_type, description, unit_label, price_per_unit, max_quantity, enabled")
-            .eq("accommodation_id", orderData.accommodation_id)
-            .eq("enabled", true)
-            .order("sort_order", { ascending: true })
-            .order("created_at", { ascending: true });
+          const addonData = addonRes.data as any[] | null;
           if (addonData) setAddonSettings(addonData as AddonSetting[]);
         }
       }
