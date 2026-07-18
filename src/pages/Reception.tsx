@@ -48,10 +48,23 @@ interface ReceptionOrder {
   final_price: number | null;
   paid_amount: number | null;
   room_type?: { name: string | null } | null;
-  rooms?: Array<{ room_type_id: string; quantity: number; room_type?: { name: string | null } | null }>;
+  rooms?: Array<{
+    room_type_id: string;
+    quantity: number;
+    room_type?: { name: string | null } | null;
+    room_unit?: { unit_number: string | null; display_order: number | null } | null;
+  }>;
 }
 
-type SortKey = "order_number" | "guest_name" | "status";
+type SortKey = "order_number" | "guest_name" | "status" | "room_type" | "room_unit";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  order_number: "訂單編號",
+  guest_name: "顧客",
+  status: "狀態",
+  room_type: "房型",
+  room_unit: "房號",
+};
 
 const todayStr = () => format(new Date(), "yyyy-MM-dd");
 const offsetDateStr = (days: number) => {
@@ -233,7 +246,7 @@ export default function Reception() {
            check_in_date, check_out_date, checked_in_at, checked_out_at,
            order_source, order_status, payment_status, final_price, paid_amount,
            room_type:room_types ( name ),
-           rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ) )`
+           rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ), room_unit:room_units ( unit_number, display_order ) )`
         )
         .eq("accommodation_id", currentAccommodationId)
         .eq(col, targetDate)
@@ -328,13 +341,27 @@ export default function Reception() {
       });
     }
     const dir = sortDir === "asc" ? 1 : -1;
-    const get = (o: ReceptionOrder) => {
+    const get = (o: ReceptionOrder): string => {
       if (sortKey === "order_number") return o.order_number;
       if (sortKey === "guest_name") return o.guest_name ?? "";
-      const s = mode === "checkin" ? getCheckinStatus(o).label : getCheckoutStatus(o).label;
-      return s;
+      if (sortKey === "room_type") {
+        const names = (o.rooms ?? [])
+          .map((r) => r.room_type?.name ?? "")
+          .filter(Boolean)
+          .sort();
+        return names[0] ?? o.room_type?.name ?? "";
+      }
+      if (sortKey === "room_unit") {
+        const units = (o.rooms ?? [])
+          .map((r) => r.room_unit?.unit_number ?? "")
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "zh-Hant", { numeric: true }));
+        // Unassigned units sort last
+        return units[0] ?? "\uFFFF";
+      }
+      return mode === "checkin" ? getCheckinStatus(o).label : getCheckoutStatus(o).label;
     };
-    return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant") * dir);
+    return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant", { numeric: true }) * dir);
   }, [orders, keyword, sortKey, sortDir, mode]);
 
   const toggleSort = (key: SortKey) => {
@@ -464,6 +491,33 @@ export default function Reception() {
             </div>
           </div>
 
+          {/* Sort controls (primary for mobile, also usable on desktop) */}
+          <div className="flex items-center gap-2 md:justify-end">
+            <span className="text-xs text-muted-foreground shrink-0">排序</span>
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+              <SelectTrigger className="h-9 w-[9rem] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>{SORT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1"
+              onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+              aria-label="切換排序方向"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="text-xs">{sortDir === "asc" ? "升冪" : "降冪"}</span>
+            </Button>
+          </div>
+
+
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
@@ -475,7 +529,12 @@ export default function Reception() {
                   <Th onClick={() => toggleSort("guest_name")} active={sortKey === "guest_name"}>
                     顧客
                   </Th>
-                  <Th>房型</Th>
+                  <Th onClick={() => toggleSort("room_type")} active={sortKey === "room_type"}>
+                    房型
+                  </Th>
+                  <Th onClick={() => toggleSort("room_unit")} active={sortKey === "room_unit"}>
+                    房號
+                  </Th>
                   <Th>付款狀態</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
@@ -488,13 +547,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
@@ -503,6 +562,9 @@ export default function Reception() {
                     const status =
                       mode === "checkin" ? getCheckinStatus(o) : getCheckoutStatus(o);
                     const acting = actingId === o.id;
+                    const units = (o.rooms ?? [])
+                      .map((r) => r.room_unit?.unit_number)
+                      .filter((u): u is string => Boolean(u));
                     return (
                       <tr key={o.id} className="border-t hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 align-top">
@@ -525,6 +587,9 @@ export default function Reception() {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
+                        <td className="px-4 py-3 align-top tabular-nums">
+                          {units.length > 0 ? units.join("、") : <span className="text-muted-foreground">—</span>}
+                        </td>
                         <td className="px-4 py-3 align-top">
                           <Select
                             value={o.payment_status}
@@ -624,6 +689,9 @@ export default function Reception() {
               sortedFiltered.map((o) => {
                 const status = mode === "checkin" ? getCheckinStatus(o) : getCheckoutStatus(o);
                 const acting = actingId === o.id;
+                const units = (o.rooms ?? [])
+                  .map((r) => r.room_unit?.unit_number)
+                  .filter((u): u is string => Boolean(u));
                 return (
                   <div key={o.id} className="rounded-lg border p-3 space-y-2.5 bg-card">
                     <div className="flex items-start justify-between gap-2">
@@ -653,6 +721,12 @@ export default function Reception() {
                     <div className="text-xs text-muted-foreground">
                       <span className="text-foreground">房型：</span>{roomLabel(o)}
                     </div>
+
+                    <div className="text-xs text-muted-foreground">
+                      <span className="text-foreground">房號：</span>
+                      {units.length > 0 ? <span className="tabular-nums">{units.join("、")}</span> : "—"}
+                    </div>
+
 
                     <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-h-[2.75rem]">
                       <Select
