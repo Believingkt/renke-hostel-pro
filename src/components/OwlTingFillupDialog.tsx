@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
@@ -35,6 +35,7 @@ interface StagingRow {
   total_amount: number | null;
   pii_status: string;
   channel_source: string | null;
+  room_quantity: number | null;
 }
 interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
