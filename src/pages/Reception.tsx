@@ -341,13 +341,27 @@ export default function Reception() {
       });
     }
     const dir = sortDir === "asc" ? 1 : -1;
-    const get = (o: ReceptionOrder) => {
+    const get = (o: ReceptionOrder): string => {
       if (sortKey === "order_number") return o.order_number;
       if (sortKey === "guest_name") return o.guest_name ?? "";
-      const s = mode === "checkin" ? getCheckinStatus(o).label : getCheckoutStatus(o).label;
-      return s;
+      if (sortKey === "room_type") {
+        const names = (o.rooms ?? [])
+          .map((r) => r.room_type?.name ?? "")
+          .filter(Boolean)
+          .sort();
+        return names[0] ?? o.room_type?.name ?? "";
+      }
+      if (sortKey === "room_unit") {
+        const units = (o.rooms ?? [])
+          .map((r) => r.room_unit?.unit_number ?? "")
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "zh-Hant", { numeric: true }));
+        // Unassigned units sort last
+        return units[0] ?? "\uFFFF";
+      }
+      return mode === "checkin" ? getCheckinStatus(o).label : getCheckoutStatus(o).label;
     };
-    return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant") * dir);
+    return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant", { numeric: true }) * dir);
   }, [orders, keyword, sortKey, sortDir, mode]);
 
   const toggleSort = (key: SortKey) => {
