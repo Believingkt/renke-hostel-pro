@@ -407,29 +407,30 @@ export default function Reception() {
           {/* Day tabs (only for checkin) + search */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {mode === "checkin" ? (
-              <Tabs value={day} onValueChange={(v) => setDay(v as CheckinDay)}>
-                <TabsList>
-                  <TabsTrigger value="yesterday">
-                    昨日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+              <Tabs value={day} onValueChange={(v) => setDay(v as CheckinDay)} className="w-full lg:w-auto min-w-0">
+                <TabsList className="w-full lg:w-auto grid grid-cols-3 lg:inline-flex h-auto">
+                  <TabsTrigger value="yesterday" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>昨日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.yesterday.in}/{counts.yesterday.total}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="today">
-                    今日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+                  <TabsTrigger value="today" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>今日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.today.in}/{counts.today.total}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="tomorrow">
-                    明日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+                  <TabsTrigger value="tomorrow" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>明日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.tomorrow.total}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value={day} />
               </Tabs>
+
             ) : (
               <div className="text-sm font-medium">
                 今日退房{" "}
