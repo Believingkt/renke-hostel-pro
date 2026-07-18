@@ -73,15 +73,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Auth: caller must be admin OR a service-role caller (server-to-server, e.g. ingest auto-trigger)
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
     const authRes = await resolveCaller(req);
     if (!authRes.ok) {
       return new Response(JSON.stringify({ error: authRes.error }), {
@@ -93,6 +84,7 @@ Deno.serve(async (req) => {
     const isServiceRole = authCtx.isServiceRole;
     const callerUserId = authCtx.userId;
 
+    const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
     if (!stagingId) {
       return new Response(JSON.stringify({ error: "staging_id required" }), {
@@ -126,37 +118,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authorization: super_admin/hotel_admin globally, OR staff with
-    // channel_manager=editable on this accommodation.
-    if (!isServiceRole && callerUserId) {
-      const isGlobalAdmin = callerRoles.includes("super_admin") || callerRoles.includes("hotel_admin");
-      let allowed = isGlobalAdmin;
-      if (!allowed) {
-        const { data: accRoleRows } = await admin
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", callerUserId)
-          .eq("accommodation_id", accId);
-        const accRoles = (accRoleRows ?? []).map((r: any) => r.role);
-        if (accRoles.includes("super_admin") || accRoles.includes("hotel_admin")) {
-          allowed = true;
-        } else if (accRoles.includes("staff")) {
-          const { data: perm } = await admin
-            .from("staff_module_permissions")
-            .select("permission_level")
-            .eq("user_id", callerUserId)
-            .eq("accommodation_id", accId)
-            .eq("module_key", "channel_manager")
-            .maybeSingle();
-          allowed = perm?.permission_level === "editable";
-        }
-      }
-      if (!allowed) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Authorization: admin OR staff with channel_manager=editable on this accommodation
+    if (!isServiceRole) {
+      const allowed = await canEditModule(authCtx, accId, "channel_manager");
+      if (!allowed) return forbiddenResponse(corsHeaders);
     }
+
 
 
     // Persist resolved acc on staging if missing
