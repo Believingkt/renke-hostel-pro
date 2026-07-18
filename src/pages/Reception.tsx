@@ -48,10 +48,23 @@ interface ReceptionOrder {
   final_price: number | null;
   paid_amount: number | null;
   room_type?: { name: string | null } | null;
-  rooms?: Array<{ room_type_id: string; quantity: number; room_type?: { name: string | null } | null }>;
+  rooms?: Array<{
+    room_type_id: string;
+    quantity: number;
+    room_type?: { name: string | null } | null;
+    room_unit?: { unit_number: string | null; display_order: number | null } | null;
+  }>;
 }
 
-type SortKey = "order_number" | "guest_name" | "status";
+type SortKey = "order_number" | "guest_name" | "status" | "room_type" | "room_unit";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  order_number: "訂單編號",
+  guest_name: "顧客",
+  status: "狀態",
+  room_type: "房型",
+  room_unit: "房號",
+};
 
 const todayStr = () => format(new Date(), "yyyy-MM-dd");
 const offsetDateStr = (days: number) => {
