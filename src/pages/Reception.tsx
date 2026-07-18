@@ -397,7 +397,7 @@ export default function Reception() {
                 aria-label="重新整理"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                重新整理
+                <span className="hidden sm:inline">重新整理</span>
               </Button>
             </div>
 
