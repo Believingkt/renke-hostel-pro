@@ -180,12 +180,13 @@ Deno.serve(async (req) => {
       ? Math.max(0, Math.round(totalAmount))
       : Math.max(0, Math.round(Number(staging.total_amount ?? 0)));
 
-    // Idempotency: avoid duplicate OBE inserts
+    // Idempotency: OBE already promoted (non-pending) → return as duplicate.
+    // If it's the auto-created pending order for this staging, fall through to UPDATE branch below.
     if (staging.obe_number) {
       const { data: existing } = await admin
-        .from("orders").select("id")
+        .from("orders").select("id, is_pii_pending")
         .eq("owlting_reservation_id", staging.obe_number).maybeSingle();
-      if (existing) {
+      if (existing && !existing.is_pii_pending && existing.id !== staging.auto_order_id) {
         await admin.from("owlting_email_parsed_staging").update({
           pii_status: "promoted_to_booking",
           promoted_order_id: existing.id,
