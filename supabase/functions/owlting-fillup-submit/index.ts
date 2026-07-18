@@ -216,6 +216,19 @@ Deno.serve(async (req) => {
       else otaChannel = rawChannel; // fall back to raw label
     }
 
+    // Resolve payment status:
+    //  - Client-provided value wins.
+    //  - Otherwise default by channel: booking.com/airbnb → unpaid, others → paid.
+    let effectivePaymentStatus: "paid" | "unpaid";
+    if (paymentStatusInput) {
+      effectivePaymentStatus = paymentStatusInput;
+    } else if (otaChannel === "booking" || otaChannel === "airbnb") {
+      effectivePaymentStatus = "unpaid";
+    } else {
+      effectivePaymentStatus = "paid";
+    }
+    const effectivePaidAmount = effectivePaymentStatus === "paid" ? resolvedTotal : 0;
+
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
       accommodation_id: accId,
@@ -232,12 +245,13 @@ Deno.serve(async (req) => {
       order_source: "owlting",
       ota_channel: otaChannel,
       order_status: "confirmed",
-      payment_status: "paid",
+      payment_status: effectivePaymentStatus,
+      paid_amount: effectivePaidAmount,
       confirmed_at: nowIso,
       requires_owner_review: true,
       owlting_reservation_id: staging.obe_number,
       deposit_required_amount: 0,
-      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${rawChannel ? `, 平台: ${rawChannel}` : ""})`,
+      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
     }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
     if (insErr) {
