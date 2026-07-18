@@ -63,6 +63,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestCount, setGuestCount] = useState<string>("2");
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid">("paid");
+  const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
+  const [paymentOverridden, setPaymentOverridden] = useState(false);
 
   // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
   const [unitPreview, setUnitPreview] = useState<
