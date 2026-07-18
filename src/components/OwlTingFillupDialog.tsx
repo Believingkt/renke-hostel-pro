@@ -97,7 +97,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -111,6 +111,23 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
       if (row.check_in_date) setCheckInDate(row.check_in_date);
       if (row.check_out_date) setCheckOutDate(row.check_out_date);
+
+      // Default payment_status by OTA channel:
+      //  - Booking.com / Airbnb → 現場收款 (unpaid)
+      //  - Agoda / Expedia / Trip / Klook / KKday / 官網 → 已代收 (paid)
+      const ch = String(row.channel_source ?? "").toLowerCase();
+      let def: "paid" | "unpaid" = "paid";
+      let label: string | null = row.channel_source ?? null;
+      if (ch) {
+        if (ch.includes("booking") || ch.includes("airbnb")) def = "unpaid";
+        else def = "paid";
+      } else {
+        label = null;
+      }
+      setPaymentStatus(def);
+      setPaymentDefaultedFrom(label);
+      setPaymentOverridden(false);
+
 
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
