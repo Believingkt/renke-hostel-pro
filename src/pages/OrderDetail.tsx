@@ -207,12 +207,23 @@ interface EditFormState {
   extra_addon_amount: number;
 }
 
-const OrderDetailPage = () => {
-  const { orderId } = useParams<{ orderId: string }>();
+interface OrderDetailPageProps {
+  orderId?: string;
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: OrderDetailPageProps = {}) => {
+  const params = useParams<{ orderId: string }>();
+  const orderId = orderIdProp ?? params.orderId;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParamsHook();
   const backTo = (location.state as any)?.from || "/admin/orders";
+  const goBack = () => {
+    if (embedded && onClose) onClose();
+    else navigate(backTo);
+  };
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
