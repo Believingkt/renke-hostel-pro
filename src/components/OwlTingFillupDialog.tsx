@@ -36,6 +36,8 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
+  auto_order_id: string | null;
+  auto_order_number?: string | null;
 }
 interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
@@ -109,7 +111,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, auto_order_id")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -117,6 +119,17 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         setPhase("error");
         return;
       }
+      // If linked to an auto-created pending order, fetch its order_number for display.
+      let autoOrderNumber: string | null = null;
+      if ((data as any).auto_order_id) {
+        const { data: ord } = await supabase
+          .from("orders")
+          .select("order_number")
+          .eq("id", (data as any).auto_order_id)
+          .maybeSingle();
+        autoOrderNumber = ord?.order_number ?? null;
+      }
+      (data as any).auto_order_number = autoOrderNumber;
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
@@ -498,6 +511,17 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             {accName || stagingRow?.accommodation_name || "民宿"}：奧丁丁訂單補單
           </DialogTitle>
         </DialogHeader>
+
+        {stagingRow?.auto_order_id && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            🔒 此筆已於信件到達時自動預留庫存
+            {stagingRow.auto_order_number && (
+              <span className="ml-1 font-mono font-bold">#{stagingRow.auto_order_number}</span>
+            )}
+            ，補單提交後將直接更新此訂單並轉為正式 confirmed，不會新建。
+          </div>
+        )}
+
 
         {phase === "loading" && (
           <div className="py-12 flex justify-center">
