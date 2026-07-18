@@ -462,8 +462,8 @@ export default function Reception() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto rounded-lg border">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
@@ -608,6 +608,130 @@ export default function Reception() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              <div className="px-4 py-10 text-center text-muted-foreground text-sm">載入中…</div>
+            ) : sortedFiltered.length === 0 ? (
+              <div className="px-4 py-10 text-center text-muted-foreground text-sm">
+                {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
+              </div>
+            ) : (
+              sortedFiltered.map((o) => {
+                const status = mode === "checkin" ? getCheckinStatus(o) : getCheckoutStatus(o);
+                const acting = actingId === o.id;
+                return (
+                  <div key={o.id} className="rounded-lg border p-3 space-y-2.5 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link
+                          to={`/admin/orders/${o.id}`}
+                          className="text-primary font-semibold hover:underline text-sm"
+                        >
+                          {o.order_number}
+                        </Link>
+                        {o.order_source && (
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {sourceLabel(o.order_source)}
+                          </div>
+                        )}
+                      </div>
+                      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                    </div>
+
+                    <div className="text-sm">
+                      <div className="font-medium">{o.guest_name ?? "—"}</div>
+                      {o.guest_phone && (
+                        <div className="text-xs text-muted-foreground">{o.guest_phone}</div>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground">
+                      <span className="text-foreground">房型：</span>{roomLabel(o)}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <Select
+                        value={o.payment_status}
+                        onValueChange={(v) => handlePaymentChange(o, v)}
+                        disabled={!editable || acting}
+                      >
+                        <SelectTrigger
+                          className={`h-9 flex-1 text-xs font-medium ${paymentCls(o.payment_status)}`}
+                        >
+                          <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {o.final_price != null && (
+                        <div className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                          ${(o.paid_amount ?? 0).toLocaleString()} / ${o.final_price.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+
+                    {(o.checked_in_at || o.checked_out_at) && (
+                      <div className="text-[11px] text-muted-foreground">
+                        {mode === "checkin" && o.checked_in_at && `入住：${format(new Date(o.checked_in_at), "MM-dd HH:mm")}`}
+                        {mode === "checkout" && o.checked_out_at && `退房：${format(new Date(o.checked_out_at), "MM-dd HH:mm")}`}
+                      </div>
+                    )}
+
+                    <div className="pt-1">
+                      {mode === "checkin" ? (
+                        o.checked_in_at ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!editable || acting}
+                            onClick={() => handleAction(o, "undo_checkin")}
+                            className="w-full h-11"
+                          >
+                            取消入住
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            disabled={!editable || acting}
+                            onClick={() => handleAction(o, "checkin")}
+                            className="w-full h-11 gap-1"
+                          >
+                            <LogIn className="h-4 w-4" /> 辦理入住
+                          </Button>
+                        )
+                      ) : o.checked_out_at ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!editable || acting}
+                          onClick={() => handleAction(o, "undo_checkout")}
+                          className="w-full h-11"
+                        >
+                          取消退房
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={!editable || acting}
+                          onClick={() => handleAction(o, "checkout")}
+                          className="w-full h-11 gap-1"
+                        >
+                          <LogOut className="h-4 w-4" /> 辦理退房
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </CardContent>
       </Card>
