@@ -235,10 +235,13 @@ Deno.serve(async (req) => {
     }
     const effectivePaidAmount = effectivePaymentStatus === "paid" ? resolvedTotal : 0;
 
+    // Order-level room_type_id: keep first assignment for backward compat with legacy views.
+    const primaryRoomTypeId = roomAssignments[0] ?? roomTypeId ?? null;
+
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
       accommodation_id: accId,
-      room_type_id: roomTypeId,
+      room_type_id: primaryRoomTypeId,
       check_in_date: finalCheckIn,
       check_out_date: finalCheckOut,
       guest_count: finalGuestCount,
@@ -257,7 +260,7 @@ Deno.serve(async (req) => {
       requires_owner_review: true,
       owlting_reservation_id: staging.obe_number,
       deposit_required_amount: 0,
-      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
+      notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
     }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
     if (insErr) {
@@ -267,61 +270,78 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auto-create order_rooms with in-order room_unit assignment.
-    // Rationale: PMS reads order_rooms to display room breakdown / unit assignment.
-    // Fillup previously only set orders.room_type_id, leaving PMS showing "未指派".
-    // Pick first available active unit by display_order/unit_number that has no
-    // date conflict with existing (non-cancelled) orders in [check_in, check_out).
-    let assignedUnitId: string | null = null;
-    if (roomTypeId) {
-      try {
-        const { data: units } = await admin
-          .from("room_units")
-          .select("id, display_order, unit_number")
-          .eq("room_type_id", roomTypeId)
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .order("unit_number", { ascending: true });
+    // Auto-create one order_rooms row per assignment, with sequential unit picking.
+    // Cache units + busy sets per room_type_id, and track picked units to avoid double-assign
+    // when multiple assignments share the same room_type.
+    const unitCache = new Map<string, { id: string; unit_number: string }[]>();
+    const busyCache = new Map<string, Set<string>>();
+    const pickedByType = new Map<string, Set<string>>();
+    const perRoomPrice = roomAssignments.length > 0
+      ? Math.round(resolvedTotal / roomAssignments.length)
+      : resolvedTotal;
 
-        if (units && units.length > 0) {
-          // Find units already booked in this date range
-          const { data: conflicts } = await admin
-            .from("order_rooms")
-            .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-            .in("room_unit_id", units.map((u) => u.id))
-            .neq("orders.order_status", "cancelled")
-            .lt("orders.check_in_date", finalCheckOut)
-            .gt("orders.check_out_date", finalCheckIn);
-          const busy = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
-          const free = units.find((u) => !busy.has(u.id));
-          if (free) assignedUnitId = free.id;
+    for (const rtId of roomAssignments) {
+      let assignedUnitId: string | null = null;
+      try {
+        if (!unitCache.has(rtId)) {
+          const { data: units } = await admin
+            .from("room_units")
+            .select("id, display_order, unit_number")
+            .eq("room_type_id", rtId)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true })
+            .order("unit_number", { ascending: true });
+          unitCache.set(rtId, (units ?? []) as any);
+          if (units && units.length > 0) {
+            const { data: conflicts } = await admin
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+              .in("room_unit_id", units.map((u) => u.id))
+              .neq("orders.order_status", "cancelled")
+              .lt("orders.check_in_date", finalCheckOut)
+              .gt("orders.check_out_date", finalCheckIn);
+            busyCache.set(
+              rtId,
+              new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
+            );
+          } else {
+            busyCache.set(rtId, new Set());
+          }
+        }
+        const units = unitCache.get(rtId)!;
+        const busy = busyCache.get(rtId)!;
+        const picked = pickedByType.get(rtId) ?? new Set<string>();
+        const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+        if (free) {
+          assignedUnitId = free.id;
+          picked.add(free.id);
+          pickedByType.set(rtId, picked);
         }
 
         const { error: orErr } = await admin.from("order_rooms").insert({
           order_id: inserted!.id,
-          room_type_id: roomTypeId,
+          room_type_id: rtId,
           quantity: 1,
-          room_price: resolvedTotal,
+          room_price: perRoomPrice,
           room_unit_id: assignedUnitId,
         });
         if (orErr) {
           console.error("[owlting-fillup-submit] order_rooms insert error:", orErr);
-          // Retry without unit assignment if conflict trigger fired
           if (assignedUnitId) {
             await admin.from("order_rooms").insert({
               order_id: inserted!.id,
-              room_type_id: roomTypeId,
+              room_type_id: rtId,
               quantity: 1,
-              room_price: resolvedTotal,
+              room_price: perRoomPrice,
               room_unit_id: null,
             });
-            assignedUnitId = null;
           }
         }
       } catch (e) {
         console.error("[owlting-fillup-submit] auto-assign room unit failed:", e);
       }
     }
+
 
     // Mark staging promoted + token used
     await admin.from("owlting_email_parsed_staging").update({
