@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
     const effectivePaidAmount = effectivePaymentStatus === "paid" ? resolvedTotal : 0;
 
     // Order-level room_type_id: keep first assignment for backward compat with legacy views.
-    const primaryRoomTypeId = roomAssignments[0] ?? roomTypeId ?? null;
+    const primaryRoomTypeId = roomAssignments[0]?.room_type_id ?? roomTypeId ?? null;
 
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
