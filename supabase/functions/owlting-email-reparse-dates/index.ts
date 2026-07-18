@@ -20,30 +20,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authed = await resolveCaller(req);
+    if (!authed.ok) {
+      return authed.status === 401
+        ? unauthorizedResponse(corsHeaders, authed.error)
+        : forbiddenResponse(corsHeaders, authed.error);
     }
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-    const { data: roleData } = await admin
-      .from("user_roles").select("role").eq("user_id", userData.user.id);
-    const isAdmin = (roleData ?? []).some((r: any) => r.role === "super_admin" || r.role === "hotel_admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const ctx = authed.ctx;
+    const admin = ctx.admin;
 
     const body = await req.json().catch(() => ({}));
     const accId = body.accommodation_id ? String(body.accommodation_id) : null;
@@ -54,6 +38,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "accommodation_id or raw_email_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Permission check: require channel_manager:editable on the target accommodation.
+    // If only raw_email_id is supplied, look up its accommodation first.
+    let targetAccId = accId;
+    if (!targetAccId && singleRawId) {
+      const { data: rawRow } = await admin
+        .from("owlting_email_orders_raw")
+        .select("accommodation_id")
+        .eq("id", singleRawId)
+        .maybeSingle();
+      targetAccId = rawRow?.accommodation_id ?? null;
+    }
+    if (targetAccId && !isSuperAdmin(ctx) && !(await canEditModule(ctx, targetAccId, "channel_manager"))) {
+      return forbiddenResponse(corsHeaders);
+    }
+    if (!targetAccId && !isSuperAdmin(ctx)) {
+      return forbiddenResponse(corsHeaders);
     }
 
     let q = admin
