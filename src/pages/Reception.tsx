@@ -246,7 +246,7 @@ export default function Reception() {
            check_in_date, check_out_date, checked_in_at, checked_out_at,
            order_source, order_status, payment_status, final_price, paid_amount,
            room_type:room_types ( name ),
-           rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ) )`
+           rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ), room_unit:room_units ( unit_number, display_order ) )`
         )
         .eq("accommodation_id", currentAccommodationId)
         .eq(col, targetDate)
