@@ -491,6 +491,33 @@ export default function Reception() {
             </div>
           </div>
 
+          {/* Sort controls (primary for mobile, also usable on desktop) */}
+          <div className="flex items-center gap-2 md:justify-end">
+            <span className="text-xs text-muted-foreground shrink-0">排序</span>
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+              <SelectTrigger className="h-9 w-[9rem] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>{SORT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1"
+              onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+              aria-label="切換排序方向"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="text-xs">{sortDir === "asc" ? "升冪" : "降冪"}</span>
+            </Button>
+          </div>
+
+
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
