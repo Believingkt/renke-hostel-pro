@@ -270,8 +270,30 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         body: { token: iss.token },
       });
       if (valErr || !val?.ok) throw new Error(val?.error || valErr?.message || "驗證失敗");
-      setRoomTypes(val.room_types || []);
+      const rts: RoomType[] = val.room_types || [];
+      setRoomTypes(rts);
       setAccName(val.accommodation?.name ?? stagingRow?.accommodation_name ?? "");
+
+      // A. Auto-match staging room_type_name against PMS room_types by name (normalized)
+      const rawRt = (stagingRow?.room_type_name ?? "").trim();
+      let matched: RoomType | undefined;
+      if (rawRt && rts.length > 0) {
+        const norm = (s: string) =>
+          s.toLowerCase().replace(/\s+/g, "").replace(/[（）()\-_]/g, "");
+        const target = norm(rawRt);
+        matched =
+          rts.find((r) => norm(r.name) === target) ||
+          rts.find((r) => {
+            const n = norm(r.name);
+            return n && (n.includes(target) || target.includes(n));
+          });
+      }
+      setAutoMatchedRoomTypeId(matched?.id ?? null);
+
+      // B. Initialize assignment rows based on staging.room_quantity
+      const qty = Math.max(1, Math.min(10, Number(stagingRow?.room_quantity ?? 1) || 1));
+      setRoomAssignments(Array.from({ length: qty }, () => matched?.id ?? "none"));
+
       setPhase("form");
     } catch (e: any) {
       setErrorMsg(e.message ?? String(e));
@@ -292,12 +314,93 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const guestCountNum = Number(guestCount);
   const guestCountValid = isGuestCountValid(guestCount);
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
+  const validAssignments = roomAssignments.filter((id) => id && id !== "none");
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
-    roomTypeId !== "none" &&
+    validAssignments.length > 0 &&
     guestCountValid &&
     datesValid;
+
+  // Compute auto-assigned room unit preview per assignment row.
+  // Mirrors server logic: pick free units in display_order, skipping already-picked units.
+  useEffect(() => {
+    if (phase !== "form" || !datesValid) {
+      setUnitPreviews([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const results: UnitPreviewRow[] = [];
+      // Track picked unit ids across rows sharing a room_type
+      const pickedByType = new Map<string, Set<string>>();
+      // Cache units and busy sets per room_type_id
+      const unitCache = new Map<string, { id: string; unit_number: string; nickname: string | null }[]>();
+      const busyCache = new Map<string, Set<string>>();
+      const label = (u: any) =>
+        u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
+
+      for (const rtId of roomAssignments) {
+        if (!rtId || rtId === "none") {
+          results.push({ status: "idle" });
+          continue;
+        }
+        const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
+        try {
+          if (!unitCache.has(rtId)) {
+            const { data: units, error: unitsErr } = await supabase
+              .from("room_units")
+              .select("id, unit_number, nickname, display_order")
+              .eq("room_type_id", rtId)
+              .eq("is_active", true)
+              .order("display_order", { ascending: true })
+              .order("unit_number", { ascending: true });
+            if (unitsErr) throw unitsErr;
+            unitCache.set(rtId, (units ?? []) as any);
+            if (units && units.length > 0) {
+              const { data: conflicts, error: cErr } = await supabase
+                .from("order_rooms")
+                .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+                .in("room_unit_id", units.map((u) => u.id))
+                .neq("orders.order_status", "cancelled")
+                .lt("orders.check_in_date", checkOutDate)
+                .gt("orders.check_out_date", checkInDate);
+              if (cErr) throw cErr;
+              busyCache.set(
+                rtId,
+                new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
+              );
+            } else {
+              busyCache.set(rtId, new Set());
+            }
+          }
+          const units = unitCache.get(rtId)!;
+          const busy = busyCache.get(rtId)!;
+          if (units.length === 0) {
+            results.push({ status: "no_units", roomTypeName });
+            continue;
+          }
+          const picked = pickedByType.get(rtId) ?? new Set<string>();
+          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+          if (free) {
+            picked.add(free.id);
+            pickedByType.set(rtId, picked);
+            results.push({ status: "ok", unitLabel: label(free), roomTypeName });
+          } else {
+            results.push({
+              status: "all_busy",
+              roomTypeName,
+              busyUnits: units.map(label),
+            });
+          }
+        } catch (e: any) {
+          results.push({ status: "error", message: e?.message ?? "查詢失敗" });
+        }
+      }
+      if (!cancelled) setUnitPreviews(results);
+    })();
+    return () => { cancelled = true; };
+  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, roomTypes]);
 
   // Compute the auto-assigned room unit preview whenever inputs change
   useEffect(() => {
