@@ -299,6 +299,7 @@ export default function OwlTingEmailIngest() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
