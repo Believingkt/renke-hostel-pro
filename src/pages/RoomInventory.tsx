@@ -148,22 +148,28 @@ export default function RoomInventory() {
     setPending(null);
   };
 
-  // Attach input/change listeners per panel to auto-track dirty
+  // Track dirty by detecting the presence of the "取消編輯" button in each panel.
+  // OrderDetail toggles this button while isEditing is true; when the user saves
+  // or cancels, the button disappears and we clear dirty for that tab.
   useEffect(() => {
-    const cleanups: Array<() => void> = [];
+    const observers: MutationObserver[] = [];
+    const check = (id: string, el: HTMLElement) => {
+      const editing = !!Array.from(el.querySelectorAll("button")).find((b) =>
+        (b.textContent || "").includes("取消編輯")
+      );
+      if (editing) markDirty(id);
+      else clearDirty(id);
+    };
     tabs.forEach((t) => {
       const el = panelRefs.current[t.id];
       if (!el) return;
-      const onInput = () => markDirty(t.id);
-      el.addEventListener("input", onInput, true);
-      el.addEventListener("change", onInput, true);
-      cleanups.push(() => {
-        el.removeEventListener("input", onInput, true);
-        el.removeEventListener("change", onInput, true);
-      });
+      check(t.id, el);
+      const mo = new MutationObserver(() => check(t.id, el));
+      mo.observe(el, { childList: true, subtree: true, characterData: true });
+      observers.push(mo);
     });
-    return () => cleanups.forEach((c) => c());
-  }, [tabs, markDirty]);
+    return () => observers.forEach((o) => o.disconnect());
+  }, [tabs, activeTab, markDirty, clearDirty]);
 
   return (
     <>
