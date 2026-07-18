@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
@@ -35,6 +35,7 @@ interface StagingRow {
   total_amount: number | null;
   pii_status: string;
   channel_source: string | null;
+  room_quantity: number | null;
 }
 interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
@@ -58,7 +59,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
-  const [roomTypeId, setRoomTypeId] = useState<string>("none");
+  const [roomAssignments, setRoomAssignments] = useState<string[]>(["none"]);
+  const [autoMatchedRoomTypeId, setAutoMatchedRoomTypeId] = useState<string | null>(null);
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
   const [guestCount, setGuestCount] = useState<string>("2");
   const [checkInDate, setCheckInDate] = useState<string>("");
@@ -67,20 +69,21 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
   const [paymentOverridden, setPaymentOverridden] = useState(false);
 
-  // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
-  const [unitPreview, setUnitPreview] = useState<
+  // Preview of auto-assigned units per assignment row (matches server logic)
+  type UnitPreviewRow =
     | { status: "idle" | "loading" }
     | { status: "ok"; unitLabel: string; roomTypeName: string }
     | { status: "no_units"; roomTypeName: string }
     | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
-    | { status: "error"; message: string }
-  >({ status: "idle" });
+    | { status: "error"; message: string };
+  const [unitPreviews, setUnitPreviews] = useState<UnitPreviewRow[]>([]);
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
+    setRoomAssignments(["none"]); setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
   };
@@ -97,7 +100,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -267,8 +270,30 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         body: { token: iss.token },
       });
       if (valErr || !val?.ok) throw new Error(val?.error || valErr?.message || "驗證失敗");
-      setRoomTypes(val.room_types || []);
+      const rts: RoomType[] = val.room_types || [];
+      setRoomTypes(rts);
       setAccName(val.accommodation?.name ?? stagingRow?.accommodation_name ?? "");
+
+      // A. Auto-match staging room_type_name against PMS room_types by name (normalized)
+      const rawRt = (stagingRow?.room_type_name ?? "").trim();
+      let matched: RoomType | undefined;
+      if (rawRt && rts.length > 0) {
+        const norm = (s: string) =>
+          s.toLowerCase().replace(/\s+/g, "").replace(/[（）()\-_]/g, "");
+        const target = norm(rawRt);
+        matched =
+          rts.find((r) => norm(r.name) === target) ||
+          rts.find((r) => {
+            const n = norm(r.name);
+            return n && (n.includes(target) || target.includes(n));
+          });
+      }
+      setAutoMatchedRoomTypeId(matched?.id ?? null);
+
+      // B. Initialize assignment rows based on staging.room_quantity
+      const qty = Math.max(1, Math.min(10, Number(stagingRow?.room_quantity ?? 1) || 1));
+      setRoomAssignments(Array.from({ length: qty }, () => matched?.id ?? "none"));
+
       setPhase("form");
     } catch (e: any) {
       setErrorMsg(e.message ?? String(e));
@@ -289,64 +314,93 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const guestCountNum = Number(guestCount);
   const guestCountValid = isGuestCountValid(guestCount);
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
+  const validAssignments = roomAssignments.filter((id) => id && id !== "none");
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
-    roomTypeId !== "none" &&
+    validAssignments.length > 0 &&
     guestCountValid &&
     datesValid;
 
-  // Compute the auto-assigned room unit preview whenever inputs change
+  // Compute auto-assigned room unit preview per assignment row.
+  // Mirrors server logic: pick free units in display_order, skipping already-picked units.
   useEffect(() => {
-    if (phase !== "form" || roomTypeId === "none" || !datesValid) {
-      setUnitPreview({ status: "idle" });
+    if (phase !== "form" || !datesValid) {
+      setUnitPreviews([]);
       return;
     }
-    const roomTypeName = roomTypes.find((r) => r.id === roomTypeId)?.name ?? "";
     let cancelled = false;
-    setUnitPreview({ status: "loading" });
     (async () => {
-      try {
-        const { data: units, error: unitsErr } = await supabase
-          .from("room_units")
-          .select("id, unit_number, nickname, display_order")
-          .eq("room_type_id", roomTypeId)
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .order("unit_number", { ascending: true });
-        if (unitsErr) throw unitsErr;
-        if (!units || units.length === 0) {
-          if (!cancelled) setUnitPreview({ status: "no_units", roomTypeName });
-          return;
-        }
+      const results: UnitPreviewRow[] = [];
+      // Track picked unit ids across rows sharing a room_type
+      const pickedByType = new Map<string, Set<string>>();
+      // Cache units and busy sets per room_type_id
+      const unitCache = new Map<string, { id: string; unit_number: string; nickname: string | null }[]>();
+      const busyCache = new Map<string, Set<string>>();
+      const label = (u: any) =>
+        u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
 
-        const { data: conflicts, error: cErr } = await supabase
-          .from("order_rooms")
-          .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-          .in("room_unit_id", units.map((u) => u.id))
-          .neq("orders.order_status", "cancelled")
-          .lt("orders.check_in_date", checkOutDate)
-          .gt("orders.check_out_date", checkInDate);
-        if (cErr) throw cErr;
-        const busy = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
-        const free = units.find((u) => !busy.has(u.id));
-        const label = (u: any) => u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
-        if (cancelled) return;
-        if (free) {
-          setUnitPreview({ status: "ok", unitLabel: label(free), roomTypeName });
-        } else {
-          setUnitPreview({
-            status: "all_busy",
-            roomTypeName,
-            busyUnits: units.map(label),
-          });
+      for (const rtId of roomAssignments) {
+        if (!rtId || rtId === "none") {
+          results.push({ status: "idle" });
+          continue;
         }
-      } catch (e: any) {
-        if (!cancelled) setUnitPreview({ status: "error", message: e?.message ?? "查詢失敗" });
+        const roomTypeName = roomTypes.find((r) => r.id === rtId)?.name ?? "";
+        try {
+          if (!unitCache.has(rtId)) {
+            const { data: units, error: unitsErr } = await supabase
+              .from("room_units")
+              .select("id, unit_number, nickname, display_order")
+              .eq("room_type_id", rtId)
+              .eq("is_active", true)
+              .order("display_order", { ascending: true })
+              .order("unit_number", { ascending: true });
+            if (unitsErr) throw unitsErr;
+            unitCache.set(rtId, (units ?? []) as any);
+            if (units && units.length > 0) {
+              const { data: conflicts, error: cErr } = await supabase
+                .from("order_rooms")
+                .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+                .in("room_unit_id", units.map((u) => u.id))
+                .neq("orders.order_status", "cancelled")
+                .lt("orders.check_in_date", checkOutDate)
+                .gt("orders.check_out_date", checkInDate);
+              if (cErr) throw cErr;
+              busyCache.set(
+                rtId,
+                new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
+              );
+            } else {
+              busyCache.set(rtId, new Set());
+            }
+          }
+          const units = unitCache.get(rtId)!;
+          const busy = busyCache.get(rtId)!;
+          if (units.length === 0) {
+            results.push({ status: "no_units", roomTypeName });
+            continue;
+          }
+          const picked = pickedByType.get(rtId) ?? new Set<string>();
+          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
+          if (free) {
+            picked.add(free.id);
+            pickedByType.set(rtId, picked);
+            results.push({ status: "ok", unitLabel: label(free), roomTypeName });
+          } else {
+            results.push({
+              status: "all_busy",
+              roomTypeName,
+              busyUnits: units.map(label),
+            });
+          }
+        } catch (e: any) {
+          results.push({ status: "error", message: e?.message ?? "查詢失敗" });
+        }
       }
+      if (!cancelled) setUnitPreviews(results);
     })();
     return () => { cancelled = true; };
-  }, [phase, roomTypeId, checkInDate, checkOutDate, datesValid, roomTypes]);
+  }, [phase, roomAssignments, checkInDate, checkOutDate, datesValid, roomTypes]);
 
   const handleSubmit = async () => {
     if (!token) return;
@@ -354,8 +408,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       toast.error("請填寫姓名與電話");
       return;
     }
-    if (roomTypeId === "none") {
-      toast.error("請選擇對應房型");
+    if (validAssignments.length === 0) {
+      toast.error("請至少選擇一個對應房型");
       return;
     }
     if (!guestCountValid) {
@@ -374,7 +428,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           guest_name: guestName.trim(),
           guest_phone: guestPhone.trim(),
           guest_email: guestEmail.trim(),
-          room_type_id: roomTypeId,
+          room_type_id: validAssignments[0],
+          room_assignments: validAssignments.map((id) => ({ room_type_id: id })),
           guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
           check_in_date: checkInDate,
@@ -532,20 +587,84 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                 <Label htmlFor="ad_guest_email">Email</Label>
                 <Input id="ad_guest_email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="guest@example.com（可選）" />
               </div>
-              <div>
-                <Label>對應房型 <span className="text-destructive">*</span></Label>
-                <Select value={roomTypeId} onValueChange={setRoomTypeId}>
-                  <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">請選擇</SelectItem>
-                    {roomTypes.map((rt) => (
-                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    對應房型 <span className="text-destructive">*</span>
+                    {roomAssignments.length > 1 && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        （共 {roomAssignments.length} 間，可分別選擇不同房型）
+                      </span>
+                    )}
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setRoomAssignments((prev) =>
+                        prev.length < 10 ? [...prev, autoMatchedRoomTypeId ?? "none"] : prev,
+                      )
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />新增一間
+                  </Button>
+                </div>
+                {roomAssignments.map((rtId, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground w-14 shrink-0">
+                      第 {idx + 1} 間
+                    </div>
+                    <div className="flex-1">
+                      <Select
+                        value={rtId}
+                        onValueChange={(v) =>
+                          setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)))
+                        }
+                      >
+                        <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">請選擇</SelectItem>
+                          {roomTypes.map((rt) => (
+                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {roomAssignments.length > 1 && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() =>
+                          setRoomAssignments((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        aria-label="移除此間"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
                 {stagingRow.room_type_name && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    信件原房型欄位：「{stagingRow.room_type_name}」（僅供參考，請依 OwlNest 後台實際房型選擇）
+                  <p className="text-[11px] text-muted-foreground">
+                    信件原房型欄位：「{stagingRow.room_type_name}」
+                    {autoMatchedRoomTypeId ? (
+                      <span className="text-green-700 dark:text-green-400">
+                        {" "}→ 已自動比對到「
+                        {roomTypes.find((r) => r.id === autoMatchedRoomTypeId)?.name}
+                        」（可覆寫）
+                      </span>
+                    ) : (
+                      <span className="text-amber-700 dark:text-amber-400">
+                        {" "}（無法自動比對，OTA 通用房型碼請依 OwlNest 後台實際房型選擇）
+                      </span>
+                    )}
+                  </p>
+                )}
+                {stagingRow.room_quantity && stagingRow.room_quantity > 1 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    信件解析到共 {stagingRow.room_quantity} 間房；若各間房型不同請個別調整。
                   </p>
                 )}
               </div>
@@ -611,34 +730,48 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
 
             {/* Auto-assignment preview */}
-            {roomTypeId !== "none" && datesValid && (
-              <div className="rounded-md border p-3 text-sm space-y-1 bg-muted/40">
-                <div className="text-xs font-medium text-muted-foreground">送出後將自動指派</div>
-                {unitPreview.status === "loading" && (
+            {validAssignments.length > 0 && datesValid && (
+              <div className="rounded-md border p-3 text-sm space-y-2 bg-muted/40">
+                <div className="text-xs font-medium text-muted-foreground">
+                  送出後將自動指派（依房號順序挑選第一間可用）
+                </div>
+                {unitPreviews.length === 0 ? (
                   <div className="text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />查詢可用房號中…
                   </div>
-                )}
-                {unitPreview.status === "ok" && (
-                  <div>
-                    <div>房型：<span className="font-medium">{unitPreview.roomTypeName}</span></div>
-                    <div>房號：<span className="font-medium">{unitPreview.unitLabel}</span>
-                      <span className="text-xs text-muted-foreground ml-1">（依房號順序挑選第一間可用）</span>
+                ) : (
+                  unitPreviews.map((p, i) => (
+                    <div key={i} className="text-xs border-l-2 pl-2 border-muted-foreground/30">
+                      <div className="text-[11px] text-muted-foreground">第 {i + 1} 間</div>
+                      {p.status === "idle" && (
+                        <div className="text-muted-foreground">尚未選擇房型</div>
+                      )}
+                      {p.status === "loading" && (
+                        <div className="text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin" />查詢中…
+                        </div>
+                      )}
+                      {p.status === "ok" && (
+                        <div>
+                          房型：<span className="font-medium">{p.roomTypeName}</span>
+                          {" · "}房號：<span className="font-medium">{p.unitLabel}</span>
+                        </div>
+                      )}
+                      {p.status === "no_units" && (
+                        <div className="text-amber-700 dark:text-amber-400">
+                          房型「{p.roomTypeName}」尚未建立任何房號，房號將留白。
+                        </div>
+                      )}
+                      {p.status === "all_busy" && (
+                        <div className="text-amber-700 dark:text-amber-400">
+                          房型「{p.roomTypeName}」所有房號在此區間皆已被佔用（{p.busyUnits.join("、")}），房號將留白，請人工排房。
+                        </div>
+                      )}
+                      {p.status === "error" && (
+                        <div className="text-destructive">預覽查詢失敗：{p.message}</div>
+                      )}
                     </div>
-                  </div>
-                )}
-                {unitPreview.status === "no_units" && (
-                  <div className="text-amber-700 dark:text-amber-400">
-                    房型「{unitPreview.roomTypeName}」尚未建立任何房號，將僅指派房型、房號保留空白。
-                  </div>
-                )}
-                {unitPreview.status === "all_busy" && (
-                  <div className="text-amber-700 dark:text-amber-400">
-                    房型「{unitPreview.roomTypeName}」所有房號在此日期區間皆已被佔用（{unitPreview.busyUnits.join("、")}），將僅指派房型、房號保留空白，請人工排房。
-                  </div>
-                )}
-                {unitPreview.status === "error" && (
-                  <div className="text-destructive">預覽查詢失敗：{unitPreview.message}</div>
+                  ))
                 )}
               </div>
             )}
