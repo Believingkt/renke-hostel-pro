@@ -324,10 +324,74 @@ const BookingVilla = () => {
     checkIn && checkOut ? Math.max(1, differenceInDays(checkOut, checkIn)) : 1;
 
   // 過濾掉「不適用日期區間」涵蓋入住日的方案；未選日期則顯示全部
-  const visiblePackages = useMemo(() => {
+  const dateFilteredPackages = useMemo(() => {
     if (!checkIn) return packages;
     return packages.filter((p) => !isPackageExcludedOnDate(p, checkIn));
   }, [packages, checkIn]);
+
+  // 依 check-in 當日各房型實際可訂庫存過濾方案：
+  // 方案需要用到的每一個 room_type_id 當日 available_rooms > 0 且未 blocked，才顯示。
+  // 這樣可以自動處理：搜尋單間日期 → 只顯示需要散客房型的方案；
+  // 搜尋包棟日期 → 只顯示需要 exclusive 房型的方案。
+  const [roomAvailByDate, setRoomAvailByDate] = useState<Record<string, { available: number; blocked: boolean }>>({});
+  useEffect(() => {
+    if (!accId || !checkIn || packages.length === 0) {
+      setRoomAvailByDate({});
+      return;
+    }
+    let cancelled = false;
+    const dateStr = formatISO(checkIn, { representation: "date" });
+    const roomTypeIds = Array.from(
+      new Set(
+        packages.flatMap((p: any) =>
+          Array.isArray(p.room_type_ids) ? p.room_type_ids.filter(Boolean) : [],
+        ),
+      ),
+    );
+    if (roomTypeIds.length === 0) {
+      setRoomAvailByDate({});
+      return;
+    }
+    (async () => {
+      const results = await Promise.all(
+        roomTypeIds.map(async (rtId) => {
+          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: rtId,
+            p_dates: [dateStr],
+            p_accommodation_id: accId,
+          });
+          const row = (data as any[])?.[0];
+          return [
+            rtId as string,
+            {
+              available: row?.available_rooms ?? 0,
+              blocked: row?.is_blocked === true,
+            },
+          ] as const;
+        }),
+      );
+      if (cancelled) return;
+      setRoomAvailByDate(Object.fromEntries(results));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accId, checkIn && formatISO(checkIn, { representation: "date" }), packages]);
+
+  const visiblePackages = useMemo(() => {
+    if (!checkIn) return dateFilteredPackages;
+    // 尚未載入房型可訂資料時，先照日期規則顯示，避免閃爍。
+    if (Object.keys(roomAvailByDate).length === 0) return dateFilteredPackages;
+    return dateFilteredPackages.filter((p: any) => {
+      const ids: string[] = Array.isArray(p.room_type_ids) ? p.room_type_ids.filter(Boolean) : [];
+      if (ids.length === 0) return true; // 沒設定房型的方案不過濾
+      return ids.every((id) => {
+        const info = roomAvailByDate[id];
+        if (!info) return true; // 尚未載入該房型，保守顯示
+        return !info.blocked && info.available > 0;
+      });
+    });
+  }, [dateFilteredPackages, roomAvailByDate, checkIn]);
 
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
   const childCtx = useMemo(() => {
