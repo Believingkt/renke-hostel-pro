@@ -662,6 +662,9 @@ export default function Reception() {
               sortedFiltered.map((o) => {
                 const status = mode === "checkin" ? getCheckinStatus(o) : getCheckoutStatus(o);
                 const acting = actingId === o.id;
+                const units = (o.rooms ?? [])
+                  .map((r) => r.room_unit?.unit_number)
+                  .filter((u): u is string => Boolean(u));
                 return (
                   <div key={o.id} className="rounded-lg border p-3 space-y-2.5 bg-card">
                     <div className="flex items-start justify-between gap-2">
