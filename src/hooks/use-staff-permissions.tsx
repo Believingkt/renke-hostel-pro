@@ -34,9 +34,18 @@ const STAFF_PERMISSIONS_STALE_TIME = 5 * 60 * 1000;
  * - staff：依 staff_module_permissions 表，未設定則 fallback 預設值。
  */
 export function useStaffPermissions(): UseStaffPermissionsResult {
-  const { currentAccommodationId } = useAccommodation();
+  const {
+    currentAccommodationId,
+    userAccommodations,
+    isLoading: isAccommodationLoading,
+  } = useAccommodation();
   const [userId, setUserId] = useState<string | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const rolesForAccommodation = userAccommodations
+    .filter((row) => row.accommodation_id === currentAccommodationId)
+    .map((row) => row.role)
+    .sort();
+  const rolesCacheKey = rolesForAccommodation.join("|");
 
   useEffect(() => {
     let mounted = true;
@@ -60,21 +69,23 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   }, []);
 
   const { data = EMPTY_PERMISSIONS, isLoading } = useQuery({
-    queryKey: ["staff-permissions", userId, currentAccommodationId],
-    enabled: Boolean(userId && currentAccommodationId),
+    queryKey: ["staff-permissions", userId, currentAccommodationId, rolesCacheKey],
+    enabled: Boolean(userId && currentAccommodationId && !isAccommodationLoading),
     staleTime: STAFF_PERMISSIONS_STALE_TIME,
     gcTime: STAFF_PERMISSIONS_STALE_TIME * 2,
     queryFn: async (): Promise<StaffPermissionData> => {
       if (!userId || !currentAccommodationId) return EMPTY_PERMISSIONS;
 
-      // 查詢角色；React Query 會在同一頁面的 Sidebar / Route Guard 間共用這次請求
-      const { data: roleRows } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("accommodation_id", currentAccommodationId);
-
-      const roles = (roleRows ?? []).map((r: any) => r.role);
+      // 優先沿用 AccommodationContext 已載入的角色，避免切頁時重複查 user_roles。
+      let roles = rolesForAccommodation;
+      if (roles.length === 0) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("accommodation_id", currentAccommodationId);
+        roles = (roleRows ?? []).map((r: any) => r.role);
+      }
       const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
@@ -113,7 +124,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   return {
     permissions,
     isStaff,
-    isLoading: Boolean(currentAccommodationId) && (!authResolved || (Boolean(userId) && isLoading)),
+    isLoading: Boolean(currentAccommodationId) && (!authResolved || isAccommodationLoading || (Boolean(userId) && isLoading)),
     getLevel,
     canView: (k) => getLevel(k) !== "hidden",
     canEdit: (k) => getLevel(k) === "editable",
