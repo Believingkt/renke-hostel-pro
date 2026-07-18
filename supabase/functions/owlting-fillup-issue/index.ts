@@ -2,6 +2,13 @@
 // POST { staging_id: uuid, accommodation_id?: uuid (override), force?: boolean }
 // Requires authenticated admin (super_admin / hotel_admin).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import {
+  canEditModule,
+  forbiddenResponse,
+  resolveCaller,
+  unauthorizedResponse,
+} from "../_shared/authz.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
