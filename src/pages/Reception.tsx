@@ -654,14 +654,14 @@ export default function Reception() {
                       <span className="text-foreground">房型：</span>{roomLabel(o)}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
                       <Select
                         value={o.payment_status}
                         onValueChange={(v) => handlePaymentChange(o, v)}
                         disabled={!editable || acting}
                       >
                         <SelectTrigger
-                          className={`h-9 flex-1 text-xs font-medium ${paymentCls(o.payment_status)}`}
+                          className={`h-9 w-full xs:flex-1 text-xs font-medium ${paymentCls(o.payment_status)}`}
                         >
                           <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
                         </SelectTrigger>
@@ -674,11 +674,12 @@ export default function Reception() {
                         </SelectContent>
                       </Select>
                       {o.final_price != null && (
-                        <div className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                        <div className="text-xs text-muted-foreground tabular-nums whitespace-nowrap self-end xs:self-auto">
                           ${(o.paid_amount ?? 0).toLocaleString()} / ${o.final_price.toLocaleString()}
                         </div>
                       )}
                     </div>
+
 
                     {(o.checked_in_at || o.checked_out_at) && (
                       <div className="text-[11px] text-muted-foreground">
