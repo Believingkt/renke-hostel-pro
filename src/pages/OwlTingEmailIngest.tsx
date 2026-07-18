@@ -130,9 +130,24 @@ export default function OwlTingEmailIngest() {
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts")
+        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
         .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
+
+      // Fetch order_number for auto-created pending orders (for display).
+      const autoOrderIds = (staging ?? [])
+        .map((s: any) => s.auto_order_id)
+        .filter((v: string | null): v is string => !!v);
+      let autoOrderMap: Record<string, string> = {};
+      if (autoOrderIds.length > 0) {
+        const { data: autoOrders } = await supabase
+          .from("orders")
+          .select("id,order_number")
+          .in("id", autoOrderIds);
+        (autoOrders ?? []).forEach((o: any) => {
+          autoOrderMap[o.id] = o.order_number;
+        });
+      }
 
       const map: Record<string, StagingLite> = {};
       (staging ?? []).forEach((s: any) => {
@@ -141,6 +156,7 @@ export default function OwlTingEmailIngest() {
           matched_acc_id: s.accommodation_id ?? null,
           match_reason: s.accommodation_id ? "已綁定本民宿" : null,
           unmatch_reason: s.accommodation_id ? null : "尚未匹配",
+          auto_order_number: s.auto_order_id ? (autoOrderMap[s.auto_order_id] ?? null) : null,
         };
       });
       setStagingMap(map);
