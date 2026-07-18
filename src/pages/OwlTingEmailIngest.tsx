@@ -539,29 +539,30 @@ export default function OwlTingEmailIngest() {
                       <div className="text-[11px] text-muted-foreground line-clamp-2">{st.review_notes}</div>
                     )}
 
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      <Button size="sm" variant="outline" className="flex-1 min-w-[45%] h-9" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
+                    <div className="flex flex-col xs:flex-row xs:flex-wrap gap-1.5 pt-1">
+                      <Button size="sm" variant="outline" className="w-full xs:flex-1 xs:min-w-[45%] h-10" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
                         <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                       </Button>
                       {selfPush ? (
                         !alreadyLinked && st ? (
-                          <Button size="sm" variant="default" className="flex-1 min-w-[45%] h-9" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
+                          <Button size="sm" variant="default" className="w-full xs:flex-1 xs:min-w-[45%] h-10" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
                             {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
                             連結自家訂單
                           </Button>
                         ) : null
                       ) : canSend ? (
                         <>
-                          <Button size="sm" variant="outline" className="flex-1 min-w-[45%] h-9" onClick={() => sendFillupNotification(st.id)} disabled={sendingId === st.id}>
+                          <Button size="sm" variant="outline" className="w-full xs:flex-1 xs:min-w-[45%] h-10" onClick={() => sendFillupNotification(st.id)} disabled={sendingId === st.id}>
                             {sendingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
                             重發通知
                           </Button>
-                          <Button size="sm" variant="default" className="flex-1 min-w-[45%] h-9" onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}>
+                          <Button size="sm" variant="default" className="w-full xs:flex-1 xs:min-w-[45%] h-10" onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}>
                             <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
                           </Button>
                         </>
                       ) : null}
                     </div>
+
                   </div>
                 );
               });
