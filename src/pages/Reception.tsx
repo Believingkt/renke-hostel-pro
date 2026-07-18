@@ -358,7 +358,7 @@ export default function Reception() {
       <AdminPageHeader title="櫃檯接待" icon={ConciergeBell} />
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 px-4 sm:px-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-lg">今日櫃檯</CardTitle>
             <div className="text-sm text-muted-foreground">今日：{today}</div>
@@ -382,9 +382,9 @@ export default function Reception() {
             >
               <LogOut className="h-4 w-4" /> 退房
             </Button>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 min-w-0">
               {lastRefreshedAt && (
-                <span className="text-xs text-muted-foreground" title={format(lastRefreshedAt, "yyyy-MM-dd HH:mm:ss")}>
+                <span className="text-xs text-muted-foreground truncate hidden sm:inline" title={format(lastRefreshedAt, "yyyy-MM-dd HH:mm:ss")}>
                   最後更新：{formatRelative(lastRefreshedAt)}
                 </span>
               )}
@@ -393,43 +393,45 @@ export default function Reception() {
                 size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="gap-2"
+                className="gap-2 shrink-0"
                 aria-label="重新整理"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 重新整理
               </Button>
             </div>
+
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           {/* Day tabs (only for checkin) + search */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {mode === "checkin" ? (
-              <Tabs value={day} onValueChange={(v) => setDay(v as CheckinDay)}>
-                <TabsList>
-                  <TabsTrigger value="yesterday">
-                    昨日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+              <Tabs value={day} onValueChange={(v) => setDay(v as CheckinDay)} className="w-full lg:w-auto min-w-0">
+                <TabsList className="w-full lg:w-auto grid grid-cols-3 lg:inline-flex h-auto">
+                  <TabsTrigger value="yesterday" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>昨日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.yesterday.in}/{counts.yesterday.total}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="today">
-                    今日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+                  <TabsTrigger value="today" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>今日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.today.in}/{counts.today.total}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="tomorrow">
-                    明日入住{" "}
-                    <Badge variant="outline" className="ml-2">
+                  <TabsTrigger value="tomorrow" className="flex-col sm:flex-row gap-0.5 sm:gap-2 py-1.5 text-xs sm:text-sm">
+                    <span>明日入住</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5">
                       {counts.tomorrow.total}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value={day} />
               </Tabs>
+
             ) : (
               <div className="text-sm font-medium">
                 今日退房{" "}
