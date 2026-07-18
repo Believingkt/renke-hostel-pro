@@ -403,7 +403,7 @@ export default function Reception() {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           {/* Day tabs (only for checkin) + search */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {mode === "checkin" ? (
