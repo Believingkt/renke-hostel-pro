@@ -326,7 +326,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     return () => { cancelled = true; };
   }, [phase, roomTypeId, checkInDate, checkOutDate, datesValid, roomTypes]);
 
-
+  const handleSubmit = async () => {
     if (!token) return;
     if (!guestName.trim() || !guestPhone.trim()) {
       toast.error("請填寫姓名與電話");
