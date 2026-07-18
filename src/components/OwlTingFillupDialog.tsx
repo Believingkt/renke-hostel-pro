@@ -325,12 +325,14 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const guestCountValid = isGuestCountValid(guestCount);
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
   const validAssignments = roomAssignments.filter((id) => id && id !== "none");
+  const hasManualBusy = unitPreviews.some((p) => p.status === "manual_busy");
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
     validAssignments.length > 0 &&
     guestCountValid &&
-    datesValid;
+    datesValid &&
+    !hasManualBusy;
 
   const unitLabel = (u: UnitInfo) => (u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number);
 
