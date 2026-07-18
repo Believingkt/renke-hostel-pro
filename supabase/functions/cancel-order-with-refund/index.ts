@@ -6,6 +6,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { refundTapPay } from "../_shared/tappay.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 
 interface Body {
   orderId: string;
@@ -82,22 +84,20 @@ serve(async (req) => {
       );
     }
 
-    // Permission check: super_admin OR hotel_admin of this accommodation
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role, accommodation_id")
-      .eq("user_id", userId);
-    const allowed = (roles || []).some(
-      (r: any) =>
-        r.role === "super_admin" ||
-        ((r.role === "hotel_admin" || r.role === "staff") &&
-          r.accommodation_id === order.accommodation_id),
-    );
+    // Permission: admin OR staff with `orders` module editable on this accommodation
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ success: false, message: "未授權" }), {
+        status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const allowed = await canEditModule(authRes.ctx, order.accommodation_id, "orders");
     if (!allowed) {
       return new Response(
         JSON.stringify({ success: false, message: "無權限取消此訂單" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+
     }
 
     const paidAmount = order.paid_amount || 0;

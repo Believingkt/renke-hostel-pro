@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { getTapPayEndpoints } from "../_shared/tappay.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 
 /**
  * 管理員手動同步 TapPay 退款狀態
@@ -99,20 +101,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 權限：該民宿 hotel_admin / super_admin
-    const { data: roleRows } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("accommodation_id", order.accommodation_id);
-    const roles = (roleRows ?? []).map((r: any) => r.role);
-    const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "權限不足，僅管理員可同步" }), {
+    // 權限：admin 或該民宿 orders 模組可編輯的 staff
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ error: authRes.error }), {
+        status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const allowed = await canEditModule(authRes.ctx, order.accommodation_id, "orders");
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "權限不足，無法同步" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const recTradeId = extractRecTradeId(order.notes);
     if (!recTradeId) {

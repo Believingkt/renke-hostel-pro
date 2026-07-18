@@ -15,6 +15,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -220,19 +222,21 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Verify caller has admin/hotel_admin on this accommodation
-  const { data: roleRows } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userRes.user.id)
-    .eq("accommodation_id", accommodation_id)
-    .in("role", ["super_admin", "hotel_admin"]);
-  if (!roleRows || roleRows.length === 0) {
+  // Permission: admin OR staff with `channel_manager` module editable on this accommodation
+  const authRes = await resolveCaller(req);
+  if (!authRes.ok) {
+    return new Response(JSON.stringify({ error: authRes.error }), {
+      status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const allowed = await canEditModule(authRes.ctx, accommodation_id, "channel_manager");
+  if (!allowed) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
   // Load credentials & endpoint
   const [credRes, endpointRes] = await Promise.all([
