@@ -61,6 +61,12 @@ Deno.serve(async (req) => {
     const guestPhone = guestPhoneRaw.replace(/[\s\-()+]/g, "");
     const guestEmail = String(body.guest_email ?? "").trim();
     const roomTypeId = body.room_type_id ? String(body.room_type_id) : null;
+    const rawAssignments = Array.isArray(body.room_assignments) ? body.room_assignments : null;
+    const roomAssignments: string[] = rawAssignments
+      ? rawAssignments
+          .map((r: any) => (r && r.room_type_id ? String(r.room_type_id) : null))
+          .filter((x: string | null): x is string => !!x)
+      : (roomTypeId ? [roomTypeId] : []);
     const totalAmount = body.total_amount != null ? Number(body.total_amount) : null;
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
     const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
