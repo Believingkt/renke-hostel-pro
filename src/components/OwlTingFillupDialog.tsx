@@ -274,7 +274,59 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     guestCountValid &&
     datesValid;
 
-  const handleSubmit = async () => {
+  // Compute the auto-assigned room unit preview whenever inputs change
+  useEffect(() => {
+    if (phase !== "form" || roomTypeId === "none" || !datesValid) {
+      setUnitPreview({ status: "idle" });
+      return;
+    }
+    const roomTypeName = roomTypes.find((r) => r.id === roomTypeId)?.name ?? "";
+    let cancelled = false;
+    setUnitPreview({ status: "loading" });
+    (async () => {
+      try {
+        const { data: units, error: unitsErr } = await supabase
+          .from("room_units")
+          .select("id, unit_number, nickname, display_order")
+          .eq("room_type_id", roomTypeId)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("unit_number", { ascending: true });
+        if (unitsErr) throw unitsErr;
+        if (!units || units.length === 0) {
+          if (!cancelled) setUnitPreview({ status: "no_units", roomTypeName });
+          return;
+        }
+
+        const { data: conflicts, error: cErr } = await supabase
+          .from("order_rooms")
+          .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+          .in("room_unit_id", units.map((u) => u.id))
+          .neq("orders.order_status", "cancelled")
+          .lt("orders.check_in_date", checkOutDate)
+          .gt("orders.check_out_date", checkInDate);
+        if (cErr) throw cErr;
+        const busy = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
+        const free = units.find((u) => !busy.has(u.id));
+        const label = (u: any) => u.nickname ? `${u.unit_number}（${u.nickname}）` : u.unit_number;
+        if (cancelled) return;
+        if (free) {
+          setUnitPreview({ status: "ok", unitLabel: label(free), roomTypeName });
+        } else {
+          setUnitPreview({
+            status: "all_busy",
+            roomTypeName,
+            busyUnits: units.map(label),
+          });
+        }
+      } catch (e: any) {
+        if (!cancelled) setUnitPreview({ status: "error", message: e?.message ?? "查詢失敗" });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phase, roomTypeId, checkInDate, checkOutDate, datesValid, roomTypes]);
+
+
     if (!token) return;
     if (!guestName.trim() || !guestPhone.trim()) {
       toast.error("請填寫姓名與電話");
