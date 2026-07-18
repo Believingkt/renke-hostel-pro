@@ -520,13 +520,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
@@ -535,6 +535,9 @@ export default function Reception() {
                     const status =
                       mode === "checkin" ? getCheckinStatus(o) : getCheckoutStatus(o);
                     const acting = actingId === o.id;
+                    const units = (o.rooms ?? [])
+                      .map((r) => r.room_unit?.unit_number)
+                      .filter((u): u is string => Boolean(u));
                     return (
                       <tr key={o.id} className="border-t hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 align-top">
@@ -557,6 +560,9 @@ export default function Reception() {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
+                        <td className="px-4 py-3 align-top tabular-nums">
+                          {units.length > 0 ? units.join("、") : <span className="text-muted-foreground">—</span>}
+                        </td>
                         <td className="px-4 py-3 align-top">
                           <Select
                             value={o.payment_status}
