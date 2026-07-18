@@ -59,15 +59,14 @@ Deno.serve(async (req) => {
     );
   }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  // Verify caller identity
-  const { data: { user }, error: authErr } = await admin.auth.getUser(
-    authHeader.replace(/^Bearer\s+/i, ""),
-  );
-  if (authErr || !user) return jsonResp({ error: "invalid_session" }, 401, cors);
+  const authed = await resolveCaller(req);
+  if (!authed.ok) {
+    return authed.status === 401
+      ? unauthorizedResponse(cors, authed.error)
+      : forbiddenResponse(cors, authed.error);
+  }
+  const ctx = authed.ctx;
+  const admin = ctx.admin;
 
   let body: any;
   try {
@@ -82,22 +81,9 @@ Deno.serve(async (req) => {
   }
   const endpoint = mode === "roomAndRate" ? ENDPOINT_ROOM_AND_RATE : ENDPOINT_ROOM_ONLY;
 
-  // Role check — query user_roles directly via service role
-  // (do NOT use user_has_role RPC: it reads auth.uid() which is null under service_role)
-  const { data: roleRows, error: roleErr } = await admin
-    .from("user_roles")
-    .select("role, accommodation_id")
-    .eq("user_id", user.id);
-  if (roleErr) {
-    return jsonResp({ error: "role_query_failed", detail: roleErr.message }, 500, cors);
-  }
-  const allowed = (roleRows ?? []).some((r: any) =>
-    r.role === "super_admin" ||
-    (r.role === "hotel_admin" && r.accommodation_id === accommodationId)
-  );
-  if (!allowed) {
+  if (!(await canEditModule(ctx, accommodationId, "channel_manager"))) {
     return jsonResp(
-      { error: "forbidden", detail: `caller=${user.id} has no super_admin or hotel_admin for ${accommodationId}` },
+      { error: "forbidden", detail: `caller has no channel_manager:editable for ${accommodationId}` },
       403,
       cors,
     );
