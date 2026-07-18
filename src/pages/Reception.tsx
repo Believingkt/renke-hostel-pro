@@ -688,7 +688,7 @@ export default function Reception() {
                       </div>
                     )}
 
-                    <div className="pt-1">
+                    <div className="pt-1 min-h-[3rem]">
                       {mode === "checkin" ? (
                         o.checked_in_at ? (
                           <Button
