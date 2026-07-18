@@ -91,23 +91,18 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Permission check — query user_roles directly (do NOT use user_has_role RPC).
-  const { data: roleRows, error: roleErr } = await admin
-    .from("user_roles")
-    .select("role, accommodation_id")
-    .eq("user_id", user.id);
-  if (roleErr) return jsonResp({ error: "role_query_failed", detail: roleErr.message }, 500, cors);
-  const allowed = (roleRows ?? []).some((r: any) =>
-    r.role === "super_admin" ||
-    (r.role === "hotel_admin" && r.accommodation_id === accommodation_id)
-  );
+  // Permission: admin OR staff with `channel_manager` module editable on this accommodation
+  const authRes = await resolveCaller(req);
+  if (!authRes.ok) return jsonResp({ error: authRes.error }, authRes.status, cors);
+  const allowed = await canEditModule(authRes.ctx, accommodation_id, "channel_manager");
   if (!allowed) {
     return jsonResp(
-      { error: "forbidden", detail: `caller=${user.id} has no super_admin or hotel_admin for ${accommodation_id}` },
+      { error: "forbidden", detail: `caller has no channel_manager access for ${accommodation_id}` },
       403,
       cors,
     );
   }
+
 
   // Look up HotelCode
   const { data: cfg, error: cfgErr } = await admin
