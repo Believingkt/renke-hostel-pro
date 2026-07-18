@@ -60,6 +60,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [roomAssignments, setRoomAssignments] = useState<string[]>(["none"]);
+  // Per-assignment manual room_unit_id override; null = auto-assign
+  const [unitOverrides, setUnitOverrides] = useState<(string | null)[]>([null]);
   const [autoMatchedRoomTypeId, setAutoMatchedRoomTypeId] = useState<string | null>(null);
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
   const [guestCount, setGuestCount] = useState<string>("2");
@@ -69,20 +71,27 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
   const [paymentOverridden, setPaymentOverridden] = useState(false);
 
-  // Preview of auto-assigned units per assignment row (matches server logic)
+  // Preview of assigned units per assignment row (auto or manual)
+  type UnitInfo = { id: string; unit_number: string; nickname: string | null };
   type UnitPreviewRow =
     | { status: "idle" | "loading" }
-    | { status: "ok"; unitLabel: string; roomTypeName: string }
+    | { status: "ok"; unitLabel: string; roomTypeName: string; manual: boolean }
+    | { status: "manual_busy"; unitLabel: string; roomTypeName: string }
     | { status: "no_units"; roomTypeName: string }
     | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
     | { status: "error"; message: string };
   const [unitPreviews, setUnitPreviews] = useState<UnitPreviewRow[]>([]);
+  // Units + busy set per room_type_id, populated as assignments select room types
+  const [unitsByType, setUnitsByType] = useState<Record<string, UnitInfo[]>>({});
+  const [busyByType, setBusyByType] = useState<Record<string, Set<string>>>({});
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomAssignments(["none"]); setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setRoomAssignments(["none"]); setUnitOverrides([null]);
+    setAutoMatchedRoomTypeId(null); setUnitPreviews([]);
+    setUnitsByType({}); setBusyByType({});
     setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
