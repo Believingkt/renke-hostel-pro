@@ -36,6 +36,8 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
+  auto_order_id: string | null;
+  auto_order_number?: string | null;
 }
 interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
