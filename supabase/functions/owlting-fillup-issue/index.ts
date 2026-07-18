@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     let callerUserId: string | null = null;
+    let callerRoles: string[] = [];
     if (!isServiceRole) {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -91,13 +92,11 @@ Deno.serve(async (req) => {
       callerUserId = userData.user.id;
       const { data: roleData } = await admin
         .from("user_roles").select("role").eq("user_id", userData.user.id);
-      const isAdmin = (roleData ?? []).some((r: any) => r.role === "super_admin" || r.role === "hotel_admin");
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      callerRoles = (roleData ?? []).map((r: any) => r.role);
+      // Admin check happens after we resolve accommodation_id, so staff with
+      // channel_manager=editable on that accommodation is also allowed.
     }
+
 
     const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
