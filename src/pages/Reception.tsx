@@ -695,6 +695,12 @@ export default function Reception() {
                       <span className="text-foreground">房型：</span>{roomLabel(o)}
                     </div>
 
+                    <div className="text-xs text-muted-foreground">
+                      <span className="text-foreground">房號：</span>
+                      {units.length > 0 ? <span className="tabular-nums">{units.join("、")}</span> : "—"}
+                    </div>
+
+
                     <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-h-[2.75rem]">
                       <Select
                         value={o.payment_status}
