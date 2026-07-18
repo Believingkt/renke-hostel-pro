@@ -587,20 +587,84 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                 <Label htmlFor="ad_guest_email">Email</Label>
                 <Input id="ad_guest_email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="guest@example.com（可選）" />
               </div>
-              <div>
-                <Label>對應房型 <span className="text-destructive">*</span></Label>
-                <Select value={roomTypeId} onValueChange={setRoomTypeId}>
-                  <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">請選擇</SelectItem>
-                    {roomTypes.map((rt) => (
-                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    對應房型 <span className="text-destructive">*</span>
+                    {roomAssignments.length > 1 && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        （共 {roomAssignments.length} 間，可分別選擇不同房型）
+                      </span>
+                    )}
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setRoomAssignments((prev) =>
+                        prev.length < 10 ? [...prev, autoMatchedRoomTypeId ?? "none"] : prev,
+                      )
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />新增一間
+                  </Button>
+                </div>
+                {roomAssignments.map((rtId, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground w-14 shrink-0">
+                      第 {idx + 1} 間
+                    </div>
+                    <div className="flex-1">
+                      <Select
+                        value={rtId}
+                        onValueChange={(v) =>
+                          setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)))
+                        }
+                      >
+                        <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">請選擇</SelectItem>
+                          {roomTypes.map((rt) => (
+                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {roomAssignments.length > 1 && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() =>
+                          setRoomAssignments((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        aria-label="移除此間"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
                 {stagingRow.room_type_name && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    信件原房型欄位：「{stagingRow.room_type_name}」（僅供參考，請依 OwlNest 後台實際房型選擇）
+                  <p className="text-[11px] text-muted-foreground">
+                    信件原房型欄位：「{stagingRow.room_type_name}」
+                    {autoMatchedRoomTypeId ? (
+                      <span className="text-green-700 dark:text-green-400">
+                        {" "}→ 已自動比對到「
+                        {roomTypes.find((r) => r.id === autoMatchedRoomTypeId)?.name}
+                        」（可覆寫）
+                      </span>
+                    ) : (
+                      <span className="text-amber-700 dark:text-amber-400">
+                        {" "}（無法自動比對，OTA 通用房型碼請依 OwlNest 後台實際房型選擇）
+                      </span>
+                    )}
+                  </p>
+                )}
+                {stagingRow.room_quantity && stagingRow.room_quantity > 1 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    信件解析到共 {stagingRow.room_quantity} 間房；若各間房型不同請個別調整。
                   </p>
                 )}
               </div>
@@ -666,34 +730,48 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
 
             {/* Auto-assignment preview */}
-            {roomTypeId !== "none" && datesValid && (
-              <div className="rounded-md border p-3 text-sm space-y-1 bg-muted/40">
-                <div className="text-xs font-medium text-muted-foreground">送出後將自動指派</div>
-                {unitPreview.status === "loading" && (
+            {validAssignments.length > 0 && datesValid && (
+              <div className="rounded-md border p-3 text-sm space-y-2 bg-muted/40">
+                <div className="text-xs font-medium text-muted-foreground">
+                  送出後將自動指派（依房號順序挑選第一間可用）
+                </div>
+                {unitPreviews.length === 0 ? (
                   <div className="text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />查詢可用房號中…
                   </div>
-                )}
-                {unitPreview.status === "ok" && (
-                  <div>
-                    <div>房型：<span className="font-medium">{unitPreview.roomTypeName}</span></div>
-                    <div>房號：<span className="font-medium">{unitPreview.unitLabel}</span>
-                      <span className="text-xs text-muted-foreground ml-1">（依房號順序挑選第一間可用）</span>
+                ) : (
+                  unitPreviews.map((p, i) => (
+                    <div key={i} className="text-xs border-l-2 pl-2 border-muted-foreground/30">
+                      <div className="text-[11px] text-muted-foreground">第 {i + 1} 間</div>
+                      {p.status === "idle" && (
+                        <div className="text-muted-foreground">尚未選擇房型</div>
+                      )}
+                      {p.status === "loading" && (
+                        <div className="text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin" />查詢中…
+                        </div>
+                      )}
+                      {p.status === "ok" && (
+                        <div>
+                          房型：<span className="font-medium">{p.roomTypeName}</span>
+                          {" · "}房號：<span className="font-medium">{p.unitLabel}</span>
+                        </div>
+                      )}
+                      {p.status === "no_units" && (
+                        <div className="text-amber-700 dark:text-amber-400">
+                          房型「{p.roomTypeName}」尚未建立任何房號，房號將留白。
+                        </div>
+                      )}
+                      {p.status === "all_busy" && (
+                        <div className="text-amber-700 dark:text-amber-400">
+                          房型「{p.roomTypeName}」所有房號在此區間皆已被佔用（{p.busyUnits.join("、")}），房號將留白，請人工排房。
+                        </div>
+                      )}
+                      {p.status === "error" && (
+                        <div className="text-destructive">預覽查詢失敗：{p.message}</div>
+                      )}
                     </div>
-                  </div>
-                )}
-                {unitPreview.status === "no_units" && (
-                  <div className="text-amber-700 dark:text-amber-400">
-                    房型「{unitPreview.roomTypeName}」尚未建立任何房號，將僅指派房型、房號保留空白。
-                  </div>
-                )}
-                {unitPreview.status === "all_busy" && (
-                  <div className="text-amber-700 dark:text-amber-400">
-                    房型「{unitPreview.roomTypeName}」所有房號在此日期區間皆已被佔用（{unitPreview.busyUnits.join("、")}），將僅指派房型、房號保留空白，請人工排房。
-                  </div>
-                )}
-                {unitPreview.status === "error" && (
-                  <div className="text-destructive">預覽查詢失敗：{unitPreview.message}</div>
+                  ))
                 )}
               </div>
             )}
