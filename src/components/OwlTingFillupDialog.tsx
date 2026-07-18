@@ -63,6 +63,15 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
 
+  // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
+  const [unitPreview, setUnitPreview] = useState<
+    | { status: "idle" | "loading" }
+    | { status: "ok"; unitLabel: string; roomTypeName: string }
+    | { status: "no_units"; roomTypeName: string }
+    | { status: "all_busy"; roomTypeName: string; busyUnits: string[] }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
+
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
