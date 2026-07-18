@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
     const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
     const checkOutOverride = body.check_out_date ? String(body.check_out_date) : null;
+    const paymentStatusRaw = String(body.payment_status ?? "").toLowerCase();
+    const paymentStatusInput: "paid" | "unpaid" | null =
+      paymentStatusRaw === "paid" ? "paid" : paymentStatusRaw === "unpaid" ? "unpaid" : null;
     const ip = clientIp(req);
 
     if (!token || token.length < 16) {
