@@ -2,7 +2,7 @@
 // link them back to the existing PMS order instead of creating a duplicate.
 // POST { staging_id: uuid }
 // Requires authenticated admin OR service-role.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolveCaller, canEditModule, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,36 +36,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const isServiceRole = !!bearer && bearer === serviceKey;
-    if (!isServiceRole) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      if (!userData?.user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const { data: roleData } = await admin
-        .from("user_roles").select("role").eq("user_id", userData.user.id);
-      const isAdmin = (roleData ?? []).some(
-        (r: any) => r.role === "super_admin" || r.role === "hotel_admin",
-      );
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const authed = await resolveCaller(req);
+    if (!authed.ok) {
+      return authed.status === 401
+        ? unauthorizedResponse(corsHeaders, authed.error)
+        : forbiddenResponse(corsHeaders, authed.error);
     }
+    const ctx = authed.ctx;
+    const admin = ctx.admin;
 
     const body = await req.json().catch(() => ({}));
     const stagingId = String(body.staging_id ?? "").trim();
@@ -85,6 +63,10 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Staging not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (staging.accommodation_id && !(await canEditModule(ctx, staging.accommodation_id, "channel_manager"))) {
+      return forbiddenResponse(corsHeaders);
     }
 
     if (!isSelfPushSource(staging.channel_source)) {

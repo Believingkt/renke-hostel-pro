@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { resolveCaller, canEditModule, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,34 +24,14 @@ Deno.serve(async (req) => {
     console.log('Starting test order generation...');
 
     // ===== AUTH GUARD =====
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const authed = await resolveCaller(req);
+    if (!authed.ok) {
+      return authed.status === 401
+        ? unauthorizedResponse(corsHeaders, authed.error)
+        : forbiddenResponse(corsHeaders, authed.error);
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-
-    // Verify JWT using anon client
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
-
-    // Service-role client for actual writes
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    const ctx = authed.ctx;
+    const supabaseClient = ctx.admin;
 
     const { accommodationId, count = 20, year, years, month }: TestOrderParams = await req.json();
 
@@ -58,24 +39,7 @@ Deno.serve(async (req) => {
       throw new Error('Accommodation ID is required');
     }
 
-    // Role check: super_admin (any acc) or hotel_admin of THIS accommodation
-    const { data: roleRows, error: roleErr } = await supabaseClient
-      .from('user_roles')
-      .select('role, accommodation_id')
-      .eq('user_id', userId);
-    if (roleErr) {
-      console.error('[generate-test-orders] role lookup failed:', roleErr);
-      return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const allowed = (roleRows ?? []).some(
-      (r) =>
-        r.role === 'super_admin' ||
-        (r.role === 'hotel_admin' && r.accommodation_id === accommodationId),
-    );
-    if (!allowed) {
+    if (!(await canEditModule(ctx, accommodationId, 'orders'))) {
       return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
