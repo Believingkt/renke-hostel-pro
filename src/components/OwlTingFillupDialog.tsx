@@ -34,6 +34,7 @@ interface StagingRow {
   child_count: number | null;
   total_amount: number | null;
   pii_status: string;
+  channel_source: string | null;
 }
 interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
@@ -62,6 +63,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestCount, setGuestCount] = useState<string>("2");
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid">("paid");
+  const [paymentDefaultedFrom, setPaymentDefaultedFrom] = useState<string | null>(null);
+  const [paymentOverridden, setPaymentOverridden] = useState(false);
 
   // Preview of auto-assigned unit (客房號) — matches server logic in owlting-fillup-submit
   const [unitPreview, setUnitPreview] = useState<
@@ -78,6 +82,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
     setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
+    setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
   };
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
@@ -92,7 +97,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -106,6 +111,23 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
       if (row.check_in_date) setCheckInDate(row.check_in_date);
       if (row.check_out_date) setCheckOutDate(row.check_out_date);
+
+      // Default payment_status by OTA channel:
+      //  - Booking.com / Airbnb → 現場收款 (unpaid)
+      //  - Agoda / Expedia / Trip / Klook / KKday / 官網 → 已代收 (paid)
+      const ch = String(row.channel_source ?? "").toLowerCase();
+      let def: "paid" | "unpaid" = "paid";
+      let label: string | null = row.channel_source ?? null;
+      if (ch) {
+        if (ch.includes("booking") || ch.includes("airbnb")) def = "unpaid";
+        else def = "paid";
+      } else {
+        label = null;
+      }
+      setPaymentStatus(def);
+      setPaymentDefaultedFrom(label);
+      setPaymentOverridden(false);
+
 
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
@@ -357,6 +379,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
           check_in_date: checkInDate,
           check_out_date: checkOutDate,
+          payment_status: paymentStatus,
         },
       });
       if (error) {
@@ -550,7 +573,42 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </p>
                 )}
               </div>
+              <div>
+                <Label>付款狀態 <span className="text-destructive">*</span></Label>
+                <Select
+                  value={paymentStatus}
+                  onValueChange={(v) => {
+                    setPaymentStatus(v as "paid" | "unpaid");
+                    setPaymentOverridden(true);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">待結清（現場向客人收款）</SelectItem>
+                    <SelectItem value="paid">已付清（OTA 代收，入帳後撥款）</SelectItem>
+                  </SelectContent>
+                </Select>
+                {paymentDefaultedFrom ? (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    依信件來源「<span className="font-medium">{paymentDefaultedFrom}</span>」自動預設為
+                    <span className="font-medium">
+                      {" "}{paymentStatus === "unpaid" ? "待結清" : "已付清"}
+                    </span>
+                    {paymentOverridden && <span className="text-amber-600 dark:text-amber-400">（已手動覆寫）</span>}
+                    。若與實際不符請直接切換。
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠ 信件未帶來源平台，無法自動判斷，請依 OwlNest 後台實際情況選擇。
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  常見對照：Booking.com / Airbnb → 待結清；Agoda / Expedia / Trip / Klook / KKday / 官網 → 已付清。
+                </p>
+              </div>
             </div>
+
+
 
             {/* Auto-assignment preview */}
             {roomTypeId !== "none" && datesValid && (
