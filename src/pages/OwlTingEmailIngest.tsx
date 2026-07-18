@@ -293,7 +293,16 @@ export default function OwlTingEmailIngest() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.filter((r) => {
+              {(() => {
+                // Any OBE that has a cancellation email should suppress fillup
+                // actions across ALL rows sharing that OBE (including the
+                // earlier "new order" row) to avoid mis-triggering补單。
+                const cancelledObes = new Set(
+                  rows
+                    .filter((r) => r.message_type === "cancelled" && r.obe_number)
+                    .map((r) => r.obe_number as string),
+                );
+                return rows.filter((r) => {
                 if (showSelfPush) return true;
                 const st = stagingMap[r.id];
                 // Hide by pii_status first (authoritative), then by channel source.
@@ -310,7 +319,8 @@ export default function OwlTingEmailIngest() {
                 const st = stagingMap[r.id];
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !selfPush;
+                const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
                 const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
@@ -433,7 +443,8 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              });
+              })()}
               {!loading && rows.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
               )}
