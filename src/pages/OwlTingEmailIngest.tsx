@@ -443,7 +443,8 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              });
+              })()}
               {!loading && rows.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
               )}
