@@ -379,6 +379,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
           check_in_date: checkInDate,
           check_out_date: checkOutDate,
+          payment_status: paymentStatus,
         },
       });
       if (error) {
