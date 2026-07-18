@@ -526,7 +526,7 @@ export default function OwlTingEmailIngest() {
                           {selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
                         </Badge>
                         {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
-                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400 max-w-full whitespace-normal break-all leading-tight h-auto py-0.5">
                             🔒 自動預留{st.auto_order_number && <span className="ml-1 font-mono">#{st.auto_order_number}</span>}
                           </Badge>
                         )}
