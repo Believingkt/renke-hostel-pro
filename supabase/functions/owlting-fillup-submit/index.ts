@@ -62,11 +62,18 @@ Deno.serve(async (req) => {
     const guestEmail = String(body.guest_email ?? "").trim();
     const roomTypeId = body.room_type_id ? String(body.room_type_id) : null;
     const rawAssignments = Array.isArray(body.room_assignments) ? body.room_assignments : null;
-    const roomAssignments: string[] = rawAssignments
+    type Assignment = { room_type_id: string; room_unit_id: string | null };
+    const roomAssignments: Assignment[] = rawAssignments
       ? rawAssignments
-          .map((r: any) => (r && r.room_type_id ? String(r.room_type_id) : null))
-          .filter((x: string | null): x is string => !!x)
-      : (roomTypeId ? [roomTypeId] : []);
+          .map((r: any) => {
+            if (!r || !r.room_type_id) return null;
+            return {
+              room_type_id: String(r.room_type_id),
+              room_unit_id: r.room_unit_id ? String(r.room_unit_id) : null,
+            } as Assignment;
+          })
+          .filter((x: Assignment | null): x is Assignment => !!x)
+      : (roomTypeId ? [{ room_type_id: roomTypeId, room_unit_id: null }] : []);
     const totalAmount = body.total_amount != null ? Number(body.total_amount) : null;
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
     const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
