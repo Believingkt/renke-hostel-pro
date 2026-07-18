@@ -65,6 +65,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (staging.accommodation_id && !(await canEditModule(ctx, staging.accommodation_id, "channel_manager"))) {
+      return forbiddenResponse(corsHeaders);
+    }
+
     if (!isSelfPushSource(staging.channel_source)) {
       return new Response(JSON.stringify({
         ok: false,
