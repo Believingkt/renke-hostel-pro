@@ -636,51 +636,106 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                     type="button"
                     size="sm"
                     variant="ghost"
-                    onClick={() =>
+                    onClick={() => {
                       setRoomAssignments((prev) =>
                         prev.length < 10 ? [...prev, autoMatchedRoomTypeId ?? "none"] : prev,
-                      )
-                    }
+                      );
+                      setUnitOverrides((prev) => (prev.length < 10 ? [...prev, null] : prev));
+                    }}
                   >
                     <Plus className="h-3.5 w-3.5 mr-1" />新增一間
                   </Button>
                 </div>
-                {roomAssignments.map((rtId, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground w-14 shrink-0">
-                      第 {idx + 1} 間
+                {roomAssignments.map((rtId, idx) => {
+                  const units = rtId && rtId !== "none" ? unitsByType[rtId] : undefined;
+                  const busy = rtId && rtId !== "none" ? busyByType[rtId] : undefined;
+                  // Units taken by earlier rows (manual or auto) — mark as 佔用 in this dropdown
+                  const takenByOtherRows = new Set<string>();
+                  roomAssignments.forEach((otherRt, j) => {
+                    if (j === idx || otherRt !== rtId) return;
+                    const ov = unitOverrides[j];
+                    if (ov) takenByOtherRows.add(ov);
+                    const p = unitPreviews[j];
+                    if (p && p.status === "ok" && !ov) {
+                      const u = units?.find((x) => unitLabel(x) === p.unitLabel);
+                      if (u) takenByOtherRows.add(u.id);
+                    }
+                  });
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground w-14 shrink-0">
+                          第 {idx + 1} 間
+                        </div>
+                        <div className="flex-1">
+                          <Select
+                            value={rtId}
+                            onValueChange={(v) => {
+                              setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)));
+                              // Reset unit override when room type changes
+                              setUnitOverrides((prev) => prev.map((x, i) => (i === idx ? null : x)));
+                            }}
+                          >
+                            <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">請選擇</SelectItem>
+                              {roomTypes.map((rt) => (
+                                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {roomAssignments.length > 1 && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setRoomAssignments((prev) => prev.filter((_, i) => i !== idx));
+                              setUnitOverrides((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            aria-label="移除此間"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                      {rtId && rtId !== "none" && (
+                        <div className="flex items-center gap-2 pl-16">
+                          <div className="text-[11px] text-muted-foreground shrink-0">房號</div>
+                          <div className="flex-1">
+                            <Select
+                              value={unitOverrides[idx] ?? "__auto__"}
+                              onValueChange={(v) =>
+                                setUnitOverrides((prev) =>
+                                  prev.map((x, i) => (i === idx ? (v === "__auto__" ? null : v) : x)),
+                                )
+                              }
+                              disabled={!units}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder={units ? "自動指派" : "載入中…"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__auto__">自動指派（依房號順序）</SelectItem>
+                                {(units ?? []).map((u) => {
+                                  const isBusy = busy?.has(u.id);
+                                  const isTaken = takenByOtherRows.has(u.id);
+                                  return (
+                                    <SelectItem key={u.id} value={u.id}>
+                                      {unitLabel(u)}
+                                      {isBusy ? "（已被其他訂單佔用）" : isTaken ? "（本單其他間已指派）" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <Select
-                        value={rtId}
-                        onValueChange={(v) =>
-                          setRoomAssignments((prev) => prev.map((x, i) => (i === idx ? v : x)))
-                        }
-                      >
-                        <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">請選擇</SelectItem>
-                          {roomTypes.map((rt) => (
-                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {roomAssignments.length > 1 && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() =>
-                          setRoomAssignments((prev) => prev.filter((_, i) => i !== idx))
-                        }
-                        aria-label="移除此間"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {stagingRow.room_type_name && (
                   <p className="text-[11px] text-muted-foreground">
                     信件原房型欄位：「{stagingRow.room_type_name}」
