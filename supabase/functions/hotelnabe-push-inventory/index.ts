@@ -7,6 +7,8 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+
 import {
   buildHotelnabeAvailNotifRQ,
   parseHotelnabeAvailNotifRS,
