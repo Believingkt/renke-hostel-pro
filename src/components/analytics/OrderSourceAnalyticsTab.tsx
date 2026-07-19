@@ -760,7 +760,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -791,17 +791,40 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             </TableCell>
                             <TableCell className="text-right tabular-nums py-3">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
+                            <TableCell className="text-right py-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-primary hover:text-primary"
+                                onClick={() => setDetailKey(s.source)}
+                              >
+                                <Search className="h-3 w-3 mr-1" />查看
+                              </Button>
+                            </TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
-                            s.breakdown!.map((sub) => (
-                              <TableRow key={sub.source} className="bg-muted/20">
-                                <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
-                                  └ {sub.label}
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
-                              </TableRow>
-                            ))}
+                            s.breakdown!.map((sub) => {
+                              const [, otaKey] = sub.source.split(":");
+                              return (
+                                <TableRow key={sub.source} className="bg-muted/20">
+                                  <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
+                                    └ {sub.label}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
+                                  <TableCell className="text-right py-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs text-muted-foreground hover:text-primary"
+                                      onClick={() => setDetailKey(`${s.source}:${otaKey}`)}
+                                    >
+                                      查看
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                         </Fragment>
                       );
                     })}
@@ -809,6 +832,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell className="py-3">總計</TableCell>
                       <TableCell className="text-right tabular-nums py-3">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums py-3">{f(totals.total)}</TableCell>
+                      <TableCell className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-primary hover:text-primary"
+                          onClick={() => setDetailKey("__all__")}
+                        >
+                          <Search className="h-3 w-3 mr-1" />查看
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   </>
                 )}
