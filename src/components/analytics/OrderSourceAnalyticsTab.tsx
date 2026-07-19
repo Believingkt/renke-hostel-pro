@@ -467,7 +467,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                disabled={endOfMonth(monthCursor) >= endOfMonth(new Date())}
+                
                 onClick={() => setMonthCursor((d) => addMonths(d, 1))}
               >
                 <ChevronRight className="h-4 w-4" />
