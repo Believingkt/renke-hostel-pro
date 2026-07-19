@@ -86,6 +86,9 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("TWD");
   const [exchangeRate, setExchangeRate] = useState<number>(0.21); // 1 JPY = 0.21 TWD 預設
   const [rateInput, setRateInput] = useState<string>("0.21");
+  // 點選來源後展開的明細（顯示哪些訂單的夜次貢獻此金額）
+  // 值格式: "__all__" 或 "<source>" 或 "<source>:<ota>"
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const toggleExpand = (src: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
