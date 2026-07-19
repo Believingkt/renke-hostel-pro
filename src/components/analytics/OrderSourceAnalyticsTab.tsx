@@ -33,8 +33,10 @@ type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
   order_source: string | null;
+  order_status: string | null;
   ota_channel: string | null;
   check_in_date: string;
+  check_out_date: string | null;
   final_price: number | null;
   paid_amount: number | null;
   payment_status: string | null;
