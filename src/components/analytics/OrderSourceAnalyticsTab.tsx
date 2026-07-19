@@ -362,16 +362,23 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend helper
+  // Monthly trend helper — accrues each order's revenue nightly, then buckets
+  // per calendar month. Same caliber as `aggregate` above.
   const buildTrend = (rows: OrderRow[]) => {
     const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) months.push(format(subMonths(today, i), "yyyy-MM"));
+    const trendStart = startOfMonth(subMonths(today, 5));
+    const trendEnd = endOfMonth(today);
 
+    // First pass: compute in-window totals per source (for top-5 ranking).
     const totalsBySource = new Map<string, number>();
     for (const o of rows) {
+      if (!isRevenueOrder(o)) continue;
+      const t = accrueOrderAmount(o, o.final_price, trendStart, trendEnd);
+      if (t === 0) continue;
       const src = o.order_source || "unknown";
-      totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + (Number(o.final_price) || 0));
+      totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + t);
     }
     const topSources = Array.from(totalsBySource.entries())
       .sort((a, b) => b[1] - a[1])
@@ -381,12 +388,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     const byMonth = new Map<string, Record<string, number>>();
     for (const m of months) byMonth.set(m, {});
     for (const o of rows) {
-      const m = o.check_in_date?.slice(0, 7);
-      if (!m || !byMonth.has(m)) continue;
       const src = o.order_source || "unknown";
       if (!topSources.includes(src)) continue;
-      const row = byMonth.get(m)!;
-      row[src] = (row[src] ?? 0) + (Number(o.final_price) || 0);
+      const shares = accrueOrderNightlyShares(o, trendStart, trendEnd);
+      for (const s of shares) {
+        const m = s.date.slice(0, 7);
+        if (!byMonth.has(m)) continue;
+        const row = byMonth.get(m)!;
+        row[src] = (row[src] ?? 0) + s.amount;
+      }
     }
     const data = months.map((m) => {
       const row: Record<string, string | number> = { month: format(new Date(`${m}-01`), "M月") };
