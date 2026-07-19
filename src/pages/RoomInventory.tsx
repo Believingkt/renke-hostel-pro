@@ -184,7 +184,7 @@ export default function RoomInventory() {
         {currentAccommodationId && (
           <>
             {/* Tab bar */}
-            <div className="flex items-center gap-1 border-b overflow-x-auto scrollbar-thin -mx-2 px-2 mb-4">
+            <div className="flex items-center gap-1 border-b overflow-x-auto overflow-y-hidden scrollbar-none -mx-2 px-2 mb-4" style={{ scrollbarWidth: "none" }}>
               <button
                 type="button"
                 onClick={() => requestSwitchTab("calendar")}
