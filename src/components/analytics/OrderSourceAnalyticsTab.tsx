@@ -33,6 +33,9 @@ interface Props {
 type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
+  id: string;
+  order_number: string | null;
+  guest_name: string | null;
   order_source: string | null;
   order_status: string | null;
   ota_channel: string | null;
