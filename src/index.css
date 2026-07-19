@@ -1922,3 +1922,7 @@ All colors MUST be HSL.
 }
 
 
+/* Prevent layout shift when Radix overlays (Select/Dialog) lock scroll and compensate scrollbar width */
+html {
+  scrollbar-gutter: stable;
+}
