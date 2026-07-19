@@ -514,18 +514,23 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           ))
         ) : (
           <>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1"><DollarSign className="h-4 w-4" />訂單總額</CardDescription>
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardDescription className="flex items-center gap-1.5 text-sm font-medium">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <DollarSign className="h-4 w-4" />
+                  </span>
+                  訂單總額
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{f(totals.total)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{rangeLabel} · {totals.count} 筆</p>
+                <div className="text-3xl md:text-4xl font-bold tabular-nums tracking-tight">{f(totals.total)}</div>
+                <p className="text-sm text-muted-foreground mt-2">{rangeLabel} · <span className="tabular-nums font-medium text-foreground/80">{totals.count}</span> 筆</p>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">訂單總額來源占比</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold">訂單總額來源占比</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.length === 0 ? (
@@ -540,8 +545,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">訂單數來源占比</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold">訂單數來源占比</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.length === 0 ? (
