@@ -731,7 +731,7 @@ function PieWithLegend<T extends { label: string }>({
         </ResponsiveContainer>
       </div>
       <ul
-        className={`sm:w-40 lg:w-48 sm:max-h-[300px] sm:overflow-y-auto space-y-1 ${legendTextSize}`}
+        className={`sm:w-44 lg:w-52 sm:max-h-[320px] sm:overflow-y-auto space-y-0.5 ${legendTextSize}`}
         onMouseLeave={() => setActive(null)}
       >
         {data.map((d, i) => {
@@ -744,16 +744,16 @@ function PieWithLegend<T extends { label: string }>({
                 type="button"
                 onClick={() => setActive(selected ? null : i)}
                 onMouseEnter={() => setActive(i)}
-                className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left transition-colors ${
                   selected ? "bg-muted" : "hover:bg-muted/60"
                 }`}
               >
                 <span
-                  className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                  className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                 />
                 <span className="flex-1 min-w-0 truncate">{d.label}</span>
-                <span className="text-muted-foreground tabular-nums shrink-0">{p.toFixed(0)}%</span>
+                <span className="text-muted-foreground tabular-nums shrink-0 font-medium">{p.toFixed(0)}%</span>
               </button>
             </li>
           );
