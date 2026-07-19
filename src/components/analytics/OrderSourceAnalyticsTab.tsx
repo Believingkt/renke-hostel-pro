@@ -211,11 +211,22 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown) — grouped by currency
-  const aggregate = (rows: OrderRow[]) => {
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown).
+  // Revenue caliber: nightly accrual within [rangeStart, rangeEnd], excluding
+  // cancelled + KOL. `total` is the accrued in-range revenue; paid/deposit/
+  // pending are pro-rated by the same nightly fraction to keep 收款率一致.
+  const aggregate = (rows: OrderRow[], winStart: Date, winEnd: Date) => {
     const map = new Map<string, SourceStat>();
     const subMap = new Map<string, Map<string, SourceStat>>();
     for (const o of rows) {
+      // Query already filters cancelled/KOL, but guard defensively so the
+      // caliber matches OccupancyRevenueTable even for mutated data.
+      if (!isRevenueOrder(o)) continue;
+      const total = accrueOrderAmount(o, o.final_price, winStart, winEnd);
+      if (total === 0) continue; // no in-range nights
+      const paid = accrueOrderAmount(o, o.paid_amount, winStart, winEnd);
+      const isFullPaid = o.payment_status === "paid";
+
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
       const cur = map.get(key) ?? {
@@ -229,9 +240,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         pending: 0,
         rate: 0,
       };
-      const total = Number(o.final_price) || 0;
-      const paid = Number(o.paid_amount) || 0;
-      const isFullPaid = o.payment_status === "paid";
       cur.count += 1;
       cur.total += total;
       cur.paid += paid;
