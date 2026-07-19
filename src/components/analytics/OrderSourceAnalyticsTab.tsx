@@ -896,7 +896,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-right text-xs">區間內晚數</TableHead>
                   <TableHead className="text-right text-xs">總價</TableHead>
                   <TableHead className="text-right text-xs">每晚均攤</TableHead>
-                  <TableHead className="text-right text-xs">此區間貢獻</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
