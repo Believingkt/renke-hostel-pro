@@ -531,38 +531,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 {stats.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
                 ) : (
-                  <div className="h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
-                        <Pie
-                          data={stats}
-                          dataKey="total"
-                          nameKey="label"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={72}
-                          labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
-                          label={(e: any) => {
-                            const p = (e.percent ?? 0) * 100;
-                            return p < 3 ? "" : `${e.label} ${p.toFixed(0)}%`;
-                          }}
-                        >
-                          {stats.map((_, i) => (
-                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: 8,
-                          }}
-                          formatter={(v: number) => f(v)}
-                        />
-                        <Legend verticalAlign="bottom" height={36} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <PieWithLegend
+                    data={stats}
+                    dataKey="total"
+                    formatValue={(v) => f(v)}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -574,38 +547,11 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 {stats.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
                 ) : (
-                  <div className="h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
-                        <Pie
-                          data={stats}
-                          dataKey="count"
-                          nameKey="label"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={72}
-                          labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
-                          label={(e: any) => {
-                            const p = (e.percent ?? 0) * 100;
-                            return p < 3 ? "" : `${e.label} ${p.toFixed(0)}%`;
-                          }}
-                        >
-                          {stats.map((_, i) => (
-                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: 8,
-                          }}
-                          formatter={(v: number) => `${v} 筆`}
-                        />
-                        <Legend verticalAlign="bottom" height={36} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <PieWithLegend
+                    data={stats}
+                    dataKey="count"
+                    formatValue={(v) => `${v} 筆`}
+                  />
                 )}
               </CardContent>
             </Card>
