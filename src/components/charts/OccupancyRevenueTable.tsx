@@ -323,6 +323,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const checkOut = new Date(order.check_out_date);
         const nights = Math.max(1, differenceInDays(checkOut, checkIn));
 
+        // 佔用率統計仍限定 confirmed / hold（維持既有語意）；
+        // 營收採用共用 revenueAccrual 口徑：!cancelled && !KOL。
+        const countForOccupancy = order.order_status === 'confirmed' || order.order_status === 'hold';
+        const countForRevenue = isRevenueOrder(order);
+
         const orderRooms = orderRoomsMap.get(order.id) || [];
 
         // 將 order_rooms 拆成 exclusive / standard 兩堆
@@ -366,31 +371,32 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
 
 
-          if (splitMode) {
-            if (effectiveExclusiveQty > 0) {
-              buckets.exclusive.soldByType[dayType] += effectiveExclusiveQty;
+          if (countForOccupancy) {
+            if (splitMode) {
+              if (effectiveExclusiveQty > 0) {
+                buckets.exclusive.soldByType[dayType] += effectiveExclusiveQty;
+              }
+              if (effectiveStandardQty > 0) {
+                buckets.standard.soldByType[dayType] += effectiveStandardQty;
+              }
+            } else {
+              buckets.all.soldByType[dayType] += effectiveTotalQty;
             }
-            if (effectiveStandardQty > 0) {
-              buckets.standard.soldByType[dayType] += effectiveStandardQty;
-            }
-          } else {
-            buckets.all.soldByType[dayType] += effectiveTotalQty;
+            dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + effectiveTotalQty;
+            dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + effectiveExclusiveQty;
+            dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + effectiveStandardQty;
           }
-          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + effectiveTotalQty;
-          dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + effectiveExclusiveQty;
-          dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + effectiveStandardQty;
           if (order.order_source === 'official_use') dailyHasOfficial[dateStr] = true;
           if (order.order_source === 'kol') dailyHasKol[dateStr] = true;
           dailyEntries.push({ dayType, dateStr });
         }
 
-        // 營業額分攤（hold 與 official_use/業主自帶 均計入；僅 KOL 不計營收）
-        if (dailyEntries.length > 0) {
-          const isKol = order.order_source === 'kol';
-          const isOfficial = order.order_source === 'official_use';
-          const orderFinalPrice = isKol ? 0 : (Number(order.final_price) || 0);
+        // 營業額分攤：共用 revenueAccrual 口徑（排除 cancelled + KOL；final_price 按夜均攤）
+        if (dailyEntries.length > 0 && countForRevenue) {
+          const orderFinalPrice = Number(order.final_price) || 0;
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
+          const isOfficial = order.order_source === 'official_use';
 
           // 在 split 模式下，依間數比例切分到 exclusive / standard
           const excShare = splitMode && totalQty > 0 ? dailyShare * (exclusiveQty / totalQty) : 0;
