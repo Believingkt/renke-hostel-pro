@@ -100,7 +100,7 @@ export const AnalyticsDashboard = ({ accommodationId }: AnalyticsDashboardProps)
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            disabled={selectedYear >= currentYear}
+            
             onClick={() => { setSelectedYear(y => y + 1); setDateRange('year'); }}
           >
             <ChevronRight className="h-4 w-4" />
