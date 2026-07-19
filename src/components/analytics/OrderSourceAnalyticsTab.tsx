@@ -744,6 +744,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">來源明細</CardTitle>
+          <CardDescription className="text-xs">點擊「查看」可展開該來源的訂單夜次貢獻明細</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -753,6 +754,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總額</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">明細</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
