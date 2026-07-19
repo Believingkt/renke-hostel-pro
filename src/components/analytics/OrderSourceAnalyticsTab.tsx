@@ -704,8 +704,8 @@ function PieWithLegend<T extends { label: string }>({
               cx="50%"
               cy="50%"
               outerRadius={outerRadius}
-              innerRadius={Math.round(outerRadius * 0.5)}
-              paddingAngle={1}
+              innerRadius={Math.round(outerRadius * 0.62)}
+              paddingAngle={2}
               isAnimationActive={false}
             >
               {data.map((_, i) => (
