@@ -146,7 +146,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
+        .select("id, order_number, guest_name, order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .neq("order_source", "kol")
@@ -158,6 +158,9 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         setOrders([]);
       } else {
         setOrders(((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          order_number: r.order_number,
+          guest_name: r.guest_name,
           order_source: r.order_source,
           order_status: r.order_status,
           ota_channel: r.ota_channel,
