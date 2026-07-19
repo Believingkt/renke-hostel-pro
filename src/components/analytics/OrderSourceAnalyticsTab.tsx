@@ -467,35 +467,61 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="text-sm font-medium px-2 min-w-[90px] text-center rounded hover:bg-background/60 transition-colors"
+                    className="text-sm font-medium px-3 h-7 min-w-[92px] text-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
-                    {format(monthCursor, "yyyy/MM")}
+                    {format(monthCursor, "yyyy-MM")}
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-3 pointer-events-auto" align="start">
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={String(monthCursor.getFullYear())}
-                      onValueChange={(v) => setMonthCursor((d) => new Date(Number(v), d.getMonth(), 1))}
+                <PopoverContent className="w-64 p-3 pointer-events-auto" align="start">
+                  <div className="flex items-center justify-between mb-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setMonthCursor((d) => new Date(d.getFullYear() - 1, d.getMonth(), 1))}
                     >
-                      <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-                          <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={String(monthCursor.getMonth() + 1)}
-                      onValueChange={(v) => setMonthCursor((d) => new Date(d.getFullYear(), Number(v) - 1, 1))}
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="text-sm font-semibold tabular-nums">{monthCursor.getFullYear()}</div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setMonthCursor((d) => new Date(d.getFullYear() + 1, d.getMonth(), 1))}
                     >
-                      <SelectTrigger className="h-9 w-[95px]"><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                          <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Array.from({ length: 12 }, (_, i) => i).map((mIdx) => {
+                      const isActive = monthCursor.getMonth() === mIdx;
+                      return (
+                        <button
+                          key={mIdx}
+                          type="button"
+                          onClick={() =>
+                            setMonthCursor(new Date(monthCursor.getFullYear(), mIdx, 1))
+                          }
+                          className={`h-9 rounded-md text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted hover:bg-muted/70 text-foreground"
+                          }`}
+                        >
+                          {mIdx + 1}月
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t flex justify-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={() => setMonthCursor(startOfMonth(new Date()))}
+                    >
+                      回到本月
+                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>
