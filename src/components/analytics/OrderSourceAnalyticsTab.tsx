@@ -6,18 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-import { DollarSign, Wallet, Hourglass, Percent, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -511,10 +507,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         <span className="text-xs text-muted-foreground">統計基準：入住日期</span>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {/* KPI card + Pie charts */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
         {loading && !orders ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}><CardContent className="py-6"><Skeleton className="h-8 w-32" /></CardContent></Card>
           ))
         ) : (
@@ -530,77 +526,86 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1"><Wallet className="h-4 w-4" />已收金額</CardDescription>
+                <CardTitle className="text-base">訂單總額來源占比</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">{f(totals.paid)}</div>
-                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-                  <div className="flex justify-between gap-2">
-                    <span>已付訂金</span>
-                    <span className="tabular-nums font-medium text-foreground">{f(totals.depositPaid)}</span>
+                {stats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
+                ) : (
+                  <div className="h-[260px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats}
+                          dataKey="total"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={(e: any) => `${e.label} ${((e.percent ?? 0) * 100).toFixed(0)}%`}
+                        >
+                          {stats.map((_, i) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--popover))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                          }}
+                          formatter={(v: number) => f(v)}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="flex justify-between gap-2">
-                    <span>已付清</span>
-                    <span className="tabular-nums font-medium text-foreground">{f(totals.fullPaid)}</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1"><Hourglass className="h-4 w-4" />待收尾款</CardDescription>
+                <CardTitle className="text-base">訂單數來源占比</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{f(totals.pending)}</div>
-                <p className="text-xs text-muted-foreground mt-1">總額 − 已收</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1"><Percent className="h-4 w-4" />收款率</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{overallRate.toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground mt-1">已收 / 總額</p>
+                {stats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
+                ) : (
+                  <div className="h-[260px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats}
+                          dataKey="count"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={(e: any) => `${e.label} ${((e.percent ?? 0) * 100).toFixed(0)}%`}
+                        >
+                          {stats.map((_, i) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--popover))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                          }}
+                          formatter={(v: number) => `${v} 筆`}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>
         )}
       </div>
 
-      {/* Stacked bar: paid vs pending per source */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">各來源收款狀況</CardTitle>
-          <CardDescription>已收 vs 待收（{rangeLabel}）</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
-          ) : (
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={90} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                    }}
-                    formatter={(v: number) => f(v)}
-                  />
-                  <Legend />
-                  <Bar dataKey="paid" name="已收" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="pending" name="待收" stackId="a" fill="hsl(var(--muted-foreground)/0.35)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Table */}
       <Card>
@@ -615,17 +620,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead>來源</TableHead>
                   <TableHead className="text-right">訂單數</TableHead>
                   <TableHead className="text-right">訂單總額</TableHead>
-                  <TableHead className="text-right">已收</TableHead>
-                  <TableHead className="text-right">└ 已付訂金</TableHead>
-                  <TableHead className="text-right">└ 已付清</TableHead>
-                  <TableHead className="text-right">待收</TableHead>
-                  <TableHead className="text-right">收款率</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -656,11 +656,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-primary">{f(s.paid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.depositPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.fullPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
                             s.breakdown!.map((sub) => (
@@ -670,11 +665,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-primary/80">{f(sub.paid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.depositPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.fullPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.pending)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
                             ))}
                         </Fragment>
@@ -684,11 +674,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-primary">{f(totals.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.depositPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.fullPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.pending)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
                   </>
                 )}
@@ -719,43 +704,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           })}
         </div>
       )}
-
-
-
-      {/* Monthly trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">月趨勢（近 6 個月，Top 5 來源）</CardTitle>
-          <CardDescription>各來源訂單總額變化</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {trendData.length === 0 || trendKeys.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
-          ) : (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                    }}
-                    formatter={(v: number) => f(v)}
-                  />
-                  <Legend />
-                  {trendKeys.map((k, i) => (
-                    <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
