@@ -752,9 +752,9 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
-                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
-                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總金額</TableHead>
-                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">明細</TableHead>
+                  <TableHead className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
+                  <TableHead className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總金額</TableHead>
+                  <TableHead className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">明細</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
