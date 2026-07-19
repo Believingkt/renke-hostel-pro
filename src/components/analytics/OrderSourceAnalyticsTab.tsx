@@ -896,13 +896,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-right text-xs">區間內晚數</TableHead>
                   <TableHead className="text-right text-xs">總價</TableHead>
                   <TableHead className="text-right text-xs">每晚均攤</TableHead>
-                  <TableHead className="text-right text-xs">此區間貢獻</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {detailRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       此區間無貢獻訂單
                     </TableCell>
                   </TableRow>
@@ -924,11 +923,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{f(r.final_price)}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">{f(r.share)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{f(r.accrued)}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="font-semibold bg-muted/40 border-t-2">
-                      <TableCell colSpan={7} className="py-2">合計</TableCell>
+                      <TableCell colSpan={6} className="py-2">合計</TableCell>
                       <TableCell className="text-right tabular-nums py-2">{f(detailAccruedTotal)}</TableCell>
                     </TableRow>
                   </>
