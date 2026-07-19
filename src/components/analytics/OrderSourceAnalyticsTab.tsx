@@ -594,7 +594,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
             />
           )}
         </div>
-        <span className="text-xs text-muted-foreground">統計基準：入住日期</span>
+        <span className="text-xs text-muted-foreground">統計基準：夜次均攤（排除取消／KOL）</span>
       </div>
 
       {/* KPI card + Pie charts */}
