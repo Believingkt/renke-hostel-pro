@@ -18,6 +18,7 @@ import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
+import { accrueOrderAmount, accrueOrderNightlyShares, isRevenueOrder } from "@/lib/revenueAccrual";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,8 +33,10 @@ type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
   order_source: string | null;
+  order_status: string | null;
   ota_channel: string | null;
   check_in_date: string;
+  check_out_date: string | null;
   final_price: number | null;
   paid_amount: number | null;
   payment_status: string | null;
@@ -130,6 +133,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   }, [rangeMode, monthCursor, customRange]);
 
   // Fetch orders for KPI/table/bar
+  // Overlap filter: any order whose stay intersects [rangeStart, rangeEnd].
+  // Cancelled + KOL are excluded at query level (revenue caliber).
   useEffect(() => {
     if (!accommodationId) return;
     let cancelled = false;
@@ -137,11 +142,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
+        .select("order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
-        .gte("check_in_date", format(rangeStart, "yyyy-MM-dd"))
-        .lte("check_in_date", format(rangeEnd, "yyyy-MM-dd"));
+        .neq("order_source", "kol")
+        .lte("check_in_date", format(rangeEnd, "yyyy-MM-dd"))
+        .gte("check_out_date", format(rangeStart, "yyyy-MM-dd"));
       if (cancelled) return;
       if (error) {
         console.error(error);
@@ -149,8 +155,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       } else {
         setOrders(((data ?? []) as any[]).map((r) => ({
           order_source: r.order_source,
+          order_status: r.order_status,
           ota_channel: r.ota_channel,
           check_in_date: r.check_in_date,
+          check_out_date: r.check_out_date,
           final_price: r.final_price,
           paid_amount: r.paid_amount,
           payment_status: r.payment_status,
@@ -174,11 +182,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       const end = endOfMonth(today);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, ota_channel, check_in_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
+        .select("order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
-        .gte("check_in_date", format(start, "yyyy-MM-dd"))
-        .lte("check_in_date", format(end, "yyyy-MM-dd"));
+        .neq("order_source", "kol")
+        .lte("check_in_date", format(end, "yyyy-MM-dd"))
+        .gte("check_out_date", format(start, "yyyy-MM-dd"));
       if (cancelled) return;
       if (error) {
         console.error(error);
@@ -186,8 +195,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       } else {
         setTrendOrders(((data ?? []) as any[]).map((r) => ({
           order_source: r.order_source,
+          order_status: r.order_status,
           ota_channel: r.ota_channel,
           check_in_date: r.check_in_date,
+          check_out_date: r.check_out_date,
           final_price: r.final_price,
           paid_amount: r.paid_amount,
           payment_status: r.payment_status,
@@ -200,11 +211,22 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     };
   }, [accommodationId]);
 
-  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown) — grouped by currency
-  const aggregate = (rows: OrderRow[]) => {
+  // Aggregate per source (+ owlting/hotelnabe by ota_channel breakdown).
+  // Revenue caliber: nightly accrual within [rangeStart, rangeEnd], excluding
+  // cancelled + KOL. `total` is the accrued in-range revenue; paid/deposit/
+  // pending are pro-rated by the same nightly fraction to keep 收款率一致.
+  const aggregate = (rows: OrderRow[], winStart: Date, winEnd: Date) => {
     const map = new Map<string, SourceStat>();
     const subMap = new Map<string, Map<string, SourceStat>>();
     for (const o of rows) {
+      // Query already filters cancelled/KOL, but guard defensively so the
+      // caliber matches OccupancyRevenueTable even for mutated data.
+      if (!isRevenueOrder(o)) continue;
+      const total = accrueOrderAmount(o, o.final_price, winStart, winEnd);
+      if (total === 0) continue; // no in-range nights
+      const paid = accrueOrderAmount(o, o.paid_amount, winStart, winEnd);
+      const isFullPaid = o.payment_status === "paid";
+
       const key = o.order_source || "unknown";
       const cfg = getOrderSourceConfig(key);
       const cur = map.get(key) ?? {
@@ -218,9 +240,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         pending: 0,
         rate: 0,
       };
-      const total = Number(o.final_price) || 0;
-      const paid = Number(o.paid_amount) || 0;
-      const isFullPaid = o.payment_status === "paid";
       cur.count += 1;
       cur.total += total;
       cur.paid += paid;
@@ -315,7 +334,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
   const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
 
-  const activeAggregate = useMemo(() => aggregate(activeRows), [activeRows]);
+  const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd), [activeRows, rangeStart, rangeEnd]);
   const stats = activeAggregate.stats;
   const totals = activeAggregate.totals;
 
@@ -343,16 +362,23 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
 
   const overallRate = totals.total > 0 ? (totals.paid / totals.total) * 100 : 0;
 
-  // Monthly trend helper
+  // Monthly trend helper — accrues each order's revenue nightly, then buckets
+  // per calendar month. Same caliber as `aggregate` above.
   const buildTrend = (rows: OrderRow[]) => {
     const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) months.push(format(subMonths(today, i), "yyyy-MM"));
+    const trendStart = startOfMonth(subMonths(today, 5));
+    const trendEnd = endOfMonth(today);
 
+    // First pass: compute in-window totals per source (for top-5 ranking).
     const totalsBySource = new Map<string, number>();
     for (const o of rows) {
+      if (!isRevenueOrder(o)) continue;
+      const t = accrueOrderAmount(o, o.final_price, trendStart, trendEnd);
+      if (t === 0) continue;
       const src = o.order_source || "unknown";
-      totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + (Number(o.final_price) || 0));
+      totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + t);
     }
     const topSources = Array.from(totalsBySource.entries())
       .sort((a, b) => b[1] - a[1])
@@ -362,12 +388,15 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
     const byMonth = new Map<string, Record<string, number>>();
     for (const m of months) byMonth.set(m, {});
     for (const o of rows) {
-      const m = o.check_in_date?.slice(0, 7);
-      if (!m || !byMonth.has(m)) continue;
       const src = o.order_source || "unknown";
       if (!topSources.includes(src)) continue;
-      const row = byMonth.get(m)!;
-      row[src] = (row[src] ?? 0) + (Number(o.final_price) || 0);
+      const shares = accrueOrderNightlyShares(o, trendStart, trendEnd);
+      for (const s of shares) {
+        const m = s.date.slice(0, 7);
+        if (!byMonth.has(m)) continue;
+        const row = byMonth.get(m)!;
+        row[src] = (row[src] ?? 0) + s.amount;
+      }
     }
     const data = months.map((m) => {
       const row: Record<string, string | number> = { month: format(new Date(`${m}-01`), "M月") };
