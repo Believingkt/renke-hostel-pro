@@ -704,43 +704,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           })}
         </div>
       )}
-
-
-
-      {/* Monthly trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">月趨勢（近 6 個月，Top 5 來源）</CardTitle>
-          <CardDescription>各來源訂單總額變化</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {trendData.length === 0 || trendKeys.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
-          ) : (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                    }}
-                    formatter={(v: number) => f(v)}
-                  />
-                  <Legend />
-                  {trendKeys.map((k, i) => (
-                    <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
