@@ -661,4 +661,101 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   );
 }
 
+const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
+function PieWithLegend<T extends { label: string }>({
+  data,
+  dataKey,
+  formatValue,
+}: {
+  data: T[];
+  dataKey: keyof T;
+  formatValue: (v: number) => string;
+}) {
+  const [active, setActive] = useState<number | null>(null);
+  const [width, setWidth] = useState<number>(typeof window !== "undefined" ? window.innerWidth : 1024);
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const isNarrow = width < 640;
+  const chartHeight = isNarrow ? 220 : width < 1024 ? 260 : 300;
+  const outerRadius = isNarrow ? 70 : width < 1280 ? 85 : 95;
+  const legendTextSize = isNarrow ? "text-[11px]" : "text-xs";
+
+  const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+      <div className="flex-1 min-w-0" style={{ height: chartHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey={dataKey as string}
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              outerRadius={outerRadius}
+              innerRadius={Math.round(outerRadius * 0.5)}
+              paddingAngle={1}
+              isAnimationActive={false}
+            >
+              {data.map((_, i) => (
+                <Cell
+                  key={i}
+                  fill={PIE_COLORS[i % PIE_COLORS.length]}
+                  fillOpacity={active === null || active === i ? 1 : 0.25}
+                  stroke={active === i ? "hsl(var(--foreground))" : "hsl(var(--background))"}
+                  strokeWidth={active === i ? 2 : 1}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--popover))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              formatter={(v: number) => formatValue(Number(v))}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <ul
+        className={`sm:w-40 lg:w-48 sm:max-h-[300px] sm:overflow-y-auto space-y-1 ${legendTextSize}`}
+        onMouseLeave={() => setActive(null)}
+      >
+        {data.map((d, i) => {
+          const v = Number(d[dataKey] ?? 0);
+          const p = (v / total) * 100;
+          const selected = active === i;
+          return (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => setActive(selected ? null : i)}
+                onMouseEnter={() => setActive(i)}
+                className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors ${
+                  selected ? "bg-muted" : "hover:bg-muted/60"
+                }`}
+              >
+                <span
+                  className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                  style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                />
+                <span className="flex-1 min-w-0 truncate">{d.label}</span>
+                <span className="text-muted-foreground tabular-nums shrink-0">{p.toFixed(0)}%</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default OrderSourceAnalyticsTab;
