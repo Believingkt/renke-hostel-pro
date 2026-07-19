@@ -514,18 +514,23 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           ))
         ) : (
           <>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1"><DollarSign className="h-4 w-4" />訂單總額</CardDescription>
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardDescription className="flex items-center gap-1.5 text-sm font-medium">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <DollarSign className="h-4 w-4" />
+                  </span>
+                  訂單總額
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{f(totals.total)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{rangeLabel} · {totals.count} 筆</p>
+                <div className="text-3xl md:text-4xl font-bold tabular-nums tracking-tight">{f(totals.total)}</div>
+                <p className="text-sm text-muted-foreground mt-2">{rangeLabel} · <span className="tabular-nums font-medium text-foreground/80">{totals.count}</span> 筆</p>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">訂單總額來源占比</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold">訂單總額來源占比</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.length === 0 ? (
@@ -540,8 +545,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">訂單數來源占比</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold">訂單數來源占比</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.length === 0 ? (
@@ -563,16 +568,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">來源明細</CardTitle>
+          <CardTitle className="text-base font-semibold">來源明細</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table className="fixed-table">
               <TableHeader>
-                <TableRow>
-                  <TableHead>來源</TableHead>
-                  <TableHead className="text-right">訂單數</TableHead>
-                  <TableHead className="text-right">訂單總額</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總額</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -588,18 +593,18 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       return (
                         <Fragment key={s.source}>
                           <TableRow>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="whitespace-nowrap py-3 font-medium">
                               {hasBreakdown ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(s.source)}
-                                  className="inline-flex items-center gap-1 hover:text-primary"
+                                  className="inline-flex items-center gap-1.5 hover:text-primary"
                                 >
                                   <ChevronDown
                                     className={`h-3.5 w-3.5 transition-transform ${isOpen ? "" : "-rotate-90"}`}
                                   />
                                   {s.label}
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-xs text-muted-foreground font-normal">
                                     ({s.breakdown!.length})
                                   </span>
                                 </button>
@@ -607,26 +612,26 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 s.label
                               )}
                             </TableCell>
-                            <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                            <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums py-3">{s.count}</TableCell>
+                            <TableCell className="text-right tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
                             s.breakdown!.map((sub) => (
                               <TableRow key={sub.source} className="bg-muted/20">
-                                <TableCell className="whitespace-nowrap pl-8 text-muted-foreground">
+                                <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
                                   └ {sub.label}
                                 </TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
                               </TableRow>
                             ))}
                         </Fragment>
                       );
                     })}
-                    <TableRow className="font-semibold bg-muted/40">
-                      <TableCell>總計</TableCell>
-                      <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
+                    <TableRow className="font-semibold bg-muted/40 border-t-2">
+                      <TableCell className="py-3">總計</TableCell>
+                      <TableCell className="text-right tabular-nums py-3">{totals.count}</TableCell>
+                      <TableCell className="text-right tabular-nums py-3">{f(totals.total)}</TableCell>
                     </TableRow>
                   </>
                 )}
@@ -681,9 +686,9 @@ function PieWithLegend<T extends { label: string }>({
   }, []);
 
   const isNarrow = width < 640;
-  const chartHeight = isNarrow ? 220 : width < 1024 ? 260 : 300;
-  const outerRadius = isNarrow ? 70 : width < 1280 ? 85 : 95;
-  const legendTextSize = isNarrow ? "text-[11px]" : "text-xs";
+  const chartHeight = isNarrow ? 240 : width < 1024 ? 280 : 320;
+  const outerRadius = isNarrow ? 80 : width < 1280 ? 95 : 108;
+  const legendTextSize = isNarrow ? "text-xs" : "text-sm";
 
   const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
 
@@ -699,8 +704,8 @@ function PieWithLegend<T extends { label: string }>({
               cx="50%"
               cy="50%"
               outerRadius={outerRadius}
-              innerRadius={Math.round(outerRadius * 0.5)}
-              paddingAngle={1}
+              innerRadius={Math.round(outerRadius * 0.62)}
+              paddingAngle={2}
               isAnimationActive={false}
             >
               {data.map((_, i) => (
@@ -726,7 +731,7 @@ function PieWithLegend<T extends { label: string }>({
         </ResponsiveContainer>
       </div>
       <ul
-        className={`sm:w-40 lg:w-48 sm:max-h-[300px] sm:overflow-y-auto space-y-1 ${legendTextSize}`}
+        className={`sm:w-44 lg:w-52 sm:max-h-[320px] sm:overflow-y-auto space-y-0.5 ${legendTextSize}`}
         onMouseLeave={() => setActive(null)}
       >
         {data.map((d, i) => {
@@ -739,16 +744,16 @@ function PieWithLegend<T extends { label: string }>({
                 type="button"
                 onClick={() => setActive(selected ? null : i)}
                 onMouseEnter={() => setActive(i)}
-                className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left transition-colors ${
                   selected ? "bg-muted" : "hover:bg-muted/60"
                 }`}
               >
                 <span
-                  className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                  className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                 />
                 <span className="flex-1 min-w-0 truncate">{d.label}</span>
-                <span className="text-muted-foreground tabular-nums shrink-0">{p.toFixed(0)}%</span>
+                <span className="text-muted-foreground tabular-nums shrink-0 font-medium">{p.toFixed(0)}%</span>
               </button>
             </li>
           );
