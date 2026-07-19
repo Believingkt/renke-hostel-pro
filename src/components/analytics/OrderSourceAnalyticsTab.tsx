@@ -504,8 +504,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                           }
                           className={`h-9 rounded-md text-sm font-medium transition-colors ${
                             isActive
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted hover:bg-muted/70 text-foreground"
+                              ? "text-primary font-semibold"
+                              : "text-foreground hover:text-primary"
                           }`}
                         >
                           {mIdx + 1}月
