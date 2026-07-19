@@ -19,8 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const STORAGE_KEY = "room-inventory:open-order-tabs";
-
 interface OpenTab {
   id: string;
   label: string; // order_number (short)
@@ -58,26 +56,8 @@ export default function RoomInventory() {
     prevAccIdRef.current = currentAccommodationId;
   }, [currentAccommodationId, dirtyMap]);
 
-  // Restore from sessionStorage
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { tabs: OpenTab[]; activeTab: string };
-        if (Array.isArray(parsed.tabs)) {
-          setTabs(parsed.tabs);
-          if (parsed.activeTab) setActiveTab(parsed.activeTab);
-        }
-      }
-    } catch { /* noop */ }
-  }, []);
-
-  // Persist tabs
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeTab }));
-    } catch { /* noop */ }
-  }, [tabs, activeTab]);
+  // Tabs are ephemeral: not persisted across reloads/navigation.
+  // Unmounting the page (route change) discards all tab state naturally.
 
   // beforeunload warn if any dirty
   useEffect(() => {
