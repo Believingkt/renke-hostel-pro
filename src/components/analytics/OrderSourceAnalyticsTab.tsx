@@ -478,8 +478,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       value={String(monthCursor.getFullYear())}
                       onValueChange={(v) => setMonthCursor((d) => new Date(Number(v), d.getMonth(), 1))}
                     >
-                      <SelectTrigger className="h-9 w-[100px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
                         {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
                           <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
                         ))}
@@ -489,8 +489,8 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       value={String(monthCursor.getMonth() + 1)}
                       onValueChange={(v) => setMonthCursor((d) => new Date(d.getFullYear(), Number(v) - 1, 1))}
                     >
-                      <SelectTrigger className="h-9 w-[90px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="h-9 w-[95px]"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
                         ))}
