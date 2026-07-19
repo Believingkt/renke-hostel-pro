@@ -123,7 +123,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           supabase.from('orders')
             .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building')
             .eq('accommodation_id', accommodationId)
-            .in('order_status', ['confirmed', 'hold'])
+            // Revenue caliber: exclude only cancelled (KOL is filtered per-order below).
+            // Occupancy tallies are separately gated to confirmed/hold inside the loop.
+            .neq('order_status', 'cancelled')
             .lte('check_in_date', endDate)
             .gte('check_out_date', startDate)
             .order('id', { ascending: true })
