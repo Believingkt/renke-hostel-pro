@@ -789,14 +789,14 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 s.label
                               )}
                             </TableCell>
-                            <TableCell className="text-right tabular-nums py-3">
+                            <TableCell className="text-center tabular-nums py-3">
                               {s.count}
                               <span className="ml-1.5 text-xs text-muted-foreground font-normal">
                                 ({totals.count > 0 ? ((s.count / totals.count) * 100).toFixed(1) : "0.0"}%)
                               </span>
                             </TableCell>
-                            <TableCell className="text-right tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
-                            <TableCell className="text-right py-3">
+                            <TableCell className="text-center tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
+                            <TableCell className="text-center py-3">
                               <Button
                                 variant="ghost"
                                 size="sm"
