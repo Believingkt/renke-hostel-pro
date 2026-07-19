@@ -686,9 +686,9 @@ function PieWithLegend<T extends { label: string }>({
   }, []);
 
   const isNarrow = width < 640;
-  const chartHeight = isNarrow ? 220 : width < 1024 ? 260 : 300;
-  const outerRadius = isNarrow ? 70 : width < 1280 ? 85 : 95;
-  const legendTextSize = isNarrow ? "text-[11px]" : "text-xs";
+  const chartHeight = isNarrow ? 240 : width < 1024 ? 280 : 320;
+  const outerRadius = isNarrow ? 80 : width < 1280 ? 95 : 108;
+  const legendTextSize = isNarrow ? "text-xs" : "text-sm";
 
   const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
 
