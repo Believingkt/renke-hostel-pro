@@ -348,6 +348,80 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const stats = activeAggregate.stats;
   const totals = activeAggregate.totals;
 
+  // 點選來源後：算出該來源在此區間的每筆訂單夜次貢獻明細
+  const detailRows = useMemo(() => {
+    if (!detailKey) return [];
+    const [srcFilter, otaFilter] = detailKey.split(":");
+    const isAll = detailKey === "__all__";
+    const list: Array<{
+      id: string;
+      order_number: string;
+      guest_name: string;
+      check_in_date: string;
+      check_out_date: string | null;
+      nights: number;
+      nightsInRange: number;
+      final_price: number;
+      share: number;
+      accrued: number;
+      order_source: string;
+      ota_channel: string | null;
+    }> = [];
+    for (const o of activeRows) {
+      if (!isRevenueOrder(o)) continue;
+      if (!isAll) {
+        const src = o.order_source || "unknown";
+        if (src !== srcFilter) continue;
+        if (otaFilter !== undefined) {
+          const ota = (o.ota_channel || "").toString().trim().toLowerCase() || "unknown";
+          if (ota !== otaFilter) continue;
+        }
+      }
+      const shares = accrueOrderNightlyShares(o, rangeStart, rangeEnd);
+      if (shares.length === 0) continue;
+      // total nights of the whole stay
+      const inD = new Date(o.check_in_date);
+      const outD = o.check_out_date ? new Date(o.check_out_date) : inD;
+      const totalNights = Math.max(1, Math.round((outD.getTime() - inD.getTime()) / 86400000));
+      const perNight = shares[0]?.amount ?? 0;
+      const accrued = shares.reduce((s, x) => s + x.amount, 0);
+      list.push({
+        id: o.id,
+        order_number: o.order_number || o.id.slice(0, 8),
+        guest_name: o.guest_name || "—",
+        check_in_date: o.check_in_date,
+        check_out_date: o.check_out_date,
+        nights: totalNights,
+        nightsInRange: shares.length,
+        final_price: Number(o.final_price) || 0,
+        share: perNight,
+        accrued,
+        order_source: o.order_source || "unknown",
+        ota_channel: o.ota_channel,
+      });
+    }
+    list.sort((a, b) => b.accrued - a.accrued);
+    return list;
+  }, [detailKey, activeRows, rangeStart, rangeEnd]);
+
+  const detailTitle = useMemo(() => {
+    if (!detailKey) return "";
+    if (detailKey === "__all__") return "全部來源";
+    const [srcKey, otaKey] = detailKey.split(":");
+    const srcLabel = getOrderSourceConfig(srcKey).label;
+    if (otaKey === undefined) return srcLabel;
+    const subLabel =
+      srcKey === "owlting"
+        ? (otaKey === "unknown" ? "未指定" : (OWLTING_OTA_DISPLAY_NAMES[otaKey] ?? otaKey))
+        : (otaKey === "unknown" ? "未指定" : otaKey);
+    return `${srcLabel} · ${subLabel}`;
+  }, [detailKey]);
+
+  const detailAccruedTotal = useMemo(
+    () => detailRows.reduce((s, r) => s + r.accrued, 0),
+    [detailRows],
+  );
+
   // 旅行日 separate 模式下：計算另一幣別的總覽（並排顯示用）
   const separateBuckets = useMemo(() => {
     if (!isTraveldays || viewMode !== "separate") return [] as Array<{ currency: string; total: number; count: number }>;
