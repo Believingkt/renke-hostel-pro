@@ -463,7 +463,42 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMonthCursor((d) => subMonths(d, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium px-2 min-w-[90px] text-center">{format(monthCursor, "yyyy/MM")}</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-sm font-medium px-2 min-w-[90px] text-center rounded hover:bg-background/60 transition-colors"
+                  >
+                    {format(monthCursor, "yyyy/MM")}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3 pointer-events-auto" align="start">
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={String(monthCursor.getFullYear())}
+                      onValueChange={(v) => setMonthCursor((d) => new Date(Number(v), d.getMonth(), 1))}
+                    >
+                      <SelectTrigger className="h-9 w-[100px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+                          <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={String(monthCursor.getMonth() + 1)}
+                      onValueChange={(v) => setMonthCursor((d) => new Date(d.getFullYear(), Number(v) - 1, 1))}
+                    >
+                      <SelectTrigger className="h-9 w-[90px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Button
                 variant="ghost"
                 size="icon"
