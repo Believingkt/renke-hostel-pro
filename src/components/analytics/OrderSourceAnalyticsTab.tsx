@@ -12,7 +12,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { DollarSign, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, ChevronDown, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -32,6 +33,9 @@ interface Props {
 type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
 interface OrderRow {
+  id: string;
+  order_number: string | null;
+  guest_name: string | null;
   order_source: string | null;
   order_status: string | null;
   ota_channel: string | null;
@@ -82,6 +86,9 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("TWD");
   const [exchangeRate, setExchangeRate] = useState<number>(0.21); // 1 JPY = 0.21 TWD 預設
   const [rateInput, setRateInput] = useState<string>("0.21");
+  // 點選來源後展開的明細（顯示哪些訂單的夜次貢獻此金額）
+  // 值格式: "__all__" 或 "<source>" 或 "<source>:<ota>"
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const toggleExpand = (src: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
@@ -142,7 +149,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
+        .select("id, order_number, guest_name, order_source, order_status, ota_channel, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled")
         .neq("order_source", "kol")
@@ -154,6 +161,9 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         setOrders([]);
       } else {
         setOrders(((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          order_number: r.order_number,
+          guest_name: r.guest_name,
           order_source: r.order_source,
           order_status: r.order_status,
           ota_channel: r.ota_channel,
@@ -337,6 +347,80 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd), [activeRows, rangeStart, rangeEnd]);
   const stats = activeAggregate.stats;
   const totals = activeAggregate.totals;
+
+  // 點選來源後：算出該來源在此區間的每筆訂單夜次貢獻明細
+  const detailRows = useMemo(() => {
+    if (!detailKey) return [];
+    const [srcFilter, otaFilter] = detailKey.split(":");
+    const isAll = detailKey === "__all__";
+    const list: Array<{
+      id: string;
+      order_number: string;
+      guest_name: string;
+      check_in_date: string;
+      check_out_date: string | null;
+      nights: number;
+      nightsInRange: number;
+      final_price: number;
+      share: number;
+      accrued: number;
+      order_source: string;
+      ota_channel: string | null;
+    }> = [];
+    for (const o of activeRows) {
+      if (!isRevenueOrder(o)) continue;
+      if (!isAll) {
+        const src = o.order_source || "unknown";
+        if (src !== srcFilter) continue;
+        if (otaFilter !== undefined) {
+          const ota = (o.ota_channel || "").toString().trim().toLowerCase() || "unknown";
+          if (ota !== otaFilter) continue;
+        }
+      }
+      const shares = accrueOrderNightlyShares(o, rangeStart, rangeEnd);
+      if (shares.length === 0) continue;
+      // total nights of the whole stay
+      const inD = new Date(o.check_in_date);
+      const outD = o.check_out_date ? new Date(o.check_out_date) : inD;
+      const totalNights = Math.max(1, Math.round((outD.getTime() - inD.getTime()) / 86400000));
+      const perNight = shares[0]?.amount ?? 0;
+      const accrued = shares.reduce((s, x) => s + x.amount, 0);
+      list.push({
+        id: o.id,
+        order_number: o.order_number || o.id.slice(0, 8),
+        guest_name: o.guest_name || "—",
+        check_in_date: o.check_in_date,
+        check_out_date: o.check_out_date,
+        nights: totalNights,
+        nightsInRange: shares.length,
+        final_price: Number(o.final_price) || 0,
+        share: perNight,
+        accrued,
+        order_source: o.order_source || "unknown",
+        ota_channel: o.ota_channel,
+      });
+    }
+    list.sort((a, b) => b.accrued - a.accrued);
+    return list;
+  }, [detailKey, activeRows, rangeStart, rangeEnd]);
+
+  const detailTitle = useMemo(() => {
+    if (!detailKey) return "";
+    if (detailKey === "__all__") return "全部來源";
+    const [srcKey, otaKey] = detailKey.split(":");
+    const srcLabel = getOrderSourceConfig(srcKey).label;
+    if (otaKey === undefined) return srcLabel;
+    const subLabel =
+      srcKey === "owlting"
+        ? (otaKey === "unknown" ? "未指定" : (OWLTING_OTA_DISPLAY_NAMES[otaKey] ?? otaKey))
+        : (otaKey === "unknown" ? "未指定" : otaKey);
+    return `${srcLabel} · ${subLabel}`;
+  }, [detailKey]);
+
+  const detailAccruedTotal = useMemo(
+    () => detailRows.reduce((s, r) => s + r.accrued, 0),
+    [detailRows],
+  );
 
   // 旅行日 separate 模式下：計算另一幣別的總覽（並排顯示用）
   const separateBuckets = useMemo(() => {
@@ -660,6 +744,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">來源明細</CardTitle>
+          <CardDescription className="text-xs">點擊「查看」可展開該來源的訂單夜次貢獻明細</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -669,12 +754,13 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總額</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">明細</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -705,17 +791,40 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             </TableCell>
                             <TableCell className="text-right tabular-nums py-3">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
+                            <TableCell className="text-right py-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-primary hover:text-primary"
+                                onClick={() => setDetailKey(s.source)}
+                              >
+                                <Search className="h-3 w-3 mr-1" />查看
+                              </Button>
+                            </TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
-                            s.breakdown!.map((sub) => (
-                              <TableRow key={sub.source} className="bg-muted/20">
-                                <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
-                                  └ {sub.label}
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
-                              </TableRow>
-                            ))}
+                            s.breakdown!.map((sub) => {
+                              const [, otaKey] = sub.source.split(":");
+                              return (
+                                <TableRow key={sub.source} className="bg-muted/20">
+                                  <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
+                                    └ {sub.label}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
+                                  <TableCell className="text-right py-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs text-muted-foreground hover:text-primary"
+                                      onClick={() => setDetailKey(`${s.source}:${otaKey}`)}
+                                    >
+                                      查看
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                         </Fragment>
                       );
                     })}
@@ -723,6 +832,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell className="py-3">總計</TableCell>
                       <TableCell className="text-right tabular-nums py-3">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums py-3">{f(totals.total)}</TableCell>
+                      <TableCell className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-primary hover:text-primary"
+                          onClick={() => setDetailKey("__all__")}
+                        >
+                          <Search className="h-3 w-3 mr-1" />查看
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   </>
                 )}
@@ -753,6 +872,72 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           })}
         </div>
       )}
+
+      {/* 計算明細 Dialog：展開該來源在此區間內的每筆訂單夜次貢獻 */}
+      <Dialog open={detailKey !== null} onOpenChange={(open) => !open && setDetailKey(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              計算明細 · {detailTitle}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              區間 {rangeLabel}：共 {detailRows.length} 筆訂單，累計 {f(detailAccruedTotal)}
+              <span className="text-muted-foreground/70"> · 每晚金額 = 總價 ÷ 總晚數</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto flex-1 -mx-6 px-6">
+            <Table className="text-xs">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">訂單編號</TableHead>
+                  <TableHead className="text-xs">姓名</TableHead>
+                  <TableHead className="text-xs whitespace-nowrap">入住 → 退房</TableHead>
+                  <TableHead className="text-right text-xs">總晚數</TableHead>
+                  <TableHead className="text-right text-xs">區間內晚數</TableHead>
+                  <TableHead className="text-right text-xs">總價</TableHead>
+                  <TableHead className="text-right text-xs">每晚均攤</TableHead>
+                  <TableHead className="text-right text-xs">此區間貢獻</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      此區間無貢獻訂單
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {detailRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-mono whitespace-nowrap">{r.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap">{r.guest_name}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {r.check_in_date} → {r.check_out_date ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{r.nights}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.nightsInRange}
+                          {r.nightsInRange < r.nights && (
+                            <span className="text-muted-foreground/70"> / {r.nights}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{f(r.final_price)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">{f(r.share)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{f(r.accrued)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="font-semibold bg-muted/40 border-t-2">
+                      <TableCell colSpan={7} className="py-2">合計</TableCell>
+                      <TableCell className="text-right tabular-nums py-2">{f(detailAccruedTotal)}</TableCell>
+                    </TableRow>
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
