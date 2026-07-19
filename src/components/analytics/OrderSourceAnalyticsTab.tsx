@@ -840,7 +840,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                     })}
                     <TableRow className="font-semibold bg-muted/40 border-t-2">
                       <TableCell className="py-3">總計</TableCell>
-                      <TableCell className="text-right tabular-nums py-3">{totals.count}</TableCell>
+                      <TableCell className="text-right tabular-nums py-3">
+                        {totals.count}
+                        <span className="ml-1.5 text-xs text-muted-foreground font-normal">(100.0%)</span>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums py-3">{f(totals.total)}</TableCell>
                       <TableCell className="text-right py-3">
                         <Button
