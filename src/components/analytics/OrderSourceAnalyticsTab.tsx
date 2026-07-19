@@ -923,11 +923,10 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{f(r.final_price)}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">{f(r.share)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{f(r.accrued)}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="font-semibold bg-muted/40 border-t-2">
-                      <TableCell colSpan={7} className="py-2">合計</TableCell>
+                      <TableCell colSpan={6} className="py-2">合計</TableCell>
                       <TableCell className="text-right tabular-nums py-2">{f(detailAccruedTotal)}</TableCell>
                     </TableRow>
                   </>
