@@ -233,7 +233,7 @@ const Dashboard = () => {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                disabled={selectedYear >= currentYear}
+                
                 onClick={() => setSelectedYear(y => y + 1)}
               >
                 <ChevronRight className="h-4 w-4" />
