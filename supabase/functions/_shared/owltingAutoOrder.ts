@@ -147,7 +147,7 @@ export async function autoCreatePendingOrder(
         deposit_required_amount: 0,
         is_pii_pending: true,
         auto_created_from_email_id: input.raw_email_id,
-        notes: `[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"})，待業主補齊住客資料。`,
+        notes: `${input.is_payment_pending ? "[等待付款鎖房] " : ""}[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"}${input.is_payment_pending ? "，來源: 等待付款通知（48h 內未成立將自動釋放）" : ""})，待業主補齊住客資料。`,
       })
       .select("id, order_number")
       .single();
