@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import {
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
