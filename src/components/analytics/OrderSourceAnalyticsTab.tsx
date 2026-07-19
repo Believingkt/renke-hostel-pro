@@ -400,7 +400,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
         ota_channel: o.ota_channel,
       });
     }
-    list.sort((a, b) => b.accrued - a.accrued);
+    list.sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
     return list;
   }, [detailKey, activeRows, rangeStart, rangeEnd]);
 
