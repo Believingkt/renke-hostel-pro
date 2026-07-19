@@ -334,7 +334,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
   const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
 
-  const activeAggregate = useMemo(() => aggregate(activeRows), [activeRows]);
+  const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd), [activeRows, rangeStart, rangeEnd]);
   const stats = activeAggregate.stats;
   const totals = activeAggregate.totals;
 
