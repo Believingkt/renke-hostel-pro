@@ -754,9 +754,12 @@ function PieWithLegend<T extends { label: string }>({
 
   const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
 
+  const activeItem = active !== null ? data[active] : null;
+  const activeValue = activeItem ? Number(activeItem[dataKey] ?? 0) : 0;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="w-full" style={{ height: chartHeight, minHeight: chartHeight }}>
+      <div className="w-full relative" style={{ height: chartHeight, minHeight: chartHeight }}>
 
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -768,7 +771,7 @@ function PieWithLegend<T extends { label: string }>({
               cy="50%"
               outerRadius={outerRadius}
               innerRadius={Math.round(outerRadius * 0.62)}
-              paddingAngle={2}
+              paddingAngle={0.5}
               isAnimationActive={false}
             >
               {data.map((_, i) => (
@@ -776,22 +779,19 @@ function PieWithLegend<T extends { label: string }>({
                   key={i}
                   fill={PIE_COLORS[i % PIE_COLORS.length]}
                   fillOpacity={active === null || active === i ? 1 : 0.25}
-                  stroke={active === i ? "hsl(var(--foreground))" : "hsl(var(--background))"}
-                  strokeWidth={active === i ? 2 : 1}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={0.5}
                 />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--popover))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              formatter={(v: number) => formatValue(Number(v))}
-            />
           </PieChart>
         </ResponsiveContainer>
+        {activeItem && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 shadow-sm text-xs whitespace-nowrap">
+            <span className="text-muted-foreground">{activeItem.label}：</span>
+            <span className="font-medium tabular-nums">{formatValue(activeValue)}</span>
+          </div>
+        )}
       </div>
       <ul
         className={`w-full space-y-0.5 ${legendTextSize}`}
