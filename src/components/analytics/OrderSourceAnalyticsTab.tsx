@@ -467,7 +467,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="text-sm font-medium px-3 h-7 min-w-[92px] text-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="text-sm font-medium px-3 h-7 min-w-[92px] text-center rounded hover:bg-background/60 transition-colors"
                   >
                     {format(monthCursor, "yyyy-MM")}
                   </button>
