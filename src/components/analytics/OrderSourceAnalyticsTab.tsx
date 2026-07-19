@@ -953,7 +953,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   );
 }
 
-const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+const PIE_COLORS = ["hsl(24 95% 53%)", "hsl(217 91% 60%)", "hsl(142 71% 45%)", "hsl(280 87% 65%)", "hsl(48 96% 53%)", "hsl(340 82% 62%)", "hsl(180 65% 45%)"];
 
 function PieWithLegend<T extends { label: string }>({
   data,
