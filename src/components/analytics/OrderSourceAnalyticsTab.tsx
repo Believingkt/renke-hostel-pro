@@ -731,7 +731,7 @@ function PieWithLegend<T extends { label: string }>({
         </ResponsiveContainer>
       </div>
       <ul
-        className={`sm:w-44 lg:w-52 sm:max-h-[320px] sm:overflow-y-auto space-y-0.5 ${legendTextSize}`}
+        className={`w-full space-y-0.5 ${legendTextSize}`}
         onMouseLeave={() => setActive(null)}
       >
         {data.map((d, i) => {
