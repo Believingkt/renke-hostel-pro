@@ -872,6 +872,72 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
           })}
         </div>
       )}
+
+      {/* 計算明細 Dialog：展開該來源在此區間內的每筆訂單夜次貢獻 */}
+      <Dialog open={detailKey !== null} onOpenChange={(open) => !open && setDetailKey(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              計算明細 · {detailTitle}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              區間 {rangeLabel}：共 {detailRows.length} 筆訂單，累計 {f(detailAccruedTotal)}
+              <span className="text-muted-foreground/70"> · 每晚金額 = 總價 ÷ 總晚數</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto flex-1 -mx-6 px-6">
+            <Table className="text-xs">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">訂單編號</TableHead>
+                  <TableHead className="text-xs">姓名</TableHead>
+                  <TableHead className="text-xs whitespace-nowrap">入住 → 退房</TableHead>
+                  <TableHead className="text-right text-xs">總晚數</TableHead>
+                  <TableHead className="text-right text-xs">區間內晚數</TableHead>
+                  <TableHead className="text-right text-xs">總價</TableHead>
+                  <TableHead className="text-right text-xs">每晚均攤</TableHead>
+                  <TableHead className="text-right text-xs">此區間貢獻</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      此區間無貢獻訂單
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {detailRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-mono whitespace-nowrap">{r.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap">{r.guest_name}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {r.check_in_date} → {r.check_out_date ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{r.nights}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.nightsInRange}
+                          {r.nightsInRange < r.nights && (
+                            <span className="text-muted-foreground/70"> / {r.nights}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{f(r.final_price)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">{f(r.share)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{f(r.accrued)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="font-semibold bg-muted/40 border-t-2">
+                      <TableCell colSpan={7} className="py-2">合計</TableCell>
+                      <TableCell className="text-right tabular-nums py-2">{f(detailAccruedTotal)}</TableCell>
+                    </TableRow>
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
