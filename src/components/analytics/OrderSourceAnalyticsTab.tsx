@@ -695,7 +695,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <DollarSign className="h-4 w-4" />
                   </span>
-                  訂單總額
+                  訂單總金額
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -705,7 +705,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">訂單總額來源占比</CardTitle>
+                <CardTitle className="text-base font-semibold">訂單總金額來源占比</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.length === 0 ? (
@@ -753,7 +753,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
-                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總額</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總金額</TableHead>
                   <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">明細</TableHead>
                 </TableRow>
               </TableHeader>
