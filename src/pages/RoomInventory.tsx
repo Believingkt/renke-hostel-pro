@@ -19,8 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const STORAGE_KEY = "room-inventory:open-order-tabs";
-
 interface OpenTab {
   id: string;
   label: string; // order_number (short)
