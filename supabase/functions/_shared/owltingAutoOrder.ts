@@ -69,6 +69,7 @@ interface AutoCreateInput {
   check_out_date: string | null;
   guest_count: number | null;
   total_amount: number | null;
+  is_payment_pending?: boolean;
 }
 
 export interface AutoCreateResult {
