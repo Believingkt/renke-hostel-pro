@@ -686,14 +686,14 @@ function PieWithLegend<T extends { label: string }>({
   }, []);
 
   const isNarrow = width < 640;
-  const chartHeight = isNarrow ? 240 : width < 1024 ? 280 : 320;
-  const outerRadius = isNarrow ? 80 : width < 1280 ? 95 : 108;
-  const legendTextSize = isNarrow ? "text-xs" : "text-sm";
+  const chartHeight = isNarrow ? 220 : 240;
+  const outerRadius = isNarrow ? 78 : 90;
+  const legendTextSize = "text-xs";
 
   const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+    <div className="flex flex-col gap-3 items-stretch">
       <div className="flex-1 min-w-0" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -731,7 +731,7 @@ function PieWithLegend<T extends { label: string }>({
         </ResponsiveContainer>
       </div>
       <ul
-        className={`sm:w-44 lg:w-52 sm:max-h-[320px] sm:overflow-y-auto space-y-0.5 ${legendTextSize}`}
+        className={`w-full space-y-0.5 ${legendTextSize}`}
         onMouseLeave={() => setActive(null)}
       >
         {data.map((d, i) => {
