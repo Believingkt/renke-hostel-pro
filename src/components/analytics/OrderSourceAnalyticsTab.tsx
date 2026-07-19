@@ -568,16 +568,16 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">來源明細</CardTitle>
+          <CardTitle className="text-base font-semibold">來源明細</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table className="fixed-table">
               <TableHeader>
-                <TableRow>
-                  <TableHead>來源</TableHead>
-                  <TableHead className="text-right">訂單數</TableHead>
-                  <TableHead className="text-right">訂單總額</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">來源</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單數</TableHead>
+                  <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">訂單總額</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -593,18 +593,18 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       return (
                         <Fragment key={s.source}>
                           <TableRow>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="whitespace-nowrap py-3 font-medium">
                               {hasBreakdown ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(s.source)}
-                                  className="inline-flex items-center gap-1 hover:text-primary"
+                                  className="inline-flex items-center gap-1.5 hover:text-primary"
                                 >
                                   <ChevronDown
                                     className={`h-3.5 w-3.5 transition-transform ${isOpen ? "" : "-rotate-90"}`}
                                   />
                                   {s.label}
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-xs text-muted-foreground font-normal">
                                     ({s.breakdown!.length})
                                   </span>
                                 </button>
@@ -612,26 +612,26 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 s.label
                               )}
                             </TableCell>
-                            <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                            <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
+                            <TableCell className="text-right tabular-nums py-3">{s.count}</TableCell>
+                            <TableCell className="text-right tabular-nums py-3 font-medium">{f(s.total)}</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
                             s.breakdown!.map((sub) => (
                               <TableRow key={sub.source} className="bg-muted/20">
-                                <TableCell className="whitespace-nowrap pl-8 text-muted-foreground">
+                                <TableCell className="whitespace-nowrap pl-10 text-sm text-muted-foreground">
                                   └ {sub.label}
                                 </TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{sub.count}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{f(sub.total)}</TableCell>
                               </TableRow>
                             ))}
                         </Fragment>
                       );
                     })}
-                    <TableRow className="font-semibold bg-muted/40">
-                      <TableCell>總計</TableCell>
-                      <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
+                    <TableRow className="font-semibold bg-muted/40 border-t-2">
+                      <TableCell className="py-3">總計</TableCell>
+                      <TableCell className="text-right tabular-nums py-3">{totals.count}</TableCell>
+                      <TableCell className="text-right tabular-nums py-3">{f(totals.total)}</TableCell>
                     </TableRow>
                   </>
                 )}
