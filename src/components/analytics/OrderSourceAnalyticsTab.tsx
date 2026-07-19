@@ -532,17 +532,21 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                 {stats.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">尚無資料</p>
                 ) : (
-                  <div className="h-[260px]">
+                  <div className="h-[320px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
                         <Pie
                           data={stats}
                           dataKey="total"
                           nameKey="label"
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
-                          label={(e: any) => `${e.label} ${((e.percent ?? 0) * 100).toFixed(0)}%`}
+                          outerRadius={72}
+                          labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
+                          label={(e: any) => {
+                            const p = (e.percent ?? 0) * 100;
+                            return p < 3 ? "" : `${e.label} ${p.toFixed(0)}%`;
+                          }}
                         >
                           {stats.map((_, i) => (
                             <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -556,7 +560,7 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                           }}
                           formatter={(v: number) => f(v)}
                         />
-                        <Legend />
+                        <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
