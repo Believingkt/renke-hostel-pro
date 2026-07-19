@@ -128,11 +128,12 @@ export function parseOwlNestForwardEmail(input: {
   const flat = flatFromText || flatFromHtml;
 
   // message_type — subject first, body fallback
+  // 主旨的判斷也要收緊：「取消」需搭配「通知/訂單」等關鍵字，避免例如「等待付款通知」內含「取消」政策時誤判。
   let messageType: ParsedMessageType = "unknown";
   if (input.subject) {
-    if (/取消|cancel/i.test(input.subject)) messageType = "cancelled";
-    else if (/修改|變更|更改|modif/i.test(input.subject)) messageType = "modified";
-    else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|new\s*(order|booking)/i.test(input.subject)) messageType = "new_order";
+    if (/取消通知|訂單已取消|已取消|cancel/i.test(input.subject)) messageType = "cancelled";
+    else if (/修改通知|變更通知|訂單已修改|訂單已變更|modif/i.test(input.subject)) messageType = "modified";
+    else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|等待付款|待付款通知|new\s*(order|booking)/i.test(input.subject)) messageType = "new_order";
   }
   if (messageType === "unknown") {
     messageType = detectMessageTypeFromBody(flat);
