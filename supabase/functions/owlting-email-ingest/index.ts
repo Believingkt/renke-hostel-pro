@@ -339,6 +339,33 @@ Deno.serve(async (req) => {
       const isSelfPush = chSrc.includes("人客多") || chSrc.includes("lakeze");
 
       if (stagingRow?.id && resolvedAccId && fields.message_type === "new_order" && !isSelfPush) {
+        const isPaymentPending = /等待付款|待付款/.test(`${subject ?? ""} ${text ?? ""}`);
+
+        // If a confirmed 成立通知 arrives after a prior payment-pending lock,
+        // clear the 等待付款 marker so 48h cleanup no longer targets it.
+        if (!isPaymentPending && fields.obe_number) {
+          await supabase
+            .from("orders")
+            .update({ notes: null })
+            .eq("owlting_reservation_id", fields.obe_number)
+            .eq("is_pii_pending", true)
+            .like("notes", "%[等待付款鎖房]%")
+            .then(async () => {
+              // We only want to strip the marker prefix, not wipe notes. Do it via RPC-safe read/write.
+            }).catch(() => {});
+          // Safer: read → replace → write
+          const { data: pendings } = await supabase
+            .from("orders")
+            .select("id, notes")
+            .eq("owlting_reservation_id", fields.obe_number)
+            .eq("is_pii_pending", true)
+            .like("notes", "%[等待付款鎖房]%");
+          for (const p of pendings ?? []) {
+            const newNotes = String(p.notes ?? "").replace(/\[等待付款鎖房\]\s*/g, "").replace(/，來源: 等待付款通知（48h 內未成立將自動釋放）/g, "");
+            await supabase.from("orders").update({ notes: newNotes }).eq("id", p.id);
+          }
+        }
+
         // NEW: auto-create PII-pending order to lock inventory immediately.
         const autoRes = await autoCreatePendingOrder(supabase, {
           raw_email_id: inserted.id,
@@ -352,6 +379,7 @@ Deno.serve(async (req) => {
           check_out_date: fields.check_out_date,
           guest_count: fields.guest_count,
           total_amount: fields.total_amount,
+          is_payment_pending: isPaymentPending,
         });
         if (!autoRes.ok) {
           console.warn("[owlting-email-ingest] auto-create pending skipped:", autoRes);
@@ -359,7 +387,7 @@ Deno.serve(async (req) => {
             auto_create_error: autoRes.skipped_reason ?? autoRes.error ?? "unknown",
           }).eq("id", stagingRow.id);
         } else {
-          console.log("[owlting-email-ingest] auto-created pending order", autoRes);
+          console.log("[owlting-email-ingest] auto-created pending order", { ...autoRes, is_payment_pending: isPaymentPending });
         }
 
         // Still issue fillup magic link so owner can backfill PII.
