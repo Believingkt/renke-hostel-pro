@@ -620,17 +620,12 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                   <TableHead>來源</TableHead>
                   <TableHead className="text-right">訂單數</TableHead>
                   <TableHead className="text-right">訂單總額</TableHead>
-                  <TableHead className="text-right">已收</TableHead>
-                  <TableHead className="text-right">└ 已付訂金</TableHead>
-                  <TableHead className="text-right">└ 已付清</TableHead>
-                  <TableHead className="text-right">待收</TableHead>
-                  <TableHead className="text-right">收款率</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-6">尚無資料</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -661,11 +656,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                             <TableCell className="text-right tabular-nums">{f(s.total)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-primary">{f(s.paid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.depositPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">{f(s.fullPaid)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{f(s.pending)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{s.rate.toFixed(1)}%</TableCell>
                           </TableRow>
                           {hasBreakdown && isOpen &&
                             s.breakdown!.map((sub) => (
@@ -675,11 +665,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{sub.count}</TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.total)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-primary/80">{f(sub.paid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.depositPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.fullPaid)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{f(sub.pending)}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">{sub.rate.toFixed(1)}%</TableCell>
                               </TableRow>
                             ))}
                         </Fragment>
@@ -689,11 +674,6 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
                       <TableCell>總計</TableCell>
                       <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{f(totals.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-primary">{f(totals.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.depositPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.fullPaid)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{f(totals.pending)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{overallRate.toFixed(1)}%</TableCell>
                     </TableRow>
                   </>
                 )}
