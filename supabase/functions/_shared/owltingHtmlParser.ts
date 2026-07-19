@@ -72,9 +72,14 @@ function extractDate(flat: string, re: RegExp): string | null {
 }
 
 export function detectMessageTypeFromBody(text: string): ParsedMessageType {
-  if (/取消/.test(text)) return "cancelled";
-  if (/修改|變更|更改/.test(text)) return "modified";
-  if (/訂單成立|成立通知|新訂單|新訂房/.test(text)) return "new_order";
+  // 2026-07-19: 內文常出現「若未付款系統將自動取消訂單」「若後續取消訂單…」等
+  // 政策描述文字，不能靠單字「取消」判定 message_type。必須是明確措辭：
+  //   「訂單已取消」「訂單取消通知」「取消通知」「已被取消」
+  if (/訂單已取消|訂單取消通知|取消通知|已被取消|訂單已被取消/.test(text)) return "cancelled";
+  // 修改也一樣，避免內文提到「若要修改」誤判
+  if (/訂單已修改|訂單修改通知|訂單變更通知|已變更|訂單已更改/.test(text)) return "modified";
+  // 「等待付款 / 待付款」屬於新訂單流程（庫存已鎖），視為 new_order
+  if (/訂單成立|成立通知|新訂單|新訂房|等待付款|待付款|新的一筆訂單|一筆新訂單/.test(text)) return "new_order";
   return "unknown";
 }
 
