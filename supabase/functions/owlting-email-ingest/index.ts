@@ -33,10 +33,10 @@ function parseSubject(subject: string | null): ParsedSubject {
   };
   if (!subject) return out;
 
-  // Detect message type by keywords (order matters: "取消" trumps everything, then 修改/變更, then 成立/新訂單)
-  if (/取消|cancel/i.test(subject)) out.message_type = "cancelled";
-  else if (/修改|變更|更改|modif/i.test(subject)) out.message_type = "modified";
-  else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|new\s*(order|booking)/i.test(subject)) out.message_type = "new_order";
+  // Detect message type by keywords. 2026-07-19: 收緊比對，避免「等待付款通知」內文含「取消」政策被誤判。
+  if (/取消通知|訂單已取消|已取消|cancel/i.test(subject)) out.message_type = "cancelled";
+  else if (/修改通知|變更通知|訂單已修改|訂單已變更|modif/i.test(subject)) out.message_type = "modified";
+  else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|等待付款|待付款通知|new\s*(order|booking)/i.test(subject)) out.message_type = "new_order";
 
   // Extract OBE number (typical format: OBE followed by digits/letters)
   const obeMatch = subject.match(/\b(OBE[\w-]+)\b/i);
