@@ -755,8 +755,9 @@ function PieWithLegend<T extends { label: string }>({
   const total = data.reduce((s, d) => s + Number(d[dataKey] ?? 0), 0) || 1;
 
   return (
-    <div className="flex flex-col gap-3 items-stretch">
-      <div className="flex-1 min-w-0" style={{ height: chartHeight }}>
+    <div className="flex flex-col gap-3">
+      <div className="w-full" style={{ height: chartHeight, minHeight: chartHeight }}>
+
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
