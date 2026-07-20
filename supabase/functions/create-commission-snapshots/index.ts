@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +42,14 @@ serve(async (req) => {
   }
 
   try {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return jsonResponse({ success: false, error: authRes.error }, authRes.status);
+    }
+    if (!isSuperAdmin(authRes.ctx)) {
+      return jsonResponse({ success: false, error: "Forbidden" }, 403);
+    }
+
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const testMode = body?.test_mode === true;
     const testMonth = typeof body?.test_month === "string" ? body.test_month : null;
@@ -83,10 +91,7 @@ serve(async (req) => {
     const snapStartUtc = taipeiMidnightUtcISO(snapYear, snapMonth, 1);
     const snapEndUtc = taipeiMidnightUtcISO(snapYear, snapMonth + 1, 1);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = authRes.ctx.admin;
 
     // 1) Orders in target month, not cancelled
     const { data: orders, error: ordersErr } = await supabase
