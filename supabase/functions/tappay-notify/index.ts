@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
           verifiedStatus: verifiedStatus,
         });
 
-        const failureNote = `[3DS Webhook] ${new Date().toISOString()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, verified_status: ${verifiedStatus})`;
+        const failureNote = `[3DS Webhook] ${taipeiIso()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, verified_status: ${verifiedStatus})`;
         const newNotes = order.notes 
           ? `${order.notes}\n${failureNote}`
           : failureNote;
