@@ -43,6 +43,7 @@ import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, compute
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -226,6 +227,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     else navigate(backTo);
   };
   const { toast } = useToast();
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -2867,7 +2870,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <div className="flex items-center gap-2">
                 <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
                 {order.payment_status !== "paid" && order.order_status !== "cancelled" && (
-                  (order.order_source === "kol" || isAdminUser) && (
+                  (order.order_source === "kol" || isAdminUser || canEditOrders) && (
                     <Button
                       size="sm"
                       variant="outline"
