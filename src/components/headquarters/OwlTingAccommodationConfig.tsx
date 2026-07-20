@@ -19,7 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Save, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, Save, AlertTriangle, Download, Copy, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -41,6 +42,8 @@ interface RoomType {
   accommodation_id: string;
   name: string;
   numeric_code: number | null;
+  capacity: number | null;
+  is_exclusive_package: boolean | null;
 }
 
 interface PackageRow {
@@ -48,6 +51,8 @@ interface PackageRow {
   accommodation_id: string;
   name: string;
   numeric_code: number | null;
+  room_type_ids: string[] | null;
+  sale_price: number | null;
 }
 
 interface PricingTemplate {
@@ -59,6 +64,28 @@ interface PricingTemplate {
   weekday_price: number | null;
 }
 
+interface OwltingGroup {
+  id: string;
+  accommodation_id: string;
+  canonical_room_type_id: string | null;
+  canonical_name: string;
+}
+
+interface OwltingGroupMember {
+  id: string;
+  group_id: string;
+  room_type_id: string | null;
+  rate_plan_template_id: string | null;
+  rate_plan_name: string | null;
+  display_order: number | null;
+}
+
+interface OwltingRoomTypeSync {
+  accommodation_id: string;
+  room_type_id: string;
+  sync_enabled: boolean;
+}
+
 
 export function OwlTingAccommodationConfig() {
   const [loading, setLoading] = useState(true);
@@ -67,18 +94,25 @@ export function OwlTingAccommodationConfig() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [packages, setPackages] = useState<PackageRow[]>([]);
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
+  const [groups, setGroups] = useState<OwltingGroup[]>([]);
+  const [groupMembers, setGroupMembers] = useState<OwltingGroupMember[]>([]);
+  const [roomTypeSync, setRoomTypeSync] = useState<OwltingRoomTypeSync[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [hotelCodeDrafts, setHotelCodeDrafts] = useState<Record<string, string>>({});
   const [pendingToggle, setPendingToggle] = useState<{ accId: string; nextValue: boolean } | null>(null);
+  const [exportAccId, setExportAccId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const [accRes, cfgRes, rtRes, pkgRes, tplRes] = await Promise.all([
+    const [accRes, cfgRes, rtRes, pkgRes, tplRes, grpRes, memRes, syncRes] = await Promise.all([
       supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("display_order"),
       supabase.from("accommodation_owlting_config").select("id, accommodation_id, owlting_hotel_code, sync_enabled, last_successful_sync_at"),
-      supabase.from("room_types").select("id, accommodation_id, name, numeric_code").order("display_order"),
-      supabase.from("accommodation_packages").select("id, accommodation_id, name, numeric_code, enabled").order("display_order"),
+      supabase.from("room_types").select("id, accommodation_id, name, numeric_code, capacity, is_exclusive_package").order("display_order"),
+      supabase.from("accommodation_packages").select("id, accommodation_id, name, numeric_code, enabled, room_type_ids, sale_price").order("display_order"),
       supabase.from("pricing_templates").select("id, accommodation_id, template_name, default_package_id, room_type_id, weekday_price").order("display_order"),
+      supabase.from("owlting_room_type_groups").select("id, accommodation_id, canonical_room_type_id, canonical_name").order("display_order"),
+      supabase.from("owlting_room_type_group_members").select("id, group_id, room_type_id, rate_plan_template_id, rate_plan_name, display_order").order("display_order"),
+      supabase.from("owlting_room_type_sync").select("accommodation_id, room_type_id, sync_enabled"),
     ]);
 
     if (accRes.error) toast.error("載入民宿失敗：" + accRes.error.message);
@@ -102,6 +136,9 @@ export function OwlTingAccommodationConfig() {
     setRoomTypes((rtRes.data ?? []) as RoomType[]);
     setPackages(((pkgRes.data ?? []) as any[]).filter((p) => p.enabled !== false));
     setTemplates((tplRes.data ?? []) as PricingTemplate[]);
+    setGroups((grpRes.data ?? []) as OwltingGroup[]);
+    setGroupMembers((memRes.data ?? []) as OwltingGroupMember[]);
+    setRoomTypeSync((syncRes.data ?? []) as OwltingRoomTypeSync[]);
 
     setLoading(false);
   };
@@ -184,6 +221,198 @@ export function OwlTingAccommodationConfig() {
     toast.success("方案對應已更新");
   };
 
+  // ============ Export mapping ============
+  const buildExport = (accId: string) => {
+    const acc = accommodations.find((a) => a.id === accId);
+    const cfg = configs[accId];
+    const rts = roomTypes.filter((r) => r.accommodation_id === accId);
+    const pkgs = packages.filter((p) => p.accommodation_id === accId);
+    const grps = groups.filter((g) => g.accommodation_id === accId);
+    const syncMap = new Map(
+      roomTypeSync
+        .filter((s) => s.accommodation_id === accId)
+        .map((s) => [s.room_type_id, s.sync_enabled])
+    );
+    const isRtSynced = (rtId: string) => syncMap.get(rtId) ?? true; // default sync
+
+    // build per-group canonical info & members with rate plan numeric code (via template.default_package_id)
+    const groupsData = grps.map((g) => {
+      const canonical = rts.find((r) => r.id === g.canonical_room_type_id);
+      const mems = groupMembers
+        .filter((m) => m.group_id === g.id)
+        .map((m) => {
+          const memRt = rts.find((r) => r.id === m.room_type_id);
+          const tpl = templates.find((t) => t.id === m.rate_plan_template_id);
+          const pkg = tpl?.default_package_id ? packages.find((p) => p.id === tpl.default_package_id) : null;
+          return {
+            member_room_type_name: memRt?.name ?? "(未知)",
+            member_room_type_code: memRt?.numeric_code ?? null,
+            capacity: memRt?.capacity ?? null,
+            rate_plan_name: m.rate_plan_name ?? pkg?.name ?? tpl?.template_name ?? "(未設定)",
+            rate_plan_code: pkg?.numeric_code ?? null,
+          };
+        });
+      return {
+        canonical_name: g.canonical_name,
+        canonical_code: canonical?.numeric_code ?? null,
+        members: mems,
+      };
+    });
+
+    // for each room type: which group canonical it belongs to (as member)
+    const rtGroupMap = new Map<string, { canonical_name: string; canonical_code: number | null }>();
+    grps.forEach((g) => {
+      const canonical = rts.find((r) => r.id === g.canonical_room_type_id);
+      groupMembers
+        .filter((m) => m.group_id === g.id && m.room_type_id)
+        .forEach((m) => {
+          rtGroupMap.set(m.room_type_id!, {
+            canonical_name: g.canonical_name,
+            canonical_code: canonical?.numeric_code ?? null,
+          });
+        });
+    });
+
+    return {
+      acc,
+      cfg,
+      rts: rts.map((r) => ({
+        ...r,
+        synced: isRtSynced(r.id),
+        group: rtGroupMap.get(r.id) ?? null,
+      })),
+      pkgs: pkgs.map((p) => ({
+        ...p,
+        room_type_names: (p.room_type_ids ?? [])
+          .map((id) => rts.find((r) => r.id === id)?.name)
+          .filter(Boolean) as string[],
+      })),
+      groupsData,
+    };
+  };
+
+  const buildPlainText = (accId: string) => {
+    const d = buildExport(accId);
+    if (!d.acc) return "";
+    const lines: string[] = [];
+    lines.push(`【物業】${d.acc.name}　HotelCode：${d.cfg?.owlting_hotel_code ?? "(未設定)"}　同步：${d.cfg?.sync_enabled ? "開啟" : "關閉"}`);
+    lines.push(
+      `【房型】` +
+        (d.rts.length === 0
+          ? "無"
+          : d.rts
+              .map(
+                (r) =>
+                  `${r.name}(${r.numeric_code ?? "無代碼"})${r.is_exclusive_package ? "[包棟]" : ""}${r.synced ? "" : "[不同步]"}`
+              )
+              .join(" / "))
+    );
+    lines.push(
+      `【方案】` +
+        (d.pkgs.length === 0
+          ? "無"
+          : d.pkgs.map((p) => `${p.name}=${p.numeric_code ?? "無代碼"}`).join("、"))
+    );
+    if (d.groupsData.length > 0) {
+      d.groupsData.forEach((g) => {
+        lines.push(
+          `【包區群組】${g.canonical_name}=canonical ${g.canonical_code ?? "無代碼"}，底下 ` +
+            g.members
+              .map((m) => `${m.capacity ?? "?"}人=${m.rate_plan_code ?? "無代碼"}`)
+              .join("、")
+        );
+      });
+    }
+    return lines.join("\n");
+  };
+
+  const buildCsv = (accId: string) => {
+    const d = buildExport(accId);
+    if (!d.acc) return "";
+    const esc = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[] = [];
+    rows.push(`# 物業資訊`);
+    rows.push(`名稱,HotelCode,sync_enabled`);
+    rows.push([d.acc.name, d.cfg?.owlting_hotel_code ?? "", d.cfg?.sync_enabled ? "TRUE" : "FALSE"].map(esc).join(","));
+    rows.push("");
+    rows.push(`# 房型清單`);
+    rows.push(`名稱,numeric_code(RoomTypeCode),capacity,is_exclusive_package,是否同步,所屬群組canonical名稱,所屬群組canonical代碼`);
+    d.rts.forEach((r) =>
+      rows.push(
+        [
+          r.name,
+          r.numeric_code ?? "",
+          r.capacity ?? "",
+          r.is_exclusive_package ? "TRUE" : "FALSE",
+          r.synced ? "同步" : "不同步",
+          r.group?.canonical_name ?? "",
+          r.group?.canonical_code ?? "",
+        ]
+          .map(esc)
+          .join(",")
+      )
+    );
+    rows.push("");
+    rows.push(`# 方案清單`);
+    rows.push(`名稱,numeric_code(RatePlanCode),涵蓋房型,平日售價(sale_price)`);
+    d.pkgs.forEach((p) =>
+      rows.push(
+        [p.name, p.numeric_code ?? "", p.room_type_names.join(" | "), p.sale_price ?? ""].map(esc).join(",")
+      )
+    );
+    if (d.groupsData.length > 0) {
+      rows.push("");
+      rows.push(`# 包區群組`);
+      rows.push(`canonical名稱,canonical代碼,成員房型,成員人數,成員方案名稱,成員方案代碼`);
+      d.groupsData.forEach((g) => {
+        g.members.forEach((m) =>
+          rows.push(
+            [
+              g.canonical_name,
+              g.canonical_code ?? "",
+              m.member_room_type_name,
+              m.capacity ?? "",
+              m.rate_plan_name,
+              m.rate_plan_code ?? "",
+            ]
+              .map(esc)
+              .join(",")
+          )
+        );
+      });
+    }
+    return rows.join("\n");
+  };
+
+  const handleCopyText = async () => {
+    if (!exportAccId) return;
+    const text = buildPlainText(exportAccId);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("已複製對應清單");
+    } catch {
+      toast.error("複製失敗，請手動選取");
+    }
+  };
+
+  const handleDownloadCsv = () => {
+    if (!exportAccId) return;
+    const acc = accommodations.find((a) => a.id === exportAccId);
+    const csv = buildCsv(exportAccId);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `owlting-mapping-${acc?.name ?? exportAccId}-${format(new Date(), "yyyyMMdd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportData = exportAccId ? buildExport(exportAccId) : null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -209,6 +438,7 @@ export function OwlTingAccommodationConfig() {
                 <TableHead className="min-w-[220px]">Owlting Hotel Code</TableHead>
                 <TableHead className="w-[140px]">同步狀態</TableHead>
                 <TableHead className="min-w-[160px]">最近成功同步</TableHead>
+                <TableHead className="w-[180px]">動作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -258,6 +488,12 @@ export function OwlTingAccommodationConfig() {
                       {cfg?.last_successful_sync_at
                         ? format(new Date(cfg.last_successful_sync_at), "yyyy-MM-dd HH:mm")
                         : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => setExportAccId(acc.id)}>
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                        匯出對應清單
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -375,12 +611,10 @@ export function OwlTingAccommodationConfig() {
                           (() => {
                             const rtName = (id: string | null) =>
                               rts.find((r) => r.id === id)?.name ?? "未指定房型";
-                            // base label: 房型名稱 · 餐食方案名稱
                             const baseLabels = new Map<string, string>();
                             tpls.forEach((t) => {
                               baseLabels.set(t.id, `${rtName(t.room_type_id)} · ${t.template_name}`);
                             });
-                            // detect duplicates -> add weekday price suffix
                             const counts = new Map<string, number>();
                             baseLabels.forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1));
                             const finalLabel = (t: PricingTemplate) => {
@@ -466,6 +700,139 @@ export function OwlTingAccommodationConfig() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!exportAccId} onOpenChange={(o) => !o && setExportAccId(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>奧丁丁對應清單匯出 · {exportData?.acc?.name}</DialogTitle>
+            <DialogDescription>
+              純唯讀彙整。用於交付奧丁丁對窗口的房型 / 方案 / 包區群組 mapping。
+            </DialogDescription>
+          </DialogHeader>
+
+          {exportData && (
+            <div className="space-y-6 text-sm">
+              <section>
+                <h4 className="font-semibold mb-2">物業</h4>
+                <div className="rounded border p-3 bg-muted/30">
+                  <div>名稱：{exportData.acc?.name}</div>
+                  <div>HotelCode：<span className="font-mono">{exportData.cfg?.owlting_hotel_code ?? "(未設定)"}</span></div>
+                  <div>sync_enabled：{exportData.cfg?.sync_enabled ? "開啟" : "關閉"}</div>
+                </div>
+              </section>
+
+              <section>
+                <h4 className="font-semibold mb-2">房型清單（RoomTypeCode）</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>名稱</TableHead>
+                      <TableHead className="w-[110px]">numeric_code</TableHead>
+                      <TableHead className="w-[80px]">capacity</TableHead>
+                      <TableHead className="w-[80px]">包棟</TableHead>
+                      <TableHead className="w-[90px]">同步</TableHead>
+                      <TableHead>所屬群組</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {exportData.rts.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>{r.name}</TableCell>
+                        <TableCell className="font-mono">{r.numeric_code ?? "—"}</TableCell>
+                        <TableCell>{r.capacity ?? "—"}</TableCell>
+                        <TableCell>{r.is_exclusive_package ? "是" : "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={r.synced ? "default" : "secondary"}>{r.synced ? "同步" : "不同步"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {r.group ? `${r.group.canonical_name}（canonical ${r.group.canonical_code ?? "—"}）` : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </section>
+
+              <section>
+                <h4 className="font-semibold mb-2">方案清單（RatePlanCode）</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>名稱</TableHead>
+                      <TableHead className="w-[110px]">numeric_code</TableHead>
+                      <TableHead>涵蓋房型</TableHead>
+                      <TableHead className="w-[110px]">sale_price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {exportData.pkgs.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>{p.name}</TableCell>
+                        <TableCell className="font-mono">{p.numeric_code ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{p.room_type_names.join(" / ") || "—"}</TableCell>
+                        <TableCell>{p.sale_price ?? "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </section>
+
+              {exportData.groupsData.length > 0 && (
+                <section>
+                  <h4 className="font-semibold mb-2">包區群組</h4>
+                  {exportData.groupsData.map((g, i) => (
+                    <div key={i} className="mb-3">
+                      <div className="mb-1">
+                        <Badge variant="outline">canonical {g.canonical_code ?? "—"}</Badge>
+                        <span className="ml-2 font-medium">{g.canonical_name}</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>成員房型</TableHead>
+                            <TableHead className="w-[80px]">人數</TableHead>
+                            <TableHead>方案</TableHead>
+                            <TableHead className="w-[110px]">方案代碼</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {g.members.map((m, j) => (
+                            <TableRow key={j}>
+                              <TableCell>{m.member_room_type_name}</TableCell>
+                              <TableCell>{m.capacity ?? "—"}</TableCell>
+                              <TableCell>{m.rate_plan_name}</TableCell>
+                              <TableCell className="font-mono">{m.rate_plan_code ?? "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              <section>
+                <h4 className="font-semibold mb-2">LINE 貼文預覽</h4>
+                <pre className="whitespace-pre-wrap rounded border p-3 bg-muted/30 text-xs font-mono">
+{buildPlainText(exportAccId!)}
+                </pre>
+              </section>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleCopyText}>
+              <Copy className="h-3.5 w-3.5 mr-1" />
+              複製文字
+            </Button>
+            <Button variant="outline" onClick={handleDownloadCsv}>
+              <FileDown className="h-3.5 w-3.5 mr-1" />
+              下載 CSV
+            </Button>
+            <Button onClick={() => setExportAccId(null)}>關閉</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
