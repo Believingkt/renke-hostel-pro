@@ -1,0 +1,1 @@
+UPDATE public.orders SET guest_email='sakithebest@gmail.com' WHERE order_number='SA6W93Z4';

@@ -1,0 +1,2 @@
+UPDATE public.orders SET guest_email='mila441913@gmail.com' WHERE order_number='SA6W93Z4';
+DELETE FROM public.booking_email_log WHERE order_id='3d966318-f39a-4ccc-b4c6-149b4c6b7be5' AND trigger_source='manual_test';
