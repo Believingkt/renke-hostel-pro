@@ -32,6 +32,7 @@ import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 interface OtaChannel {
   id: string;
@@ -84,6 +85,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 export default function ChannelManager() {
   const { currentAccommodationId } = useAccommodation();
   const { toast } = useToast();
+  const { canEdit } = useStaffPermissions();
+  const canEditChannelManager = canEdit("channel_manager");
   const [channels, setChannels] = useState<OtaChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
@@ -154,7 +157,13 @@ export default function ChannelManager() {
     void loadChannels();
     void loadOwlting();
     void loadTaiwanMap();
-  }, [accId]);
+  }, [accId, canEditChannelManager]);
+
+  function requireCanEditChannelManager() {
+    if (canEditChannelManager) return true;
+    toast({ title: "權限不足", description: "此帳號目前只有通路管理檢視權限，無法修改設定。", variant: "destructive" });
+    return false;
+  }
 
   async function loadTaiwanMap() {
     if (!accId) return;
@@ -167,6 +176,7 @@ export default function ChannelManager() {
   }
 
   function openTmDialog() {
+    if (!requireCanEditChannelManager()) return;
     setTmForm({
       cid_code: tmMapping?.cid_code || "",
       hotel_code: tmMapping?.hotel_code || "",
@@ -179,6 +189,7 @@ export default function ChannelManager() {
 
   async function saveTm() {
     if (!accId) return;
+    if (!requireCanEditChannelManager()) return;
     const cid_code = tmForm.cid_code.trim();
     if (!cid_code) {
       toast({ title: "請輸入 CID Code", variant: "destructive" });
@@ -313,6 +324,7 @@ export default function ChannelManager() {
   }
 
   function openCredDialog(rotate: boolean) {
+    if (!requireCanEditChannelManager()) return;
     setCredForm({
       hotel_code: rotate && owlCred ? owlCred.hotel_code : "",
       username: rotate && owlCred ? owlCred.username : "",
@@ -323,6 +335,7 @@ export default function ChannelManager() {
 
   async function saveCred() {
     if (!accId) return;
+    if (!requireCanEditChannelManager()) return;
     const hotel_code = credForm.hotel_code.trim();
     const username = credForm.username.trim();
     const password = credForm.password;
@@ -352,6 +365,7 @@ export default function ChannelManager() {
   }
 
   function openEndpointDialog() {
+    if (!requireCanEditChannelManager()) return;
     setEndpointForm({
       endpoint_url: owlEndpoint?.endpoint_url || "",
       remote_username: owlEndpoint?.remote_username || "",
@@ -363,6 +377,7 @@ export default function ChannelManager() {
 
   async function saveEndpoint() {
     if (!accId) return;
+    if (!requireCanEditChannelManager()) return;
     const url = endpointForm.endpoint_url.trim();
     if (!/^https?:\/\//i.test(url)) {
       toast({ title: "請輸入有效的 URL", variant: "destructive" });
@@ -515,6 +530,7 @@ export default function ChannelManager() {
 
   async function deleteChannel(channel: OtaChannel) {
     if (!accId) return;
+    if (!requireCanEditChannelManager()) return;
     const { error } = await supabase
       .from("ota_channels")
       .delete()
@@ -543,6 +559,7 @@ export default function ChannelManager() {
   }
 
   async function toggleEnabled(channel: OtaChannel, next: boolean) {
+    if (!requireCanEditChannelManager()) return;
     if (next && !channel.hotel_id) {
       toast({
         title: "請先設定 Hotel ID",
@@ -566,12 +583,14 @@ export default function ChannelManager() {
   }
 
   function openEdit(channel: OtaChannel) {
+    if (!requireCanEditChannelManager()) return;
     setEditing(channel);
     setForm({ hotel_id: channel.hotel_id || "", notes: channel.notes || "" });
   }
 
   async function saveEdit() {
     if (!editing) return;
+    if (!requireCanEditChannelManager()) return;
     const { error } = await supabase
       .from("ota_channels")
       .update({
