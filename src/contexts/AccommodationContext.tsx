@@ -260,14 +260,21 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           return;
         }
 
-        // 2. 若目前已選擇且仍有權限，不要覆蓋
+        // 2. 非後台的自訂網域 / alias 頁面仍以網域旅宿為準，避免前台被後台上次選擇污染
+        if (domainAccommodationId && isCustomDomainContext() && !isAdminPath()) {
+          setCurrentAccommodationId(domainAccommodationId);
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. 若目前已選擇且仍有權限，不要覆蓋
         const currentId = currentAccommodationIdRef.current;
         const currentStillAccessible = currentId
           ? data.some(acc => acc.accommodation_id === currentId)
           : false;
 
         if (!currentStillAccessible) {
-          // 3. 後台頁面優先使用 localStorage 儲存的跨民宿選擇，避免自訂網域重整時覆蓋回網域本身民宿
+          // 4. 後台頁面優先使用 localStorage 儲存的跨民宿選擇，避免自訂網域重整時覆蓋回網域本身民宿
           let savedAccommodationId: string | null = null;
           try {
             savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
@@ -283,11 +290,6 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
             setCurrentAccommodationId(domainAccommodationId);
           } else {
             setCurrentAccommodationId(data[0].accommodation_id);
-          }
-
-          // 非後台的自訂網域 / alias 頁面仍以網域旅宿為準，避免前台被後台上次選擇污染
-          if (domainAccommodationId && isCustomDomainContext() && !isAdminPath()) {
-            setCurrentAccommodationId(domainAccommodationId);
           }
         }
       }
