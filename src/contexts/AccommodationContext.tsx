@@ -1,6 +1,6 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
@@ -27,6 +27,7 @@ const AccommodationContext = createContext<AccommodationContextType | undefined>
 const LAST_ACCOMMODATION_KEY = 'lastSelectedAccommodation';
 
 export function AccommodationProvider({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentAccommodationId, setCurrentAccommodationIdState] = useState<string | null>(null);
   const currentAccommodationIdRef = useRef<string | null>(null);
@@ -172,6 +173,21 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     return !isHQDomain && !isDevOrPreview;
   }, []);
 
+  const isAdminPath = useCallback(() => {
+    const segments = location.pathname.split("/").filter(Boolean);
+    const first = segments[0];
+    const normalizedFirst = first && ![
+      "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+      "member", "ai-booking", "order-search", "profile", "payment-test",
+      "kol-api-docs", "points-api-docs", "pay", "payment-result",
+      "reset-password", "change-password", "og-preview", "__cb", "team", "team-auth",
+    ].includes(first)
+      ? segments[1]
+      : first;
+
+    return normalizedFirst === "admin";
+  }, [location.pathname]);
+
   useEffect(() => {
     loadUserAccommodations(true);
 
@@ -228,13 +244,6 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       if (data && data.length > 0 && forceAutoSelect) {
         const domainAccommodationId = await resolveDomainAccommodationId(data);
 
-        // 1. 在自訂網域 / 子網域後台中，優先同步到該旅宿，避免舊 accId 覆蓋目前網域
-        if (domainAccommodationId && isCustomDomainContext()) {
-          setCurrentAccommodationId(domainAccommodationId);
-          setIsLoading(false);
-          return;
-        }
-
         // 1. 優先從 URL query 讀取
         const urlAccommodationId = searchParams.get(ACCOMMODATION_ID_PARAM);
         const urlAccommodation = urlAccommodationId
@@ -251,21 +260,14 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           return;
         }
 
-        // 2. 若 URL 沒指定，再用網域旅宿作為預設
-        if (domainAccommodationId) {
-          setCurrentAccommodationId(domainAccommodationId);
-          setIsLoading(false);
-          return;
-        }
-
-        // 3. 若目前已選擇且仍有權限，不要覆蓋
+        // 2. 若目前已選擇且仍有權限，不要覆蓋
         const currentId = currentAccommodationIdRef.current;
         const currentStillAccessible = currentId
           ? data.some(acc => acc.accommodation_id === currentId)
           : false;
 
         if (!currentStillAccessible) {
-          // 4. 優先使用 localStorage 儲存的選擇
+          // 3. 後台頁面優先使用 localStorage 儲存的跨民宿選擇，避免自訂網域重整時覆蓋回網域本身民宿
           let savedAccommodationId: string | null = null;
           try {
             savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
@@ -277,8 +279,15 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
 
           if (savedAccommodation) {
             setCurrentAccommodationId(savedAccommodationId);
+          } else if (domainAccommodationId) {
+            setCurrentAccommodationId(domainAccommodationId);
           } else {
             setCurrentAccommodationId(data[0].accommodation_id);
+          }
+
+          // 非後台的自訂網域 / alias 頁面仍以網域旅宿為準，避免前台被後台上次選擇污染
+          if (domainAccommodationId && isCustomDomainContext() && !isAdminPath()) {
+            setCurrentAccommodationId(domainAccommodationId);
           }
         }
       }
