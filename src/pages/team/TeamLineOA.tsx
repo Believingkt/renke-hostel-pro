@@ -1453,9 +1453,6 @@ function EventsTab() {
             管理 LINE 推播可用的事件類型，群組可選擇要接收哪些事件
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing({ is_active: true })}>
-          <Plus className="h-4 w-4 mr-1" /> 新增事件
-        </Button>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
