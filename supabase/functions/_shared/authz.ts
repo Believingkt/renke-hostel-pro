@@ -51,6 +51,7 @@ export interface AuthContext {
   admin: any; // service-role client
   userClient: any; // user-scoped client (nullable when service-role call)
   userId: string | null;
+  userEmail: string | null;
   isServiceRole: boolean;
   globalRoles: string[]; // roles across all accommodations
 }
@@ -82,7 +83,7 @@ export async function resolveCaller(req: Request): Promise<
   if (isServiceRole) {
     return {
       ok: true,
-      ctx: { admin, userClient: null, userId: null, isServiceRole: true, globalRoles: [] },
+      ctx: { admin, userClient: null, userId: null, userEmail: null, isServiceRole: true, globalRoles: [] },
     };
   }
 
@@ -111,6 +112,7 @@ export async function resolveCaller(req: Request): Promise<
       admin,
       userClient,
       userId: userData.user.id,
+      userEmail: userData.user.email ?? null,
       isServiceRole: false,
       globalRoles,
     },
