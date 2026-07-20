@@ -43,7 +43,7 @@ serve(async (req) => {
   const cancelled: string[] = [];
   for (const o of expired || []) {
     if ((o.paid_amount || 0) > 0) continue; // 已部分入帳的不自動取消
-    const note = `[ATM Expire] ${nowIso} - 虛擬帳號逾期未繳款，系統自動取消訂單`;
+    const note = `[ATM Expire] ${taipeiIso} - 虛擬帳號逾期未繳款，系統自動取消訂單`;
     const newNotes = o.notes ? `${o.notes}\n${note}` : note;
     const { error: upErr } = await supabase
       .from('orders')
