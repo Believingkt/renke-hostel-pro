@@ -227,6 +227,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     else navigate(backTo);
   };
   const { toast } = useToast();
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
