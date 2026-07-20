@@ -103,6 +103,10 @@ const fetchDashboardData = async (
   const DAILY_ROOM_CAP = (dailyVillaCap + dailyRoomCap) > 0
     ? (dailyVillaCap + dailyRoomCap)
     : (Number((accRow as any)?.daily_capacity) > 0 ? Number((accRow as any).daily_capacity) : 6);
+  // Split mode: 管理員設定了「每日可售包棟數」與「每日可售散客房數」→ 包棟訂單以「棟」為單位（1 棟 = 1），
+  // 散客訂單依 order_rooms 的 quantity 計算，容量為 dailyVillaCap + dailyRoomCap。
+  // 舊模式（森山/哈庫納/奧莉維亞）：僅設 daily_capacity，包棟訂單一筆視為整館滿房（=DAILY_ROOM_CAP）。
+  const VILLA_AS_SINGLE_UNIT = dailyVillaCap > 0 && dailyRoomCap > 0;
   const now = new Date();
   const currentYear = selectedYear || now.getFullYear();
   
