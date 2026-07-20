@@ -14,6 +14,8 @@ export async function sendBookingConfirmationByOrderId(
   supabaseServiceKey: string,
   orderId: string,
   paymentMethodLabel: string,
+  triggerSource: string = "auto",
+  triggeredBy: string | null = null,
 ): Promise<SendBookingEmailResult> {
   if (!orderId) return { ok: false, reason: "missing_order_id" };
 
