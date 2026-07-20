@@ -120,7 +120,24 @@ Deno.serve(async (req) => {
     // Authorization: admin OR staff with channel_manager=editable on this accommodation
     if (!isServiceRole) {
       const allowed = await canEditModule(authCtx, accId, "channel_manager");
-      if (!allowed) return forbiddenResponse(corsHeaders);
+      console.log("[fillup-issue] authz check", {
+        user_id: callerUserId,
+        accommodation_id: accId,
+        staging_id: stagingId,
+        global_roles: authCtx.globalRoles,
+        allowed,
+      });
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "Forbidden",
+            detail: "缺少此民宿的通路管理編輯權限",
+            user_id: callerUserId,
+            accommodation_id: accId,
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
 
