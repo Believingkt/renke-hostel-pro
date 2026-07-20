@@ -63,6 +63,8 @@ export async function sendBookingConfirmationByOrderId(
     petPlanPrice: order.pet_plan_price && order.pet_plan_price > 0 ? order.pet_plan_price : undefined,
     mealPlanDetails,
     mealPlanTotal: order.meal_plan_total && order.meal_plan_total > 0 ? order.meal_plan_total : undefined,
+    triggerSource,
+    triggeredBy,
   };
 
   try {
