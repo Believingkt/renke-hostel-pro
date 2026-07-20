@@ -558,28 +558,48 @@ export function OwlTingAccommodationConfig() {
                         <TableRow>
                           <TableHead className="w-[100px]">numeric_code</TableHead>
                           <TableHead>名稱</TableHead>
+                          <TableHead className="w-[180px]">同步奧丁丁</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rts.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={2} className="text-sm text-muted-foreground">
+                            <TableCell colSpan={3} className="text-sm text-muted-foreground">
                               無房型
                             </TableCell>
                           </TableRow>
                         ) : (
-                          rts.map((rt) => (
-                            <TableRow key={rt.id}>
-                              <TableCell className="font-mono text-sm">
-                                {rt.numeric_code ?? (
-                                  <span className="text-destructive flex items-center gap-1">
-                                    <AlertTriangle className="h-3 w-3" /> 未設定
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>{rt.name}</TableCell>
-                            </TableRow>
-                          ))
+                          rts.map((rt) => {
+                            const synced = getRoomTypeSyncEnabled(acc.id, rt.id);
+                            return (
+                              <TableRow key={rt.id} className={synced ? "" : "text-muted-foreground"}>
+                                <TableCell className="font-mono text-sm">
+                                  {rt.numeric_code ?? (
+                                    <span className="text-destructive flex items-center gap-1">
+                                      <AlertTriangle className="h-3 w-3" /> 未設定
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {rt.name}
+                                  {!synced && (
+                                    <Badge variant="outline" className="ml-2 text-xs">不上 OTA</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={synced}
+                                      onCheckedChange={(v) => handleToggleRoomTypeSync(acc.id, rt.id, v)}
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                      {synced ? "同步" : "不同步"}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
