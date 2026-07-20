@@ -43,6 +43,7 @@ import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, compute
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import {
   AlertDialog,
   AlertDialogAction,
