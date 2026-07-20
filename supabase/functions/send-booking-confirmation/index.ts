@@ -95,6 +95,8 @@ const handler = async (req: Request): Promise<Response> => {
       petPlanPrice,
       mealPlanDetails,
       mealPlanTotal,
+      triggerSource,
+      triggeredBy,
     }: BookingConfirmationRequest = await req.json();
 
     // Basic input validation
