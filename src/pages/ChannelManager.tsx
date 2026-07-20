@@ -274,7 +274,7 @@ export default function ChannelManager() {
     const missing = DEFAULT_CHANNELS.filter(
       (d) => !list.some((c) => c.channel_code === d.channel_code) && !dismissed.has(d.channel_code)
     );
-    if (missing.length) {
+    if (missing.length && canEditChannelManager) {
       const { data: inserted, error: insertErr } = await supabase
         .from("ota_channels")
         .insert(
