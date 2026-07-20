@@ -362,8 +362,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
           // 奧莉維亞：訂單若標記「包棟全鎖房」，視為整館滿房（佔滿所有散客房）
           const oliviaLockFull = isOlivia && order.lock_whole_building === true;
-          // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
-          const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
+          // 管理員啟用分流（adminSplit）時：包棟訂單以「棟」計，數量取 order_rooms 中
+          // exclusive 類型的 quantity 加總（每列代表 1 棟，允許單筆訂單多棟）。
+          const villaUnitQty = villaAsSingleUnit ? exclusiveQty : exclusiveQty;
           const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
             ? allCapacity
             : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
