@@ -45,6 +45,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 const Orders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -52,6 +53,8 @@ const Orders = () => {
   const { currentAccommodationId: accommodationId } = useAccommodation();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
+  const { canEdit } = useStaffPermissions();
+  const canEditOrders = canEdit("orders");
   
   // Enable real-time order notifications
   useOrderNotifications(true);
@@ -438,10 +441,10 @@ const Orders = () => {
         icon={ShoppingBag}
         title="目前沒有訂單"
         description="尚未建立任何訂單，點擊下方按鈕新增第一筆訂單"
-        action={{
+        action={canEditOrders ? {
           label: "新增訂單",
           onClick: () => setCreateDialogOpen(true),
-        }}
+        } : undefined}
       />
     );
   }
@@ -484,14 +487,18 @@ const Orders = () => {
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">匯出 Excel</span>
             </Button>
+            {canEditOrders && (
             <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2 hidden sm:inline-flex">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">匯入訂單</span>
             </Button>
+            )}
+            {canEditOrders && (
             <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2 hidden sm:inline-flex">
               <CalendarClock className="h-4 w-4" />
               <span className="hidden sm:inline">新增保留單</span>
             </Button>
+            )}
             {/* 手機：三合一「更多」下拉 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -500,10 +507,10 @@ const Orders = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={() => setHoldDialogOpen(true)} className="py-3">
+                <DropdownMenuItem onClick={() => setHoldDialogOpen(true)} disabled={!canEditOrders} className="py-3">
                   <CalendarClock className="mr-2 h-4 w-4" />新增保留單
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setImportDialogOpen(true)} className="py-3">
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)} disabled={!canEditOrders} className="py-3">
                   <Download className="mr-2 h-4 w-4" />匯入訂單
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -535,10 +542,12 @@ const Orders = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {canEditOrders && (
             <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 h-10">
               <Plus className="h-4 w-4" />
               <span>新增訂單</span>
             </Button>
+            )}
           </div>
         }
       />

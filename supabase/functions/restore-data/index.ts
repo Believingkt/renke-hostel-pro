@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { isAccommodationAdmin, resolveCaller } from '../_shared/authz.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,23 +18,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ error: authRes.error }), {
+        status: authRes.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
+    const supabase = authRes.ctx.admin;
 
     const { accommodationId, filePath, clearExisting = false }: RestoreRequest = await req.json();
 
@@ -42,19 +33,15 @@ Deno.serve(async (req) => {
       throw new Error('Missing accommodationId or filePath');
     }
 
-    console.log(`Starting restore for accommodation: ${accommodationId}, file: ${filePath}`);
-
-    // Verify user has admin access to this accommodation
-    const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('accommodation_id', accommodationId)
-      .single();
-
-    if (roleError || !roleData || !['super_admin', 'hotel_admin'].includes(roleData.role)) {
-      throw new Error('Insufficient permissions');
+    // Verify user has admin access to this accommodation using the shared model
+    if (!(await isAccommodationAdmin(authRes.ctx, accommodationId))) {
+      return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    console.log(`Starting restore for accommodation: ${accommodationId}, file: ${filePath}`);
 
     // Download backup file from storage
     const { data: fileData, error: downloadError } = await supabase.storage

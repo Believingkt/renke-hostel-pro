@@ -72,6 +72,7 @@ function ctxFor(userId: string | null, seed: Seed, opts: {
     admin: makeAdmin(seed) as any,
     userClient: null,
     userId,
+    userEmail: userId ? `${userId}@example.test` : null,
     isServiceRole: opts.isServiceRole ?? false,
     globalRoles: opts.globalRoles ?? [],
   };

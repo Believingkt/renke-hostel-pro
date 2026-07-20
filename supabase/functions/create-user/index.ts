@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { isAccommodationAdmin, resolveCaller } from "../_shared/authz.ts";
 
 // Simple in-memory rate limiter
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -40,53 +40,20 @@ serve(async (req) => {
   }
 
   try {
-    // Get JWT token from request
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: '需要驗證' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: authRes.error }),
+        { status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const jwt = authHeader.replace('Bearer ', '');
-    
-    // Parse JWT to get user ID (JWT is already verified by Supabase via verify_jwt = true)
-    let userId: string;
-    try {
-      const parts = jwt.split('.');
-      if (parts.length !== 3) {
-        throw new Error('Invalid JWT format');
-      }
-      const payload = JSON.parse(atob(parts[1]));
-      userId = payload.sub;
-      
-      if (!userId) {
-        throw new Error('No user ID in JWT');
-      }
-    } catch (e) {
-      console.error("JWT parse error:", e);
-      return new Response(
-        JSON.stringify({ success: false, error: '無效的驗證令牌' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create admin client for all operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const callerUserId = authRes.ctx.userId;
+    const supabaseAdmin = authRes.ctx.admin;
 
     // Check rate limit
-    if (!checkRateLimit(userId)) {
-      console.warn(`Rate limit exceeded for user ${userId}`);
+    if (!checkRateLimit(callerUserId ?? "service_role")) {
+      console.warn(`Rate limit exceeded for user ${callerUserId ?? "service_role"}`);
       return new Response(
         JSON.stringify({ success: false, error: '操作過於頻繁，請稍後再試（每小時最多 10 次）' }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -110,25 +77,10 @@ serve(async (req) => {
 
     const { name, email, role, accommodationId } = validation.data;
 
-    console.log('Request from user:', userId, 'for accommodation:', accommodationId);
+    console.log('Request from user:', callerUserId, 'for accommodation:', accommodationId);
 
-    // Check if caller has admin role for this accommodation
-    const { data: userRoles, error: roleQueryError } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('accommodation_id', accommodationId);
-
-    console.log('User roles query result:', { userRoles, roleQueryError });
-
-    const isAdmin = userRoles?.some(r => 
-      r.role === 'super_admin' || r.role === 'hotel_admin'
-    );
-
-    console.log('Is admin check:', isAdmin);
-
-    if (!isAdmin) {
-      console.error('Authorization failed: User', userId, 'is not admin for accommodation', accommodationId);
+    if (!(await isAccommodationAdmin(authRes.ctx, accommodationId))) {
+      console.error('Authorization failed: User', callerUserId, 'is not admin for accommodation', accommodationId);
       return new Response(
         JSON.stringify({ success: false, error: '需要管理員權限' }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -297,7 +249,7 @@ serve(async (req) => {
 
     // Audit log: role granted / user created
     await supabaseAdmin.from("audit_logs").insert({
-      user_id: userId,
+      user_id: callerUserId,
       accommodation_id: accommodationId,
       action_category: "user_management",
       action_type: isNewUser ? "create_user_with_role" : "grant_role_to_existing_user",

@@ -61,6 +61,7 @@ import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { MonthPicker } from "@/components/ui/month-picker";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 interface SplitRecord {
   id: string;
@@ -97,6 +98,8 @@ interface SplitRule {
 
 export default function Settlement() {
   const { currentAccommodationId } = useAccommodation();
+  const { canEdit } = useStaffPermissions();
+  const canEditSettlement = canEdit("settlement");
   const [loading, setLoading] = useState(true);
   const [splitRecords, setSplitRecords] = useState<SplitRecord[]>([]);
   const [splitRule, setSplitRule] = useState<SplitRule | null>(null);
@@ -185,6 +188,7 @@ export default function Settlement() {
   );
 
   const handleSelectAll = () => {
+    if (!canEditSettlement) return;
     if (selectedRecords.length === pendingRecords.length) {
       setSelectedRecords([]);
     } else {
@@ -193,6 +197,7 @@ export default function Settlement() {
   };
 
   const handleSelectRecord = (id: string) => {
+    if (!canEditSettlement) return;
     setSelectedRecords(prev => 
       prev.includes(id) 
         ? prev.filter(r => r !== id)
@@ -201,6 +206,10 @@ export default function Settlement() {
   };
 
   const handleSubmitRequest = async () => {
+    if (!canEditSettlement) {
+      toast.error("此帳號目前只有請款管理檢視權限，無法提交請款申請");
+      return;
+    }
     if (selectedRecords.length === 0) {
       toast.error("請選擇要請款的記錄");
       return;
@@ -470,7 +479,7 @@ export default function Settlement() {
                     </div>
                     <Button 
                       onClick={() => setShowRequestDialog(true)}
-                      disabled={selectedRecords.length === 0}
+                      disabled={!canEditSettlement || selectedRecords.length === 0}
                       className="shrink-0"
                     >
                       <Send className="h-4 w-4 mr-2" />
@@ -490,6 +499,7 @@ export default function Settlement() {
                             <Checkbox
                               checked={selectedRecords.length === pendingRecords.length && pendingRecords.length > 0}
                               onCheckedChange={handleSelectAll}
+                              disabled={!canEditSettlement}
                             />
                           </TableHead>
                           <TableHead>訂單編號</TableHead>
@@ -507,6 +517,7 @@ export default function Settlement() {
                               <Checkbox
                                 checked={selectedRecords.includes(record.id)}
                                 onCheckedChange={() => handleSelectRecord(record.id)}
+                                disabled={!canEditSettlement}
                               />
                             </TableCell>
                             <TableCell className="font-mono text-sm">
@@ -742,7 +753,7 @@ export default function Settlement() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRequestDialog(false)}>取消</Button>
-            <Button onClick={handleSubmitRequest} disabled={submitting}>
+            <Button onClick={handleSubmitRequest} disabled={!canEditSettlement || submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               確認提交
             </Button>

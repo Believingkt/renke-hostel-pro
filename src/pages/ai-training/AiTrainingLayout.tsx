@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 const NAV = [
   { to: "/hq/ai-training", label: "總覽", icon: LayoutDashboard, end: true },
@@ -25,26 +26,12 @@ const NAV = [
 export default function AiTrainingLayout() {
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [draftCount, setDraftCount] = useState<number>(0);
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
   const location = useLocation();
+  const { canView, isLoading } = useStaffPermissions();
+  const authorized = canView("ai_training");
 
   useEffect(() => {
-    void (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setAuthorized(false);
-        return;
-      }
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const ok = !!roles?.some((r) => r.role === "super_admin" || r.role === "hotel_admin");
-      setAuthorized(ok);
-    })();
-  }, []);
-
-  useEffect(() => {
+    if (isLoading || !authorized) return;
     void (async () => {
       const [{ data: pub }, { count }] = await Promise.all([
         supabase
@@ -62,10 +49,10 @@ export default function AiTrainingLayout() {
       setPublishedVersion(pub?.version ?? null);
       setDraftCount(count ?? 0);
     })();
-  }, [location.pathname, authorized]);
+  }, [location.pathname, authorized, isLoading]);
 
-  if (authorized === null) return null;
-  if (authorized === false) return <Navigate to="/hq-auth" replace />;
+  if (isLoading) return null;
+  if (!authorized) return <Navigate to="/hq-auth" replace />;
 
   return (
     <div className="flex flex-col gap-4">

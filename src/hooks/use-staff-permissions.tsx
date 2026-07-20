@@ -19,11 +19,15 @@ interface UseStaffPermissionsResult {
 interface StaffPermissionData {
   permissions: Record<string, ModulePermissionLevel>;
   isStaff: boolean;
+  isAdmin: boolean;
+  hasAccommodationRole: boolean;
 }
 
 const EMPTY_PERMISSIONS: StaffPermissionData = {
   permissions: {},
   isStaff: false,
+  isAdmin: false,
+  hasAccommodationRole: false,
 };
 
 const STAFF_PERMISSIONS_STALE_TIME = 5 * 60 * 1000;
@@ -76,21 +80,30 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
     queryFn: async (): Promise<StaffPermissionData> => {
       if (!userId || !currentAccommodationId) return EMPTY_PERMISSIONS;
 
-      // 優先沿用 AccommodationContext 已載入的角色，避免切頁時重複查 user_roles。
+      // 重新讀取完整角色，避免 AccommodationContext 只保留「有館別」角色時漏掉全域 super_admin。
       let roles = rolesForAccommodation;
-      if (roles.length === 0) {
-        const { data: roleRows } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("accommodation_id", currentAccommodationId);
-        roles = (roleRows ?? []).map((r: any) => r.role);
+      let globalRoles = userAccommodations.map((row) => row.role);
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role, accommodation_id")
+        .eq("user_id", userId)
+        .limit(1000);
+      if (roleRows) {
+        globalRoles = roleRows.map((r: any) => r.role);
+        roles = (roleRows ?? [])
+          .filter((r: any) => r.accommodation_id === currentAccommodationId)
+          .map((r: any) => r.role);
       }
-      const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin");
+      const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin") || globalRoles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
-      if (isAdmin || !isStaffOnly) {
-        // admin / 非 staff → 全部 editable，不需再查模組權限表
+      if (isAdmin) {
+        // admin → 全部 editable，不需再查模組權限表
+        return { ...EMPTY_PERMISSIONS, isAdmin: true, hasAccommodationRole: true };
+      }
+
+      if (!isStaffOnly) {
+        // 沒有目前館別角色不能預設放行，否則前端會顯示可用、後端/RLS 再擋掉。
         return EMPTY_PERMISSIONS;
       }
 
@@ -109,15 +122,21 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
       return {
         permissions: map,
         isStaff: true,
+        isAdmin: false,
+        hasAccommodationRole: true,
       };
     },
   });
 
   const permissions = data.permissions;
   const isStaff = data.isStaff;
+  const isAdmin = data.isAdmin;
+  const hasAccommodationRole = data.hasAccommodationRole;
 
   const getLevel = (moduleKey: string): ModulePermissionLevel => {
-    if (!isStaff) return "editable"; // 非 staff 一律可編輯
+    if (isAdmin) return "editable";
+    if (!hasAccommodationRole) return "hidden";
+    if (!isStaff) return "hidden";
     return permissions[moduleKey] ?? DEFAULT_STAFF_PERMISSIONS[moduleKey] ?? "hidden";
   };
 

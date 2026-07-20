@@ -1,6 +1,6 @@
 // Change order check-in/check-out dates.
-// - Mode 'kol': KOL 互惠單，須 order_source='kol' 且 payment_status != 'paid'
-// - Mode 'general': 一般訂單，須 super_admin / hotel_admin / admin，且 payment_status != 'paid'
+// - Mode 'kol': KOL 互惠單，須 order_source='kol'、orders 可編輯且 payment_status != 'paid'
+// - Mode 'general': 一般訂單，須 orders 可編輯且 payment_status != 'paid'
 // - 使用 SECURITY DEFINER RPC `change_order_dates` 進行原子化庫存重驗
 // - KOL 單改期若跨月且新月已滿，須 client 帶 forceKolQuotaOverride=true 才可覆寫
 
@@ -82,15 +82,7 @@ serve(async (req) => {
       return json({ success: false, message: "新舊日期相同" }, 400, corsHeaders);
     }
 
-    // Permission
-    // Permission: KOL 改期允許任何在此民宿有角色的人；一般改期需 admin OR staff-orders-editable
-    const { data: roleRows } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("accommodation_id", order.accommodation_id);
-    const roles = new Set<string>((roleRows ?? []).map((r: any) => r.role));
-
+    // Permission: both KOL and general date changes require orders editable permission.
     if (body.mode === "kol") {
       if (order.order_source !== "kol") {
         return json(
@@ -99,16 +91,12 @@ serve(async (req) => {
           corsHeaders,
         );
       }
-      if (roles.size === 0) {
-        return json({ success: false, message: "無權限存取此訂單" }, 403, corsHeaders);
-      }
-    } else {
-      const authRes = await resolveCaller(req);
-      if (!authRes.ok) return json({ success: false, message: "未授權" }, authRes.status, corsHeaders);
-      const allowed = await canEditModule(authRes.ctx, order.accommodation_id, "orders");
-      if (!allowed) {
-        return json({ success: false, message: "僅管理員可改動一般訂單日期" }, 403, corsHeaders);
-      }
+    }
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) return json({ success: false, message: "未授權" }, authRes.status, corsHeaders);
+    const allowed = await canEditModule(authRes.ctx, order.accommodation_id, "orders");
+    if (!allowed) {
+      return json({ success: false, message: "此帳號沒有訂單編輯權限，無法改動訂單日期" }, 403, corsHeaders);
     }
 
 

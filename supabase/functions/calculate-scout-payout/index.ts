@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +39,14 @@ serve(async (req) => {
   }
 
   try {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return jsonResponse({ success: false, error: authRes.error }, authRes.status);
+    }
+    if (!isSuperAdmin(authRes.ctx)) {
+      return jsonResponse({ success: false, error: "Forbidden" }, 403);
+    }
+
     const body = await req.json().catch(() => ({}));
     const year = Number(body?.year);
     const month = Number(body?.month);
@@ -52,10 +60,7 @@ serve(async (req) => {
     }
     const period = periodNum as 10 | 25;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = authRes.ctx.admin;
 
     const { startDate: periodStart, endExclusive: periodEnd } = periodRange(year, month, period);
     const kpiMonth = `${year}-${pad(month)}-01`;
