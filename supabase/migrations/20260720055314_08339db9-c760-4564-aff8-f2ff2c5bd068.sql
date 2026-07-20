@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.validate_discount_code(text, uuid);

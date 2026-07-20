@@ -9404,32 +9404,22 @@ export type Database = {
         }
         Returns: boolean
       }
-      validate_discount_code:
-        | {
-            Args: { p_accommodation_id: string; p_code: string }
-            Returns: {
-              discount_type: string
-              discount_value: number
-              is_valid: boolean
-              message: string
-            }[]
-          }
-        | {
-            Args: {
-              p_accommodation_id: string
-              p_check_in_date?: string
-              p_code: string
-              p_order_amount?: number
-              p_room_type_id?: string
-            }
-            Returns: {
-              applicable_room_names: string[]
-              discount_type: string
-              discount_value: number
-              is_valid: boolean
-              message: string
-            }[]
-          }
+      validate_discount_code: {
+        Args: {
+          p_accommodation_id: string
+          p_check_in_date?: string
+          p_code: string
+          p_order_amount?: number
+          p_room_type_id?: string
+        }
+        Returns: {
+          applicable_room_names: string[]
+          discount_type: string
+          discount_value: number
+          is_valid: boolean
+          message: string
+        }[]
+      }
       validate_platform_coupon: {
         Args: {
           p_accommodation_id?: string
