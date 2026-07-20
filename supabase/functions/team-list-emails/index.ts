@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,63 +7,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const ALLOWED_ROLES = new Set(["super_admin", "admin", "scout_manager"]);
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: "未授權" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ success: false, error: authRes.error }),
+        { status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    );
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        auth: { autoRefreshToken: false, persistSession: false },
-        global: { headers: { Authorization: authHeader } },
-      },
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: "驗證失敗" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const { data: roles } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .is("accommodation_id", null);
-
-    const hasAccess = (roles ?? []).some(
-      (r: { role: string }) => ALLOWED_ROLES.has(r.role),
-    );
-    if (!hasAccess) {
+    if (!isSuperAdmin(authRes.ctx)) {
       return new Response(
         JSON.stringify({ success: false, error: "權限不足" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    const supabaseAdmin = authRes.ctx.admin;
 
     let requestedIds: Set<string> | null = null;
     try {
