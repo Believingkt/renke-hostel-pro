@@ -38,6 +38,7 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
