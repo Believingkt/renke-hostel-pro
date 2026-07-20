@@ -16,6 +16,14 @@ serve(async (req) => {
   );
 
   const nowIso = new Date().toISOString();
+  const taipeiIso = (() => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    }).formatToParts(new Date()).reduce<Record<string, string>>((a, p) => (a[p.type] = p.value, a), {});
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
+  })();
   const { data: expired, error } = await supabase
     .from('orders')
     .select('id, order_number, accommodation_id, atm_expire_at, paid_amount, notes')
