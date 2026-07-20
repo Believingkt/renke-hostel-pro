@@ -357,13 +357,18 @@ Deno.serve(async (req) => {
         .order("unit_number", { ascending: true });
       unitCache.set(rtId, (units ?? []) as any);
       if (units && units.length > 0) {
-        const { data: conflicts } = await admin
+        let q = admin
           .from("order_rooms")
-          .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+          .select("room_unit_id, orders!inner(id, order_status, check_in_date, check_out_date)")
           .in("room_unit_id", units.map((u) => u.id))
           .neq("orders.order_status", "cancelled")
           .lt("orders.check_in_date", finalCheckOut)
           .gt("orders.check_out_date", finalCheckIn);
+        // 排除本次補單所綁定的自動 pending 訂單，與前端邏輯保持一致
+        if (staging.auto_order_id) {
+          q = q.neq("orders.id", staging.auto_order_id);
+        }
+        const { data: conflicts } = await q;
         busyCache.set(
           rtId,
           new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean)),
