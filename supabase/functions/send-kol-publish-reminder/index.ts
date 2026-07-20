@@ -54,15 +54,19 @@ Deno.serve(async (req) => {
 
   try {
     // 1. 撈 KOL 主要記錄
-    const { data: kols, error: kolErr } = await supabase
+    const { data: kolsRaw, error: kolErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, ig_handle, short_url, check_in_date, scout_id")
+      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url")
       .eq("check_in_date", targetCheckIn)
       .eq("booking_status", "成功訂房")
       .is("primary_profile_id", null)
       .eq("is_error", false);
 
     if (kolErr) throw kolErr;
+
+    // 過濾：排除 publish_date 與 publish_url 皆有值（非空字串）的已完成記錄
+    const hasVal = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+    const kols = (kolsRaw ?? []).filter((k: any) => !(hasVal(k.publish_date) && hasVal(k.publish_url)));
 
     if (!kols || kols.length === 0) {
       return new Response(
@@ -112,14 +116,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 5. 組訊息
-    const blocks = kols.map((k: any) => {
+    // 5. 組訊息 - 依 publish_date / publish_url 狀態分兩種格式
+    const pendingBlocks: string[] = []; // 兩者皆空 → 第一種
+    const partialBlocks: string[] = []; // 任一有值但未完成 → 第二種
+    for (const k of kols as any[]) {
       const social = k.short_url || k.ig_handle || "未提供";
-      const deadline = addDays(k.check_in_date, 14);
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
-      return `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`;
-    });
-    const message = `KOL上片期限通知‼️請星探追蹤\n\n${blocks.join("\n\n")}`;
+      const hasDate = hasVal(k.publish_date);
+      const hasUrl = hasVal(k.publish_url);
+
+      if (!hasDate && !hasUrl) {
+        const deadline = addDays(k.check_in_date, 14);
+        pendingBlocks.push(
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
+        );
+      } else {
+        partialBlocks.push(
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
+        );
+      }
+    }
+
+    const sections: string[] = [];
+    if (pendingBlocks.length > 0) {
+      sections.push(`KOL上片期限通知‼️請星探追蹤\n\n${pendingBlocks.join("\n\n")}`);
+    }
+    if (partialBlocks.length > 0) {
+      sections.push(`KOL上片期限通知 ⚠️ 請補填資訊\n\n${partialBlocks.join("\n\n")}`);
+    }
+    const message = sections.join("\n\n");
 
     const messageHash = await sha256Hex(message);
     const minuteBucket = currentMinuteBucket();
