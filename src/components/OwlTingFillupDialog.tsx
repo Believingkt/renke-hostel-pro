@@ -283,6 +283,10 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const { data: iss, error: issErr } = await supabase.functions.invoke("owlting-fillup-issue", {
         body: { staging_id: stagingId, accommodation_id: accId, silent: true },
       });
+      if (issErr) {
+        const parsed = await parseFunctionInvokeError(issErr);
+        throw new Error(parsed.backendError || parsed.message || "無法產生補單 Token");
+      }
       if (issErr || !iss?.ok || !iss.token) {
         throw new Error(iss?.error || issErr?.message || "無法產生補單 Token");
       }
@@ -291,6 +295,10 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const { data: val, error: valErr } = await supabase.functions.invoke("owlting-fillup-validate", {
         body: { token: iss.token },
       });
+      if (valErr) {
+        const parsed = await parseFunctionInvokeError(valErr);
+        throw new Error(parsed.backendError || parsed.message || "驗證失敗");
+      }
       if (valErr || !val?.ok) throw new Error(val?.error || valErr?.message || "驗證失敗");
       const rts: RoomType[] = val.room_types || [];
       setRoomTypes(rts);
