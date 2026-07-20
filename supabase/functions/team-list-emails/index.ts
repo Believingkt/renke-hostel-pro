@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 
+const ALLOWED_TEAM_ROLES = new Set(["admin", "scout_manager"]);
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -21,14 +23,23 @@ serve(async (req) => {
       );
     }
 
-    if (!isSuperAdmin(authRes.ctx)) {
+    const supabaseAdmin = authRes.ctx.admin;
+    const { data: teamRoles } = authRes.ctx.userId
+      ? await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", authRes.ctx.userId)
+          .is("accommodation_id", null)
+      : { data: [] };
+
+    const hasTeamAccess = (teamRoles ?? []).some((r: { role: string }) => ALLOWED_TEAM_ROLES.has(r.role));
+
+    if (!isSuperAdmin(authRes.ctx) && !hasTeamAccess) {
       return new Response(
         JSON.stringify({ success: false, error: "權限不足" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-
-    const supabaseAdmin = authRes.ctx.admin;
 
     let requestedIds: Set<string> | null = null;
     try {
