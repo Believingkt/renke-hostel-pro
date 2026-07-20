@@ -80,16 +80,16 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
     queryFn: async (): Promise<StaffPermissionData> => {
       if (!userId || !currentAccommodationId) return EMPTY_PERMISSIONS;
 
-      // 優先沿用 AccommodationContext 已載入的角色，避免切頁時重複查 user_roles。
+      // 重新讀取完整角色，避免 AccommodationContext 只保留「有館別」角色時漏掉全域 super_admin。
       let roles = rolesForAccommodation;
       let globalRoles = userAccommodations.map((row) => row.role);
-      if (roles.length === 0) {
-        const { data: roleRows } = await supabase
-          .from("user_roles")
-          .select("role, accommodation_id")
-          .eq("user_id", userId)
-          .limit(1000);
-        globalRoles = (roleRows ?? []).map((r: any) => r.role);
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role, accommodation_id")
+        .eq("user_id", userId)
+        .limit(1000);
+      if (roleRows) {
+        globalRoles = roleRows.map((r: any) => r.role);
         roles = (roleRows ?? [])
           .filter((r: any) => r.accommodation_id === currentAccommodationId)
           .map((r: any) => r.role);
