@@ -569,7 +569,7 @@ const fetchDashboardData = async (
       const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id || orderIdsWithRoomType.has(o.id));
       const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey, isExclusive, roomType.id);
       
-      const maxPossibleNights = (isExclusive ? DAILY_ROOM_CAP : roomCount) * daysInMonth;
+      const maxPossibleNights = (isExclusive && !VILLA_AS_SINGLE_UNIT ? DAILY_ROOM_CAP : roomCount) * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
         ? Math.round((totalNights / maxPossibleNights) * 100)
         : 0;
