@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
         }
 
         const tag = isAtm ? '[ATM Webhook]' : '[3DS Webhook]';
-        const transactionNote = `${tag} ${new Date().toISOString()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}${auth_code ? `, auth_code: ${auth_code}` : ''})`;
+        const transactionNote = `${tag} ${taipeiIso()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}${auth_code ? `, auth_code: ${auth_code}` : ''})`;
         const newNotes = order.notes
           ? `${order.notes}\n${transactionNote}`
           : transactionNote;
