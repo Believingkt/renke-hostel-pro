@@ -213,7 +213,8 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         .from('user_roles')
         .select('accommodation_id, role')
         .eq('user_id', session.user.id)
-        .limit(10);
+        .not('accommodation_id', 'is', null)
+        .limit(1000);
 
       if (error) {
         if (import.meta.env.DEV) console.error('[AccommodationContext] Error:', error);
