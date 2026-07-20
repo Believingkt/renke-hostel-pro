@@ -519,11 +519,19 @@ const fetchDashboardData = async (
         // Determine multiplier from order_rooms or fallback
         let multiplier: number;
         if (isExclusive) {
-          multiplier = DAILY_ROOM_CAP;
+          if (VILLA_AS_SINGLE_UNIT) {
+            // 分流模式：每筆包棟訂單以「棟」計，讀取 order_rooms 的 quantity（預設 1 棟）
+            const orderRoomEntries = orderRoomsAll.filter(
+              or => or.order_id === order.id && (!roomTypeId || or.room_type_id === roomTypeId)
+            );
+            multiplier = orderRoomEntries.reduce((sum, or) => sum + (or.quantity || 1), 0) || 1;
+          } else {
+            // 舊模式：包棟訂單一筆視為整館滿房
+            multiplier = DAILY_ROOM_CAP;
+          }
         } else {
           const orRooms = orderRoomsMap.get(order.id);
           if (orRooms && roomTypeId) {
-            // Get quantity for this specific room type from order_rooms
             const orderRoomEntries = orderRoomsAll.filter(
               or => or.order_id === order.id && or.room_type_id === roomTypeId
             );
