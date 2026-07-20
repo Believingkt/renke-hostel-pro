@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
@@ -9,51 +9,24 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: '需要驗證' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: authRes.error }),
+        { status: authRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
-    // Verify caller has admin privileges
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: '驗證失敗' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if user is super admin
-    const { data: userRoles } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const isSuperAdmin = userRoles?.some(r => r.role === 'super_admin');
-    
-    if (!isSuperAdmin) {
+    if (!isSuperAdmin(authRes.ctx)) {
       return new Response(
         JSON.stringify({ success: false, error: '需要超級管理員權限' }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const supabaseAdmin = authRes.ctx.admin;
+    const callerUserId = authRes.ctx.userId;
+    const callerUserEmail = authRes.ctx.userEmail;
 
     const { email } = await req.json();
 
@@ -97,8 +70,8 @@ serve(async (req) => {
       console.error("Error deleting user:", deleteError);
       // Audit failed deletion
       await supabaseAdmin.from("audit_logs").insert({
-        user_id: user.id,
-        user_email: user.email,
+        user_id: callerUserId,
+        user_email: callerUserEmail,
         action_category: "user_management",
         action_type: "delete_user_failed",
         entity_type: "user",
@@ -118,8 +91,8 @@ serve(async (req) => {
 
     // Audit successful deletion
     await supabaseAdmin.from("audit_logs").insert({
-      user_id: user.id,
-      user_email: user.email,
+      user_id: callerUserId,
+      user_email: callerUserEmail,
       action_category: "user_management",
       action_type: "delete_user",
       entity_type: "user",
