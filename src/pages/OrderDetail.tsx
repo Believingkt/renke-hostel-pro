@@ -3662,6 +3662,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         </CardContent>
       </Card>
 
+      {/* 通知與付款紀錄 */}
+      {order && (
+        <OrderNotificationHistory
+          orderId={order.id}
+          orderNumber={order.order_number}
+          canManage={isAdminUser}
+        />
+      )}
+
       {/* 變更紀錄 */}
       {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
 
