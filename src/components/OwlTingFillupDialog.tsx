@@ -379,13 +379,19 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           const list = (units ?? []) as UnitInfo[];
           nextUnits[rtId] = list;
           if (list.length > 0) {
-            const { data: conflicts } = await supabase
+            let q = supabase
               .from("order_rooms")
-              .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+              .select("room_unit_id, orders!inner(id, order_status, check_in_date, check_out_date)")
               .in("room_unit_id", list.map((u) => u.id))
               .neq("orders.order_status", "cancelled")
               .lt("orders.check_in_date", checkOutDate)
               .gt("orders.check_out_date", checkInDate);
+            // 排除本次補單所綁定的自動 pending 訂單，避免它自己佔到自己的房號
+            const selfOrderId = stagingRow?.auto_order_id;
+            if (selfOrderId) {
+              q = q.neq("orders.id", selfOrderId);
+            }
+            const { data: conflicts } = await q;
             nextBusy[rtId] = new Set((conflicts ?? []).map((c: any) => c.room_unit_id).filter(Boolean));
           } else {
             nextBusy[rtId] = new Set();
