@@ -227,8 +227,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     else navigate(backTo);
   };
   const { toast } = useToast();
-  const { canEdit: canEditModule } = useStaffPermissions();
-  const canEditOrders = canEditModule("orders");
+  const { canEdit: canEditModule, isStaff } = useStaffPermissions();
+  // 一般訂單改期只允許：admin，或明確為此民宿 staff 且 orders 模組 editable。
+  // 其他角色（closer/scout/無角色）不顯示按鈕，避免點下去被後端擋。
+  const canEditOrders = isStaff && canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
