@@ -2870,7 +2870,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <div className="flex items-center gap-2">
                 <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
                 {order.payment_status !== "paid" && order.order_status !== "cancelled" && (
-                  (order.order_source === "kol" || isAdminUser) && (
+                  (order.order_source === "kol" || isAdminUser || canEditOrders) && (
                     <Button
                       size="sm"
                       variant="outline"
