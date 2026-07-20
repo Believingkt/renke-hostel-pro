@@ -373,6 +373,29 @@ Deno.serve(async (req) => {
               console.error('[tappay-notify] Manual 3DS email send failed (non-fatal):', mailErr);
             }
           }
+
+          // Trigger "final payment received" email when transitioning to paid from a non-paid state
+          if (order.payment_status !== 'paid' && newPaymentStatus === 'paid') {
+            try {
+              const methodLabel = isAtm ? 'ATM 虛擬帳號轉帳' : '信用卡(3D驗證)';
+              const resp = await fetch(`${supabaseUrl}/functions/v1/send-final-payment-received`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  triggerSource: isAtm ? 'auto_atm_final' : 'auto_3ds_final',
+                  paymentMethodLabel: methodLabel,
+                  paidThisTime: amount,
+                }),
+              });
+              console.log('[tappay-notify] final-payment email status:', resp.status);
+            } catch (mailErr) {
+              console.error('[tappay-notify] final-payment email failed (non-fatal):', mailErr);
+            }
+          }
         }
       } else {
         console.log('[tappay-notify] Payment failed (verified):', { 
