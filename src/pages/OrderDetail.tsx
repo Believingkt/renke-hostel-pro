@@ -38,6 +38,7 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
@@ -3660,6 +3661,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           )}
         </CardContent>
       </Card>
+
+      {/* 通知與付款紀錄 */}
+      {order && (
+        <OrderNotificationHistory
+          orderId={order.id}
+          orderNumber={order.order_number}
+          canManage={isAdminUser}
+        />
+      )}
 
       {/* 變更紀錄 */}
       {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}

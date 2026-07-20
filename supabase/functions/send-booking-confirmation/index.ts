@@ -52,6 +52,8 @@ interface BookingConfirmationRequest {
   petPlanPrice?: number;
   mealPlanDetails?: Array<{ date: string; count: number; price: number }>;
   mealPlanTotal?: number;
+  triggerSource?: string;
+  triggeredBy?: string | null;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -93,6 +95,8 @@ const handler = async (req: Request): Promise<Response> => {
       petPlanPrice,
       mealPlanDetails,
       mealPlanTotal,
+      triggerSource,
+      triggeredBy,
     }: BookingConfirmationRequest = await req.json();
 
     // Basic input validation
@@ -357,10 +361,30 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
+
+    const subject = `${accommodationName ? `【${accommodationName}】` : ''}訂房確認通知 - 訂單編號 ${orderNumber}`;
+
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
       console.error("Resend API error:", errorText);
-      
+
+      // Log failure
+      try {
+        await supabase.from('booking_email_log').insert({
+          order_id: order.id,
+          order_number: orderNumber,
+          email_type: 'booking_confirmation',
+          recipient: guestEmail,
+          subject,
+          status: 'failed',
+          error_message: errorText.slice(0, 1000),
+          triggered_by: triggeredBy ?? null,
+          trigger_source: triggerSource ?? 'auto',
+        });
+      } catch (logErr) {
+        console.error('[send-booking-confirmation] failed to log failure:', logErr);
+      }
+
       return new Response(
         JSON.stringify({ success: false, error: errorText }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -369,6 +393,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailData = await emailResponse.json();
     console.log("Booking confirmation email sent successfully:", emailData);
+
+    // Log success
+    try {
+      await supabase.from('booking_email_log').insert({
+        order_id: order.id,
+        order_number: orderNumber,
+        email_type: 'booking_confirmation',
+        recipient: guestEmail,
+        subject,
+        status: 'sent',
+        resend_id: emailData?.id ?? null,
+        triggered_by: triggeredBy ?? null,
+        trigger_source: triggerSource ?? 'auto',
+      });
+    } catch (logErr) {
+      console.error('[send-booking-confirmation] failed to log success:', logErr);
+    }
 
     return new Response(JSON.stringify({ success: true, emailData }), {
       status: 200,
