@@ -221,6 +221,34 @@ export function OwlTingAccommodationConfig() {
     toast.success("方案對應已更新");
   };
 
+  const handleToggleRoomTypeSync = async (accId: string, roomTypeId: string, nextValue: boolean) => {
+    const { error } = await supabase
+      .from("owlting_room_type_sync")
+      .upsert(
+        { accommodation_id: accId, room_type_id: roomTypeId, sync_enabled: nextValue },
+        { onConflict: "accommodation_id,room_type_id" }
+      );
+    if (error) {
+      toast.error("更新失敗：" + error.message);
+      return;
+    }
+    setRoomTypeSync((prev) => {
+      const idx = prev.findIndex((s) => s.accommodation_id === accId && s.room_type_id === roomTypeId);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], sync_enabled: nextValue };
+        return next;
+      }
+      return [...prev, { accommodation_id: accId, room_type_id: roomTypeId, sync_enabled: nextValue }];
+    });
+    toast.success(nextValue ? "已開啟同步" : "已關閉同步");
+  };
+
+  const getRoomTypeSyncEnabled = (accId: string, roomTypeId: string): boolean => {
+    const row = roomTypeSync.find((s) => s.accommodation_id === accId && s.room_type_id === roomTypeId);
+    return row ? row.sync_enabled : true; // default sync on
+  };
+
   // ============ Export mapping ============
   const buildExport = (accId: string) => {
     const acc = accommodations.find((a) => a.id === accId);
