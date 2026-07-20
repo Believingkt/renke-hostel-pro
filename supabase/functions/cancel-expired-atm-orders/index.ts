@@ -16,6 +16,14 @@ serve(async (req) => {
   );
 
   const nowIso = new Date().toISOString();
+  const taipeiIso = (() => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    }).formatToParts(new Date()).reduce<Record<string, string>>((a, p) => (a[p.type] = p.value, a), {});
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
+  })();
   const { data: expired, error } = await supabase
     .from('orders')
     .select('id, order_number, accommodation_id, atm_expire_at, paid_amount, notes')
@@ -35,7 +43,7 @@ serve(async (req) => {
   const cancelled: string[] = [];
   for (const o of expired || []) {
     if ((o.paid_amount || 0) > 0) continue; // 已部分入帳的不自動取消
-    const note = `[ATM Expire] ${nowIso} - 虛擬帳號逾期未繳款，系統自動取消訂單`;
+    const note = `[ATM Expire] ${taipeiIso} - 虛擬帳號逾期未繳款，系統自動取消訂單`;
     const newNotes = o.notes ? `${o.notes}\n${note}` : note;
     const { error: upErr } = await supabase
       .from('orders')

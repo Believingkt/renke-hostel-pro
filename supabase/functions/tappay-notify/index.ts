@@ -7,6 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function taipeiIso(d: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(d).reduce<Record<string, string>>((a, p) => (a[p.type] = p.value, a), {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
+}
+
 interface TapPayNotifyPayload {
   status: number;
   rec_trade_id: string;
@@ -268,7 +277,7 @@ Deno.serve(async (req) => {
         }
 
         const tag = isAtm ? '[ATM Webhook]' : '[3DS Webhook]';
-        const transactionNote = `${tag} ${new Date().toISOString()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}${auth_code ? `, auth_code: ${auth_code}` : ''})`;
+        const transactionNote = `${tag} ${taipeiIso()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}${auth_code ? `, auth_code: ${auth_code}` : ''})`;
         const newNotes = order.notes
           ? `${order.notes}\n${transactionNote}`
           : transactionNote;
@@ -404,7 +413,7 @@ Deno.serve(async (req) => {
           verifiedStatus: verifiedStatus,
         });
 
-        const failureNote = `[3DS Webhook] ${new Date().toISOString()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, verified_status: ${verifiedStatus})`;
+        const failureNote = `[3DS Webhook] ${taipeiIso()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, verified_status: ${verifiedStatus})`;
         const newNotes = order.notes 
           ? `${order.notes}\n${failureNote}`
           : failureNote;

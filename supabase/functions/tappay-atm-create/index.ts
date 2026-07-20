@@ -271,7 +271,15 @@ serve(async (req) => {
       });
     }
 
-    const note = `[ATM] ${new Date().toISOString()} - 已開立虛擬帳號 ${bankCode || ""}-${vaccNo}，到期 ${expireAt.toISOString()} (rec_trade_id: ${result.rec_trade_id})`;
+    const toTaipeiIso = (d: Date) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Taipei",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      }).formatToParts(d).reduce<Record<string, string>>((a, p) => (a[p.type] = p.value, a), {});
+      return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
+    };
+    const note = `[ATM] ${toTaipeiIso(new Date())} - 已開立虛擬帳號 ${bankCode || ""}-${vaccNo}，到期 ${toTaipeiIso(expireAt)} (rec_trade_id: ${result.rec_trade_id})`;
     const { data: cur } = await supabase.from("orders").select("notes").eq("id", order.id).maybeSingle();
     const newNotes = cur?.notes ? `${cur.notes}\n${note}` : note;
 
