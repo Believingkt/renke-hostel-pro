@@ -52,6 +52,8 @@ interface BookingConfirmationRequest {
   petPlanPrice?: number;
   mealPlanDetails?: Array<{ date: string; count: number; price: number }>;
   mealPlanTotal?: number;
+  triggerSource?: string;
+  triggeredBy?: string | null;
 }
 
 const handler = async (req: Request): Promise<Response> => {
