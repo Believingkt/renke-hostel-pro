@@ -1583,6 +1583,59 @@ export type Database = {
           },
         ]
       }
+      booking_email_log: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          order_id: string | null
+          order_number: string | null
+          recipient: string
+          resend_id: string | null
+          status: string
+          subject: string | null
+          trigger_source: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          order_id?: string | null
+          order_number?: string | null
+          recipient: string
+          resend_id?: string | null
+          status: string
+          subject?: string | null
+          trigger_source?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          order_id?: string | null
+          order_number?: string | null
+          recipient?: string
+          resend_id?: string | null
+          status?: string
+          subject?: string | null
+          trigger_source?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_email_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_info_sections: {
         Row: {
           accommodation_id: string
@@ -6656,6 +6709,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payment_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          final_price: number | null
+          from_status: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          paid_amount: number | null
+          source: string
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          final_price?: number | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          paid_amount?: number | null
+          source?: string
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          final_price?: number | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          paid_amount?: number | null
+          source?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       performance_notification_sent_log: {
         Row: {
