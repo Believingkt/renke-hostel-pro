@@ -1963,6 +1963,81 @@ export type Database = {
           },
         ]
       }
+      closer_team_bonus_distribution: {
+        Row: {
+          bonus_amount: number
+          closer_id: string
+          created_at: string
+          finalized_at: string | null
+          finalized_by: string | null
+          id: string
+          is_finalized: boolean
+          month: number
+          pool_total: number
+          pool_total_count: number
+          service_count: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          bonus_amount?: number
+          closer_id: string
+          created_at?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          is_finalized?: boolean
+          month: number
+          pool_total?: number
+          pool_total_count?: number
+          service_count?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          bonus_amount?: number
+          closer_id?: string
+          created_at?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          is_finalized?: boolean
+          month?: number
+          pool_total?: number
+          pool_total_count?: number
+          service_count?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      closer_team_bonus_settings: {
+        Row: {
+          bonus_rate: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          bonus_rate: number
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          bonus_rate?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
       commission_payout_marks: {
         Row: {
           created_at: string
