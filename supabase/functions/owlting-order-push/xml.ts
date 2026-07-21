@@ -168,7 +168,8 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
         order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
       `</Customer></Profile></ProfileInfo></Profiles>`,
-      order.notes ? `<Comments><Comment><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
+      // <Comments> intentionally omitted — OwlTing ignores ResGlobalInfo comments;
+      // notes go inside each RoomStay's <SpecialRequests> instead.
     `</ResGlobalInfo>`,
   ].join("");
 }
