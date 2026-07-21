@@ -727,6 +727,9 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </AlertDialog>
             </div>
           )}
+          <p className="text-xs text-muted-foreground pt-2 border-t">
+            團隊成員於成員管理頁面，根據「成交組」權限之 role 標籤，動態顯示所有成員。
+          </p>
         </CardContent>
       </Card>
     </div>
