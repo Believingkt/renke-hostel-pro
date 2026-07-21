@@ -398,7 +398,6 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           <CardTitle className="text-base">團獎比例設定</CardTitle>
           {isAdmin && (
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogTrigger />
               <Button size="sm" onClick={() => setAddOpen(true)}>
                 新增版本
               </Button>
