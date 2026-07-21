@@ -1338,6 +1338,13 @@ export default function TeamOrders() {
           <TeamCommissionStatsTab />
         </TabsContent>
 
+        {(isAdmin || isCloser) && (
+          <TabsContent value="team-bonus" className="space-y-4">
+            <TeamBonusDistributionTab isAdmin={isAdmin} />
+          </TabsContent>
+        )}
+
+
         {(isAdmin || isCloser || isVideo) && (
           <TabsContent value="commission-rates" className="space-y-4">
             <CommissionRatesTab readOnly={!isAdmin && !isCloser} />
