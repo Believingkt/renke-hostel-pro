@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Pencil } from "lucide-react";
 
 interface Props {
   isAdmin: boolean;
@@ -101,6 +102,30 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   const [newRate, setNewRate] = useState<string>("");
   const [newNote, setNewNote] = useState<string>("");
   const [savingSetting, setSavingSetting] = useState(false);
+
+  // Edit note dialog
+  const [editTarget, setEditTarget] = useState<BonusSetting | null>(null);
+  const [editNote, setEditNote] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  async function handleSaveEditNote() {
+    if (!editTarget) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("closer_team_bonus_settings")
+        .update({ note: editNote.trim() || null })
+        .eq("id", editTarget.id);
+      if (error) throw error;
+      toast.success("備註已更新");
+      setEditTarget(null);
+      await loadSettings();
+    } catch (e: any) {
+      toast.error("更新失敗：" + (e.message || ""));
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   // ============ Card 2: distribution ============
   // Period selector: "X月10日"; settlement month = period month - 1
@@ -463,12 +488,13 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                 <TableHead className="w-40">生效日期</TableHead>
                 <TableHead className="w-32">比例</TableHead>
                 <TableHead>備註</TableHead>
+                {isAdmin && <TableHead className="w-16"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {settings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 4 : 3} className="text-center text-muted-foreground">
                     尚無資料
                   </TableCell>
                 </TableRow>
@@ -482,6 +508,20 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                     <TableCell className="whitespace-pre-wrap">
                       {s.note || "—"}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditTarget(s);
+                            setEditNote(s.note ?? "");
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -489,6 +529,31 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit note dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯備註 — {editTarget?.effective_from}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>備註</Label>
+            <Textarea
+              value={editNote}
+              onChange={(e) => setEditNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingEdit}>
+              取消
+            </Button>
+            <Button onClick={handleSaveEditNote} disabled={savingEdit}>
+              {savingEdit ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Card 2: 本期分配 */}
       <Card>
