@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     const pendingBlocks: string[] = []; // 兩者皆空 → 第一種
     const partialBlocks: string[] = []; // 任一有值但未完成 → 第二種
     for (const k of kols as any[]) {
-      const social = k.short_url || k.ig_handle || "未提供";
+      const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
       const hasDate = hasVal(k.publish_date);
       const hasUrl = hasVal(k.publish_url);
