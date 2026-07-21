@@ -103,6 +103,30 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   const [newNote, setNewNote] = useState<string>("");
   const [savingSetting, setSavingSetting] = useState(false);
 
+  // Edit note dialog
+  const [editTarget, setEditTarget] = useState<BonusSetting | null>(null);
+  const [editNote, setEditNote] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  async function handleSaveEditNote() {
+    if (!editTarget) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("closer_team_bonus_settings")
+        .update({ note: editNote.trim() || null })
+        .eq("id", editTarget.id);
+      if (error) throw error;
+      toast.success("備註已更新");
+      setEditTarget(null);
+      await loadSettings();
+    } catch (e: any) {
+      toast.error("更新失敗：" + (e.message || ""));
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   // ============ Card 2: distribution ============
   // Period selector: "X月10日"; settlement month = period month - 1
   const now = new Date();
