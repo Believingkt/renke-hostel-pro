@@ -103,12 +103,17 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   const [savingSetting, setSavingSetting] = useState(false);
 
   // ============ Card 2: distribution ============
+  // Period selector: "X月10日"; settlement month = period month - 1
   const now = new Date();
   const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const initY = taipeiMonthOf(prevMonthDate).year;
-  const initM = taipeiMonthOf(prevMonthDate).month;
-  const [year, setYear] = useState<number>(initY);
-  const [month, setMonth] = useState<number>(initM);
+  const initPeriodY = taipeiMonthOf(prevMonthDate).year;
+  const initPeriodM = taipeiMonthOf(prevMonthDate).month;
+  const [periodYear, setPeriodYear] = useState<number>(initPeriodY);
+  const [periodMonth, setPeriodMonth] = useState<number>(initPeriodM);
+
+  // Settlement year/month = period month - 1 (wraps to previous year)
+  const year = periodMonth === 1 ? periodYear - 1 : periodYear;
+  const month = periodMonth === 1 ? 12 : periodMonth - 1;
 
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
