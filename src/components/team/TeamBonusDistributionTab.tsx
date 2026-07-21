@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Pencil } from "lucide-react";
 
 interface Props {
   isAdmin: boolean;
