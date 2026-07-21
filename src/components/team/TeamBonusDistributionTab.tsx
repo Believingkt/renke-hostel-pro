@@ -435,7 +435,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div className="space-y-1">
-            <CardTitle className="text-base">成交組團隊獎金-抽成比例設定</CardTitle>
+            <CardTitle className="text-base">成交組團隊獎金 - 抽成比例設定</CardTitle>
             <p className="text-xs text-muted-foreground">
               生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
             </p>
