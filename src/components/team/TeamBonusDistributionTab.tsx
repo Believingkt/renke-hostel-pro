@@ -604,15 +604,19 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm">
-            本期團獎池：
-            <span className="font-semibold text-primary">
-              {fmtNT(displayPool)}
-            </span>
-            （比例：{Number((appliedRate * 100).toFixed(4))}%）
-            {loading && (
-              <span className="ml-2 text-muted-foreground">計算中…</span>
-            )}
+          <div className="text-sm space-y-1">
+            <div>
+              本期成交組有效訂單業績：
+              <span className="font-semibold">{fmtNT(totalCommission)}</span>
+            </div>
+            <div>
+              本期成交組團隊獎金：
+              <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜全館別+全成交組成員）
+              {loading && <span className="ml-2">計算中…</span>}
+            </div>
           </div>
           {isFinalized && finalizedRow?.finalized_at && (
             <div className="text-sm text-muted-foreground">
