@@ -146,6 +146,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
 
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
+  const [totalCommission, setTotalCommission] = useState<number>(0);
   const [appliedRate, setAppliedRate] = useState<number>(0);
   const [countMap, setCountMap] = useState<Record<string, number>>({});
   const [distributions, setDistributions] = useState<DistributionRow[]>([]);
@@ -289,6 +290,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       }
 
       let poolAcc = 0;
+      let commissionAcc = 0;
       allOrders.forEach((o) => {
         const m = metaMap.get(o.id);
         if (!m || !m.closer_id || m.is_excluded) return;
@@ -298,9 +300,11 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           o.order_date,
         );
         const commission = (Number(o.final_price) || 0) * closerRate;
+        commissionAcc += commission;
         poolAcc += commission * rate;
       });
       setPool(poolAcc);
+      setTotalCommission(commissionAcc);
 
       // Load existing distributions
       const { data: dData } = await supabase
@@ -428,8 +432,13 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     <div className="space-y-4 overflow-x-hidden">
       {/* Card 1: 團獎比例設定 */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">團獎比例設定</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">成交組團隊獎金-抽成比例設定</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
+            </p>
+          </div>
           {isAdmin && (
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <Button size="sm" onClick={() => setAddOpen(true)}>
@@ -562,7 +571,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       {/* Card 2: 本期分配 */}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle className="text-base">本期分配</CardTitle>
+          <CardTitle className="text-base">本期成員負責比例設定</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={String(periodYear)}
@@ -595,15 +604,19 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm">
-            本期團獎池：
-            <span className="font-semibold text-primary">
-              {fmtNT(displayPool)}
-            </span>
-            （比例：{Number((appliedRate * 100).toFixed(4))}%）
-            {loading && (
-              <span className="ml-2 text-muted-foreground">計算中…</span>
-            )}
+          <div className="text-sm space-y-1">
+            <div>
+              本期成交組有效訂單業績：
+              <span className="font-semibold">{fmtNT(totalCommission)}</span>
+            </div>
+            <div>
+              本期成交組團隊獎金：
+              <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜全館別+全成交組成員）
+              {loading && <span className="ml-2">計算中…</span>}
+            </div>
           </div>
           {isFinalized && finalizedRow?.finalized_at && (
             <div className="text-sm text-muted-foreground">
@@ -621,7 +634,14 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
-                <TableHead className="w-40">本期負責數量</TableHead>
+                <TableHead className="w-56">
+                  <div className="space-y-1">
+                    <div>本期負責數量</div>
+                    <div className="text-xs font-normal text-muted-foreground">
+                      請於LINE後台查看，確認每位成交組夥伴，月初~月底的負責客服數量
+                    </div>
+                  </div>
+                </TableHead>
                 <TableHead className="w-40 text-right">分配金額</TableHead>
               </TableRow>
             </TableHeader>
@@ -676,7 +696,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               <span className="font-semibold">{fmtNT(totalAmount)}</span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
-                  （與團獎池差異來自小數捨入）
+                  （與團獎池差異來自小數四捨五入）
                 </span>
               )}
             </div>
@@ -707,6 +727,9 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </AlertDialog>
             </div>
           )}
+          <p className="text-xs text-muted-foreground pt-2 border-t">
+            團隊成員於成員管理頁面，根據「成交組」權限之 role 標籤，動態顯示所有成員。
+          </p>
         </CardContent>
       </Card>
     </div>
