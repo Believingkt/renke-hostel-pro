@@ -435,7 +435,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div className="space-y-1">
-            <CardTitle className="text-base">成交組團隊獎金-抽成比例設定</CardTitle>
+            <CardTitle className="text-base">成交組團隊獎金 - 抽成比例設定</CardTitle>
             <p className="text-xs text-muted-foreground">
               生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
             </p>
@@ -572,7 +572,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       {/* Card 2: 本期分配 */}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle className="text-base">本期成員負責比例設定</CardTitle>
+          <CardTitle className="text-base">本期成員 - 每人分配設定</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={String(periodYear)}
@@ -607,15 +607,15 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           </div>
           <div className="text-sm space-y-1">
             <div>
-              本期成交組有效訂單業績：
+              有效訂單業績：
               <span className="font-semibold">{fmtNT(totalCommission)}</span>
             </div>
             <div>
-              本期成交組團隊獎金：
+              團隊獎金：
               <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜全館別+全成交組成員）
+              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單業績 = 全館別+全成交組成員加總）
               {loading && <span className="ml-2">計算中…</span>}
             </div>
           </div>
@@ -711,7 +711,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               <span className="font-semibold">{fmtNT(totalAmount)}</span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
-                  （與團獎池差異來自小數四捨五入）
+                  （若有微小差異來自小數四捨五入）
                 </span>
               )}
             </div>
