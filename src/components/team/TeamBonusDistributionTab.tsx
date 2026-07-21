@@ -711,7 +711,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               <span className="font-semibold">{fmtNT(totalAmount)}</span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
-                  （與團獎池差異來自小數四捨五入）
+                  （若有微小差異來自小數四捨五入）
                 </span>
               )}
             </div>
