@@ -290,6 +290,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       }
 
       let poolAcc = 0;
+      let commissionAcc = 0;
       allOrders.forEach((o) => {
         const m = metaMap.get(o.id);
         if (!m || !m.closer_id || m.is_excluded) return;
@@ -299,9 +300,11 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           o.order_date,
         );
         const commission = (Number(o.final_price) || 0) * closerRate;
+        commissionAcc += commission;
         poolAcc += commission * rate;
       });
       setPool(poolAcc);
+      setTotalCommission(commissionAcc);
 
       // Load existing distributions
       const { data: dData } = await supabase
