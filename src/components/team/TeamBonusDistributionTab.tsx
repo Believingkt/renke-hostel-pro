@@ -432,8 +432,13 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     <div className="space-y-4 overflow-x-hidden">
       {/* Card 1: 團獎比例設定 */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">團獎比例設定</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">成交組團隊獎金-抽成比例設定</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
+            </p>
+          </div>
           {isAdmin && (
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <Button size="sm" onClick={() => setAddOpen(true)}>
