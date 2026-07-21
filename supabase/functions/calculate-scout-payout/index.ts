@@ -457,12 +457,13 @@ serve(async (req) => {
 
       let kolCommission = 0;
       if (cidUpperSet.size > 0 && commissionRate > 0) {
+        // KOL 分潤訂單：以「訂單日期 order_date（timestamptz）」為發放條件，台北時區半開區間
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, discount_code, check_in_date")
+          .select("final_price, discount_code, order_date")
           .not("discount_code", "is", null)
-          .gte("check_in_date", periodStart)
-          .lt("check_in_date", periodEnd)
+          .gte("order_date", `${periodStart}T00:00:00+08:00`)
+          .lt("order_date", `${periodEnd}T00:00:00+08:00`)
           .neq("order_status", "cancelled");
         if (ordErr) throw ordErr;
 

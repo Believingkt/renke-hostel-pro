@@ -417,7 +417,10 @@ export function KolStatsTab() {
             .not("discount_code", "is", null)
             .neq("order_status", "cancelled");
           if (range) {
-            q = q.gte("check_in_date", range.start).lt("check_in_date", range.endExclusive);
+            // 以「訂單日期 order_date（timestamptz）」為發放條件，台北時區半開區間
+            q = q
+              .gte("order_date", `${range.start}T00:00:00+08:00`)
+              .lt("order_date", `${range.endExclusive}T00:00:00+08:00`);
           }
           const { data: orders, error: ordErr } = await q;
           if (ordErr) throw ordErr;
@@ -807,10 +810,9 @@ export function KolStatsTab() {
             <div>・底薪／團隊獎金：僅於X月10日期發放，以上月（X-1月）整月達標為準</div>
             <div className="pt-2 font-medium">欄位計算方式：</div>
             <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
-            <div>・「KOL分潤訂單」：匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
-            <div>
-              ・此表單的「KOL分潤訂單清單」是以「訂單日期」為發放條件（目的是先發獎金給星探），與 KOL 獎金管理的表單條件不同
-            </div>
+            <div>・「KOL稀有度獎金」以「KOL入住日」為發放條件</div>
+            <div>・「KOL分潤訂單清單」：依 CID 匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
+            <div>・「KOL分潤訂單清單」是以「訂單日期」為發放條件（目的是先發獎金給星探）</div>
           </div>
         </CardContent>
 
