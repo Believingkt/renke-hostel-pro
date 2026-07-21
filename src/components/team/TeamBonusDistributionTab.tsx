@@ -431,144 +431,6 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden">
-      {/* Card 1: 團獎比例設定 */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
-          <div className="space-y-1">
-            <CardTitle className="text-base">成交組團隊獎金 - 抽成比例設定</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
-            </p>
-          </div>
-          {isAdmin && (
-            <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <Button size="sm" onClick={() => setAddOpen(true)}>
-                新增版本
-              </Button>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>新增團獎比例</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <Label>生效日期</Label>
-                    <Input
-                      type="date"
-                      value={newEffective}
-                      onChange={(e) => setNewEffective(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>比例 (%)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="0.01"
-                      placeholder="例如 20"
-                      value={newRate}
-                      onChange={(e) => setNewRate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>備註（選填）</Label>
-                    <Textarea
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setAddOpen(false)}
-                    disabled={savingSetting}
-                  >
-                    取消
-                  </Button>
-                  <Button onClick={handleAddSetting} disabled={savingSetting}>
-                    {savingSetting ? "儲存中..." : "儲存"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-40">生效日期</TableHead>
-                <TableHead className="w-32">比例</TableHead>
-                <TableHead>備註</TableHead>
-                {isAdmin && <TableHead className="w-16"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {settings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isAdmin ? 4 : 3} className="text-center text-muted-foreground">
-                    尚無資料
-                  </TableCell>
-                </TableRow>
-              ) : (
-                settings.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.effective_from}</TableCell>
-                    <TableCell>
-                      {Number((s.bonus_rate * 100).toFixed(4))}%
-                    </TableCell>
-                    <TableCell className="whitespace-pre-wrap">
-                      {s.note || "—"}
-                    </TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditTarget(s);
-                            setEditNote(s.note ?? "");
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Edit note dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>編輯備註 — {editTarget?.effective_from}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>備註</Label>
-            <Textarea
-              value={editNote}
-              onChange={(e) => setEditNote(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingEdit}>
-              取消
-            </Button>
-            <Button onClick={handleSaveEditNote} disabled={savingEdit}>
-              {savingEdit ? "儲存中..." : "儲存"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Card 2: 本期分配 */}
       <Card>
         <CardHeader className="space-y-3">
@@ -745,6 +607,144 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           <p className="text-xs text-muted-foreground pt-2 border-t">
             團隊成員於成員管理頁面，根據「成交組」權限之 role 標籤，動態顯示所有成員。
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Edit note dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯備註 — {editTarget?.effective_from}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>備註</Label>
+            <Textarea
+              value={editNote}
+              onChange={(e) => setEditNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingEdit}>
+              取消
+            </Button>
+            <Button onClick={handleSaveEditNote} disabled={savingEdit}>
+              {savingEdit ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Card 1: 團獎比例設定 */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">成交組團隊獎金 - 抽成比例設定</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
+            </p>
+          </div>
+          {isAdmin && (
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <Button size="sm" onClick={() => setAddOpen(true)}>
+                新增版本
+              </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>新增團獎比例</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>生效日期</Label>
+                    <Input
+                      type="date"
+                      value={newEffective}
+                      onChange={(e) => setNewEffective(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>比例 (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      placeholder="例如 20"
+                      value={newRate}
+                      onChange={(e) => setNewRate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>備註（選填）</Label>
+                    <Textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setAddOpen(false)}
+                    disabled={savingSetting}
+                  >
+                    取消
+                  </Button>
+                  <Button onClick={handleAddSetting} disabled={savingSetting}>
+                    {savingSetting ? "儲存中..." : "儲存"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-40">生效日期</TableHead>
+                <TableHead className="w-32">比例</TableHead>
+                <TableHead>備註</TableHead>
+                {isAdmin && <TableHead className="w-16"></TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {settings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isAdmin ? 4 : 3} className="text-center text-muted-foreground">
+                    尚無資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                settings.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>{s.effective_from}</TableCell>
+                    <TableCell>
+                      {Number((s.bonus_rate * 100).toFixed(4))}%
+                    </TableCell>
+                    <TableCell className="whitespace-pre-wrap">
+                      {s.note || "—"}
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditTarget(s);
+                            setEditNote(s.note ?? "");
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
