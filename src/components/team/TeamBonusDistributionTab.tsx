@@ -40,7 +40,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Pencil } from "lucide-react";
+import { Pencil, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   isAdmin: boolean;
@@ -635,11 +636,25 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               <TableRow>
                 <TableHead>姓名</TableHead>
                 <TableHead className="w-56">
-                  <div className="space-y-1">
-                    <div>本期負責數量</div>
-                    <div className="text-xs font-normal text-muted-foreground">
-                      請於LINE後台查看，確認每位成交組夥伴，月初~月底的負責客服數量
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <span>本期負責數量</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center text-muted-foreground hover:text-foreground focus:outline-none"
+                            onClick={(e) => e.currentTarget.focus()}
+                            aria-label="說明"
+                          >
+                            <HelpCircle size={14} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          請於LINE後台查看，確認每位成交組夥伴，月初~月底的負責客服數量
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </TableHead>
                 <TableHead className="w-40 text-right">分配金額</TableHead>
