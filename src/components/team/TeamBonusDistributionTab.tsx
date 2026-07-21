@@ -129,10 +129,14 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
 
   // ============ Card 2: distribution ============
   // Period selector: "X月10日"; settlement month = period month - 1
+  // Default: if today (Taipei) is on/before the 10th, use current month; otherwise next month.
   const now = new Date();
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const initPeriodY = taipeiMonthOf(prevMonthDate).year;
-  const initPeriodM = taipeiMonthOf(prevMonthDate).month;
+  const { year: tpeYear, month: tpeMonth } = taipeiMonthOf(now);
+  const tpeDay = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Taipei", day: "2-digit" }).format(now),
+  );
+  const initPeriodY = tpeDay <= 10 ? tpeYear : tpeMonth === 12 ? tpeYear + 1 : tpeYear;
+  const initPeriodM = tpeDay <= 10 ? tpeMonth : tpeMonth === 12 ? 1 : tpeMonth + 1;
   const [periodYear, setPeriodYear] = useState<number>(initPeriodY);
   const [periodMonth, setPeriodMonth] = useState<number>(initPeriodM);
 
