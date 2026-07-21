@@ -469,15 +469,15 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           </div>
           <div className="text-sm space-y-1">
             <div>
-              有效訂單業績：
+              有效訂單分潤金額：
               <span className="font-semibold">{fmtNT(totalCommission)}</span>
             </div>
             <div>
-              團隊獎金：
+              成交組團隊獎金：
               <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單業績 = 全館別+全成交組成員加總）
+              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單分潤金額 = 全館別+全成交組成員加總）
               {loading && <span className="ml-2">計算中…</span>}
             </div>
           </div>
