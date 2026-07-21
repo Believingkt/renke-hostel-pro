@@ -634,7 +634,14 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
-                <TableHead className="w-40">本期負責數量</TableHead>
+                <TableHead className="w-56">
+                  <div className="space-y-1">
+                    <div>本期負責數量</div>
+                    <div className="text-xs font-normal text-muted-foreground">
+                      請於LINE後台查看，確認每位成交組夥伴，月初~月底的負責客服數量
+                    </div>
+                  </div>
+                </TableHead>
                 <TableHead className="w-40 text-right">分配金額</TableHead>
               </TableRow>
             </TableHeader>
