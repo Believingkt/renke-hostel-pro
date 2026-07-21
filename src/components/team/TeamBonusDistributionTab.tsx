@@ -571,7 +571,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       {/* Card 2: 本期分配 */}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle className="text-base">本期分配</CardTitle>
+          <CardTitle className="text-base">本期成員負責比例設定</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={String(periodYear)}
