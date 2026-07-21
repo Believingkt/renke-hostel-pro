@@ -641,8 +641,3 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     </div>
   );
 }
-
-// DialogTrigger placeholder to satisfy unused import when isAdmin=false path
-function DialogTrigger(_: { children?: any }) {
-  return null;
-}
