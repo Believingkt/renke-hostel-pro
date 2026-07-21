@@ -95,7 +95,13 @@ export function splitNightlyAmounts(total: number, nights: number): number[] {
   return arr;
 }
 
-function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string, checkOut: string): string {
+function buildRoomStay(
+  hotelCode: string,
+  rs: OwlRoomStayInput,
+  checkIn: string,
+  checkOut: string,
+  specialRequestText?: string | null,
+): string {
   const nights = daysBetweenIso(checkIn, checkOut);
   const perNight = splitNightlyAmounts(rs.unitAmount, nights);
   const rateBlocks = perNight.map((amt, i) => {
@@ -103,6 +109,11 @@ function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string,
     const exp = addDaysIso(checkIn, i + 1);
     return `<Rate UnitMultiplier="1" RateTimeUnit="Day" EffectiveDate="${esc(eff)}" ExpireDate="${esc(exp)}"><Base AmountAfterTax="${esc(amt)}" CurrencyCode="TWD"/></Rate>`;
   }).join("");
+
+  const trimmedSpecial = (specialRequestText ?? "").trim();
+  const specialBlock = trimmedSpecial
+    ? `<SpecialRequests><SpecialRequest Name="${esc(trimmedSpecial)}"/></SpecialRequests>`
+    : ``;
 
   return [
     `<RoomStay>`,
@@ -124,6 +135,7 @@ function buildRoomStay(hotelCode: string, rs: OwlRoomStayInput, checkIn: string,
       `<TimeSpan Start="${esc(checkIn)}" End="${esc(checkOut)}"/>`,
       `<Total AmountAfterTax="${esc(rs.unitAmount * rs.quantity)}" CurrencyCode="TWD"/>`,
       `<BasicPropertyInfo HotelCode="${esc(hotelCode)}"/>`,
+      specialBlock,
     `</RoomStay>`,
   ].join("");
 }
@@ -156,7 +168,8 @@ function buildResGlobalInfo(order: OwlOrderInput, uniqueId: string): string {
         order.guest_phone ? `<Telephone PhoneNumber="${esc(order.guest_phone)}"/>` : ``,
         order.guest_email ? `<Email>${esc(order.guest_email)}</Email>` : ``,
       `</Customer></Profile></ProfileInfo></Profiles>`,
-      order.notes ? `<Comments><Comment><Text>${esc(order.notes)}</Text></Comment></Comments>` : ``,
+      // <Comments> intentionally omitted — OwlTing ignores ResGlobalInfo comments;
+      // notes go inside each RoomStay's <SpecialRequests> instead.
     `</ResGlobalInfo>`,
   ].join("");
 }
@@ -168,7 +181,7 @@ function buildHotelReservation(
 ): string {
   const now = opts.nowIso ?? new Date().toISOString();
   const stays = order.roomStays
-    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date))
+    .map((rs) => buildRoomStay(config.owlting_hotel_code, rs, order.check_in_date, order.check_out_date, order.notes))
     .join("");
 
   // Per OpenTravel + OwlTing convention: CreateDateTime only on Commit;
