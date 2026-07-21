@@ -103,12 +103,17 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   const [savingSetting, setSavingSetting] = useState(false);
 
   // ============ Card 2: distribution ============
+  // Period selector: "X月10日"; settlement month = period month - 1
   const now = new Date();
   const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const initY = taipeiMonthOf(prevMonthDate).year;
-  const initM = taipeiMonthOf(prevMonthDate).month;
-  const [year, setYear] = useState<number>(initY);
-  const [month, setMonth] = useState<number>(initM);
+  const initPeriodY = taipeiMonthOf(prevMonthDate).year;
+  const initPeriodM = taipeiMonthOf(prevMonthDate).month;
+  const [periodYear, setPeriodYear] = useState<number>(initPeriodY);
+  const [periodMonth, setPeriodMonth] = useState<number>(initPeriodM);
+
+  // Settlement year/month = period month - 1 (wraps to previous year)
+  const year = periodMonth === 1 ? periodYear - 1 : periodYear;
+  const month = periodMonth === 1 ? 12 : periodMonth - 1;
 
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
@@ -491,8 +496,8 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           <CardTitle className="text-base">本期分配</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select
-              value={String(year)}
-              onValueChange={(v) => setYear(Number(v))}
+              value={String(periodYear)}
+              onValueChange={(v) => setPeriodYear(Number(v))}
             >
               <SelectTrigger className="w-28">
                 <SelectValue />
@@ -506,23 +511,20 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </SelectContent>
             </Select>
             <Select
-              value={String(month)}
-              onValueChange={(v) => setMonth(Number(v))}
+              value={String(periodMonth)}
+              onValueChange={(v) => setPeriodMonth(Number(v))}
             >
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map((m) => (
                   <SelectItem key={m} value={String(m)}>
-                    {m} 月
+                    {m}月10日
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-sm text-muted-foreground">
-              （預設上個月）
-            </div>
           </div>
           <div className="text-sm">
             本期團獎池：
