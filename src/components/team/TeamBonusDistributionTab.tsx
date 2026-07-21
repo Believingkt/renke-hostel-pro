@@ -146,6 +146,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
 
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
+  const [totalCommission, setTotalCommission] = useState<number>(0);
   const [appliedRate, setAppliedRate] = useState<number>(0);
   const [countMap, setCountMap] = useState<Record<string, number>>({});
   const [distributions, setDistributions] = useState<DistributionRow[]>([]);
