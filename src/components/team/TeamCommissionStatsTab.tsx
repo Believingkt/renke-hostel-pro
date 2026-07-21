@@ -172,9 +172,21 @@ export default function TeamCommissionStatsTab() {
     !hasCloserOrVideo &&
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
+  // Default period: if today (Taipei) is on/before the 10th, current month; otherwise next month.
+  const tpeParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const tpeY = Number(tpeParts.find((p) => p.type === "year")?.value);
+  const tpeM = Number(tpeParts.find((p) => p.type === "month")?.value);
+  const tpeD = Number(tpeParts.find((p) => p.type === "day")?.value);
+  const defaultPeriodY = tpeD <= 10 ? tpeY : tpeM === 12 ? tpeY + 1 : tpeY;
+  const defaultPeriodM = tpeD <= 10 ? tpeM : tpeM === 12 ? 1 : tpeM + 1;
   const [mode, setMode] = useState<"period" | "custom">("period");
-  const [year, setYear] = useState<string>(String(now.getFullYear()));
-  const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [year, setYear] = useState<string>(String(defaultPeriodY));
+  const [month, setMonth] = useState<string>(String(defaultPeriodM));
   const [customStart, setCustomStart] = useState<Date>(
     new Date(now.getFullYear(), now.getMonth(), 1),
   );
