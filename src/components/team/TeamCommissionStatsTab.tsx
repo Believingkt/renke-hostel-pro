@@ -211,6 +211,7 @@ export default function TeamCommissionStatsTab() {
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [trafficSources, setTrafficSources] = useState<{ id: string; name: string }[]>([]);
   const [bookingMethods, setBookingMethods] = useState<{ id: string; name: string }[]>([]);
+  const [bonusRate, setBonusRate] = useState<number>(0);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -415,6 +416,20 @@ export default function TeamCommissionStatsTab() {
         csMap.set(r.accommodation_id, arr);
       });
       setCommissionByAcc(csMap);
+
+      // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
+      try {
+        const { data: bonusData } = await supabase
+          .from("closer_team_bonus_settings")
+          .select("bonus_rate, effective_from")
+          .lte("effective_from", period.startDate)
+          .order("effective_from", { ascending: false })
+          .limit(1);
+        const br = Number((bonusData?.[0] as any)?.bonus_rate ?? 0);
+        setBonusRate(Number.isFinite(br) ? br : 0);
+      } catch {
+        setBonusRate(0);
+      }
 
       const { data: scData } = await supabase
         .from("scout_discount_codes")
@@ -653,7 +668,24 @@ export default function TeamCommissionStatsTab() {
     expanded: Set<string>,
     setExpanded: (s: Set<string>) => void,
     memberLabel: string,
-  ) => (
+    applyBonus: boolean = false,
+  ) => {
+    const showBonus = applyBonus && bonusRate > 0;
+    const netFactor = 1 - bonusRate;
+    const renderCommissionCell = (amount: number) => {
+      if (!showBonus) return <>{fmtMoney(amount)}</>;
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="text-muted-foreground line-through text-xs">
+            {fmtMoney(amount)}
+          </span>
+          <span className="text-orange-600 font-medium">
+            {fmtMoney(amount * netFactor)}
+          </span>
+        </div>
+      );
+    };
+    return (
     <Card>
       <CardContent className="p-4 space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
@@ -665,7 +697,17 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap">{memberLabel}</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">分潤金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  分潤金額
+                  {showBonus && (
+                    <span
+                      className="ml-1 text-[10px] text-muted-foreground font-normal"
+                      title={`已扣除 ${(bonusRate * 100).toFixed(1)}% 團隊獎金`}
+                    >
+                      (扣{(bonusRate * 100).toFixed(1)}%團獎)
+                    </span>
+                  )}
+                </TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
@@ -698,7 +740,7 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="font-medium">{r.name}</TableCell>
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
-                        <TableCell className="tabular-nums">{fmtMoney(r.commission)}</TableCell>
+                        <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
                         <TableCell className="tabular-nums">{r.cancelCount}</TableCell>
                         <TableCell className="tabular-nums text-muted-foreground">
                           {fmtMoney(r.cancelAmount)}
@@ -727,7 +769,7 @@ export default function TeamCommissionStatsTab() {
                               </TableCell>
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
-                              <TableCell className="tabular-nums">{fmtMoney(b.commission)}</TableCell>
+                              <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
                               <TableCell className="tabular-nums text-muted-foreground">
                                 {fmtMoney(b.cancelAmount)}
@@ -759,7 +801,8 @@ export default function TeamCommissionStatsTab() {
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -876,7 +919,7 @@ export default function TeamCommissionStatsTab() {
       {/* 成交組 / 影音組業績 */}
       {!isScoutOnly && (
         <>
-          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員")}
+          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true)}
           {renderMemberCard("影音組業績", videoStats, expandedVideo, setExpandedVideo, "影音組成員")}
         </>
       )}
