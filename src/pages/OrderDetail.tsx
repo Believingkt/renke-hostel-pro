@@ -238,6 +238,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
+  const [showRepushDialog, setShowRepushDialog] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
