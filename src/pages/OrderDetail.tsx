@@ -1798,13 +1798,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       }
       const { data } = await supabase
         .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("accommodation_id", order.accommodation_id);
-      const roles = (data ?? []).map((r: any) => r.role);
+        .select("role, accommodation_id")
+        .eq("user_id", user.id);
+      const rows = (data ?? []) as { role: string; accommodation_id: string | null }[];
+      const scopedRoles = rows
+        .filter(r => r.accommodation_id === order.accommodation_id || r.accommodation_id === null)
+        .map(r => r.role);
+      // super_admin 為總部級角色，於任一館別（或全域）持有即視為所有館別的 super_admin
+      const isSuper = rows.some(r => r.role === "super_admin");
       if (!cancelled) {
-        setIsAdminUser(roles.includes("hotel_admin") || roles.includes("super_admin"));
-        setIsSuperAdmin(roles.includes("super_admin"));
+        setIsAdminUser(isSuper || scopedRoles.includes("hotel_admin"));
+        setIsSuperAdmin(isSuper);
       }
     })();
     return () => { cancelled = true; };
