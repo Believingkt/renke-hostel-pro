@@ -12,10 +12,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { applyCurrencyMode, currencyModeSymbol, type CurrencyMode } from '@/lib/currency';
 
 interface OccupancyRevenueTableProps {
   accommodationId: string;
   selectedYear: number;
+  currencyMode?: CurrencyMode | null;
 }
 
 interface DayTypeStats {
