@@ -766,10 +766,11 @@ export default function TeamHome() {
   const cards: Array<{
     key: string;
     title: string;
-    amount: number;              // 加倍後金額（顯示 + 合計用）
+    amount: number;              // 加倍後金額（顯示用）
     multiplier: number;          // 用於 badge
     note?: string;
     lines?: Array<{ label: string; amount: number; multiplier: number }>;
+    excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
 
   if (showCloser) {
@@ -788,19 +789,30 @@ export default function TeamHome() {
   }
   if (showCloser && closerTeamBonusRate > 0) {
     const m = multOf("closer");
-    const noteParts = [
-      "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
-    ];
-    if (closerTeamBonusNoSetting) {
-      noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
+    if (closerTeamBonusFinalized) {
+      cards.push({
+        key: "closer_team_bonus",
+        title: "成交組團隊獎金",
+        amount: Math.round(closerTeamBonusAmt * m),
+        multiplier: m,
+        note: "已定案分配金額",
+      });
+    } else {
+      const noteParts = [
+        "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
+      ];
+      if (closerTeamBonusNoSetting) {
+        noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
+      }
+      cards.push({
+        key: "closer_team_bonus",
+        title: "成交組團隊獎金",
+        amount: Math.round(closerTeamBonusAmt * m),
+        multiplier: m,
+        note: noteParts.join("；"),
+        excludeFromTotal: true,
+      });
     }
-    cards.push({
-      key: "closer_team_bonus",
-      title: "成交組團隊獎金",
-      amount: Math.round(closerTeamBonusAmt * m),
-      multiplier: m,
-      note: noteParts.join("；"),
-    });
   }
   if (showVideo) {
     const m = multOf("video");
