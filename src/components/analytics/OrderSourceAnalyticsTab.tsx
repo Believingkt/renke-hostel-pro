@@ -521,7 +521,7 @@ export function OrderSourceAnalyticsTab({
   return (
     <div className="space-y-6">
       {/* 旅行日專屬：檢視模式切換 */}
-      {isTraveldays && (
+      {isTraveldays && !controlled && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4">
