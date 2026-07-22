@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft, Globe, Eye, Copy, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Globe, Copy, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   STAFF_MODULES,
