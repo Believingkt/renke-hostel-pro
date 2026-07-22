@@ -4428,8 +4428,100 @@ const BookingFlow = () => {
                           {errors.email && (
                             <p className="text-xs text-destructive mt-1">{errors.email}</p>
                           )}
+
+                          {/* Email 檢查狀態顯示 */}
+                          {!loggedInMember && emailCheckStatus === "checking" && (
+                            <p className="text-xs text-muted-foreground mt-1">正在檢查會員狀態...</p>
+                          )}
+
+                          {/* 舊會員：OTP 驗證登入 */}
+                          {!loggedInMember && emailCheckStatus === "exists" && (
+                            <div className="mt-3 p-4 rounded-lg border-2 border-blue-200 bg-blue-50/50 space-y-3">
+                              <p className="text-sm font-medium text-blue-900">
+                                {otpSending ? "正在寄送驗證碼..." : otpSent ? "已寄送 6 位數驗證碼至您的信箱，請於下方輸入完成登入" : "此 Email 已註冊為會員"}
+                              </p>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={otpCode}
+                                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                  placeholder="6 位數驗證碼"
+                                  className="h-11 flex-1"
+                                  inputMode="numeric"
+                                  maxLength={6}
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={handleVerifyOtp}
+                                  disabled={otpVerifying || otpCode.length < 6}
+                                  className="h-11"
+                                >
+                                  {otpVerifying ? "驗證中..." : "驗證並登入"}
+                                </Button>
+                              </div>
+                              <button
+                                type="button"
+                                className="text-xs text-blue-700 underline"
+                                onClick={async () => {
+                                  setOtpSending(true);
+                                  const { error } = await supabase.auth.signInWithOtp({
+                                    email: guestInfo.email.trim().toLowerCase(),
+                                    options: { shouldCreateUser: false },
+                                  });
+                                  setOtpSending(false);
+                                  if (!error) { setOtpSent(true); toast({ title: "驗證碼已重新寄出" }); }
+                                }}
+                                disabled={otpSending}
+                              >
+                                重新寄送驗證碼
+                              </button>
+                            </div>
+                          )}
+
+                          {/* 新會員：一鍵註冊 / 設定密碼 */}
+                          {!loggedInMember && emailCheckStatus === "new" && (
+                            <div className="mt-3 p-4 rounded-lg border-2 border-primary/30 bg-primary/5 space-y-3">
+                              <p className="text-sm font-medium">此 Email 尚未註冊，可立即成為會員享優惠</p>
+                              <Button
+                                type="button"
+                                onClick={() => handleQuickRegister(false)}
+                                disabled={registerSubmitting}
+                                className="w-full h-11"
+                              >
+                                {registerSubmitting ? "註冊中..." : "🎉 一鍵註冊會員（免密碼）"}
+                              </Button>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">或設定登入密碼（選填）</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="password"
+                                    value={registerPassword}
+                                    onChange={(e) => setRegisterPassword(e.target.value)}
+                                    placeholder="至少 8 碼"
+                                    className="h-11 flex-1"
+                                    maxLength={64}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleQuickRegister(true)}
+                                    disabled={registerSubmitting || registerPassword.length < 8}
+                                    className="h-11"
+                                  >
+                                    註冊
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 已註冊 */}
+                          {emailCheckStatus === "registered" && !loggedInMember && (
+                            <div className="mt-3 p-3 rounded-lg border border-green-200 bg-green-50/60">
+                              <p className="text-sm text-green-800">✓ 會員已建立，驗證信已寄出。您可繼續完成訂房。</p>
+                            </div>
+                          )}
                         </div>
-                      </CardContent>
+
                     </Card>
 
                     {/* 其他資訊卡片 */}
