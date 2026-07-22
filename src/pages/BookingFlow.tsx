@@ -78,6 +78,8 @@ import {
 } from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import BookerForm from "@/components/booking-flow/BookerForm";
+import OrderSummarySidebar from "@/components/booking-flow/OrderSummarySidebar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
@@ -4333,262 +4335,26 @@ const BookingFlow = () => {
 
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
-                  <div className="space-y-6">
-                    {/* 會員登入狀態（選填提示） */}
-                    {loggedInMember ? (
-                      <Card className="border-2 border-green-200 bg-green-50/50">
-                        <CardContent className="py-4">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
-                            <p className="text-sm font-medium text-green-800">
-                              已登入會員：{loggedInMember.name}，訂房可累積紅利點數
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card className="border border-orange-200 bg-orange-50/40">
-                        <CardContent className="py-3">
-                          <p className="text-sm text-orange-800">
-                            💡 填寫下方 Email 後可一鍵註冊或登入會員，累積紅利點數與享會員專屬優惠（選填，可直接繼續下單）
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* 基本資料卡片 */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg font-bold flex items-center gap-2">
-                          <User className="h-5 w-5 text-primary" />
-                          基本資料
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          請填寫您的基本聯絡資訊，以便我們與您確認訂房細節
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-5">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-sm font-medium">
-                            姓名 <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="name"
-                            value={guestInfo.name}
-                            onChange={(e) => {
-                              setGuestInfo({ ...guestInfo, name: e.target.value });
-                              setErrors({ ...errors, name: "" });
-                            }}
-                            placeholder="請輸入您的姓名"
-                            className={`h-12 ${errors.name ? "border-destructive" : ""}`}
-                            maxLength={50}
-                          />
-                          {errors.name && (
-                            <p className="text-xs text-destructive mt-1">{errors.name}</p>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-sm font-medium">
-                            手機號碼 <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={guestInfo.phone}
-                            onChange={(e) => {
-                              setGuestInfo({ ...guestInfo, phone: e.target.value });
-                              setErrors({ ...errors, phone: "" });
-                            }}
-                            placeholder="0912345678"
-                            className={`h-12 ${errors.phone ? "border-destructive" : ""}`}
-                            maxLength={10}
-                          />
-                          {errors.phone && (
-                            <p className="text-xs text-destructive mt-1">{errors.phone}</p>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-sm font-medium">
-                            電子郵件 <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={guestInfo.email}
-                            onChange={(e) => {
-                              setGuestInfo({ ...guestInfo, email: e.target.value });
-                              setErrors({ ...errors, email: "" });
-                            }}
-                            placeholder="example@email.com"
-                            className={`h-12 ${errors.email ? "border-destructive" : ""}`}
-                            maxLength={100}
-                          />
-                          {errors.email && (
-                            <p className="text-xs text-destructive mt-1">{errors.email}</p>
-                          )}
-
-                          {/* Email 檢查狀態顯示 */}
-                          {!loggedInMember && emailCheckStatus === "checking" && (
-                            <p className="text-xs text-muted-foreground mt-1">正在檢查會員狀態...</p>
-                          )}
-
-                          {/* 舊會員：OTP 驗證登入 */}
-                          {!loggedInMember && emailCheckStatus === "exists" && (
-                            <div className="mt-3 p-4 rounded-lg border-2 border-blue-200 bg-blue-50/50 space-y-3">
-                              <p className="text-sm font-medium text-blue-900">
-                                {otpSending ? "正在寄送驗證碼..." : otpSent ? "已寄送 6 位數驗證碼至您的信箱，請於下方輸入完成登入" : "此 Email 已註冊為會員"}
-                              </p>
-                              <div className="flex gap-2">
-                                <Input
-                                  value={otpCode}
-                                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                                  placeholder="6 位數驗證碼"
-                                  className="h-11 flex-1"
-                                  inputMode="numeric"
-                                  maxLength={6}
-                                />
-                                <Button
-                                  type="button"
-                                  onClick={handleVerifyOtp}
-                                  disabled={otpVerifying || otpCode.length < 6}
-                                  className="h-11"
-                                >
-                                  {otpVerifying ? "驗證中..." : "驗證並登入"}
-                                </Button>
-                              </div>
-                              <button
-                                type="button"
-                                className="text-xs text-blue-700 underline"
-                                onClick={async () => {
-                                  setOtpSending(true);
-                                  const { error } = await supabase.auth.signInWithOtp({
-                                    email: guestInfo.email.trim().toLowerCase(),
-                                    options: { shouldCreateUser: false },
-                                  });
-                                  setOtpSending(false);
-                                  if (!error) { setOtpSent(true); toast({ title: "驗證碼已重新寄出" }); }
-                                }}
-                                disabled={otpSending}
-                              >
-                                重新寄送驗證碼
-                              </button>
-                            </div>
-                          )}
-
-                          {/* 新會員：一鍵註冊 / 設定密碼 */}
-                          {!loggedInMember && emailCheckStatus === "new" && (
-                            <div className="mt-3 p-4 rounded-lg border-2 border-primary/30 bg-primary/5 space-y-3">
-                              <p className="text-sm font-medium">此 Email 尚未註冊，可立即成為會員享優惠</p>
-                              <Button
-                                type="button"
-                                onClick={() => handleQuickRegister(false)}
-                                disabled={registerSubmitting}
-                                className="w-full h-11"
-                              >
-                                {registerSubmitting ? "註冊中..." : "🎉 一鍵註冊會員（免密碼）"}
-                              </Button>
-                              <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">或設定登入密碼（選填）</Label>
-                                <div className="flex gap-2">
-                                  <Input
-                                    type="password"
-                                    value={registerPassword}
-                                    onChange={(e) => setRegisterPassword(e.target.value)}
-                                    placeholder="至少 8 碼"
-                                    className="h-11 flex-1"
-                                    maxLength={64}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleQuickRegister(true)}
-                                    disabled={registerSubmitting || registerPassword.length < 8}
-                                    className="h-11"
-                                  >
-                                    註冊
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* 已註冊 */}
-                          {emailCheckStatus === "registered" && !loggedInMember && (
-                            <div className="mt-3 p-3 rounded-lg border border-green-200 bg-green-50/60">
-                              <p className="text-sm text-green-800">✓ 會員已建立，驗證信已寄出。您可繼續完成訂房。</p>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* 其他資訊卡片 */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg font-bold flex items-center gap-2">
-                          <Home className="h-5 w-5 text-primary" />
-                          其他資訊
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          選填項目，可幫助我們提供更好的服務
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-5">
-                        <div className="space-y-2">
-                          <Label htmlFor="address" className="text-sm font-medium">
-                            聯絡地址（選填）
-                          </Label>
-                          <Input
-                            id="address"
-                            value={guestInfo.address}
-                            onChange={(e) =>
-                              setGuestInfo({ ...guestInfo, address: e.target.value })
-                            }
-                            placeholder="請輸入您的聯絡地址"
-                            className="h-12"
-                            maxLength={200}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="notes" className="text-sm font-medium">
-                            備註（選填）
-                          </Label>
-                          <Textarea
-                            id="notes"
-                            value={guestInfo.notes}
-                            onChange={(e) =>
-                              setGuestInfo({ ...guestInfo, notes: e.target.value })
-                            }
-                            placeholder="如有特殊需求，請在此說明"
-                            rows={5}
-                            maxLength={500}
-                            className="resize-none"
-                          />
-                          <p className="text-xs text-muted-foreground text-right">
-                            {guestInfo.notes.length} / 500
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* 提示資訊 */}
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                      <div className="flex gap-3">
-                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">
-                            請確保資料正確
-                          </p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            我們會透過您提供的聯絡方式寄送訂單確認信，並在入住前與您聯繫確認相關細節
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <BookerForm
+                    loggedInMember={loggedInMember}
+                    guestInfo={guestInfo}
+                    setGuestInfo={setGuestInfo}
+                    errors={errors}
+                    setErrors={setErrors}
+                    emailCheckStatus={emailCheckStatus}
+                    otpCode={otpCode}
+                    setOtpCode={setOtpCode}
+                    otpSending={otpSending}
+                    setOtpSending={setOtpSending}
+                    otpSent={otpSent}
+                    setOtpSent={setOtpSent}
+                    otpVerifying={otpVerifying}
+                    handleVerifyOtp={handleVerifyOtp}
+                    registerPassword={registerPassword}
+                    setRegisterPassword={setRegisterPassword}
+                    registerSubmitting={registerSubmitting}
+                    handleQuickRegister={handleQuickRegister}
+                  />
                 )}
 
                 {/* Step 4: Payment */}
@@ -5210,166 +4976,31 @@ const BookingFlow = () => {
           </div>
 
           {/* Right: Summary Sidebar - 只在有可用房型時顯示 */}
-          {(() => {
-            // 檢查是否所有房型都無法預訂
-            const hasAvailableRooms = !checkInDate || !checkOutDate || isCheckingAvailability || roomTypes.some(room => {
-              const availability = roomAvailability[room.id];
-              if (!availability) return false;
-              return !availability.isBlocked && !availability.hasMissingPricing && !availability.hasNoAvailability;
-            });
-            
-            // 如果在房型選擇步驟且所有房型都無法預訂，隱藏訂單摘要
-            if (currentStep === "room" && checkInDate && checkOutDate && !isCheckingAvailability && !hasAvailableRooms) {
-              return null;
-            }
-            
-            return (
-          <div className="md:col-span-1">
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle className="text-lg">訂單摘要</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* 日期資訊 - 在所有步驟都顯示 */}
-                {checkInDate && checkOutDate && (
-                  <>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">入住日期</span>
-                        <span className="font-medium">{checkInDateStr}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">退房日期</span>
-                        <span className="font-medium">{checkOutDateStr}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">住宿天數</span>
-                        <span className="font-medium">{calculateNights()} 晚</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">入住人數</span>
-                        <span className="font-medium">{totalGuests} 人</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* 房型資訊 - 選擇房型後顯示 */}
-                {selectedRoom ? (
-                  <>
-                    <Separator />
-                    {/* 房型照片 */}
-                    {selectedRoom.room_photos && selectedRoom.room_photos.length > 0 && (
-                      <div className="rounded-lg overflow-hidden">
-                        <img 
-                          src={selectedRoom.room_photos[0].photo_url} 
-                          alt={selectedRoom.name}
-                          className="w-full h-40 object-cover"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">房型</p>
-                      <p className="font-medium">{selectedRoom.name}</p>
-                    </div>
-                    
-                    {/* 價格資訊 - 選擇餐食方案後顯示 */}
-                    {selectedMealPlan ? (
-                      <>
-                        <Separator />
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              {getMealPlanDisplayName(selectedMealPlan)} × {calculateNights()} 晚
-                            </span>
-                            <span className="font-medium">
-                              NT$ {calculateTotal().toLocaleString()}
-                            </span>
-                          </div>
-                          {petCount > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                🐾 寵物方案 × {petCount} × {calculateNights()} 晚
-                              </span>
-                              <span className="font-medium">
-                                NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
-                            <div key={dateStr} className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
-                              </span>
-                              <span className="font-medium">
-                                NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
-                          {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                            const setting = customAddonSettings.find(s => s.addon_type === type);
-                            return (
-                              <div key={type} className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
-                                </span>
-                                <span className="font-medium">
-                                  NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}
-                                </span>
-                              </div>
-                            );
-                          })}
-                          {appliedDiscount && (
-                            <div className="flex justify-between text-primary">
-                              <span>折扣 ({appliedDiscount.code})</span>
-                              <span>- NT$ {calculateDiscount().toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">總金額</span>
-                          <span className="text-2xl font-bold text-primary">
-                            NT$ {calculateFinalTotal().toLocaleString()}
-                          </span>
-                        </div>
-                        {false && (
-                          <>
-                            <Separator />
-                            <div className="bg-primary/5 p-3 rounded-lg">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-medium">需支付訂金</span>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Separator />
-                        <div className="bg-muted/50 p-4 rounded-lg text-center">
-                          <p className="text-sm text-muted-foreground">
-                            請選擇餐食方案以查看價格
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : currentStep === "room" ? (
-                  <>
-                    <Separator />
-                    <div className="bg-muted/50 p-4 rounded-lg text-center">
-                      <p className="text-sm text-muted-foreground">
-                        請選擇房型以繼續
-                      </p>
-                    </div>
-                  </>
-                ) : null}
-              </CardContent>
-            </Card>
-          </div>
-            );
-          })()}
+          <OrderSummarySidebar
+            currentStep={currentStep}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+            checkInDateStr={checkInDateStr}
+            checkOutDateStr={checkOutDateStr}
+            calculateNights={calculateNights}
+            totalGuests={totalGuests}
+            selectedRoom={selectedRoom}
+            selectedMealPlan={selectedMealPlan}
+            getMealPlanDisplayName={getMealPlanDisplayName}
+            calculateTotal={calculateTotal}
+            calculateFinalTotal={calculateFinalTotal}
+            calculateDiscount={calculateDiscount}
+            petCount={petCount}
+            petPlanSettings={petPlanSettings}
+            bbqMealsByDate={bbqMealsByDate}
+            mealPlanSettings={mealPlanSettings}
+            customAddonCounts={customAddonCounts}
+            customAddonSettings={customAddonSettings}
+            appliedDiscount={appliedDiscount}
+            isCheckingAvailability={isCheckingAvailability}
+            roomTypes={roomTypes}
+            roomAvailability={roomAvailability}
+          />
         </div>
       </div>
       </>
