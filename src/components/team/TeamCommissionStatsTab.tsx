@@ -919,7 +919,7 @@ export default function TeamCommissionStatsTab() {
       {/* 成交組 / 影音組業績 */}
       {!isScoutOnly && (
         <>
-          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員")}
+          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true)}
           {renderMemberCard("影音組業績", videoStats, expandedVideo, setExpandedVideo, "影音組成員")}
         </>
       )}
