@@ -91,7 +91,8 @@ const fetchDashboardData = async (
   accommodationId: string,
   comparisonMode: 'lastYear' | 'lastMonth',
   customDateRange?: { from: Date; to: Date },
-  selectedYear?: number
+  selectedYear?: number,
+  currencyMode?: CurrencyMode | null,
 ): Promise<DashboardData> => {
   // Read per-accommodation daily_capacity; fall back to 6 (legacy default)
   const { data: accRow } = await supabase
