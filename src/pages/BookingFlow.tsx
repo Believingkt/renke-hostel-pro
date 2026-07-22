@@ -1989,7 +1989,7 @@ const BookingFlow = () => {
       }
     }
 
-    if (currentStep === "guest") {
+    if (currentStep === "payment") {
       // 會員登入為選填：非會員可以繼續，但若剛註冊過但尚未驗證僅提示
       // （不再硬性阻擋）
       // 驗證客人資訊
@@ -3061,22 +3061,12 @@ const BookingFlow = () => {
   // 如果沒有加購方案則不顯示 addons 步驟
   const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
   
-  const stepIndicators = hasAddons 
-    ? [
-        { key: "dates", label: "選擇日期", icon: Calendar },
-        { key: "room", label: "選擇房型", icon: Home },
-        { key: "addons", label: "加購方案", icon: ShoppingBag },
-        { key: "guest", label: "填寫資訊", icon: User },
-        { key: "payment", label: "付款方式", icon: CreditCard },
-        { key: "confirm", label: "確認訂單", icon: CheckCircle },
-      ]
-    : [
-        { key: "dates", label: "選擇日期", icon: Calendar },
-        { key: "room", label: "選擇房型", icon: Home },
-        { key: "guest", label: "填寫資訊", icon: User },
-        { key: "payment", label: "付款方式", icon: CreditCard },
-        { key: "confirm", label: "確認訂單", icon: CheckCircle },
-      ];
+  const stepIndicators = [
+    { key: "dates", label: "選擇日期", icon: Calendar },
+    { key: "room", label: "選擇房型", icon: Home },
+    { key: "payment", label: "結帳", icon: CreditCard },
+    { key: "confirm", label: "確認訂單", icon: CheckCircle },
+  ];
 
   const currentStepIndex = stepIndicators.findIndex((s) => s.key === currentStep);
 
@@ -3278,9 +3268,7 @@ const BookingFlow = () => {
                 <CardTitle className="text-xl sm:text-2xl">
                   {currentStep === "room" && "選擇房型"}
                   {currentStep === "dates" && "選擇入住日期"}
-                  {currentStep === "addons" && "加購方案"}
-                  {currentStep === "guest" && "填寫旅客資訊"}
-                  {currentStep === "payment" && "選擇付款方式"}
+                  {currentStep === "payment" && "結帳"}
                   {currentStep === "confirm" && "確認訂單"}
                 </CardTitle>
               </CardHeader>
@@ -3922,7 +3910,7 @@ const BookingFlow = () => {
                 )}
 
                 {/* Step 3: Add-ons */}
-                {currentStep === "addons" && (
+                {currentStep === "payment" && (
                   <div className="space-y-6">
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
@@ -4327,7 +4315,7 @@ const BookingFlow = () => {
                 )}
 
                 {/* Step 4: Guest Info */}
-                {currentStep === "guest" && (
+                {currentStep === "payment" && (
                   <BookerForm
                     loggedInMember={loggedInMember}
                     guestInfo={guestInfo}

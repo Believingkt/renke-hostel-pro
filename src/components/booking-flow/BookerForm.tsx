@@ -273,7 +273,7 @@ export default function BookerForm(props: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="notes" className="text-sm font-medium">
-              備註（選填）
+              特殊需求（選填）
             </Label>
             <Textarea
               id="notes"
