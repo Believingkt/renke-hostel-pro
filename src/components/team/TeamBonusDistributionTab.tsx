@@ -424,10 +424,41 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     }
   }
 
+  const [resetting, setResetting] = useState(false);
+  async function handleReset() {
+    if (!isAdmin || !isFinalized) return;
+    setResetting(true);
+    try {
+      const { error } = await supabase
+        .from("closer_team_bonus_distribution")
+        .delete()
+        .eq("year", year)
+        .eq("month", month);
+      if (error) throw error;
+      toast.success("已重設，請重新輸入分配數量");
+      setCountMap({});
+      await computePeriod();
+    } catch (e: any) {
+      toast.error("重設失敗：" + (e.message || ""));
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  const todayTaipeiStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const payoutDateStr = `${periodYear}-${String(periodMonth).padStart(2, "0")}-10`;
+  const canReset = todayTaipeiStr <= payoutDateStr;
+
   const currentYear = new Date().getFullYear();
   const yearOptions: number[] = [];
   for (let y = 2024; y <= currentYear + 1; y++) yearOptions.push(y);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+
 
   return (
     <div className="space-y-4 overflow-x-hidden">
