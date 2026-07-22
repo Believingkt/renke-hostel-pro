@@ -96,8 +96,10 @@ export function AccommodationSelector() {
       const [{ data, error }, { data: pkgRows }] = await Promise.all([
         supabase
           .from('accommodation_info')
-          .select('id, name, short_url_alias, custom_domain')
-          .in('id', accommodationIds),
+          .select('id, name, short_url_alias, custom_domain, display_order')
+          .in('id', accommodationIds)
+          .order('display_order', { ascending: true, nullsFirst: false })
+          .order('name', { ascending: true }),
         supabase
           .from('accommodation_packages')
           .select('accommodation_id')
