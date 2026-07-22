@@ -2106,6 +2106,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <CreditCard className="h-4 w-4 mr-2" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
                   </Button>
                 )}
+                {isSuperAdmin && order.order_source !== 'owlting' && order.order_source !== 'hotelnabe' && (
+                  <Button variant="outline" className="text-sm" disabled={isRepushingOwlting} onClick={handleRepushOwlting}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isRepushingOwlting ? 'animate-spin' : ''}`} />{isRepushingOwlting ? "排入中..." : "重新推送奧丁丁"}
+                  </Button>
+                )}
                 {order.order_status !== 'cancelled' && (
                   <Button variant="ghost-destructive" className="text-sm" disabled={isCancelling} onClick={() => setShowCancelDialog(true)}>
                     <XCircle className="h-4 w-4 mr-2" />取消訂單
