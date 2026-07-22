@@ -4334,34 +4334,8 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
-                    {/* 會員登入區塊（必要） */}
-                    {!loggedInMember ? (
-                      <Card className="border-2 border-orange-400 bg-orange-50/80">
-                        <CardContent className="py-6">
-                          <div className="flex flex-col items-center text-center gap-4">
-                            <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-                              <User className="h-7 w-7 text-orange-600" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-base">請先登入會員</p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                完成訂房前需登入會員帳號，訂房消費可累積紅利點數
-                              </p>
-                            </div>
-                            <Button
-                              className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white px-8"
-                              onClick={() => {
-                                const returnUrl = window.location.pathname + window.location.search;
-                                window.location.href = `/member/auth?redirect=${encodeURIComponent(returnUrl)}`;
-                              }}
-                            >
-                              <User className="h-4 w-4 mr-2" />
-                              登入 / 註冊會員
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
+                    {/* 會員登入狀態（選填提示） */}
+                    {loggedInMember ? (
                       <Card className="border-2 border-green-200 bg-green-50/50">
                         <CardContent className="py-4">
                           <div className="flex items-center gap-2">
@@ -4370,6 +4344,14 @@ const BookingFlow = () => {
                               已登入會員：{loggedInMember.name}，訂房可累積紅利點數
                             </p>
                           </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="border border-orange-200 bg-orange-50/40">
+                        <CardContent className="py-3">
+                          <p className="text-sm text-orange-800">
+                            💡 填寫下方 Email 後可一鍵註冊或登入會員，累積紅利點數與享會員專屬優惠（選填，可直接繼續下單）
+                          </p>
                         </CardContent>
                       </Card>
                     )}
