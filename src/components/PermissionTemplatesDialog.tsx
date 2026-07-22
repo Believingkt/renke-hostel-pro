@@ -455,15 +455,6 @@ export function PermissionTemplatesDialog({
                             )}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              title="預覽套用結果"
-                              onClick={() => { setPreviewing(t); setPreviewAccId(accommodationId); }}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
                             {accommodations.length > 0 && (
                               <Button
                                 variant="ghost"
