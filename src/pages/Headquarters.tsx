@@ -266,6 +266,7 @@ const Headquarters = () => {
   const [batchAccIds, setBatchAccIds] = useState<string[]>([]);
   const [batchUserSearch, setBatchUserSearch] = useState("");
   const [batchAccSearch, setBatchAccSearch] = useState("");
+  const [batchOverwrite, setBatchOverwrite] = useState(false);
 
 
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
