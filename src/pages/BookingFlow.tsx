@@ -178,6 +178,21 @@ const BookingFlow = () => {
   // 會員登入狀態
   const [loggedInMember, setLoggedInMember] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
 
+  // Email 先行驗證狀態
+  const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "exists" | "new" | "registered">("idle");
+  const [emailCheckedFor, setEmailCheckedFor] = useState<string>("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerSubmitting, setRegisterSubmitting] = useState(false);
+  const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
+
+  // Email 檢查 / OTP / 註冊 handlers 在 guestInfo 宣告後定義（見下方）
+
+
+
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
   const [selectedMealPlan, setSelectedMealPlan] = useState<string>("2_meals");
@@ -188,6 +203,104 @@ const BookingFlow = () => {
     address: "",
     notes: "",
   });
+
+  // Debounce Email 檢查
+  useEffect(() => {
+    const email = (guestInfo.email || "").trim().toLowerCase();
+    if (loggedInMember) { setEmailCheckStatus("idle"); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailCheckStatus("idle");
+      setEmailCheckedFor("");
+      setOtpSent(false);
+      return;
+    }
+    if (email === emailCheckedFor) return;
+    const t = setTimeout(async () => {
+      setEmailCheckStatus("checking");
+      try {
+        const { data, error } = await supabase.functions.invoke("check-member-email", { body: { email } });
+        if (error) throw error;
+        setEmailCheckedFor(email);
+        if (data?.exists) {
+          setEmailCheckStatus("exists");
+          setOtpSending(true);
+          const { error: otpErr } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+          setOtpSending(false);
+          if (!otpErr) setOtpSent(true);
+        } else {
+          setEmailCheckStatus("new");
+          setOtpSent(false);
+        }
+      } catch {
+        setEmailCheckStatus("idle");
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [guestInfo.email, loggedInMember, emailCheckedFor]);
+
+  const handleVerifyOtp = async () => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!otpCode || otpCode.length < 6) {
+      toast({ title: "請輸入 6 位數驗證碼", variant: "destructive" });
+      return;
+    }
+    setOtpVerifying(true);
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+    setOtpVerifying(false);
+    if (error || !data?.user) {
+      toast({ title: "驗證失敗", description: error?.message || "驗證碼錯誤或已過期", variant: "destructive" });
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("platform_members")
+      .select("id, user_id, name, email, phone")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+    if (profile) {
+      setLoggedInMember({ id: profile.user_id, name: profile.name || "", email: profile.email || email, phone: profile.phone || "" });
+      setGuestInfo(prev => ({
+        ...prev,
+        name: prev.name || profile.name || "",
+        phone: prev.phone || profile.phone || "",
+        email: profile.email || email,
+      }));
+    }
+    toast({ title: "驗證成功", description: "已登入會員" });
+  };
+
+  const handleQuickRegister = async (withPassword: boolean) => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!email) return;
+    if (withPassword && registerPassword.length < 8) {
+      toast({ title: "密碼至少 8 碼", variant: "destructive" });
+      return;
+    }
+    setRegisterSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("register-member-guest", {
+        body: {
+          email,
+          password: withPassword ? registerPassword : undefined,
+          name: guestInfo.name || undefined,
+          phone: guestInfo.phone || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setRegisteredMemberId(data.member_id);
+      setEmailCheckStatus("registered");
+      toast({
+        title: "註冊成功",
+        description: withPassword ? "驗證信已寄出，請至信箱確認" : "已為您建立會員，驗證信已寄出",
+      });
+    } catch (e: any) {
+      const msg = e?.message === "email_exists" ? "此 Email 已註冊，請改用登入" : (e?.message || "註冊失敗");
+      toast({ title: "註冊失敗", description: msg, variant: "destructive" });
+    } finally {
+      setRegisterSubmitting(false);
+    }
+  };
+
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
   const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
@@ -1875,15 +1988,8 @@ const BookingFlow = () => {
     }
 
     if (currentStep === "guest") {
-      // 必須登入會員
-      if (!loggedInMember) {
-        toast({
-          title: "請先登入會員",
-          description: "完成訂房前需登入會員帳號",
-          variant: "destructive",
-        });
-        return;
-      }
+      // 會員登入為選填：非會員可以繼續，但若剛註冊過但尚未驗證僅提示
+      // （不再硬性阻擋）
       // 驗證客人資訊
       try {
         guestInfoSchema.parse(guestInfo);
@@ -4228,34 +4334,8 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
-                    {/* 會員登入區塊（必要） */}
-                    {!loggedInMember ? (
-                      <Card className="border-2 border-orange-400 bg-orange-50/80">
-                        <CardContent className="py-6">
-                          <div className="flex flex-col items-center text-center gap-4">
-                            <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-                              <User className="h-7 w-7 text-orange-600" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-base">請先登入會員</p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                完成訂房前需登入會員帳號，訂房消費可累積紅利點數
-                              </p>
-                            </div>
-                            <Button
-                              className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white px-8"
-                              onClick={() => {
-                                const returnUrl = window.location.pathname + window.location.search;
-                                window.location.href = `/member/auth?redirect=${encodeURIComponent(returnUrl)}`;
-                              }}
-                            >
-                              <User className="h-4 w-4 mr-2" />
-                              登入 / 註冊會員
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
+                    {/* 會員登入狀態（選填提示） */}
+                    {loggedInMember ? (
                       <Card className="border-2 border-green-200 bg-green-50/50">
                         <CardContent className="py-4">
                           <div className="flex items-center gap-2">
@@ -4264,6 +4344,14 @@ const BookingFlow = () => {
                               已登入會員：{loggedInMember.name}，訂房可累積紅利點數
                             </p>
                           </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="border border-orange-200 bg-orange-50/40">
+                        <CardContent className="py-3">
+                          <p className="text-sm text-orange-800">
+                            💡 填寫下方 Email 後可一鍵註冊或登入會員，累積紅利點數與享會員專屬優惠（選填，可直接繼續下單）
+                          </p>
                         </CardContent>
                       </Card>
                     )}
@@ -4339,6 +4427,98 @@ const BookingFlow = () => {
                           />
                           {errors.email && (
                             <p className="text-xs text-destructive mt-1">{errors.email}</p>
+                          )}
+
+                          {/* Email 檢查狀態顯示 */}
+                          {!loggedInMember && emailCheckStatus === "checking" && (
+                            <p className="text-xs text-muted-foreground mt-1">正在檢查會員狀態...</p>
+                          )}
+
+                          {/* 舊會員：OTP 驗證登入 */}
+                          {!loggedInMember && emailCheckStatus === "exists" && (
+                            <div className="mt-3 p-4 rounded-lg border-2 border-blue-200 bg-blue-50/50 space-y-3">
+                              <p className="text-sm font-medium text-blue-900">
+                                {otpSending ? "正在寄送驗證碼..." : otpSent ? "已寄送 6 位數驗證碼至您的信箱，請於下方輸入完成登入" : "此 Email 已註冊為會員"}
+                              </p>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={otpCode}
+                                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                  placeholder="6 位數驗證碼"
+                                  className="h-11 flex-1"
+                                  inputMode="numeric"
+                                  maxLength={6}
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={handleVerifyOtp}
+                                  disabled={otpVerifying || otpCode.length < 6}
+                                  className="h-11"
+                                >
+                                  {otpVerifying ? "驗證中..." : "驗證並登入"}
+                                </Button>
+                              </div>
+                              <button
+                                type="button"
+                                className="text-xs text-blue-700 underline"
+                                onClick={async () => {
+                                  setOtpSending(true);
+                                  const { error } = await supabase.auth.signInWithOtp({
+                                    email: guestInfo.email.trim().toLowerCase(),
+                                    options: { shouldCreateUser: false },
+                                  });
+                                  setOtpSending(false);
+                                  if (!error) { setOtpSent(true); toast({ title: "驗證碼已重新寄出" }); }
+                                }}
+                                disabled={otpSending}
+                              >
+                                重新寄送驗證碼
+                              </button>
+                            </div>
+                          )}
+
+                          {/* 新會員：一鍵註冊 / 設定密碼 */}
+                          {!loggedInMember && emailCheckStatus === "new" && (
+                            <div className="mt-3 p-4 rounded-lg border-2 border-primary/30 bg-primary/5 space-y-3">
+                              <p className="text-sm font-medium">此 Email 尚未註冊，可立即成為會員享優惠</p>
+                              <Button
+                                type="button"
+                                onClick={() => handleQuickRegister(false)}
+                                disabled={registerSubmitting}
+                                className="w-full h-11"
+                              >
+                                {registerSubmitting ? "註冊中..." : "🎉 一鍵註冊會員（免密碼）"}
+                              </Button>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">或設定登入密碼（選填）</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="password"
+                                    value={registerPassword}
+                                    onChange={(e) => setRegisterPassword(e.target.value)}
+                                    placeholder="至少 8 碼"
+                                    className="h-11 flex-1"
+                                    maxLength={64}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleQuickRegister(true)}
+                                    disabled={registerSubmitting || registerPassword.length < 8}
+                                    className="h-11"
+                                  >
+                                    註冊
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 已註冊 */}
+                          {emailCheckStatus === "registered" && !loggedInMember && (
+                            <div className="mt-3 p-3 rounded-lg border border-green-200 bg-green-50/60">
+                              <p className="text-sm text-green-800">✓ 會員已建立，驗證信已寄出。您可繼續完成訂房。</p>
+                            </div>
                           )}
                         </div>
                       </CardContent>
