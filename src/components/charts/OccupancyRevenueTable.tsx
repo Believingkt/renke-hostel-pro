@@ -622,7 +622,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
     if (rate > 0) return 'text-foreground';
     return 'text-muted-foreground';
   };
-  const formatCurrency = (val: number) => val === 0 ? '$0' : `$${val.toLocaleString('zh-TW')}`;
+  const sym = currencyModeSymbol(currencyMode);
+  const formatCurrency = (val: number) => val === 0 ? `${sym}0` : `${sym}${val.toLocaleString('zh-TW')}`;
 
   const segmentBadgeClass = (seg: SegmentKey) =>
     seg === 'exclusive'
