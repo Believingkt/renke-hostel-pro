@@ -749,8 +749,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.revenue === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `$${dd.revenue.toLocaleString('zh-TW')}`) : '-'}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.avgPrice === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `$${dd.avgPrice.toLocaleString('zh-TW')}`) : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.revenue === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `${sym}${dd.revenue.toLocaleString('zh-TW')}`) : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.avgPrice === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `${sym}${dd.avgPrice.toLocaleString('zh-TW')}`) : '-'}</TableCell>
                                       </TableRow>
                                     );
                                   })}
