@@ -915,19 +915,12 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
                       const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
-                      const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
-                      const isYunxiu = accommodationId === YUNXIU_ACC_ID;
                       const isTiansong = accommodationId === TIANSONG_ACC_ID;
-                      const isOlivia = accommodationId === OLIVIA_ACC_ID;
                       const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
-                      // 雲岫 / 奧莉薇雅：僅散客房型用單位顯示
-                      // 天送：散客與包棟皆用單位顯示（房號 / 棟號）
+                      // 有設定房號單位管理即以單位顯示；包棟房型預設不使用單位（天送例外，包棟顯示棟號）
                       const useUnits = rtUnits.length > 0 && (
-                        (isYunxiu && !roomType.is_exclusive_package) ||
-                        (isOlivia && !roomType.is_exclusive_package) ||
-                        isTiansong
+                        !roomType.is_exclusive_package || isTiansong
                       );
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
