@@ -179,42 +179,6 @@ export function PermissionTemplatesDialog({
     onChanged?.();
   };
 
-  // Preview resolves the effective template for a given accommodation.
-  // Property-specific with same name wins over global.
-  const previewResolution = useMemo(() => {
-    if (!previewing) return null;
-    // If previewing a global template, check whether target acc has a same-named override
-    if (previewing.accommodation_id === null) {
-      const override = items.find(
-        (t) => t.accommodation_id === previewAccId && t.name === previewing.name
-      );
-      if (override) {
-        return {
-          source: "override" as const,
-          effective: override,
-          note: `該民宿有同名的自訂範本「${override.name}」，套用時會優先使用民宿自訂版本。`,
-        };
-      }
-      return {
-        source: "global" as const,
-        effective: previewing,
-        note: "該民宿沒有同名的自訂範本，套用時將使用此全館通用範本。",
-      };
-    }
-    // Property-specific template: only meaningful for the owning accommodation
-    if (previewing.accommodation_id !== previewAccId) {
-      return {
-        source: "not_available" as const,
-        effective: previewing,
-        note: "此範本為其他民宿的自訂範本，該民宿無法直接套用；如需共用請改為全館範本或使用「批次套用」複製。",
-      };
-    }
-    return {
-      source: "local" as const,
-      effective: previewing,
-      note: "此為該民宿自訂範本，優先於全館同名範本。",
-    };
-  }, [previewing, previewAccId, items]);
 
   const openBatchApply = (t: Template) => {
     setBatchSource(t);
