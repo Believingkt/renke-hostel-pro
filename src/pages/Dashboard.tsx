@@ -306,6 +306,68 @@ const Dashboard = () => {
         }
       />
 
+      {/* 雙幣別檢視切換（僅對有設副幣別的民宿顯示，如旅行日 JPY） */}
+      {dualCurrencyEnabled && (
+        <Card className="mx-2 md:mx-0 border-primary/30 bg-primary/5">
+          <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold">雙幣別檢視</span>
+            <div className="flex bg-muted rounded-lg p-1">
+              <Button
+                variant={currencyView === 'separate' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="px-3 h-7 text-xs"
+                onClick={() => setCurrencyView('separate')}
+              >
+                幣別獨立
+              </Button>
+              <Button
+                variant={currencyView === 'consolidated' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="px-3 h-7 text-xs"
+                onClick={() => setCurrencyView('consolidated')}
+              >
+                匯率換算總計
+              </Button>
+            </div>
+            {currencyView === 'separate' ? (
+              <div className="flex bg-muted rounded-lg p-1">
+                {(['TWD', secondaryCode] as string[]).filter(Boolean).map((code) => (
+                  <Button
+                    key={code}
+                    variant={currencyChoice === code ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="px-3 h-7 text-xs"
+                    onClick={() => setCurrencyChoice(code)}
+                  >
+                    {code === 'TWD' ? 'NT$ TWD' : `${currencyModeSymbol({ view: 'separate', currency: code })} ${code}`}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">
+                  1 {secondaryCode} =
+                </label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  className="h-7 w-24 text-xs"
+                  value={jpyRate}
+                  onChange={(e) => setJpyRate(Number(e.target.value) || 0)}
+                />
+                <span className="text-xs text-muted-foreground">TWD</span>
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {currencyView === 'separate'
+                ? `僅計算 ${currencyChoice} 訂單，禁止跨幣別加總`
+                : `${secondaryCode} 訂單依匯率換算成 TWD 後合併計算`}
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">總覽</TabsTrigger>
