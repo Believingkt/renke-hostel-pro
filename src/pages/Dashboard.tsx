@@ -61,6 +61,56 @@ const Dashboard = () => {
       return next;
     });
   };
+
+  // ── 雙幣別檢視（僅套用於有設副幣別的民宿，如旅行日 JPY）──
+  const { config: secondaryCurrency } = useSecondaryCurrency(accommodationId);
+  const dualCurrencyEnabled = !!secondaryCurrency;
+  const secondaryCode = secondaryCurrency?.code || "";
+  // 依 secondary_currency_rate（1 TWD = rate * secondary，例：JPY 1TWD=4.7JPY）反推 secondary→TWD 匯率
+  const defaultSecToTwd = secondaryCurrency && secondaryCurrency.rate > 0
+    ? Math.round((1 / secondaryCurrency.rate) * 10000) / 10000
+    : 0.21;
+  const CURRENCY_STATE_KEY = `dashboard-currency-mode:${accommodationId || 'none'}`;
+  const [currencyView, setCurrencyView] = useState<'separate' | 'consolidated'>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) return JSON.parse(raw).view || 'separate';
+    } catch {}
+    return 'separate';
+  });
+  const [currencyChoice, setCurrencyChoice] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) return JSON.parse(raw).currency || 'TWD';
+    } catch {}
+    return 'TWD';
+  });
+  const [jpyRate, setJpyRate] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) {
+        const v = Number(JSON.parse(raw).jpyRate);
+        if (Number.isFinite(v) && v > 0) return v;
+      }
+    } catch {}
+    return defaultSecToTwd;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CURRENCY_STATE_KEY,
+        JSON.stringify({ view: currencyView, currency: currencyChoice, jpyRate }),
+      );
+    } catch {}
+  }, [CURRENCY_STATE_KEY, currencyView, currencyChoice, jpyRate]);
+
+  const currencyMode: CurrencyMode | null = !dualCurrencyEnabled
+    ? null
+    : currencyView === 'separate'
+      ? { view: 'separate', currency: currencyChoice }
+      : { view: 'consolidated', jpyRate: Number(jpyRate) || 0 };
+  const displaySymbol = currencyModeSymbol(currencyMode);
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -68,7 +118,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear);
+  } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear, currencyMode);
 
   useEffect(() => {
     if (!accommodationId) return;
