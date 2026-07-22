@@ -1611,12 +1611,25 @@ const Headquarters = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          {addRoleType === "super_admin"
-                            ? `將為 ${batchUserIds.length} 位用戶新增總部管理員權限，已擁有者將自動略過。`
-                            : `將建立 ${batchUserIds.length * batchAccIds.length} 筆權限（用戶 × 民宿），已存在者自動略過。`}
-                        </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            {addRoleType === "super_admin"
+                              ? `將為 ${batchUserIds.length} 位用戶新增總部管理員權限。`
+                              : `將處理 ${batchUserIds.length * batchAccIds.length} 筆權限（用戶 × 民宿）。`}
+                            {batchOverwrite ? "已存在者將覆蓋為新設定。" : "已存在者將自動略過。"}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="batch-overwrite"
+                              checked={batchOverwrite}
+                              onCheckedChange={setBatchOverwrite}
+                            />
+                            <Label htmlFor="batch-overwrite" className="text-sm cursor-pointer">
+                              覆蓋已存在者（重新套用職位範本 / 權限）
+                            </Label>
+                          </div>
+                        </div>
                         <Button
                           onClick={handleBatchAddRole}
                           disabled={addRoleSubmitting}
