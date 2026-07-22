@@ -697,7 +697,17 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap">{memberLabel}</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">分潤金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  分潤金額
+                  {showBonus && (
+                    <span
+                      className="ml-1 text-[10px] text-muted-foreground font-normal"
+                      title={`已扣除 ${(bonusRate * 100).toFixed(1)}% 團隊獎金`}
+                    >
+                      (扣{(bonusRate * 100).toFixed(1)}%團獎)
+                    </span>
+                  )}
+                </TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
