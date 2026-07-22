@@ -668,7 +668,24 @@ export default function TeamCommissionStatsTab() {
     expanded: Set<string>,
     setExpanded: (s: Set<string>) => void,
     memberLabel: string,
-  ) => (
+    applyBonus: boolean = false,
+  ) => {
+    const showBonus = applyBonus && bonusRate > 0;
+    const netFactor = 1 - bonusRate;
+    const renderCommissionCell = (amount: number) => {
+      if (!showBonus) return <>{fmtMoney(amount)}</>;
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="text-muted-foreground line-through text-xs">
+            {fmtMoney(amount)}
+          </span>
+          <span className="text-orange-600 font-medium">
+            {fmtMoney(amount * netFactor)}
+          </span>
+        </div>
+      );
+    };
+    return (
     <Card>
       <CardContent className="p-4 space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
