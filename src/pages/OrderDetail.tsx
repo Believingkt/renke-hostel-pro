@@ -2108,7 +2108,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   </Button>
                 )}
                 {isSuperAdmin && order.order_source !== 'owlting' && order.order_source !== 'hotelnabe' && (
-                  <Button variant="outline" className="text-sm" disabled={isRepushingOwlting} onClick={handleRepushOwlting}>
+                  <Button variant="outline" className="text-sm" disabled={isRepushingOwlting} onClick={() => setShowRepushDialog(true)}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${isRepushingOwlting ? 'animate-spin' : ''}`} />{isRepushingOwlting ? "排入中..." : "重新推送奧丁丁"}
                   </Button>
                 )}
