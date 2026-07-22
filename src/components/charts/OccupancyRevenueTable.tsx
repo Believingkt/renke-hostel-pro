@@ -759,7 +759,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
                             </ScrollArea>
                             <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
                               <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
-                              <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
+                              <span>合計營業: {sym}{row.totalRevenue.toLocaleString('zh-TW')}</span>
                             </div>
                           </HoverCardContent>
                         </HoverCard>
