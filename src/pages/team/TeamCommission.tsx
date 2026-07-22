@@ -517,6 +517,7 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "starlink_orders") return "starlink";
   if (source_table === "scout_discount_codes_kol") return "scout_kol";
   if (source_table === "scout_discount_codes_closer") return "closer";
+  if (source_table === "closer_team_bonus_distribution") return "closer";
   return null;
 }
 
