@@ -6930,7 +6930,7 @@ export type Database = {
       }
       permission_templates: {
         Row: {
-          accommodation_id: string
+          accommodation_id: string | null
           created_at: string
           description: string | null
           display_order: number
@@ -6941,7 +6941,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          accommodation_id: string
+          accommodation_id?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -6952,7 +6952,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          accommodation_id?: string
+          accommodation_id?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
