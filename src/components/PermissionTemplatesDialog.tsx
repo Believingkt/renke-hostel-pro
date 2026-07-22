@@ -269,6 +269,7 @@ export function PermissionTemplatesDialog({
                                 <Globe className="h-3 w-3" /> 全館通用
                               </Badge>
                             )}
+                          </div>
                           {t.description && (
                             <p className="text-xs text-muted-foreground">{t.description}</p>
                           )}
