@@ -1803,10 +1803,41 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       const roles = (data ?? []).map((r: any) => r.role);
       if (!cancelled) {
         setIsAdminUser(roles.includes("hotel_admin") || roles.includes("super_admin"));
+        setIsSuperAdmin(roles.includes("super_admin"));
       }
     })();
     return () => { cancelled = true; };
   }, [order?.accommodation_id]);
+
+  const handleRepushOwlting = async () => {
+    if (!order) return;
+    if (!window.confirm("確定要重新推送此訂單到奧丁丁嗎？（不會修改訂單本身）")) return;
+    setIsRepushingOwlting(true);
+    try {
+      const echoToken = `RENKE-${order.order_number}-manual-${Date.now()}`;
+      const { error } = await supabase.from("owlting_order_push_queue").insert({
+        accommodation_id: order.accommodation_id,
+        order_id: order.id,
+        res_status: "Modify",
+        echo_token: echoToken,
+        status: "pending",
+        next_retry_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      toast({
+        title: "已排入重新推送",
+        description: "任務已進入奧丁丁推送佇列，將於下一輪 cron（約 1 分鐘內）執行。",
+      });
+    } catch (e: any) {
+      toast({
+        title: "重新推送失敗",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRepushingOwlting(false);
+    }
+  };
 
   const handleSyncTapPayRefund = async () => {
     if (!order) return;
