@@ -525,9 +525,9 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             <div className="text-sm text-muted-foreground">
               已於 {format(new Date(finalizedRow.finalized_at), "yyyy-MM-dd HH:mm")} 由{" "}
               {finalizedRow.finalized_by
-                ? nameByUid[finalizedRow.finalized_by] ??
-                  finalizedRow.finalized_by.slice(0, 8)
+                ? nameByUid[finalizedRow.finalized_by] ?? "管理員"
                 : "—"}{" "}
+
               定案
             </div>
           )}
