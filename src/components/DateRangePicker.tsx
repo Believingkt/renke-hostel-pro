@@ -127,7 +127,23 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className, allow
             mode="range"
             defaultMonth={dateRange?.from}
             selected={dateRange}
-            onSelect={(range) => {
+            onDayClick={restartOnComplete ? (day) => {
+              const hasComplete = !!(dateRange?.from && dateRange?.to);
+              const onlyFrom = !!(dateRange?.from && !dateRange?.to);
+              if (onlyFrom) {
+                const from = dateRange!.from!;
+                if (day < from) {
+                  onDateRangeChange({ from: day, to: from });
+                } else {
+                  onDateRangeChange({ from, to: day });
+                }
+                setIsOpen(false);
+              } else {
+                // 未選 或 已完成 → 重新開始，將此次點擊視為入住
+                onDateRangeChange({ from: day, to: undefined });
+              }
+            } : undefined}
+            onSelect={restartOnComplete ? undefined : (range) => {
               onDateRangeChange(range);
               if (range?.from && range?.to) {
                 setIsOpen(false);
@@ -137,6 +153,7 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className, allow
             className={cn("p-3 pointer-events-auto")}
             disabled={allowFutureDates ? undefined : (date) => date > new Date()}
           />
+
         </div>
       </PopoverContent>
     </Popover>
