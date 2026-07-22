@@ -258,6 +258,13 @@ const Headquarters = () => {
   const [addRoleTemplateId, setAddRoleTemplateId] = useState<string>("");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
 
+  // Batch assign states
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchUserIds, setBatchUserIds] = useState<string[]>([]);
+  const [batchAccIds, setBatchAccIds] = useState<string[]>([]);
+  const [batchUserSearch, setBatchUserSearch] = useState("");
+  const [batchAccSearch, setBatchAccSearch] = useState("");
+
 
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
 
