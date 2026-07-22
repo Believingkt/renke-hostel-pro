@@ -1711,13 +1711,23 @@ const Headquarters = () => {
                             </Label>
                           </div>
                         </div>
-                        <Button
-                          onClick={handleBatchAddRole}
-                          disabled={addRoleSubmitting}
-                        >
-                          {addRoleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          批次新增權限
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={handleDedupeRoles}
+                            disabled={dedupeRunning}
+                          >
+                            {dedupeRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            清理重疊權限（保留最高）
+                          </Button>
+                          <Button
+                            onClick={handleBatchAddRole}
+                            disabled={addRoleSubmitting}
+                          >
+                            {addRoleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            批次新增權限
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
