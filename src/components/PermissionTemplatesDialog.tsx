@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft, Globe, Eye, Copy, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Globe, Copy, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   STAFF_MODULES,
@@ -93,10 +93,6 @@ export function PermissionTemplatesDialog({
   const [editing, setEditing] = useState<Template | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Preview state
-  const [previewing, setPreviewing] = useState<Template | null>(null);
-  const [previewAccId, setPreviewAccId] = useState<string>(accommodationId);
-
   // Batch apply state
   const [batchSource, setBatchSource] = useState<Template | null>(null);
   const [batchTargets, setBatchTargets] = useState<Set<string>>(new Set());
@@ -106,14 +102,10 @@ export function PermissionTemplatesDialog({
     if (open && accommodationId) load();
     if (!open) {
       setEditing(null);
-      setPreviewing(null);
       setBatchSource(null);
     }
   }, [open, accommodationId]);
 
-  useEffect(() => {
-    setPreviewAccId(accommodationId);
-  }, [accommodationId]);
 
   const load = async () => {
     setIsLoading(true);
@@ -187,42 +179,6 @@ export function PermissionTemplatesDialog({
     onChanged?.();
   };
 
-  // Preview resolves the effective template for a given accommodation.
-  // Property-specific with same name wins over global.
-  const previewResolution = useMemo(() => {
-    if (!previewing) return null;
-    // If previewing a global template, check whether target acc has a same-named override
-    if (previewing.accommodation_id === null) {
-      const override = items.find(
-        (t) => t.accommodation_id === previewAccId && t.name === previewing.name
-      );
-      if (override) {
-        return {
-          source: "override" as const,
-          effective: override,
-          note: `該民宿有同名的自訂範本「${override.name}」，套用時會優先使用民宿自訂版本。`,
-        };
-      }
-      return {
-        source: "global" as const,
-        effective: previewing,
-        note: "該民宿沒有同名的自訂範本，套用時將使用此全館通用範本。",
-      };
-    }
-    // Property-specific template: only meaningful for the owning accommodation
-    if (previewing.accommodation_id !== previewAccId) {
-      return {
-        source: "not_available" as const,
-        effective: previewing,
-        note: "此範本為其他民宿的自訂範本，該民宿無法直接套用；如需共用請改為全館範本或使用「批次套用」複製。",
-      };
-    }
-    return {
-      source: "local" as const,
-      effective: previewing,
-      note: "此為該民宿自訂範本，優先於全館同名範本。",
-    };
-  }, [previewing, previewAccId, items]);
 
   const openBatchApply = (t: Template) => {
     setBatchSource(t);
@@ -455,15 +411,6 @@ export function PermissionTemplatesDialog({
                             )}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              title="預覽套用結果"
-                              onClick={() => { setPreviewing(t); setPreviewAccId(accommodationId); }}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
                             {accommodations.length > 0 && (
                               <Button
                                 variant="ghost"
@@ -511,81 +458,6 @@ export function PermissionTemplatesDialog({
         )}
       </DialogContent>
 
-      {/* Preview dialog */}
-      <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-4 w-4" /> 預覽套用結果
-            </DialogTitle>
-            <DialogDescription>
-              選擇一間民宿，查看套用「{previewing?.name}」後實際生效的權限。
-            </DialogDescription>
-          </DialogHeader>
-          {previewing && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">預覽民宿</label>
-                <Select value={previewAccId} onValueChange={setPreviewAccId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇民宿" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accommodations.length === 0 ? (
-                      <SelectItem value={accommodationId}>{accommodationName ?? "目前民宿"}</SelectItem>
-                    ) : (
-                      accommodations.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {previewResolution && (
-                <div className={`rounded-md border p-3 text-xs flex gap-2 ${
-                  previewResolution.source === "override"
-                    ? "border-amber-500/50 bg-amber-500/5"
-                    : previewResolution.source === "not_available"
-                    ? "border-destructive/50 bg-destructive/5"
-                    : "bg-muted/30"
-                }`}>
-                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <div className="space-y-0.5">
-                    <div className="font-medium">
-                      {previewResolution.source === "override" && "來源：民宿自訂範本（覆蓋全館）"}
-                      {previewResolution.source === "global" && "來源：全館通用範本"}
-                      {previewResolution.source === "local" && "來源：民宿自訂範本"}
-                      {previewResolution.source === "not_available" && "此民宿無法套用此範本"}
-                    </div>
-                    <div className="text-muted-foreground">{previewResolution.note}</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">實際生效權限</label>
-                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  {STAFF_MODULES.map((m) => {
-                    const lvl = (previewResolution?.effective.permissions[m.key] ??
-                      DEFAULT_STAFF_PERMISSIONS[m.key] ??
-                      "hidden") as ModulePermissionLevel;
-                    return (
-                      <div key={m.key} className={`flex items-center justify-between rounded px-2 py-1 ${toneFor(lvl)}`}>
-                        <span>{m.label}</span>
-                        <span className="font-medium">{PERMISSION_LEVEL_LABEL[lvl]}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewing(null)}>關閉</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Batch apply dialog */}
       <Dialog open={!!batchSource} onOpenChange={(o) => !o && !batchSubmitting && setBatchSource(null)}>
