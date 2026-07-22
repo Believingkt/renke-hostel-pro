@@ -871,7 +871,7 @@ export default function TeamHome() {
     cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
   }
 
-  const total = cards.reduce((s, c) => s + c.amount, 0);
+  const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
   return (
     <div className="space-y-6 max-w-5xl">
