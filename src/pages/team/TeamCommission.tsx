@@ -620,6 +620,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: scoutPayouts },
         { data: scoutCloserCodes },
         { data: scoutKolCodes },
+        { data: teamBonusDist },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -659,6 +660,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .select("discount_code, scout_id, scout_rate, commission_type")
           .gt("scout_rate", 0)
           .eq("is_active", true),
+        supabase
+          .from("closer_team_bonus_distribution")
+          .select("id, closer_id, year, month, bonus_amount, is_finalized")
+          .eq("is_finalized", true)
+          .eq("year", range.prevYear)
+          .eq("month", range.prevMonth),
       ]);
 
       // 星探成交獎金：折扣碼 → closer_rate（成交人來自 order_meta.closer_id）
