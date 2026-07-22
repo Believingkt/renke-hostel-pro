@@ -72,6 +72,7 @@ export default function TeamHome() {
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
+  const [closerTeamBonusFinalized, setCloserTeamBonusFinalized] = useState(false);
   const [videoAmt, setVideoAmt] = useState(0);
   const [scoutAmt, setScoutAmt] = useState(0);
   const [rarityAmt, setRarityAmt] = useState(0);
@@ -301,10 +302,12 @@ export default function TeamHome() {
           }
         }
 
-        // ===== 成交組團隊獎金（當月累積預估池，取當月分配比例）=====
+        // ===== 成交組團隊獎金 =====
+        // 已定案：顯示個人分配金額；未定案：顯示當月累積預估池
         let closerTeamBonusSum = 0;
         let closerTeamBonusRateVal = 0;
         let closerTeamBonusNoSet = false;
+        let closerTeamBonusFinalizedFlag = false;
         if (showCloser) {
           const { data: bonusSetting } = await supabase
             .from("closer_team_bonus_settings")
@@ -317,58 +320,75 @@ export default function TeamHome() {
           closerTeamBonusRateVal = bonusRate;
 
           if (bonusRate > 0) {
-            // 全隊 order_meta（不篩 userId）
-            const { data: allMetas } = await supabase
-              .from("order_meta")
-              .select("order_id, closer_id, team_commission_price, is_excluded")
-              .not("closer_id", "is", null)
-              .or("is_excluded.is.null,is_excluded.eq.false");
-            const metaList = (allMetas ?? []).filter((m: any) => m.is_excluded !== true && m.closer_id);
-            const orderIds = metaList.map((m: any) => m.order_id as string);
-
-            if (orderIds.length > 0) {
-              const { data: orders } = await supabase
-                .from("orders")
-                .select("id, accommodation_id, final_price, order_date, confirmed_at, order_status, guest_name")
-                .in("id", orderIds)
-                .neq("order_status", "cancelled")
-                .neq("guest_name", "保留單")
-                .gt("final_price", 0)
-                .or(
-                  `and(confirmed_at.gte.${monthStartIso},confirmed_at.lt.${monthEndIso}),and(confirmed_at.is.null,order_date.gte.${monthStartIso},order_date.lt.${monthEndIso})`,
-                );
-              const orderList = orders ?? [];
-              const accIds = Array.from(new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)));
-              let rates: RateRow[] = [];
-              if (accIds.length > 0) {
-                const { data: r } = await supabase
-                  .from("accommodation_commission_settings")
-                  .select("accommodation_id, effective_from, closer_rate, video_rate")
-                  .in("accommodation_id", accIds);
-                rates = (r ?? []) as RateRow[];
-              }
-              const metaByOrder = new Map<string, any>();
-              metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
-              let totalCloserCommission = 0;
-              for (const o of orderList as any[]) {
-                const meta = metaByOrder.get(o.id);
-                if (!meta) continue;
-                const base = Number(meta.team_commission_price != null ? meta.team_commission_price : o.final_price ?? 0);
-                const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
-                const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
-                totalCloserCommission += base * rate;
-              }
-              closerTeamBonusSum = Math.round(totalCloserCommission * bonusRate);
-            }
-
-            // 檢查是否已設定分配
-            const { data: dist } = await supabase
+            // 先查自己是否已有定案分配
+            const { data: ownDist } = await supabase
               .from("closer_team_bonus_distribution")
-              .select("id")
+              .select("bonus_amount, is_finalized")
               .eq("year", monthInfo.y)
               .eq("month", monthInfo.m)
-              .limit(1);
-            closerTeamBonusNoSet = !dist || dist.length === 0;
+              .eq("is_finalized", true)
+              .eq("closer_id", userId)
+              .maybeSingle();
+
+            if (ownDist && (ownDist as any).is_finalized) {
+              closerTeamBonusFinalizedFlag = true;
+              closerTeamBonusSum = Math.round(Number((ownDist as any).bonus_amount ?? 0));
+              closerTeamBonusNoSet = false;
+            } else {
+              // 未定案：計算全隊當月累積預估池
+              const { data: allMetas } = await supabase
+                .from("order_meta")
+                .select("order_id, closer_id, team_commission_price, is_excluded")
+                .not("closer_id", "is", null)
+                .or("is_excluded.is.null,is_excluded.eq.false");
+              const metaList = (allMetas ?? []).filter((m: any) => m.is_excluded !== true && m.closer_id);
+              const orderIds = metaList.map((m: any) => m.order_id as string);
+
+              if (orderIds.length > 0) {
+                const { data: orders } = await supabase
+                  .from("orders")
+                  .select("id, accommodation_id, final_price, order_date, confirmed_at, order_status, guest_name")
+                  .in("id", orderIds)
+                  .neq("order_status", "cancelled")
+                  .neq("guest_name", "保留單")
+                  .gt("final_price", 0)
+                  .or(
+                    `and(confirmed_at.gte.${monthStartIso},confirmed_at.lt.${monthEndIso}),and(confirmed_at.is.null,order_date.gte.${monthStartIso},order_date.lt.${monthEndIso})`,
+                  );
+                const orderList = orders ?? [];
+                const accIds = Array.from(new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)));
+                let rates: RateRow[] = [];
+                if (accIds.length > 0) {
+                  const { data: r } = await supabase
+                    .from("accommodation_commission_settings")
+                    .select("accommodation_id, effective_from, closer_rate, video_rate")
+                    .in("accommodation_id", accIds);
+                  rates = (r ?? []) as RateRow[];
+                }
+                const metaByOrder = new Map<string, any>();
+                metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
+                let totalCloserCommission = 0;
+                for (const o of orderList as any[]) {
+                  const meta = metaByOrder.get(o.id);
+                  if (!meta) continue;
+                  const base = Number(meta.team_commission_price != null ? meta.team_commission_price : o.final_price ?? 0);
+                  const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
+                  const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
+                  totalCloserCommission += base * rate;
+                }
+                closerTeamBonusSum = Math.round(totalCloserCommission * bonusRate);
+              }
+
+              // 檢查全隊是否已有分配資料（任何 finalized 記錄）
+              const { data: dist } = await supabase
+                .from("closer_team_bonus_distribution")
+                .select("id")
+                .eq("year", monthInfo.y)
+                .eq("month", monthInfo.m)
+                .eq("is_finalized", true)
+                .limit(1);
+              closerTeamBonusNoSet = !dist || dist.length === 0;
+            }
           }
         }
 
@@ -716,6 +736,7 @@ export default function TeamHome() {
         setCloserTeamBonusAmt(closerTeamBonusSum);
         setCloserTeamBonusRate(closerTeamBonusRateVal);
         setCloserTeamBonusNoSetting(closerTeamBonusNoSet);
+        setCloserTeamBonusFinalized(closerTeamBonusFinalizedFlag);
         setVideoAmt(videoSum);
         setScoutAmt(scoutSum);
         setRarityAmt(raritySum);
@@ -745,10 +766,11 @@ export default function TeamHome() {
   const cards: Array<{
     key: string;
     title: string;
-    amount: number;              // 加倍後金額（顯示 + 合計用）
+    amount: number;              // 加倍後金額（顯示用）
     multiplier: number;          // 用於 badge
     note?: string;
     lines?: Array<{ label: string; amount: number; multiplier: number }>;
+    excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
 
   if (showCloser) {
@@ -767,19 +789,30 @@ export default function TeamHome() {
   }
   if (showCloser && closerTeamBonusRate > 0) {
     const m = multOf("closer");
-    const noteParts = [
-      "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
-    ];
-    if (closerTeamBonusNoSetting) {
-      noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
+    if (closerTeamBonusFinalized) {
+      cards.push({
+        key: "closer_team_bonus",
+        title: "成交組團隊獎金",
+        amount: Math.round(closerTeamBonusAmt * m),
+        multiplier: m,
+        note: "已定案分配金額",
+      });
+    } else {
+      const noteParts = [
+        "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
+      ];
+      if (closerTeamBonusNoSetting) {
+        noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
+      }
+      cards.push({
+        key: "closer_team_bonus",
+        title: "成交組團隊獎金",
+        amount: Math.round(closerTeamBonusAmt * m),
+        multiplier: m,
+        note: noteParts.join("；"),
+        excludeFromTotal: true,
+      });
     }
-    cards.push({
-      key: "closer_team_bonus",
-      title: "成交組團隊獎金",
-      amount: Math.round(closerTeamBonusAmt * m),
-      multiplier: m,
-      note: noteParts.join("；"),
-    });
   }
   if (showVideo) {
     const m = multOf("video");
@@ -838,7 +871,7 @@ export default function TeamHome() {
     cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
   }
 
-  const total = cards.reduce((s, c) => s + c.amount, 0);
+  const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
   return (
     <div className="space-y-6 max-w-5xl">

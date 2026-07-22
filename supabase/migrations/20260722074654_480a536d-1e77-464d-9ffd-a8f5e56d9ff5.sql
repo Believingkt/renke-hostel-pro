@@ -1,0 +1,1 @@
+CREATE POLICY bonus_distribution_select_finalized ON public.closer_team_bonus_distribution FOR SELECT TO authenticated USING (is_finalized = true OR closer_id = auth.uid());
