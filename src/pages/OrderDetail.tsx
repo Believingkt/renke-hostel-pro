@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -236,6 +236,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
@@ -1801,10 +1803,41 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       const roles = (data ?? []).map((r: any) => r.role);
       if (!cancelled) {
         setIsAdminUser(roles.includes("hotel_admin") || roles.includes("super_admin"));
+        setIsSuperAdmin(roles.includes("super_admin"));
       }
     })();
     return () => { cancelled = true; };
   }, [order?.accommodation_id]);
+
+  const handleRepushOwlting = async () => {
+    if (!order) return;
+    if (!window.confirm("確定要重新推送此訂單到奧丁丁嗎？（不會修改訂單本身）")) return;
+    setIsRepushingOwlting(true);
+    try {
+      const echoToken = `RENKE-${order.order_number}-manual-${Date.now()}`;
+      const { error } = await supabase.from("owlting_order_push_queue").insert({
+        accommodation_id: order.accommodation_id,
+        order_id: order.id,
+        res_status: "Modify",
+        echo_token: echoToken,
+        status: "pending",
+        next_retry_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      toast({
+        title: "已排入重新推送",
+        description: "任務已進入奧丁丁推送佇列，將於下一輪 cron（約 1 分鐘內）執行。",
+      });
+    } catch (e: any) {
+      toast({
+        title: "重新推送失敗",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRepushingOwlting(false);
+    }
+  };
 
   const handleSyncTapPayRefund = async () => {
     if (!order) return;
@@ -2073,6 +2106,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <CreditCard className="h-4 w-4 mr-2" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
                   </Button>
                 )}
+                {isSuperAdmin && order.order_source !== 'owlting' && order.order_source !== 'hotelnabe' && (
+                  <Button variant="outline" className="text-sm" disabled={isRepushingOwlting} onClick={handleRepushOwlting}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isRepushingOwlting ? 'animate-spin' : ''}`} />{isRepushingOwlting ? "排入中..." : "重新推送奧丁丁"}
+                  </Button>
+                )}
                 {order.order_status !== 'cancelled' && (
                   <Button variant="ghost-destructive" className="text-sm" disabled={isCancelling} onClick={() => setShowCancelDialog(true)}>
                     <XCircle className="h-4 w-4 mr-2" />取消訂單
@@ -2110,6 +2148,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
                       <DropdownMenuItem disabled={isSyncingRefund} onClick={handleSyncTapPayRefund} className="py-3">
                         <CreditCard className="mr-2 h-4 w-4" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款"}
+                      </DropdownMenuItem>
+                    )}
+                    {isSuperAdmin && order.order_source !== 'owlting' && order.order_source !== 'hotelnabe' && (
+                      <DropdownMenuItem disabled={isRepushingOwlting} onClick={handleRepushOwlting} className="py-3">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isRepushingOwlting ? 'animate-spin' : ''}`} />{isRepushingOwlting ? "排入中..." : "重新推送奧丁丁"}
                       </DropdownMenuItem>
                     )}
                     {order.order_status !== 'cancelled' && (
