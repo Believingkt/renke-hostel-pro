@@ -357,7 +357,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="本月營收"
-              value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
+              value={`${displaySymbol} ${Math.round(stats.monthlyRevenue).toLocaleString()}`}
               change={stats.revenueChange}
               icon={DollarSign}
               variant="cyan"
