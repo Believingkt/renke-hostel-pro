@@ -89,7 +89,8 @@ export function PermissionTemplatesDialog({
     const { data, error } = await supabase
       .from("permission_templates")
       .select("*")
-      .eq("accommodation_id", accommodationId)
+      .or(`accommodation_id.eq.${accommodationId},accommodation_id.is.null`)
+      .order("accommodation_id", { ascending: true, nullsFirst: true })
       .order("display_order", { ascending: true });
     if (error) {
       toast.error("載入範本失敗");
@@ -103,6 +104,7 @@ export function PermissionTemplatesDialog({
       permissions: (r.permissions as any) ?? {},
       is_system: r.is_system,
       display_order: r.display_order,
+      accommodation_id: r.accommodation_id,
     })));
     setIsLoading(false);
   };
@@ -113,8 +115,9 @@ export function PermissionTemplatesDialog({
       toast.error("請輸入範本名稱");
       return;
     }
+    const isGlobal = editing.accommodation_id === null;
     const payload = {
-      accommodation_id: accommodationId,
+      accommodation_id: isGlobal ? null : accommodationId,
       name: editing.name.trim(),
       description: editing.description?.trim() || null,
       permissions: editing.permissions,
