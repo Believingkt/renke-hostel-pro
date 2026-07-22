@@ -649,7 +649,7 @@ const Headquarters = () => {
       return;
     }
     setAddRoleSubmitting(true);
-    let created = 0, skipped = 0, failed = 0;
+    let created = 0, skipped = 0, updated = 0, failed = 0;
     try {
       // Load all existing roles for selected users in one query
       const { data: existingAll } = await supabase
@@ -664,36 +664,42 @@ const Headquarters = () => {
         )
       );
 
-      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean }[] = [];
+      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean; exists: boolean }[] = [];
       for (const uid of batchUserIds) {
         if (addRoleType === "super_admin") {
-          if (existsKey.has(`${uid}|super_admin`)) { skipped++; continue; }
-          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false });
+          const exists = existsKey.has(`${uid}|super_admin`);
+          if (exists && !batchOverwrite) { skipped++; continue; }
+          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false, exists });
         } else {
           for (const accId of batchAccIds) {
-            if (existsKey.has(`${uid}|${accId}|${addRoleType}`)) { skipped++; continue; }
-            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId });
+            const exists = existsKey.has(`${uid}|${accId}|${addRoleType}`);
+            if (exists && !batchOverwrite) { skipped++; continue; }
+            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId, exists });
           }
         }
       }
 
       for (const p of pairs) {
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
-        if (error) { failed++; console.error("batch insert failed", error); continue; }
-        created++;
+        if (!p.exists) {
+          const { error } = await supabase
+            .from("user_roles")
+            .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
+          if (error) { failed++; console.error("batch insert failed", error); continue; }
+          created++;
+        } else {
+          updated++;
+        }
         if (p.applyTpl && addRoleTemplateId) {
           const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
             _user_id: p.user_id,
             _accommodation_id: p.accommodation_id,
             _template_id: addRoleTemplateId,
           });
-          if (tplErr) console.error("apply template failed", tplErr);
+          if (tplErr) { console.error("apply template failed", tplErr); failed++; }
         }
       }
 
-      toast.success(`批次完成：新增 ${created}，跳過 ${skipped}${failed ? `，失敗 ${failed}` : ""}`);
+      toast.success(`批次完成：新增 ${created}${updated ? `，覆蓋 ${updated}` : ""}${skipped ? `，跳過 ${skipped}` : ""}${failed ? `，失敗 ${failed}` : ""}`);
       setBatchUserIds([]);
       setBatchAccIds([]);
       loadUserRoles();
