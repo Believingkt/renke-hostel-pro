@@ -791,7 +791,8 @@ export default function TeamCommissionStatsTab() {
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
