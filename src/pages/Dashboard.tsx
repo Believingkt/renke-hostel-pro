@@ -573,7 +573,13 @@ const Dashboard = () => {
         </TabsContent>
 
         <TabsContent value="sources" className="mt-0">
-          <OrderSourceAnalyticsTab accommodationId={accommodationId!} />
+          <OrderSourceAnalyticsTab
+            accommodationId={accommodationId!}
+            viewMode={dualCurrencyEnabled ? currencyView : undefined}
+            selectedCurrency={dualCurrencyEnabled ? currencyChoice : undefined}
+            exchangeRate={dualCurrencyEnabled ? Number(jpyRate) || 0 : undefined}
+          />
+
         </TabsContent>
       </Tabs>
 
