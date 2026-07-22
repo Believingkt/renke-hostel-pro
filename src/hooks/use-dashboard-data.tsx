@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { getOrderStatusLabel } from "@/utils/orderHelpers";
 import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, computeBookingCountByMonth, type PricingMap } from "@/utils/revenueByMonth";
+import { applyCurrencyMode, type CurrencyMode } from "@/lib/currency";
 
 interface DashboardStats {
   totalRooms: number;
