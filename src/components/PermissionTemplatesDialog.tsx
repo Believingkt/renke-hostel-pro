@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Globe, Eye, Copy, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   STAFF_MODULES,
@@ -49,11 +49,17 @@ interface Template {
   accommodation_id: string | null;
 }
 
+interface AccommodationOption {
+  id: string;
+  name: string;
+}
+
 interface PermissionTemplatesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accommodationId: string;
   accommodationName?: string;
+  accommodations?: AccommodationOption[];
   onChanged?: () => void;
 }
 
@@ -64,14 +70,22 @@ const emptyTemplate = (): Template => ({
   permissions: { ...DEFAULT_STAFF_PERMISSIONS },
   is_system: false,
   display_order: 0,
-  accommodation_id: null, // set on save based on isGlobal
+  accommodation_id: null,
 });
+
+const toneFor = (lvl: ModulePermissionLevel) =>
+  lvl === "editable"
+    ? "bg-primary/10 text-primary"
+    : lvl === "readonly"
+    ? "bg-muted text-foreground"
+    : "bg-muted/40 text-muted-foreground";
 
 export function PermissionTemplatesDialog({
   open,
   onOpenChange,
   accommodationId,
   accommodationName,
+  accommodations = [],
   onChanged,
 }: PermissionTemplatesDialogProps) {
   const [items, setItems] = useState<Template[]>([]);
@@ -79,10 +93,27 @@ export function PermissionTemplatesDialog({
   const [editing, setEditing] = useState<Template | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Preview state
+  const [previewing, setPreviewing] = useState<Template | null>(null);
+  const [previewAccId, setPreviewAccId] = useState<string>(accommodationId);
+
+  // Batch apply state
+  const [batchSource, setBatchSource] = useState<Template | null>(null);
+  const [batchTargets, setBatchTargets] = useState<Set<string>>(new Set());
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
+
   useEffect(() => {
     if (open && accommodationId) load();
-    if (!open) setEditing(null);
+    if (!open) {
+      setEditing(null);
+      setPreviewing(null);
+      setBatchSource(null);
+    }
   }, [open, accommodationId]);
+
+  useEffect(() => {
+    setPreviewAccId(accommodationId);
+  }, [accommodationId]);
 
   const load = async () => {
     setIsLoading(true);
@@ -108,6 +139,13 @@ export function PermissionTemplatesDialog({
     })));
     setIsLoading(false);
   };
+
+  // Names that exist both globally and property-specific → property overrides global
+  const shadowedNames = useMemo(() => {
+    const globalNames = new Set(items.filter((t) => t.accommodation_id === null).map((t) => t.name));
+    const localNames = new Set(items.filter((t) => t.accommodation_id !== null).map((t) => t.name));
+    return new Set([...globalNames].filter((n) => localNames.has(n)));
+  }, [items]);
 
   const handleSave = async () => {
     if (!editing) return;
@@ -147,6 +185,123 @@ export function PermissionTemplatesDialog({
     setDeleteId(null);
     await load();
     onChanged?.();
+  };
+
+  // Preview resolves the effective template for a given accommodation.
+  // Property-specific with same name wins over global.
+  const previewResolution = useMemo(() => {
+    if (!previewing) return null;
+    // If previewing a global template, check whether target acc has a same-named override
+    if (previewing.accommodation_id === null) {
+      const override = items.find(
+        (t) => t.accommodation_id === previewAccId && t.name === previewing.name
+      );
+      if (override) {
+        return {
+          source: "override" as const,
+          effective: override,
+          note: `該民宿有同名的自訂範本「${override.name}」，套用時會優先使用民宿自訂版本。`,
+        };
+      }
+      return {
+        source: "global" as const,
+        effective: previewing,
+        note: "該民宿沒有同名的自訂範本，套用時將使用此全館通用範本。",
+      };
+    }
+    // Property-specific template: only meaningful for the owning accommodation
+    if (previewing.accommodation_id !== previewAccId) {
+      return {
+        source: "not_available" as const,
+        effective: previewing,
+        note: "此範本為其他民宿的自訂範本，該民宿無法直接套用；如需共用請改為全館範本或使用「批次套用」複製。",
+      };
+    }
+    return {
+      source: "local" as const,
+      effective: previewing,
+      note: "此為該民宿自訂範本，優先於全館同名範本。",
+    };
+  }, [previewing, previewAccId, items]);
+
+  const openBatchApply = (t: Template) => {
+    setBatchSource(t);
+    // Default: pre-select everything except the source's own accommodation
+    const targets = new Set<string>();
+    accommodations.forEach((a) => {
+      if (t.accommodation_id !== a.id) targets.add(a.id);
+    });
+    setBatchTargets(targets);
+  };
+
+  const submitBatchApply = async () => {
+    if (!batchSource) return;
+    if (batchTargets.size === 0) {
+      toast.error("請至少選擇一間民宿");
+      return;
+    }
+    setBatchSubmitting(true);
+    try {
+      // Load existing property-specific templates with the same name across targets
+      const { data: existing, error: exErr } = await supabase
+        .from("permission_templates")
+        .select("id, accommodation_id, name")
+        .in("accommodation_id", Array.from(batchTargets))
+        .eq("name", batchSource.name);
+      if (exErr) throw exErr;
+
+      const existingMap = new Map<string, string>();
+      (existing ?? []).forEach((r: any) => existingMap.set(r.accommodation_id, r.id));
+
+      const updates: Promise<any>[] = [];
+      const inserts: any[] = [];
+      Array.from(batchTargets).forEach((accId) => {
+        const payload = {
+          accommodation_id: accId,
+          name: batchSource.name,
+          description: batchSource.description,
+          permissions: batchSource.permissions,
+          display_order: batchSource.display_order,
+        };
+        const existId = existingMap.get(accId);
+        if (existId) {
+          updates.push(
+            (async () =>
+              await supabase.from("permission_templates").update(payload).eq("id", existId))()
+          );
+        } else {
+          inserts.push(payload);
+        }
+      });
+
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("permission_templates").insert(inserts);
+        if (error) throw error;
+      }
+      const upResults = await Promise.all(updates);
+      const upErr = upResults.find((r: any) => r?.error);
+      if (upErr?.error) throw upErr.error;
+
+      toast.success(
+        `已套用至 ${batchTargets.size} 間民宿（新增 ${inserts.length}、更新 ${updates.length}）`
+      );
+      setBatchSource(null);
+      await load();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(`批次套用失敗：${e.message ?? "未知錯誤"}`);
+    } finally {
+      setBatchSubmitting(false);
+    }
+  };
+
+  const toggleBatchTarget = (id: string) => {
+    setBatchTargets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -245,6 +400,18 @@ export function PermissionTemplatesDialog({
                 {accommodationName ? `民宿：${accommodationName}` : "為此民宿建立可重複套用的職位範本"}
               </DialogDescription>
             </DialogHeader>
+
+            <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1 flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <div className="font-medium text-foreground">套用優先順序</div>
+                <div className="text-muted-foreground">
+                  同名時：<span className="font-medium text-foreground">民宿自訂範本</span> ＞ <span className="font-medium text-foreground">全館通用範本</span>。
+                  套用權限時，若該民宿存在同名自訂版本，會自動改用自訂版本。
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-3 py-2">
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => setEditing(emptyTemplate())}>
@@ -257,64 +424,228 @@ export function PermissionTemplatesDialog({
                 <div className="text-center py-8 text-muted-foreground text-sm">尚無範本，點上方按鈕新增</div>
               ) : (
                 <div className="space-y-3">
-                  {items.map((t) => (
-                    <div key={t.id} className="rounded-lg border p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-sm">{t.name}</h3>
-                            {t.is_system && <Badge variant="secondary" className="text-[10px]">系統預設</Badge>}
-                            {t.accommodation_id === null && (
-                              <Badge variant="outline" className="text-[10px] gap-0.5">
-                                <Globe className="h-3 w-3" /> 全館通用
-                              </Badge>
+                  {items.map((t) => {
+                    const isGlobal = t.accommodation_id === null;
+                    const isShadowedGlobal = isGlobal && shadowedNames.has(t.name);
+                    return (
+                      <div key={t.id} className="rounded-lg border p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-sm">{t.name}</h3>
+                              {t.is_system && <Badge variant="secondary" className="text-[10px]">系統預設</Badge>}
+                              {isGlobal && (
+                                <Badge variant="outline" className="text-[10px] gap-0.5">
+                                  <Globe className="h-3 w-3" /> 全館通用
+                                </Badge>
+                              )}
+                              {isShadowedGlobal && (
+                                <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                                  已被民宿自訂覆蓋
+                                </Badge>
+                              )}
+                              {!isGlobal && shadowedNames.has(t.name) && (
+                                <Badge variant="outline" className="text-[10px] border-primary text-primary">
+                                  覆蓋全館同名範本
+                                </Badge>
+                              )}
+                            </div>
+                            {t.description && (
+                              <p className="text-xs text-muted-foreground">{t.description}</p>
                             )}
                           </div>
-                          {t.description && (
-                            <p className="text-xs text-muted-foreground">{t.description}</p>
-                          )}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title="預覽套用結果"
+                              onClick={() => { setPreviewing(t); setPreviewAccId(accommodationId); }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            {accommodations.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title="批次套用到多間民宿"
+                                onClick={() => openBatchApply(t)}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(t)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteId(t.id)}
+                              disabled={t.is_system}
+                              title={t.is_system ? "系統預設範本不可刪除" : "刪除"}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(t)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteId(t.id)}
-                            disabled={t.is_system}
-                            title={t.is_system ? "系統預設範本不可刪除" : "刪除"}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                          {STAFF_MODULES.map((m) => {
+                            const lvl = (t.permissions[m.key] ?? "hidden") as ModulePermissionLevel;
+                            return (
+                              <div key={m.key} className={`flex items-center justify-between rounded px-2 py-1 ${toneFor(lvl)}`}>
+                                <span>{m.label}</span>
+                                <span className="font-medium">{PERMISSION_LEVEL_LABEL[lvl]}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
-                        {STAFF_MODULES.map((m) => {
-                          const lvl = (t.permissions[m.key] ?? "hidden") as ModulePermissionLevel;
-                          const tone =
-                            lvl === "editable"
-                              ? "bg-primary/10 text-primary"
-                              : lvl === "readonly"
-                              ? "bg-muted text-foreground"
-                              : "bg-muted/40 text-muted-foreground";
-                          return (
-                            <div key={m.key} className={`flex items-center justify-between rounded px-2 py-1 ${tone}`}>
-                              <span>{m.label}</span>
-                              <span className="font-medium">{PERMISSION_LEVEL_LABEL[lvl]}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           </>
         )}
       </DialogContent>
+
+      {/* Preview dialog */}
+      <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" /> 預覽套用結果
+            </DialogTitle>
+            <DialogDescription>
+              選擇一間民宿，查看套用「{previewing?.name}」後實際生效的權限。
+            </DialogDescription>
+          </DialogHeader>
+          {previewing && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">預覽民宿</label>
+                <Select value={previewAccId} onValueChange={setPreviewAccId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇民宿" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accommodations.length === 0 ? (
+                      <SelectItem value={accommodationId}>{accommodationName ?? "目前民宿"}</SelectItem>
+                    ) : (
+                      accommodations.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {previewResolution && (
+                <div className={`rounded-md border p-3 text-xs flex gap-2 ${
+                  previewResolution.source === "override"
+                    ? "border-amber-500/50 bg-amber-500/5"
+                    : previewResolution.source === "not_available"
+                    ? "border-destructive/50 bg-destructive/5"
+                    : "bg-muted/30"
+                }`}>
+                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <div className="space-y-0.5">
+                    <div className="font-medium">
+                      {previewResolution.source === "override" && "來源：民宿自訂範本（覆蓋全館）"}
+                      {previewResolution.source === "global" && "來源：全館通用範本"}
+                      {previewResolution.source === "local" && "來源：民宿自訂範本"}
+                      {previewResolution.source === "not_available" && "此民宿無法套用此範本"}
+                    </div>
+                    <div className="text-muted-foreground">{previewResolution.note}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">實際生效權限</label>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                  {STAFF_MODULES.map((m) => {
+                    const lvl = (previewResolution?.effective.permissions[m.key] ??
+                      DEFAULT_STAFF_PERMISSIONS[m.key] ??
+                      "hidden") as ModulePermissionLevel;
+                    return (
+                      <div key={m.key} className={`flex items-center justify-between rounded px-2 py-1 ${toneFor(lvl)}`}>
+                        <span>{m.label}</span>
+                        <span className="font-medium">{PERMISSION_LEVEL_LABEL[lvl]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewing(null)}>關閉</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch apply dialog */}
+      <Dialog open={!!batchSource} onOpenChange={(o) => !o && !batchSubmitting && setBatchSource(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-4 w-4" /> 批次套用範本
+            </DialogTitle>
+            <DialogDescription>
+              將「{batchSource?.name}」的權限內容套用到以下民宿。同名的自訂範本會被覆蓋更新，沒有的則新增。
+            </DialogDescription>
+          </DialogHeader>
+          {batchSource && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>已選 {batchTargets.size} / {accommodations.length}</span>
+                <div className="flex gap-2">
+                  <button
+                    className="hover:underline"
+                    onClick={() => setBatchTargets(new Set(accommodations.map((a) => a.id)))}
+                  >全選</button>
+                  <button
+                    className="hover:underline"
+                    onClick={() => setBatchTargets(new Set())}
+                  >清除</button>
+                </div>
+              </div>
+              <div className="rounded-md border divide-y max-h-[45vh] overflow-y-auto">
+                {accommodations.map((a) => {
+                  const checked = batchTargets.has(a.id);
+                  const isSource = batchSource.accommodation_id === a.id;
+                  return (
+                    <label
+                      key={a.id}
+                      className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-muted/40"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => toggleBatchTarget(a.id)} />
+                      <span className="flex-1">{a.name}</span>
+                      {isSource && (
+                        <span className="text-[10px] text-muted-foreground">來源民宿</span>
+                      )}
+                    </label>
+                  );
+                })}
+                {accommodations.length === 0 && (
+                  <div className="p-4 text-center text-sm text-muted-foreground">無其他民宿</div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" disabled={batchSubmitting} onClick={() => setBatchSource(null)}>
+              取消
+            </Button>
+            <Button onClick={submitBatchApply} disabled={batchSubmitting}>
+              {batchSubmitting ? "套用中…" : `套用到 ${batchTargets.size} 間民宿`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
