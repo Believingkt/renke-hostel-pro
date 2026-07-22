@@ -46,6 +46,7 @@ interface Template {
   permissions: Record<string, ModulePermissionLevel>;
   is_system: boolean;
   display_order: number;
+  accommodation_id: string | null;
 }
 
 interface PermissionTemplatesDialogProps {
@@ -63,6 +64,7 @@ const emptyTemplate = (): Template => ({
   permissions: { ...DEFAULT_STAFF_PERMISSIONS },
   is_system: false,
   display_order: 0,
+  accommodation_id: null, // set on save based on isGlobal
 });
 
 export function PermissionTemplatesDialog({
