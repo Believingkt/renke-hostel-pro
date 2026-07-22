@@ -147,6 +147,7 @@ interface AccommodationInfo {
   theme_preset?: string | null;
   is_active?: boolean;
   building_count?: number | null;
+  display_order?: number | null;
   created_at?: string;
 }
 
@@ -753,6 +754,11 @@ const Headquarters = () => {
 
   // Group and sort users
   const groupedUsers = useMemo<GroupedUser[]>(() => {
+    const accOrder = new Map<string, number>();
+    accommodations.forEach((a, idx) => {
+      accOrder.set(a.id, a.display_order ?? idx);
+    });
+
     const grouped = userRoles.reduce<Record<string, typeof userRoles>>((acc, role) => {
       const key = role.user_id;
       if (!acc[key]) acc[key] = [];
@@ -763,6 +769,14 @@ const Headquarters = () => {
     return Object.values(grouped)
       .map((roles) => {
         const first = roles[0];
+        const sortedRoles = [...roles].sort((a, b) => {
+          // super_admin (no accommodation) 排最前
+          if (!a.accommodation_id && b.accommodation_id) return -1;
+          if (a.accommodation_id && !b.accommodation_id) return 1;
+          const ao = accOrder.get(a.accommodation_id ?? "") ?? Number.MAX_SAFE_INTEGER;
+          const bo = accOrder.get(b.accommodation_id ?? "") ?? Number.MAX_SAFE_INTEGER;
+          return ao - bo;
+        });
         return {
           user_id: first.user_id,
           user_name: first.user_name || '未知',
@@ -770,11 +784,11 @@ const Headquarters = () => {
           status: first.status || 'pending' as const,
           statusLabel: first.statusLabel || '待設定密碼',
           display_order: first.display_order ?? 0,
-          roles,
+          roles: sortedRoles,
         };
       })
       .sort((a, b) => a.display_order - b.display_order);
-  }, [userRoles]);
+  }, [userRoles, accommodations]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
