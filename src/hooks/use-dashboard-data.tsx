@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { getOrderStatusLabel } from "@/utils/orderHelpers";
 import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, computeBookingCountByMonth, type PricingMap } from "@/utils/revenueByMonth";
+import { applyCurrencyMode, type CurrencyMode } from "@/lib/currency";
 
 interface DashboardStats {
   totalRooms: number;
@@ -90,7 +91,8 @@ const fetchDashboardData = async (
   accommodationId: string,
   comparisonMode: 'lastYear' | 'lastMonth',
   customDateRange?: { from: Date; to: Date },
-  selectedYear?: number
+  selectedYear?: number,
+  currencyMode?: CurrencyMode | null,
 ): Promise<DashboardData> => {
   // Read per-accommodation daily_capacity; fall back to 6 (legacy default)
   const { data: accRow } = await supabase
@@ -125,7 +127,7 @@ const fetchDashboardData = async (
   }
   
   // Step 1: Fetch room types + orders in parallel (orders paginated to bypass 1000-row cap)
-  const [roomTypesResult, ordersData] = await Promise.all([
+  const [roomTypesResult, ordersRaw] = await Promise.all([
     supabase
       .from("room_types")
       .select("id, name, room_count, is_exclusive_package")
@@ -133,7 +135,7 @@ const fetchDashboardData = async (
     fetchAllPaginated<any>(() =>
       supabase
         .from("orders")
-        .select("*, room_types(name)")
+        .select("*, room_types(name), order_meta(display_currency)")
         .eq("accommodation_id", accommodationId)
         .gte("order_date", startDate.toISOString())
         .lte("order_date", endDate.toISOString())
@@ -144,6 +146,8 @@ const fetchDashboardData = async (
   if (roomTypesResult.error) throw roomTypesResult.error;
 
   const roomTypesData = roomTypesResult.data || [];
+  // 依 CurrencyMode 過濾/換算訂單金額（僅套用於有設副幣別的民宿；未提供 mode 時原樣通過）
+  const ordersData = applyCurrencyMode(ordersRaw, currencyMode);
 
   // Step 1b: Fetch order_rooms scoped to the orders we actually loaded, in batches.
   const orderIds = ordersData.map((o: any) => o.id);
@@ -697,13 +701,14 @@ export const useDashboardData = (
   accommodationId: string | null,
   comparisonMode: 'lastYear' | 'lastMonth',
   customDateRange?: { from: Date; to: Date },
-  selectedYear?: number
+  selectedYear?: number,
+  currencyMode?: CurrencyMode | null,
 ) => {
   const queryClient = useQueryClient();
   
   const query = useQuery({
-    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear],
-    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear),
+    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear, currencyMode],
+    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear, currencyMode),
     enabled: !!accommodationId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

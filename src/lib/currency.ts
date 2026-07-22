@@ -87,3 +87,59 @@ export function getDisplayCurrencyMode(storageKey?: string | null): "TWD" | "SEC
   } catch {}
   return "TWD";
 }
+
+/**
+ * 營運分析用：全域幣別檢視模式（僅套用於有設定副幣別的民宿，如旅行日）
+ *  - separate: 只取指定幣別的訂單參與計算（禁止跨幣別加總）
+ *  - consolidated: 將 JPY 訂單依匯率換算成 TWD 後與 TWD 訂單合併
+ */
+export type CurrencyMode =
+  | { view: "separate"; currency: string }
+  | { view: "consolidated"; jpyRate: number };
+
+/** 從 orders row（含 order_meta join）取出實際交易幣別，預設 TWD */
+export function orderCurrency(order: any): string {
+  const meta = order?.order_meta;
+  const raw =
+    (Array.isArray(meta) ? meta[0]?.display_currency : meta?.display_currency) ??
+    order?.currency ??
+    order?.display_currency ??
+    "TWD";
+  return String(raw || "TWD").toUpperCase();
+}
+
+/**
+ * 依 CurrencyMode 過濾/換算訂單陣列。
+ *  - 未提供 mode → 原樣回傳（維持既有行為，適用於未設副幣別的民宿）
+ *  - separate → 只留下符合幣別的訂單，金額不變
+ *  - consolidated → JPY 訂單金額 × jpyRate 換算為 TWD，並將 currency 標成 TWD
+ */
+export function applyCurrencyMode<T extends Record<string, any>>(
+  orders: T[],
+  mode?: CurrencyMode | null,
+): T[] {
+  if (!mode) return orders;
+  if (mode.view === "separate") {
+    return orders.filter((o) => orderCurrency(o) === mode.currency.toUpperCase());
+  }
+  const rate = Number(mode.jpyRate) || 0;
+  return orders.map((o) => {
+    const cur = orderCurrency(o);
+    if (cur === "TWD") return o;
+    const mult = cur === "JPY" ? rate : 1;
+    const conv = (v: any) => (v == null ? v : Number(v) * mult);
+    return {
+      ...o,
+      final_price: conv(o.final_price),
+      paid_amount: conv(o.paid_amount),
+      total_price: conv(o.total_price),
+      deposit_amount: conv(o.deposit_amount),
+    } as T;
+  });
+}
+
+/** 依 CurrencyMode 取得主要顯示符號（consolidated 一律 NT$） */
+export function currencyModeSymbol(mode?: CurrencyMode | null): string {
+  if (!mode || mode.view === "consolidated") return "NT$";
+  return getCurrencySymbol(mode.currency) || mode.currency;
+}

@@ -12,10 +12,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { applyCurrencyMode, currencyModeSymbol, type CurrencyMode } from '@/lib/currency';
 
 interface OccupancyRevenueTableProps {
   accommodationId: string;
   selectedYear: number;
+  currencyMode?: CurrencyMode | null;
 }
 
 interface DayTypeStats {
@@ -103,9 +105,9 @@ async function fetchAllPaginated<T>(
   return all;
 }
 
-export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: OccupancyRevenueTableProps) => {
+export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyMode }: OccupancyRevenueTableProps) => {
   const { data, isLoading } = useQuery({
-    queryKey: ['occupancy-revenue-table', accommodationId, selectedYear],
+    queryKey: ['occupancy-revenue-table', accommodationId, selectedYear, currencyMode],
     queryFn: async () => {
       const startDate = `${selectedYear - 1}-01-01`;
       const endDate = `${selectedYear}-12-31`;
@@ -121,7 +123,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         // Orders: stay-range overlap = check_in <= endDate AND check_out >= startDate (both AND)
         fetchAllPaginated<any>(() =>
           supabase.from('orders')
-            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building')
+            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building, order_meta(display_currency)')
             .eq('accommodation_id', accommodationId)
             // Revenue caliber: exclude only cancelled (KOL is filtered per-order below).
             // Occupancy tallies are separately gated to confirmed/hold inside the loop.
@@ -138,7 +140,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
       if (roomTypesRes.error) throw roomTypesRes.error;
 
-      const orders = ordersAll;
+      // Apply global currency mode (only meaningful for accommodations with a secondary currency, e.g. Traveldays)
+      const orders = applyCurrencyMode(ordersAll, currencyMode);
       const orderIds = orders.map((o: any) => o.id);
 
       const roomTypeIds = (roomTypesRes.data || []).map(rt => rt.id);
@@ -619,7 +622,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     if (rate > 0) return 'text-foreground';
     return 'text-muted-foreground';
   };
-  const formatCurrency = (val: number) => val === 0 ? '$0' : `$${val.toLocaleString('zh-TW')}`;
+  const sym = currencyModeSymbol(currencyMode);
+  const formatCurrency = (val: number) => val === 0 ? `${sym}0` : `${sym}${val.toLocaleString('zh-TW')}`;
 
   const segmentBadgeClass = (seg: SegmentKey) =>
     seg === 'exclusive'
@@ -745,8 +749,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.revenue === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `$${dd.revenue.toLocaleString('zh-TW')}`) : '-'}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.avgPrice === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `$${dd.avgPrice.toLocaleString('zh-TW')}`) : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.revenue === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `${sym}${dd.revenue.toLocaleString('zh-TW')}`) : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.roomsSold > 0 ? (dd.hasOfficial && dd.avgPrice === 0 ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : `${sym}${dd.avgPrice.toLocaleString('zh-TW')}`) : '-'}</TableCell>
                                       </TableRow>
                                     );
                                   })}
@@ -755,7 +759,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                             </ScrollArea>
                             <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
                               <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
-                              <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
+                              <span>合計營業: {sym}{row.totalRevenue.toLocaleString('zh-TW')}</span>
                             </div>
                           </HoverCardContent>
                         </HoverCard>

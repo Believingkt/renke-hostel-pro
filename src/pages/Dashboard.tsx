@@ -26,6 +26,9 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { currencyModeSymbol, type CurrencyMode } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
 
 type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
 const CHART_LABELS: Record<ChartKey, string> = {
@@ -58,6 +61,56 @@ const Dashboard = () => {
       return next;
     });
   };
+
+  // ── 雙幣別檢視（僅套用於有設副幣別的民宿，如旅行日 JPY）──
+  const { config: secondaryCurrency } = useSecondaryCurrency(accommodationId);
+  const dualCurrencyEnabled = !!secondaryCurrency;
+  const secondaryCode = secondaryCurrency?.code || "";
+  // 依 secondary_currency_rate（1 TWD = rate * secondary，例：JPY 1TWD=4.7JPY）反推 secondary→TWD 匯率
+  const defaultSecToTwd = secondaryCurrency && secondaryCurrency.rate > 0
+    ? Math.round((1 / secondaryCurrency.rate) * 10000) / 10000
+    : 0.21;
+  const CURRENCY_STATE_KEY = `dashboard-currency-mode:${accommodationId || 'none'}`;
+  const [currencyView, setCurrencyView] = useState<'separate' | 'consolidated'>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) return JSON.parse(raw).view || 'separate';
+    } catch {}
+    return 'separate';
+  });
+  const [currencyChoice, setCurrencyChoice] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) return JSON.parse(raw).currency || 'TWD';
+    } catch {}
+    return 'TWD';
+  });
+  const [jpyRate, setJpyRate] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(CURRENCY_STATE_KEY);
+      if (raw) {
+        const v = Number(JSON.parse(raw).jpyRate);
+        if (Number.isFinite(v) && v > 0) return v;
+      }
+    } catch {}
+    return defaultSecToTwd;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CURRENCY_STATE_KEY,
+        JSON.stringify({ view: currencyView, currency: currencyChoice, jpyRate }),
+      );
+    } catch {}
+  }, [CURRENCY_STATE_KEY, currencyView, currencyChoice, jpyRate]);
+
+  const currencyMode: CurrencyMode | null = !dualCurrencyEnabled
+    ? null
+    : currencyView === 'separate'
+      ? { view: 'separate', currency: currencyChoice }
+      : { view: 'consolidated', jpyRate: Number(jpyRate) || 0 };
+  const displaySymbol = currencyModeSymbol(currencyMode);
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -65,7 +118,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear);
+  } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear, currencyMode);
 
   useEffect(() => {
     if (!accommodationId) return;
@@ -253,6 +306,68 @@ const Dashboard = () => {
         }
       />
 
+      {/* 雙幣別檢視切換（僅對有設副幣別的民宿顯示，如旅行日 JPY） */}
+      {dualCurrencyEnabled && (
+        <Card className="mx-2 md:mx-0 border-primary/30 bg-primary/5">
+          <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold">雙幣別檢視</span>
+            <div className="flex bg-muted rounded-lg p-1">
+              <Button
+                variant={currencyView === 'separate' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="px-3 h-7 text-xs"
+                onClick={() => setCurrencyView('separate')}
+              >
+                幣別獨立
+              </Button>
+              <Button
+                variant={currencyView === 'consolidated' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="px-3 h-7 text-xs"
+                onClick={() => setCurrencyView('consolidated')}
+              >
+                匯率換算總計
+              </Button>
+            </div>
+            {currencyView === 'separate' ? (
+              <div className="flex bg-muted rounded-lg p-1">
+                {(['TWD', secondaryCode] as string[]).filter(Boolean).map((code) => (
+                  <Button
+                    key={code}
+                    variant={currencyChoice === code ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="px-3 h-7 text-xs"
+                    onClick={() => setCurrencyChoice(code)}
+                  >
+                    {code === 'TWD' ? 'NT$ TWD' : `${currencyModeSymbol({ view: 'separate', currency: code })} ${code}`}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">
+                  1 {secondaryCode} =
+                </label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  className="h-7 w-24 text-xs"
+                  value={jpyRate}
+                  onChange={(e) => setJpyRate(Number(e.target.value) || 0)}
+                />
+                <span className="text-xs text-muted-foreground">TWD</span>
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {currencyView === 'separate'
+                ? `僅計算 ${currencyChoice} 訂單，禁止跨幣別加總`
+                : `${secondaryCode} 訂單依匯率換算成 TWD 後合併計算`}
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">總覽</TabsTrigger>
@@ -304,7 +419,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="本月營收"
-              value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
+              value={`${displaySymbol} ${Math.round(stats.monthlyRevenue).toLocaleString()}`}
               change={stats.revenueChange}
               icon={DollarSign}
               variant="cyan"
@@ -452,7 +567,7 @@ const Dashboard = () => {
 
       {/* 住房率與營業分析報表 */}
       <div className="px-2 md:px-0">
-        <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} />
+        <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} currencyMode={currencyMode} />
       </div>
         </TabsContent>
 
