@@ -79,6 +79,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AccommodationManagement, AccommodationManagementRef } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview, OperationalOverviewRef } from "@/components/headquarters/OperationalOverview";
 
@@ -257,6 +259,13 @@ const Headquarters = () => {
   const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
   const [addRoleTemplateId, setAddRoleTemplateId] = useState<string>("");
   const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
+
+  // Batch assign states
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchUserIds, setBatchUserIds] = useState<string[]>([]);
+  const [batchAccIds, setBatchAccIds] = useState<string[]>([]);
+  const [batchUserSearch, setBatchUserSearch] = useState("");
+  const [batchAccSearch, setBatchAccSearch] = useState("");
 
 
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
@@ -624,6 +633,71 @@ const Headquarters = () => {
       loadUserRoles();
     } catch (error) {
       toast.error("新增權限失敗");
+    } finally {
+      setAddRoleSubmitting(false);
+    }
+  };
+
+  const handleBatchAddRole = async () => {
+    if (batchUserIds.length === 0) {
+      toast.error("請至少選擇一位用戶");
+      return;
+    }
+    if (addRoleType !== "super_admin" && batchAccIds.length === 0) {
+      toast.error("請至少選擇一間民宿");
+      return;
+    }
+    setAddRoleSubmitting(true);
+    let created = 0, skipped = 0, failed = 0;
+    try {
+      // Load all existing roles for selected users in one query
+      const { data: existingAll } = await supabase
+        .from("user_roles")
+        .select("user_id, accommodation_id, role")
+        .in("user_id", batchUserIds);
+      const existsKey = new Set(
+        (existingAll ?? []).map((r: any) =>
+          r.role === "super_admin"
+            ? `${r.user_id}|super_admin`
+            : `${r.user_id}|${r.accommodation_id}|${r.role}`
+        )
+      );
+
+      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean }[] = [];
+      for (const uid of batchUserIds) {
+        if (addRoleType === "super_admin") {
+          if (existsKey.has(`${uid}|super_admin`)) { skipped++; continue; }
+          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false });
+        } else {
+          for (const accId of batchAccIds) {
+            if (existsKey.has(`${uid}|${accId}|${addRoleType}`)) { skipped++; continue; }
+            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId });
+          }
+        }
+      }
+
+      for (const p of pairs) {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
+        if (error) { failed++; console.error("batch insert failed", error); continue; }
+        created++;
+        if (p.applyTpl && addRoleTemplateId) {
+          const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+            _user_id: p.user_id,
+            _accommodation_id: p.accommodation_id,
+            _template_id: addRoleTemplateId,
+          });
+          if (tplErr) console.error("apply template failed", tplErr);
+        }
+      }
+
+      toast.success(`批次完成：新增 ${created}，跳過 ${skipped}${failed ? `，失敗 ${failed}` : ""}`);
+      setBatchUserIds([]);
+      setBatchAccIds([]);
+      loadUserRoles();
+    } catch (e) {
+      toast.error("批次新增權限失敗");
     } finally {
       setAddRoleSubmitting(false);
     }
@@ -1214,10 +1288,31 @@ const Headquarters = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">為現有用戶新增權限</CardTitle>
-                <CardDescription>直接為已存在的帳號新增民宿權限或總部管理員權限，無需發送邀請信</CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg">為現有用戶新增權限</CardTitle>
+                    <CardDescription>
+                      {batchMode
+                        ? "一次選擇多位用戶與多間民宿，批次分配相同角色/範本"
+                        : "直接為已存在的帳號新增民宿權限或總部管理員權限，無需發送邀請信"}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="batch-mode" className="text-sm text-muted-foreground cursor-pointer">批次模式</Label>
+                    <Switch
+                      id="batch-mode"
+                      checked={batchMode}
+                      onCheckedChange={(v) => {
+                        setBatchMode(v);
+                        setBatchUserIds([]);
+                        setBatchAccIds([]);
+                      }}
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
+                {!batchMode ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>選擇用戶</Label>
@@ -1315,8 +1410,220 @@ const Headquarters = () => {
                     </Button>
                   </div>
                 </div>
+                ) : (() => {
+                  const uniqueUsers = (() => {
+                    const m = new Map<string, { id: string; name: string; email: string }>();
+                    userRoles.forEach((r) => {
+                      if (!m.has(r.user_id)) {
+                        m.set(r.user_id, { id: r.user_id, name: r.user_name || "未知", email: r.user_email || "" });
+                      }
+                    });
+                    return Array.from(m.values());
+                  })();
+                  const filteredUsers = uniqueUsers.filter((u) => {
+                    const q = batchUserSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+                  });
+                  const filteredAccs = accommodations.filter((a) => {
+                    const q = batchAccSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (a.name || "").toLowerCase().includes(q);
+                  });
+                  const templateAccId = batchAccIds[0] || "";
+                  const toggle = (arr: string[], id: string, setter: (v: string[]) => void) => {
+                    setter(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+                  };
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Users multi-select */}
+                        <div className="space-y-2">
+                          <Label>選擇用戶（可多選）</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between">
+                                <span className="truncate">
+                                  {batchUserIds.length === 0
+                                    ? "選擇用戶"
+                                    : `已選 ${batchUserIds.length} 位用戶`}
+                                </span>
+                                <Users className="h-4 w-4 ml-2 opacity-60" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[320px] p-0" align="start">
+                              <div className="p-2 border-b space-y-2">
+                                <Input
+                                  placeholder="搜尋姓名或 Email"
+                                  value={batchUserSearch}
+                                  onChange={(e) => setBatchUserSearch(e.target.value)}
+                                  className="h-8"
+                                />
+                                <div className="flex items-center justify-between text-xs">
+                                  <button
+                                    type="button"
+                                    className="text-primary hover:underline"
+                                    onClick={() => setBatchUserIds(filteredUsers.map((u) => u.id))}
+                                  >
+                                    全選 ({filteredUsers.length})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground hover:underline"
+                                    onClick={() => setBatchUserIds([])}
+                                  >
+                                    清空
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-auto p-1">
+                                {filteredUsers.length === 0 ? (
+                                  <div className="text-center text-sm text-muted-foreground py-4">無符合用戶</div>
+                                ) : filteredUsers.map((u) => (
+                                  <label
+                                    key={u.id}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer"
+                                  >
+                                    <Checkbox
+                                      checked={batchUserIds.includes(u.id)}
+                                      onCheckedChange={() => toggle(batchUserIds, u.id, setBatchUserIds)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm truncate">{u.name}</div>
+                                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+
+                        {/* Role/template */}
+                        <div className="space-y-2">
+                          <Label>角色</Label>
+                          <Select
+                            value={addRoleTemplateId ? `tpl:${addRoleTemplateId}` : addRoleType}
+                            onValueChange={(v) => {
+                              if (v.startsWith("tpl:")) {
+                                setAddRoleTemplateId(v.slice(4));
+                                setAddRoleType("staff");
+                              } else {
+                                setAddRoleTemplateId("");
+                                setAddRoleType(v as "super_admin" | "hotel_admin" | "staff");
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="super_admin">總部管理員</SelectItem>
+                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                              <SelectItem value="staff">現場營運</SelectItem>
+                              {templateAccId && getTemplatesFor(templateAccId).length > 0 && (
+                                <div className="px-2 py-1 text-[10px] text-muted-foreground border-t mt-1">
+                                  職位範本（依第一間選擇之民宿）
+                                </div>
+                              )}
+                              {templateAccId && getTemplatesFor(templateAccId).map((t) => (
+                                <SelectItem key={t.id} value={`tpl:${t.id}`}>{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Accommodations multi-select */}
+                        <div className="space-y-2">
+                          <Label>
+                            民宿（可多選）
+                            {addRoleType === "super_admin" && (
+                              <span className="text-muted-foreground text-xs ml-1">(總部管理員無需選擇)</span>
+                            )}
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-between"
+                                disabled={addRoleType === "super_admin"}
+                              >
+                                <span className="truncate">
+                                  {addRoleType === "super_admin"
+                                    ? "不需選擇"
+                                    : batchAccIds.length === 0
+                                      ? "選擇民宿"
+                                      : `已選 ${batchAccIds.length} 間民宿`}
+                                </span>
+                                <Building2 className="h-4 w-4 ml-2 opacity-60" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[320px] p-0" align="start">
+                              <div className="p-2 border-b space-y-2">
+                                <Input
+                                  placeholder="搜尋民宿"
+                                  value={batchAccSearch}
+                                  onChange={(e) => setBatchAccSearch(e.target.value)}
+                                  className="h-8"
+                                />
+                                <div className="flex items-center justify-between text-xs">
+                                  <button
+                                    type="button"
+                                    className="text-primary hover:underline"
+                                    onClick={() => setBatchAccIds(filteredAccs.map((a) => a.id))}
+                                  >
+                                    全選 ({filteredAccs.length})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground hover:underline"
+                                    onClick={() => setBatchAccIds([])}
+                                  >
+                                    清空
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-auto p-1">
+                                {filteredAccs.length === 0 ? (
+                                  <div className="text-center text-sm text-muted-foreground py-4">無符合民宿</div>
+                                ) : filteredAccs.map((a) => (
+                                  <label
+                                    key={a.id}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer"
+                                  >
+                                    <Checkbox
+                                      checked={batchAccIds.includes(a.id)}
+                                      onCheckedChange={() => toggle(batchAccIds, a.id, setBatchAccIds)}
+                                    />
+                                    <div className="text-sm truncate">{a.name}</div>
+                                  </label>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          {addRoleType === "super_admin"
+                            ? `將為 ${batchUserIds.length} 位用戶新增總部管理員權限，已擁有者將自動略過。`
+                            : `將建立 ${batchUserIds.length * batchAccIds.length} 筆權限（用戶 × 民宿），已存在者自動略過。`}
+                        </p>
+                        <Button
+                          onClick={handleBatchAddRole}
+                          disabled={addRoleSubmitting}
+                        >
+                          {addRoleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          批次新增權限
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
+
 
             <Card>
               <CardHeader>
