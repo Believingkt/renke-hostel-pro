@@ -638,6 +638,71 @@ const Headquarters = () => {
     }
   };
 
+  const handleBatchAddRole = async () => {
+    if (batchUserIds.length === 0) {
+      toast.error("請至少選擇一位用戶");
+      return;
+    }
+    if (addRoleType !== "super_admin" && batchAccIds.length === 0) {
+      toast.error("請至少選擇一間民宿");
+      return;
+    }
+    setAddRoleSubmitting(true);
+    let created = 0, skipped = 0, failed = 0;
+    try {
+      // Load all existing roles for selected users in one query
+      const { data: existingAll } = await supabase
+        .from("user_roles")
+        .select("user_id, accommodation_id, role")
+        .in("user_id", batchUserIds);
+      const existsKey = new Set(
+        (existingAll ?? []).map((r: any) =>
+          r.role === "super_admin"
+            ? `${r.user_id}|super_admin`
+            : `${r.user_id}|${r.accommodation_id}|${r.role}`
+        )
+      );
+
+      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean }[] = [];
+      for (const uid of batchUserIds) {
+        if (addRoleType === "super_admin") {
+          if (existsKey.has(`${uid}|super_admin`)) { skipped++; continue; }
+          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false });
+        } else {
+          for (const accId of batchAccIds) {
+            if (existsKey.has(`${uid}|${accId}|${addRoleType}`)) { skipped++; continue; }
+            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId });
+          }
+        }
+      }
+
+      for (const p of pairs) {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
+        if (error) { failed++; console.error("batch insert failed", error); continue; }
+        created++;
+        if (p.applyTpl && addRoleTemplateId) {
+          const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
+            _user_id: p.user_id,
+            _accommodation_id: p.accommodation_id,
+            _template_id: addRoleTemplateId,
+          });
+          if (tplErr) console.error("apply template failed", tplErr);
+        }
+      }
+
+      toast.success(`批次完成：新增 ${created}，跳過 ${skipped}${failed ? `，失敗 ${failed}` : ""}`);
+      setBatchUserIds([]);
+      setBatchAccIds([]);
+      loadUserRoles();
+    } catch (e) {
+      toast.error("批次新增權限失敗");
+    } finally {
+      setAddRoleSubmitting(false);
+    }
+  };
+
   const getAccommodationName = (accommodationId: string) => {
     const accommodation = accommodations.find(a => a.id === accommodationId);
     return accommodation?.name || accommodationId;
