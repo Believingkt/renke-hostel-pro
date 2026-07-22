@@ -903,7 +903,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           "closer",
           profileByUserId.get(r.closer_id),
           SOURCE_LABEL.closer_team_bonus,
-          `${prevYear}年${prevMonth}月 團獎分配`,
+          `${prevYear}年${prevMonth}月 成交組團隊獎金分配`,
           Math.round(Number(r.bonus_amount)),
         );
       });
