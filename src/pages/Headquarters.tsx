@@ -680,12 +680,24 @@ const Headquarters = () => {
         }
       }
 
+      const failures: { user: string; acc: string; reason: string }[] = [];
+      const nameOfUser = (uid: string) => {
+        const u = existingUsers.find((x: any) => x.user_id === uid);
+        return u?.email || u?.display_name || uid.slice(0, 8);
+      };
+      const nameOfAcc = (aid: string) => accommodations.find(a => a.id === aid)?.name || aid.slice(0, 8);
+
       for (const p of pairs) {
         if (!p.exists) {
           const { error } = await supabase
             .from("user_roles")
             .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
-          if (error) { failed++; console.error("batch insert failed", error); continue; }
+          if (error) {
+            failed++;
+            failures.push({ user: nameOfUser(p.user_id), acc: nameOfAcc(p.accommodation_id), reason: `新增角色失敗：${error.message}` });
+            console.error("batch insert failed", error);
+            continue;
+          }
           created++;
         } else {
           updated++;
@@ -696,16 +708,29 @@ const Headquarters = () => {
             _accommodation_id: p.accommodation_id,
             _template_id: addRoleTemplateId,
           });
-          if (tplErr) { console.error("apply template failed", tplErr); failed++; }
+          if (tplErr) {
+            console.error("apply template failed", tplErr);
+            failed++;
+            failures.push({ user: nameOfUser(p.user_id), acc: nameOfAcc(p.accommodation_id), reason: `套用範本失敗：${tplErr.message}` });
+          }
         }
       }
 
-      toast.success(`批次完成：新增 ${created}${updated ? `，覆蓋 ${updated}` : ""}${skipped ? `，跳過 ${skipped}` : ""}${failed ? `，失敗 ${failed}` : ""}`);
+      const summary = `批次完成：新增 ${created}${updated ? `，覆蓋 ${updated}` : ""}${skipped ? `，跳過 ${skipped}` : ""}${failed ? `，失敗 ${failed}` : ""}`;
+      if (failed > 0) {
+        const preview = failures.slice(0, 8).map(f => `• ${f.user} @ ${f.acc}：${f.reason}`).join("\n");
+        const more = failures.length > 8 ? `\n…還有 ${failures.length - 8} 筆，請開瀏覽器 Console 查看` : "";
+        toast.error(summary, { description: preview + more, duration: 15000 });
+        console.table(failures);
+      } else {
+        toast.success(summary);
+      }
       setBatchUserIds([]);
       setBatchAccIds([]);
       loadUserRoles();
     } catch (e) {
       toast.error("批次新增權限失敗");
+
     } finally {
       setAddRoleSubmitting(false);
     }
