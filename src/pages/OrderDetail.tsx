@@ -1812,7 +1812,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
   const handleRepushOwlting = async () => {
     if (!order) return;
-    if (!window.confirm("確定要重新推送此訂單到奧丁丁嗎？（不會修改訂單本身）")) return;
+    // 由確認彈窗觸發，這裡不再使用 window.confirm
     setIsRepushingOwlting(true);
     try {
       const echoToken = `RENKE-${order.order_number}-manual-${Date.now()}`;
