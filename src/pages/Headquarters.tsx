@@ -736,6 +736,48 @@ const Headquarters = () => {
     }
   };
 
+  const [dedupeRunning, setDedupeRunning] = useState(false);
+  const handleDedupeRoles = async () => {
+    if (!confirm("將掃描所有用戶權限，若同一用戶在同一民宿有多個角色，只保留最高權限（總部管理員 > 民宿管理員 > 現場營運），其餘刪除。是否繼續？")) return;
+    setDedupeRunning(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("id, user_id, accommodation_id, role");
+      if (error) throw error;
+      const rank: Record<string, number> = { super_admin: 3, hotel_admin: 2, staff: 1 };
+      const groups = new Map<string, any[]>();
+      for (const r of data ?? []) {
+        if (r.role === "super_admin" || !r.accommodation_id) continue;
+        const k = `${r.user_id}|${r.accommodation_id}`;
+        const arr = groups.get(k) ?? [];
+        arr.push(r);
+        groups.set(k, arr);
+      }
+      const toDelete: string[] = [];
+      for (const arr of groups.values()) {
+        if (arr.length < 2) continue;
+        arr.sort((a, b) => (rank[b.role] ?? 0) - (rank[a.role] ?? 0));
+        for (const r of arr.slice(1)) toDelete.push(r.id);
+      }
+      if (toDelete.length === 0) {
+        toast.success("沒有發現重疊權限");
+        return;
+      }
+      const { error: delErr } = await supabase
+        .from("user_roles")
+        .delete()
+        .in("id", toDelete);
+      if (delErr) throw delErr;
+      toast.success(`已清理 ${toDelete.length} 筆重疊權限（保留最高）`);
+      loadUserRoles();
+    } catch (e: any) {
+      toast.error(`清理失敗：${e.message || e}`);
+    } finally {
+      setDedupeRunning(false);
+    }
+  };
+
   const getAccommodationName = (accommodationId: string) => {
     const accommodation = accommodations.find(a => a.id === accommodationId);
     return accommodation?.name || accommodationId;
