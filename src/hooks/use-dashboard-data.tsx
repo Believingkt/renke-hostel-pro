@@ -701,13 +701,14 @@ export const useDashboardData = (
   accommodationId: string | null,
   comparisonMode: 'lastYear' | 'lastMonth',
   customDateRange?: { from: Date; to: Date },
-  selectedYear?: number
+  selectedYear?: number,
+  currencyMode?: CurrencyMode | null,
 ) => {
   const queryClient = useQueryClient();
   
   const query = useQuery({
-    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear],
-    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear),
+    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear, currencyMode],
+    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear, currencyMode),
     enabled: !!accommodationId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
