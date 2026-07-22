@@ -311,38 +311,39 @@ const Dashboard = () => {
         <Card className="mx-2 md:mx-0 border-primary/30 bg-primary/5">
           <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold">雙幣別檢視</span>
-            <div className="flex bg-muted rounded-lg p-1">
+            <div className="flex bg-muted rounded-lg p-1 gap-1">
               <Button
-                variant={currencyView === 'separate' ? 'secondary' : 'ghost'}
+                variant={currencyView === 'separate' ? 'default' : 'ghost'}
                 size="sm"
-                className="px-3 h-7 text-xs"
+                className={`px-3 h-7 text-xs ${currencyView === 'separate' ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' : 'text-muted-foreground hover:bg-background'}`}
                 onClick={() => setCurrencyView('separate')}
               >
                 幣別獨立
               </Button>
               <Button
-                variant={currencyView === 'consolidated' ? 'secondary' : 'ghost'}
+                variant={currencyView === 'consolidated' ? 'default' : 'ghost'}
                 size="sm"
-                className="px-3 h-7 text-xs"
+                className={`px-3 h-7 text-xs ${currencyView === 'consolidated' ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' : 'text-muted-foreground hover:bg-background'}`}
                 onClick={() => setCurrencyView('consolidated')}
               >
                 匯率換算總計
               </Button>
             </div>
             {currencyView === 'separate' ? (
-              <div className="flex bg-muted rounded-lg p-1">
+              <div className="flex bg-muted rounded-lg p-1 gap-1">
                 {(['TWD', secondaryCode] as string[]).filter(Boolean).map((code) => (
                   <Button
                     key={code}
-                    variant={currencyChoice === code ? 'secondary' : 'ghost'}
+                    variant={currencyChoice === code ? 'default' : 'ghost'}
                     size="sm"
-                    className="px-3 h-7 text-xs"
+                    className={`px-3 h-7 text-xs ${currencyChoice === code ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' : 'text-muted-foreground hover:bg-background'}`}
                     onClick={() => setCurrencyChoice(code)}
                   >
                     {code === 'TWD' ? 'NT$ TWD' : `${currencyModeSymbol({ view: 'separate', currency: code })} ${code}`}
                   </Button>
                 ))}
               </div>
+
             ) : (
               <div className="flex items-center gap-2">
                 <label className="text-xs text-muted-foreground">
