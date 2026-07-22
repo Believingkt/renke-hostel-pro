@@ -765,6 +765,22 @@ export default function TeamHome() {
       lines,
     });
   }
+  if (showCloser && closerTeamBonusRate > 0) {
+    const m = multOf("closer");
+    const noteParts = [
+      "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
+    ];
+    if (closerTeamBonusNoSetting) {
+      noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
+    }
+    cards.push({
+      key: "closer_team_bonus",
+      title: "成交組團隊獎金",
+      amount: Math.round(closerTeamBonusAmt * m),
+      multiplier: m,
+      note: noteParts.join("；"),
+    });
+  }
   if (showVideo) {
     const m = multOf("video");
     cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), multiplier: m });
