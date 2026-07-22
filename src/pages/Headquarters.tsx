@@ -682,8 +682,8 @@ const Headquarters = () => {
 
       const failures: { user: string; acc: string; reason: string }[] = [];
       const nameOfUser = (uid: string) => {
-        const u = existingUsers.find((x: any) => x.user_id === uid);
-        return u?.email || u?.display_name || uid.slice(0, 8);
+        const r = userRoles.find((x: any) => x.user_id === uid);
+        return r?.user_name || r?.user_email || uid.slice(0, 8);
       };
       const nameOfAcc = (aid: string) => accommodations.find(a => a.id === aid)?.name || aid.slice(0, 8);
 
