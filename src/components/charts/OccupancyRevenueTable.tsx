@@ -105,9 +105,9 @@ async function fetchAllPaginated<T>(
   return all;
 }
 
-export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: OccupancyRevenueTableProps) => {
+export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyMode }: OccupancyRevenueTableProps) => {
   const { data, isLoading } = useQuery({
-    queryKey: ['occupancy-revenue-table', accommodationId, selectedYear],
+    queryKey: ['occupancy-revenue-table', accommodationId, selectedYear, currencyMode],
     queryFn: async () => {
       const startDate = `${selectedYear - 1}-01-01`;
       const endDate = `${selectedYear}-12-31`;
@@ -123,7 +123,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         // Orders: stay-range overlap = check_in <= endDate AND check_out >= startDate (both AND)
         fetchAllPaginated<any>(() =>
           supabase.from('orders')
-            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building')
+            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building, order_meta(display_currency)')
             .eq('accommodation_id', accommodationId)
             // Revenue caliber: exclude only cancelled (KOL is filtered per-order below).
             // Occupancy tallies are separately gated to confirmed/hold inside the loop.
@@ -140,7 +140,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
       if (roomTypesRes.error) throw roomTypesRes.error;
 
-      const orders = ordersAll;
+      // Apply global currency mode (only meaningful for accommodations with a secondary currency, e.g. Traveldays)
+      const orders = applyCurrencyMode(ordersAll, currencyMode);
       const orderIds = orders.map((o: any) => o.id);
 
       const roomTypeIds = (roomTypesRes.data || []).map(rt => rt.id);
