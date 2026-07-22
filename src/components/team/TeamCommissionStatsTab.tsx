@@ -769,7 +769,7 @@ export default function TeamCommissionStatsTab() {
                               </TableCell>
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
-                              <TableCell className="tabular-nums">{fmtMoney(b.commission)}</TableCell>
+                              <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
                               <TableCell className="tabular-nums text-muted-foreground">
                                 {fmtMoney(b.cancelAmount)}
