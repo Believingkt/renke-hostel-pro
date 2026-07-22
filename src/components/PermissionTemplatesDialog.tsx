@@ -266,7 +266,8 @@ export function PermissionTemplatesDialog({
         const existId = existingMap.get(accId);
         if (existId) {
           updates.push(
-            supabase.from("permission_templates").update(payload).eq("id", existId)
+            (async () =>
+              await supabase.from("permission_templates").update(payload).eq("id", existId))()
           );
         } else {
           inserts.push(payload);
