@@ -693,6 +693,7 @@ export function OrderSourceAnalyticsTab({
               dateRange={customRange}
               onDateRangeChange={setCustomRange}
               allowFutureDates
+              restartOnComplete
             />
           )}
         </div>
