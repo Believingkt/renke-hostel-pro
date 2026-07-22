@@ -72,6 +72,7 @@ export default function TeamHome() {
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
+  const [closerTeamBonusFinalized, setCloserTeamBonusFinalized] = useState(false);
   const [videoAmt, setVideoAmt] = useState(0);
   const [scoutAmt, setScoutAmt] = useState(0);
   const [rarityAmt, setRarityAmt] = useState(0);
