@@ -713,6 +713,9 @@ export default function TeamHome() {
         if (cancelled) return;
         setCloserAmt(closerSum);
         setScoutCloserAmt(scoutCloserSum);
+        setCloserTeamBonusAmt(closerTeamBonusSum);
+        setCloserTeamBonusRate(closerTeamBonusRateVal);
+        setCloserTeamBonusNoSetting(closerTeamBonusNoSet);
         setVideoAmt(videoSum);
         setScoutAmt(scoutSum);
         setRarityAmt(raritySum);
