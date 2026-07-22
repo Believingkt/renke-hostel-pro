@@ -147,6 +147,7 @@ interface AccommodationInfo {
   theme_preset?: string | null;
   is_active?: boolean;
   building_count?: number | null;
+  display_order?: number | null;
   created_at?: string;
 }
 
