@@ -2152,7 +2152,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                       </DropdownMenuItem>
                     )}
                     {isSuperAdmin && order.order_source !== 'owlting' && order.order_source !== 'hotelnabe' && (
-                      <DropdownMenuItem disabled={isRepushingOwlting} onClick={handleRepushOwlting} className="py-3">
+                      <DropdownMenuItem disabled={isRepushingOwlting} onClick={() => setShowRepushDialog(true)} className="py-3">
                         <RefreshCw className={`mr-2 h-4 w-4 ${isRepushingOwlting ? 'animate-spin' : ''}`} />{isRepushingOwlting ? "排入中..." : "重新推送奧丁丁"}
                       </DropdownMenuItem>
                     )}
