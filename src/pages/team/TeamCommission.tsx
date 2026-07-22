@@ -517,6 +517,7 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "starlink_orders") return "starlink";
   if (source_table === "scout_discount_codes_kol") return "scout_kol";
   if (source_table === "scout_discount_codes_closer") return "closer";
+  if (source_table === "closer_team_bonus_distribution") return "closer";
   return null;
 }
 
@@ -542,6 +543,7 @@ const SOURCE_LABEL: Record<string, string> = {
   scout_team: "星探團隊獎金",
   scout_closer: "星探成交獎金",
   scout_discount_kol: "星探折扣碼分潤",
+  closer_team_bonus: "成交組團隊獎金",
 };
 
 
@@ -618,6 +620,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: scoutPayouts },
         { data: scoutCloserCodes },
         { data: scoutKolCodes },
+        { data: teamBonusDist },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -657,6 +660,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .select("discount_code, scout_id, scout_rate, commission_type")
           .gt("scout_rate", 0)
           .eq("is_active", true),
+        supabase
+          .from("closer_team_bonus_distribution")
+          .select("id, closer_id, year, month, bonus_amount, is_finalized")
+          .eq("is_finalized", true)
+          .eq("year", range.prevYear)
+          .eq("month", range.prevMonth),
       ]);
 
       // 星探成交獎金：折扣碼 → closer_rate（成交人來自 order_meta.closer_id）
@@ -884,6 +893,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           });
         });
       });
+
+      // 成交組團隊獎金：closer_team_bonus_distribution 已定案分配
+      (teamBonusDist ?? []).forEach((r: any) => {
+        if (!r.closer_id || !Number(r.bonus_amount)) return;
+        pushItem(
+          "closer_team_bonus_distribution",
+          r.id,
+          "closer",
+          profileByUserId.get(r.closer_id),
+          SOURCE_LABEL.closer_team_bonus,
+          `${prevYear}年${prevMonth}月 團獎分配`,
+          Math.round(Number(r.bonus_amount)),
+        );
+      });
+
+
 
 
       // 3. 撈取已標記紀錄（scout_monthly_payouts 已自帶 payout_status，跳過）
