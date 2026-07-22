@@ -4521,7 +4521,7 @@ const BookingFlow = () => {
                             </div>
                           )}
                         </div>
-
+                      </CardContent>
                     </Card>
 
                     {/* 其他資訊卡片 */}
