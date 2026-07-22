@@ -199,6 +199,39 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     loadData();
   }, [accommodationId, startDate, dayCount]);
 
+  // Realtime: refresh calendar when orders / order_rooms / inventory change so
+  // cancellations or room moves reflect immediately without manual reload.
+  useEffect(() => {
+    if (!accommodationId) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { loadData(); }, 250);
+    };
+    const channel = supabase
+      .channel(`booking-calendar-${accommodationId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `accommodation_id=eq.${accommodationId}` },
+        scheduleReload
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_rooms' },
+        scheduleReload
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_inventory_pricing' },
+        scheduleReload
+      )
+      .subscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [accommodationId]);
+
   // Auto-expand all room types on first load
   useEffect(() => {
     if (roomTypes.length > 0 && expandedRoomTypes.size === 0) {
