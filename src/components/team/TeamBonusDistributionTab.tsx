@@ -193,10 +193,19 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       display_name: m.display_name ?? m.user_id?.slice(0, 8) ?? "—",
     }));
     setClosers(list);
+
+    // 額外查所有 team_member_profiles，建立完整 userId → display_name map（供定案者名稱等使用）
+    const { data: allProfiles } = await supabase
+      .from("team_member_profiles")
+      .select("user_id, display_name");
     const map: Record<string, string> = {};
+    (allProfiles ?? []).forEach((p: any) => {
+      if (p.user_id && p.display_name) map[p.user_id] = p.display_name;
+    });
     list.forEach((m) => (map[m.user_id] = m.display_name));
     setNameByUid((prev) => ({ ...prev, ...map }));
   }
+
 
   function pickRate(
     settingsList: BonusSetting[],
