@@ -371,8 +371,18 @@ const Dashboard = () => {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">總覽</TabsTrigger>
-          <TabsTrigger value="sources">訂單來源分析</TabsTrigger>
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+          >
+            總覽
+          </TabsTrigger>
+          <TabsTrigger
+            value="sources"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+          >
+            訂單來源分析
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
