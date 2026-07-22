@@ -266,6 +266,7 @@ const Headquarters = () => {
   const [batchAccIds, setBatchAccIds] = useState<string[]>([]);
   const [batchUserSearch, setBatchUserSearch] = useState("");
   const [batchAccSearch, setBatchAccSearch] = useState("");
+  const [batchOverwrite, setBatchOverwrite] = useState(false);
 
 
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
@@ -648,7 +649,7 @@ const Headquarters = () => {
       return;
     }
     setAddRoleSubmitting(true);
-    let created = 0, skipped = 0, failed = 0;
+    let created = 0, skipped = 0, updated = 0, failed = 0;
     try {
       // Load all existing roles for selected users in one query
       const { data: existingAll } = await supabase
@@ -663,36 +664,42 @@ const Headquarters = () => {
         )
       );
 
-      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean }[] = [];
+      const pairs: { user_id: string; accommodation_id: string; applyTpl: boolean; exists: boolean }[] = [];
       for (const uid of batchUserIds) {
         if (addRoleType === "super_admin") {
-          if (existsKey.has(`${uid}|super_admin`)) { skipped++; continue; }
-          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false });
+          const exists = existsKey.has(`${uid}|super_admin`);
+          if (exists && !batchOverwrite) { skipped++; continue; }
+          pairs.push({ user_id: uid, accommodation_id: accommodations[0]?.id || "", applyTpl: false, exists });
         } else {
           for (const accId of batchAccIds) {
-            if (existsKey.has(`${uid}|${accId}|${addRoleType}`)) { skipped++; continue; }
-            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId });
+            const exists = existsKey.has(`${uid}|${accId}|${addRoleType}`);
+            if (exists && !batchOverwrite) { skipped++; continue; }
+            pairs.push({ user_id: uid, accommodation_id: accId, applyTpl: !!addRoleTemplateId, exists });
           }
         }
       }
 
       for (const p of pairs) {
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
-        if (error) { failed++; console.error("batch insert failed", error); continue; }
-        created++;
+        if (!p.exists) {
+          const { error } = await supabase
+            .from("user_roles")
+            .insert({ user_id: p.user_id, accommodation_id: p.accommodation_id, role: addRoleType });
+          if (error) { failed++; console.error("batch insert failed", error); continue; }
+          created++;
+        } else {
+          updated++;
+        }
         if (p.applyTpl && addRoleTemplateId) {
           const { error: tplErr } = await supabase.rpc("apply_template_to_user", {
             _user_id: p.user_id,
             _accommodation_id: p.accommodation_id,
             _template_id: addRoleTemplateId,
           });
-          if (tplErr) console.error("apply template failed", tplErr);
+          if (tplErr) { console.error("apply template failed", tplErr); failed++; }
         }
       }
 
-      toast.success(`批次完成：新增 ${created}，跳過 ${skipped}${failed ? `，失敗 ${failed}` : ""}`);
+      toast.success(`批次完成：新增 ${created}${updated ? `，覆蓋 ${updated}` : ""}${skipped ? `，跳過 ${skipped}` : ""}${failed ? `，失敗 ${failed}` : ""}`);
       setBatchUserIds([]);
       setBatchAccIds([]);
       loadUserRoles();
@@ -1604,12 +1611,25 @@ const Headquarters = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          {addRoleType === "super_admin"
-                            ? `將為 ${batchUserIds.length} 位用戶新增總部管理員權限，已擁有者將自動略過。`
-                            : `將建立 ${batchUserIds.length * batchAccIds.length} 筆權限（用戶 × 民宿），已存在者自動略過。`}
-                        </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            {addRoleType === "super_admin"
+                              ? `將為 ${batchUserIds.length} 位用戶新增總部管理員權限。`
+                              : `將處理 ${batchUserIds.length * batchAccIds.length} 筆權限（用戶 × 民宿）。`}
+                            {batchOverwrite ? "已存在者將覆蓋為新設定。" : "已存在者將自動略過。"}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="batch-overwrite"
+                              checked={batchOverwrite}
+                              onCheckedChange={setBatchOverwrite}
+                            />
+                            <Label htmlFor="batch-overwrite" className="text-sm cursor-pointer">
+                              覆蓋已存在者（重新套用職位範本 / 權限）
+                            </Label>
+                          </div>
+                        </div>
                         <Button
                           onClick={handleBatchAddRole}
                           disabled={addRoleSubmitting}
