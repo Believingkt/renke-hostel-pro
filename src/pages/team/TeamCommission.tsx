@@ -894,6 +894,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         });
       });
 
+      // 成交組團隊獎金：closer_team_bonus_distribution 已定案分配
+      (teamBonusDist ?? []).forEach((r: any) => {
+        if (!r.closer_id || !Number(r.bonus_amount)) return;
+        pushItem(
+          "closer_team_bonus_distribution",
+          r.id,
+          "closer",
+          profileByUserId.get(r.closer_id),
+          SOURCE_LABEL.closer_team_bonus,
+          `${prevYear}年${prevMonth}月 團獎分配`,
+          Math.round(Number(r.bonus_amount)),
+        );
+      });
+
+
+
 
       // 3. 撈取已標記紀錄（scout_monthly_payouts 已自帶 payout_status，跳過）
       const markableItems = items.filter((i) => i.source_table !== "scout_monthly_payouts");
