@@ -1498,6 +1498,7 @@ const Headquarters = () => {
                 onOpenChange={(o) => { if (!o) setTemplatesDialogAccId(null); }}
                 accommodationId={templatesDialogAccId}
                 accommodationName={accommodations.find((a) => a.id === templatesDialogAccId)?.name}
+                accommodations={accommodations.map((a) => ({ id: a.id, name: a.name }))}
                 onChanged={loadTemplates}
               />
             )}
