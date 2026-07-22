@@ -424,10 +424,41 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     }
   }
 
+  const [resetting, setResetting] = useState(false);
+  async function handleReset() {
+    if (!isAdmin || !isFinalized) return;
+    setResetting(true);
+    try {
+      const { error } = await supabase
+        .from("closer_team_bonus_distribution")
+        .delete()
+        .eq("year", year)
+        .eq("month", month);
+      if (error) throw error;
+      toast.success("已重設，請重新輸入分配數量");
+      setCountMap({});
+      await computePeriod();
+    } catch (e: any) {
+      toast.error("重設失敗：" + (e.message || ""));
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  const todayTaipeiStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const payoutDateStr = `${periodYear}-${String(periodMonth).padStart(2, "0")}-10`;
+  const canReset = todayTaipeiStr <= payoutDateStr;
+
   const currentYear = new Date().getFullYear();
   const yearOptions: number[] = [];
   for (let y = 2024; y <= currentYear + 1; y++) yearOptions.push(y);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+
 
   return (
     <div className="space-y-4 overflow-x-hidden">
@@ -587,7 +618,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                     確認定案
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="overflow-x-hidden">
                   <AlertDialogHeader>
                     <AlertDialogTitle>確認定案本期分配？</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -604,6 +635,39 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </AlertDialog>
             </div>
           )}
+          {isAdmin && isFinalized && canReset && (
+            <div className="flex justify-end">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={resetting || loading}
+                    className="text-destructive border-destructive hover:text-destructive"
+                  >
+                    重設本月資料
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="overflow-x-hidden">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>確認重設本月資料</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      將刪除 {year} 年 {month} 月 的所有分配記錄，需重新輸入。此操作無法復原。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleReset}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      確認刪除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground pt-2 border-t">
             團隊成員於成員管理頁面，根據「成交組」權限之 role 標籤，動態顯示所有成員。
           </p>
