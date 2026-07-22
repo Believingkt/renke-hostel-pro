@@ -184,6 +184,24 @@ export function PermissionTemplatesDialog({
                   rows={2}
                 />
               </div>
+              <div className="flex items-start gap-2 rounded-md border p-3 bg-muted/30">
+                <Checkbox
+                  id="template-global"
+                  checked={editing.accommodation_id === null}
+                  disabled={editing.is_system}
+                  onCheckedChange={(v) =>
+                    setEditing({ ...editing, accommodation_id: v ? null : accommodationId })
+                  }
+                />
+                <div className="space-y-0.5 leading-tight">
+                  <label htmlFor="template-global" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" /> 套用至全館（所有民宿共用）
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    勾選後，此範本會出現在所有民宿的權限設定中，僅總部管理員可管理。
+                  </p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">模組權限</label>
                 {STAFF_MODULES.map((m) => (
