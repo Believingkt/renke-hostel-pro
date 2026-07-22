@@ -72,8 +72,14 @@ const CURRENCY_LABEL: Record<string, { label: string; symbol: string }> = {
 const fmt = (n: number, symbol: string) => `${symbol}${Math.round(n).toLocaleString()}`;
 const nt = (n: number) => fmt(n, "NT$");
 
-export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
+export function OrderSourceAnalyticsTab({
+  accommodationId,
+  viewMode: viewModeProp,
+  selectedCurrency: selectedCurrencyProp,
+  exchangeRate: exchangeRateProp,
+}: Props) {
   const isTraveldays = accommodationId === TRAVELDAYS_ACC_ID;
+  const controlled = viewModeProp !== undefined;
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
@@ -85,11 +91,19 @@ export function OrderSourceAnalyticsTab({ accommodationId }: Props) {
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
 
-  // Traveldays 專屬：檢視模式與匯率
-  const [viewMode, setViewMode] = useState<"separate" | "consolidated">("separate");
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("TWD");
-  const [exchangeRate, setExchangeRate] = useState<number>(0.21); // 1 JPY = 0.21 TWD 預設
+  // Traveldays 專屬：檢視模式與匯率（未受控時使用內部 state）
+  const [innerViewMode, setInnerViewMode] = useState<"separate" | "consolidated">("separate");
+  const [innerSelectedCurrency, setInnerSelectedCurrency] = useState<string>("TWD");
+  const [innerExchangeRate, setInnerExchangeRate] = useState<number>(0.21);
   const [rateInput, setRateInput] = useState<string>("0.21");
+
+  const viewMode = viewModeProp ?? innerViewMode;
+  const selectedCurrency = selectedCurrencyProp ?? innerSelectedCurrency;
+  const exchangeRate = exchangeRateProp ?? innerExchangeRate;
+  const setViewMode = controlled ? () => {} : setInnerViewMode;
+  const setSelectedCurrency = controlled ? () => {} : setInnerSelectedCurrency;
+  const setExchangeRate = controlled ? () => {} : setInnerExchangeRate;
+
   // 點選來源後展開的明細（顯示哪些訂單的夜次貢獻此金額）
   // 值格式: "__all__" 或 "<source>" 或 "<source>:<ota>"
   const [detailKey, setDetailKey] = useState<string | null>(null);
