@@ -203,6 +203,104 @@ const BookingFlow = () => {
     address: "",
     notes: "",
   });
+
+  // Debounce Email 檢查
+  useEffect(() => {
+    const email = (guestInfo.email || "").trim().toLowerCase();
+    if (loggedInMember) { setEmailCheckStatus("idle"); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailCheckStatus("idle");
+      setEmailCheckedFor("");
+      setOtpSent(false);
+      return;
+    }
+    if (email === emailCheckedFor) return;
+    const t = setTimeout(async () => {
+      setEmailCheckStatus("checking");
+      try {
+        const { data, error } = await supabase.functions.invoke("check-member-email", { body: { email } });
+        if (error) throw error;
+        setEmailCheckedFor(email);
+        if (data?.exists) {
+          setEmailCheckStatus("exists");
+          setOtpSending(true);
+          const { error: otpErr } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+          setOtpSending(false);
+          if (!otpErr) setOtpSent(true);
+        } else {
+          setEmailCheckStatus("new");
+          setOtpSent(false);
+        }
+      } catch {
+        setEmailCheckStatus("idle");
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [guestInfo.email, loggedInMember, emailCheckedFor]);
+
+  const handleVerifyOtp = async () => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!otpCode || otpCode.length < 6) {
+      toast({ title: "請輸入 6 位數驗證碼", variant: "destructive" });
+      return;
+    }
+    setOtpVerifying(true);
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+    setOtpVerifying(false);
+    if (error || !data?.user) {
+      toast({ title: "驗證失敗", description: error?.message || "驗證碼錯誤或已過期", variant: "destructive" });
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("platform_members")
+      .select("id, user_id, name, email, phone")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+    if (profile) {
+      setLoggedInMember({ id: profile.user_id, name: profile.name || "", email: profile.email || email, phone: profile.phone || "" });
+      setGuestInfo(prev => ({
+        ...prev,
+        name: prev.name || profile.name || "",
+        phone: prev.phone || profile.phone || "",
+        email: profile.email || email,
+      }));
+    }
+    toast({ title: "驗證成功", description: "已登入會員" });
+  };
+
+  const handleQuickRegister = async (withPassword: boolean) => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!email) return;
+    if (withPassword && registerPassword.length < 8) {
+      toast({ title: "密碼至少 8 碼", variant: "destructive" });
+      return;
+    }
+    setRegisterSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("register-member-guest", {
+        body: {
+          email,
+          password: withPassword ? registerPassword : undefined,
+          name: guestInfo.name || undefined,
+          phone: guestInfo.phone || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setRegisteredMemberId(data.member_id);
+      setEmailCheckStatus("registered");
+      toast({
+        title: "註冊成功",
+        description: withPassword ? "驗證信已寄出，請至信箱確認" : "已為您建立會員，驗證信已寄出",
+      });
+    } catch (e: any) {
+      const msg = e?.message === "email_exists" ? "此 Email 已註冊，請改用登入" : (e?.message || "註冊失敗");
+      toast({ title: "註冊失敗", description: msg, variant: "destructive" });
+    } finally {
+      setRegisterSubmitting(false);
+    }
+  };
+
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
   const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
