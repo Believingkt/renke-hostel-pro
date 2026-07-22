@@ -178,6 +178,17 @@ const BookingFlow = () => {
   // 會員登入狀態
   const [loggedInMember, setLoggedInMember] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
 
+  // Email 先行驗證狀態
+  const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "exists" | "new" | "registered">("idle");
+  const [emailCheckedFor, setEmailCheckedFor] = useState<string>("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerSubmitting, setRegisterSubmitting] = useState(false);
+  const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
+
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
   const [selectedMealPlan, setSelectedMealPlan] = useState<string>("2_meals");
