@@ -264,7 +264,11 @@ export function PermissionTemplatesDialog({
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-sm">{t.name}</h3>
                             {t.is_system && <Badge variant="secondary" className="text-[10px]">系統預設</Badge>}
-                          </div>
+                            {t.accommodation_id === null && (
+                              <Badge variant="outline" className="text-[10px] gap-0.5">
+                                <Globe className="h-3 w-3" /> 全館通用
+                              </Badge>
+                            )}
                           {t.description && (
                             <p className="text-xs text-muted-foreground">{t.description}</p>
                           )}
