@@ -679,9 +679,9 @@ export function OrderSourceAnalyticsTab({
             ).map((r) => (
               <Button
                 key={r.k}
-                variant={rangeMode === r.k ? "secondary" : "ghost"}
+                variant={rangeMode === r.k ? "default" : "ghost"}
                 size="sm"
-                className="px-3"
+                className={`px-3 ${rangeMode === r.k ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" : "text-muted-foreground hover:bg-background"}`}
                 onClick={() => setRangeMode(r.k)}
               >
                 {r.label}
