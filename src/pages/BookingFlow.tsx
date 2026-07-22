@@ -2115,11 +2115,7 @@ const BookingFlow = () => {
   };
 
   const handlePrevStep = () => {
-    // 如果沒有加購方案則跳過 addons 步驟
-    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
-    const steps: BookingStep[] = hasAddons 
-      ? ["dates", "room", "addons", "guest", "payment", "confirm"]
-      : ["dates", "room", "guest", "payment", "confirm"];
+    const steps: BookingStep[] = ["dates", "room", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
