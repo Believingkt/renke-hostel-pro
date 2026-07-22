@@ -30,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Globe } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   STAFF_MODULES,
   DEFAULT_STAFF_PERMISSIONS,
@@ -45,6 +46,7 @@ interface Template {
   permissions: Record<string, ModulePermissionLevel>;
   is_system: boolean;
   display_order: number;
+  accommodation_id: string | null;
 }
 
 interface PermissionTemplatesDialogProps {
@@ -62,6 +64,7 @@ const emptyTemplate = (): Template => ({
   permissions: { ...DEFAULT_STAFF_PERMISSIONS },
   is_system: false,
   display_order: 0,
+  accommodation_id: null, // set on save based on isGlobal
 });
 
 export function PermissionTemplatesDialog({
@@ -86,7 +89,8 @@ export function PermissionTemplatesDialog({
     const { data, error } = await supabase
       .from("permission_templates")
       .select("*")
-      .eq("accommodation_id", accommodationId)
+      .or(`accommodation_id.eq.${accommodationId},accommodation_id.is.null`)
+      .order("accommodation_id", { ascending: true, nullsFirst: true })
       .order("display_order", { ascending: true });
     if (error) {
       toast.error("載入範本失敗");
@@ -100,6 +104,7 @@ export function PermissionTemplatesDialog({
       permissions: (r.permissions as any) ?? {},
       is_system: r.is_system,
       display_order: r.display_order,
+      accommodation_id: r.accommodation_id,
     })));
     setIsLoading(false);
   };
@@ -110,8 +115,9 @@ export function PermissionTemplatesDialog({
       toast.error("請輸入範本名稱");
       return;
     }
+    const isGlobal = editing.accommodation_id === null;
     const payload = {
-      accommodation_id: accommodationId,
+      accommodation_id: isGlobal ? null : accommodationId,
       name: editing.name.trim(),
       description: editing.description?.trim() || null,
       permissions: editing.permissions,
@@ -178,6 +184,24 @@ export function PermissionTemplatesDialog({
                   rows={2}
                 />
               </div>
+              <div className="flex items-start gap-2 rounded-md border p-3 bg-muted/30">
+                <Checkbox
+                  id="template-global"
+                  checked={editing.accommodation_id === null}
+                  disabled={editing.is_system}
+                  onCheckedChange={(v) =>
+                    setEditing({ ...editing, accommodation_id: v ? null : accommodationId })
+                  }
+                />
+                <div className="space-y-0.5 leading-tight">
+                  <label htmlFor="template-global" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" /> 套用至全館（所有民宿共用）
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    勾選後，此範本會出現在所有民宿的權限設定中，僅總部管理員可管理。
+                  </p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">模組權限</label>
                 {STAFF_MODULES.map((m) => (
@@ -240,6 +264,11 @@ export function PermissionTemplatesDialog({
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-sm">{t.name}</h3>
                             {t.is_system && <Badge variant="secondary" className="text-[10px]">系統預設</Badge>}
+                            {t.accommodation_id === null && (
+                              <Badge variant="outline" className="text-[10px] gap-0.5">
+                                <Globe className="h-3 w-3" /> 全館通用
+                              </Badge>
+                            )}
                           </div>
                           {t.description && (
                             <p className="text-xs text-muted-foreground">{t.description}</p>

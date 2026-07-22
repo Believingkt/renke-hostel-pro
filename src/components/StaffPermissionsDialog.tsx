@@ -66,7 +66,8 @@ export function StaffPermissionsDialog({
         supabase
           .from("permission_templates")
           .select("id, name, permissions")
-          .eq("accommodation_id", accommodationId)
+          .or(`accommodation_id.eq.${accommodationId},accommodation_id.is.null`)
+          .order("accommodation_id", { ascending: true, nullsFirst: true })
           .order("display_order", { ascending: true }),
         supabase
           .from("user_roles")
