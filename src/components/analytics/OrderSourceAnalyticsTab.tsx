@@ -28,7 +28,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 interface Props {
   accommodationId: string;
+  viewMode?: "separate" | "consolidated";
+  selectedCurrency?: string;
+  exchangeRate?: number;
 }
+
 
 type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
 
