@@ -618,7 +618,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                     確認定案
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="overflow-x-hidden">
                   <AlertDialogHeader>
                     <AlertDialogTitle>確認定案本期分配？</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -635,6 +635,39 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </AlertDialog>
             </div>
           )}
+          {isAdmin && isFinalized && canReset && (
+            <div className="flex justify-end">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={resetting || loading}
+                    className="text-destructive border-destructive hover:text-destructive"
+                  >
+                    重設本月資料
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="overflow-x-hidden">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>確認重設本月資料</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      將刪除 {year} 年 {month} 月 的所有分配記錄，需重新輸入。此操作無法復原。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleReset}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      確認刪除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground pt-2 border-t">
             團隊成員於成員管理頁面，根據「成交組」權限之 role 標籤，動態顯示所有成員。
           </p>
