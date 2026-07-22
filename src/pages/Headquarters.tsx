@@ -275,8 +275,15 @@ const Headquarters = () => {
     if (!error) setTemplates((data as any) || []);
   };
 
-  const getTemplatesFor = (accommodationId: string) =>
-    templates.filter((t) => t.accommodation_id === accommodationId);
+  const getTemplatesFor = (accommodationId: string) => {
+    // 民宿自訂範本 + 全館通用範本（accommodation_id 為 null），同名時民宿自訂優先
+    const own = templates.filter((t) => t.accommodation_id === accommodationId);
+    const ownNames = new Set(own.map((t) => t.name));
+    const global = templates.filter(
+      (t) => t.accommodation_id == null && !ownNames.has(t.name),
+    );
+    return [...own, ...global];
+  };
 
   const getTemplateName = (templateId?: string | null) =>
     templateId ? templates.find((t) => t.id === templateId)?.name : undefined;
