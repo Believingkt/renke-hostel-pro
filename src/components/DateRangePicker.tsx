@@ -17,9 +17,11 @@ interface DateRangePickerProps {
   onDateRangeChange: (range: DateRange | undefined) => void;
   className?: string;
   allowFutureDates?: boolean;
+  /** true 時：首次點擊視為入住(from)、第二次點擊視為退房(to)。第二次若早於首次自動對調。 */
+  restartOnComplete?: boolean;
 }
 
-export function DateRangePicker({ dateRange, onDateRangeChange, className, allowFutureDates = false }: DateRangePickerProps) {
+export function DateRangePicker({ dateRange, onDateRangeChange, className, allowFutureDates = false, restartOnComplete = false }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleReset = (e: React.MouseEvent) => {
