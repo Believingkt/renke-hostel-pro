@@ -3762,6 +3762,44 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         />
       )}
 
+      {/* 重新推送奧丁丁確認彈窗 */}
+      {order && (
+        <AlertDialog open={showRepushDialog} onOpenChange={setShowRepushDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>重新推送此訂單到奧丁丁？</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <div>系統將建立一筆 Modify 任務推送至奧丁丁，不會修改訂單本身。</div>
+                  <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                    <div><span className="text-muted-foreground">訂單編號：</span><span className="font-mono">{order.order_number}</span></div>
+                    <div><span className="text-muted-foreground">任務類型：</span>Modify（更新既有訂單）</div>
+                    <div><span className="text-muted-foreground">狀態：</span>pending（進入推送佇列）</div>
+                    <div><span className="text-muted-foreground">預估執行：</span>下一輪 cron，約 1 分鐘內</div>
+                  </div>
+                  <div className="text-muted-foreground">
+                    影響說明：奧丁丁端將以最新的訂單資料（房型、日期、金額、備註等）覆蓋，若對方已有此訂單則會被更新；訂單本體與 PMS 資料不會被異動。
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isRepushingOwlting}>取消</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isRepushingOwlting}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await handleRepushOwlting();
+                  setShowRepushDialog(false);
+                }}
+              >
+                {isRepushingOwlting ? "排入中..." : "確認推送"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       {/* 改期對話框 */}
       {order && (
         <ChangeOrderDatesDialog
