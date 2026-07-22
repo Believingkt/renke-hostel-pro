@@ -93,10 +93,6 @@ export function PermissionTemplatesDialog({
   const [editing, setEditing] = useState<Template | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Preview state
-  const [previewing, setPreviewing] = useState<Template | null>(null);
-  const [previewAccId, setPreviewAccId] = useState<string>(accommodationId);
-
   // Batch apply state
   const [batchSource, setBatchSource] = useState<Template | null>(null);
   const [batchTargets, setBatchTargets] = useState<Set<string>>(new Set());
@@ -106,14 +102,10 @@ export function PermissionTemplatesDialog({
     if (open && accommodationId) load();
     if (!open) {
       setEditing(null);
-      setPreviewing(null);
       setBatchSource(null);
     }
   }, [open, accommodationId]);
 
-  useEffect(() => {
-    setPreviewAccId(accommodationId);
-  }, [accommodationId]);
 
   const load = async () => {
     setIsLoading(true);
