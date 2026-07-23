@@ -81,6 +81,7 @@ import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import OrderSummarySidebar from "@/components/booking-flow/OrderSummarySidebar";
+import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
@@ -3390,6 +3391,16 @@ const BookingFlow = () => {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
+            <MobileOrderSummary
+              checkInDate={checkInDate}
+              checkOutDate={checkOutDate}
+              calculateNights={calculateNights}
+              totalGuests={totalGuests}
+              selectedRoom={selectedRoom}
+              calculateFinalTotal={calculateFinalTotal}
+              appliedDiscount={appliedDiscount}
+              calculateDiscount={calculateDiscount}
+            />
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
