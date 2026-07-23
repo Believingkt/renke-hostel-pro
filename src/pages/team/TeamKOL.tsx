@@ -714,6 +714,14 @@ function InvitationsTab({
         q = q.eq("accommodation_id", filterAcc.slice(4));
       } else if (filterAcc.startsWith("venue:")) {
         q = q.eq("venue_id", filterAcc.slice(6));
+      } else if (filterAcc.startsWith("group:")) {
+        const groupName = filterAcc.slice(6);
+        const venueIds = groupMap[groupName] ?? [];
+        if (venueIds.length > 0) {
+          q = q.in("venue_id", venueIds);
+        } else {
+          q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
+        }
       }
     }
     if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
