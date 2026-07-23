@@ -205,6 +205,7 @@ const BookingFlow = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
+  const checkInFlightRef = useRef<string | null>(null);
 
   // Email 檢查 / OTP / 註冊 handlers 在 guestInfo 宣告後定義（見下方）
 
