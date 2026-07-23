@@ -322,7 +322,8 @@ const BookingFlow = () => {
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
   const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
   // 押金 5000 付款方式：card（線上綁卡 / 沿用同張卡）| cash（現場現金）
-  const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("");
+  // 押金付款方式（UI 已移除，預設現場現金以維持既有流程）
+  const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("cash");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
