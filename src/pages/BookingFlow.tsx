@@ -3392,11 +3392,13 @@ const BookingFlow = () => {
           {/* Left: Form Content */}
           <div className="w-full">
             <MobileOrderSummary
+              accommodationName={accommodationName}
               checkInDate={checkInDate}
               checkOutDate={checkOutDate}
               calculateNights={calculateNights}
               totalGuests={totalGuests}
               selectedRoom={selectedRoom}
+              selectedTemplate={selectedTemplate}
               calculateFinalTotal={calculateFinalTotal}
               appliedDiscount={appliedDiscount}
               calculateDiscount={calculateDiscount}
