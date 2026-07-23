@@ -106,7 +106,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body: OrderValidationRequest = await req.json();
+    const body: OrderValidationRequest & { packageId?: string | null } = await req.json();
     
     const {
       accommodationId,
@@ -125,7 +125,8 @@ serve(async (req) => {
       customAddonDetails = null,
       childSelection = null,
       childExtraTotal = 0,
-    } = body;
+      packageId = null,
+    } = body as any;
 
     const errors: string[] = [];
     
