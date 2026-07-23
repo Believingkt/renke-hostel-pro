@@ -1229,6 +1229,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                         ))}
                       </TableBody>
                     </Table>
+                    </>
                   )}
                 </div>
               );
