@@ -388,10 +388,13 @@ const BookingFlow = () => {
         }
       } else {
         // 無密碼：切換至 OTP 驗證模式讓使用者完成登入
-        const { error: otpErr } = await supabase.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-        });
+        const wait = getOtpCooldown(email);
+        const { error: otpErr } = wait > 0
+          ? { error: null as any }
+          : await supabase.auth.signInWithOtp({
+              email,
+              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
+            });
         if (otpErr) {
           setEmailCheckStatus("registered");
           toast({
@@ -399,6 +402,7 @@ const BookingFlow = () => {
             description: otpErr.message || "驗證信已寄出，請至信箱確認",
           });
         } else {
+          if (wait === 0) markOtpSent(email);
           setEmailCheckStatus("exists");
           setOtpSent(true);
           setEmailCheckedFor(email);
