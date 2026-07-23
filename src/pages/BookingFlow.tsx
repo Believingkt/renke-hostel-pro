@@ -976,12 +976,17 @@ const BookingFlow = () => {
   //   3) ATM / 無付款 → 前端直接 insert orders
   const selectedPackageId = searchParams.get("packageId") || null;
 
-  // 載入所選包區方案的房型分配與尊榮禮遇（供手機版摘要顯示）
+  // 載入所選包區方案的房型分配、尊榮禮遇與價格（供手機版摘要與總價計算）
   const [selectedPackage, setSelectedPackage] = useState<{
     name: string | null;
     subtitle: string | null;
+    room_allocation: string | null;
     room_type_allocation: Array<{ room_type_id: string; qty: number }>;
     includes: Array<{ text: string; available: "yes" | "no" | "optional"; price_note?: string }>;
+    sale_price: number | null;
+    original_price: number | null;
+    tier_prices: Record<string, { sale?: number; original?: number }> | null;
+    applicable_tiers: string[] | null;
   } | null>(null);
 
   useEffect(() => {
@@ -993,25 +998,60 @@ const BookingFlow = () => {
     (async () => {
       const { data } = await supabase
         .from("accommodation_packages")
-        .select("name, subtitle, room_type_allocation, includes")
+        .select("name, subtitle, room_allocation, room_type_allocation, includes, sale_price, original_price, tier_prices, applicable_tiers")
         .eq("id", selectedPackageId)
         .maybeSingle();
       if (cancelled || !data) return;
+      const d = data as any;
       setSelectedPackage({
-        name: (data as any).name ?? null,
-        subtitle: (data as any).subtitle ?? null,
-        room_type_allocation: Array.isArray((data as any).room_type_allocation)
-          ? (data as any).room_type_allocation.filter(
+        name: d.name ?? null,
+        subtitle: d.subtitle ?? null,
+        room_allocation: typeof d.room_allocation === "string" ? d.room_allocation : null,
+        room_type_allocation: Array.isArray(d.room_type_allocation)
+          ? d.room_type_allocation.filter(
               (r: any) => r && typeof r.room_type_id === "string" && Number(r.qty) > 0
             )
           : [],
-        includes: Array.isArray((data as any).includes) ? (data as any).includes : [],
+        includes: Array.isArray(d.includes) ? d.includes : [],
+        sale_price: d.sale_price != null ? Number(d.sale_price) : null,
+        original_price: d.original_price != null ? Number(d.original_price) : null,
+        tier_prices: d.tier_prices && typeof d.tier_prices === "object" ? d.tier_prices : null,
+        applicable_tiers: Array.isArray(d.applicable_tiers) ? d.applicable_tiers : null,
       });
     })();
     return () => {
       cancelled = true;
     };
   }, [selectedPackageId]);
+
+  // 依日期取包區方案「每晚 sale」：週六 → tier_prices.weekend.sale；其餘 → sale_price
+  const getPackageNightlySale = (d: Date): number | null => {
+    if (!selectedPackage) return null;
+    const day = d.getDay();
+    const isWeekend = day === 6;
+    if (isWeekend && selectedPackage.tier_prices?.weekend?.sale != null) {
+      return Number(selectedPackage.tier_prices.weekend.sale);
+    }
+    return selectedPackage.sale_price;
+  };
+
+  // 依每晚 tier 計算包區方案總價
+  const calculatePackageTotal = (): number | null => {
+    if (!selectedPackage || !checkInDate || !checkOutDate) return null;
+    const nights = calculateNights();
+    if (nights <= 0) return null;
+    let total = 0;
+    let hasAny = false;
+    for (let i = 0; i < nights; i++) {
+      const d = new Date(checkInDate);
+      d.setDate(d.getDate() + i);
+      const nightly = getPackageNightlySale(d);
+      if (nightly == null) return null; // 無法計價 → 交由 room_inventory 邏輯
+      total += nightly;
+      hasAny = true;
+    }
+    return hasAny ? total : null;
+  };
 
   useEffect(() => {
     const roomId = searchParams.get("roomId");
