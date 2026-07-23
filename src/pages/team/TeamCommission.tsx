@@ -1171,6 +1171,21 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                     <div className="text-sm font-medium">合計 {formatMoney(g.total)}</div>
                   </button>
                   {isOpen && (
+                    <>
+                      {!readOnly && g.items.some((it) => !it.paid) && (
+                        <div className="flex justify-end px-4 py-2 border-b bg-background">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={markingMember === g.member_id}
+                            onClick={() => setConfirmMember(g)}
+                          >
+                            {markingMember === g.member_id
+                              ? "處理中…"
+                              : `標記 ${g.display_name} 全部已發放`}
+                          </Button>
+                        </div>
+                      )}
                     <Table>
                       <TableHeader>
                         <TableRow>
