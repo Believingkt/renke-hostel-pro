@@ -218,6 +218,7 @@ const BookingFlow = () => {
     email: "",
     address: "",
     notes: "",
+    eta: "",
   });
 
   // Debounce Email 檢查
