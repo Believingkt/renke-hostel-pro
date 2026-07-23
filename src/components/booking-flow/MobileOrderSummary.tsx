@@ -43,6 +43,7 @@ export default function MobileOrderSummary({
   selectedRoom,
   selectedPackage,
   roomTypes,
+  roomsCount,
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
@@ -55,8 +56,8 @@ export default function MobileOrderSummary({
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
-  // 房間搭配：依 room_type_allocation 組成「四人房×3」文字
-  const roomBreakdown =
+  // 房間搭配：優先使用套裝的 room_type_allocation，否則以所選房型 × 房間數 fallback
+  const allocationBreakdown =
     selectedPackage?.room_type_allocation
       ?.map((a) => {
         const rt = roomTypes?.find((r) => r.id === a.room_type_id);
@@ -65,6 +66,13 @@ export default function MobileOrderSummary({
       .filter(Boolean)
       .join("・") || "";
 
+  const fallbackBreakdown =
+    selectedRoom?.name && roomsCount && roomsCount > 0
+      ? `${selectedRoom.name}×${roomsCount}`
+      : "";
+
+  const roomBreakdown = allocationBreakdown || fallbackBreakdown;
+
   const includes = (selectedPackage?.includes || []).filter((i) => i?.text);
   const packageTitle = selectedPackage?.name || selectedRoom?.name;
   const perkTitle = selectedPackage?.subtitle || "尊榮禮遇";
@@ -72,11 +80,12 @@ export default function MobileOrderSummary({
   return (
     <div className="lg:hidden mb-4">
       <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-sm">
-        {/* 民宿名稱 */}
+        {/* 民宿名稱 - 放大並置中 */}
         {accommodationName && (
-          <div className="px-4 py-2.5 bg-primary/10 border-b border-border flex items-center gap-2">
-            <Home className="h-4 w-4 text-primary shrink-0" />
-            <p className="text-sm font-bold text-primary truncate">{accommodationName}</p>
+          <div className="px-4 py-4 bg-primary/10 border-b border-border text-center">
+            <p className="text-xl font-extrabold text-primary tracking-wide leading-tight">
+              {accommodationName}
+            </p>
           </div>
         )}
 
