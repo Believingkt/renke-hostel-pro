@@ -3391,6 +3391,16 @@ const BookingFlow = () => {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
+            <MobileOrderSummary
+              checkInDate={checkInDate}
+              checkOutDate={checkOutDate}
+              calculateNights={calculateNights}
+              totalGuests={totalGuests}
+              selectedRoom={selectedRoom}
+              calculateFinalTotal={calculateFinalTotal}
+              appliedDiscount={appliedDiscount}
+              calculateDiscount={calculateDiscount}
+            />
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
