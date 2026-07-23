@@ -183,6 +183,34 @@ export default function MobileOrderSummary({
           </div>
         )}
 
+        {/* 費用明細：房費 + 加購 */}
+        {((roomSubtotal && roomSubtotal > 0) || (addonLines && addonLines.length > 0)) && (
+          <div className="border-t border-border px-4 py-3 space-y-1.5">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+              PRICE BREAKDOWN
+            </p>
+            {roomSubtotal != null && roomSubtotal > 0 && (
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-foreground">房費（{nights} 晚）</span>
+                <span className="font-semibold text-foreground tabular-nums">
+                  NT$ {roomSubtotal.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {addonLines?.map((line, i) => (
+              <div key={i} className="flex items-baseline justify-between text-sm">
+                <span className="text-foreground">
+                  {line.label}
+                  <span className="text-muted-foreground ml-1">（{line.qty}）</span>
+                </span>
+                <span className="font-semibold text-foreground tabular-nums">
+                  NT$ {line.subtotal.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 折扣 */}
         {appliedDiscount && discount > 0 && (
           <div className="border-t border-border px-4 py-2.5">
