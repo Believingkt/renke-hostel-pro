@@ -683,21 +683,29 @@ function InvitationsTab({
 
     let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
 
-    if (filterAcc !== "all") {
-      if (filterAcc.startsWith("acc:")) {
-        q = q.eq("accommodation_id", filterAcc.slice(4));
-      } else if (filterAcc.startsWith("venue:")) {
-        q = q.eq("venue_id", filterAcc.slice(6));
-      } else if (filterAcc.startsWith("group:")) {
-        const groupName = filterAcc.slice(6);
-        const venueIds = groupMap[groupName] ?? [];
-        if (venueIds.length > 0) {
-          q = q.in("venue_id", venueIds);
-        } else {
-          q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
-        }
+    // 館別多選篩選：若全選（或未載入完成）→ 不加篩選
+    const allOptionValues = filterAccOptions.map((o) => o.value);
+    const isAllSelected =
+      allOptionValues.length > 0 && allOptionValues.every((v) => filterAccs.includes(v));
+    if (!isAllSelected && filterAccs.length > 0) {
+      const accIds: string[] = [];
+      const venueIds: string[] = [];
+      for (const v of filterAccs) {
+        if (v.startsWith("acc:")) accIds.push(v.slice(4));
+        else if (v.startsWith("venue:")) venueIds.push(v.slice(6));
+      }
+      if (accIds.length > 0 && venueIds.length > 0) {
+        q = q.or(`accommodation_id.in.(${accIds.join(",")}),venue_id.in.(${venueIds.join(",")})`);
+      } else if (accIds.length > 0) {
+        q = q.in("accommodation_id", accIds);
+      } else if (venueIds.length > 0) {
+        q = q.in("venue_id", venueIds);
+      } else {
+        // 選了但沒有可解析的值 → 空結果
+        q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
       }
     }
+
     if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
