@@ -2649,6 +2649,7 @@ const BookingFlow = () => {
             body: {
               accommodationId,
               roomTypeId: selectedRoom.id,
+              packageId: selectedPackageId,
               checkInDate: checkInDateStr,
               checkOutDate: checkOutDateStr,
               totalPrice,
