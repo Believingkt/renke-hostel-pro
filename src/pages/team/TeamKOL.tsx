@@ -1630,22 +1630,59 @@ function InvitationsTab({
           />
 
           <div className="grid grid-cols-2 gap-2">
-            <Select value={filterAcc} onValueChange={setFilterAcc}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="館別" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部館別</SelectItem>
-                {filterAccOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <span className="inline-flex items-center gap-2">
-                      <span>{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal">
+                  <span className="truncate">
+                    {filterAccOptions.length > 0 && filterAccs.length === filterAccOptions.length
+                      ? `全部（${filterAccOptions.length}）`
+                      : `已選 ${filterAccs.length} 個館別`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <div className="flex items-center justify-between border-b px-3 py-2 text-xs">
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => setFilterAccs(filterAccOptions.map((o) => o.value))}
+                  >
+                    全選
+                  </button>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:underline"
+                    onClick={() => setFilterAccs([])}
+                  >
+                    全清
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {filterAccOptions.map((opt) => {
+                    const checked = filterAccs.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setFilterAccs((prev) =>
+                              v ? [...prev, opt.value] : prev.filter((x) => x !== opt.value)
+                            );
+                          }}
+                        />
+                        <span className="flex-1 truncate">{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
 
             <Select value={filterScout} onValueChange={setFilterScout}>
               <SelectTrigger className="w-full">
