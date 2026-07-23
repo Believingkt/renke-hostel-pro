@@ -569,6 +569,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [groups, setGroups] = useState<MemberGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [bulkMarking, setBulkMarking] = useState(false);
+  const [markingMember, setMarkingMember] = useState<string | null>(null);
+  const [confirmMember, setConfirmMember] = useState<MemberGroup | null>(null);
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
