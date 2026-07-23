@@ -536,6 +536,23 @@ function InvitationsTab({
     return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
   }, [accommodations, venues]);
 
+  // 篩選器選項（群組 + 個別館別）
+  const filterAccOptions = useMemo<VenueOption[]>(() => {
+    const groupOpts: VenueOption[] = Object.keys(groupMap)
+      .sort((a, b) => a.localeCompare(b, "zh-Hant"))
+      .map((g) => ({
+        value: `group:${g}`,
+        label: `${g}（群組）`,
+        source: "venue",
+        badge: "群組",
+        accommodation_id: null,
+        venue_name: null,
+        venue_id: null,
+      }));
+    return [...groupOpts, ...accommodationOptions];
+  }, [groupMap, accommodationOptions]);
+
+
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   useEffect(() => {
