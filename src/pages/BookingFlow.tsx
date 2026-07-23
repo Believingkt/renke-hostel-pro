@@ -858,14 +858,18 @@ const BookingFlow = () => {
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
-    
+    const ciParam = searchParams.get("checkIn");
+    const coParam = searchParams.get("checkOut");
+
     if (roomId && roomTypes.length > 0 && !selectedRoom) {
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
-        // If dates are set, go to dates step for confirmation; otherwise go to dates
+        // 明確指定 step 優先；否則若已帶入 roomId + 日期，直接進入單頁結帳
         if (step && ["dates", "room", "addons", "guest", "payment", "confirm"].includes(step)) {
           setCurrentStep(step as BookingStep);
+        } else if (ciParam && coParam) {
+          setCurrentStep("payment");
         } else {
           setCurrentStep("dates");
         }
