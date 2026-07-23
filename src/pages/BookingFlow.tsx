@@ -4589,134 +4589,43 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 押金 5000 付款方式卡片 */}
+                    {/* 附屬細則與政策同意 */}
                     <Card className="border-2">
-                      <CardHeader className="pb-4">
+                      <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
-                          <CreditCard className="h-5 w-5 text-primary" />
-                          押金付款方式
+                          <AlertTriangle className="h-5 w-5 text-primary" />
+                          住宿規定與退訂政策
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}，退房確認房內各項設備正常後歸還
-                        </p>
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        {([
-                          { key: "cash", label: "現場現金", icon: Home, desc: "請於辦理入住時現場支付現金 5,000 元押金" },
-                          {
-                            key: "card",
-                            label: "線上綁卡",
-                            icon: CreditCard,
-                            desc: orderPaymentType === "credit_card"
-                              ? "沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
-                              : "請於下方輸入綁卡用信用卡資訊，入住前一天自動預刷",
-                          },
-                        ] as const).map((opt) => {
-                          const Icon = opt.icon;
-                          const selected = depositPaymentType === opt.key;
-                          return (
-                            <div
-                              key={opt.key}
-                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
-                                selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"
-                              }`}
-                              onClick={() => setDepositPaymentType(opt.key)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`rounded-full p-2 ${selected ? "bg-primary/20" : "bg-muted"}`}>
-                                  <Icon className={`h-5 w-5 ${selected ? "text-primary" : "text-muted-foreground"}`} />
-                                </div>
-                                <div className="flex-1">
-                                  <span className="font-medium text-base text-foreground">{opt.label}</span>
-                                  <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
-                                </div>
-                                {selected && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* TapPay 信用卡表單 - 訂單為 ATM 虛擬帳號且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
-                        {orderPaymentType === "atm" && depositPaymentType === "card" && (
-                          <div className="mt-4 p-4 border rounded-lg bg-card">
-                            <div className="mb-3">
-                              <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
-                              <p className="text-xs text-muted-foreground">
-                                此卡片僅供押金預刷使用，不會立即扣款。卡片資訊由 TapPay 安全加密處理
-                              </p>
-                            </div>
-                            {tappayConfigLoading ? (
-                              <div className="flex items-center justify-center py-8">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                <span className="ml-2 text-sm text-muted-foreground">取得付款設定...</span>
-                              </div>
-                            ) : tappayConfigError ? (
-                              <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>付款模組載入失敗</AlertTitle>
-                                <AlertDescription>
-                                  <p className="mb-3">{tappayConfigError}</p>
-                                  <Button type="button" variant="outline" size="sm" onClick={() => reloadTapPayConfig()}>
-                                    重新載入
-                                  </Button>
-                                </AlertDescription>
-                              </Alert>
-                            ) : !isTapPayReady ? (
-                              <div className="flex items-center justify-center py-8">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                <span className="ml-2 text-sm text-muted-foreground">載入付款表單...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="space-y-3">
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">卡號</Label>
-                                    <div id="card-number" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <Label className="text-xs text-muted-foreground">有效期限</Label>
-                                      <div id="card-expiration-date" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
-                                    </div>
-                                    <div>
-                                      <Label className="text-xs text-muted-foreground">安全碼</Label>
-                                      <div id="card-ccv" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {cardValid ? (
-                                  <div className="mt-3 flex items-center gap-2 text-sm text-success">
-                                    <CheckCircle className="h-4 w-4" />
-                                    <span>卡片資訊已驗證</span>
-                                  </div>
-                                ) : cardSubmitAttempted && cardFieldError ? (
-                                  <div className="mt-3 flex items-start gap-2 text-sm text-destructive">
-                                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                    <span>{cardFieldError}</span>
-                                  </div>
-                                ) : null}
-                              </>
-                            )}
-                          </div>
-                        )}
+                      <CardContent className="space-y-4">
+                        <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed space-y-2 max-h-56 overflow-y-auto rounded-md border bg-muted/30 p-3">
+                          <p>
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. 住宿條款以本頁面公告為準，
+                            入住時間、退房時間、房內設施使用規則等，請於入住前確認。
+                          </p>
+                          <p>
+                            Sed do eiusmod tempor incidunt — 取消政策：如需取消訂單，將依訂單日與入住日之
+                            間隔天數，扣除相應手續費，實際比例以最終確認頁與客服說明為準。
+                          </p>
+                          <p>
+                            Ut enim ad minim veniam, 個人資料處理將依隱私權政策辦理；提交本訂單即代表您
+                            同意我們基於訂房目的處理您所提供之聯絡資訊。
+                          </p>
+                        </div>
+                        <label className="flex items-start gap-3 cursor-pointer select-none">
+                          <Checkbox
+                            checked={agreedToTerms}
+                            onCheckedChange={(v) => setAgreedToTerms(v === true)}
+                            className="mt-0.5"
+                          />
+                          <span className="text-sm text-foreground">
+                            我已詳細閱讀並同意<span className="font-medium">住宿規定及退訂政策</span>
+                          </span>
+                        </label>
                       </CardContent>
                     </Card>
-
-                    {/* 提示資訊 */}
-                    {orderPaymentType && depositPaymentType && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                        <div className="flex gap-3">
-                          <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">付款方式已選擇</p>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}　|　押金：
-                              {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                )}
                   </div>
                 )}
 
