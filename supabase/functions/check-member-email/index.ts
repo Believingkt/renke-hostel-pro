@@ -20,28 +20,38 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { data: profile } = await admin
+    // 1) Primary check: platform_members
+    const { data: profile, error: profileErr } = await admin
       .from("platform_members")
       .select("id")
       .ilike("email", normalized)
       .maybeSingle();
+    if (profileErr) console.warn("platform_members lookup failed:", profileErr.message);
 
     let exists = !!profile;
 
+    // 2) Fallback: paginate auth.users and match in JS (SDK does not support server-side filter)
     if (!exists) {
-      // Fallback: check auth.users via admin.listUsers with email filter
       try {
-        // @ts-ignore - filter param is supported in newer SDKs
-        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1, filter: `email.eq.${normalized}` } as any);
-        const users = (list as any)?.users || [];
-        if (users.some((u: any) => (u.email || "").toLowerCase() === normalized)) {
-          exists = true;
+        const perPage = 200;
+        const maxPages = 25; // safety cap: 5000 users
+        for (let page = 1; page <= maxPages; page++) {
+          const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage });
+          if (listErr) {
+            console.warn("listUsers failed:", listErr.message);
+            break;
+          }
+          const users = (list as any)?.users || [];
+          if (users.some((u: any) => (u.email || "").toLowerCase() === normalized)) {
+            exists = true;
+            break;
+          }
+          if (users.length < perPage) break; // last page
         }
       } catch (e) {
-        console.warn("listUsers fallback failed:", (e as Error).message);
+        console.warn("listUsers fallback error:", (e as Error).message);
       }
     }
-
 
     return new Response(JSON.stringify({ exists }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
