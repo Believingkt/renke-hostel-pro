@@ -80,7 +80,7 @@ export default function OrderSummarySidebar(props: Props) {
   }
 
   return (
-    <div className="md:col-span-1">
+    <div className="hidden lg:block md:col-span-1">
       <Card className="sticky top-24">
         <CardHeader>
           <CardTitle className="text-lg">訂單摘要</CardTitle>
