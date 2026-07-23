@@ -2025,7 +2025,10 @@ function InvitationsTab({
               const parent = sortedRows.find((x) => x.id === viewingRow.primary_profile_id)
                 ?? groupedRows.primaries.find((x) => x.id === viewingRow.primary_profile_id);
               const parentVenue = parent?.venue_id ? venueByIdAll.get(parent.venue_id) : null;
-              const parentSubName = parentVenue?.name ?? parent?.venue_name ?? parent?._accommodation_name ?? "-";
+              let parentSubName = parentVenue?.name ?? parent?.venue_name ?? parent?._accommodation_name ?? "-";
+              if (parentVenue && parentVenue.room_type_id && parentVenue.is_active === false && parentVenue.accommodation_id) {
+                parentSubName = accommodations.find((a) => a.id === parentVenue.accommodation_id)?.name ?? parentSubName;
+              }
               return (
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                   <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
