@@ -13,6 +13,7 @@ import {
 import { CheckCircle, Clock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 
 interface GuestInfo {
   name: string;
