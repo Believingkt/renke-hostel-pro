@@ -218,7 +218,6 @@ const EMPTY_FORM: FormState = {
   follower_count_input: "",
   follower_count_original: null,
   primary_profile_id: null,
-  primary_sub_venue_id: "",
 
 };
 
