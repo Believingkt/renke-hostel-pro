@@ -3435,7 +3435,8 @@ const BookingFlow = () => {
               calculateNights={calculateNights}
               totalGuests={totalGuests}
               selectedRoom={selectedRoom}
-              selectedTemplate={selectedTemplate}
+              selectedPackage={selectedPackage}
+              roomTypes={roomTypes}
               calculateFinalTotal={calculateFinalTotal}
               appliedDiscount={appliedDiscount}
               calculateDiscount={calculateDiscount}
