@@ -1,6 +1,19 @@
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { Users, Bed, Tag, Utensils, Home } from "lucide-react";
+import { Users, Tag, Home, Check, X, Plus, Sparkles } from "lucide-react";
+
+interface PackageInclude {
+  text: string;
+  available: "yes" | "no" | "optional";
+  price_note?: string;
+}
+
+interface SelectedPackage {
+  name: string | null;
+  subtitle: string | null;
+  room_type_allocation: Array<{ room_type_id: string; qty: number }>;
+  includes: PackageInclude[];
+}
 
 interface Props {
   accommodationName?: string;
@@ -9,7 +22,8 @@ interface Props {
   calculateNights: () => number;
   totalGuests: number;
   selectedRoom: any;
-  selectedTemplate?: { template_name?: string; project_name?: string; mealCount?: number } | null;
+  selectedPackage?: SelectedPackage | null;
+  roomTypes?: Array<{ id: string; name: string }>;
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
@@ -17,7 +31,7 @@ interface Props {
 
 /**
  * Booking.com 風格的行動版訂單摘要卡片。
- * 顯示於單頁結帳最上方，取代原本置底的完整 sidebar。
+ * 顯示於單頁結帳最上方，包含民宿名稱、日期、房間搭配與尊榮禮遇內容。
  */
 export default function MobileOrderSummary({
   accommodationName,
@@ -26,7 +40,8 @@ export default function MobileOrderSummary({
   calculateNights,
   totalGuests,
   selectedRoom,
-  selectedTemplate,
+  selectedPackage,
+  roomTypes,
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
@@ -39,10 +54,19 @@ export default function MobileOrderSummary({
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
-  const mealCount = selectedTemplate?.mealCount ?? 0;
-  const mealLabel =
-    mealCount >= 3 ? "一泊三食" : mealCount === 2 ? "一泊二食" : mealCount === 1 ? "一泊一食" : "純住宿";
-  const packageLabel = selectedTemplate?.project_name || selectedTemplate?.template_name;
+  // 房間搭配：依 room_type_allocation 組成「四人房×3」文字
+  const roomBreakdown =
+    selectedPackage?.room_type_allocation
+      ?.map((a) => {
+        const rt = roomTypes?.find((r) => r.id === a.room_type_id);
+        return rt ? `${rt.name}×${a.qty}` : null;
+      })
+      .filter(Boolean)
+      .join("・") || "";
+
+  const includes = (selectedPackage?.includes || []).filter((i) => i?.text);
+  const packageTitle = selectedPackage?.name || selectedRoom?.name;
+  const perkTitle = selectedPackage?.subtitle || "尊榮禮遇";
 
   return (
     <div className="lg:hidden mb-4">
@@ -76,45 +100,76 @@ export default function MobileOrderSummary({
           </div>
         </div>
 
-        {/* 房型 + 餐食 */}
-        {selectedRoom && (
-          <div className="border-t border-border px-4 py-3 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold text-foreground leading-snug">
-                {selectedRoom.name}
+        {/* 房間搭配 */}
+        {(roomBreakdown || packageTitle) && (
+          <div className="border-t border-border px-4 py-3 space-y-1">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+              ROOM ALLOCATION
+            </p>
+            {roomBreakdown ? (
+              <p className="text-sm font-bold text-foreground leading-snug">
+                <span className="mr-1" aria-hidden>👆</span>
+                房間搭配：{roomBreakdown}
               </p>
-              <span className="shrink-0 text-xs text-muted-foreground">1 單位</span>
-            </div>
-            {packageLabel && (
-              <p className="text-xs text-muted-foreground leading-snug">方案：{packageLabel}</p>
+            ) : (
+              <p className="text-sm font-bold text-foreground leading-snug">{packageTitle}</p>
             )}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                {totalGuests} 人
-              </span>
-              {selectedRoom.max_guests && (
-                <span className="inline-flex items-center gap-1">
-                  <Bed className="h-3.5 w-3.5" />
-                  上限 {selectedRoom.max_guests} 人
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1">
-                <Utensils className="h-3.5 w-3.5" />
-                {mealLabel}
-              </span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
+              <Users className="h-3.5 w-3.5" />
+              <span>入住 {totalGuests} 人</span>
             </div>
-            {appliedDiscount && discount > 0 && (
-              <div className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1">
-                <Tag className="h-3 w-3" />
-                <span>已套用 {appliedDiscount.code}，折抵 NT$ {discount.toLocaleString()}</span>
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* 尊榮禮遇 */}
+        {includes.length > 0 && (
+          <div className="border-t border-border px-4 py-3 bg-muted/20 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <p className="text-sm font-bold text-foreground">{perkTitle}</p>
+            </div>
+            <ul className="space-y-1.5">
+              {includes.map((inc, i) => {
+                const Icon =
+                  inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
+                const iconColor =
+                  inc.available === "no"
+                    ? "hsl(var(--destructive))"
+                    : inc.available === "optional"
+                      ? "hsl(25, 70%, 45%)"
+                      : "hsl(var(--primary))";
+                const textCls =
+                  inc.available === "no"
+                    ? "text-muted-foreground line-through"
+                    : "text-foreground";
+                return (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: iconColor }} />
+                    <span className={`text-xs leading-snug ${textCls}`}>
+                      {inc.text}
+                      {inc.price_note && (
+                        <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* 折扣 */}
+        {appliedDiscount && discount > 0 && (
+          <div className="border-t border-border px-4 py-2.5">
+            <div className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1">
+              <Tag className="h-3 w-3" />
+              <span>已套用 {appliedDiscount.code}，折抵 NT$ {discount.toLocaleString()}</span>
+            </div>
           </div>
         )}
 
         {/* 總金額 */}
-        {selectedRoom && finalTotal > 0 && (
+        {finalTotal > 0 && (
           <div className="border-t border-border px-4 py-3 flex items-baseline justify-between bg-muted/30">
             <span className="text-sm text-muted-foreground">總金額</span>
             <span className="text-xl font-bold text-primary">

@@ -976,6 +976,43 @@ const BookingFlow = () => {
   //   3) ATM / 無付款 → 前端直接 insert orders
   const selectedPackageId = searchParams.get("packageId") || null;
 
+  // 載入所選包區方案的房型分配與尊榮禮遇（供手機版摘要顯示）
+  const [selectedPackage, setSelectedPackage] = useState<{
+    name: string | null;
+    subtitle: string | null;
+    room_type_allocation: Array<{ room_type_id: string; qty: number }>;
+    includes: Array<{ text: string; available: "yes" | "no" | "optional"; price_note?: string }>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedPackageId) {
+      setSelectedPackage(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_packages")
+        .select("name, subtitle, room_type_allocation, includes")
+        .eq("id", selectedPackageId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setSelectedPackage({
+        name: (data as any).name ?? null,
+        subtitle: (data as any).subtitle ?? null,
+        room_type_allocation: Array.isArray((data as any).room_type_allocation)
+          ? (data as any).room_type_allocation.filter(
+              (r: any) => r && typeof r.room_type_id === "string" && Number(r.qty) > 0
+            )
+          : [],
+        includes: Array.isArray((data as any).includes) ? (data as any).includes : [],
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPackageId]);
+
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
@@ -3398,7 +3435,8 @@ const BookingFlow = () => {
               calculateNights={calculateNights}
               totalGuests={totalGuests}
               selectedRoom={selectedRoom}
-              selectedTemplate={selectedTemplate}
+              selectedPackage={selectedPackage}
+              roomTypes={roomTypes}
               calculateFinalTotal={calculateFinalTotal}
               appliedDiscount={appliedDiscount}
               calculateDiscount={calculateDiscount}
