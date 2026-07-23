@@ -500,7 +500,6 @@ function InvitationsTab({
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
-  const [groupMap, setGroupMap] = useState<Record<string, string[]>>({});
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
@@ -536,21 +535,9 @@ function InvitationsTab({
     return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
   }, [accommodations, venues]);
 
-  // 篩選器選項（群組 + 個別館別）
-  const filterAccOptions = useMemo<VenueOption[]>(() => {
-    const groupOpts: VenueOption[] = Object.keys(groupMap)
-      .sort((a, b) => a.localeCompare(b, "zh-Hant"))
-      .map((g) => ({
-        value: `group:${g}`,
-        label: `${g}（群組）`,
-        source: "venue",
-        badge: "群組",
-        accommodation_id: null,
-        venue_name: null,
-        venue_id: null,
-      }));
-    return [...groupOpts, ...accommodationOptions];
-  }, [groupMap, accommodationOptions]);
+  // 篩選器選項（與 accommodationOptions 相同）
+  const filterAccOptions = accommodationOptions;
+
 
 
   const [search, setSearch] = useState("");
@@ -559,7 +546,16 @@ function InvitationsTab({
     const t = setTimeout(() => setSearch(searchInput), 150);
     return () => clearTimeout(t);
   }, [searchInput]);
-  const [filterAcc, setFilterAcc] = useState<string>("all");
+  const [filterAccs, setFilterAccs] = useState<string[]>([]);
+  const [filterAccsInitialized, setFilterAccsInitialized] = useState(false);
+  // 選項載入完成後預設全選一次
+  useEffect(() => {
+    if (!filterAccsInitialized && filterAccOptions.length > 0) {
+      setFilterAccs(filterAccOptions.map((o) => o.value));
+      setFilterAccsInitialized(true);
+    }
+  }, [filterAccOptions, filterAccsInitialized]);
+
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
@@ -610,7 +606,7 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes, groupRes] = await Promise.all([
+      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
         supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
@@ -626,23 +622,10 @@ function InvitationsTab({
           .from("kol_tags" as any)
           .select("name")
           .order("name"),
-        supabase
-          .from("kol_venue_settings" as any)
-          .select("venue_id, group_name")
-          .not("group_name", "is", null),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
-      {
-        const map: Record<string, string[]> = {};
-        for (const r of ((groupRes.data as any[]) ?? [])) {
-          const g = (r.group_name ?? "").trim();
-          const vid = r.venue_id;
-          if (!g || !vid) continue;
-          (map[g] ??= []).push(vid);
-        }
-        setGroupMap(map);
-      }
+
       {
         const seen = new Set<string>();
         const list: Scout[] = [];
@@ -709,21 +692,29 @@ function InvitationsTab({
 
     let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
 
-    if (filterAcc !== "all") {
-      if (filterAcc.startsWith("acc:")) {
-        q = q.eq("accommodation_id", filterAcc.slice(4));
-      } else if (filterAcc.startsWith("venue:")) {
-        q = q.eq("venue_id", filterAcc.slice(6));
-      } else if (filterAcc.startsWith("group:")) {
-        const groupName = filterAcc.slice(6);
-        const venueIds = groupMap[groupName] ?? [];
-        if (venueIds.length > 0) {
-          q = q.in("venue_id", venueIds);
-        } else {
-          q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
-        }
+    // 館別多選篩選：若全選（或未載入完成）→ 不加篩選
+    const allOptionValues = filterAccOptions.map((o) => o.value);
+    const isAllSelected =
+      allOptionValues.length > 0 && allOptionValues.every((v) => filterAccs.includes(v));
+    if (!isAllSelected && filterAccs.length > 0) {
+      const accIds: string[] = [];
+      const venueIds: string[] = [];
+      for (const v of filterAccs) {
+        if (v.startsWith("acc:")) accIds.push(v.slice(4));
+        else if (v.startsWith("venue:")) venueIds.push(v.slice(6));
+      }
+      if (accIds.length > 0 && venueIds.length > 0) {
+        q = q.or(`accommodation_id.in.(${accIds.join(",")}),venue_id.in.(${venueIds.join(",")})`);
+      } else if (accIds.length > 0) {
+        q = q.in("accommodation_id", accIds);
+      } else if (venueIds.length > 0) {
+        q = q.in("venue_id", venueIds);
+      } else {
+        // 選了但沒有可解析的值 → 空結果
+        q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
       }
     }
+
     if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
@@ -832,7 +823,7 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, groupMap]);
+  }, [accommodations, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -841,7 +832,8 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
@@ -1442,22 +1434,59 @@ function InvitationsTab({
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 max-w-[320px]"
             />
-            <Select value={filterAcc} onValueChange={setFilterAcc}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="館別" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部館別</SelectItem>
-                {filterAccOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <span className="inline-flex items-center gap-2">
-                      <span>{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-40 justify-between font-normal">
+                  <span className="truncate">
+                    {filterAccOptions.length > 0 && filterAccs.length === filterAccOptions.length
+                      ? `全部（${filterAccOptions.length}）`
+                      : `已選 ${filterAccs.length} 個館別`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <div className="flex items-center justify-between border-b px-3 py-2 text-xs">
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => setFilterAccs(filterAccOptions.map((o) => o.value))}
+                  >
+                    全選
+                  </button>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:underline"
+                    onClick={() => setFilterAccs([])}
+                  >
+                    全清
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {filterAccOptions.map((opt) => {
+                    const checked = filterAccs.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setFilterAccs((prev) =>
+                              v ? [...prev, opt.value] : prev.filter((x) => x !== opt.value)
+                            );
+                          }}
+                        />
+                        <span className="flex-1 truncate">{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <Select value={filterScout} onValueChange={setFilterScout}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="邀約人" />
@@ -1601,22 +1630,59 @@ function InvitationsTab({
           />
 
           <div className="grid grid-cols-2 gap-2">
-            <Select value={filterAcc} onValueChange={setFilterAcc}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="館別" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部館別</SelectItem>
-                {filterAccOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <span className="inline-flex items-center gap-2">
-                      <span>{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal">
+                  <span className="truncate">
+                    {filterAccOptions.length > 0 && filterAccs.length === filterAccOptions.length
+                      ? `全部（${filterAccOptions.length}）`
+                      : `已選 ${filterAccs.length} 個館別`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <div className="flex items-center justify-between border-b px-3 py-2 text-xs">
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => setFilterAccs(filterAccOptions.map((o) => o.value))}
+                  >
+                    全選
+                  </button>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:underline"
+                    onClick={() => setFilterAccs([])}
+                  >
+                    全清
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {filterAccOptions.map((opt) => {
+                    const checked = filterAccs.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setFilterAccs((prev) =>
+                              v ? [...prev, opt.value] : prev.filter((x) => x !== opt.value)
+                            );
+                          }}
+                        />
+                        <span className="flex-1 truncate">{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
 
             <Select value={filterScout} onValueChange={setFilterScout}>
               <SelectTrigger className="w-full">
