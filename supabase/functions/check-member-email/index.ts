@@ -29,13 +29,19 @@ Deno.serve(async (req) => {
     let exists = !!profile;
 
     if (!exists) {
-      // Fallback: check auth.users
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
-      // listUsers doesn't filter by email; use rpc-less query via admin.getUserByEmail if available
-      // @ts-ignore - getUserByEmail is available in newer SDKs
-      const byEmail = await (admin.auth.admin as any).getUserByEmail?.(normalized).catch(() => null);
-      if (byEmail?.data?.user) exists = true;
+      // Fallback: check auth.users via admin.listUsers with email filter
+      try {
+        // @ts-ignore - filter param is supported in newer SDKs
+        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1, filter: `email.eq.${normalized}` } as any);
+        const users = (list as any)?.users || [];
+        if (users.some((u: any) => (u.email || "").toLowerCase() === normalized)) {
+          exists = true;
+        }
+      } catch (e) {
+        console.warn("listUsers fallback failed:", (e as Error).message);
+      }
     }
+
 
     return new Response(JSON.stringify({ exists }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
