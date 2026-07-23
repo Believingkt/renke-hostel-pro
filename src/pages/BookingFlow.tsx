@@ -40,6 +40,7 @@ import {
   guestInfoSchema,
   bookingFlowDateSchema as dateValidationSchema,
 } from "@/lib/schemas/booking";
+import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { isTemplateActiveForDates, getTierForDate, hasSegments as templateHasSegments } from "@/utils/pricingTemplateHelpers";
@@ -204,6 +205,7 @@ const BookingFlow = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
+  const checkInFlightRef = useRef<string | null>(null);
 
   // Email 檢查 / OTP / 註冊 handlers 在 guestInfo 宣告後定義（見下方）
 
@@ -234,6 +236,9 @@ const BookingFlow = () => {
     // Guard: 已檢查過同一 email 就跳過（無論狀態），避免覆蓋 registered
     if (email === emailCheckedFor) return;
     const t = setTimeout(async () => {
+      // Prevent concurrent duplicate calls for same email
+      if (checkInFlightRef.current === email) return;
+      checkInFlightRef.current = email;
       setEmailCheckStatus("checking");
       try {
         const { data, error } = await supabase.functions.invoke("check-member-email", { body: { email } });
@@ -241,22 +246,33 @@ const BookingFlow = () => {
         setEmailCheckedFor(email);
         if (data?.exists) {
           setEmailCheckStatus("exists");
-          setOtpSending(true);
-          const { error: otpErr } = await supabase.auth.signInWithOtp({
-            email,
-            options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-          });
-          setOtpSending(false);
-          if (otpErr) {
-            toast({
-              title: "驗證碼寄送失敗",
-              description: otpErr.message?.includes("not confirmed")
-                ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證"
-                : (otpErr.message || "請稍後再試"),
-              variant: "destructive",
-            });
-          } else {
+          // Throttle: skip send if within cooldown / hourly cap
+          const wait = getOtpCooldown(email);
+          if (wait > 0) {
             setOtpSent(true);
+            toast({
+              title: "驗證碼稍候可再寄送",
+              description: `為避免超過寄送限制，請 ${wait} 秒後再試，或直接輸入先前收到的驗證碼`,
+            });
+          } else if (!otpSending) {
+            setOtpSending(true);
+            const { error: otpErr } = await supabase.auth.signInWithOtp({
+              email,
+              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
+            });
+            setOtpSending(false);
+            if (otpErr) {
+              toast({
+                title: "驗證碼寄送失敗",
+                description: otpErr.message?.includes("not confirmed")
+                  ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證"
+                  : (otpErr.message || "請稍後再試"),
+                variant: "destructive",
+              });
+            } else {
+              markOtpSent(email);
+              setOtpSent(true);
+            }
           }
         } else {
           setEmailCheckStatus("new");
@@ -265,8 +281,10 @@ const BookingFlow = () => {
       } catch (e: any) {
         setEmailCheckStatus("idle");
         toast({ title: "無法驗證此 Email", description: e?.message || "請稍後再試", variant: "destructive" });
+      } finally {
+        if (checkInFlightRef.current === email) checkInFlightRef.current = null;
       }
-    }, 600);
+    }, 800);
     return () => clearTimeout(t);
   }, [guestInfo.email, loggedInMember, emailCheckedFor, toast]);
 
@@ -370,10 +388,13 @@ const BookingFlow = () => {
         }
       } else {
         // 無密碼：切換至 OTP 驗證模式讓使用者完成登入
-        const { error: otpErr } = await supabase.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-        });
+        const wait = getOtpCooldown(email);
+        const { error: otpErr } = wait > 0
+          ? { error: null as any }
+          : await supabase.auth.signInWithOtp({
+              email,
+              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
+            });
         if (otpErr) {
           setEmailCheckStatus("registered");
           toast({
@@ -381,6 +402,7 @@ const BookingFlow = () => {
             description: otpErr.message || "驗證信已寄出，請至信箱確認",
           });
         } else {
+          if (wait === 0) markOtpSent(email);
           setEmailCheckStatus("exists");
           setOtpSent(true);
           setEmailCheckedFor(email);

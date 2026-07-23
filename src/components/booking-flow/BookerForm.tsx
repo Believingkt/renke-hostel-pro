@@ -13,6 +13,7 @@ import {
 import { CheckCircle, Clock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 
 interface GuestInfo {
   name: string;
@@ -189,20 +190,33 @@ export default function BookerForm(props: Props) {
                 </div>
                 <button
                   type="button"
-                  className="text-xs text-blue-700 underline"
+                  className="text-xs text-blue-700 underline disabled:opacity-50"
                   onClick={async () => {
+                    const email = guestInfo.email.trim().toLowerCase();
+                    const wait = getOtpCooldown(email);
+                    if (wait > 0) {
+                      toast({
+                        title: "請稍候再試",
+                        description: `為避免超過寄送限制，請 ${wait} 秒後再重新寄送`,
+                        variant: "destructive",
+                      });
+                      return;
+                    }
                     setOtpSending(true);
                     const { error } = await supabase.auth.signInWithOtp({
-                      email: guestInfo.email.trim().toLowerCase(),
+                      email,
                       options: { shouldCreateUser: false },
                     });
                     setOtpSending(false);
                     if (!error) {
+                      markOtpSent(email);
                       setOtpSent(true);
                       toast({ title: "驗證碼已重新寄出" });
+                    } else {
+                      toast({ title: "寄送失敗", description: error.message, variant: "destructive" });
                     }
                   }}
-                  disabled={otpSending}
+                  disabled={otpSending || otpVerifying}
                 >
                   重新寄送驗證碼
                 </button>
