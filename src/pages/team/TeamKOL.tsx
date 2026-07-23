@@ -5405,16 +5405,19 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       if (g) groupSet.add(g);
     });
     setGroupNameOptions(Array.from(groupSet).sort((a, b) => a.localeCompare(b, "zh-Hant")));
-    const enriched: VenueRow[] = ((venueRows ?? []) as any[]).map((v) => ({
-      id: v.id,
-      name: v.name,
-      type: v.type,
-      is_active: v.is_active,
-      accommodation_id: v.accommodation_id ?? null,
-      room_type_id: v.room_type_id ?? null,
-      parent_name: v.accommodation_id ? accNameMap.get(v.accommodation_id) ?? null : null,
-      hasSettings: settingsSet.has(v.id),
-    }));
+    const enriched: VenueRow[] = ((venueRows ?? []) as any[])
+      // 子館別（room_type_id 有值）已停用；場域管理只顯示母館 / 外部場域
+      .filter((v) => !v.room_type_id)
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        type: v.type,
+        is_active: v.is_active,
+        accommodation_id: v.accommodation_id ?? null,
+        room_type_id: v.room_type_id ?? null,
+        parent_name: v.accommodation_id ? accNameMap.get(v.accommodation_id) ?? null : null,
+        hasSettings: settingsSet.has(v.id),
+      }));
     setRows(enriched);
     setLoading(false);
   }, []);
