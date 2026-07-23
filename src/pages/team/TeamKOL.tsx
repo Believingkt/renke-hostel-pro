@@ -183,7 +183,6 @@ interface FormState {
   follower_count_input: string;
   follower_count_original: number | null;
   primary_profile_id: string | null;
-  primary_sub_venue_id: string;
 }
 
 const EMPTY_FORM: FormState = {
