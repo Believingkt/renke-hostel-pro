@@ -54,6 +54,8 @@ export default function MobileOrderSummary({
   roomAllocation,
   roomTypes,
   roomsCount,
+  roomSubtotal,
+  addonLines,
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
