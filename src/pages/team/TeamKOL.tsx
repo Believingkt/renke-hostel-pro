@@ -183,7 +183,6 @@ interface FormState {
   follower_count_input: string;
   follower_count_original: number | null;
   primary_profile_id: string | null;
-  primary_sub_venue_id: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -219,7 +218,6 @@ const EMPTY_FORM: FormState = {
   follower_count_input: "",
   follower_count_original: null,
   primary_profile_id: null,
-  primary_sub_venue_id: "",
 
 };
 
@@ -768,9 +766,12 @@ function InvitationsTab({
     const venueById = new Map(venues.map((v) => [v.id, v]));
     const resolveVenueDisplay = (r: any): string => {
       const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
-      if (vRow && vRow.room_type_id) {
-        const parentName = r.accommodation_id ? accMap.get(r.accommodation_id) : null;
-        return parentName ? `${vRow.name}（${parentName}）` : vRow.name;
+      if (vRow) {
+        // 若子館別已停用，fallback 顯示母館名稱
+        if (vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+          return accMap.get(vRow.accommodation_id) ?? vRow.name ?? "-";
+        }
+        return vRow.name ?? "-";
       }
       return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
     };
@@ -1073,11 +1074,6 @@ function InvitationsTab({
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
-      primary_sub_venue_id: (() => {
-        if (!row.venue_id) return "";
-        const vRow = venues.find((v) => v.id === row.venue_id);
-        return vRow?.room_type_id ? row.venue_id : "";
-      })(),
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -1091,16 +1087,6 @@ function InvitationsTab({
     if (!form.accommodation_id && !form.venue_id) {
       toast.error("請選擇館別");
       return;
-    }
-    // 子館別必填：若母館底下有子館別，必須選一個
-    if (form.accommodation_id) {
-      const hasChildren = venues.some(
-        (v) => v.accommodation_id === form.accommodation_id && v.room_type_id,
-      );
-      if (hasChildren && !form.primary_sub_venue_id) {
-        toast.error("請選擇子館別");
-        return;
-      }
     }
     if (!form.name.trim()) {
       toast.error("請輸入 KOL 名稱");
@@ -1131,8 +1117,8 @@ function InvitationsTab({
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
       : form.venue_name || null;
-    // 解析 venue_id：優先用 primary_sub_venue_id（子館別），再退回 form.venue_id / PMS 母館
-    let resolvedVenueId: string | null = form.primary_sub_venue_id || form.venue_id || null;
+    // 解析 venue_id：優先用 form.venue_id / PMS 母館
+    let resolvedVenueId: string | null = form.venue_id || null;
     if (!resolvedVenueId && form.accommodation_id) {
       const v = venues.find((x) => x.accommodation_id === form.accommodation_id && !x.room_type_id);
       resolvedVenueId = v?.id ?? null;
@@ -1939,7 +1925,10 @@ function InvitationsTab({
 
                   const renderSubRow = (sub: KolRow) => {
                     const vRow = sub.venue_id ? venueByIdAll.get(sub.venue_id) : null;
-                    const subVenueName = vRow?.name ?? sub.venue_name ?? "-";
+                    let subVenueName = vRow?.name ?? sub.venue_name ?? "-";
+                    if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+                      subVenueName = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? subVenueName;
+                    }
                     const contractStatus = computeContractProgress(sub.publish_url, sub.publish_date, sub.contract_file_url);
                     return (
                       <TableRow
@@ -2036,7 +2025,10 @@ function InvitationsTab({
               const parent = sortedRows.find((x) => x.id === viewingRow.primary_profile_id)
                 ?? groupedRows.primaries.find((x) => x.id === viewingRow.primary_profile_id);
               const parentVenue = parent?.venue_id ? venueByIdAll.get(parent.venue_id) : null;
-              const parentSubName = parentVenue?.name ?? parent?.venue_name ?? parent?._accommodation_name ?? "-";
+              let parentSubName = parentVenue?.name ?? parent?.venue_name ?? parent?._accommodation_name ?? "-";
+              if (parentVenue && parentVenue.room_type_id && parentVenue.is_active === false && parentVenue.accommodation_id) {
+                parentSubName = accommodations.find((a) => a.id === parentVenue.accommodation_id)?.name ?? parentSubName;
+              }
               return (
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                   <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
@@ -2511,17 +2503,12 @@ function InvitationsTab({
                 onValueChange={(v) => {
                   const opt = accommodationOptions.find((o) => o.value === v);
                   const nextAccId = opt?.accommodation_id ?? "";
-                  // 若母館底下有子館別，預設選第一個
-                  const firstChild = nextAccId
-                    ? venues.find((x) => x.accommodation_id === nextAccId && x.room_type_id)
-                    : null;
                   setForm({
                     ...form,
                     accommodation_select: v,
                     accommodation_id: nextAccId,
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
-                    primary_sub_venue_id: firstChild?.id ?? "",
                   });
                 }}
               >
@@ -2541,28 +2528,7 @@ function InvitationsTab({
               </Select>
             </Field>
 
-            {form.accommodation_id && venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id) && (
-              <Field label="子館別 *">
-                <Select
-                  value={form.primary_sub_venue_id || ""}
-                  onValueChange={(v) => setForm({ ...form, primary_sub_venue_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇子館別" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venues
-                      .filter((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
-                      .map((v) => (
-                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  此館別下有多個子館別，請選擇實際入住的子館別
-                </p>
-              </Field>
-            )}
+
 
 
 
