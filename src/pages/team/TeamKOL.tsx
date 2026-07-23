@@ -547,6 +547,15 @@ function InvitationsTab({
     return () => clearTimeout(t);
   }, [searchInput]);
   const [filterAccs, setFilterAccs] = useState<string[]>([]);
+  const [filterAccsInitialized, setFilterAccsInitialized] = useState(false);
+  // 選項載入完成後預設全選一次
+  useEffect(() => {
+    if (!filterAccsInitialized && filterAccOptions.length > 0) {
+      setFilterAccs(filterAccOptions.map((o) => o.value));
+      setFilterAccsInitialized(true);
+    }
+  }, [filterAccOptions, filterAccsInitialized]);
+
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
