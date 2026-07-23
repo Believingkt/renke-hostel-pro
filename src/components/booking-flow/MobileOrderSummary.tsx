@@ -156,7 +156,7 @@ export default function MobileOrderSummary({
             )}
             <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
               <Users className="h-3.5 w-3.5" />
-              <span>入住 {totalGuests} 人</span>
+              <span>{guestLabel}</span>
             </div>
           </div>
         )}
