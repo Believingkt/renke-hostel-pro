@@ -84,7 +84,10 @@ export default function TeamCommission() {
   const isFinance = roles.includes("finance");
   const canAccess = isAdmin || isScoutManager || isFinance;
   const scoutManagerOnly = !isAdmin && isScoutManager;
-  const financeReadOnly = isFinance && !isAdmin;
+  // finance 現在可以在「發放管理」標記已發放（單筆 / 個人批次 / 一鍵全部）
+  // 但在其他 Tab（結算規則、加倍活動）仍維持唯讀，只是這裡先開放給 PayoutsBlock。
+  void isFinance;
+  const financeReadOnly = false;
 
   if (!canAccess) {
     return (
