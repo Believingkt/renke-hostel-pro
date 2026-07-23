@@ -1882,8 +1882,12 @@ const BookingFlow = () => {
 
   const calculateTotal = () => {
     if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
-    
-    // 使用預先獲取的價格
+
+    // 若為包區方案，優先以方案的每晚 sale（週末 tier_prices.weekend.sale，其餘 sale_price）計算
+    const packageTotal = calculatePackageTotal();
+    if (packageTotal != null) return packageTotal;
+
+    // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）
     return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
   };
 
