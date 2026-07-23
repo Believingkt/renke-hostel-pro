@@ -3,6 +3,7 @@
 export interface PriceValidationInput {
   accommodationId: string;
   roomTypeId: string;
+  packageId?: string | null;
   checkInDate: string;
   checkOutDate: string;
   totalPrice: number;
@@ -36,6 +37,7 @@ export async function validateOrderPrices(
       body: JSON.stringify({
         accommodationId: input.accommodationId,
         roomTypeId: input.roomTypeId,
+        packageId: input.packageId || null,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,
         totalPrice: input.totalPrice,

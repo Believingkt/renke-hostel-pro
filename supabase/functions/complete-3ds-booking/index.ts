@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       const validationPayload = {
         accommodationId: body.accommodationId,
         roomTypeId: body.selectedRoom.id,
+        packageId: (body as any).packageId || null,
         checkInDate: body.checkInDate,
         checkOutDate: body.checkOutDate,
         totalPrice: totalPrice,
