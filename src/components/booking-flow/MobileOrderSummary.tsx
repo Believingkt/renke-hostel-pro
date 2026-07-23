@@ -23,6 +23,7 @@ interface Props {
   totalGuests: number;
   selectedRoom: any;
   selectedPackage?: SelectedPackage | null;
+  roomAllocation?: string | null;
   roomTypes?: Array<{ id: string; name: string }>;
   roomsCount?: number;
   calculateFinalTotal: () => number;
@@ -42,6 +43,7 @@ export default function MobileOrderSummary({
   totalGuests,
   selectedRoom,
   selectedPackage,
+  roomAllocation,
   roomTypes,
   roomsCount,
   calculateFinalTotal,
@@ -56,7 +58,10 @@ export default function MobileOrderSummary({
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
-  // 房間搭配：優先使用套裝的 room_type_allocation，否則以所選房型 × 房間數 fallback
+  // 房間搭配：優先使用套裝的 room_allocation 文字（例：四人房x3），
+  // 其次用 room_type_allocation 明細，最後 fallback 到「所選房型×房間數」
+  const packageAllocationText = roomAllocation && roomAllocation.trim() ? roomAllocation.trim() : "";
+
   const allocationBreakdown =
     selectedPackage?.room_type_allocation
       ?.map((a) => {
@@ -71,7 +76,7 @@ export default function MobileOrderSummary({
       ? `${selectedRoom.name}×${roomsCount}`
       : "";
 
-  const roomBreakdown = allocationBreakdown || fallbackBreakdown;
+  const roomBreakdown = packageAllocationText || allocationBreakdown || fallbackBreakdown;
 
   const includes = (selectedPackage?.includes || []).filter((i) => i?.text);
   const packageTitle = selectedPackage?.name || selectedRoom?.name;

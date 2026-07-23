@@ -3480,6 +3480,7 @@ const BookingFlow = () => {
               totalGuests={totalGuests}
               selectedRoom={selectedRoom}
               selectedPackage={selectedPackage}
+              roomAllocation={selectedPackage?.room_allocation || null}
               roomTypes={roomTypes}
               roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
               calculateFinalTotal={calculateFinalTotal}
