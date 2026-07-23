@@ -546,7 +546,7 @@ function InvitationsTab({
     const t = setTimeout(() => setSearch(searchInput), 150);
     return () => clearTimeout(t);
   }, [searchInput]);
-  const [filterAcc, setFilterAcc] = useState<string>("all");
+  const [filterAccs, setFilterAccs] = useState<string[]>([]);
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
