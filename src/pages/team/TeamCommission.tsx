@@ -1238,6 +1238,30 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
         )}
       </CardContent>
+
+      <AlertDialog open={!!confirmMember} onOpenChange={(open) => !open && setConfirmMember(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>標記全部已發放</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmMember
+                ? `確定將 ${confirmMember.display_name} 的所有待發放項目（${confirmMember.items.filter((i) => !i.paid).length} 筆）標記為已發放？`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmMember) markMemberAll(confirmMember);
+              }}
+            >
+              確認標記
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
