@@ -27,6 +27,10 @@ interface Props {
   checkOutDate: Date | null;
   calculateNights: () => number;
   totalGuests: number;
+  adultsCount?: number;
+  childrenCount?: number;
+  infantsCount?: number;
+  toddlersCount?: number;
   selectedRoom: any;
   selectedPackage?: SelectedPackage | null;
   roomAllocation?: string | null;
