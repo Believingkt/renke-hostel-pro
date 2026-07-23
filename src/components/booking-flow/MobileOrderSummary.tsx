@@ -15,6 +15,12 @@ interface SelectedPackage {
   includes: PackageInclude[];
 }
 
+interface AddonLine {
+  label: string;
+  qty: string;
+  subtotal: number;
+}
+
 interface Props {
   accommodationName?: string;
   checkInDate: Date | null;
@@ -26,6 +32,8 @@ interface Props {
   roomAllocation?: string | null;
   roomTypes?: Array<{ id: string; name: string }>;
   roomsCount?: number;
+  roomSubtotal?: number;
+  addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
