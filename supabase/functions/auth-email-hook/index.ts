@@ -13,7 +13,23 @@ Deno.serve(async (req) => {
     console.log("Auth email hook received:", JSON.stringify({ type: payload.type, email: payload.email }));
 
     // Extract data from the auth webhook payload
-    const { type, email, confirmation_url, token, new_email } = payload;
+    // Supabase send email hook payload shape:
+    //   { user: { email, ... }, email_data: { token, token_hash, redirect_to, email_action_type, site_url } }
+    // Legacy fallback: flat { type, email, confirmation_url, token, new_email }
+    const userObj = payload.user || {};
+    const emailData = payload.email_data || {};
+    const type = payload.type || emailData.email_action_type;
+    const email = payload.email || userObj.email;
+    const token = payload.token || emailData.token;
+    const tokenHash = emailData.token_hash;
+    const redirectTo = emailData.redirect_to || payload.redirect_to;
+    const siteUrl = emailData.site_url || payload.site_url || Deno.env.get("SUPABASE_URL");
+    let confirmation_url: string | undefined = payload.confirmation_url;
+    if (!confirmation_url && tokenHash && type && siteUrl) {
+      const redirectParam = redirectTo ? `&redirect_to=${encodeURIComponent(redirectTo)}` : "";
+      confirmation_url = `${siteUrl}/auth/v1/verify?token=${tokenHash}&type=${type}${redirectParam}`;
+    }
+    const new_email = payload.new_email || userObj.new_email;
 
     if (!email || !type) {
       return new Response(JSON.stringify({ error: "Missing type or email" }), {
@@ -27,6 +43,7 @@ Deno.serve(async (req) => {
       signup: "signup",
       recovery: "recovery",
       magiclink: "magiclink",
+      magic_link: "magiclink",
       invite: "invite",
       email_change: "email_change",
       reauthentication: "reauthentication",
@@ -45,6 +62,7 @@ Deno.serve(async (req) => {
     if (confirmation_url) templateData.confirmationUrl = confirmation_url;
     if (token) templateData.token = token;
     if (new_email) templateData.newEmail = new_email;
+
 
     // Call our send-resend-email function
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
