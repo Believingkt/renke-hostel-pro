@@ -3437,6 +3437,7 @@ const BookingFlow = () => {
               selectedRoom={selectedRoom}
               selectedPackage={selectedPackage}
               roomTypes={roomTypes}
+              roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
               calculateFinalTotal={calculateFinalTotal}
               appliedDiscount={appliedDiscount}
               calculateDiscount={calculateDiscount}
