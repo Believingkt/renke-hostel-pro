@@ -1448,7 +1448,7 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部館別</SelectItem>
-                {accommodationOptions.map((opt) => (
+                {filterAccOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <span className="inline-flex items-center gap-2">
                       <span>{opt.label}</span>
@@ -1607,7 +1607,7 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部館別</SelectItem>
-                {accommodationOptions.map((opt) => (
+                {filterAccOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <span className="inline-flex items-center gap-2">
                       <span>{opt.label}</span>
