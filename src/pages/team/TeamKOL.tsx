@@ -1925,7 +1925,10 @@ function InvitationsTab({
 
                   const renderSubRow = (sub: KolRow) => {
                     const vRow = sub.venue_id ? venueByIdAll.get(sub.venue_id) : null;
-                    const subVenueName = vRow?.name ?? sub.venue_name ?? "-";
+                    let subVenueName = vRow?.name ?? sub.venue_name ?? "-";
+                    if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+                      subVenueName = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? subVenueName;
+                    }
                     const contractStatus = computeContractProgress(sub.publish_url, sub.publish_date, sub.contract_file_url);
                     return (
                       <TableRow
