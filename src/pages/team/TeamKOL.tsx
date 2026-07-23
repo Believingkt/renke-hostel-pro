@@ -2494,17 +2494,12 @@ function InvitationsTab({
                 onValueChange={(v) => {
                   const opt = accommodationOptions.find((o) => o.value === v);
                   const nextAccId = opt?.accommodation_id ?? "";
-                  // 若母館底下有子館別，預設選第一個
-                  const firstChild = nextAccId
-                    ? venues.find((x) => x.accommodation_id === nextAccId && x.room_type_id)
-                    : null;
                   setForm({
                     ...form,
                     accommodation_select: v,
                     accommodation_id: nextAccId,
                     venue_id: opt?.venue_id ?? "",
                     venue_name: opt?.venue_name ?? "",
-                    primary_sub_venue_id: firstChild?.id ?? "",
                   });
                 }}
               >
@@ -2524,28 +2519,7 @@ function InvitationsTab({
               </Select>
             </Field>
 
-            {form.accommodation_id && venues.some((v) => v.accommodation_id === form.accommodation_id && v.room_type_id) && (
-              <Field label="子館別 *">
-                <Select
-                  value={form.primary_sub_venue_id || ""}
-                  onValueChange={(v) => setForm({ ...form, primary_sub_venue_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇子館別" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venues
-                      .filter((v) => v.accommodation_id === form.accommodation_id && v.room_type_id)
-                      .map((v) => (
-                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  此館別下有多個子館別，請選擇實際入住的子館別
-                </p>
-              </Field>
-            )}
+
 
 
 
