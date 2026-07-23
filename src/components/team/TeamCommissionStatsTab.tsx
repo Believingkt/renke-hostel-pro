@@ -377,7 +377,7 @@ export default function TeamCommissionStatsTab() {
             supabase
               .from("order_meta")
               .select(
-                "order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source",
+                "order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source, team_commission_price",
               )
               .in("order_id", chunk),
           ),
