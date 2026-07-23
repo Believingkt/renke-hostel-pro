@@ -500,6 +500,7 @@ function InvitationsTab({
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
+  const [groupMap, setGroupMap] = useState<Record<string, string[]>>({});
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
