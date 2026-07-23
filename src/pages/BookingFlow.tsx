@@ -2035,10 +2035,19 @@ const BookingFlow = () => {
       }
     }
 
-    if (currentStep === "payment" && (!orderPaymentType || !depositPaymentType)) {
+    if (currentStep === "payment" && !orderPaymentType) {
       toast({
         title: "請選擇付款方式",
-        description: "請完整選擇訂單金額與押金的付款方式",
+        description: "請選擇訂單付款方式",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentStep === "payment" && !agreedToTerms) {
+      toast({
+        title: "請先同意住宿規定",
+        description: "請勾選同意住宿規定及退訂政策後再繼續",
         variant: "destructive",
       });
       return;
