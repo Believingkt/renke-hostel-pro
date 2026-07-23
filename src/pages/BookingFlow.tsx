@@ -4626,8 +4626,7 @@ const BookingFlow = () => {
                     </Card>
                   </div>
                 )}
-                  </div>
-                )}
+
 
                 {/* Step 5: Confirmation */}
                 {currentStep === "confirm" && (
