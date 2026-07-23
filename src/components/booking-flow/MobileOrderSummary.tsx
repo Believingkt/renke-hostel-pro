@@ -205,20 +205,22 @@ export default function MobileOrderSummary({
               PRICE BREAKDOWN
             </p>
             {roomSubtotal != null && roomSubtotal > 0 && (
-              <div className="flex items-baseline justify-between text-sm">
-                <span className="text-foreground">房費（{nights} 晚）</span>
-                <span className="font-semibold text-foreground tabular-nums">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 flex-1 text-foreground break-words">
+                  房費（{nights} 晚）
+                </span>
+                <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
                   NT$ {roomSubtotal.toLocaleString()}
                 </span>
               </div>
             )}
             {addonLines?.map((line, i) => (
-              <div key={i} className="flex items-baseline justify-between text-sm">
-                <span className="text-foreground">
+              <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 flex-1 text-foreground break-words">
                   {line.label}
                   <span className="text-muted-foreground ml-1">（{line.qty}）</span>
                 </span>
-                <span className="font-semibold text-foreground tabular-nums">
+                <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
                   NT$ {line.subtotal.toLocaleString()}
                 </span>
               </div>
