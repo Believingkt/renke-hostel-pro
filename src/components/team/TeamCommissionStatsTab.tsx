@@ -551,22 +551,32 @@ export default function TeamCommissionStatsTab() {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      // 對齊 TeamHome：排除保留單與 final_price <= 0
+      if (o.guest_name === "保留單") return;
+      if ((o.final_price || 0) <= 0) return;
+      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
+      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
+      // 金額基礎：team_commission_price ?? final_price
+      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
-      b.validAmount += o.final_price || 0;
-      b.commission += (o.final_price || 0) * rate;
+      b.validAmount += amount;
+      b.commission += amount * rate;
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      if (o.guest_name === "保留單") return;
+      if ((o.final_price || 0) <= 0) return;
+      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
+      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
+      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
-      b.cancelAmount += o.final_price || 0;
-      b.cancelCommission += (o.final_price || 0) * rate;
+      b.cancelAmount += amount;
+      b.cancelCommission += amount * rate;
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
