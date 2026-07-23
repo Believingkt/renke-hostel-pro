@@ -3929,9 +3929,31 @@ const BookingFlow = () => {
                   </div>
                 )}
 
-                {/* Step 3: Add-ons */}
+                {/* Step 3: Add-ons (Collapsible) */}
                 {currentStep === "payment" && (
+                  <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
+                    <Card className="border-2">
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left hover:bg-muted/40 transition-colors rounded-t-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <ShoppingBag className="h-5 w-5 text-primary" />
+                            <span className="text-lg font-bold">加購項目（選填）</span>
+                          </div>
+                          <ChevronRight
+                            className={cn(
+                              "h-5 w-5 text-muted-foreground transition-transform",
+                              isAddonsExpanded && "rotate-90",
+                            )}
+                          />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 sm:px-6 pb-6 pt-2 space-y-6 border-t">
                   <div className="space-y-6">
+
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
                     <Card className="border-2">
