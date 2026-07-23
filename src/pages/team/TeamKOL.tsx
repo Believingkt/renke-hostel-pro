@@ -500,6 +500,7 @@ function InvitationsTab({
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
+  const [groupMap, setGroupMap] = useState<Record<string, string[]>>({});
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
@@ -534,6 +535,23 @@ function InvitationsTab({
       }));
     return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
   }, [accommodations, venues]);
+
+  // 篩選器選項（群組 + 個別館別）
+  const filterAccOptions = useMemo<VenueOption[]>(() => {
+    const groupOpts: VenueOption[] = Object.keys(groupMap)
+      .sort((a, b) => a.localeCompare(b, "zh-Hant"))
+      .map((g) => ({
+        value: `group:${g}`,
+        label: `${g}（群組）`,
+        source: "venue",
+        badge: "群組",
+        accommodation_id: null,
+        venue_name: null,
+        venue_id: null,
+      }));
+    return [...groupOpts, ...accommodationOptions];
+  }, [groupMap, accommodationOptions]);
+
 
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -592,7 +610,7 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
+      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes, groupRes] = await Promise.all([
         supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
@@ -608,9 +626,23 @@ function InvitationsTab({
           .from("kol_tags" as any)
           .select("name")
           .order("name"),
+        supabase
+          .from("kol_venue_settings" as any)
+          .select("venue_id, group_name")
+          .not("group_name", "is", null),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
+      {
+        const map: Record<string, string[]> = {};
+        for (const r of ((groupRes.data as any[]) ?? [])) {
+          const g = (r.group_name ?? "").trim();
+          const vid = r.venue_id;
+          if (!g || !vid) continue;
+          (map[g] ??= []).push(vid);
+        }
+        setGroupMap(map);
+      }
       {
         const seen = new Set<string>();
         const list: Scout[] = [];
@@ -682,6 +714,14 @@ function InvitationsTab({
         q = q.eq("accommodation_id", filterAcc.slice(4));
       } else if (filterAcc.startsWith("venue:")) {
         q = q.eq("venue_id", filterAcc.slice(6));
+      } else if (filterAcc.startsWith("group:")) {
+        const groupName = filterAcc.slice(6);
+        const venueIds = groupMap[groupName] ?? [];
+        if (venueIds.length > 0) {
+          q = q.in("venue_id", venueIds);
+        } else {
+          q = q.eq("venue_id", "00000000-0000-0000-0000-000000000000");
+        }
       }
     }
     if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
@@ -792,7 +832,7 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, groupMap]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -1408,7 +1448,7 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部館別</SelectItem>
-                {accommodationOptions.map((opt) => (
+                {filterAccOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <span className="inline-flex items-center gap-2">
                       <span>{opt.label}</span>
@@ -1567,7 +1607,7 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部館別</SelectItem>
-                {accommodationOptions.map((opt) => (
+                {filterAccOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <span className="inline-flex items-center gap-2">
                       <span>{opt.label}</span>
