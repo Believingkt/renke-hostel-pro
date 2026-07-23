@@ -24,6 +24,7 @@ interface Props {
   selectedRoom: any;
   selectedPackage?: SelectedPackage | null;
   roomTypes?: Array<{ id: string; name: string }>;
+  roomsCount?: number;
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
