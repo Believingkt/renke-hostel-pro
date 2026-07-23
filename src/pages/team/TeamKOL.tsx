@@ -1439,7 +1439,7 @@ function InvitationsTab({
                 <Button variant="outline" className="w-40 justify-between font-normal">
                   <span className="truncate">
                     {filterAccOptions.length > 0 && filterAccs.length === filterAccOptions.length
-                      ? `全部（${filterAccOptions.length}）`
+                      ? `全部館別（${filterAccOptions.length}）`
                       : `已選 ${filterAccs.length} 個館別`}
                   </span>
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
@@ -1635,7 +1635,7 @@ function InvitationsTab({
                 <Button variant="outline" className="w-full justify-between font-normal">
                   <span className="truncate">
                     {filterAccOptions.length > 0 && filterAccs.length === filterAccOptions.length
-                      ? `全部（${filterAccOptions.length}）`
+                      ? `全部館別（${filterAccOptions.length}）`
                       : `已選 ${filterAccs.length} 個館別`}
                   </span>
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
