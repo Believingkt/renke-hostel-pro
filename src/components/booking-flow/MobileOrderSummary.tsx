@@ -1,13 +1,15 @@
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { Users, Bed, Tag } from "lucide-react";
+import { Users, Bed, Tag, Utensils, Home } from "lucide-react";
 
 interface Props {
+  accommodationName?: string;
   checkInDate: Date | null;
   checkOutDate: Date | null;
   calculateNights: () => number;
   totalGuests: number;
   selectedRoom: any;
+  selectedTemplate?: { template_name?: string; project_name?: string; mealCount?: number } | null;
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
@@ -18,11 +20,13 @@ interface Props {
  * 顯示於單頁結帳最上方，取代原本置底的完整 sidebar。
  */
 export default function MobileOrderSummary({
+  accommodationName,
   checkInDate,
   checkOutDate,
   calculateNights,
   totalGuests,
   selectedRoom,
+  selectedTemplate,
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
@@ -35,9 +39,22 @@ export default function MobileOrderSummary({
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
+  const mealCount = selectedTemplate?.mealCount ?? 0;
+  const mealLabel =
+    mealCount >= 3 ? "一泊三食" : mealCount === 2 ? "一泊二食" : mealCount === 1 ? "一泊一食" : "純住宿";
+  const packageLabel = selectedTemplate?.project_name || selectedTemplate?.template_name;
+
   return (
     <div className="lg:hidden mb-4">
       <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-sm">
+        {/* 民宿名稱 */}
+        {accommodationName && (
+          <div className="px-4 py-2.5 bg-primary/10 border-b border-border flex items-center gap-2">
+            <Home className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm font-bold text-primary truncate">{accommodationName}</p>
+          </div>
+        )}
+
         {/* 日期列 */}
         <div className="px-4 py-3 flex items-stretch justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -59,7 +76,7 @@ export default function MobileOrderSummary({
           </div>
         </div>
 
-        {/* 房型資訊 */}
+        {/* 房型 + 餐食 */}
         {selectedRoom && (
           <div className="border-t border-border px-4 py-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
@@ -68,7 +85,10 @@ export default function MobileOrderSummary({
               </p>
               <span className="shrink-0 text-xs text-muted-foreground">1 單位</span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {packageLabel && (
+              <p className="text-xs text-muted-foreground leading-snug">方案：{packageLabel}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
                 {totalGuests} 人
@@ -79,6 +99,10 @@ export default function MobileOrderSummary({
                   上限 {selectedRoom.max_guests} 人
                 </span>
               )}
+              <span className="inline-flex items-center gap-1">
+                <Utensils className="h-3.5 w-3.5" />
+                {mealLabel}
+              </span>
             </div>
             {appliedDiscount && discount > 0 && (
               <div className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1">
