@@ -53,6 +53,10 @@ export default function MobileOrderSummary({
   checkOutDate,
   calculateNights,
   totalGuests,
+  adultsCount,
+  childrenCount,
+  infantsCount,
+  toddlersCount,
   selectedRoom,
   selectedPackage,
   roomAllocation,
@@ -69,6 +73,13 @@ export default function MobileOrderSummary({
   const nights = calculateNights();
   const finalTotal = calculateFinalTotal();
   const discount = calculateDiscount();
+
+  const guestParts: string[] = [];
+  if (adultsCount && adultsCount > 0) guestParts.push(`${adultsCount} 位大人`);
+  if (childrenCount && childrenCount > 0) guestParts.push(`${childrenCount} 位兒童`);
+  if (toddlersCount && toddlersCount > 0) guestParts.push(`${toddlersCount} 位幼兒`);
+  if (infantsCount && infantsCount > 0) guestParts.push(`${infantsCount} 位嬰兒`);
+  const guestLabel = guestParts.length > 0 ? guestParts.join("・") : `入住 ${totalGuests} 人`;
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
