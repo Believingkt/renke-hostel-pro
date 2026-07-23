@@ -15,6 +15,12 @@ interface SelectedPackage {
   includes: PackageInclude[];
 }
 
+interface AddonLine {
+  label: string;
+  qty: string;
+  subtotal: number;
+}
+
 interface Props {
   accommodationName?: string;
   checkInDate: Date | null;
@@ -26,6 +32,8 @@ interface Props {
   roomAllocation?: string | null;
   roomTypes?: Array<{ id: string; name: string }>;
   roomsCount?: number;
+  roomSubtotal?: number;
+  addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
@@ -46,6 +54,8 @@ export default function MobileOrderSummary({
   roomAllocation,
   roomTypes,
   roomsCount,
+  roomSubtotal,
+  addonLines,
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
@@ -170,6 +180,34 @@ export default function MobileOrderSummary({
                 );
               })}
             </ul>
+          </div>
+        )}
+
+        {/* 費用明細：房費 + 加購 */}
+        {((roomSubtotal && roomSubtotal > 0) || (addonLines && addonLines.length > 0)) && (
+          <div className="border-t border-border px-4 py-3 space-y-1.5">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+              PRICE BREAKDOWN
+            </p>
+            {roomSubtotal != null && roomSubtotal > 0 && (
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-foreground">房費（{nights} 晚）</span>
+                <span className="font-semibold text-foreground tabular-nums">
+                  NT$ {roomSubtotal.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {addonLines?.map((line, i) => (
+              <div key={i} className="flex items-baseline justify-between text-sm">
+                <span className="text-foreground">
+                  {line.label}
+                  <span className="text-muted-foreground ml-1">（{line.qty}）</span>
+                </span>
+                <span className="font-semibold text-foreground tabular-nums">
+                  NT$ {line.subtotal.toLocaleString()}
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
