@@ -225,28 +225,60 @@ serve(async (req) => {
 
     const basePrice = roomType?.base_price || 0;
 
-    for (const date of dates) {
-      const pricing = pricingMap.get(date);
-      if (pricing) {
-        // 關閉販售/無庫存：不可預訂
-        if (pricing.is_available === false) {
-          errors.push(`Room is unavailable on ${date}`);
+    // 若為包區方案，改用方案價：週六 → tier_prices.weekend.sale，其餘 → sale_price
+    let packageOverride = false;
+    if (packageId) {
+      const { data: pkg } = await supabase
+        .from("accommodation_packages")
+        .select("sale_price, tier_prices")
+        .eq("id", packageId)
+        .maybeSingle();
+      if (pkg && (pkg as any).sale_price != null) {
+        packageOverride = true;
+        const salePrice = Number((pkg as any).sale_price);
+        const tierPrices = (pkg as any).tier_prices || {};
+        for (const date of dates) {
+          const pricing = pricingMap.get(date);
+          if (pricing) {
+            if (pricing.is_available === false) errors.push(`Room is unavailable on ${date}`);
+            if (typeof pricing.available_rooms === 'number' && pricing.available_rooms <= 0) {
+              errors.push(`No availability on ${date}`);
+            }
+          }
+          const d = new Date(date);
+          const day = d.getUTCDay();
+          const isSaturday = day === 6;
+          const weekendSale = tierPrices?.weekend?.sale;
+          const nightly = isSaturday && weekendSale != null ? Number(weekendSale) : salePrice;
+          calculatedRoomTotal += nightly;
         }
-        if (typeof pricing.available_rooms === 'number' && pricing.available_rooms <= 0) {
-          errors.push(`No availability on ${date}`);
-        }
+      }
+    }
 
-        // Use meal plan price if applicable
-        if (mealPlan === "2_meals" && pricing.price_2_meals) {
-          calculatedRoomTotal += pricing.price_2_meals;
-        } else if (mealPlan === "3_meals" && pricing.price_3_meals) {
-          calculatedRoomTotal += pricing.price_3_meals;
+    if (!packageOverride) {
+      for (const date of dates) {
+        const pricing = pricingMap.get(date);
+        if (pricing) {
+          // 關閉販售/無庫存：不可預訂
+          if (pricing.is_available === false) {
+            errors.push(`Room is unavailable on ${date}`);
+          }
+          if (typeof pricing.available_rooms === 'number' && pricing.available_rooms <= 0) {
+            errors.push(`No availability on ${date}`);
+          }
+
+          // Use meal plan price if applicable
+          if (mealPlan === "2_meals" && pricing.price_2_meals) {
+            calculatedRoomTotal += pricing.price_2_meals;
+          } else if (mealPlan === "3_meals" && pricing.price_3_meals) {
+            calculatedRoomTotal += pricing.price_3_meals;
+          } else {
+            calculatedRoomTotal += pricing.price;
+          }
         } else {
-          calculatedRoomTotal += pricing.price;
+          // Fallback to base price
+          calculatedRoomTotal += basePrice;
         }
-      } else {
-        // Fallback to base price
-        calculatedRoomTotal += basePrice;
       }
     }
 
