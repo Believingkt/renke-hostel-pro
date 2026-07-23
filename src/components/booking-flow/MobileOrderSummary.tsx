@@ -27,6 +27,10 @@ interface Props {
   checkOutDate: Date | null;
   calculateNights: () => number;
   totalGuests: number;
+  adultsCount?: number;
+  childrenCount?: number;
+  infantsCount?: number;
+  toddlersCount?: number;
   selectedRoom: any;
   selectedPackage?: SelectedPackage | null;
   roomAllocation?: string | null;
@@ -49,6 +53,10 @@ export default function MobileOrderSummary({
   checkOutDate,
   calculateNights,
   totalGuests,
+  adultsCount,
+  childrenCount,
+  infantsCount,
+  toddlersCount,
   selectedRoom,
   selectedPackage,
   roomAllocation,
@@ -65,6 +73,13 @@ export default function MobileOrderSummary({
   const nights = calculateNights();
   const finalTotal = calculateFinalTotal();
   const discount = calculateDiscount();
+
+  const guestParts: string[] = [];
+  if (adultsCount && adultsCount > 0) guestParts.push(`${adultsCount} 位大人`);
+  if (childrenCount && childrenCount > 0) guestParts.push(`${childrenCount} 位兒童`);
+  if (toddlersCount && toddlersCount > 0) guestParts.push(`${toddlersCount} 位幼兒`);
+  if (infantsCount && infantsCount > 0) guestParts.push(`${infantsCount} 位嬰兒`);
+  const guestLabel = guestParts.length > 0 ? guestParts.join("・") : `入住 ${totalGuests} 人`;
 
   const formatDate = (d: Date) => format(d, "M 月 d 日 EEE", { locale: zhTW });
 
@@ -141,7 +156,7 @@ export default function MobileOrderSummary({
             )}
             <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
               <Users className="h-3.5 w-3.5" />
-              <span>入住 {totalGuests} 人</span>
+              <span>{guestLabel}</span>
             </div>
           </div>
         )}
@@ -190,20 +205,22 @@ export default function MobileOrderSummary({
               PRICE BREAKDOWN
             </p>
             {roomSubtotal != null && roomSubtotal > 0 && (
-              <div className="flex items-baseline justify-between text-sm">
-                <span className="text-foreground">房費（{nights} 晚）</span>
-                <span className="font-semibold text-foreground tabular-nums">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 flex-1 text-foreground break-words">
+                  房費（{nights} 晚）
+                </span>
+                <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
                   NT$ {roomSubtotal.toLocaleString()}
                 </span>
               </div>
             )}
             {addonLines?.map((line, i) => (
-              <div key={i} className="flex items-baseline justify-between text-sm">
-                <span className="text-foreground">
+              <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 flex-1 text-foreground break-words">
                   {line.label}
                   <span className="text-muted-foreground ml-1">（{line.qty}）</span>
                 </span>
-                <span className="font-semibold text-foreground tabular-nums">
+                <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
                   NT$ {line.subtotal.toLocaleString()}
                 </span>
               </div>

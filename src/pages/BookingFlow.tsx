@@ -3516,6 +3516,10 @@ const BookingFlow = () => {
                   checkOutDate={checkOutDate}
                   calculateNights={calculateNights}
                   totalGuests={totalGuests}
+                  adultsCount={contextGuests?.adults || 0}
+                  childrenCount={contextGuests?.children || 0}
+                  infantsCount={infantsCount}
+                  toddlersCount={toddlersCount}
                   selectedRoom={selectedRoom}
                   selectedPackage={selectedPackage}
                   roomAllocation={selectedPackage?.room_allocation || null}
