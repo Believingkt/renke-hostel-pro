@@ -610,7 +610,7 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
+      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes, groupRes] = await Promise.all([
         supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
@@ -626,9 +626,23 @@ function InvitationsTab({
           .from("kol_tags" as any)
           .select("name")
           .order("name"),
+        supabase
+          .from("kol_venue_settings" as any)
+          .select("venue_id, group_name")
+          .not("group_name", "is", null),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
+      {
+        const map: Record<string, string[]> = {};
+        for (const r of ((groupRes.data as any[]) ?? [])) {
+          const g = (r.group_name ?? "").trim();
+          const vid = r.venue_id;
+          if (!g || !vid) continue;
+          (map[g] ??= []).push(vid);
+        }
+        setGroupMap(map);
+      }
       {
         const seen = new Set<string>();
         const list: Scout[] = [];
