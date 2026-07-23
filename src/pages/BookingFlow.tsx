@@ -168,7 +168,21 @@ const BookingFlow = () => {
   // 追蹤頁面瀏覽
   usePageAnalytics({ accommodationId, enabled: !!accommodationId });
   
-  const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
+  // 強制：若 URL 已帶 roomId + 日期，一律直達單頁結帳，絕對不顯示選擇房型/日期步驟
+  const [currentStep, setCurrentStep] = useState<BookingStep>(() => {
+    const hasRoom = !!searchParams.get("roomId");
+    const hasDates = !!searchParams.get("checkIn") && !!searchParams.get("checkOut");
+    const stepParam = searchParams.get("step");
+    if (stepParam && ["dates", "room", "addons", "guest", "payment", "confirm"].includes(stepParam)) {
+      return stepParam as BookingStep;
+    }
+    if (hasRoom && hasDates) return "payment";
+    return "dates";
+  });
+  // 加購方案是否展開（預設收合）
+  const [isAddonsExpanded, setIsAddonsExpanded] = useState(false);
+  // 附屬細則同意
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("");
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
