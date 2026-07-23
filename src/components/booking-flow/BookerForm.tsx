@@ -259,35 +259,52 @@ export default function BookerForm(props: Props) {
       <Card className="border-2">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <Home className="h-5 w-5 text-primary" />
+            <Clock className="h-5 w-5 text-primary" />
             其他資訊
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">選填項目，可幫助我們提供更好的服務</p>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="address" className="text-sm font-medium">
-              聯絡地址（選填）
+            <Label htmlFor="eta" className="text-sm font-medium">
+              預計抵達時間（選填）
             </Label>
-            <Input
-              id="address"
-              value={guestInfo.address}
-              onChange={(e) => setGuestInfo({ ...guestInfo, address: e.target.value })}
-              placeholder="請輸入您的聯絡地址"
-              className="h-12"
-              maxLength={200}
-            />
+            <Select
+              value={guestInfo.eta || undefined}
+              onValueChange={(v) => setGuestInfo({ ...guestInfo, eta: v })}
+            >
+              <SelectTrigger id="eta" className="h-12">
+                <SelectValue placeholder="請選擇預計抵達時間" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "15:00 前",
+                  "15:00 - 16:00",
+                  "16:00 - 17:00",
+                  "17:00 - 18:00",
+                  "18:00 - 19:00",
+                  "19:00 - 20:00",
+                  "20:00 - 21:00",
+                  "21:00 後",
+                  "尚未確定",
+                ].map((slot) => (
+                  <SelectItem key={slot} value={slot}>
+                    {slot}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="notes" className="text-sm font-medium">
-              特殊需求（選填）
+              特殊需求 / 備註（選填）
             </Label>
             <Textarea
               id="notes"
               value={guestInfo.notes}
               onChange={(e) => setGuestInfo({ ...guestInfo, notes: e.target.value })}
-              placeholder="如有特殊需求，請在此說明"
+              placeholder="如有飲食、寢具、無障礙等特殊需求，請在此說明"
               rows={5}
               maxLength={500}
               className="resize-none"
