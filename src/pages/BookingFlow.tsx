@@ -3473,21 +3473,62 @@ const BookingFlow = () => {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
-            <MobileOrderSummary
-              accommodationName={accommodationName}
-              checkInDate={checkInDate}
-              checkOutDate={checkOutDate}
-              calculateNights={calculateNights}
-              totalGuests={totalGuests}
-              selectedRoom={selectedRoom}
-              selectedPackage={selectedPackage}
-              roomAllocation={selectedPackage?.room_allocation || null}
-              roomTypes={roomTypes}
-              roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
-              calculateFinalTotal={calculateFinalTotal}
-              appliedDiscount={appliedDiscount}
-              calculateDiscount={calculateDiscount}
-            />
+            {(() => {
+              const nights = calculateNights();
+              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+              if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
+                addonLines.push({
+                  label: "寵物加購",
+                  qty: `${petCount} 隻 × ${nights} 晚`,
+                  subtotal: petCount * petPlanSettings.pricePerUnit * nights,
+                });
+              }
+              const bbqTotalCount = Object.values(bbqMealsByDate).reduce((s, c) => s + (c || 0), 0);
+              if (mealPlanSettings.enabled && bbqTotalCount > 0) {
+                addonLines.push({
+                  label: "BBQ 餐食",
+                  qty: `${bbqTotalCount} 人份`,
+                  subtotal: bbqTotalCount * mealPlanSettings.pricePerUnit,
+                });
+              }
+              Object.entries(customAddonCounts).forEach(([type, count]) => {
+                if (!count || count <= 0) return;
+                const s = customAddonSettings.find((x) => x.addon_type === type);
+                if (!s) return;
+                addonLines.push({
+                  label: s.description || s.addon_type,
+                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                  subtotal: count * s.price_per_unit * nights,
+                });
+              });
+              const childExtra = calculateChildExtraTotal();
+              if (childExtra > 0) {
+                addonLines.push({
+                  label: "兒童加價",
+                  qty: `${nights} 晚`,
+                  subtotal: childExtra,
+                });
+              }
+              return (
+                <MobileOrderSummary
+                  accommodationName={accommodationName}
+                  checkInDate={checkInDate}
+                  checkOutDate={checkOutDate}
+                  calculateNights={calculateNights}
+                  totalGuests={totalGuests}
+                  selectedRoom={selectedRoom}
+                  selectedPackage={selectedPackage}
+                  roomAllocation={selectedPackage?.room_allocation || null}
+                  roomTypes={roomTypes}
+                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomSubtotal={calculateTotal()}
+                  addonLines={addonLines}
+                  calculateFinalTotal={calculateFinalTotal}
+                  appliedDiscount={appliedDiscount}
+                  calculateDiscount={calculateDiscount}
+                />
+              );
+            })()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
