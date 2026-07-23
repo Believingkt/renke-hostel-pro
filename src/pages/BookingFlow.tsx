@@ -4349,11 +4349,15 @@ const BookingFlow = () => {
                     )}
 
                     {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0) && !Object.values(customAddonCounts).some(c => c > 0)) && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p>您可以選擇加購方案，或直接進入下一步</p>
+                      <div className="text-center py-6 text-sm text-muted-foreground">
+                        <p>目前尚未加購任何項目</p>
                       </div>
                     )}
                   </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
                 )}
 
                 {/* Step 4: Guest Info */}
