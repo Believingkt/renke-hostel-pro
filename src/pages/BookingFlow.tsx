@@ -231,6 +231,7 @@ const BookingFlow = () => {
       setOtpSent(false);
       return;
     }
+    // Guard: 已檢查過同一 email 就跳過（無論狀態），避免覆蓋 registered
     if (email === emailCheckedFor) return;
     const t = setTimeout(async () => {
       setEmailCheckStatus("checking");
@@ -241,19 +242,33 @@ const BookingFlow = () => {
         if (data?.exists) {
           setEmailCheckStatus("exists");
           setOtpSending(true);
-          const { error: otpErr } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+          const { error: otpErr } = await supabase.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
+          });
           setOtpSending(false);
-          if (!otpErr) setOtpSent(true);
+          if (otpErr) {
+            toast({
+              title: "驗證碼寄送失敗",
+              description: otpErr.message?.includes("not confirmed")
+                ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證"
+                : (otpErr.message || "請稍後再試"),
+              variant: "destructive",
+            });
+          } else {
+            setOtpSent(true);
+          }
         } else {
           setEmailCheckStatus("new");
           setOtpSent(false);
         }
-      } catch {
+      } catch (e: any) {
         setEmailCheckStatus("idle");
+        toast({ title: "無法驗證此 Email", description: e?.message || "請稍後再試", variant: "destructive" });
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [guestInfo.email, loggedInMember, emailCheckedFor]);
+  }, [guestInfo.email, loggedInMember, emailCheckedFor, toast]);
 
   const handleVerifyOtp = async () => {
     const email = guestInfo.email.trim().toLowerCase();
@@ -262,27 +277,53 @@ const BookingFlow = () => {
       return;
     }
     setOtpVerifying(true);
-    const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
-    setOtpVerifying(false);
-    if (error || !data?.user) {
-      toast({ title: "驗證失敗", description: error?.message || "驗證碼錯誤或已過期", variant: "destructive" });
-      return;
-    }
-    const { data: profile } = await supabase
-      .from("platform_members")
-      .select("id, user_id, name, email, phone")
-      .eq("user_id", data.user.id)
-      .maybeSingle();
-    if (profile) {
-      setLoggedInMember({ id: profile.user_id, name: profile.name || "", email: profile.email || email, phone: profile.phone || "" });
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+      if (error || !data?.user) {
+        toast({ title: "驗證失敗", description: error?.message || "驗證碼錯誤或已過期", variant: "destructive" });
+        return;
+      }
+      const userId = data.user.id;
+      let { data: profile } = await supabase
+        .from("platform_members")
+        .select("id, user_id, name, email, phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      // Bug B: 舊帳號無 profile，立即以 guestInfo 補建
+      if (!profile) {
+        const upsertPayload = {
+          user_id: userId,
+          email,
+          name: guestInfo.name || email.split("@")[0],
+          phone: guestInfo.phone || null,
+        };
+        const { data: upserted, error: upsertErr } = await supabase
+          .from("platform_members")
+          .upsert(upsertPayload, { onConflict: "user_id" })
+          .select("id, user_id, name, email, phone")
+          .maybeSingle();
+        if (upsertErr) {
+          console.error("platform_members upsert failed:", upsertErr.message);
+        } else if (upserted) {
+          profile = upserted;
+        }
+      }
+
+      const p = profile || { user_id: userId, name: guestInfo.name || "", email, phone: guestInfo.phone || "" };
+      setLoggedInMember({ id: p.user_id, name: p.name || "", email: p.email || email, phone: p.phone || "" });
       setGuestInfo(prev => ({
         ...prev,
-        name: prev.name || profile.name || "",
-        phone: prev.phone || profile.phone || "",
-        email: profile.email || email,
+        name: prev.name || p.name || "",
+        phone: prev.phone || p.phone || "",
+        email: p.email || email,
       }));
+      toast({ title: "驗證成功", description: "已登入會員" });
+    } catch (e: any) {
+      toast({ title: "驗證失敗", description: e?.message || "請稍後再試", variant: "destructive" });
+    } finally {
+      setOtpVerifying(false);
     }
-    toast({ title: "驗證成功", description: "已登入會員" });
   };
 
   const handleQuickRegister = async (withPassword: boolean) => {
@@ -305,18 +346,59 @@ const BookingFlow = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setRegisteredMemberId(data.member_id);
-      setEmailCheckStatus("registered");
-      toast({
-        title: "註冊成功",
-        description: withPassword ? "驗證信已寄出，請至信箱確認" : "已為您建立會員，驗證信已寄出",
-      });
+
+      // Bug E: 註冊成功後自動登入
+      if (withPassword) {
+        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+          email,
+          password: registerPassword,
+        });
+        if (signInErr || !signInData?.user) {
+          setEmailCheckStatus("registered");
+          toast({
+            title: "註冊成功，請完成 Email 驗證",
+            description: signInErr?.message || "驗證信已寄出，驗證後即可登入",
+          });
+        } else {
+          setLoggedInMember({
+            id: signInData.user.id,
+            name: guestInfo.name || "",
+            email,
+            phone: guestInfo.phone || "",
+          });
+          toast({ title: "註冊並登入成功" });
+        }
+      } else {
+        // 無密碼：切換至 OTP 驗證模式讓使用者完成登入
+        const { error: otpErr } = await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
+        });
+        if (otpErr) {
+          setEmailCheckStatus("registered");
+          toast({
+            title: "註冊成功",
+            description: otpErr.message || "驗證信已寄出，請至信箱確認",
+          });
+        } else {
+          setEmailCheckStatus("exists");
+          setOtpSent(true);
+          setEmailCheckedFor(email);
+          toast({
+            title: "註冊成功，請輸入驗證碼",
+            description: "6 位數驗證碼已寄至您的信箱",
+          });
+        }
+      }
     } catch (e: any) {
-      const msg = e?.message === "email_exists" ? "此 Email 已註冊，請改用登入" : (e?.message || "註冊失敗");
+      const raw = e?.message || "";
+      const msg = raw === "email_exists" ? "此 Email 已註冊，請改用登入" : (raw || "註冊失敗，請稍後再試");
       toast({ title: "註冊失敗", description: msg, variant: "destructive" });
     } finally {
       setRegisterSubmitting(false);
     }
   };
+
 
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）

@@ -93,21 +93,32 @@ function recoveryTemplate(data: { confirmationUrl: string }): { subject: string;
   };
 }
 
-function magicLinkTemplate(data: { confirmationUrl: string }): { subject: string; html: string } {
+function magicLinkTemplate(data: { confirmationUrl?: string; token?: string }): { subject: string; html: string } {
+  const tokenBlock = data.token
+    ? `<p style="text-align:center; margin: 8px 0 4px; color:${BRAND.muted}; font-size:14px;">您的 6 位數驗證碼</p>
+       <div class="code-box">${data.token}</div>
+       <p style="text-align:center; font-size:12px; color:#999; margin: 0 0 20px;">請於 5 分鐘內於結帳頁面輸入驗證碼</p>`
+    : "";
+  const linkBlock = data.confirmationUrl
+    ? `<p style="text-align:center; margin: 20px 0;">
+         <a href="${data.confirmationUrl}" class="btn">或點此直接登入</a>
+       </p>
+       <p style="font-size:12px; color:#999; text-align:center;">若按鈕無法點擊，請複製連結：<br/><a href="${data.confirmationUrl}" style="color:${BRAND.primary}; word-break:break-all;">${data.confirmationUrl}</a></p>`
+    : "";
   return {
-    subject: "人客多 — 您的登入連結",
+    subject: "人客多 — 您的登入驗證碼",
     html: baseLayout(
       "快速登入",
-      "使用此連結快速登入您的帳號",
+      data.token ? `您的驗證碼：${data.token}` : "使用此連結快速登入您的帳號",
       `<h1>快速登入</h1>
-       <p>點擊下方按鈕即可登入您的人客多帳號，無需輸入密碼。</p>
-       <p style="text-align:center; margin: 28px 0;">
-         <a href="${data.confirmationUrl}" class="btn">立即登入</a>
-       </p>
-       <p style="font-size:13px; color:#999;">此連結僅限使用一次，且將在 5 分鐘後失效。</p>`
+       <p>請於結帳頁面輸入以下 6 位數驗證碼完成登入。</p>
+       ${tokenBlock}
+       ${linkBlock}
+       <p style="font-size:13px; color:#999;">若非本人操作，請忽略此郵件。</p>`
     ),
   };
 }
+
 
 function inviteTemplate(data: { confirmationUrl: string }): { subject: string; html: string } {
   return {
