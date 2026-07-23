@@ -6,9 +6,10 @@ const COOLDOWN_MS = 60 * 1000; // minimum 60s between sends for same email
 const HOURLY_MAX = 2; // Supabase default: 2 auth emails per hour
 const HOUR_MS = 60 * 60 * 1000;
 
-type Record = { last: number; recent: number[] };
+type Entry = { last: number; recent: number[] };
+type Store = Record<string, Entry>;
 
-function readAll(): Record<string, Record> {
+function readAll(): Store {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return {};
@@ -18,7 +19,7 @@ function readAll(): Record<string, Record> {
   }
 }
 
-function writeAll(map: Record<string, Record>) {
+function writeAll(map: Store) {
   try {
     localStorage.setItem(KEY, JSON.stringify(map));
   } catch { /* ignore */ }
