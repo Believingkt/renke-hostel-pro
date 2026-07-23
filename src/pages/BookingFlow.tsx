@@ -1644,12 +1644,6 @@ const BookingFlow = () => {
             '.invalid': {
               'color': 'rgb(239, 68, 68)'
             }
-          },
-          // 失焦時遮罩卡號中間（1234 **** **** 5678），不影響送 prime
-          isMaskCreditCardNumber: true,
-          maskCreditCardNumber: {
-            beginIndex: 4,
-            endIndex: 11
           }
         });
 
