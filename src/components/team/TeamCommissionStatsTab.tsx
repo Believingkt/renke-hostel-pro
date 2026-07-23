@@ -105,6 +105,7 @@ interface OrderLite {
   guest_name: string | null;
   check_in_date: string | null;
   order_date: string | null;
+  confirmed_at: string | null;
   order_source: string | null;
 }
 interface MetaLite {
@@ -115,6 +116,7 @@ interface MetaLite {
   exclusion_note: string | null;
   booking_method: string | null;
   traffic_source: string | null;
+  team_commission_price: number | null;
 }
 interface CommissionRow {
   accommodation_id: string;
@@ -375,7 +377,7 @@ export default function TeamCommissionStatsTab() {
             supabase
               .from("order_meta")
               .select(
-                "order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source",
+                "order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source, team_commission_price",
               )
               .in("order_id", chunk),
           ),
@@ -549,22 +551,32 @@ export default function TeamCommissionStatsTab() {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      // 對齊 TeamHome：排除保留單與 final_price <= 0
+      if (o.guest_name === "保留單") return;
+      if ((o.final_price || 0) <= 0) return;
+      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
+      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
+      // 金額基礎：team_commission_price ?? final_price
+      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
-      b.validAmount += o.final_price || 0;
-      b.commission += (o.final_price || 0) * rate;
+      b.validAmount += amount;
+      b.commission += amount * rate;
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      const rate = pickRateFor(o.accommodation_id, o.order_date, rateKey);
+      if (o.guest_name === "保留單") return;
+      if ((o.final_price || 0) <= 0) return;
+      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
+      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
+      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
-      b.cancelAmount += o.final_price || 0;
-      b.cancelCommission += (o.final_price || 0) * rate;
+      b.cancelAmount += amount;
+      b.cancelCommission += amount * rate;
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
