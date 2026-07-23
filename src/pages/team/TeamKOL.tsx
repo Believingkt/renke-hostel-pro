@@ -766,9 +766,12 @@ function InvitationsTab({
     const venueById = new Map(venues.map((v) => [v.id, v]));
     const resolveVenueDisplay = (r: any): string => {
       const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
-      if (vRow && vRow.room_type_id) {
-        const parentName = r.accommodation_id ? accMap.get(r.accommodation_id) : null;
-        return parentName ? `${vRow.name}（${parentName}）` : vRow.name;
+      if (vRow) {
+        // 若子館別已停用，fallback 顯示母館名稱
+        if (vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+          return accMap.get(vRow.accommodation_id) ?? vRow.name ?? "-";
+        }
+        return vRow.name ?? "-";
       }
       return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
     };
