@@ -105,6 +105,7 @@ interface OrderLite {
   guest_name: string | null;
   check_in_date: string | null;
   order_date: string | null;
+  confirmed_at: string | null;
   order_source: string | null;
 }
 interface MetaLite {
@@ -115,6 +116,7 @@ interface MetaLite {
   exclusion_note: string | null;
   booking_method: string | null;
   traffic_source: string | null;
+  team_commission_price: number | null;
 }
 interface CommissionRow {
   accommodation_id: string;
