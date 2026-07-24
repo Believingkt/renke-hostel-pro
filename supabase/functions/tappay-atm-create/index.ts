@@ -186,8 +186,10 @@ serve(async (req) => {
     // Persist the email the customer entered on the payment page back to the order,
     // so receipts/notifications go to the address they actually want.
     try {
-      if (data.cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.cardholder.email)) {
-        const newEmail = data.cardholder.email;
+      const emailRaw = (data.cardholder?.email || "").trim();
+      const isSynthetic = /@(?:line|facebook)\.lakeze\.local$/i.test(emailRaw) || /\.local$/i.test(emailRaw);
+      if (emailRaw && !isSynthetic && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+        const newEmail = emailRaw;
         // NOTE: use .or() so NULL guest_email also matches (NULL <> 'x' is NULL in PG, not TRUE)
         await supabase
           .from("orders")
