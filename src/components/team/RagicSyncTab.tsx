@@ -176,10 +176,11 @@ export default function RagicSyncTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Ragic 營收上傳</CardTitle>
+        <CardTitle className="text-xl">上傳至Ragic收入總表</CardTitle>
         <p className="text-sm text-muted-foreground">
-          預覽並上傳指定月份的 PMS 營收與管顧費至 Ragic「收入來源」表單。採 upsert：以「年月份 + 場域館別 + 收入類型」比對，存在則更新，不存在則新增。
-          常用分錄、借貸科目、傳票號碼等欄位不會被覆蓋。
+          預覽並上傳指定月份的 PMS 營收至 Ragic「收入來源」表單。
+          <br />
+          以「年月份 + 場域館別 + 收入類型」比對，已存在資料更新，不存在資料則新增。
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
