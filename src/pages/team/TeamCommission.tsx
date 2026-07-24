@@ -1099,6 +1099,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     }
   };
 
+  const markSourceAll = async (memberId: string, sourceLabel: string, items: SourceItem[]) => {
+    const unpaid = items.filter((i) => !i.paid);
+    if (unpaid.length === 0) return;
+    const key = `${memberId}:${sourceLabel}`;
+    setMarkingSource(key);
+    try {
+      await markItemsBatch(unpaid);
+      toast.success(`已標記「${sourceLabel}」全部已發放（${unpaid.length} 筆）`);
+      fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setMarkingSource(null);
+    }
+  };
+
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
