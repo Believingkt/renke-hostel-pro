@@ -9256,6 +9256,7 @@ export type Database = {
         Returns: undefined
       }
       _hotelnabe_should_sync: { Args: { _acc: string }; Returns: boolean }
+      _rls_test_list_member_policies: { Args: never; Returns: Json }
       apply_template_to_user: {
         Args: {
           _accommodation_id: string
