@@ -1220,49 +1220,121 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                           </Button>
                         </div>
                       )}
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">來源類型</TableHead>
-                          <TableHead>明細</TableHead>
-                          <TableHead className="text-right w-[120px]">金額</TableHead>
-                          <TableHead className="w-[120px]">狀態</TableHead>
-                          <TableHead className="w-[140px] text-right"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {g.items.map((it) => (
-                          <TableRow key={it.key}>
-                            <TableCell className="text-xs">{it.source_label}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {it.multiplier > 1 && (
-                                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
-                                    × {Number(it.multiplier).toFixed(2)} 倍
+                    <div className="divide-y">
+                      {(() => {
+                        // 依 source_label 分組
+                        const bySource = new Map<string, SourceItem[]>();
+                        for (const it of g.items) {
+                          const arr = bySource.get(it.source_label) ?? [];
+                          arr.push(it);
+                          bySource.set(it.source_label, arr);
+                        }
+                        const itemsBySource = Array.from(bySource.entries()).map(([label, items]) => ({
+                          label,
+                          items,
+                          subtotal: items.reduce((s, i) => s + i.multiplied_amount, 0),
+                          allPaid: items.every((i) => i.paid),
+                        }));
+                        return itemsBySource.map((src) => {
+                          const srcKey = `${g.member_id}:${src.label}`;
+                          const srcOpen = expandedSources.has(srcKey);
+                          const unpaidCount = src.items.filter((i) => !i.paid).length;
+                          return (
+                            <div key={src.label}>
+                              <div className="flex items-center justify-between px-4 py-2 bg-background hover:bg-muted/30 transition-colors">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSource(g.member_id, src.label)}
+                                  className="flex items-center gap-2 flex-1 text-left"
+                                  aria-expanded={srcOpen}
+                                >
+                                  {srcOpen ? (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  <span className="text-sm font-medium">{src.label}</span>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    {src.items.length} 筆
                                   </Badge>
-                                )}
-                                <span>{formatMoney(it.multiplied_amount)}</span>
+                                  {src.allPaid ? (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">已發放</Badge>
+                                  ) : unpaidCount < src.items.length ? (
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                      待發放 {unpaidCount} 筆
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                      待發放
+                                    </Badge>
+                                  )}
+                                </button>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm font-medium tabular-nums">
+                                    小計 {formatMoney(src.subtotal)}
+                                  </span>
+                                  {!readOnly && !src.allPaid && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={markingSource === srcKey}
+                                      onClick={() => markSourceAll(g.member_id, src.label, src.items)}
+                                    >
+                                      {markingSource === srcKey ? "處理中…" : "標記此類型全部已發放"}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              {it.paid ? (
-                                <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
-                              ) : (
-                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                              {srcOpen && (
+                                <div className="overflow-x-auto bg-muted/10">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>訂單編號</TableHead>
+                                        <TableHead className="text-right w-[120px]">金額</TableHead>
+                                        <TableHead className="w-[120px]">狀態</TableHead>
+                                        <TableHead className="w-[140px] text-right"></TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {src.items.map((it) => (
+                                        <TableRow key={it.key}>
+                                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                              {it.multiplier > 1 && (
+                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                                                  × {Number(it.multiplier).toFixed(2)} 倍
+                                                </Badge>
+                                              )}
+                                              <span>{formatMoney(it.multiplied_amount)}</span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            {it.paid ? (
+                                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                                            ) : (
+                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                                            )}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {!it.paid && !readOnly && it.member_id && (
+                                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
+                                                標記已發放
+                                              </Button>
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
                               )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {!it.paid && !readOnly && it.member_id && (
-                                <Button size="sm" variant="outline" onClick={() => markItem(it)}>
-                                  標記已發放
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                     </>
                   )}
                 </div>
