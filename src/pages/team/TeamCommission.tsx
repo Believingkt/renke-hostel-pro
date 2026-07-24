@@ -579,11 +579,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [markingMember, setMarkingMember] = useState<string | null>(null);
   const [confirmMember, setConfirmMember] = useState<MemberGroup | null>(null);
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [markingSource, setMarkingSource] = useState<string | null>(null);
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }, []);
+  const toggleSource = useCallback((memberId: string, sourceLabel: string) => {
+    const key = `${memberId}:${sourceLabel}`;
+    setExpandedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }, []);
