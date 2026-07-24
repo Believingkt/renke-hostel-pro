@@ -1,197 +1,135 @@
 project_id = "dmafqwfynatdvnaeovhz"
 
-[functions.create-user]
-verify_jwt = true
-
-[functions.check-email-exists]
-verify_jwt = true
-
-[functions.delete-user]
-verify_jwt = true
-
-[functions.cleanup-orphan-user]
-verify_jwt = true
-
-[functions.resend-invite]
-verify_jwt = true
-
-[functions.lookup-user-by-email]
-verify_jwt = true
-
-[functions.send-booking-confirmation]
-verify_jwt = false
-
-[functions.preview-booking-confirmation]
-verify_jwt = false
-
-[functions.send-invite-email]
-verify_jwt = true
-
-[functions.kol-api]
-verify_jwt = false
-
-[functions.test-email]
-verify_jwt = true
-
-[functions.ai-booking-chat]
-verify_jwt = false
-
-[functions.speech-to-text]
-verify_jwt = false
-
-[functions.text-to-speech]
-verify_jwt = false
-
-[functions.process-tappay-payment]
-verify_jwt = false
-
-[functions.process-linepay-payment]
-verify_jwt = false
-
-[functions.send-cancellation-email]
-verify_jwt = true
-
-[functions.backup-data]
-verify_jwt = true
-
-[functions.restore-data]
-verify_jwt = true
-
-[functions.cleanup-old-backups]
-verify_jwt = true
-
-[functions.fix-orphaned-data]
-verify_jwt = true
-
-[functions.generate-test-orders]
-verify_jwt = true
-
-[functions.clean-order-notes]
-verify_jwt = true
-
-[functions.send-password-reset]
-verify_jwt = false
-
-[functions.validate-reset-token]
-verify_jwt = false
-
-[functions.update-password]
-verify_jwt = false
-
-[functions.fetch-taiwan-holidays]
-verify_jwt = true
-
-[functions.kol-webhook]
-verify_jwt = true
-
-[functions.tappay-notify]
-verify_jwt = false
-
-[functions.tappay-query]
-verify_jwt = false
-
-[functions.complete-3ds-booking]
-verify_jwt = false
-
-[functions.validate-order-prices]
-verify_jwt = false
-
-[functions.tappay-refund-notify]
-verify_jwt = false
-
-[functions.update-own-password]
-verify_jwt = false
-
-[functions.tappay-config]
-verify_jwt = false
-
-[functions.search-external-rooms]
-verify_jwt = false
-
-[functions.accommodation-api]
-verify_jwt = false
-
-[functions.health-check]
-verify_jwt = false
-
-[functions.report-frontend-error]
-verify_jwt = false
-
-[functions.fetch-google-reviews]
-verify_jwt = true
-
-[functions.auto-sync-google-reviews]
-verify_jwt = false
-
-[functions.owlting-content]
-verify_jwt = false
-
-[functions.owlting-ari-push]
-verify_jwt = false
-
-[functions.owlting-cm]
-verify_jwt = false
-
-[functions.owlting-cm-snapshot]
-verify_jwt = false
-
-[functions.owlting-order-push]
-verify_jwt = false
-
-[functions.owlting-email-ingest]
-verify_jwt = false
-
-[functions.get-public-order]
-verify_jwt = false
-
-[functions.accommodation-ai-chat]
-verify_jwt = false
-
-[functions.create-accommodation-ai-api-key]
-verify_jwt = true
-
-[functions.owlting-fillup-validate]
-verify_jwt = false
-
-[functions.owlting-fillup-submit]
-verify_jwt = false
-
-[functions.owlting-fillup-remind]
-verify_jwt = false
-
-[functions.owlting-change-notify]
-verify_jwt = false
-
-[functions.kol-bonus-public]
-verify_jwt = false
-
-[functions.hotelnabe-order-receiver]
-verify_jwt = false
-
-[functions.hotelnabe-retrieve-rooms]
-verify_jwt = true
-
-[functions.hotelnabe-push-inventory]
-verify_jwt = true
-
-[functions.hotelnabe-push-inventory-worker]
-verify_jwt = false
-
-[functions.all-availability]
-verify_jwt = false
-
-[functions.public-venue-directory]
-verify_jwt = false
-
-[functions.check-member-email]
-verify_jwt = false
-
-[functions.register-member-guest]
-verify_jwt = false
-
-[functions.push-ragic-revenue]
-verify_jwt = true
-
-
-[functions.process-email-queue]
-verify_jwt = true
+[functions]
+  [functions.accommodation-ai-chat]
+    verify_jwt = false
+  [functions.accommodation-api]
+    verify_jwt = false
+  [functions.ai-booking-chat]
+    verify_jwt = false
+  [functions.all-availability]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.auto-sync-google-reviews]
+    verify_jwt = false
+  [functions.backup-data]
+    verify_jwt = true
+  [functions.check-email-exists]
+    verify_jwt = true
+  [functions.check-member-email]
+    verify_jwt = false
+  [functions.clean-order-notes]
+    verify_jwt = true
+  [functions.cleanup-old-backups]
+    verify_jwt = true
+  [functions.cleanup-orphan-user]
+    verify_jwt = true
+  [functions.complete-3ds-booking]
+    verify_jwt = false
+  [functions.create-accommodation-ai-api-key]
+    verify_jwt = true
+  [functions.create-user]
+    verify_jwt = true
+  [functions.delete-user]
+    verify_jwt = true
+  [functions.fetch-google-reviews]
+    verify_jwt = true
+  [functions.fetch-taiwan-holidays]
+    verify_jwt = true
+  [functions.fix-orphaned-data]
+    verify_jwt = true
+  [functions.generate-test-orders]
+    verify_jwt = true
+  [functions.get-public-order]
+    verify_jwt = false
+  [functions.health-check]
+    verify_jwt = false
+  [functions.hotelnabe-order-receiver]
+    verify_jwt = false
+  [functions.hotelnabe-push-inventory]
+    verify_jwt = true
+  [functions.hotelnabe-push-inventory-worker]
+    verify_jwt = false
+  [functions.hotelnabe-retrieve-rooms]
+    verify_jwt = true
+  [functions.kol-api]
+    verify_jwt = false
+  [functions.kol-bonus-public]
+    verify_jwt = false
+  [functions.kol-webhook]
+    verify_jwt = true
+  [functions.lookup-user-by-email]
+    verify_jwt = true
+  [functions.owlting-ari-push]
+    verify_jwt = false
+  [functions.owlting-change-notify]
+    verify_jwt = false
+  [functions.owlting-cm]
+    verify_jwt = false
+  [functions.owlting-cm-snapshot]
+    verify_jwt = false
+  [functions.owlting-content]
+    verify_jwt = false
+  [functions.owlting-email-ingest]
+    verify_jwt = false
+  [functions.owlting-fillup-remind]
+    verify_jwt = false
+  [functions.owlting-fillup-submit]
+    verify_jwt = false
+  [functions.owlting-fillup-validate]
+    verify_jwt = false
+  [functions.owlting-order-push]
+    verify_jwt = false
+  [functions.preview-booking-confirmation]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.process-linepay-payment]
+    verify_jwt = false
+  [functions.process-tappay-payment]
+    verify_jwt = false
+  [functions.public-venue-directory]
+    verify_jwt = false
+  [functions.push-ragic-revenue]
+    verify_jwt = true
+  [functions.register-member-guest]
+    verify_jwt = false
+  [functions.report-frontend-error]
+    verify_jwt = false
+  [functions.resend-invite]
+    verify_jwt = true
+  [functions.restore-data]
+    verify_jwt = true
+  [functions.search-external-rooms]
+    verify_jwt = false
+  [functions.send-booking-confirmation]
+    verify_jwt = false
+  [functions.send-cancellation-email]
+    verify_jwt = true
+  [functions.send-invite-email]
+    verify_jwt = true
+  [functions.send-password-reset]
+    verify_jwt = false
+  [functions.speech-to-text]
+    verify_jwt = false
+  [functions.tappay-config]
+    verify_jwt = false
+  [functions.tappay-notify]
+    verify_jwt = false
+  [functions.tappay-query]
+    verify_jwt = false
+  [functions.tappay-refund-notify]
+    verify_jwt = false
+  [functions.test-email]
+    verify_jwt = true
+  [functions.text-to-speech]
+    verify_jwt = false
+  [functions.update-own-password]
+    verify_jwt = false
+  [functions.update-password]
+    verify_jwt = false
+  [functions.validate-order-prices]
+    verify_jwt = false
+  [functions.validate-reset-token]
+    verify_jwt = false

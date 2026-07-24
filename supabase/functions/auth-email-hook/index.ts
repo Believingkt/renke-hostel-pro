@@ -1,221 +1,319 @@
+import * as React from 'npm:react@18.3.1'
+import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
+import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { SignupEmail } from '../_shared/email-templates/signup.tsx'
+import { InviteEmail } from '../_shared/email-templates/invite.tsx'
+import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
+import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
+import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
+import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const FROM_EMAIL = "人客多會員 <noreply@lakeze.com>";
-const RESEND_URL = "https://api.resend.com/emails";
-
-const BRAND = {
-  primary: "#d07218",
-  primaryLight: "#fdf0e3",
-  accent: "#d47a0a",
-  foreground: "#2d3344",
-  muted: "#6b7280",
-  radius: "8px",
-};
-
-function baseLayout(title: string, previewText: string, bodyContent: string): string {
-  return `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;">
-  <div style="display:none;max-height:0;overflow:hidden">${previewText}</div>
-  <div style="padding:24px 16px;">
-    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,${BRAND.primary},${BRAND.accent});padding:28px 24px;text-align:center;">
-        <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:2px;">人客多 Lakeze</div>
-      </div>
-      <div style="padding:32px 28px;color:${BRAND.foreground};font-size:15px;line-height:1.7;">
-        ${bodyContent}
-      </div>
-      <div style="background:#fafafa;padding:20px 28px;text-align:center;border-top:1px solid #eee;">
-        <p style="color:#999;font-size:12px;margin:0;">© ${new Date().getFullYear()} 人客多 Lakeze. All rights reserved.</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-lovable-signature, x-lovable-timestamp, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-function otpBlock(token: string): string {
-  return `<p style="text-align:center;margin:8px 0 4px;color:${BRAND.muted};font-size:14px;">您的 6 位數驗證碼</p>
-    <div style="background:${BRAND.primaryLight};border:1px solid ${BRAND.primary}33;border-radius:${BRAND.radius};padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:10px;color:${BRAND.foreground};margin:16px 0;">${token}</div>
-    <p style="text-align:center;font-size:12px;color:#999;margin:0 0 20px;">請於 10 分鐘內於結帳頁面輸入驗證碼</p>`;
+const EMAIL_SUBJECTS: Record<string, string> = {
+  signup: 'Confirm your email',
+  invite: "You've been invited",
+  magiclink: 'Your login link',
+  recovery: 'Reset your password',
+  email_change: 'Confirm your new email',
+  reauthentication: 'Your verification code',
 }
 
-function linkButton(url: string, label: string): string {
-  return `<p style="text-align:center;margin:24px 0;">
-    <a href="${url}" style="display:inline-block;background:${BRAND.primary};color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:${BRAND.radius};font-size:16px;font-weight:600;">${label}</a>
-  </p>
-  <p style="font-size:12px;color:#999;word-break:break-all;">如按鈕無法點擊，請複製此連結至瀏覽器：<br/><a href="${url}" style="color:${BRAND.primary};">${url}</a></p>`;
+// Template mapping
+const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
+  signup: SignupEmail,
+  invite: InviteEmail,
+  magiclink: MagicLinkEmail,
+  recovery: RecoveryEmail,
+  email_change: EmailChangeEmail,
+  reauthentication: ReauthenticationEmail,
 }
 
-function renderSignup(token: string | undefined, url: string | undefined): { subject: string; html: string } {
-  const parts: string[] = [`<h1 style="margin:0 0 16px;font-size:22px;">歡迎加入人客多 🎉</h1>`,
-    `<p style="color:${BRAND.muted};margin:0 0 20px;">感謝您註冊人客多會員。請使用下方 6 位數驗證碼完成 Email 驗證。</p>`];
-  if (token) parts.push(otpBlock(token));
-  if (url) parts.push(linkButton(url, "或點此直接驗證"));
-  parts.push(`<p style="font-size:13px;color:#999;">若非本人操作，請忽略此郵件。</p>`);
-  return {
-    subject: token ? `【人客多】您的註冊驗證碼 ${token}` : "歡迎加入人客多 — 請驗證您的 Email",
-    html: baseLayout("Email 驗證", token ? `您的註冊驗證碼：${token}` : "請驗證您的 Email 以啟用帳號", parts.join("\n")),
-  };
+// Configuration
+const SITE_NAME = "renke-hostel-pro"
+const SENDER_DOMAIN = "notify.sensaninn.lakeze.com"
+const ROOT_DOMAIN = "sensaninn.lakeze.com"
+const FROM_DOMAIN = "notify.sensaninn.lakeze.com" // Domain shown in From address (may be root or sender subdomain)
+
+// Sample data for preview mode ONLY (not used in actual email sending).
+// URLs are baked in at scaffold time from the project's real data.
+// The sample email uses a fixed placeholder (RFC 6761 .test TLD) so the Go backend
+// can always find-and-replace it with the actual recipient when sending test emails,
+// even if the project's domain has changed since the template was scaffolded.
+const SAMPLE_PROJECT_URL = "https://renke-hostel-pro.lovable.app"
+const SAMPLE_EMAIL = "user@example.test"
+const SAMPLE_DATA: Record<string, object> = {
+  signup: {
+    siteName: SITE_NAME,
+    siteUrl: SAMPLE_PROJECT_URL,
+    recipient: SAMPLE_EMAIL,
+    confirmationUrl: SAMPLE_PROJECT_URL,
+  },
+  magiclink: {
+    siteName: SITE_NAME,
+    confirmationUrl: SAMPLE_PROJECT_URL,
+  },
+  recovery: {
+    siteName: SITE_NAME,
+    confirmationUrl: SAMPLE_PROJECT_URL,
+  },
+  invite: {
+    siteName: SITE_NAME,
+    siteUrl: SAMPLE_PROJECT_URL,
+    confirmationUrl: SAMPLE_PROJECT_URL,
+  },
+  email_change: {
+    siteName: SITE_NAME,
+    oldEmail: SAMPLE_EMAIL,
+    email: SAMPLE_EMAIL,
+    newEmail: SAMPLE_EMAIL,
+    confirmationUrl: SAMPLE_PROJECT_URL,
+  },
+  reauthentication: {
+    token: '123456',
+  },
 }
 
-function renderMagicLink(token: string | undefined, url: string | undefined): { subject: string; html: string } {
-  const parts: string[] = [`<h1 style="margin:0 0 16px;font-size:22px;">快速登入人客多</h1>`,
-    `<p style="color:${BRAND.muted};margin:0 0 20px;">請於結帳頁面輸入以下 6 位數驗證碼完成登入。</p>`];
-  if (token) parts.push(otpBlock(token));
-  if (url) parts.push(linkButton(url, "或點此直接登入"));
-  parts.push(`<p style="font-size:13px;color:#999;">若非本人操作，請忽略此郵件。</p>`);
-  return {
-    subject: token ? `【人客多】您的登入驗證碼 ${token}` : "人客多 — 您的登入連結",
-    html: baseLayout("快速登入", token ? `您的登入驗證碼：${token}` : "使用此連結快速登入", parts.join("\n")),
-  };
+// Preview endpoint handler - returns rendered HTML without sending email
+async function handlePreview(req: Request): Promise<Response> {
+  const previewCorsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, content-type',
+  }
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: previewCorsHeaders })
+  }
+
+  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const authHeader = req.headers.get('Authorization')
+
+  if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  let type: string
+  try {
+    const body = await req.json()
+    type = body.type
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+      status: 400,
+      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const EmailTemplate = EMAIL_TEMPLATES[type]
+
+  if (!EmailTemplate) {
+    return new Response(JSON.stringify({ error: `Unknown email type: ${type}` }), {
+      status: 400,
+      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const sampleData = SAMPLE_DATA[type] || {}
+  const html = await renderAsync(React.createElement(EmailTemplate, sampleData))
+
+  return new Response(html, {
+    status: 200,
+    headers: { ...previewCorsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+  })
 }
 
-function renderRecovery(token: string | undefined, url: string | undefined): { subject: string; html: string } {
-  const parts: string[] = [`<h1 style="margin:0 0 16px;font-size:22px;">重設您的密碼</h1>`,
-    `<p style="color:${BRAND.muted};margin:0 0 20px;">我們收到您的密碼重設請求。請使用下方驗證碼或點擊連結設定新密碼。</p>`];
-  if (token) parts.push(otpBlock(token));
-  if (url) parts.push(linkButton(url, "重設密碼"));
-  parts.push(`<p style="font-size:13px;color:#999;">若您沒有申請重設密碼，請忽略此郵件。</p>`);
-  return {
-    subject: "【人客多】重設您的密碼",
-    html: baseLayout("密碼重設", "您已申請重設密碼", parts.join("\n")),
-  };
-}
+// Webhook handler - verifies signature and sends email
+async function handleWebhook(req: Request): Promise<Response> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY')
 
-function renderInvite(url: string): { subject: string; html: string } {
-  return {
-    subject: "您已被邀請加入人客多",
-    html: baseLayout("帳號邀請", "您已被邀請加入人客多系統",
-      `<h1 style="margin:0 0 16px;font-size:22px;">您已被邀請加入人客多！</h1>
-       <p style="color:${BRAND.muted};margin:0 0 20px;">請點擊下方按鈕設定您的密碼並啟用帳號。</p>
-       ${linkButton(url, "接受邀請")}`),
-  };
-}
+  if (!apiKey) {
+    console.error('LOVABLE_API_KEY not configured')
+    return new Response(
+      JSON.stringify({ error: 'Server configuration error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
 
-function renderEmailChange(url: string): { subject: string; html: string } {
-  return {
-    subject: "【人客多】確認變更 Email",
-    html: baseLayout("Email 變更", "請確認您的新 Email 地址",
-      `<h1 style="margin:0 0 16px;font-size:22px;">確認變更 Email</h1>
-       <p style="color:${BRAND.muted};margin:0 0 20px;">您已申請變更 Email。請點擊下方按鈕完成確認。</p>
-       ${linkButton(url, "確認變更")}
-       <p style="font-size:13px;color:#999;">若您沒有申請變更 Email，請忽略此郵件。</p>`),
-  };
-}
+  // Verify signature + timestamp, then parse payload.
+  let payload: any
+  let run_id = ''
+  try {
+    const verified = await verifyWebhookRequest({
+      req,
+      secret: apiKey,
+      parser: parseEmailWebhookPayload,
+    })
+    payload = verified.payload
+    run_id = payload.run_id
+  } catch (error) {
+    if (error instanceof WebhookError) {
+      switch (error.code) {
+        case 'invalid_signature':
+        case 'missing_timestamp':
+        case 'invalid_timestamp':
+        case 'stale_timestamp':
+          console.error('Invalid webhook signature', { error: error.message })
+          return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        case 'invalid_payload':
+        case 'invalid_json':
+          console.error('Invalid webhook payload', { error: error.message })
+          return new Response(
+            JSON.stringify({ error: 'Invalid webhook payload' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+      }
+    }
 
-function renderReauth(token: string): { subject: string; html: string } {
-  return {
-    subject: `【人客多】您的驗證碼 ${token}`,
-    html: baseLayout("驗證碼", `您的驗證碼：${token}`,
-      `<h1 style="margin:0 0 16px;font-size:22px;">您的驗證碼</h1>
-       <p style="color:${BRAND.muted};margin:0 0 20px;">請使用以下驗證碼完成身份驗證：</p>
-       ${otpBlock(token)}
-       <p style="font-size:13px;color:#999;">此驗證碼將在 10 分鐘後失效。</p>`),
-  };
+    console.error('Webhook verification failed', { error })
+    return new Response(
+      JSON.stringify({ error: 'Invalid webhook payload' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  if (!run_id) {
+    console.error('Webhook payload missing run_id')
+    return new Response(
+      JSON.stringify({ error: 'Invalid webhook payload' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (payload.version !== '1') {
+    console.error('Unsupported payload version', { version: payload.version, run_id })
+    return new Response(
+      JSON.stringify({ error: `Unsupported payload version: ${payload.version}` }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
+  // payload.type is the hook event type ("auth")
+  const emailType = payload.data.action_type
+  console.log('Received auth event', { emailType, email: payload.data.email, run_id })
+
+  const EmailTemplate = EMAIL_TEMPLATES[emailType]
+  if (!EmailTemplate) {
+    console.error('Unknown email type', { emailType, run_id })
+    return new Response(
+      JSON.stringify({ error: `Unknown email type: ${emailType}` }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Build template props from payload.data (HookData structure)
+  const templateProps = {
+    siteName: SITE_NAME,
+    siteUrl: `https://${ROOT_DOMAIN}`,
+    recipient: payload.data.email,
+    confirmationUrl: payload.data.url,
+    token: payload.data.token,
+    email: payload.data.email,
+    oldEmail: payload.data.old_email,
+    newEmail: payload.data.new_email,
+  }
+
+  // Render React Email to HTML and plain text
+  const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
+  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), {
+    plainText: true,
+  })
+
+  // Enqueue email for async processing by the dispatcher (process-email-queue).
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
+  const messageId = crypto.randomUUID()
+
+  // Log pending BEFORE enqueue so we have a record even if enqueue crashes
+  await supabase.from('email_send_log').insert({
+    message_id: messageId,
+    template_name: emailType,
+    recipient_email: payload.data.email,
+    status: 'pending',
+  })
+
+  const { error: enqueueError } = await supabase.rpc('enqueue_email', {
+    queue_name: 'auth_emails',
+    payload: {
+      run_id,
+      message_id: messageId,
+      to: payload.data.email,
+      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+      sender_domain: SENDER_DOMAIN,
+      subject: EMAIL_SUBJECTS[emailType] || 'Notification',
+      html,
+      text,
+      purpose: 'transactional',
+      label: emailType,
+      queued_at: new Date().toISOString(),
+    },
+  })
+
+  if (enqueueError) {
+    console.error('Failed to enqueue auth email', { error: enqueueError, run_id, emailType })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: emailType,
+      recipient_email: payload.data.email,
+      status: 'failed',
+      error_message: 'Failed to enqueue email',
+    })
+    return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  console.log('Auth email enqueued', { emailType, email: payload.data.email, run_id })
+
+  return new Response(
+    JSON.stringify({ success: true, queued: true }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const url = new URL(req.url)
 
-  try {
-    const RESEND_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE");
-    if (!RESEND_KEY) throw new Error("RESEND_API_KEY_LAKEZE is not configured");
-
-    const payload = await req.json();
-    console.log("Auth email hook received:", JSON.stringify({
-      type: payload.type,
-      email: payload.email,
-      hasEmailData: !!payload.email_data,
-      hasWebhookSignature: !!req.headers.get("webhook-signature") || !!req.headers.get("x-supabase-signature"),
-    }));
-
-    const userObj = payload.user || {};
-    const emailPayload = typeof payload.email === "object" && payload.email !== null ? payload.email : {};
-    const emailData = payload.email_data || emailPayload || {};
-    const type: string = payload.type || emailData.email_action_type || emailPayload.email_action_type;
-    const email: string = typeof payload.email === "string" ? payload.email : (emailData.to || emailData.email || userObj.email);
-    const token: string | undefined = payload.token || emailData.token || emailPayload.token;
-    const tokenHash: string | undefined = emailData.token_hash || emailPayload.token_hash;
-    const redirectTo: string | undefined = emailData.redirect_to || emailPayload.redirect_to || payload.redirect_to;
-    const siteUrl: string | undefined = emailData.site_url || emailPayload.site_url || payload.site_url || Deno.env.get("SUPABASE_URL");
-    let confirmationUrl: string | undefined = payload.confirmation_url;
-    if (!confirmationUrl && tokenHash && type && siteUrl) {
-      const redirectParam = redirectTo ? `&redirect_to=${encodeURIComponent(redirectTo)}` : "";
-      confirmationUrl = `${siteUrl}/auth/v1/verify?token=${tokenHash}&type=${type}${redirectParam}`;
-    }
-
-    if (!email || !type) {
-      console.log("Auth email hook validation event skipped:", JSON.stringify({ hasType: !!type, hasEmail: !!email }));
-      return new Response(JSON.stringify({ success: true, skipped: true, reason: "validation_event_missing_type_or_email" }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let rendered: { subject: string; html: string };
-    switch (type) {
-      case "signup":
-        rendered = renderSignup(token, confirmationUrl); break;
-      case "magiclink":
-      case "magic_link":
-        rendered = renderMagicLink(token, confirmationUrl); break;
-      case "recovery":
-        rendered = renderRecovery(token, confirmationUrl); break;
-      case "invite":
-        if (!confirmationUrl) throw new Error("invite missing confirmation URL");
-        rendered = renderInvite(confirmationUrl); break;
-      case "email_change":
-      case "email_change_new":
-      case "email_change_current":
-        if (!confirmationUrl) throw new Error("email_change missing confirmation URL");
-        rendered = renderEmailChange(confirmationUrl); break;
-      case "reauthentication":
-        if (!token) throw new Error("reauthentication missing token");
-        rendered = renderReauth(token); break;
-      default:
-        console.log("Unknown auth email type, skipping:", type);
-        return new Response(JSON.stringify({ success: true, skipped: true }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
-    const response = await fetch(RESEND_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_KEY}`,
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: rendered.subject,
-        html: rendered.html,
-      }),
-    });
-
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error("Resend API error:", response.status, JSON.stringify(result));
-      throw new Error(`Resend failed [${response.status}]: ${JSON.stringify(result)}`);
-    }
-
-    console.log("Auth email sent:", { type, email, resendId: (result as { id?: string }).id });
-    return new Response(JSON.stringify({ success: true, id: (result as { id?: string }).id }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error: unknown) {
-    console.error("Auth email hook error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  // Handle CORS preflight for main endpoint
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
   }
-});
+
+  // Route to preview handler for /preview path
+  if (url.pathname.endsWith('/preview')) {
+    return handlePreview(req)
+  }
+
+  // Main webhook handler
+  try {
+    return await handleWebhook(req)
+  } catch (error) {
+    console.error('Webhook handler error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})
