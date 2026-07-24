@@ -79,27 +79,56 @@ function orderCurrency(o: any): string {
   return String(raw || "TWD").toUpperCase();
 }
 
-async function postToRagic(payload: Record<string, string>) {
+function ragicAuthHeader() {
   const apiKey = Deno.env.get("RAGIC_API_KEY");
   if (!apiKey) throw new Error("RAGIC_API_KEY not configured");
-  // Ragic API key is already a base64 string — send it directly, do NOT re-encode.
+  return `Basic ${apiKey.trim()}`;
+}
+
+async function postToRagic(payload: Record<string, string>, recordId?: string | number | null) {
+  const url = recordId != null && recordId !== "" ? `${RAGIC_URL.replace("?api&naming=EID", `/${recordId}?api&naming=EID`)}` : RAGIC_URL;
   const body = new URLSearchParams(payload).toString();
-  const resp = await fetch(RAGIC_URL, {
+  const resp = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Basic ${apiKey.trim()}`,
+      Authorization: ragicAuthHeader(),
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body,
   });
   const text = await resp.text();
   let json: any = null;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    // ignore
-  }
+  try { json = JSON.parse(text); } catch {}
   return { ok: resp.ok, status: resp.status, body: json ?? text };
+}
+
+/** Find existing Ragic record matching year_month + venue + income_type. Returns Ragic record id or null. */
+async function findExistingRagicRecord(
+  yyyyMm: string,
+  venueName: string,
+  incomeType: string,
+): Promise<string | null> {
+  // Ragic date field stores yyyy/MM/dd; use first day of month
+  const [y, m] = yyyyMm.split("/");
+  const dateVal = `${y}/${m}/01`;
+  const params = new URLSearchParams();
+  params.set("api", "");
+  // Ragic where syntax: where=<fieldId>,eq,<value>
+  params.append("where", `${FIELD.YEAR_MONTH},eq,${dateVal}`);
+  params.append("where", `${FIELD.VENUE},eq,${venueName}`);
+  params.append("where", `${FIELD.INCOME_TYPE},eq,${incomeType}`);
+  const url = `https://ap15.ragic.com/lakeze/income-source/2?${params.toString()}`;
+  const resp = await fetch(url, { headers: { Authorization: ragicAuthHeader() } });
+  if (!resp.ok) return null;
+  const text = await resp.text();
+  let json: any = null;
+  try { json = JSON.parse(text); } catch { return null; }
+  if (!json || typeof json !== "object") return null;
+  // Ragic returns an object keyed by internal ragicId. Pick the first.
+  const keys = Object.keys(json).filter((k) => !k.startsWith("_") && typeof json[k] === "object");
+  if (keys.length === 0) return null;
+  const first = json[keys[0]];
+  return String(first?._ragicId ?? keys[0]);
 }
 
 Deno.serve(async (req) => {
@@ -113,6 +142,7 @@ Deno.serve(async (req) => {
       month,
       accommodation_id,
       dry_run = true,
+      mode = "upsert", // "insert" (legacy always-create) or "upsert" (match by year_month+venue+income_type)
     } = await req.json();
 
     if (!year || !month || month < 1 || month > 12) {
@@ -267,11 +297,26 @@ Deno.serve(async (req) => {
       const posts: any[] = [];
       if (!dry_run) {
         for (const row of rows) {
-          const r = await postToRagic(row);
+          let existingId: string | null = null;
+          if (mode === "upsert") {
+            try {
+              existingId = await findExistingRagicRecord(
+                yyyyMm,
+                row[FIELD.VENUE],
+                row[FIELD.INCOME_TYPE],
+              );
+            } catch (err) {
+              console.error("[push-ragic-revenue] lookup failed", err);
+            }
+          }
+          const r = await postToRagic(row, existingId);
+          const respRid = (r.body && (r.body._ragicId ?? r.body.ragicId)) ?? null;
           posts.push({
-            ok: r.ok,
+            ok: r.ok && (r.body?.status ?? "SUCCESS") === "SUCCESS",
             status: r.status,
-            record_id: (r.body && (r.body._ragicId ?? r.body.ragicId)) ?? null,
+            action: existingId ? "update" : "insert",
+            existing_record_id: existingId,
+            record_id: respRid ?? existingId,
             body: r.body,
           });
         }
