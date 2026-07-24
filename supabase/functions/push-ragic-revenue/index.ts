@@ -297,11 +297,26 @@ Deno.serve(async (req) => {
       const posts: any[] = [];
       if (!dry_run) {
         for (const row of rows) {
-          const r = await postToRagic(row);
+          let existingId: string | null = null;
+          if (mode === "upsert") {
+            try {
+              existingId = await findExistingRagicRecord(
+                yyyyMm,
+                row[FIELD.VENUE],
+                row[FIELD.INCOME_TYPE],
+              );
+            } catch (err) {
+              console.error("[push-ragic-revenue] lookup failed", err);
+            }
+          }
+          const r = await postToRagic(row, existingId);
+          const respRid = (r.body && (r.body._ragicId ?? r.body.ragicId)) ?? null;
           posts.push({
-            ok: r.ok,
+            ok: r.ok && (r.body?.status ?? "SUCCESS") === "SUCCESS",
             status: r.status,
-            record_id: (r.body && (r.body._ragicId ?? r.body.ragicId)) ?? null,
+            action: existingId ? "update" : "insert",
+            existing_record_id: existingId,
+            record_id: respRid ?? existingId,
             body: r.body,
           });
         }
