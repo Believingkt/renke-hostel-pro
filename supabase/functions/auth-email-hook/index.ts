@@ -131,16 +131,22 @@ Deno.serve(async (req) => {
     if (!RESEND_KEY) throw new Error("RESEND_API_KEY_LAKEZE is not configured");
 
     const payload = await req.json();
-    console.log("Auth email hook received:", JSON.stringify({ type: payload.type, email: payload.email, hasEmailData: !!payload.email_data }));
+    console.log("Auth email hook received:", JSON.stringify({
+      type: payload.type,
+      email: payload.email,
+      hasEmailData: !!payload.email_data,
+      hasWebhookSignature: !!req.headers.get("webhook-signature") || !!req.headers.get("x-supabase-signature"),
+    }));
 
     const userObj = payload.user || {};
-    const emailData = payload.email_data || {};
-    const type: string = payload.type || emailData.email_action_type;
-    const email: string = payload.email || userObj.email;
-    const token: string | undefined = payload.token || emailData.token;
-    const tokenHash: string | undefined = emailData.token_hash;
-    const redirectTo: string | undefined = emailData.redirect_to || payload.redirect_to;
-    const siteUrl: string | undefined = emailData.site_url || payload.site_url || Deno.env.get("SUPABASE_URL");
+    const emailPayload = typeof payload.email === "object" && payload.email !== null ? payload.email : {};
+    const emailData = payload.email_data || emailPayload || {};
+    const type: string = payload.type || emailData.email_action_type || emailPayload.email_action_type;
+    const email: string = typeof payload.email === "string" ? payload.email : (emailData.to || emailData.email || userObj.email);
+    const token: string | undefined = payload.token || emailData.token || emailPayload.token;
+    const tokenHash: string | undefined = emailData.token_hash || emailPayload.token_hash;
+    const redirectTo: string | undefined = emailData.redirect_to || emailPayload.redirect_to || payload.redirect_to;
+    const siteUrl: string | undefined = emailData.site_url || emailPayload.site_url || payload.site_url || Deno.env.get("SUPABASE_URL");
     let confirmationUrl: string | undefined = payload.confirmation_url;
     if (!confirmationUrl && tokenHash && type && siteUrl) {
       const redirectParam = redirectTo ? `&redirect_to=${encodeURIComponent(redirectTo)}` : "";
@@ -148,8 +154,9 @@ Deno.serve(async (req) => {
     }
 
     if (!email || !type) {
-      return new Response(JSON.stringify({ error: "Missing type or email" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.log("Auth email hook validation event skipped:", JSON.stringify({ hasType: !!type, hasEmail: !!email }));
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "validation_event_missing_type_or_email" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
