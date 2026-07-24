@@ -598,6 +598,8 @@ export default function FinancialReportTab() {
         const row5Children: GroupedRow[] = [];
         for (const [accId, b] of row5ByAcc.entries()) {
           for (let i = 0; i < weekCount; i++) row5Total[i] += b[i];
+          const stayTotal = (row4ByAcc.get(accId) ?? []).reduce((a, v) => a + v, 0);
+          if (stayTotal <= 0) continue;
           row5Children.push({
             key: `row5-${accId}`,
             label: stayAccNameMap.get(accId) ?? accId,
@@ -605,6 +607,7 @@ export default function FinancialReportTab() {
           });
         }
         row5Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
 
         if (cancelled) return;
         setRow1(row1Grouped);
