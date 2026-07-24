@@ -546,6 +546,8 @@ export default function FinancialReportTab() {
         const row4Children: GroupedRow[] = [];
         for (const [accId, b] of row4ByAcc.entries()) {
           for (let i = 0; i < weekCount; i++) row4Total[i] += b[i];
+          const accTotal = b.reduce((a, v) => a + v, 0);
+          if (accTotal <= 0) continue;
           row4Children.push({
             key: `row4-${accId}`,
             label: stayAccNameMap.get(accId) ?? accId,
@@ -553,6 +555,7 @@ export default function FinancialReportTab() {
           });
         }
         row4Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
 
         /* ---- Row 5: 管顧費用 = 住房營收 × 費率（依館別、依生效日取最新） ---- */
         const row5ByAcc = new Map<string, number[]>();
