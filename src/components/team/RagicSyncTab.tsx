@@ -267,7 +267,11 @@ export default function RagicSyncTab() {
                   </TableCell>
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.skipped || !r.commission_rate ? "—" : `${r.commission_rate}%`}
+                  </TableCell>
                   <TableCell className="max-w-[300px]">
+
                     {r.skipped ? (
                       <Badge variant="secondary">已跳過：無訂單</Badge>
                     ) : r.no_fee_warning ? (
