@@ -348,6 +348,8 @@ export default function FinancialReportTab() {
           for (const accId of selectedAccs) {
             const b = byAcc.get(accId) ?? emptyBuckets(weekCount);
             for (let i = 0; i < weekCount; i++) total[i] += b[i];
+            const accTotal = b.reduce((a, v) => a + v, 0);
+            if (accTotal <= 0) continue;
             children.push({
               key: `${key}-${accId}`,
               label: notifAccNameMap.get(accId) ?? accId,
@@ -357,6 +359,7 @@ export default function FinancialReportTab() {
           children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
           return { key, label, buckets: total, children };
         };
+
         const row1Grouped = buildGrouped("row1", "訂房組業績", r1ByAcc);
         const row2Grouped = buildGrouped("row2", "KOL 總額", r2ByAcc);
 
