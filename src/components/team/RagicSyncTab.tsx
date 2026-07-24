@@ -234,7 +234,7 @@ export default function RagicSyncTab() {
           <div className="text-sm text-muted-foreground">
             共 {rows.length} 筆
             {postedCount > 0 && `（已送出 ${postedCount} 筆）`}
-            ・年月 {year}/{String(month).padStart(2, "0")}
+            ・計算範圍是{year}年{month}月1日～{month}月{new Date(year, month, 0).getDate()}日
           </div>
         )}
 
