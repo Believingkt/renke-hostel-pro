@@ -548,7 +548,7 @@ export default function FinancialReportTab() {
         if (stayAccIds.length > 0) {
           const { data: stayOrders } = await supabase
             .from("orders")
-            .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id")
+            .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", stayAccIds)
             .eq("order_status", "confirmed")
             .lte("check_in_date", monthEnd)
@@ -558,7 +558,7 @@ export default function FinancialReportTab() {
             const ci: string = String(o.check_in_date ?? "").slice(0, 10);
             const co: string = String(o.check_out_date ?? "").slice(0, 10);
             if (!ci || !co) continue;
-            const orderPrice = Number(o.final_price ?? 0);
+            const orderPrice = toTwd(Number(o.final_price ?? 0), o.accommodation_id, readDisplayCurrency(o));
             const ciDate = new Date(`${ci}T00:00:00`);
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
