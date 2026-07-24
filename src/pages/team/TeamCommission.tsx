@@ -1126,7 +1126,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   );
 
   return (
-    <Card>
+    <Card className="overflow-x-hidden">
       <CardHeader>
         <CardTitle>發放管理</CardTitle>
       </CardHeader>
