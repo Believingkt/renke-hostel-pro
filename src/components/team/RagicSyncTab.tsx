@@ -272,7 +272,7 @@ export default function RagicSyncTab() {
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {r.skipped || !r.commission_rate ? "—" : `${(Number(r.commission_rate) * 100).toFixed(2).replace(/\.?0+$/, "")}%`}
+                    {r.skipped || !r.commission_rate || r.income_type === "門市運營" ? "—" : `${(Number(r.commission_rate) * 100).toFixed(2).replace(/\.?0+$/, "")}%`}
                   </TableCell>
                   <TableCell className="max-w-[300px]">
 
