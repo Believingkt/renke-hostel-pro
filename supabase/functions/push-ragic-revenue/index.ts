@@ -210,6 +210,22 @@ Deno.serve(async (req) => {
       const isFranchise = FRANCHISE_IDS.has(acc.id);
       const noteText = hasFee ? "" : NO_FEE_NOTE;
 
+      // Skip venues with no revenue AND no management fee for the month
+      if (revenueTwd === 0 && managementFeeRounded === 0) {
+        results.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          skipped: true,
+          reason: "no_revenue",
+          is_franchise: FRANCHISE_IDS.has(acc.id),
+          original_currency: originalCurrency,
+          exchange_rate: exchangeRate,
+          revenue_twd: 0,
+          management_fee_twd: 0,
+        });
+        continue;
+      }
+
       const rows: Record<string, string>[] = [];
 
       const ratePercent = feeCfg ? Number((feeCfg.rate * 100).toFixed(4)) : 0;
