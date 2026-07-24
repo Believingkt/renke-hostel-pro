@@ -79,12 +79,12 @@ function orderCurrency(o: any): string {
 async function postToRagic(payload: Record<string, string>) {
   const apiKey = Deno.env.get("RAGIC_API_KEY");
   if (!apiKey) throw new Error("RAGIC_API_KEY not configured");
-  const basic = btoa(`${apiKey}:`);
+  // Ragic API key is already a base64 string — send it directly, do NOT re-encode.
   const body = new URLSearchParams(payload).toString();
   const resp = await fetch(RAGIC_URL, {
     method: "POST",
     headers: {
-      Authorization: `Basic ${basic}`,
+      Authorization: `Basic ${apiKey.trim()}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body,
