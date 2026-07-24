@@ -647,7 +647,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
-          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id")
+          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, orders!inner(order_number)")
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("franchise_orders")
