@@ -41,6 +41,19 @@ interface OrderRow {
   accommodation_id: string | null;
 }
 
+const TAPPAY_FALLBACK_EMAIL = "noreply@lakeze.com";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function sanitizeEmailForTapPay(email: string | null | undefined): string {
+  const v = (email || "").trim();
+  if (!v) return TAPPAY_FALLBACK_EMAIL;
+  // 內部合成 email（LINE / Facebook 綁定用）TapPay 會拒（Out of range）
+  if (/@(?:line|facebook)\.lakeze\.local$/i.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (/\.local$/i.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (!EMAIL_RE.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (v.length > 100) return TAPPAY_FALLBACK_EMAIL;
+  return v;
+}
+
 function formatCountdown(ms: number) {
   if (ms <= 0) return { expired: true as const, text: "已逾期" };
   const days = Math.floor(ms / 86400000);
