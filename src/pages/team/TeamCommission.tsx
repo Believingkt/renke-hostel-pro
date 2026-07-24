@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -579,11 +579,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [markingMember, setMarkingMember] = useState<string | null>(null);
   const [confirmMember, setConfirmMember] = useState<MemberGroup | null>(null);
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [markingSource, setMarkingSource] = useState<string | null>(null);
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }, []);
+  const toggleSource = useCallback((memberId: string, sourceLabel: string) => {
+    const key = `${memberId}:${sourceLabel}`;
+    setExpandedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }, []);
@@ -636,7 +647,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
-          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id")
+          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, orders!inner(order_number)")
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("franchise_orders")
@@ -749,10 +760,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
       (closers ?? []).forEach((r: any) => {
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
         }
       });
 
@@ -1088,6 +1099,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     }
   };
 
+  const markSourceAll = async (memberId: string, sourceLabel: string, items: SourceItem[]) => {
+    const unpaid = items.filter((i) => !i.paid);
+    if (unpaid.length === 0) return;
+    const key = `${memberId}:${sourceLabel}`;
+    setMarkingSource(key);
+    try {
+      await markItemsBatch(unpaid);
+      toast.success(`已標記「${sourceLabel}」全部已發放（${unpaid.length} 筆）`);
+      fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setMarkingSource(null);
+    }
+  };
+
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -1099,7 +1126,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   );
 
   return (
-    <Card>
+    <Card className="overflow-x-hidden">
       <CardHeader>
         <CardTitle>發放管理</CardTitle>
       </CardHeader>
@@ -1193,49 +1220,121 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                           </Button>
                         </div>
                       )}
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">來源類型</TableHead>
-                          <TableHead>明細</TableHead>
-                          <TableHead className="text-right w-[120px]">金額</TableHead>
-                          <TableHead className="w-[120px]">狀態</TableHead>
-                          <TableHead className="w-[140px] text-right"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {g.items.map((it) => (
-                          <TableRow key={it.key}>
-                            <TableCell className="text-xs">{it.source_label}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {it.multiplier > 1 && (
-                                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
-                                    × {Number(it.multiplier).toFixed(2)} 倍
+                    <div className="divide-y">
+                      {(() => {
+                        // 依 source_label 分組
+                        const bySource = new Map<string, SourceItem[]>();
+                        for (const it of g.items) {
+                          const arr = bySource.get(it.source_label) ?? [];
+                          arr.push(it);
+                          bySource.set(it.source_label, arr);
+                        }
+                        const itemsBySource = Array.from(bySource.entries()).map(([label, items]) => ({
+                          label,
+                          items,
+                          subtotal: items.reduce((s, i) => s + i.multiplied_amount, 0),
+                          allPaid: items.every((i) => i.paid),
+                        }));
+                        return itemsBySource.map((src) => {
+                          const srcKey = `${g.member_id}:${src.label}`;
+                          const srcOpen = expandedSources.has(srcKey);
+                          const unpaidCount = src.items.filter((i) => !i.paid).length;
+                          return (
+                            <div key={src.label}>
+                              <div className="flex items-center justify-between px-4 py-2 bg-background hover:bg-muted/30 transition-colors">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSource(g.member_id, src.label)}
+                                  className="flex items-center gap-2 flex-1 text-left"
+                                  aria-expanded={srcOpen}
+                                >
+                                  {srcOpen ? (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  <span className="text-sm font-medium">{src.label}</span>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    {src.items.length} 筆
                                   </Badge>
-                                )}
-                                <span>{formatMoney(it.multiplied_amount)}</span>
+                                  {src.allPaid ? (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">已發放</Badge>
+                                  ) : unpaidCount < src.items.length ? (
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                      待發放 {unpaidCount} 筆
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                      待發放
+                                    </Badge>
+                                  )}
+                                </button>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm font-medium tabular-nums">
+                                    小計 {formatMoney(src.subtotal)}
+                                  </span>
+                                  {!readOnly && !src.allPaid && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={markingSource === srcKey}
+                                      onClick={() => markSourceAll(g.member_id, src.label, src.items)}
+                                    >
+                                      {markingSource === srcKey ? "處理中…" : "標記此類型全部已發放"}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              {it.paid ? (
-                                <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
-                              ) : (
-                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                              {srcOpen && (
+                                <div className="overflow-x-auto bg-muted/10">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>訂單編號</TableHead>
+                                        <TableHead className="text-right w-[120px]">金額</TableHead>
+                                        <TableHead className="w-[120px]">狀態</TableHead>
+                                        <TableHead className="w-[140px] text-right"></TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {src.items.map((it) => (
+                                        <TableRow key={it.key}>
+                                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                              {it.multiplier > 1 && (
+                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                                                  × {Number(it.multiplier).toFixed(2)} 倍
+                                                </Badge>
+                                              )}
+                                              <span>{formatMoney(it.multiplied_amount)}</span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            {it.paid ? (
+                                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                                            ) : (
+                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                                            )}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {!it.paid && !readOnly && it.member_id && (
+                                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
+                                                標記已發放
+                                              </Button>
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
                               )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {!it.paid && !readOnly && it.member_id && (
-                                <Button size="sm" variant="outline" onClick={() => markItem(it)}>
-                                  標記已發放
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                     </>
                   )}
                 </div>
