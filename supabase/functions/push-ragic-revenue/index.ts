@@ -240,17 +240,19 @@ Deno.serve(async (req) => {
       const isFranchise = FRANCHISE_IDS.has(acc.id);
       const noteText = hasFee ? "" : NO_FEE_NOTE;
 
-      // Skip venues with no revenue AND no management fee for the month
-      if (revenueTwd === 0 && managementFeeRounded === 0) {
+      // Skip venues with no revenue AND no management fee for the month,
+      // OR venues that have a fee config but revenue is below threshold (fee = 0).
+      const skipUnderThreshold = hasFee && managementFeeRounded === 0;
+      if ((revenueTwd === 0 && managementFeeRounded === 0) || skipUnderThreshold) {
         results.push({
           accommodation_id: acc.id,
           accommodation_name: acc.name,
           skipped: true,
-          reason: "no_revenue",
+          reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
           is_franchise: FRANCHISE_IDS.has(acc.id),
           original_currency: originalCurrency,
           exchange_rate: exchangeRate,
-          revenue_twd: 0,
+          revenue_twd: revenueTwd,
           management_fee_twd: 0,
         });
         continue;
@@ -258,7 +260,8 @@ Deno.serve(async (req) => {
 
       const rows: Record<string, string>[] = [];
 
-      const ratePercent = feeCfg ? Number((feeCfg.rate * 100).toFixed(4)) : 0;
+      // Ragic 抽成比例欄位為百分比型態，會自動 ×100 顯示；因此送出「小數」原值 (e.g. 0.25)
+      const ratePercent = feeCfg ? Number(feeCfg.rate.toFixed(6)) : 0;
 
       const exchangeRateStr = isJpy ? String(exchangeRate) : "";
 

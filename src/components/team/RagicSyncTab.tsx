@@ -268,12 +268,14 @@ export default function RagicSyncTab() {
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {r.skipped || !r.commission_rate ? "—" : `${r.commission_rate}%`}
+                    {r.skipped || !r.commission_rate ? "—" : `${(Number(r.commission_rate) * 100).toFixed(2).replace(/\.?0+$/, "")}%`}
                   </TableCell>
                   <TableCell className="max-w-[300px]">
 
                     {r.skipped ? (
-                      <Badge variant="secondary">已跳過：無訂單</Badge>
+                      <Badge variant="secondary">
+                        {r.reason === "under_threshold" ? "已跳過：未達抽成門檻" : "已跳過：無訂單"}
+                      </Badge>
                     ) : r.no_fee_warning ? (
                       <div className="flex items-start gap-1 text-yellow-700 dark:text-yellow-400">
                         <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
