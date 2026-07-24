@@ -16,6 +16,8 @@ const FIELD = {
   INCOME_TYPE: "1001018",
   AMOUNT: "1001010",
   VENUE: "1001008",
+  COMMISSION_RATE: "1001019",
+  COMMISSION_FEE: "1001020",
   EXCHANGE_RATE: "1001021",
   NOTE: "1001022",
 } as const;
@@ -209,6 +211,8 @@ Deno.serve(async (req) => {
 
       const rows: Record<string, string>[] = [];
 
+      const ratePercent = feeCfg ? Number((feeCfg.rate * 100).toFixed(4)) : 0;
+
       // 平台抽成 (always)
       rows.push({
         [FIELD.DATA_SOURCE]: "PMS",
@@ -217,6 +221,8 @@ Deno.serve(async (req) => {
         [FIELD.INCOME_TYPE]: "平台抽成",
         [FIELD.AMOUNT]: String(managementFeeRounded),
         [FIELD.VENUE]: acc.name,
+        [FIELD.COMMISSION_RATE]: String(ratePercent),
+        [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
         [FIELD.EXCHANGE_RATE]: String(exchangeRate),
         [FIELD.NOTE]: noteText,
       });
@@ -230,6 +236,8 @@ Deno.serve(async (req) => {
           [FIELD.INCOME_TYPE]: "門市運營",
           [FIELD.AMOUNT]: String(revenueTwd),
           [FIELD.VENUE]: acc.name,
+          [FIELD.COMMISSION_RATE]: String(ratePercent),
+          [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
           [FIELD.EXCHANGE_RATE]: String(exchangeRate),
           [FIELD.NOTE]: noteText,
         });
