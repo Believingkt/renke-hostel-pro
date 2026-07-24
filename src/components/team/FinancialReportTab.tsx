@@ -225,6 +225,34 @@ export default function FinancialReportTab() {
     (async () => {
       setLoading(true);
       try {
+        /* ---- 幣別換算：抓所有相關館別的副幣別匯率 ---- */
+        // DB final_price 為訂單原幣別金額（JPY 館訂單即為日圓），此處統一換算成 TWD 顯示。
+        const jpyRateByAcc = new Map<string, number>(); // accId → JPY per TWD
+        {
+          const { data: accCurrencyRows } = await supabase
+            .from("accommodation_info")
+            .select("id, secondary_currency, secondary_currency_rate");
+          for (const a of (accCurrencyRows ?? []) as any[]) {
+            if (String(a.secondary_currency ?? "").toUpperCase() === "JPY") {
+              const r = Number(a.secondary_currency_rate);
+              if (Number.isFinite(r) && r > 0) jpyRateByAcc.set(a.id, r);
+            }
+          }
+        }
+        const toTwd = (price: number, accId: string, displayCurrency: string | null | undefined): number => {
+          const rate = jpyRateByAcc.get(accId);
+          if (!rate || rate <= 0) return price; // 非 JPY 館 → 原值
+          const cur = String(displayCurrency ?? "").toUpperCase();
+          // JPY 館：display_currency 為 JPY 或未標記時視為原幣 JPY，換算成 TWD
+          if (cur === "" || cur === "JPY") return price / rate;
+          return price; // 已明確標為 TWD → 不動
+        };
+        const readDisplayCurrency = (o: any): string | null => {
+          const meta = o?.order_meta;
+          const v = Array.isArray(meta) ? meta[0]?.display_currency : meta?.display_currency;
+          return v ?? null;
+        };
+
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
         const r1ByAcc = new Map<string, number[]>();
         const r2ByAcc = new Map<string, number[]>();
@@ -258,7 +286,7 @@ export default function FinancialReportTab() {
           // Row 1：order_date（下單日）落在當月，對齊成交大師口徑
           const { data: row1Orders } = await supabase
             .from("orders")
-            .select("id, order_date, final_price, order_status, guest_name, accommodation_id")
+            .select("id, order_date, final_price, order_status, guest_name, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
             .gte("order_date", startDay)
@@ -267,7 +295,7 @@ export default function FinancialReportTab() {
           // Row 2：order_date 落在當月（KOL 邏輯不變）
           const { data: row2Orders } = await supabase
             .from("orders")
-            .select("id, order_date, final_price, order_status, guest_name, discount_code, accommodation_id")
+            .select("id, order_date, final_price, order_status, guest_name, discount_code, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
             .gte("order_date", startDay)
@@ -299,8 +327,8 @@ export default function FinancialReportTab() {
           const kolOrderIds = new Set<string>();
           for (const o of row2List) {
             if (o.guest_name === "保留單") continue;
-            const price = Number(o.final_price ?? 0);
-            if (!(price > 0)) continue;
+            const rawPrice = Number(o.final_price ?? 0);
+            if (!(rawPrice > 0)) continue;
             if (!o.order_date) continue;
             const orderDateStr = toTaipeiDateStr(o.order_date);
             if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
@@ -311,6 +339,7 @@ export default function FinancialReportTab() {
             if (w < 0) continue;
             const accId = o.accommodation_id;
             if (!accId) continue;
+            const price = toTwd(rawPrice, accId, readDisplayCurrency(o));
             const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += price;
             r2ByAcc.set(accId, b);
@@ -319,8 +348,8 @@ export default function FinancialReportTab() {
           // Row 1 累計（依館別）— 排除已計入 Row 2 的 KOL 訂單，避免重複
           for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
-            const price = Number(o.final_price ?? 0);
-            if (!(price > 0)) continue;
+            const rawPrice = Number(o.final_price ?? 0);
+            if (!(rawPrice > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;
             if (kolOrderIds.has(o.id)) continue;
             if (!o.order_date) continue;
@@ -330,6 +359,7 @@ export default function FinancialReportTab() {
             if (w < 0) continue;
             const accId = o.accommodation_id;
             if (!accId) continue;
+            const price = toTwd(rawPrice, accId, readDisplayCurrency(o));
             const b = r1ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += price;
             r1ByAcc.set(accId, b);
@@ -518,7 +548,7 @@ export default function FinancialReportTab() {
         if (stayAccIds.length > 0) {
           const { data: stayOrders } = await supabase
             .from("orders")
-            .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id")
+            .select("check_in_date, check_out_date, final_price, order_status, order_source, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", stayAccIds)
             .eq("order_status", "confirmed")
             .lte("check_in_date", monthEnd)
@@ -528,7 +558,7 @@ export default function FinancialReportTab() {
             const ci: string = String(o.check_in_date ?? "").slice(0, 10);
             const co: string = String(o.check_out_date ?? "").slice(0, 10);
             if (!ci || !co) continue;
-            const orderPrice = Number(o.final_price ?? 0);
+            const orderPrice = toTwd(Number(o.final_price ?? 0), o.accommodation_id, readDisplayCurrency(o));
             const ciDate = new Date(`${ci}T00:00:00`);
             const coDate = new Date(`${co}T00:00:00`);
             const nights = Math.max(1, differenceInDays(coDate, ciDate));
