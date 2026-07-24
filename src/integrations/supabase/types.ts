@@ -5430,6 +5430,59 @@ export type Database = {
           },
         ]
       }
+      order_status_change_events: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          new_value: string | null
+          old_value: string | null
+          order_id: string
+          sent_email_at: string | null
+          sent_inapp_at: string | null
+          sent_line_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          order_id: string
+          sent_email_at?: string | null
+          sent_inapp_at?: string | null
+          sent_line_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          order_id?: string
+          sent_email_at?: string | null
+          sent_inapp_at?: string | null
+          sent_line_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_change_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           accommodation_id: string
@@ -9203,6 +9256,7 @@ export type Database = {
         Returns: undefined
       }
       _hotelnabe_should_sync: { Args: { _acc: string }; Returns: boolean }
+      _rls_test_list_member_policies: { Args: never; Returns: Json }
       apply_template_to_user: {
         Args: {
           _accommodation_id: string
