@@ -286,7 +286,7 @@ export default function FinancialReportTab() {
           // Row 1：order_date（下單日）落在當月，對齊成交大師口徑
           const { data: row1Orders } = await supabase
             .from("orders")
-            .select("id, order_date, final_price, order_status, guest_name, accommodation_id")
+            .select("id, order_date, final_price, order_status, guest_name, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
             .gte("order_date", startDay)
@@ -295,7 +295,7 @@ export default function FinancialReportTab() {
           // Row 2：order_date 落在當月（KOL 邏輯不變）
           const { data: row2Orders } = await supabase
             .from("orders")
-            .select("id, order_date, final_price, order_status, guest_name, discount_code, accommodation_id")
+            .select("id, order_date, final_price, order_status, guest_name, discount_code, accommodation_id, order_meta(display_currency)")
             .in("accommodation_id", selectedAccs)
             .neq("order_status", "cancelled")
             .gte("order_date", startDay)
