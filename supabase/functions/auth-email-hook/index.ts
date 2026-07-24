@@ -16,13 +16,17 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type, x-lovable-signature, x-lovable-timestamp, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+function buildSubject(type: string, token?: string): string {
+  const codePart = token ? ` ${token}` : ''
+  switch (type) {
+    case 'signup': return `【人客多】您的註冊驗證碼${codePart}`
+    case 'magiclink': return `【人客多】您的登入驗證碼${codePart}`
+    case 'recovery': return `【人客多】重設您的密碼${codePart}`
+    case 'invite': return '【人客多】您已被邀請加入'
+    case 'email_change': return '【人客多】確認變更 Email'
+    case 'reauthentication': return `【人客多】您的驗證碼${codePart}`
+    default: return '【人客多】通知'
+  }
 }
 
 // Template mapping
@@ -36,7 +40,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "renke-hostel-pro"
+const SITE_NAME = "人客多"
 const SENDER_DOMAIN = "notify.sensaninn.lakeze.com"
 const ROOT_DOMAIN = "sensaninn.lakeze.com"
 const FROM_DOMAIN = "notify.sensaninn.lakeze.com" // Domain shown in From address (may be root or sender subdomain)
