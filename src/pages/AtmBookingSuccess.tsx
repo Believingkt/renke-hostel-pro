@@ -380,7 +380,7 @@ export default function AtmBookingSuccess() {
               amount={remainingAmount || order.final_price}
               cardholder={{
                 name: order.guest_name,
-                email: order.guest_email || "noreply@lakeze.com",
+                email: sanitizeEmailForTapPay(order.guest_email),
                 phoneNumber: order.guest_phone,
               }}
               initialAtmInfo={
