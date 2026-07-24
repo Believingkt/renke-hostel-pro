@@ -222,7 +222,17 @@ serve(async (req) => {
       cardholder: {
         phone_number: phoneE164,
         name: data.cardholder.name,
-        email: data.cardholder.email,
+        // 拒絕合成 email（LINE/Facebook 綁定用）與 .local TLD → TapPay 會回 "Out of range : cardholder > email"
+        email: (() => {
+          const v = (data.cardholder.email || "").trim();
+          const fallback = "noreply@lakeze.com";
+          if (!v) return fallback;
+          if (/@(?:line|facebook)\.lakeze\.local$/i.test(v)) return fallback;
+          if (/\.local$/i.test(v)) return fallback;
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return fallback;
+          if (v.length > 100) return fallback;
+          return v;
+        })(),
       },
       result_url: { backend_notify_url: notifyUrl },
       pay_info: { expire_in_days: expireDays },
