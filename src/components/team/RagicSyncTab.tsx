@@ -296,9 +296,6 @@ export default function RagicSyncTab() {
                           <div className="flex items-center gap-1 text-green-600 text-xs">
                             <CheckCircle2 className="h-4 w-4" />
                             {r.post_result.action === "update" ? "更新" : "新增"}
-                            {r.post_result.record_id != null && (
-                              <span className="text-muted-foreground">#{r.post_result.record_id}</span>
-                            )}
                           </div>
                         ) : (
                           <div className="flex items-start gap-1 text-red-600 text-xs">
