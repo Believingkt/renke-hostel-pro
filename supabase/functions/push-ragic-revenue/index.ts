@@ -142,6 +142,7 @@ Deno.serve(async (req) => {
       month,
       accommodation_id,
       dry_run = true,
+      mode = "upsert", // "insert" (legacy always-create) or "upsert" (match by year_month+venue+income_type)
     } = await req.json();
 
     if (!year || !month || month < 1 || month > 12) {
