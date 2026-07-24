@@ -760,10 +760,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
       (closers ?? []).forEach((r: any) => {
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
         }
       });
 
