@@ -188,7 +188,7 @@ export default function RagicSyncTab() {
           以「年月份 + 場域館別 + 收入類型」比對，已存在資料更新，不存在資料則新增。
           <br />
           <span className="text-xs">
-            ※ 月份營收採「入住日按晚數平均分攤」計算（nightly accrual）：跨月訂單會依實際入住晚數拆分至各月，與 /analytics 營運分析頁面口徑一致。非「訂單建立月」或「退房月」整筆歸屬。
+            ※ 月份篩選＝該月內實際入住晚數對應的營收（跨月訂單會拆分計算），非以訂單日或退房日歸屬。
           </span>
         </p>
       </CardHeader>
