@@ -84,7 +84,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
         income_type: "-",
         amount_twd: 0,
         original_currency: r.original_currency,
-        exchange_rate: r.exchange_rate ?? "",
+        exchange_rate: r.original_currency === "JPY" ? (r.exchange_rate ?? "") : "",
         commission_rate: "",
         note: "",
         skipped: true,
