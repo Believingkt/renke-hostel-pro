@@ -244,6 +244,7 @@ export default function RagicSyncTab() {
                 <TableHead className="text-right">金額 (TWD)</TableHead>
                 <TableHead>原始幣別</TableHead>
                 <TableHead>匯率</TableHead>
+                <TableHead className="text-right">抽成%</TableHead>
                 <TableHead>備註 / 狀態</TableHead>
                 {postedCount > 0 && <TableHead>寫入結果</TableHead>}
               </TableRow>
@@ -251,7 +252,7 @@ export default function RagicSyncTab() {
             <TableBody>
               {!rows && (
                 <TableRow>
-                  <TableCell colSpan={postedCount > 0 ? 8 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={postedCount > 0 ? 9 : 8} className="text-center text-muted-foreground py-8">
                     請先按「預覽」
                   </TableCell>
                 </TableRow>
