@@ -1887,6 +1887,9 @@ const BookingFlow = () => {
     const packageTotal = calculatePackageTotal();
     if (packageTotal != null) return packageTotal;
 
+    // 若 URL 帶了 packageId 但方案尚未載入完成，回傳 0 阻擋送出，避免誤用房型原價
+    if (selectedPackageId) return 0;
+
     // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）
     return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
   };
