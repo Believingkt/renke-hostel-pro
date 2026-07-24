@@ -348,6 +348,8 @@ export default function FinancialReportTab() {
           for (const accId of selectedAccs) {
             const b = byAcc.get(accId) ?? emptyBuckets(weekCount);
             for (let i = 0; i < weekCount; i++) total[i] += b[i];
+            const accTotal = b.reduce((a, v) => a + v, 0);
+            if (accTotal <= 0) continue;
             children.push({
               key: `${key}-${accId}`,
               label: notifAccNameMap.get(accId) ?? accId,
@@ -357,6 +359,7 @@ export default function FinancialReportTab() {
           children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
           return { key, label, buckets: total, children };
         };
+
         const row1Grouped = buildGrouped("row1", "訂房組業績", r1ByAcc);
         const row2Grouped = buildGrouped("row2", "KOL 總額", r2ByAcc);
 
@@ -469,6 +472,8 @@ export default function FinancialReportTab() {
         const row3Children: GroupedRow[] = [];
         for (const [accId, b] of row3ByAcc.entries()) {
           for (let i = 0; i < weekCount; i++) row3Total[i] += b[i];
+          const accTotal = b.reduce((a, v) => a + v, 0);
+          if (accTotal <= 0) continue;
           row3Children.push({
             key: `row3-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -476,6 +481,7 @@ export default function FinancialReportTab() {
           });
         }
         row3Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
 
         /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）---- */
         const { data: feeRowsAll } = await supabase
