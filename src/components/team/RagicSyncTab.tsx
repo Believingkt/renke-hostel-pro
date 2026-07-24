@@ -85,6 +85,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
         amount_twd: 0,
         original_currency: r.original_currency,
         exchange_rate: r.exchange_rate ?? "",
+        commission_rate: "",
         note: "",
         skipped: true,
         reason: r.reason ?? "no_revenue",
@@ -102,6 +103,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
         amount_twd: Number(p[F.AMOUNT] || 0),
         original_currency: p[F.ORIGINAL_CURRENCY],
         exchange_rate: p[F.EXCHANGE_RATE] || "",
+        commission_rate: p[F.COMMISSION_RATE] || "",
         note: p[F.NOTE] || "",
         no_fee_warning: !!p[F.NOTE] && r.revenue_twd > 0 && r.management_fee_twd === 0,
         post_result: resp
