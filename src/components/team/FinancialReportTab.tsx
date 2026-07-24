@@ -225,6 +225,34 @@ export default function FinancialReportTab() {
     (async () => {
       setLoading(true);
       try {
+        /* ---- 幣別換算：抓所有相關館別的副幣別匯率 ---- */
+        // DB final_price 為訂單原幣別金額（JPY 館訂單即為日圓），此處統一換算成 TWD 顯示。
+        const jpyRateByAcc = new Map<string, number>(); // accId → JPY per TWD
+        {
+          const { data: accCurrencyRows } = await supabase
+            .from("accommodation_info")
+            .select("id, secondary_currency, secondary_currency_rate");
+          for (const a of (accCurrencyRows ?? []) as any[]) {
+            if (String(a.secondary_currency ?? "").toUpperCase() === "JPY") {
+              const r = Number(a.secondary_currency_rate);
+              if (Number.isFinite(r) && r > 0) jpyRateByAcc.set(a.id, r);
+            }
+          }
+        }
+        const toTwd = (price: number, accId: string, displayCurrency: string | null | undefined): number => {
+          const rate = jpyRateByAcc.get(accId);
+          if (!rate || rate <= 0) return price; // 非 JPY 館 → 原值
+          const cur = String(displayCurrency ?? "").toUpperCase();
+          // JPY 館：display_currency 為 JPY 或未標記時視為原幣 JPY，換算成 TWD
+          if (cur === "" || cur === "JPY") return price / rate;
+          return price; // 已明確標為 TWD → 不動
+        };
+        const readDisplayCurrency = (o: any): string | null => {
+          const meta = o?.order_meta;
+          const v = Array.isArray(meta) ? meta[0]?.display_currency : meta?.display_currency;
+          return v ?? null;
+        };
+
         /* ---- Row 1 & Row 2: orders in selectedAccs during month ---- */
         const r1ByAcc = new Map<string, number[]>();
         const r2ByAcc = new Map<string, number[]>();
