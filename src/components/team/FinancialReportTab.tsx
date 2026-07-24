@@ -472,6 +472,8 @@ export default function FinancialReportTab() {
         const row3Children: GroupedRow[] = [];
         for (const [accId, b] of row3ByAcc.entries()) {
           for (let i = 0; i < weekCount; i++) row3Total[i] += b[i];
+          const accTotal = b.reduce((a, v) => a + v, 0);
+          if (accTotal <= 0) continue;
           row3Children.push({
             key: `row3-${accId}`,
             label: franchiseAccNameMap.get(accId) ?? accId,
@@ -479,6 +481,7 @@ export default function FinancialReportTab() {
           });
         }
         row3Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
 
         /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）---- */
         const { data: feeRowsAll } = await supabase
