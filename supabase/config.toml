@@ -188,3 +188,6 @@ verify_jwt = false
 
 [functions.register-member-guest]
 verify_jwt = false
+
+[functions.push-ragic-revenue]
+verify_jwt = true
