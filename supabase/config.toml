@@ -191,3 +191,7 @@ verify_jwt = false
 
 [functions.push-ragic-revenue]
 verify_jwt = true
+
+
+[functions.process-email-queue]
+verify_jwt = true
