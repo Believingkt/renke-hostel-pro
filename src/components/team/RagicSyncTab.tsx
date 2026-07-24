@@ -26,6 +26,7 @@ interface RagicRow {
   amount_twd: number;
   original_currency: string;
   exchange_rate: string | number;
+  commission_rate: string;
   note: string;
   skipped?: boolean;
   reason?: string;
