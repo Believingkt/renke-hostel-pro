@@ -26,6 +26,7 @@ interface RagicRow {
   amount_twd: number;
   original_currency: string;
   exchange_rate: string | number;
+  commission_rate: string;
   note: string;
   skipped?: boolean;
   reason?: string;
@@ -59,6 +60,8 @@ const F = {
   INCOME_TYPE: "1001018",
   AMOUNT: "1001010",
   VENUE: "1001008",
+  COMMISSION_RATE: "1001019",
+  COMMISSION_FEE: "1001020",
   EXCHANGE_RATE: "1001021",
   NOTE: "1001022",
   ORIGINAL_CURRENCY: "1001023",
@@ -82,6 +85,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
         amount_twd: 0,
         original_currency: r.original_currency,
         exchange_rate: r.exchange_rate ?? "",
+        commission_rate: "",
         note: "",
         skipped: true,
         reason: r.reason ?? "no_revenue",
@@ -99,6 +103,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
         amount_twd: Number(p[F.AMOUNT] || 0),
         original_currency: p[F.ORIGINAL_CURRENCY],
         exchange_rate: p[F.EXCHANGE_RATE] || "",
+        commission_rate: p[F.COMMISSION_RATE] || "",
         note: p[F.NOTE] || "",
         no_fee_warning: !!p[F.NOTE] && r.revenue_twd > 0 && r.management_fee_twd === 0,
         post_result: resp
@@ -239,6 +244,7 @@ export default function RagicSyncTab() {
                 <TableHead className="text-right">金額 (TWD)</TableHead>
                 <TableHead>原始幣別</TableHead>
                 <TableHead>匯率</TableHead>
+                <TableHead className="text-right">抽成%</TableHead>
                 <TableHead>備註 / 狀態</TableHead>
                 {postedCount > 0 && <TableHead>寫入結果</TableHead>}
               </TableRow>
@@ -246,7 +252,7 @@ export default function RagicSyncTab() {
             <TableBody>
               {!rows && (
                 <TableRow>
-                  <TableCell colSpan={postedCount > 0 ? 8 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={postedCount > 0 ? 9 : 8} className="text-center text-muted-foreground py-8">
                     請先按「預覽」
                   </TableCell>
                 </TableRow>
@@ -261,7 +267,11 @@ export default function RagicSyncTab() {
                   </TableCell>
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.skipped || !r.commission_rate ? "—" : `${r.commission_rate}%`}
+                  </TableCell>
                   <TableCell className="max-w-[300px]">
+
                     {r.skipped ? (
                       <Badge variant="secondary">已跳過：無訂單</Badge>
                     ) : r.no_fee_warning ? (
