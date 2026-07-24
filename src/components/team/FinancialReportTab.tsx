@@ -327,8 +327,8 @@ export default function FinancialReportTab() {
           const kolOrderIds = new Set<string>();
           for (const o of row2List) {
             if (o.guest_name === "保留單") continue;
-            const price = Number(o.final_price ?? 0);
-            if (!(price > 0)) continue;
+            const rawPrice = Number(o.final_price ?? 0);
+            if (!(rawPrice > 0)) continue;
             if (!o.order_date) continue;
             const orderDateStr = toTaipeiDateStr(o.order_date);
             if (orderDateStr < monthStart || orderDateStr > monthEnd) continue;
@@ -339,6 +339,7 @@ export default function FinancialReportTab() {
             if (w < 0) continue;
             const accId = o.accommodation_id;
             if (!accId) continue;
+            const price = toTwd(rawPrice, accId, readDisplayCurrency(o));
             const b = r2ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += price;
             r2ByAcc.set(accId, b);
@@ -347,8 +348,8 @@ export default function FinancialReportTab() {
           // Row 1 累計（依館別）— 排除已計入 Row 2 的 KOL 訂單，避免重複
           for (const o of row1List) {
             if (o.guest_name === "保留單") continue;
-            const price = Number(o.final_price ?? 0);
-            if (!(price > 0)) continue;
+            const rawPrice = Number(o.final_price ?? 0);
+            if (!(rawPrice > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;
             if (kolOrderIds.has(o.id)) continue;
             if (!o.order_date) continue;
@@ -358,6 +359,7 @@ export default function FinancialReportTab() {
             if (w < 0) continue;
             const accId = o.accommodation_id;
             if (!accId) continue;
+            const price = toTwd(rawPrice, accId, readDisplayCurrency(o));
             const b = r1ByAcc.get(accId) ?? emptyBuckets(weekCount);
             b[w] += price;
             r1ByAcc.set(accId, b);
