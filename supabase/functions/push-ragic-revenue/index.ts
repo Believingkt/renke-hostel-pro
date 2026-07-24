@@ -20,6 +20,7 @@ const FIELD = {
   COMMISSION_FEE: "1001020",
   EXCHANGE_RATE: "1001021",
   NOTE: "1001022",
+  ORIGINAL_CURRENCY: "1001023",
 } as const;
 
 // Only 森山寫照 is currently a franchise venue
