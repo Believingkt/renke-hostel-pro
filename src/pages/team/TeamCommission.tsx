@@ -115,6 +115,7 @@ export default function TeamCommission() {
             {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="ragic-sync">Ragic 同步</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
@@ -133,6 +134,11 @@ export default function TeamCommission() {
         {showAdminTabs && (
           <TabsContent value="financial-report">
             <FinancialReportTab />
+          </TabsContent>
+        )}
+        {showAdminTabs && (
+          <TabsContent value="ragic-sync">
+            <RagicSyncTab />
           </TabsContent>
         )}
       </Tabs>
