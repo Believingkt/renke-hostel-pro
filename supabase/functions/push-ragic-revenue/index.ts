@@ -214,6 +214,8 @@ Deno.serve(async (req) => {
 
       const ratePercent = feeCfg ? Number((feeCfg.rate * 100).toFixed(4)) : 0;
 
+      const exchangeRateStr = isJpy ? String(exchangeRate) : "";
+
       // 平台抽成 (always)
       rows.push({
         [FIELD.DATA_SOURCE]: "PMS",
@@ -224,8 +226,9 @@ Deno.serve(async (req) => {
         [FIELD.VENUE]: acc.name,
         [FIELD.COMMISSION_RATE]: String(ratePercent),
         [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
-        [FIELD.EXCHANGE_RATE]: String(exchangeRate),
+        [FIELD.EXCHANGE_RATE]: exchangeRateStr,
         [FIELD.NOTE]: noteText,
+        [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
       });
 
       // 門市運營 (franchise only)
@@ -239,8 +242,9 @@ Deno.serve(async (req) => {
           [FIELD.VENUE]: acc.name,
           [FIELD.COMMISSION_RATE]: String(ratePercent),
           [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
-          [FIELD.EXCHANGE_RATE]: String(exchangeRate),
+          [FIELD.EXCHANGE_RATE]: exchangeRateStr,
           [FIELD.NOTE]: noteText,
+          [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
         });
       }
 
