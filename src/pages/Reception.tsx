@@ -824,6 +824,14 @@ export default function Reception() {
           </div>
         </CardContent>
       </Card>
+
+      <ReceptionExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        accommodationId={currentAccommodationId}
+        mode={mode}
+        targetDate={targetDate}
+      />
     </div>
   );
 }
