@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ConciergeBell, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
+import { ConciergeBell, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown, FileSpreadsheet } from "lucide-react";
+import { ReceptionExportDialog } from "@/components/reception/ReceptionExportDialog";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { supabase } from "@/integrations/supabase/client";
