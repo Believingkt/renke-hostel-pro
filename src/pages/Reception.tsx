@@ -122,6 +122,7 @@ export default function Reception() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [nowTick, setNowTick] = useState(0);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Re-render every 30s so relative timestamp stays fresh
   useEffect(() => {
