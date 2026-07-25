@@ -170,7 +170,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     { key: "check_out_date", label: "退房時間" },
     { key: "room_info", label: "房型/房號" },
     { key: "adults", label: "成人", align: "right" },
-    { key: "order_source", label: "訂單來源" },
+    
     { key: "guest_source", label: "顧客來源" },
     { key: "payment_status", label: "付款狀態" },
     { key: "currency", label: "幣別" },
