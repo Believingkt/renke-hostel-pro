@@ -20,11 +20,12 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
 import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
+import { ReceptionExportDialog } from "@/components/reception/ReceptionExportDialog";
 import {
   Sheet,
   SheetContent,
@@ -71,6 +72,8 @@ const Orders = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOrderIds, setPreviewOrderIds] = useState<string[]>([]);
 
   // 行銷資訊補填 Drawer
   const [metaDrawerOrderId, setMetaDrawerOrderId] = useState<string | null>(null);
@@ -457,6 +460,35 @@ const Orders = () => {
         breadcrumbs={[{ label: "訂單資訊" }]}
         action={
           <div className="flex gap-2 items-center">
+            {/* 預覽 / 下載 */}
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (total === 0) {
+                  toast({ title: "無資料可預覽", description: "目前沒有符合條件的訂單", variant: "destructive" });
+                  return;
+                }
+                try {
+                  let q: any = supabase
+                    .from("orders")
+                    .select("id")
+                    .eq("accommodation_id", accommodationId!);
+                  q = applyServerFilters(q);
+                  const sf = (sortField || "order_date") as string;
+                  q = q.order(sf, { ascending: sortDirection === "asc" });
+                  const { data, error: exErr } = await q;
+                  if (exErr) throw exErr;
+                  setPreviewOrderIds((data ?? []).map((r: any) => r.id));
+                  setPreviewOpen(true);
+                } catch {
+                  toast({ title: "載入失敗", description: "取得訂單清單時發生錯誤", variant: "destructive" });
+                }
+              }}
+              className="gap-2 hidden sm:inline-flex"
+            >
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">預覽 / 下載</span>
+            </Button>
             {/* 匯出：桌面顯示 */}
             <Button
               variant="outline"
@@ -507,6 +539,32 @@ const Orders = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    if (total === 0) {
+                      toast({ title: "無資料可預覽", description: "目前沒有符合條件的訂單", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      let q: any = supabase
+                        .from("orders")
+                        .select("id")
+                        .eq("accommodation_id", accommodationId!);
+                      q = applyServerFilters(q);
+                      const sf = (sortField || "order_date") as string;
+                      q = q.order(sf, { ascending: sortDirection === "asc" });
+                      const { data, error: exErr } = await q;
+                      if (exErr) throw exErr;
+                      setPreviewOrderIds((data ?? []).map((r: any) => r.id));
+                      setPreviewOpen(true);
+                    } catch {
+                      toast({ title: "載入失敗", description: "取得訂單清單時發生錯誤", variant: "destructive" });
+                    }
+                  }}
+                  className="py-3"
+                >
+                  <Eye className="mr-2 h-4 w-4" />預覽 / 下載
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setHoldDialogOpen(true)} disabled={!canEditOrders} className="py-3">
                   <CalendarClock className="mr-2 h-4 w-4" />新增保留單
                 </DropdownMenuItem>
@@ -849,6 +907,17 @@ const Orders = () => {
           onOpenChange={setImportDialogOpen}
           accommodationId={accommodationId}
           onSuccess={fetchOrders}
+        />
+      )}
+
+      {/* 訂單列表預覽 / 下載 */}
+      {accommodationId && (
+        <ReceptionExportDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          accommodationId={accommodationId}
+          mode="list"
+          orderIds={previewOrderIds}
         />
       )}
     </div>

@@ -11,8 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   accommodationId: string;
-  mode: "checkin" | "checkout";
-  targetDate: string; // yyyy-MM-dd
+  mode: "checkin" | "checkout" | "list";
+  targetDate?: string; // yyyy-MM-dd, required for checkin/checkout
+  orderIds?: string[]; // required for mode="list"
+  titleOverride?: string;
 }
 
 interface Row {
@@ -49,7 +51,7 @@ const sourceMap: Record<string, string> = {
 };
 const labelSource = (s: string | null | undefined) => (s ? (sourceMap[s] || s) : "");
 
-export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate }: Props) {
+export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate, orderIds, titleOverride }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -58,8 +60,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     (async () => {
       setLoading(true);
       try {
-        const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-        const { data: ordersData } = await supabase
+        let query: any = supabase
           .from("orders")
           .select(`id, order_number, order_date, guest_name, guest_phone, guest_nationality,
                    check_in_date, check_out_date, guest_count, order_source, payment_status,
@@ -67,22 +68,27 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
                    owlting_reservation_id, hotelnabe_res_id, meal_plan, meal_plan_total,
                    custom_addon_details, pet_count, pet_plan_price,
                    room_type:room_types(name)`)
-          .eq("accommodation_id", accommodationId)
-          .eq(col, targetDate)
-          .neq("order_status", "cancelled")
-          .order("order_number", { ascending: true });
+          .eq("accommodation_id", accommodationId);
+        if (mode === "list") {
+          if (!orderIds || orderIds.length === 0) { setRows([]); return; }
+          query = query.in("id", orderIds);
+        } else {
+          const col = mode === "checkin" ? "check_in_date" : "check_out_date";
+          query = query.eq(col, targetDate!).neq("order_status", "cancelled");
+        }
+        const { data: ordersData } = await query.order("order_number", { ascending: true });
 
-        const orderIds = (ordersData ?? []).map((o: any) => o.id);
+        const ids = (ordersData ?? []).map((o: any) => o.id);
         let roomsMap = new Map<string, any[]>();
         let currencyMap = new Map<string, string>();
-        if (orderIds.length) {
+        if (ids.length) {
           const [{ data: rooms }, { data: meta }] = await Promise.all([
             supabase.from("order_rooms")
               .select("order_id, quantity, room_price, template_name, room_types(name), room_units(unit_number)")
-              .in("order_id", orderIds),
+              .in("order_id", ids),
             supabase.from("order_meta")
               .select("order_id, display_currency")
-              .in("order_id", orderIds),
+              .in("order_id", ids),
           ]);
           for (const r of rooms ?? []) {
             const arr = roomsMap.get((r as any).order_id) ?? [];
@@ -159,7 +165,10 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     })();
   }, [open, accommodationId, mode, targetDate]);
 
-  const title = `[${mode === "checkin" ? "入住日期" : "退房日期"}] ${targetDate} ${mode === "checkin" ? "入住" : "退房"}訂單列表`;
+  const title = titleOverride
+    ?? (mode === "list"
+      ? `訂單列表（${rows.length} 筆）`
+      : `[${mode === "checkin" ? "入住日期" : "退房日期"}] ${targetDate} ${mode === "checkin" ? "入住" : "退房"}訂單列表`);
 
   const columns: { key: keyof Row; label: string; align?: string }[] = [
     { key: "order_number", label: "訂單編號" },
@@ -191,8 +200,12 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = columns.map((c) => ({ wch: Math.min(Math.max(c.label.length + 2, 10), 40) }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, mode === "checkin" ? "入住訂單" : "退房訂單");
-    XLSX.writeFile(wb, `${mode === "checkin" ? "入住" : "退房"}訂單_${targetDate}.xlsx`);
+    
+    const today = format(new Date(), "yyyyMMdd");
+    const sheetName = mode === "checkin" ? "入住訂單" : mode === "checkout" ? "退房訂單" : "訂單列表";
+    const fileName = mode === "list" ? `訂單列表_${today}.xlsx` : `${mode === "checkin" ? "入住" : "退房"}訂單_${targetDate}.xlsx`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, fileName);
   };
 
   const printPreview = () => {
