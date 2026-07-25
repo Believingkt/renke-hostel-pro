@@ -72,6 +72,8 @@ const Orders = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOrderIds, setPreviewOrderIds] = useState<string[]>([]);
 
   // 行銷資訊補填 Drawer
   const [metaDrawerOrderId, setMetaDrawerOrderId] = useState<string | null>(null);
