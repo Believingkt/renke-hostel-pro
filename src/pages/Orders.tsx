@@ -20,11 +20,12 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
 import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
+import { ReceptionExportDialog } from "@/components/reception/ReceptionExportDialog";
 import {
   Sheet,
   SheetContent,
