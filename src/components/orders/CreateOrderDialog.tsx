@@ -26,6 +26,7 @@ import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { useOrderSources } from "@/hooks/use-order-sources";
 
 interface RoomType {
   id: string;
@@ -116,6 +117,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
+  const orderSourceOptions = useOrderSources(currentAccommodationId);
   // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
   const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(() => {
     if (!currentAccommodationId) return null;
@@ -2681,16 +2683,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectValue placeholder="現場訂房（預設）" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="line">Line@</SelectItem>
-              <SelectItem value="agoda">Agoda</SelectItem>
-              <SelectItem value="booking">Booking</SelectItem>
-              <SelectItem value="trip">Trip</SelectItem>
-               <SelectItem value="travel_agency">旅行社</SelectItem>
-               <SelectItem value="kol">KOL互惠</SelectItem>
-                <SelectItem value="points_starchain">星鏈會員</SelectItem>
-                <SelectItem value="official_use">公務使用</SelectItem>
-                 <SelectItem value="franchise_diff">加盟價差</SelectItem>
-                 <SelectItem value="owner_provided">業主自帶</SelectItem>
+              {orderSourceOptions
+                .filter((opt) => opt.value !== "manual" && opt.value !== "website")
+                .map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
