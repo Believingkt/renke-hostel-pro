@@ -200,7 +200,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = columns.map((c) => ({ wch: Math.min(Math.max(c.label.length + 2, 10), 40) }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, mode === "checkin" ? "入住訂單" : "退房訂單");
+    
     const today = format(new Date(), "yyyyMMdd");
     const sheetName = mode === "checkin" ? "入住訂單" : mode === "checkout" ? "退房訂單" : "訂單列表";
     const fileName = mode === "list" ? `訂單列表_${today}.xlsx` : `${mode === "checkin" ? "入住" : "退房"}訂單_${targetDate}.xlsx`;
