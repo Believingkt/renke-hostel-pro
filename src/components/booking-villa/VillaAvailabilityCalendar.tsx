@@ -119,7 +119,20 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         ? eachDayOfInterval({ start: today, end: endOfMonth(addMonths(today, 11)) }).map((d) =>
             formatISO(d, { representation: "date" }),
           )
-        : Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
+          : Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
+
+      // 森山：改用「當天是否有任一非取消訂單」直接判斷；其他館別仍走原本的房型可訂量邏輯。
+      let sensanBookedDates = new Set<string>();
+      if (isSensanAcc && allDates.length > 0) {
+        const { data: bookedRows } = await supabase.rpc("get_dates_with_active_orders", {
+          p_accommodation_id: accommodationId,
+          p_dates: allDates,
+        });
+        for (const row of (bookedRows as any[]) || []) {
+          const key = row.date_value ?? row.date;
+          if (key) sensanBookedDates.add(String(key));
+        }
+      }
 
       const adjustedResults = await Promise.all(
         roomTypes.map(async (rt) => {
