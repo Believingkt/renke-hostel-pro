@@ -9508,6 +9508,12 @@ export type Database = {
           unique_visitors: number
         }[]
       }
+      get_dates_with_active_orders: {
+        Args: { p_accommodation_id: string; p_dates: string[] }
+        Returns: {
+          date_value: string
+        }[]
+      }
       get_discount_code_secrets: {
         Args: { p_discount_code_id: string }
         Returns: {

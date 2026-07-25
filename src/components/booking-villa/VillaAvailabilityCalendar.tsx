@@ -119,7 +119,20 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         ? eachDayOfInterval({ start: today, end: endOfMonth(addMonths(today, 11)) }).map((d) =>
             formatISO(d, { representation: "date" }),
           )
-        : Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
+          : Array.from(new Set(inventoryRows.map((r) => r.date))).sort();
+
+      // 森山：改用「當天是否有任一非取消訂單」直接判斷；其他館別仍走原本的房型可訂量邏輯。
+      let sensanBookedDates = new Set<string>();
+      if (isSensanAcc && allDates.length > 0) {
+        const { data: bookedRows } = await supabase.rpc("get_dates_with_active_orders", {
+          p_accommodation_id: accommodationId,
+          p_dates: allDates,
+        });
+        for (const row of (bookedRows as any[]) || []) {
+          const key = row.date_value ?? row.date;
+          if (key) sensanBookedDates.add(String(key));
+        }
+      }
 
       const adjustedResults = await Promise.all(
         roomTypes.map(async (rt) => {
@@ -213,13 +226,8 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           continue;
         }
         if (isSensan) {
-          // 森山：忽略庫存未開 (is_available)，只要當天任一房型（含散客）有訂單佔用/鎖定即關閉整天。
-          const anyBooked = roomTypes.some((rt) => {
-            const adj = adjustedIndex.get(`${rt.id}:${date}`);
-            if (!adj) return false;
-            return adj.is_blocked || adj.available_rooms <= 0;
-          });
-          if (anyBooked) continue;
+          // 森山：當天存在任一非取消訂單（不管房型、數量），整天關閉；否則開放。
+          if (sensanBookedDates.has(date)) continue;
           available.add(date);
           continue;
         }
