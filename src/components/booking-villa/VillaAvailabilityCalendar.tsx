@@ -226,13 +226,8 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           continue;
         }
         if (isSensan) {
-          // 森山：忽略庫存未開 (is_available)，只要當天任一房型（含散客）有訂單佔用/鎖定即關閉整天。
-          const anyBooked = roomTypes.some((rt) => {
-            const adj = adjustedIndex.get(`${rt.id}:${date}`);
-            if (!adj) return false;
-            return adj.is_blocked || adj.available_rooms <= 0;
-          });
-          if (anyBooked) continue;
+          // 森山：當天存在任一非取消訂單（不管房型、數量），整天關閉；否則開放。
+          if (sensanBookedDates.has(date)) continue;
           available.add(date);
           continue;
         }
