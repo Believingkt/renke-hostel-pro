@@ -11,8 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   accommodationId: string;
-  mode: "checkin" | "checkout";
-  targetDate: string; // yyyy-MM-dd
+  mode: "checkin" | "checkout" | "list";
+  targetDate?: string; // yyyy-MM-dd, required for checkin/checkout
+  orderIds?: string[]; // required for mode="list"
+  titleOverride?: string;
 }
 
 interface Row {
