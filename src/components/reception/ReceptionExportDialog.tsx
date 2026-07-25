@@ -165,7 +165,10 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     })();
   }, [open, accommodationId, mode, targetDate]);
 
-  const title = `[${mode === "checkin" ? "入住日期" : "退房日期"}] ${targetDate} ${mode === "checkin" ? "入住" : "退房"}訂單列表`;
+  const title = titleOverride
+    ?? (mode === "list"
+      ? `訂單列表（${rows.length} 筆）`
+      : `[${mode === "checkin" ? "入住日期" : "退房日期"}] ${targetDate} ${mode === "checkin" ? "入住" : "退房"}訂單列表`);
 
   const columns: { key: keyof Row; label: string; align?: string }[] = [
     { key: "order_number", label: "訂單編號" },
