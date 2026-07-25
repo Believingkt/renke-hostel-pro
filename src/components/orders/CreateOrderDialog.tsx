@@ -2683,11 +2683,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectValue placeholder="現場訂房（預設）" />
             </SelectTrigger>
             <SelectContent>
-              {orderSourceOptions
-                .filter((opt) => opt.value !== "manual" && opt.value !== "website")
-                .map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
+              {orderSourceOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
