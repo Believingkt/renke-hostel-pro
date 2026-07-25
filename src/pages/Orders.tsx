@@ -539,6 +539,32 @@ const Orders = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    if (total === 0) {
+                      toast({ title: "無資料可預覽", description: "目前沒有符合條件的訂單", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      let q: any = supabase
+                        .from("orders")
+                        .select("id")
+                        .eq("accommodation_id", accommodationId!);
+                      q = applyServerFilters(q);
+                      const sf = (sortField || "order_date") as string;
+                      q = q.order(sf, { ascending: sortDirection === "asc" });
+                      const { data, error: exErr } = await q;
+                      if (exErr) throw exErr;
+                      setPreviewOrderIds((data ?? []).map((r: any) => r.id));
+                      setPreviewOpen(true);
+                    } catch {
+                      toast({ title: "載入失敗", description: "取得訂單清單時發生錯誤", variant: "destructive" });
+                    }
+                  }}
+                  className="py-3"
+                >
+                  <Eye className="mr-2 h-4 w-4" />預覽 / 下載
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setHoldDialogOpen(true)} disabled={!canEditOrders} className="py-3">
                   <CalendarClock className="mr-2 h-4 w-4" />新增保留單
                 </DropdownMenuItem>
