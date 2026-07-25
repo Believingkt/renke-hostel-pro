@@ -883,6 +883,17 @@ const Orders = () => {
           onSuccess={fetchOrders}
         />
       )}
+
+      {/* 訂單列表預覽 / 下載 */}
+      {accommodationId && (
+        <ReceptionExportDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          accommodationId={accommodationId}
+          mode="list"
+          orderIds={previewOrderIds}
+        />
+      )}
     </div>
   );
 };
