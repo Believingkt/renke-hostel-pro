@@ -51,7 +51,7 @@ const sourceMap: Record<string, string> = {
 };
 const labelSource = (s: string | null | undefined) => (s ? (sourceMap[s] || s) : "");
 
-export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate }: Props) {
+export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate, orderIds, titleOverride }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -60,8 +60,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     (async () => {
       setLoading(true);
       try {
-        const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-        const { data: ordersData } = await supabase
+        let query: any = supabase
           .from("orders")
           .select(`id, order_number, order_date, guest_name, guest_phone, guest_nationality,
                    check_in_date, check_out_date, guest_count, order_source, payment_status,
@@ -69,10 +68,15 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
                    owlting_reservation_id, hotelnabe_res_id, meal_plan, meal_plan_total,
                    custom_addon_details, pet_count, pet_plan_price,
                    room_type:room_types(name)`)
-          .eq("accommodation_id", accommodationId)
-          .eq(col, targetDate)
-          .neq("order_status", "cancelled")
-          .order("order_number", { ascending: true });
+          .eq("accommodation_id", accommodationId);
+        if (mode === "list") {
+          if (!orderIds || orderIds.length === 0) { setRows([]); return; }
+          query = query.in("id", orderIds);
+        } else {
+          const col = mode === "checkin" ? "check_in_date" : "check_out_date";
+          query = query.eq(col, targetDate!).neq("order_status", "cancelled");
+        }
+        const { data: ordersData } = await query.order("order_number", { ascending: true });
 
         const orderIds = (ordersData ?? []).map((o: any) => o.id);
         let roomsMap = new Map<string, any[]>();
