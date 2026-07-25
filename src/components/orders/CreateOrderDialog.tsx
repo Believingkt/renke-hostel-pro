@@ -117,6 +117,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
+  const orderSourceOptions = useOrderSources(currentAccommodationId);
   // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
   const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(() => {
     if (!currentAccommodationId) return null;
