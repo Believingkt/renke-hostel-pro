@@ -420,6 +420,16 @@ export default function Reception() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setExportOpen(true)}
+                className="gap-2 shrink-0"
+                aria-label="預覽 / 下載"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="hidden sm:inline">預覽 / 下載</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="gap-2 shrink-0"
