@@ -78,17 +78,17 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         }
         const { data: ordersData } = await query.order("order_number", { ascending: true });
 
-        const orderIds = (ordersData ?? []).map((o: any) => o.id);
+        const ids = (ordersData ?? []).map((o: any) => o.id);
         let roomsMap = new Map<string, any[]>();
         let currencyMap = new Map<string, string>();
-        if (orderIds.length) {
+        if (ids.length) {
           const [{ data: rooms }, { data: meta }] = await Promise.all([
             supabase.from("order_rooms")
               .select("order_id, quantity, room_price, template_name, room_types(name), room_units(unit_number)")
-              .in("order_id", orderIds),
+              .in("order_id", ids),
             supabase.from("order_meta")
               .select("order_id, display_currency")
-              .in("order_id", orderIds),
+              .in("order_id", ids),
           ]);
           for (const r of rooms ?? []) {
             const arr = roomsMap.get((r as any).order_id) ?? [];
