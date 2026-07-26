@@ -249,7 +249,7 @@ serve(async (req) => {
 
     const basePrice = roomType?.base_price || 0;
 
-    // 若為包區方案，改用方案價：週六 → tier_prices.weekend.sale，其餘 → sale_price
+    // 若為包區方案，一律以「訂房入住方案」設定為準：依 tier（平日／週五日／假日）取價
     let packageOverride = false;
     if (packageId) {
       const { data: pkg } = await supabase
@@ -261,6 +261,15 @@ serve(async (req) => {
         packageOverride = true;
         const salePrice = Number((pkg as any).sale_price);
         const tierPrices = (pkg as any).tier_prices || {};
+
+        // 國定假日（含補假）視為假日 tier
+        const { data: holidayRows } = await supabase
+          .from("public_holidays")
+          .select("holiday_date, holiday_type")
+          .eq("accommodation_id", accommodationId)
+          .in("holiday_type", ["holiday", "compensatory_day_off"]);
+        const holidaySet = new Set((holidayRows || []).map((h: any) => h.holiday_date));
+
         for (const date of dates) {
           const pricing = pricingMap.get(date);
           if (pricing) {
@@ -269,15 +278,18 @@ serve(async (req) => {
               errors.push(`No availability on ${date}`);
             }
           }
-          const d = new Date(date);
-          const day = d.getUTCDay();
-          const isSaturday = day === 6;
-          const weekendSale = tierPrices?.weekend?.sale;
-          const nightly = isSaturday && weekendSale != null ? Number(weekendSale) : salePrice;
-          calculatedRoomTotal += nightly;
+          const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+          const tier = holidaySet.has(date) || day === 6
+            ? "weekend"
+            : (day === 5 || day === 0)
+              ? "friday_sunday"
+              : "weekday";
+          const tierSale = tierPrices?.[tier]?.sale;
+          calculatedRoomTotal += tierSale != null ? Number(tierSale) : salePrice;
         }
       }
     }
+
 
     if (!packageOverride) {
       for (const date of dates) {
