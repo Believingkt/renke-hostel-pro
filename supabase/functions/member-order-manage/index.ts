@@ -4,15 +4,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
+import { payByCardToken, refundTapPay } from "../_shared/tappay.ts";
 
 interface Body {
   orderNumber: string;
-  action: "cancel" | "change_dates" | "change_guests";
+  action: "cancel" | "cancel_quote" | "change_dates" | "change_guests";
   newCheckIn?: string;
   newCheckOut?: string;
   guestCount?: number;
   reason?: string;
 }
+
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
