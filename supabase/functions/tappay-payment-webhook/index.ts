@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       const { data } = await supabase
         .from("orders")
         .select("id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, notes, refunded_amount, cancellation_fee_amount")
-        .or(`room_charge_rec_trade_id.eq.${recTradeId},tappay_rec_trade_id.eq.${recTradeId}`)
+        .or(`room_charge_rec_trade_id.eq.${recTradeId},atm_rec_trade_id.eq.${recTradeId}`)
         .maybeSingle();
       order = data;
     }
