@@ -3,19 +3,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronLeft,
-  ChevronDown,
   Loader2,
   MapPin,
   CalendarDays,
   Phone,
   Mail,
   User,
-  BedDouble,
   Users,
   Gift,
   Share2,
   Copy,
+  Sparkles,
+  Check,
+  X,
+  Plus,
+  LayoutGrid,
+  KeyRound,
 } from "lucide-react";
+
 import { format, differenceInCalendarDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
@@ -64,6 +69,12 @@ const htmlToLines = (html?: string | null): string[] => {
 };
 
 
+interface PackageInclude {
+  text: string;
+  available?: "yes" | "no" | "optional";
+  price_note?: string;
+}
+
 interface DetailData {
   id: string;
   order_number: string;
@@ -93,7 +104,16 @@ interface DetailData {
   check_in_time: string | null;
   check_out_time: string | null;
   cancellation_policy: string | null;
+  check_in_title: string | null;
+  check_in_subtitle: string | null;
+  other_notes: string | null;
+  package_name: string | null;
+  package_subtitle: string | null;
+  room_allocation: string | null;
+  package_includes: PackageInclude[];
+  facilities: string[];
 }
+
 
 const Section = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-card rounded-2xl border border-border px-4 py-4">{children}</div>
@@ -104,7 +124,6 @@ const MemberOrderDetail = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<DetailData | null>(null);
-  const [priceOpen, setPriceOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -113,7 +132,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, accommodation_id, room_type_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, accommodation_id, room_type_id, package_id, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -124,33 +143,55 @@ const MemberOrderDetail = () => {
         return;
       }
 
-      const [{ data: acc }, { data: settings }, { data: accPhotos }, { data: roomPhotos }] =
-        await Promise.all([
-          supabase
-            .from("accommodation_info")
-            .select("id, name, address, phone, email, short_url_alias")
-            .eq("id", data.accommodation_id)
-            .maybeSingle(),
-          supabase
-            .from("booking_settings")
-            .select("check_in_time, check_out_time, cancellation_policy")
-            .eq("accommodation_id", data.accommodation_id)
-            .maybeSingle(),
-          supabase
-            .from("accommodation_photos")
-            .select("photo_url, display_order")
-            .eq("accommodation_id", data.accommodation_id)
-            .order("display_order", { ascending: true })
-            .limit(1),
-          data.room_type_id
-            ? supabase
-                .from("room_photos")
-                .select("photo_url, display_order")
-                .eq("room_type_id", data.room_type_id)
-                .order("display_order", { ascending: true })
-                .limit(1)
-            : Promise.resolve({ data: [] as any[] }),
-        ]);
+      const packageId = (data as any).package_id as string | null;
+
+      const [
+        { data: acc },
+        { data: settings },
+        { data: accPhotos },
+        { data: roomPhotos },
+        { data: pkg },
+        { data: facilities },
+      ] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name, address, phone, email, short_url_alias")
+          .eq("id", data.accommodation_id)
+          .maybeSingle(),
+        supabase
+          .from("booking_settings")
+          .select(
+            "check_in_time, check_out_time, cancellation_policy, check_in_section_title, check_in_section_subtitle, other_notes"
+          )
+          .eq("accommodation_id", data.accommodation_id)
+          .maybeSingle(),
+        supabase
+          .from("accommodation_photos")
+          .select("photo_url, display_order")
+          .eq("accommodation_id", data.accommodation_id)
+          .order("display_order", { ascending: true })
+          .limit(1),
+        data.room_type_id
+          ? supabase
+              .from("room_photos")
+              .select("photo_url, display_order")
+              .eq("room_type_id", data.room_type_id)
+              .order("display_order", { ascending: true })
+              .limit(1)
+          : Promise.resolve({ data: [] as any[] }),
+        packageId
+          ? supabase
+              .from("accommodation_packages")
+              .select("name, subtitle, room_allocation, includes")
+              .eq("id", packageId)
+              .maybeSingle()
+          : Promise.resolve({ data: null as any }),
+        supabase
+          .from("accommodation_facilities")
+          .select("facility_name, is_available")
+          .eq("accommodation_id", data.accommodation_id)
+          .order("category", { ascending: true }),
+      ]);
 
       setOrder({
         id: data.id,
@@ -181,7 +222,21 @@ const MemberOrderDetail = () => {
         check_in_time: settings?.check_in_time || null,
         check_out_time: settings?.check_out_time || null,
         cancellation_policy: settings?.cancellation_policy || null,
+        check_in_title: (settings as any)?.check_in_section_title || null,
+        check_in_subtitle: (settings as any)?.check_in_section_subtitle || null,
+        other_notes: (settings as any)?.other_notes || null,
+        package_name: (pkg as any)?.name || null,
+        package_subtitle: (pkg as any)?.subtitle || null,
+        room_allocation: (pkg as any)?.room_allocation || null,
+        package_includes: Array.isArray((pkg as any)?.includes)
+          ? ((pkg as any).includes as PackageInclude[]).filter((i) => i?.text)
+          : [],
+        facilities: (facilities || [])
+          .filter((f: any) => f.is_available !== false)
+          .map((f: any) => f.facility_name)
+          .filter(Boolean),
       });
+
       setLoading(false);
     };
     load();
@@ -273,58 +328,133 @@ const MemberOrderDetail = () => {
         </button>
       </div>
 
-      <Section>
-        <h3 className="text-base font-semibold">訂單摘要</h3>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-sm text-muted-foreground">
-            {order.paid_amount > 0 ? "已支付" : "應付金額"}
-          </span>
-          <span className="text-xl font-bold" style={{ color: ORANGE }}>
-            NT${(order.paid_amount > 0 ? order.paid_amount : order.final_price).toLocaleString()}
-          </span>
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="px-4 py-3 bg-orange-50 border-b border-border text-center">
+          <p className="text-lg font-extrabold tracking-wide" style={{ color: ORANGE }}>
+            {order.accommodation_name}
+          </p>
         </div>
 
-        <button
-          onClick={() => setPriceOpen((v) => !v)}
-          className="mt-2 flex items-center gap-1 text-sm underline text-foreground"
-        >
-          價格明細
-          <ChevronDown className={`h-4 w-4 transition ${priceOpen ? "rotate-180" : ""}`} />
-        </button>
+        {/* 日期列 */}
+        <div className="px-4 py-3 flex items-stretch justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1">入住</p>
+            <p className="text-base font-bold leading-tight">
+              {format(new Date(order.check_in_date), "M 月 d 日 EEE", { locale: zhTW })}
+            </p>
+          </div>
+          <div className="flex flex-col items-center justify-center px-2 shrink-0">
+            <div className="h-px w-6 bg-border" />
+            <span className="text-xs text-muted-foreground my-1">{nights} 晚</span>
+            <div className="h-px w-6 bg-border" />
+          </div>
+          <div className="flex-1 min-w-0 text-right">
+            <p className="text-xs text-muted-foreground mb-1">退房</p>
+            <p className="text-base font-bold leading-tight">
+              {format(new Date(order.check_out_date), "M 月 d 日 EEE", { locale: zhTW })}
+            </p>
+          </div>
+        </div>
 
-        {priceOpen && (
-          <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">房價小計</span>
-              <span>NT${order.total_price.toLocaleString()}</span>
+        {/* 房間搭配 */}
+        <div className="border-t border-border px-4 py-3 space-y-1">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+            ROOM ALLOCATION
+          </p>
+          <p className="text-sm font-bold leading-snug">
+            {order.room_allocation
+              ? `房間搭配：${order.room_allocation}`
+              : order.package_name || order.room_type_name || "住宿房型"}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
+            <Users className="h-3.5 w-3.5" />
+            <span>{order.guest_count} 位大人</span>
+          </div>
+        </div>
+
+        {/* 尊榮禮遇 */}
+        {order.package_includes.length > 0 && (
+          <div className="border-t border-border px-4 py-3 bg-muted/20 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" style={{ color: ORANGE }} />
+              <p className="text-sm font-bold">{order.package_subtitle || "尊榮禮遇"}</p>
             </div>
-            {order.discount_amount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">折扣</span>
-                <span className="text-red-500">-NT${order.discount_amount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold pt-1.5 border-t border-border/70">
-              <span>訂單總額</span>
-              <span>NT${order.final_price.toLocaleString()}</span>
-            </div>
-            {order.paid_amount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">已付款</span>
-                <span>NT${order.paid_amount.toLocaleString()}</span>
-              </div>
-            )}
-            {balance > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">現場應付尾款</span>
-                <span className="font-medium">NT${balance.toLocaleString()}</span>
-              </div>
-            )}
+            <ul className="space-y-1.5">
+              {order.package_includes.map((inc, i) => {
+                const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
+                const color =
+                  inc.available === "no"
+                    ? "hsl(var(--destructive))"
+                    : inc.available === "optional"
+                      ? "hsl(25, 70%, 45%)"
+                      : ORANGE;
+                return (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color }} />
+                    <span
+                      className={`text-xs leading-snug ${
+                        inc.available === "no" ? "text-muted-foreground line-through" : ""
+                      }`}
+                    >
+                      {inc.text}
+                      {inc.price_note && (
+                        <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
+        {/* 費用明細 */}
+        <div className="border-t border-border px-4 py-3 space-y-1.5">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+            PRICE BREAKDOWN
+          </p>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
+            <span className="shrink-0 font-semibold tabular-nums">
+              NT$ {order.total_price.toLocaleString()}
+            </span>
+          </div>
+          {order.discount_amount > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">折扣</span>
+              <span className="shrink-0 text-red-500 tabular-nums">
+                -NT$ {order.discount_amount.toLocaleString()}
+              </span>
+            </div>
+          )}
+          {order.paid_amount > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">已付款</span>
+              <span className="shrink-0 tabular-nums">
+                NT$ {order.paid_amount.toLocaleString()}
+              </span>
+            </div>
+          )}
+          {balance > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
+              <span className="shrink-0 font-medium tabular-nums">
+                NT$ {balance.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 總金額 */}
+        <div className="border-t border-border px-4 py-3 flex items-baseline justify-between bg-muted/30">
+          <span className="text-sm text-muted-foreground">總金額</span>
+          <span className="text-xl font-bold" style={{ color: ORANGE }}>
+            NT$ {order.final_price.toLocaleString()}
+          </span>
+        </div>
+
         {htmlToLines(order.cancellation_policy).length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border/70">
+          <div className="border-t border-border px-4 py-3">
             <p className="text-sm font-medium">取消政策</p>
             <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-relaxed">
               {htmlToLines(order.cancellation_policy).map((line, i) => (
@@ -333,7 +463,8 @@ const MemberOrderDetail = () => {
             </ul>
           </div>
         )}
-      </Section>
+      </div>
+
 
       {/* 2. 住宿詳情 */}
       <Section>
@@ -417,30 +548,36 @@ const MemberOrderDetail = () => {
           </div>
         )}
 
-        <div className="mt-4 pt-4 border-t border-border/70 flex gap-3">
-          <div className="flex-1 min-w-0">
-            <h4 className="text-[15px] font-semibold leading-snug">
-              {order.room_type_name || "住宿房型"}
-            </h4>
-            <p className="mt-0.5 text-sm text-muted-foreground">1 間 {nights} 晚</p>
-            <div className="mt-2 space-y-1.5 text-sm">
-              <p className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" /> {order.guest_count} 位旅客
-              </p>
-              <p className="flex items-center gap-2">
-                <BedDouble className="h-4 w-4 text-muted-foreground" /> 1 間房
+        {order.facilities.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
+            <LayoutGrid className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+            <div className="text-sm min-w-0">
+              <p className="font-medium">住宿設施</p>
+              <p className="mt-1 text-muted-foreground leading-relaxed">
+                {order.facilities.join("｜")}
               </p>
             </div>
           </div>
-          {order.room_photo_url && (
-            <img
-              src={order.room_photo_url}
-              alt={order.room_type_name || "房型"}
-              className="h-16 w-20 rounded-lg object-cover shrink-0"
-              loading="lazy"
-            />
-          )}
+        )}
+
+        <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
+          <KeyRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="text-sm min-w-0">
+            <p className="font-medium">{order.check_in_title || "如何辦理入住"}</p>
+            <div className="mt-1 space-y-1 text-muted-foreground leading-relaxed">
+              {order.check_in_subtitle && <p>{order.check_in_subtitle}</p>}
+              {order.check_in_time && <p>入住時間：{order.check_in_time} 後</p>}
+              {order.check_out_time && <p>退房時間：{order.check_out_time} 前</p>}
+              {htmlToLines(order.other_notes).map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+              {order.accommodation_phone && (
+                <p>抵達前請先致電住宿 {order.accommodation_phone} 聯繫辦理入住。</p>
+              )}
+            </div>
+          </div>
         </div>
+
 
         {order.notes && (
           <div className="mt-3 pt-3 border-t border-border/70">
