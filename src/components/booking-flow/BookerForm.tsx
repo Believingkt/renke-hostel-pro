@@ -76,6 +76,7 @@ export default function BookerForm(props: Props) {
   } = props;
   const { toast } = useToast();
   const [cooldown, setCooldown] = useState(0);
+  const [registerNoticeDismissed, setRegisterNoticeDismissed] = useState(false);
 
   // 同步/倒數重新寄送冷卻時間
   useEffect(() => {
