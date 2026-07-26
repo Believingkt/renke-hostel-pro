@@ -180,6 +180,10 @@ const BookingFlow = () => {
   
   // 追蹤頁面瀏覽
   usePageAnalytics({ accommodationId, enabled: !!accommodationId });
+
+  // 國定假日（供方案 tier 判定使用）
+  const { isHolidayDate: isPackageHolidayDate } = useAccommodationHolidays(accommodationId);
+
   
   // 強制：若 URL 已帶 roomId + 日期，一律直達單頁結帳，絕對不顯示選擇房型/日期步驟
   const [currentStep, setCurrentStep] = useState<BookingStep>(() => {
