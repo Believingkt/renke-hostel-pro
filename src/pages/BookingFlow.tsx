@@ -2003,6 +2003,10 @@ const BookingFlow = () => {
   // 訂金功能已移除：所有訂單一律以扣除折扣後的全額計算
   const calculateDeposit = () => 0;
 
+  /** ATM 匯款訂金拆分：線上僅收訂金（預設 30%），尾款現場付清 */
+  const getAtmDepositBreakdown = () => getDepositBreakdown(calculateFinalTotal(), bookingSettings);
+
+
   const handleApplyDiscount = async (code?: string) => {
     const codeToApply = code || discountCode;
     if (!codeToApply.trim() || !accommodationId) {
