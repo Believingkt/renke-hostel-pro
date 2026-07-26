@@ -5172,15 +5172,16 @@ const BookingFlow = () => {
             />
             {/* Navigation Buttons */}
             <div
-              className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed left-0 right-0 bg-background py-3 px-3 border-t z-40 transition-[bottom] duration-150 md:static md:bottom-auto md:bg-transparent md:py-0 md:px-0 md:border-t-0 md:pb-0"
+              className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed left-0 right-0 bottom-0 bg-background py-3 px-3 border-t z-40 transition-[bottom] duration-150 md:static md:bottom-auto md:bg-transparent md:py-0 md:px-0 md:border-t-0 md:pb-0"
               style={{
-                bottom: keyboardInset > 0 ? `${keyboardInset}px` : "4rem",
+                bottom: keyboardInset > 0 ? `${keyboardInset}px` : 0,
                 paddingBottom:
                   keyboardInset > 0
                     ? "0.75rem"
                     : "calc(env(safe-area-inset-bottom) + 0.75rem)",
               }}
             >
+
               {currentStep !== "dates" && (
                 <Button
                   variant="outline"
