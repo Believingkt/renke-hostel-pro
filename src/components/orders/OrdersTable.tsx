@@ -272,7 +272,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                         );
                       })()}
                     </td>
-
+                    <td className="px-4 py-3 text-sm w-[160px]">
                       <div className="flex justify-start gap-1 -ml-5">
                         <TooltipProvider>
                           <Tooltip>
