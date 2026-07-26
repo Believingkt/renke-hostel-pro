@@ -54,3 +54,29 @@ export function markOtpSent(email: string) {
   all[e] = rec;
   writeAll(all);
 }
+
+/**
+ * 以後端回傳的 next_allowed_at（ISO 時間戳）為準記錄冷卻結束時間。
+ * 存 localStorage，因此頁面重新整理後仍能顯示正確的剩餘秒數。
+ */
+export function setOtpNextAllowedAt(email: string, nextAllowedAt?: string | null) {
+  const e = email.trim().toLowerCase();
+  if (!e) return;
+  const ts = nextAllowedAt ? new Date(nextAllowedAt).getTime() : NaN;
+  if (!Number.isFinite(ts)) return;
+  const all = readAll();
+  const rec = all[e] || { last: 0, recent: [] };
+  rec.nextAllowedAt = ts;
+  all[e] = rec;
+  writeAll(all);
+}
+
+/** 剩餘冷卻秒數（以後端時間戳為準）。 */
+export function getOtpRemaining(email: string): number {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const rec = readAll()[e];
+  if (!rec?.nextAllowedAt) return 0;
+  return Math.max(0, Math.ceil((rec.nextAllowedAt - Date.now()) / 1000));
+}
+
