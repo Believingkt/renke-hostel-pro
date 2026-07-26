@@ -13,7 +13,10 @@ interface RecoveryEmailProps {
 
 export const RecoveryEmail = ({ siteName, confirmationUrl, token }: RecoveryEmailProps) => (
   <Html lang="zh-Hant" dir="ltr">
-    <Head />
+    <Head>
+      <meta charSet="utf-8" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+    </Head>
     <Preview>{token ? `您的密碼重設驗證碼：${token}` : `${siteName} 密碼重設連結`}</Preview>
     <Body style={main}>
       <Container style={container}>
