@@ -17,6 +17,8 @@ import { Download, Receipt, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { PaymentAuditResolveDialog, type ResolveTarget } from "@/components/admin/PaymentAuditResolveDialog";
+import { PaymentAuditActionLog } from "@/components/admin/PaymentAuditActionLog";
+
 
 
 interface ChargeRow {
@@ -322,6 +324,10 @@ export default function PaymentAudit() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaymentAuditActionLog accommodationId={currentAccommodationId} reloadKey={reloadKey} />
+
+
 
       <PaymentAuditResolveDialog
         target={resolveTarget}
