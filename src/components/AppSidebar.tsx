@@ -25,6 +25,8 @@ import {
   Shield,
   UserCheck,
   KeyRound,
+  Receipt,
+
   Megaphone,
   BadgePercent,
   Banknote,
