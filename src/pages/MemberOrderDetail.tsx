@@ -834,8 +834,6 @@ const MemberOrderDetail = () => {
                 </p>
               </div>
             </AlertDialogDescription>
-
-            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={acting}>再想想</AlertDialogCancel>
