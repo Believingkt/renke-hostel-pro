@@ -435,10 +435,16 @@ export default function AtmBookingSuccess() {
             {order.atm_expire_at && (
               <AtmDeadlineAlert expireAt={order.atm_expire_at} />
             )}
+            {depositSettings === null ? (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                計算訂金金額中...
+              </div>
+            ) : (
             <AtmPaymentPanel
               orderId={order.id}
               orderNumber={order.order_number}
-              amount={remainingAmount || order.final_price}
+              amount={amountDueNow || remainingAmount || order.final_price}
               cardholder={{
                 name: order.guest_name,
                 email: sanitizeEmailForTapPay(order.guest_email),
@@ -450,10 +456,11 @@ export default function AtmBookingSuccess() {
                       vaccNo: order.atm_vacc_no!,
                       bankCode: order.atm_vacc_bank_code,
                       expireAt: order.atm_expire_at!,
-                      amount: remainingAmount || order.final_price,
+                      amount: amountDueNow || remainingAmount || order.final_price,
                     }
                   : null
               }
+
               onCreated={(info) => {
                 setOrder((prev) =>
                   prev
