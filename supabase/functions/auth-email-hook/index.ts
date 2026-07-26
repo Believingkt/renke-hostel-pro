@@ -38,6 +38,13 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
+function encodeNonAsciiHtml(html: string): string {
+  return html.replace(/[^\x00-\x7F]/g, (char) => {
+    const codePoint = char.codePointAt(0)
+    return codePoint ? `&#${codePoint};` : char
+  })
+}
+
 // Brand / sender configuration — Auth emails go DIRECT via Resend (RESEND_API_KEY_LAKEZE).
 // Not routed through Lovable Emails queue to avoid double-sends.
 const SITE_NAME = "人客多"
@@ -119,7 +126,7 @@ async function sendViaResend(params: {
       from: FROM_ADDRESS,
       to: [params.to],
       subject: params.subject.normalize('NFC'),
-      html: params.html.normalize('NFC'),
+      html: encodeNonAsciiHtml(params.html.normalize('NFC')),
       text: params.text.normalize('NFC'),
     }),
   })
