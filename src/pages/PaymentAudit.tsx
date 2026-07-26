@@ -322,6 +322,13 @@ export default function PaymentAudit() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaymentAuditResolveDialog
+        target={resolveTarget}
+        onOpenChange={(open) => !open && setResolveTarget(null)}
+        onDone={() => setReloadKey((k) => k + 1)}
+      />
     </div>
+
   );
 }
