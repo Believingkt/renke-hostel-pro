@@ -578,11 +578,15 @@ const MemberOrderDetail = () => {
           <>
             <div className="border-t border-orange-100 pt-3">
               <p className="text-base font-semibold">
-
-                {order.payment_status === "paid" ? "已付款" : order.atm_vacc_no ? "待匯款訂金" : "已授權稍後付款"}{" "}
-                <span className="text-xl font-bold" style={{ color: ORANGE }}>
+                {order.payment_status === "paid"
+                  ? "已付款"
+                  : order.atm_vacc_no
+                    ? atmExpired
+                      ? "訂金已逾期未付"
+                      : "待匯款訂金"
+                    : "已授權稍後付款"}{" "}
+                <span className="text-xl font-bold" style={{ color: atmExpired ? "hsl(var(--destructive))" : ORANGE }}>
                   NT$ {(order.payment_status === "paid" ? order.final_price : order.atm_vacc_no ? atmTransferAmount : order.deposit_required_amount || order.final_price).toLocaleString()}
-
                 </span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
@@ -590,11 +594,14 @@ const MemberOrderDetail = () => {
                   ? "款項已收訖，入住當日請出示訂單編號辦理報到。"
                   : order.atm_vacc_no
                     ? order.atm_expire_at
-                      ? `請於 ${format(new Date(order.atm_expire_at), "yyyy/M/d aa h:mm", { locale: zhTW })} 前完成 ATM 轉帳，逾期訂單將自動取消。`
+                      ? atmExpired
+                        ? `繳費期限（${format(new Date(order.atm_expire_at), "yyyy/M/d aa h:mm", { locale: zhTW })}）已過，虛擬帳號已失效，請聯絡客服或重新訂房。`
+                        : `請於 ${format(new Date(order.atm_expire_at), "yyyy/M/d aa h:mm", { locale: zhTW })} 前完成 ATM 轉帳，逾期訂單將自動取消。`
                       : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
                     : `系統將於 ${format(new Date(order.check_in_date), "M 月 d 日", { locale: zhTW })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`}
               </p>
             </div>
+
 
             <div className="border-t border-orange-100 pt-3">
               <p className="text-base font-semibold">
