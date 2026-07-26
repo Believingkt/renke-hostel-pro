@@ -387,6 +387,10 @@ const MemberOrderDetail = () => {
         paid_amount: Number(data.paid_amount || 0),
         deposit_required_amount: Number(data.deposit_required_amount || 0),
         notes: data.notes,
+        atm_vacc_no: (data as any).atm_vacc_no || null,
+        atm_vacc_bank_code: (data as any).atm_vacc_bank_code || null,
+        atm_expire_at: (data as any).atm_expire_at || null,
+
         accommodation_id: data.accommodation_id,
         accommodation_name: acc?.name || "",
         accommodation_address: acc?.address || null,
