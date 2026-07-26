@@ -515,6 +515,10 @@ const MemberOrderDetail = () => {
     setChangeOpen(false);
   };
 
+  // ATM 轉帳金額（與虛擬帳號卡片一致）
+  const atmTransferAmount =
+    Number(order?.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")) ||
+    Math.max(0, (order?.final_price || 0) - (order?.paid_amount || 0));
 
 
   const share = async () => {
@@ -577,7 +581,8 @@ const MemberOrderDetail = () => {
 
                 {order.payment_status === "paid" ? "已付款" : order.atm_vacc_no ? "待匯款訂金" : "已授權稍後付款"}{" "}
                 <span className="text-xl font-bold" style={{ color: ORANGE }}>
-                  NT$ {(order.payment_status === "paid" ? order.final_price : order.deposit_required_amount || order.final_price).toLocaleString()}
+                  NT$ {(order.payment_status === "paid" ? order.final_price : order.atm_vacc_no ? atmTransferAmount : order.deposit_required_amount || order.final_price).toLocaleString()}
+
                 </span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
@@ -858,10 +863,8 @@ const MemberOrderDetail = () => {
               bankCode={order.atm_vacc_bank_code}
               vaccNo={order.atm_vacc_no}
               expireAt={order.atm_expire_at}
-              amount={
-                Number(order.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")) ||
-                Math.max(0, order.final_price - order.paid_amount)
-              }
+              amount={atmTransferAmount}
+
               amountLabel={`轉帳金額${order.notes?.match(/的\s*(\d+)%/) ? `（訂金 ${order.notes.match(/的\s*(\d+)%/)![1]}%）` : ""}`}
             />
           </div>
