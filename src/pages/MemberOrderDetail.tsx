@@ -324,58 +324,133 @@ const MemberOrderDetail = () => {
         </button>
       </div>
 
-      <Section>
-        <h3 className="text-base font-semibold">訂單摘要</h3>
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-sm text-muted-foreground">
-            {order.paid_amount > 0 ? "已支付" : "應付金額"}
-          </span>
-          <span className="text-xl font-bold" style={{ color: ORANGE }}>
-            NT${(order.paid_amount > 0 ? order.paid_amount : order.final_price).toLocaleString()}
-          </span>
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="px-4 py-3 bg-orange-50 border-b border-border text-center">
+          <p className="text-lg font-extrabold tracking-wide" style={{ color: ORANGE }}>
+            {order.accommodation_name}
+          </p>
         </div>
 
-        <button
-          onClick={() => setPriceOpen((v) => !v)}
-          className="mt-2 flex items-center gap-1 text-sm underline text-foreground"
-        >
-          價格明細
-          <ChevronDown className={`h-4 w-4 transition ${priceOpen ? "rotate-180" : ""}`} />
-        </button>
+        {/* 日期列 */}
+        <div className="px-4 py-3 flex items-stretch justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1">入住</p>
+            <p className="text-base font-bold leading-tight">
+              {format(new Date(order.check_in_date), "M 月 d 日 EEE", { locale: zhTW })}
+            </p>
+          </div>
+          <div className="flex flex-col items-center justify-center px-2 shrink-0">
+            <div className="h-px w-6 bg-border" />
+            <span className="text-xs text-muted-foreground my-1">{nights} 晚</span>
+            <div className="h-px w-6 bg-border" />
+          </div>
+          <div className="flex-1 min-w-0 text-right">
+            <p className="text-xs text-muted-foreground mb-1">退房</p>
+            <p className="text-base font-bold leading-tight">
+              {format(new Date(order.check_out_date), "M 月 d 日 EEE", { locale: zhTW })}
+            </p>
+          </div>
+        </div>
 
-        {priceOpen && (
-          <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">房價小計</span>
-              <span>NT${order.total_price.toLocaleString()}</span>
+        {/* 房間搭配 */}
+        <div className="border-t border-border px-4 py-3 space-y-1">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+            ROOM ALLOCATION
+          </p>
+          <p className="text-sm font-bold leading-snug">
+            {order.room_allocation
+              ? `房間搭配：${order.room_allocation}`
+              : order.package_name || order.room_type_name || "住宿房型"}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
+            <Users className="h-3.5 w-3.5" />
+            <span>{order.guest_count} 位大人</span>
+          </div>
+        </div>
+
+        {/* 尊榮禮遇 */}
+        {order.package_includes.length > 0 && (
+          <div className="border-t border-border px-4 py-3 bg-muted/20 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" style={{ color: ORANGE }} />
+              <p className="text-sm font-bold">{order.package_subtitle || "尊榮禮遇"}</p>
             </div>
-            {order.discount_amount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">折扣</span>
-                <span className="text-red-500">-NT${order.discount_amount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold pt-1.5 border-t border-border/70">
-              <span>訂單總額</span>
-              <span>NT${order.final_price.toLocaleString()}</span>
-            </div>
-            {order.paid_amount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">已付款</span>
-                <span>NT${order.paid_amount.toLocaleString()}</span>
-              </div>
-            )}
-            {balance > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">現場應付尾款</span>
-                <span className="font-medium">NT${balance.toLocaleString()}</span>
-              </div>
-            )}
+            <ul className="space-y-1.5">
+              {order.package_includes.map((inc, i) => {
+                const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
+                const color =
+                  inc.available === "no"
+                    ? "hsl(var(--destructive))"
+                    : inc.available === "optional"
+                      ? "hsl(25, 70%, 45%)"
+                      : ORANGE;
+                return (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color }} />
+                    <span
+                      className={`text-xs leading-snug ${
+                        inc.available === "no" ? "text-muted-foreground line-through" : ""
+                      }`}
+                    >
+                      {inc.text}
+                      {inc.price_note && (
+                        <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
+        {/* 費用明細 */}
+        <div className="border-t border-border px-4 py-3 space-y-1.5">
+          <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+            PRICE BREAKDOWN
+          </p>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
+            <span className="shrink-0 font-semibold tabular-nums">
+              NT$ {order.total_price.toLocaleString()}
+            </span>
+          </div>
+          {order.discount_amount > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">折扣</span>
+              <span className="shrink-0 text-red-500 tabular-nums">
+                -NT$ {order.discount_amount.toLocaleString()}
+              </span>
+            </div>
+          )}
+          {order.paid_amount > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">已付款</span>
+              <span className="shrink-0 tabular-nums">
+                NT$ {order.paid_amount.toLocaleString()}
+              </span>
+            </div>
+          )}
+          {balance > 0 && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
+              <span className="shrink-0 font-medium tabular-nums">
+                NT$ {balance.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 總金額 */}
+        <div className="border-t border-border px-4 py-3 flex items-baseline justify-between bg-muted/30">
+          <span className="text-sm text-muted-foreground">總金額</span>
+          <span className="text-xl font-bold" style={{ color: ORANGE }}>
+            NT$ {order.final_price.toLocaleString()}
+          </span>
+        </div>
+
         {htmlToLines(order.cancellation_policy).length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border/70">
+          <div className="border-t border-border px-4 py-3">
             <p className="text-sm font-medium">取消政策</p>
             <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-relaxed">
               {htmlToLines(order.cancellation_policy).map((line, i) => (
@@ -384,7 +459,8 @@ const MemberOrderDetail = () => {
             </ul>
           </div>
         )}
-      </Section>
+      </div>
+
 
       {/* 2. 住宿詳情 */}
       <Section>
