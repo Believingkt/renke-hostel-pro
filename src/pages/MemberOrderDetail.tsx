@@ -124,7 +124,6 @@ const MemberOrderDetail = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<DetailData | null>(null);
-  const [priceOpen, setPriceOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
