@@ -15,7 +15,10 @@ interface SignupEmailProps {
 
 export const SignupEmail = ({ siteName, siteUrl, recipient, confirmationUrl, token }: SignupEmailProps) => (
   <Html lang="zh-Hant" dir="ltr">
-    <Head />
+    <Head>
+      <meta charSet="utf-8" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+    </Head>
     <Preview>{`註冊成功，請驗證您的電子郵件`}</Preview>
     <Body style={main}>
       <Container style={container}>

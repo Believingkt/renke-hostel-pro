@@ -13,7 +13,10 @@ interface InviteEmailProps {
 
 export const InviteEmail = ({ siteName, siteUrl, confirmationUrl }: InviteEmailProps) => (
   <Html lang="zh-Hant" dir="ltr">
-    <Head />
+    <Head>
+      <meta charSet="utf-8" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+    </Head>
     <Preview>您已被邀請加入 {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>

@@ -13,7 +13,10 @@ interface MagicLinkEmailProps {
 
 export const MagicLinkEmail = ({ siteName, token }: MagicLinkEmailProps) => (
   <Html lang="zh-Hant" dir="ltr">
-    <Head />
+    <Head>
+      <meta charSet="utf-8" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+    </Head>
     <Preview>{token ? `您的登入驗證碼：${token}` : `${siteName} 登入驗證碼`}</Preview>
     <Body style={main}>
       <Container style={container}>

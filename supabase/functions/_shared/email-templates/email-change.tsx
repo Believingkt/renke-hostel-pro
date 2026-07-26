@@ -15,7 +15,10 @@ interface EmailChangeEmailProps {
 
 export const EmailChangeEmail = ({ siteName, oldEmail, newEmail, confirmationUrl }: EmailChangeEmailProps) => (
   <Html lang="zh-Hant" dir="ltr">
-    <Head />
+    <Head>
+      <meta charSet="utf-8" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+    </Head>
     <Preview>確認變更您的 {siteName} Email</Preview>
     <Body style={main}>
       <Container style={container}>
