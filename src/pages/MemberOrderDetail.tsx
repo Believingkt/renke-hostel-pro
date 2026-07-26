@@ -816,13 +816,33 @@ const MemberOrderDetail = () => {
           </div>
         </div>
 
-
-        {order.notes && (
-          <div className="mt-3 pt-3 border-t border-border/70">
-            <p className="text-sm font-medium">備註／特殊需求</p>
-            <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">{order.notes}</p>
+        {order.atm_vacc_no && (
+          <div className="mt-4 pt-4 border-t border-border/70">
+            <AtmVirtualAccountCard
+              bankCode={order.atm_vacc_bank_code}
+              vaccNo={order.atm_vacc_no}
+              expireAt={order.atm_expire_at}
+              amount={
+                Number(order.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")) ||
+                Math.max(0, order.final_price - order.paid_amount)
+              }
+              amountLabel={`轉帳金額${order.notes?.match(/的\s*(\d+)%/) ? `（訂金 ${order.notes.match(/的\s*(\d+)%/)![1]}%）` : ""}`}
+            />
           </div>
         )}
+
+        {extractGuestNotes(order.notes) && (
+          <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
+            <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+            <div className="text-sm min-w-0">
+              <p className="font-medium">您的特殊需求</p>
+              <p className="mt-1 text-muted-foreground whitespace-pre-line leading-relaxed">
+                {extractGuestNotes(order.notes)}
+              </p>
+            </div>
+          </div>
+        )}
+
       </Section>
 
       {/* 3. 旅客資訊 */}
