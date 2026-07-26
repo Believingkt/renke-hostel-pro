@@ -359,7 +359,8 @@ export default function AtmBookingSuccess() {
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">訂單已建立</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            請於下方完成 ATM 匯款，我們收到入帳通知後將自動確認您的訂房。
+            本次僅需匯款 <span className="font-semibold text-primary">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），
+            我們收到入帳通知後將自動確認您的訂房，尾款請於入住當天現場付清。
           </p>
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-sm">訂單編號 {order.order_number}</Badge>
@@ -445,6 +446,7 @@ export default function AtmBookingSuccess() {
               orderId={order.id}
               orderNumber={order.order_number}
               amount={amountDueNow || remainingAmount || order.final_price}
+              amountLabel={`轉帳金額（訂金 ${depositInfo.percentage}%）`}
               cardholder={{
                 name: order.guest_name,
                 email: sanitizeEmailForTapPay(order.guest_email),
