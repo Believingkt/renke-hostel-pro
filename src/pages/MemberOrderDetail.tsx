@@ -119,7 +119,7 @@ const MemberOrderDetail = () => {
             .maybeSingle(),
           supabase
             .from("accommodation_photos")
-            .select("image_url, display_order")
+            .select("photo_url, display_order")
             .eq("accommodation_id", data.accommodation_id)
             .order("display_order", { ascending: true })
             .limit(1),
@@ -155,7 +155,7 @@ const MemberOrderDetail = () => {
         accommodation_address: acc?.address || null,
         accommodation_phone: acc?.phone || null,
         accommodation_email: acc?.email || null,
-        accommodation_photo: accPhotos?.[0]?.image_url || null,
+        accommodation_photo: accPhotos?.[0]?.photo_url || null,
         short_url_alias: acc?.short_url_alias || null,
         room_type_name: (data as any).room_types?.name || null,
         room_photo_url: roomPhotos?.[0]?.photo_url || null,
