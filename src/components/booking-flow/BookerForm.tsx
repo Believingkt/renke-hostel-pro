@@ -73,6 +73,17 @@ export default function BookerForm(props: Props) {
     handleQuickRegister,
   } = props;
   const { toast } = useToast();
+  const [cooldown, setCooldown] = useState(0);
+
+  // 同步/倒數重新寄送冷卻時間
+  useEffect(() => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!email || emailCheckStatus !== "exists") return;
+    setCooldown(getOtpCooldown(email));
+    const id = setInterval(() => setCooldown(getOtpCooldown(email)), 1000);
+    return () => clearInterval(id);
+  }, [guestInfo.email, emailCheckStatus, otpSent]);
+
 
   return (
     <div className="space-y-6">
