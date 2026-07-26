@@ -949,19 +949,26 @@ const BookingFlow = () => {
   }, [selectedRoom, allPricingTemplates, checkInDate, checkOutDate, publicHolidays]);
 
   // Read checkIn/checkOut/adults/children from URL params and set in context
+  // 注意：URL 參數為權威來源。使用者從詳情頁重新選日期後會導回同一個 /book 路由，
+  // 元件不會重新掛載，若只在 context 為空時才套用，就會殘留上一次搜尋的舊日期。
   useEffect(() => {
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
     const adultsParam = searchParams.get("adults");
     const childrenParam = searchParams.get("children");
-    if (ciParam && !checkInDate) {
+    if (ciParam) {
       const d = new Date(ciParam + "T00:00:00");
-      if (!isNaN(d.getTime())) setCheckInDate(d);
+      if (!isNaN(d.getTime()) && (!checkInDate || format(checkInDate, "yyyy-MM-dd") !== ciParam)) {
+        setCheckInDate(d);
+      }
     }
-    if (coParam && !checkOutDate) {
+    if (coParam) {
       const d = new Date(coParam + "T00:00:00");
-      if (!isNaN(d.getTime())) setCheckOutDate(d);
+      if (!isNaN(d.getTime()) && (!checkOutDate || format(checkOutDate, "yyyy-MM-dd") !== coParam)) {
+        setCheckOutDate(d);
+      }
     }
+
     if (adultsParam || childrenParam) {
       const a = adultsParam ? parseInt(adultsParam, 10) : contextGuests.adults;
       const c = childrenParam ? parseInt(childrenParam, 10) : contextGuests.children;
