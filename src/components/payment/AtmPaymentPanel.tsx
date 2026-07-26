@@ -60,13 +60,15 @@ interface Props {
   orderNumber: string;
   amount: number;
   cardholder: { name: string; email: string; phoneNumber: string };
+  /** 轉帳金額欄位標題（例如「轉帳金額（訂金）」） */
+  amountLabel?: string;
   /** 已存在的虛擬帳號（避免重複開立） */
   initialAtmInfo?: AtmInfo | null;
   onCreated?: (info: AtmInfo) => void;
 }
 
 export function AtmPaymentPanel({
-  orderId, orderNumber, amount, cardholder, initialAtmInfo, onCreated,
+  orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, onCreated,
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
@@ -234,7 +236,7 @@ export function AtmPaymentPanel({
             </div>
             <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
               <div>
-                <div className="text-xs text-muted-foreground">轉帳金額</div>
+                <div className="text-xs text-muted-foreground">{amountLabel}</div>
                 <div className="font-bold text-base text-primary">NT$ {atmInfo.amount.toLocaleString()}</div>
               </div>
               <Button size="sm" variant="ghost" onClick={() => copy(String(atmInfo.amount))}>
@@ -261,7 +263,7 @@ export function AtmPaymentPanel({
           ATM 虛擬帳號轉帳
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
+          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 3 天），金額為 NT$ {amount.toLocaleString()}，請勿更改匯款金額。
         </p>
       </div>
       {(configLoading || !sdkReady) && !configError && !error && (
