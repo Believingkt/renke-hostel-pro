@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
+import { getDepositBreakdown } from "@/lib/bookingDeposit";
+
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useAccommodation } from "@/contexts/AccommodationContext";
