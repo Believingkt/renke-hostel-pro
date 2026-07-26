@@ -1,5 +1,4 @@
 import * as React from 'npm:react@18.3.1'
-import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { renderToStaticMarkup } from 'npm:react-dom@18.3.1/server'
 import { htmlToText } from 'npm:html-to-text@9.0.5'
 import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
