@@ -863,10 +863,8 @@ const MemberOrderDetail = () => {
               bankCode={order.atm_vacc_bank_code}
               vaccNo={order.atm_vacc_no}
               expireAt={order.atm_expire_at}
-              amount={
-                Number(order.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")) ||
-                Math.max(0, order.final_price - order.paid_amount)
-              }
+              amount={atmTransferAmount}
+
               amountLabel={`轉帳金額${order.notes?.match(/的\s*(\d+)%/) ? `（訂金 ${order.notes.match(/的\s*(\d+)%/)![1]}%）` : ""}`}
             />
           </div>
