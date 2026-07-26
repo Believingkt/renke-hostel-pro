@@ -201,6 +201,9 @@ function App() {
                       <Route path="orders" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
                       } />
+                      <Route path="orders/:orderNumber" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberOrderDetail /></Suspense>
+                      } />
                       <Route path="messages" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberMessages /></Suspense>
                       } />
