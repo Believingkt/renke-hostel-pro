@@ -105,7 +105,49 @@ Deno.serve(async (req) => {
   const appendNote = (line: string) =>
     `${order?.notes ? order.notes + "\n" : ""}🔒 ${stamp} ${line}（處理人：${caller.ctx.userEmail ?? "系統"}）`;
 
+  // 處理前狀態快照（供稽核追查）
+  const beforeState = {
+    charge_status: charge.status,
+    charge_amount: Number(charge.amount || 0),
+    webhook_status: charge.webhook_status ?? null,
+    needs_manual_review: charge.needs_manual_review ?? false,
+    error_message: charge.error_message ?? null,
+    order_payment_status: order?.payment_status ?? null,
+    order_paid_amount: order ? Number(order.paid_amount || 0) : null,
+    order_refunded_amount: order ? Number(order.refunded_amount || 0) : null,
+    order_room_charge_status: order?.room_charge_status ?? null,
+  };
+
+  const writeAuditAction = async (
+    resolutionAction: string,
+    afterState: Json,
+    extra: { finalStatus?: string | null; verifiedAmount?: number | null } = {},
+  ) => {
+    const { error } = await admin.from("payment_audit_actions").insert({
+      charge_id: charge.id,
+      order_id: charge.order_id,
+      order_number: order?.order_number ?? null,
+      accommodation_id: charge.accommodation_id,
+      rec_trade_id: charge.rec_trade_id,
+      charge_action: charge.action,
+      resolution_action: resolutionAction,
+      final_status: extra.finalStatus ?? null,
+      recorded_amount: recordedAmount,
+      verified_amount: extra.verifiedAmount ?? null,
+      tappay_amount: actualAmount,
+      amount_matches: amountMatches,
+      before_state: beforeState,
+      after_state: afterState,
+      verification,
+      note: body.note ?? null,
+      operator_id: caller.ctx.userId,
+      operator_email: caller.ctx.userEmail ?? null,
+    });
+    if (error) console.error("[payment-audit-resolve] audit insert failed:", error.message);
+  };
+
   if (action === "dismiss") {
+    const resolutionNote = body.note || "客服確認無需處理";
     await admin
       .from("deposit_charges")
       .update({
@@ -113,11 +155,19 @@ Deno.serve(async (req) => {
         resolved_at: new Date().toISOString(),
         resolved_by: caller.ctx.userId,
         resolution_action: "dismiss",
-        resolution_note: body.note || "客服確認無需處理",
+        resolution_note: resolutionNote,
       })
       .eq("id", chargeId);
+    await writeAuditAction("dismiss", {
+      charge_status: charge.status,
+      charge_amount: Number(charge.amount || 0),
+      needs_manual_review: false,
+      resolution_note: resolutionNote,
+      order_payment_status: order?.payment_status ?? null,
+    });
     return json({ success: true, action: "dismiss", verification });
   }
+
 
   // ---- 2) resolve：回寫正確狀態 ----
   const finalStatus: "success" | "failed" =
