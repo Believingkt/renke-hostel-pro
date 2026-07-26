@@ -4937,9 +4937,10 @@ const BookingFlow = () => {
                                 </p>
                               </div>
                             </div>
-
                           </div>
-                        )}
+                          );
+                        })()}
+
 
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && orderPaymentType && (
