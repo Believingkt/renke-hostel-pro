@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, CheckCircle, Clock, ShieldCheck, User } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, ShieldCheck, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +76,7 @@ export default function BookerForm(props: Props) {
   } = props;
   const { toast } = useToast();
   const [cooldown, setCooldown] = useState(0);
+  const [registerNoticeDismissed, setRegisterNoticeDismissed] = useState(false);
 
   // 同步/倒數重新寄送冷卻時間
   useEffect(() => {
@@ -326,13 +327,23 @@ export default function BookerForm(props: Props) {
               </div>
             )}
 
-            {emailCheckStatus === "registered" && !loggedInMember && (
-              <div className="mt-3 p-3 rounded-lg border border-green-200 bg-green-50/60">
-                <p className="text-sm text-green-800">
-                  ✓ 會員已建立，驗證信已寄出。您可繼續完成訂房。
+            {emailCheckStatus === "registered" && !loggedInMember && !registerNoticeDismissed && (
+              <div className="mt-3 flex items-start gap-3 rounded-lg bg-muted/60 px-4 py-3">
+                <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
+                <p className="flex-1 text-sm text-foreground leading-relaxed">
+                  恭喜！您已經註冊帳號。請查看我們寄發的驗證電子郵件。
                 </p>
+                <button
+                  type="button"
+                  aria-label="關閉提示"
+                  onClick={() => setRegisterNoticeDismissed(true)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
+
           </div>
         </CardContent>
       </Card>
