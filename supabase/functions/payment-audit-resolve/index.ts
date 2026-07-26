@@ -236,7 +236,20 @@ Deno.serve(async (req) => {
     if (Object.keys(orderPatch).length > 0) {
       await admin.from("orders").update(orderPatch).eq("id", order.id);
     }
+    orderAfter = { ...orderPatch };
+    delete orderAfter.notes;
   }
+
+  await writeAuditAction(`resolve_${finalStatus}`, {
+    charge_status: finalStatus,
+    charge_amount: verifiedAmount,
+    verified_amount: verifiedAmount,
+    webhook_status: chargePatch.webhook_status ?? null,
+    needs_manual_review: false,
+    resolution_note: chargePatch.resolution_note ?? null,
+    ...orderAfter,
+  }, { finalStatus, verifiedAmount });
+
 
   // 同步結束對應 webhook 事件的重試
   if (charge.rec_trade_id) {
