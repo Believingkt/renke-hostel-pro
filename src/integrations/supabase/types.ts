@@ -7036,6 +7036,83 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_audit_actions: {
+        Row: {
+          accommodation_id: string | null
+          after_state: Json
+          amount_matches: boolean | null
+          before_state: Json
+          charge_action: string | null
+          charge_id: string
+          created_at: string
+          final_status: string | null
+          id: string
+          note: string | null
+          operator_email: string | null
+          operator_id: string | null
+          order_id: string | null
+          order_number: string | null
+          rec_trade_id: string | null
+          recorded_amount: number | null
+          resolution_action: string
+          tappay_amount: number | null
+          verification: Json
+          verified_amount: number | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          after_state?: Json
+          amount_matches?: boolean | null
+          before_state?: Json
+          charge_action?: string | null
+          charge_id: string
+          created_at?: string
+          final_status?: string | null
+          id?: string
+          note?: string | null
+          operator_email?: string | null
+          operator_id?: string | null
+          order_id?: string | null
+          order_number?: string | null
+          rec_trade_id?: string | null
+          recorded_amount?: number | null
+          resolution_action: string
+          tappay_amount?: number | null
+          verification?: Json
+          verified_amount?: number | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          after_state?: Json
+          amount_matches?: boolean | null
+          before_state?: Json
+          charge_action?: string | null
+          charge_id?: string
+          created_at?: string
+          final_status?: string | null
+          id?: string
+          note?: string | null
+          operator_email?: string | null
+          operator_id?: string | null
+          order_id?: string | null
+          order_number?: string | null
+          rec_trade_id?: string | null
+          recorded_amount?: number | null
+          resolution_action?: string
+          tappay_amount?: number | null
+          verification?: Json
+          verified_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_audit_actions_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "deposit_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_status_history: {
         Row: {
           changed_by: string | null
