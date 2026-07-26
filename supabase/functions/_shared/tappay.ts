@@ -217,3 +217,43 @@ export async function payByCardToken(args: {
     authCode: result.auth_code,
   };
 }
+
+/** 查詢 TapPay 交易紀錄（供金流稽核核對真實金額／狀態） */
+export async function queryTapPayRecord(args: {
+  partnerKey: string;
+  recTradeId: string;
+}): Promise<{
+  found: boolean;
+  status: number | null;
+  recordStatus: number | null;
+  amount: number | null;
+  refundedAmount: number | null;
+  bankTransactionId: string | null;
+  orderNumber: string | null;
+  raw: any;
+}> {
+  const { env } = getTapPayEndpoints();
+  const base = env === "sandbox" ? "https://sandbox.tappaysdk.com" : "https://prod.tappaysdk.com";
+  const resp = await fetch(`${base}/tpc/transaction/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": args.partnerKey },
+    body: JSON.stringify({
+      partner_key: args.partnerKey,
+      filters: { rec_trade_id: args.recTradeId },
+      records_per_page: 1,
+      page: 0,
+    }),
+  });
+  const result = await resp.json();
+  const rec = Array.isArray(result?.trade_records) ? result.trade_records[0] : null;
+  return {
+    found: !!rec,
+    status: result?.status ?? null,
+    recordStatus: rec?.record_status ?? null,
+    amount: rec?.amount ?? null,
+    refundedAmount: rec?.refunded_amount ?? null,
+    bankTransactionId: rec?.bank_transaction_id ?? null,
+    orderNumber: rec?.order_number ?? null,
+    raw: result,
+  };
+}
