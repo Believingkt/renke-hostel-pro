@@ -515,6 +515,10 @@ const MemberOrderDetail = () => {
     setChangeOpen(false);
   };
 
+  // ATM 轉帳金額（與虛擬帳號卡片一致）
+  const atmTransferAmount =
+    Number(order?.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")) ||
+    Math.max(0, (order?.final_price || 0) - (order?.paid_amount || 0));
 
 
   const share = async () => {
