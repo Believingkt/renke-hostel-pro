@@ -139,7 +139,27 @@ export default function AtmBookingSuccess() {
   const [paidDetected, setPaidDetected] = useState(false);
   const [redirectIn, setRedirectIn] = useState(5);
   const [dismissed, setDismissed] = useState(false);
+  const [depositSettings, setDepositSettings] = useState<DepositSettingsLike | null>(null);
   const redirectedRef = useRef(false);
+
+  // 載入該民宿訂金比例設定（ATM 匯款僅收訂金，預設 30%）
+  useEffect(() => {
+    const accommodationId = order?.accommodation_id || accId;
+    if (!accommodationId) return;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+      if (alive) setDepositSettings((data as DepositSettingsLike) ?? {});
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [order?.accommodation_id, accId]);
+
 
   useEffect(() => {
     let cancelled = false;
