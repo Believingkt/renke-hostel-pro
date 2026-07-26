@@ -1,5 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { renderToStaticMarkup } from 'npm:react-dom@18.3.1/server'
+import { htmlToText } from 'npm:html-to-text@9.0.5'
 import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -42,6 +44,25 @@ function encodeNonAsciiHtml(html: string): string {
   return html.replace(/[^\x00-\x7F]/g, (char) => {
     const codePoint = char.codePointAt(0)
     return codePoint ? `&#${codePoint};` : char
+  })
+}
+
+function renderEmailHtml(element: React.ReactElement): string {
+  // React Email 0.0.22's renderAsync/html-to-text path corrupts some CJK chars
+  // in this template (e.g. 「忽」 -> �) before the email reaches Resend.
+  // React DOM static rendering preserves the original UTF-8, then we entity-encode
+  // non-ASCII before sending to protect the final transport/client rendering path.
+  const html = renderToStaticMarkup(element)
+  return `<!DOCTYPE html>${html}`
+}
+
+function renderEmailText(html: string): string {
+  return htmlToText(html, {
+    wordwrap: false,
+    selectors: [
+      { selector: 'a', options: { ignoreHref: false } },
+      { selector: 'img', format: 'skip' },
+    ],
   })
 }
 
@@ -103,7 +124,7 @@ async function handlePreview(req: Request): Promise<Response> {
       status: 400, headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
     })
   }
-  const html = await renderAsync(React.createElement(EmailTemplate, SAMPLE_DATA[type] || {}))
+  const html = renderEmailHtml(React.createElement(EmailTemplate, SAMPLE_DATA[type] || {}))
   return new Response(html, {
     status: 200, headers: { ...previewCorsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
   })
@@ -191,8 +212,8 @@ async function handleWebhook(req: Request): Promise<Response> {
     newEmail: payload?.data?.new_email,
   }
 
-  const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
-  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
+  const html = renderEmailHtml(React.createElement(EmailTemplate, templateProps))
+  const text = renderEmailText(html)
   const subject = buildSubject(emailType, token)
 
   const supabase = createClient(
