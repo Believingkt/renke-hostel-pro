@@ -87,6 +87,7 @@ import { cn } from "@/lib/utils";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import OrderSummarySidebar from "@/components/booking-flow/OrderSummarySidebar";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
+import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
@@ -3599,6 +3600,19 @@ const BookingFlow = () => {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
+            <MemberSessionBar
+              loggedInMember={loggedInMember}
+              bookingEmail={guestInfo.email}
+              isMismatch={isMemberEmailMismatch}
+              onSwitchAccount={handleSwitchAccount}
+              showGoToBookerStep={currentStep !== "payment"}
+              onGoToBookerStep={() => {
+                setCurrentStep("payment");
+                setTimeout(() => {
+                  document.getElementById("booker-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 100);
+              }}
+            />
             {currentStep !== "confirm" && (() => {
               const nights = calculateNights();
               const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
