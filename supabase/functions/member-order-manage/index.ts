@@ -55,7 +55,7 @@ serve(async (req) => {
     const { data: order } = await supabase
       .from("orders")
       .select(
-        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, check_in_date, check_out_date, notes, accommodation_id",
+        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, final_price, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id",
       )
       .eq("order_number", body.orderNumber)
       .maybeSingle();
@@ -71,10 +71,41 @@ serve(async (req) => {
       return json({ success: false, message: "此訂單已取消" }, 400, corsHeaders);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    if (order.check_in_date <= today) {
+    const today = taipeiToday();
+
+    // 民宿自訂免費取消天數
+    const { data: bs } = await supabase
+      .from("booking_settings")
+      .select("free_cancel_days")
+      .eq("accommodation_id", order.accommodation_id)
+      .maybeSingle();
+    const freeCancelDays = Number(bs?.free_cancel_days ?? 14);
+
+    const quote = calcCancellationFee(
+      Number(order.final_price || 0),
+      order.check_in_date,
+      today,
+      Number(order.paid_amount || 0),
+      freeCancelDays,
+    );
+
+    // 取消政策試算（不異動資料）
+    if (body.action === "cancel_quote") {
+      return json({ success: true, quote, freeCancelDays }, 200, corsHeaders);
+    }
+
+    // 改期／改人數：入住日當天或之後不可線上異動
+    if (body.action !== "cancel" && order.check_in_date <= today) {
       return json(
         { success: false, message: "入住日當天或之後無法線上異動，請直接聯繫住宿" },
+        400,
+        corsHeaders,
+      );
+    }
+    // 取消：已過入住日不可線上取消
+    if (body.action === "cancel" && order.check_in_date < today) {
+      return json(
+        { success: false, message: "已過入住日無法線上取消，請直接聯繫住宿" },
         400,
         corsHeaders,
       );
@@ -84,26 +115,130 @@ serve(async (req) => {
     const appendNote = (line: string) => `${order.notes ? order.notes + "\n" : ""}${line}`;
 
     if (body.action === "cancel") {
-      const needManualRefund = Number(order.paid_amount || 0) > 0;
-      const note = appendNote(
-        `🔒 ${stamp} 會員於前台自行取消訂單（${email}）${body.reason ? `：${body.reason}` : ""}${
-          needManualRefund ? `｜已付款 NT$${Number(order.paid_amount).toLocaleString()}，待人工退款` : ""
-        }`,
-      );
+      const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
+      const merchantId = Deno.env.get("TAPPAY_MERCHANT_ID");
+
+      const lines: string[] = [
+        `🔒 ${stamp} 會員於前台自行取消訂單（${email}）${body.reason ? `：${body.reason}` : ""}`,
+        `🔒 取消政策：距入住 ${quote.daysBefore} 天，扣款比例 ${quote.percent}%（${quote.label}）`,
+      ];
+
+      let chargedFee = 0;
+      let refunded = 0;
+      let needManual = false;
+
+      // 情境 A：尚未扣款、卡片已綁定 → 依級距即時收取手續費，其餘不收
+      if (order.room_charge_status === "card_bound" && Number(order.paid_amount || 0) === 0) {
+        const { data: tokenRow } = await supabase
+          .from("deposit_card_tokens")
+          .select("*")
+          .eq("order_id", order.id)
+          .eq("purpose", "room_charge")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (quote.feeAmount > 0 && tokenRow && partnerKey && merchantId) {
+          const r = await payByCardToken({
+            partnerKey,
+            merchantId,
+            cardKey: tokenRow.card_key,
+            cardToken: tokenRow.card_token,
+            amount: quote.feeAmount,
+            details: `取消手續費 - 訂單 ${order.order_number}`,
+            orderNumber: `CXL-${order.order_number}`,
+          });
+          await supabase.from("deposit_charges").insert({
+            order_id: order.id,
+            accommodation_id: order.accommodation_id,
+            card_token_id: tokenRow.id,
+            action: "cancellation_fee",
+            amount: quote.feeAmount,
+            status: r.success ? "success" : "failed",
+            trigger_source: "member_cancel",
+            rec_trade_id: r.recTradeId ?? null,
+            error_message: r.success ? null : (r.msg || `TapPay error ${r.status}`),
+          });
+          if (r.success) {
+            chargedFee = quote.feeAmount;
+            lines.push(`🔒 已收取取消手續費 NT$${chargedFee.toLocaleString()}（TapPay ${r.recTradeId}）`);
+          } else {
+            needManual = true;
+            lines.push(`🔒 取消手續費 NT$${quote.feeAmount.toLocaleString()} 扣款失敗（${r.msg || r.status}），待人工處理`);
+          }
+        } else if (quote.feeAmount > 0) {
+          needManual = true;
+          lines.push(`🔒 應收取消手續費 NT$${quote.feeAmount.toLocaleString()}，但查無有效綁卡，待人工處理`);
+        } else {
+          lines.push("🔒 符合免費取消，未扣任何款項");
+        }
+
+        if (tokenRow) {
+          await supabase.from("deposit_card_tokens").update({ is_active: false }).eq("id", tokenRow.id);
+        }
+      }
+      // 情境 B：已扣款 → 退還（已收金額 - 手續費）
+      else if (Number(order.paid_amount || 0) > 0) {
+        const refundAmount = quote.refundAmount;
+        chargedFee = Math.min(Number(order.paid_amount || 0), quote.feeAmount);
+        if (refundAmount > 0 && partnerKey && order.room_charge_rec_trade_id) {
+          const r = await refundTapPay(partnerKey, order.room_charge_rec_trade_id, refundAmount);
+          if (r.success) {
+            refunded = refundAmount;
+            lines.push(
+              `🔒 已自動退刷 NT$${refunded.toLocaleString()}（保留手續費 NT$${chargedFee.toLocaleString()}）`,
+            );
+          } else {
+            needManual = true;
+            lines.push(`🔒 自動退刷失敗（${r.msg || r.status}），應退 NT$${refundAmount.toLocaleString()}，待人工處理`);
+          }
+        } else if (refundAmount > 0) {
+          needManual = true;
+          lines.push(`🔒 應退款 NT$${refundAmount.toLocaleString()}，無可退刷交易編號，待人工退款`);
+        } else {
+          lines.push("🔒 依取消政策不予退款");
+        }
+      } else {
+        lines.push("🔒 訂單尚未收款，取消不產生退款");
+      }
+
       const { error } = await supabase
         .from("orders")
-        .update({ order_status: "cancelled", notes: note })
+        .update({
+          order_status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancellation_fee_amount: chargedFee,
+          cancellation_fee_percent: quote.percent,
+          refunded_amount: refunded,
+          paid_amount: Math.max(0, Number(order.paid_amount || 0) - refunded) + (chargedFee && Number(order.paid_amount || 0) === 0 ? chargedFee : 0),
+          payment_status: refunded > 0 || Number(order.paid_amount || 0) === 0 ? "refunded" : order.payment_status,
+          room_charge_status: order.room_charge_status ? "cancelled" : null,
+          notes: appendNote(lines.join("\n")),
+        })
         .eq("id", order.id);
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
+
       return json(
         {
           success: true,
-          message: needManualRefund ? "訂單已取消，退款將由客服人員協助處理" : "訂單已取消",
+          quote,
+          chargedFee,
+          refunded,
+          needManual,
+          message: needManual
+            ? "訂單已取消，款項將由客服人員協助處理"
+            : quote.feeAmount === 0
+              ? "訂單已取消，符合免費取消未扣款"
+              : chargedFee > 0 && refunded === 0
+                ? `訂單已取消，依政策收取手續費 NT$${chargedFee.toLocaleString()}`
+                : `訂單已取消，已退款 NT$${refunded.toLocaleString()}`,
         },
         200,
         corsHeaders,
       );
     }
+
 
     if (body.action === "change_guests") {
       const n = Number(body.guestCount);
