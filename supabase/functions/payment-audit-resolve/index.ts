@@ -195,7 +195,9 @@ Deno.serve(async (req) => {
   if (updChargeErr) return json({ success: false, message: updChargeErr.message }, 500);
 
   // 回寫訂單狀態
+  let orderAfter: Json = {};
   if (order) {
+
     const orderPatch: Json = {};
     const isRefund = charge.action === "refund" || charge.action === "cancellation_fee_refund";
 
