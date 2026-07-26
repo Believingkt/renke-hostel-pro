@@ -2468,6 +2468,7 @@ export type Database = {
           id: string
           is_active: boolean
           order_id: string
+          purpose: string
           updated_at: string
         }
         Insert: {
@@ -2481,6 +2482,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           order_id: string
+          purpose?: string
           updated_at?: string
         }
         Update: {
@@ -2494,6 +2496,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           order_id?: string
+          purpose?: string
           updated_at?: string
         }
         Relationships: [
@@ -5607,6 +5610,8 @@ export type Database = {
           atm_vacc_no: string | null
           auto_created_from_email_id: string | null
           balance_payment_method: string | null
+          cancellation_fee_amount: number
+          cancellation_fee_percent: number | null
           cancelled_at: string | null
           check_in_date: string
           check_out_date: string
@@ -5666,8 +5671,14 @@ export type Database = {
           payment_status: string
           pet_count: number | null
           pet_plan_price: number | null
+          refunded_amount: number
           requires_owner_review: boolean
           room_assigned: boolean | null
+          room_charge_at: string | null
+          room_charge_error: string | null
+          room_charge_rec_trade_id: string | null
+          room_charge_scheduled_date: string | null
+          room_charge_status: string | null
           room_type_id: string | null
           total_price: number
           updated_at: string | null
@@ -5681,6 +5692,8 @@ export type Database = {
           atm_vacc_no?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
+          cancellation_fee_amount?: number
+          cancellation_fee_percent?: number | null
           cancelled_at?: string | null
           check_in_date: string
           check_out_date: string
@@ -5740,8 +5753,14 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refunded_amount?: number
           requires_owner_review?: boolean
           room_assigned?: boolean | null
+          room_charge_at?: string | null
+          room_charge_error?: string | null
+          room_charge_rec_trade_id?: string | null
+          room_charge_scheduled_date?: string | null
+          room_charge_status?: string | null
           room_type_id?: string | null
           total_price: number
           updated_at?: string | null
@@ -5755,6 +5774,8 @@ export type Database = {
           atm_vacc_no?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
+          cancellation_fee_amount?: number
+          cancellation_fee_percent?: number | null
           cancelled_at?: string | null
           check_in_date?: string
           check_out_date?: string
@@ -5814,8 +5835,14 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refunded_amount?: number
           requires_owner_review?: boolean
           room_assigned?: boolean | null
+          room_charge_at?: string | null
+          room_charge_error?: string | null
+          room_charge_rec_trade_id?: string | null
+          room_charge_scheduled_date?: string | null
+          room_charge_status?: string | null
           room_type_id?: string | null
           total_price?: number
           updated_at?: string | null

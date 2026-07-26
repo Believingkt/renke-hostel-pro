@@ -152,6 +152,16 @@ const MemberOrderDetail = () => {
   const [reloadKey, setReloadKey] = useState(0);
   const [acting, setActing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelQuote, setCancelQuote] = useState<{
+    daysBefore: number;
+    percent: number;
+    label: string;
+    feeAmount: number;
+    refundAmount: number;
+    freeCancel: boolean;
+  } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
   const [changeOpen, setChangeOpen] = useState(false);
   const [newCheckIn, setNewCheckIn] = useState("");
   const [newCheckOut, setNewCheckOut] = useState("");
@@ -330,6 +340,22 @@ const MemberOrderDetail = () => {
   };
 
   const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
+
+  const openCancel = async () => {
+    setCancelQuote(null);
+    setCancelOpen(true);
+    setQuoteLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("member-order-manage", {
+        body: { orderNumber: order.order_number, action: "cancel_quote" },
+      });
+      const res = (data || {}) as { success?: boolean; quote?: typeof cancelQuote };
+      if (res.success && res.quote) setCancelQuote(res.quote);
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
 
   const handleChange = async () => {
     const datesChanged =
@@ -701,7 +727,7 @@ const MemberOrderDetail = () => {
         <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
           <button
             disabled={cancelled || acting}
-            onClick={() => setCancelOpen(true)}
+            onClick={openCancel}
             className="rounded-lg py-2.5 text-sm font-medium bg-muted text-muted-foreground disabled:opacity-50"
           >
             取消訂單
@@ -778,8 +804,35 @@ const MemberOrderDetail = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確定要取消這筆訂單嗎？</AlertDialogTitle>
-            <AlertDialogDescription>
-              取消後無法復原，若已付款將由客服人員協助辦理退款（依住宿取消政策辦理）。
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                {quoteLoading && <p className="text-sm text-muted-foreground">正在試算取消費用…</p>}
+                {cancelQuote && (
+                  <div className="rounded-md border p-3 space-y-1.5">
+                    <p className="text-sm">
+                      距離入住還有 <span className="font-semibold text-foreground">{cancelQuote.daysBefore}</span> 天，
+                      取消扣款比例 <span className="font-semibold text-foreground">{cancelQuote.percent}%</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">{cancelQuote.label}</p>
+                    <div className="flex justify-between text-sm pt-1 border-t">
+                      <span className="text-muted-foreground">取消手續費</span>
+                      <span className="font-semibold text-foreground">NT$ {cancelQuote.feeAmount.toLocaleString()}</span>
+                    </div>
+                    {order.paid_amount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">預計退款</span>
+                        <span className="font-semibold text-foreground">NT$ {cancelQuote.refundAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {cancelQuote.freeCancel && (
+                      <p className="text-xs text-primary font-medium">符合免費取消，不會扣任何款項。</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  取消後無法復原。若卡片已綁定但尚未扣款，系統只會收取上述手續費；若已扣款，將自動退還可退金額。
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

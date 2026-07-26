@@ -2870,7 +2870,7 @@ const BookingFlow = () => {
         setIsProcessingPayment(true);
 
         try {
-          console.log('Processing TapPay payment...');
+          console.log('Binding credit card (no charge until check-in)...');
 
           const prime = tappayPrime;
           if (!prime || isPrimeExpired()) {
@@ -2889,113 +2889,22 @@ const BookingFlow = () => {
           setTappayPrime(null);
           setTappayPrimeIssuedAt(null);
 
-          // Idempotency key：每次提交產生一次，存於 ref 以便重試時保持相同
+          // Idempotency key：每次提交產生一次
           const idempotencyKey =
             (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-          // 先嘗試走 3DS 流程（如不需 3DS，後端會直接付款並建單）
-          // 為簡化邏輯：先呼叫 process-tappay-payment 取得是否需要 3DS。
-          // 若需要 3DS → 走 sessionStorage + complete-3ds-booking（已支援 idempotency_key）
-          // 若不需要 3DS → 改呼叫 create-paid-order 一次完成扣款 + 建單（含失敗退刷）
-          const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
-          const frontendRedirectUrl = `${baseUrl}/payment-result?source=booking`;
-
-          // 為了同時支援 3DS 與非 3DS，我們先呼叫 process-tappay-payment（會自動帶 3DS）
-          // 但對非 3DS 的情境，後端已經完成扣款，因此須立即建單；建單失敗時須退刷
-          // 為避免複雜度，這裡採用「create-paid-order」單一入口（只走非 3DS）；
-          // 而 3DS 仍由 process-tappay-payment 啟動，因為 prime 一旦消費就不能重用
-          //
-          // 流程：先呼叫 process-tappay-payment（會 enable 3DS）
-          //   - requires3DSecure = true → 跳轉，3DS 完成後 complete-3ds-booking 建單
-          //   - requires3DSecure = false → 此時款項已扣，立即用 idempotency_key 建單；失敗則退刷
-
-          const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
-            'process-tappay-payment',
+          // 信用卡流程：結帳當下「只綁卡不扣款」，入住當天由排程自動扣款
+          const { data: opResult, error: opError } = await supabase.functions.invoke(
+            'create-card-bound-order',
             {
               body: {
+                idempotencyKey,
                 prime,
-                amount: finalPrice,
-                orderId: idempotencyKey.substring(0, 50),
                 cardholder: {
                   phoneNumber: guestInfo.phone,
                   name: guestInfo.name,
                   email: guestInfo.email || '',
                 },
-                details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
-                frontendRedirectUrl,
-              },
-            }
-          );
-
-          if (paymentError) throw paymentError;
-
-          if (!paymentResult.success) {
-            const errorInfo = {
-              type: 'card' as const,
-              message: paymentResult.message || '付款失敗',
-              suggestion: paymentResult.suggestion || '請檢查卡片資訊或聯繫發卡銀行',
-              errorCode: paymentResult.errorCode,
-              technicalMessage: paymentResult.technicalMessage,
-            };
-            console.error('TapPay payment failed:', errorInfo);
-            setLastPaymentError(errorInfo);
-            setPaymentFailed(true);
-            setShowRetryDialog(true);
-            setIsProcessingPayment(false);
-            setIsSubmitting(false);
-            return;
-          }
-
-          // === 3DS 路徑 ===
-          if (paymentResult.requires3DSecure && paymentResult.paymentUrl) {
-            console.log('[TapPay][Booking] Redirecting to 3D Secure...');
-
-            const pendingBookingData = {
-              accommodationId,
-              selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
-              checkInDate: checkInDateStr,
-              checkOutDate: checkOutDateStr,
-              guestInfo,
-              mealPlan: selectedMealPlan,
-              mealPlanDetails: mealPlanDetailsData,
-              mealPlanTotal: mealPlanTotalPrice,
-              packageId: selectedPackageId,
-              petCount,
-              petPlanPrice,
-              finalPrice,
-              totalPrice,
-              nights,
-              discountCode: appliedDiscount?.code,
-              discountAmount,
-              totalGuests,
-              customerId,
-              memberId: effectiveMemberId,
-              idempotencyKey, // 3DS 完成後 complete-3ds-booking 用此鍵防重複
-              source: 'booking',
-            };
-            sessionStorage.setItem('pending_booking_3ds', JSON.stringify(pendingBookingData));
-
-            toast({
-              title: "跳轉 3D 驗證",
-              description: "即將跳轉至銀行驗證頁面，完成驗證後將自動建立訂單...",
-            });
-
-            window.location.href = paymentResult.paymentUrl;
-            return;
-          }
-
-          // === 非 3DS 路徑：款項已扣，立即建單；失敗則退刷 ===
-          paymentTransactionId = paymentResult.transactionId;
-          console.log('Payment successful (no 3DS), creating order with idempotency...');
-
-          const { data: opResult, error: opError } = await supabase.functions.invoke(
-            'create-paid-order',
-            {
-              body: {
-                idempotencyKey,
-                // Post-charge mode: TapPay 已透過 process-tappay-payment 完成扣款，
-                // 此呼叫只負責「以 idempotency_key 建單；失敗則自動退刷」
-                alreadyChargedRecTradeId: paymentTransactionId,
                 accommodationId,
                 selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
                 checkInDate: checkInDateStr,
@@ -3032,33 +2941,38 @@ const BookingFlow = () => {
           );
 
           if (opError || !opResult?.success) {
-            console.error('Order creation after charge failed:', opError, opResult);
+            console.error('Card binding / order creation failed:', opError, opResult);
+            const errorInfo = {
+              type: 'card' as const,
+              message: opResult?.message || opError?.message || '信用卡綁定失敗',
+              suggestion: opResult?.suggestion || '請確認卡片資訊是否正確，或更換其他卡片',
+              errorCode: opResult?.errorCode,
+              technicalMessage: opResult?.technicalMessage,
+            };
             reportFrontendError({
               category: "booking_flow",
-              step: "create_paid_order_post_charge",
-              errorMessage: opResult?.message || opError?.message || "create-paid-order failed",
+              step: "create_card_bound_order",
+              errorMessage: errorInfo.message,
               accommodationId,
               idempotencyKey,
-              context: {
-                recTradeId: paymentTransactionId,
-                finalPrice,
-                paymentMethod,
-              },
+              context: { finalPrice, paymentMethod },
             });
-            toast({
-              title: '訂單建立失敗',
-              description: opResult?.message || '請聯繫客服協助處理',
-              variant: 'destructive',
-            });
+            setLastPaymentError(errorInfo);
+            setPaymentFailed(true);
+            setShowRetryDialog(true);
             setIsProcessingPayment(false);
             setIsSubmitting(false);
             return;
           }
 
           paidOrderResult = opResult.order;
-          console.log('Order created:', paidOrderResult?.order_number);
+          console.log('Card-bound order created:', paidOrderResult?.order_number);
 
-          toast({ title: "付款成功", description: "正在完成訂單..." });
+          toast({
+            title: "信用卡綁定成功",
+            description: `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
+          });
+
         } catch (error) {
           console.error('Payment error:', error);
           const errorInfo = classifyPaymentError(error);
@@ -4857,7 +4771,7 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
-                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "線上一次付清訂單全額，由 TapPay 安全加密處理" },
+                          { key: "credit_card", label: "信用卡（入住當天扣款）", icon: CreditCard, desc: "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費" },
                           {
                             key: "atm",
                             label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
@@ -4905,9 +4819,25 @@ const BookingFlow = () => {
                         {orderPaymentType === "credit_card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊</p>
-                              <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理</p>
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊（現在不會扣款）</p>
+                              <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理，本站不會保存完整卡號</p>
                             </div>
+                            <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                              <p className="text-xs text-foreground font-medium">扣款與取消說明</p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 現在僅完成信用卡綁定驗證，<span className="font-medium text-foreground">不會扣款</span>。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 入住當天（{checkInDate ? format(checkInDate, "yyyy/MM/dd") : "入住日"}）系統將自動扣取 NT$ {calculateFinalTotal().toLocaleString()}。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 入住日前 14 日（含）以前取消：<span className="font-medium text-foreground">免費，不扣任何款項</span>。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 14 日內取消：依取消政策級距（13–10 日 30%、9–7 日 50%、6–4 日 60%、3–2 日 70%、前 1 日 80%、當日 100%）自動收取手續費。
+                              </p>
+                            </div>
+
                             {tappayConfigLoading ? (
                               <div className="flex items-center justify-center py-8">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -5182,7 +5112,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}
+                              {orderPaymentType === "credit_card" ? "信用卡（入住當天扣款）" : "ATM 虛擬帳號"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -5191,6 +5121,22 @@ const BookingFlow = () => {
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </span>
                           </div>
+                          {orderPaymentType === "credit_card" && (
+                            <div className="pt-2 mt-1 border-t space-y-1.5">
+                              <div className="flex justify-between items-center text-sm font-semibold text-primary">
+                                <span>本次線上扣款</span>
+                                <span>NT$ 0（僅綁卡）</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <span>入住當天自動扣款</span>
+                                <span>NT$ {calculateFinalTotal().toLocaleString()}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                送出訂單後僅完成信用卡綁定，不會立即扣款；入住當天系統自動扣取全額。入住日前 14 日（含）以前取消完全免費，14 日內取消將依取消政策比例自動收取手續費。
+                              </p>
+                            </div>
+                          )}
+
                           {orderPaymentType === "atm" && (() => {
                             const dep = getAtmDepositBreakdown();
                             return (
