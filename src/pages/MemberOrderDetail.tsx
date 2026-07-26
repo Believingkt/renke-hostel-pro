@@ -204,7 +204,7 @@ const AtmVirtualAccountCard = ({
             value={bankCode || "—"}
           />
           <CopyField label="虛擬帳號" value={vaccNo} />
-          <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} highlight />
+          <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} copyValue={String(Math.round(amount))} highlight />
         </div>
         {expire && (
           <div
