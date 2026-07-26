@@ -4819,9 +4819,25 @@ const BookingFlow = () => {
                         {orderPaymentType === "credit_card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊</p>
-                              <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理</p>
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊（現在不會扣款）</p>
+                              <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理，本站不會保存完整卡號</p>
                             </div>
+                            <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                              <p className="text-xs text-foreground font-medium">扣款與取消說明</p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 現在僅完成信用卡綁定驗證，<span className="font-medium text-foreground">不會扣款</span>。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 入住當天（{checkInDate ? format(checkInDate, "yyyy/MM/dd") : "入住日"}）系統將自動扣取 NT$ {calculateFinalTotal().toLocaleString()}。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 入住日前 14 日（含）以前取消：<span className="font-medium text-foreground">免費，不扣任何款項</span>。
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ・ 14 日內取消：依取消政策級距（13–10 日 30%、9–7 日 50%、6–4 日 60%、3–2 日 70%、前 1 日 80%、當日 100%）自動收取手續費。
+                              </p>
+                            </div>
+
                             {tappayConfigLoading ? (
                               <div className="flex items-center justify-center py-8">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
