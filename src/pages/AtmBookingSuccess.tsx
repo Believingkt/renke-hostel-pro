@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
+import { getDepositBreakdown, type DepositSettingsLike } from "@/lib/bookingDeposit";
+
 
 interface OrderRow {
   id: string;
