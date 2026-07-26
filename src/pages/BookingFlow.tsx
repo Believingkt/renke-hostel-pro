@@ -1102,15 +1102,18 @@ const BookingFlow = () => {
     return hasAny ? total : null;
   };
 
+  const lastRoomSyncSearchRef = useRef<string | null>(null);
   useEffect(() => {
+    const search = searchParams.toString();
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
+    const hasNewSearch = lastRoomSyncSearchRef.current !== search;
 
     // roomId 同樣以 URL 為準：重新從詳情頁選方案時要覆蓋掉舊房型
     if (roomId && roomTypes.length > 0 && selectedRoom?.id !== roomId) {
-
+      lastRoomSyncSearchRef.current = search;
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
@@ -1123,8 +1126,19 @@ const BookingFlow = () => {
           setCurrentStep("dates");
         }
       }
+      return;
+    }
+
+    // 新的方案連結未帶 roomId 時，清掉上一筆殘留的房型選擇
+    if (hasNewSearch) {
+      lastRoomSyncSearchRef.current = search;
+      if (!roomId && searchParams.get("packageId") && selectedRoom) {
+        setSelectedRoom(null);
+        setCurrentStep("room");
+      }
     }
   }, [searchParams, roomTypes, selectedRoom]);
+
 
   // 載入日期可用性（供日期選擇器使用），以調整後庫存與包區互斥邏輯判斷
   useEffect(() => {
