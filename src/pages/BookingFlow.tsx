@@ -41,6 +41,8 @@ import {
   bookingFlowDateSchema as dateValidationSchema,
 } from "@/lib/schemas/booking";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
+import { requestMemberOtp } from "@/lib/requestMemberOtp";
+
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { isTemplateActiveForDates, getTierForDate, hasSegments as templateHasSegments } from "@/utils/pricingTemplateHelpers";
@@ -258,24 +260,20 @@ const BookingFlow = () => {
             });
           } else if (!otpSending) {
             setOtpSending(true);
-            const { error: otpErr } = await supabase.auth.signInWithOtp({
-              email,
-              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-            });
+            const result = await requestMemberOtp(email, { redirectTo: window.location.href });
             setOtpSending(false);
-            if (otpErr) {
+            if (!result.ok) {
+              if (result.rateLimited) setOtpSent(true);
               toast({
-                title: "驗證碼寄送失敗",
-                description: otpErr.message?.includes("not confirmed")
-                  ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證"
-                  : (otpErr.message || "請稍後再試"),
-                variant: "destructive",
+                title: result.rateLimited ? "驗證碼稍候可再寄送" : "驗證碼寄送失敗",
+                description: result.message || "請稍後再試",
+                variant: result.rateLimited ? "default" : "destructive",
               });
             } else {
-              markOtpSent(email);
               setOtpSent(true);
             }
           }
+
         } else {
           setEmailCheckStatus("new");
           setOtpSent(false);
@@ -405,28 +403,27 @@ const BookingFlow = () => {
       } else {
         // 無密碼：切換至 OTP 驗證模式讓使用者完成登入
         const wait = getOtpCooldown(email);
-        const { error: otpErr } = wait > 0
-          ? { error: null as any }
-          : await supabase.auth.signInWithOtp({
-              email,
-              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-            });
-        if (otpErr) {
+        const result = wait > 0
+          ? { ok: true, cooldown: wait, message: "" }
+          : await requestMemberOtp(email, { redirectTo: window.location.href });
+        if (!result.ok && !result.rateLimited) {
           setEmailCheckStatus("registered");
           toast({
             title: "註冊成功",
-            description: otpErr.message || "驗證信已寄出，請至信箱確認",
+            description: result.message || "驗證信已寄出，請至信箱確認",
           });
         } else {
-          if (wait === 0) markOtpSent(email);
           setEmailCheckStatus("exists");
           setOtpSent(true);
           setEmailCheckedFor(email);
           toast({
             title: "註冊成功，請輸入驗證碼",
-            description: "6 位數驗證碼已寄至您的信箱",
+            description: result.rateLimited
+              ? (result.message || "請稍候後再重新寄送驗證碼")
+              : "6 位數驗證碼已寄至您的信箱",
           });
         }
+
       }
     } catch (e: any) {
       const raw = e?.message || "";
