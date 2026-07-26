@@ -4906,20 +4906,38 @@ const BookingFlow = () => {
                         )}
 
                         {/* ATM 虛擬帳號 說明 */}
-                        {orderPaymentType === "atm" && (
+                        {orderPaymentType === "atm" && (() => {
+                          const dep = getAtmDepositBreakdown();
+                          return (
                           <div className="mt-4 p-4 border rounded-lg bg-muted/30">
                             <div className="flex items-start gap-2">
                               <Building2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳</p>
+                              <div className="space-y-2 w-full">
+                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳（訂金制）</p>
+                                <div className="rounded-md border bg-background p-3 space-y-1.5">
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>訂單總額</span>
+                                    <span>NT$ {calculateFinalTotal().toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm font-semibold text-primary">
+                                    <span>本次需匯款訂金（{dep.percentage}%）</span>
+                                    <span>NT$ {dep.deposit.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>入住現場付清尾款</span>
+                                    <span>NT$ {dep.balance.toLocaleString()}</span>
+                                  </div>
+                                </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
                                   ・ 送出訂單後將跳轉到「ATM 匯款資訊頁」，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
+                                  ・ 虛擬帳號金額為 <span className="font-medium text-foreground">訂金 NT$ {dep.deposit.toLocaleString()}</span>，請勿更改匯款金額，以免無法自動核帳。<br />
                                   ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
-                                  ・ 繳費期限 3 天，逾期未繳款訂單將自動取消。<br />
-                                  ・ 系統收到入帳通知後將自動更新訂單狀態。
+                                  ・ 繳費期限 3 天，逾期未繳訂金訂單將自動取消。<br />
+                                  ・ 系統收到入帳通知後將自動確認訂房，剩餘尾款 NT$ {dep.balance.toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
                                 </p>
                               </div>
                             </div>
+
                           </div>
                         )}
 
