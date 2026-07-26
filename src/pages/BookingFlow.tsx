@@ -2689,15 +2689,26 @@ const BookingFlow = () => {
                 }),
               childSelection,
               childExtraTotal: childEval.extraFeeTotal,
+              guestEmail: guestInfo.email || null,
             },
           }
         );
 
         if (validationError) {
           console.error("Price validation error:", validationError);
+          // 下單限流（429）：顯示後端提供的說明
+          let rateLimitMessage: string | null = null;
+          try {
+            const ctx = (validationError as any)?.context;
+            if (ctx?.status === 429) {
+              const parsed = JSON.parse(await ctx.text());
+              rateLimitMessage = parsed?.errors?.[0] || "請稍後再試。";
+            }
+          } catch { /* ignore */ }
+
           toast({
-            title: "價格驗證失敗",
-            description: "無法驗證訂單價格，請重新整理頁面後再試",
+            title: rateLimitMessage ? "訂單暫時無法送出" : "價格驗證失敗",
+            description: rateLimitMessage || "無法驗證訂單價格，請重新整理頁面後再試",
             variant: "destructive",
           });
           setIsSubmitting(false);
@@ -2707,13 +2718,16 @@ const BookingFlow = () => {
         if (!validationResult?.isValid) {
           console.error("Price validation failed:", validationResult?.errors);
           toast({
-            title: "價格驗證失敗",
-            description: "訂單價格與系統計算不符，請重新整理頁面後再試",
+            title: validationResult?.rateLimited ? "訂單暫時無法送出" : "價格驗證失敗",
+            description: validationResult?.rateLimited
+              ? (validationResult?.errors?.[0] || "請稍後再試。")
+              : "訂單價格與系統計算不符，請重新整理頁面後再試",
             variant: "destructive",
           });
           setIsSubmitting(false);
           return;
         }
+
       } catch (validationErr) {
         // A4 修正：價格驗證服務發生例外時一律拒絕，避免攻擊者操縱前端金額
         console.error("Price validation exception:", validationErr);
