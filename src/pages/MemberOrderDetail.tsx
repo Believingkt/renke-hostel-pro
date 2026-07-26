@@ -273,7 +273,7 @@ const MemberOrderDetail = () => {
       setLoading(false);
     };
     load();
-  }, [orderNumber]);
+  }, [orderNumber, reloadKey]);
 
   const nights = useMemo(() => {
     if (!order) return 0;
