@@ -1078,7 +1078,9 @@ const BookingFlow = () => {
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
 
-    if (roomId && roomTypes.length > 0 && !selectedRoom) {
+    // roomId 同樣以 URL 為準：重新從詳情頁選方案時要覆蓋掉舊房型
+    if (roomId && roomTypes.length > 0 && selectedRoom?.id !== roomId) {
+
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
