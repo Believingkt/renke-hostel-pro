@@ -302,9 +302,10 @@ export default function PaymentAudit() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {r.needs_manual_review ? (
-                      <Button size="sm" variant="outline" onClick={() => markResolved(r)}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 標記已處理
+                      <Button size="sm" variant="outline" onClick={() => openResolve(r)}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 一鍵核對處理
                       </Button>
+
                     ) : r.resolved_at ? (
                       <span className="text-muted-foreground">已於 {new Date(r.resolved_at).toLocaleDateString("zh-TW")} 處理</span>
                     ) : (
