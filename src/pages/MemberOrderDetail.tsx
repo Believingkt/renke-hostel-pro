@@ -564,13 +564,12 @@ const MemberOrderDetail = () => {
             </p>
           )}
           <button
-            onClick={() => {
-              navigator.clipboard?.writeText(order.order_number);
-              toast.success("已複製訂單編號");
-            }}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+            disabled={resending}
+            onClick={resendEmail}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground disabled:opacity-50"
           >
-            <Copy className="h-3.5 w-3.5" /> 複製訂單編號
+            {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+            重新傳送信件
           </button>
         </div>
 
