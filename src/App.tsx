@@ -468,6 +468,12 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><OwnerSettlementSettings /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/payment-audit" element={
+                      <RequireModule module="owner_settlement">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><PaymentAudit /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/addon-center" element={
                       <RequireModule module="addon_center">
                         <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><AddonCenter /></Suspense>
