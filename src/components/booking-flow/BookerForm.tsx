@@ -328,16 +328,16 @@ export default function BookerForm(props: Props) {
             )}
 
             {emailCheckStatus === "registered" && !loggedInMember && !registerNoticeDismissed && (
-              <div className="mt-3 flex items-start gap-3 rounded-lg bg-muted/60 px-4 py-3">
+              <div className="mt-3 flex w-full items-start gap-2.5 rounded-lg bg-muted/60 px-3 py-3 sm:gap-3 sm:px-4">
                 <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
-                <p className="flex-1 text-sm text-foreground leading-relaxed">
+                <p className="min-w-0 flex-1 break-words text-sm leading-relaxed tracking-[0.01em] text-foreground">
                   恭喜！您已經註冊帳號。請查看我們寄發的驗證電子郵件。
                 </p>
                 <button
                   type="button"
                   aria-label="關閉提示"
                   onClick={() => setRegisterNoticeDismissed(true)}
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  className="-mr-1 shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
