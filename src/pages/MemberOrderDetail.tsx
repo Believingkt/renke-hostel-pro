@@ -152,6 +152,16 @@ const MemberOrderDetail = () => {
   const [reloadKey, setReloadKey] = useState(0);
   const [acting, setActing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelQuote, setCancelQuote] = useState<{
+    daysBefore: number;
+    percent: number;
+    label: string;
+    feeAmount: number;
+    refundAmount: number;
+    freeCancel: boolean;
+  } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
   const [changeOpen, setChangeOpen] = useState(false);
   const [newCheckIn, setNewCheckIn] = useState("");
   const [newCheckOut, setNewCheckOut] = useState("");
