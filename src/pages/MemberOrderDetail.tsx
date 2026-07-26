@@ -45,6 +45,25 @@ const maskPhone = (phone?: string | null) => {
   return `${digits.slice(0, 4)}****${digits.slice(-2)}`;
 };
 
+/** 將可能含 HTML 的政策文字轉為純文字行 */
+const htmlToLines = (html?: string | null): string[] => {
+  if (!html) return [];
+  const text = html
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"');
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+};
+
+
 interface DetailData {
   id: string;
   order_number: string;
