@@ -118,9 +118,9 @@ async function sendViaResend(params: {
     body: JSON.stringify({
       from: FROM_ADDRESS,
       to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
+      subject: params.subject.normalize('NFC'),
+      html: params.html.normalize('NFC'),
+      text: params.text.normalize('NFC'),
     }),
   })
   const body = await resp.text()
