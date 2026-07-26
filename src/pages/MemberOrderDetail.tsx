@@ -727,7 +727,7 @@ const MemberOrderDetail = () => {
         <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
           <button
             disabled={cancelled || acting}
-            onClick={() => setCancelOpen(true)}
+            onClick={openCancel}
             className="rounded-lg py-2.5 text-sm font-medium bg-muted text-muted-foreground disabled:opacity-50"
           >
             取消訂單
