@@ -352,6 +352,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             <div class="footer">
               <p style="margin: 0; font-size: 14px;">此為系統自動發送的郵件，請勿直接回覆</p>
+              <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">若您未曾預訂此訂單，可能是他人誤填您的電子郵件，請忽略本信${accommodationEmail ? `，或來信 <a href="mailto:${accommodationEmail}" style="color:#999;">${accommodationEmail}</a> 告知我們協助處理` : '並與我們聯繫'}。</p>
               <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">© 2026 人客多. All rights reserved.</p>
             </div>
           </div>
