@@ -261,8 +261,18 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           {paymentStatusConfig.label}
                         </span>
                       )}
+                      {(() => {
+                        const atm = getAtmDisplayInfo(order as any);
+                        if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                        return (
+                          <div className={`mt-1 text-[11px] leading-tight ${atm.expired ? "text-destructive" : "text-muted-foreground"}`}>
+                            <div>ATM {atm.expired ? "已逾期" : "應繳"} NT$ {atm.amount.toLocaleString()}</div>
+                            {atm.expireAt && <div>期限 {atm.expireText}</div>}
+                          </div>
+                        );
+                      })()}
                     </td>
-                    <td className="px-4 py-3 text-sm w-[160px]">
+
                       <div className="flex justify-start gap-1 -ml-5">
                         <TooltipProvider>
                           <Tooltip>
