@@ -589,7 +589,9 @@ const MemberOrderDetail = () => {
                 {order.payment_status === "paid"
                   ? "款項已收訖，入住當日請出示訂單編號辦理報到。"
                   : order.atm_vacc_no
-                    ? "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
+                    ? order.atm_expire_at
+                      ? `請於 ${format(new Date(order.atm_expire_at), "yyyy/M/d aa h:mm", { locale: zhTW })} 前完成 ATM 轉帳，逾期訂單將自動取消。`
+                      : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
                     : `系統將於 ${format(new Date(order.check_in_date), "M 月 d 日", { locale: zhTW })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`}
               </p>
             </div>
