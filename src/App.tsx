@@ -120,6 +120,8 @@ const EmailPreview = lazy(() => import("./pages/EmailPreview"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettings"));
+const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
+
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
