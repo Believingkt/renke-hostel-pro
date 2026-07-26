@@ -99,15 +99,36 @@ export default function BookerForm(props: Props) {
           <CardContent className="py-4 space-y-3">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-orange-900">
-                目前登入的會員帳號是 <span className="font-medium">{loggedInMember.email}</span>，
-                與本次填寫的 Email <span className="font-medium">{guestInfo.email}</span> 不同。
-                此訂單不會累積到目前登入的帳號，請先切換帳號並完成驗證登入。
-              </p>
+              <div className="text-sm text-orange-900 space-y-1 min-w-0">
+                <p className="font-semibold">會員帳號與訂房 Email 不一致</p>
+                <p>
+                  目前登入：<span className="font-medium break-all">{loggedInMember.email}</span>
+                </p>
+                <p>
+                  本次訂房：<span className="font-medium break-all">{guestInfo.email}</span>
+                </p>
+                <p>此訂單目前不會掛在任何會員帳號下（不累積紅利）。請依下列步驟處理：</p>
+                <ol className="list-decimal pl-5 space-y-0.5">
+                  <li>點下方按鈕登出目前帳號</li>
+                  <li>系統會自動寄送驗證碼（OTP）到 {guestInfo.email}</li>
+                  <li>輸入驗證碼完成登入後，訂單即掛在此 Email 帳號</li>
+                </ol>
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => onSwitchAccount?.()}>
-              切換帳號並以此 Email 登入
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => onSwitchAccount?.()}>
+                登出並以此 Email 重新驗證（OTP）
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  document.getElementById("booker-email")?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+              >
+                回到訂房資料修改 Email
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : loggedInMember ? (
