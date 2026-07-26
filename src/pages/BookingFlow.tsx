@@ -3183,9 +3183,14 @@ const BookingFlow = () => {
       } else {
         // 準備訂單備註（如果有交易 ID，加入備註）
         let orderNotes = guestInfo.notes || "";
+        if (orderPaymentType === "atm") {
+          const dep = getAtmDepositBreakdown();
+          orderNotes = `[訂金制] ATM 線上匯款訂金 NT$ ${dep.deposit.toLocaleString()}（總額 NT$ ${calculateFinalTotal().toLocaleString()} 的 ${dep.percentage}%），尾款 NT$ ${dep.balance.toLocaleString()} 入住現場付清${orderNotes ? ` ${orderNotes}` : ""}`;
+        }
         if (paymentTransactionId) {
           orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
         }
+
         const { data: insertedOrder, error: orderError } = await supabase
           .from("orders")
           .insert([{
