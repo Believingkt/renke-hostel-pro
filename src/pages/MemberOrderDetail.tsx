@@ -233,7 +233,7 @@ const MemberOrderDetail = () => {
         </button>
       </div>
 
-      {/* Status hero */}
+      {/* 1. 訂單摘要 */}
       <div className="rounded-2xl px-4 py-5 bg-orange-50 border border-orange-100">
         <h1 className={`text-2xl font-bold ${cancelled ? "text-red-500" : ""}`} style={cancelled ? undefined : { color: ORANGE }}>
           {statusLabel}
@@ -254,9 +254,9 @@ const MemberOrderDetail = () => {
         </button>
       </div>
 
-      {/* Payment */}
       <Section>
-        <div className="flex items-baseline gap-2">
+        <h3 className="text-base font-semibold">訂單摘要</h3>
+        <div className="mt-3 flex items-baseline gap-2">
           <span className="text-sm text-muted-foreground">
             {order.paid_amount > 0 ? "已支付" : "應付金額"}
           </span>
@@ -314,16 +314,18 @@ const MemberOrderDetail = () => {
         )}
       </Section>
 
-      {/* Accommodation */}
+      {/* 2. 住宿詳情 */}
       <Section>
-        <div className="flex gap-3">
+        <h3 className="text-base font-semibold">住宿詳情</h3>
+
+        <div className="mt-3 flex gap-3">
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold leading-snug">{order.accommodation_name}</h2>
             <button
               onClick={() => navigate(detailPath)}
               className="mt-1 text-sm underline text-muted-foreground"
             >
-              住宿詳情
+              查看住宿頁面
             </button>
           </div>
           {order.accommodation_photo && (
@@ -355,7 +357,6 @@ const MemberOrderDetail = () => {
           )}
         </div>
 
-        {/* dates */}
         <div className="mt-4 flex gap-2.5">
           <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
           <div className="text-sm">
@@ -394,16 +395,21 @@ const MemberOrderDetail = () => {
             </div>
           </div>
         )}
-      </Section>
 
-      {/* Room */}
-      <Section>
-        <div className="flex gap-3">
+        <div className="mt-4 pt-4 border-t border-border/70 flex gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-[15px] font-semibold leading-snug">
+            <h4 className="text-[15px] font-semibold leading-snug">
               {order.room_type_name || "住宿房型"}
-            </h3>
+            </h4>
             <p className="mt-0.5 text-sm text-muted-foreground">1 間 {nights} 晚</p>
+            <div className="mt-2 space-y-1.5 text-sm">
+              <p className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" /> {order.guest_count} 位旅客
+              </p>
+              <p className="flex items-center gap-2">
+                <BedDouble className="h-4 w-4 text-muted-foreground" /> 1 間房
+              </p>
+            </div>
           </div>
           {order.room_photo_url && (
             <img
@@ -414,14 +420,7 @@ const MemberOrderDetail = () => {
             />
           )}
         </div>
-        <div className="mt-3 space-y-2 text-sm">
-          <p className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" /> {order.guest_count} 位旅客
-          </p>
-          <p className="flex items-center gap-2">
-            <BedDouble className="h-4 w-4 text-muted-foreground" /> 1 間房
-          </p>
-        </div>
+
         {order.notes && (
           <div className="mt-3 pt-3 border-t border-border/70">
             <p className="text-sm font-medium">備註／特殊需求</p>
@@ -430,7 +429,7 @@ const MemberOrderDetail = () => {
         )}
       </Section>
 
-      {/* Guest info */}
+      {/* 3. 旅客資訊 */}
       <Section>
         <h3 className="text-base font-semibold">旅客資訊</h3>
         <div className="mt-3 space-y-2 text-sm">
@@ -448,10 +447,10 @@ const MemberOrderDetail = () => {
         </div>
       </Section>
 
-      {/* Rewards */}
+      {/* 4. 紅利 */}
       {!cancelled && (
         <Section>
-          <h3 className="text-base font-semibold">獎勵及禮遇</h3>
+          <h3 className="text-base font-semibold">紅利</h3>
           <p className="mt-2 flex items-center gap-2 text-sm">
             <Gift className="h-4 w-4" style={{ color: ORANGE }} />
             <span style={{ color: ORANGE }}>本筆訂單可獲得 {points.toLocaleString()} 點紅利</span>
@@ -467,23 +466,40 @@ const MemberOrderDetail = () => {
 
       {/* Bottom actions */}
       <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-3 py-2.5 sm:static sm:bottom-auto sm:border-0 sm:bg-transparent sm:px-0">
-        <div className="max-w-4xl mx-auto flex gap-2">
+        <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
           <button
-            onClick={() => navigate(detailPath)}
-            className="flex-1 rounded-full border py-2.5 text-sm font-medium"
-            style={{ borderColor: ORANGE, color: ORANGE }}
+            disabled={cancelled}
+            onClick={() => navigate("/member/messages")}
+            className="rounded-lg py-2.5 text-sm font-medium bg-muted text-muted-foreground disabled:opacity-50"
           >
-            再次預訂
+            取消訂單
+          </button>
+          <button
+            disabled={cancelled}
+            onClick={() => navigate("/member/messages")}
+            className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: ORANGE }}
+          >
+            更改訂單
+          </button>
+          <button
+            disabled={cancelled}
+            onClick={() => navigate(detailPath)}
+            className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: ORANGE }}
+          >
+            延長入住
           </button>
           <button
             onClick={() => navigate("/member/messages")}
-            className="flex-1 rounded-full py-2.5 text-sm font-medium text-white"
+            className="rounded-lg py-2.5 text-sm font-medium text-white"
             style={{ backgroundColor: ORANGE }}
           >
-            聯絡客服
+            管理訂單
           </button>
         </div>
       </div>
+
     </div>
   );
 };
