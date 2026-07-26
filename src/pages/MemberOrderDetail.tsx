@@ -45,6 +45,25 @@ const maskPhone = (phone?: string | null) => {
   return `${digits.slice(0, 4)}****${digits.slice(-2)}`;
 };
 
+/** 將可能含 HTML 的政策文字轉為純文字行 */
+const htmlToLines = (html?: string | null): string[] => {
+  if (!html) return [];
+  const text = html
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"');
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+};
+
+
 interface DetailData {
   id: string;
   order_number: string;
@@ -304,12 +323,14 @@ const MemberOrderDetail = () => {
           </div>
         )}
 
-        {order.cancellation_policy && (
+        {htmlToLines(order.cancellation_policy).length > 0 && (
           <div className="mt-3 pt-3 border-t border-border/70">
             <p className="text-sm font-medium">取消政策</p>
-            <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
-              {order.cancellation_policy}
-            </p>
+            <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-relaxed">
+              {htmlToLines(order.cancellation_policy).map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
           </div>
         )}
       </Section>
