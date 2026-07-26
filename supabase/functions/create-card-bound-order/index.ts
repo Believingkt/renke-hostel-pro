@@ -271,6 +271,19 @@ Deno.serve(async (req) => {
 
     console.log("[create-card-bound-order] Order created:", orderData.order_number);
 
+    // 稽核流水：記錄綁卡事件（金額 0，代表僅授權綁定未扣款）
+    await supabase.from("deposit_charges").insert({
+      order_id: orderData.id,
+      accommodation_id: body.accommodationId,
+      action: "card_bind",
+      amount: 0,
+      status: "success",
+      trigger_source: "checkout",
+      webhook_status: "n/a",
+      needs_manual_review: false,
+    });
+
+
     if (body.discountCode) {
       try {
         await fetch(`${supabaseUrl}/functions/v1/kol-webhook`, {
