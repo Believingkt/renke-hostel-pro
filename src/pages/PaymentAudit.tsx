@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, Receipt, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { PaymentAuditResolveDialog, type ResolveTarget } from "@/components/admin/PaymentAuditResolveDialog";
+
 
 interface ChargeRow {
   id: string;
@@ -76,6 +78,8 @@ export default function PaymentAudit() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(null);
+
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -112,21 +116,18 @@ export default function PaymentAudit() {
 
   const pendingReview = rows.filter((r) => r.needs_manual_review && !r.resolved_at).length;
 
-  const markResolved = async (row: ChargeRow) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("deposit_charges")
-      .update({
-        needs_manual_review: false,
-        resolved_at: new Date().toISOString(),
-        resolved_by: user?.id ?? null,
-        resolution_note: "客服已人工處理完成",
-      })
-      .eq("id", row.id);
-    if (error) return toast.error(`更新失敗：${error.message}`);
-    toast.success("已標記為人工處理完成");
-    setReloadKey((k) => k + 1);
+  const openResolve = (row: ChargeRow) => {
+    setResolveTarget({
+      id: row.id,
+      action: row.action,
+      amount: row.amount,
+      rec_trade_id: row.rec_trade_id,
+      error_message: row.error_message,
+      orderNumber: row.orders?.order_number ?? null,
+      guestName: row.orders?.guest_name ?? null,
+    });
   };
+
 
   const downloadCsv = () => {
     const header = [
@@ -305,9 +306,10 @@ export default function PaymentAudit() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {r.needs_manual_review ? (
-                      <Button size="sm" variant="outline" onClick={() => markResolved(r)}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 標記已處理
+                      <Button size="sm" variant="outline" onClick={() => openResolve(r)}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 一鍵核對處理
                       </Button>
+
                     ) : r.resolved_at ? (
                       <span className="text-muted-foreground">已於 {new Date(r.resolved_at).toLocaleDateString("zh-TW")} 處理</span>
                     ) : (
@@ -320,6 +322,13 @@ export default function PaymentAudit() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaymentAuditResolveDialog
+        target={resolveTarget}
+        onOpenChange={(open) => !open && setResolveTarget(null)}
+        onDone={() => setReloadKey((k) => k + 1)}
+      />
     </div>
+
   );
 }
