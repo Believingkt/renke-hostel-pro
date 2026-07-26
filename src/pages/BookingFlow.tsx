@@ -4644,6 +4644,8 @@ const BookingFlow = () => {
                     otpSent={otpSent}
                     setOtpSent={setOtpSent}
                     otpVerifying={otpVerifying}
+                    otpError={otpError}
+                    setOtpError={setOtpError}
                     handleVerifyOtp={handleVerifyOtp}
                     registerPassword={registerPassword}
                     setRegisterPassword={setRegisterPassword}
