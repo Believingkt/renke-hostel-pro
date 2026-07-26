@@ -203,6 +203,7 @@ const BookingFlow = () => {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpError, setOtpError] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
@@ -292,16 +293,29 @@ const BookingFlow = () => {
   const handleVerifyOtp = async () => {
     const email = guestInfo.email.trim().toLowerCase();
     if (!otpCode || otpCode.length < 6) {
+      setOtpError("請輸入完整的 6 位數驗證碼");
       toast({ title: "請輸入 6 位數驗證碼", variant: "destructive" });
       return;
     }
     setOtpVerifying(true);
+    setOtpError("");
     try {
       const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
       if (error || !data?.user) {
-        toast({ title: "驗證失敗", description: error?.message || "驗證碼錯誤或已過期", variant: "destructive" });
+        const raw = (error?.message || "").toLowerCase();
+        const friendly = raw.includes("expired")
+          ? "驗證碼已逾時（寄出後 10 分鐘內有效），請點下方「重新寄送驗證碼」取得新的驗證碼。"
+          : raw.includes("invalid") || raw.includes("token")
+          ? "驗證碼錯誤，請確認信件中最新一封的 6 位數字後再試一次。"
+          : raw.includes("rate") || raw.includes("many")
+          ? "嘗試次數過多，請稍候幾分鐘後再重新寄送驗證碼。"
+          : (error?.message || "驗證失敗，請再試一次或重新寄送驗證碼。");
+        setOtpError(friendly);
+        toast({ title: "驗證失敗", description: friendly, variant: "destructive" });
         return;
       }
+      setOtpError("");
+
       const userId = data.user.id;
       let { data: profile } = await supabase
         .from("platform_members")
@@ -339,6 +353,7 @@ const BookingFlow = () => {
       }));
       toast({ title: "驗證成功", description: "已登入會員" });
     } catch (e: any) {
+      setOtpError(e?.message || "驗證時發生錯誤，請再試一次或重新寄送驗證碼。");
       toast({ title: "驗證失敗", description: e?.message || "請稍後再試", variant: "destructive" });
     } finally {
       setOtpVerifying(false);
@@ -4629,6 +4644,8 @@ const BookingFlow = () => {
                     otpSent={otpSent}
                     setOtpSent={setOtpSent}
                     otpVerifying={otpVerifying}
+                    otpError={otpError}
+                    setOtpError={setOtpError}
                     handleVerifyOtp={handleVerifyOtp}
                     registerPassword={registerPassword}
                     setRegisterPassword={setRegisterPassword}

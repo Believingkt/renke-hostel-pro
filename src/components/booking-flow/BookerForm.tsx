@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle, Clock, User } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, ShieldCheck, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
@@ -38,6 +39,8 @@ interface Props {
   otpSent: boolean;
   setOtpSent: (v: boolean) => void;
   otpVerifying: boolean;
+  otpError: string;
+  setOtpError: (v: string) => void;
   handleVerifyOtp: () => void;
   registerPassword: string;
   setRegisterPassword: (v: string) => void;
@@ -60,13 +63,27 @@ export default function BookerForm(props: Props) {
     otpSent,
     setOtpSent,
     otpVerifying,
+    otpError,
+    setOtpError,
     handleVerifyOtp,
+
     registerPassword,
     setRegisterPassword,
     registerSubmitting,
     handleQuickRegister,
   } = props;
   const { toast } = useToast();
+  const [cooldown, setCooldown] = useState(0);
+
+  // 同步/倒數重新寄送冷卻時間
+  useEffect(() => {
+    const email = guestInfo.email.trim().toLowerCase();
+    if (!email || emailCheckStatus !== "exists") return;
+    setCooldown(getOtpCooldown(email));
+    const id = setInterval(() => setCooldown(getOtpCooldown(email)), 1000);
+    return () => clearInterval(id);
+  }, [guestInfo.email, emailCheckStatus, otpSent]);
+
 
   return (
     <div className="space-y-6">
@@ -176,61 +193,103 @@ export default function BookerForm(props: Props) {
                   {otpSending
                     ? "正在寄送驗證碼..."
                     : otpSent
-                    ? "已寄送 6 位數驗證碼至您的信箱，請於下方輸入完成登入"
+                    ? "已寄送 6 位數驗證碼至您的信箱，請於下方輸入完成登入（10 分鐘內有效）"
                     : "此 Email 已註冊為會員"}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(e) => {
+                      setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      if (otpError) setOtpError("");
+                    }}
                     placeholder="6 位數驗證碼"
-                    className="h-11 flex-1"
+                    className={`h-11 flex-1 ${otpError ? "border-destructive" : ""}`}
                     inputMode="numeric"
                     maxLength={6}
+                    aria-invalid={!!otpError}
                   />
                   <Button
                     type="button"
                     onClick={handleVerifyOtp}
                     disabled={otpVerifying || otpCode.length < 6}
-                    className="h-11"
+                    className="h-11 sm:w-auto w-full"
                   >
                     {otpVerifying ? "驗證中..." : "驗證並登入"}
                   </Button>
                 </div>
-                <button
-                  type="button"
-                  className="text-xs text-blue-700 underline disabled:opacity-50"
-                  onClick={async () => {
-                    const email = guestInfo.email.trim().toLowerCase();
-                    const wait = getOtpCooldown(email);
-                    if (wait > 0) {
-                      toast({
-                        title: "請稍候再試",
-                        description: `為避免超過寄送限制，請 ${wait} 秒後再重新寄送`,
-                        variant: "destructive",
+
+                {otpError && (
+                  <div className="flex gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-sm font-medium text-destructive break-words">{otpError}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        下一步：確認信件中最新的驗證碼後再試一次，或按下方「重新寄送驗證碼」。
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={async () => {
+                      const email = guestInfo.email.trim().toLowerCase();
+                      const wait = getOtpCooldown(email);
+                      if (wait > 0) {
+                        setCooldown(wait);
+                        return;
+                      }
+                      setOtpError("");
+                      setOtpSending(true);
+                      const { error } = await supabase.auth.signInWithOtp({
+                        email,
+                        options: { shouldCreateUser: false },
                       });
-                      return;
-                    }
-                    setOtpSending(true);
-                    const { error } = await supabase.auth.signInWithOtp({
-                      email,
-                      options: { shouldCreateUser: false },
-                    });
-                    setOtpSending(false);
-                    if (!error) {
-                      markOtpSent(email);
-                      setOtpSent(true);
-                      toast({ title: "驗證碼已重新寄出" });
-                    } else {
-                      toast({ title: "寄送失敗", description: error.message, variant: "destructive" });
-                    }
-                  }}
-                  disabled={otpSending || otpVerifying}
-                >
-                  重新寄送驗證碼
-                </button>
+                      setOtpSending(false);
+                      if (!error) {
+                        markOtpSent(email);
+                        setOtpSent(true);
+                        setOtpCode("");
+                        setCooldown(getOtpCooldown(email) || 60);
+                        toast({ title: "驗證碼已重新寄出", description: "請查看信箱中最新一封驗證信" });
+                      } else {
+                        setOtpError(error.message || "驗證碼寄送失敗，請稍後再試。");
+                      }
+                    }}
+                    disabled={otpSending || otpVerifying || cooldown > 0}
+                  >
+                    {otpSending
+                      ? "寄送中..."
+                      : cooldown > 0
+                      ? `重新寄送（${cooldown} 秒）`
+                      : "重新寄送驗證碼"}
+                  </Button>
+                  {cooldown > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      為避免重複寄送，請稍候再試
+                    </span>
+                  )}
+                </div>
+
+                <div className="rounded-md bg-white/70 border border-blue-100 p-3">
+                  <p className="text-xs font-medium text-blue-900 flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                    安全提醒
+                  </p>
+                  <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-relaxed break-words">
+                    <li>• 驗證碼僅供本人使用，請勿轉發或告知任何人（包含自稱客服者）。</li>
+                    <li>• 我們不會以電話或訊息向您索取驗證碼。</li>
+                    <li>• 請只在本頁面輸入驗證碼，勿點擊他人提供的連結，以防釣魚網站。</li>
+                  </ul>
+                </div>
               </div>
             )}
+
 
             {!loggedInMember && emailCheckStatus === "new" && (
               <div className="mt-3 p-4 rounded-lg border-2 border-primary/30 bg-primary/5 space-y-3">
