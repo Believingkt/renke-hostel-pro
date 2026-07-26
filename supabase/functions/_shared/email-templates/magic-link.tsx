@@ -26,9 +26,18 @@ export const MagicLinkEmail = ({ siteName, token }: MagicLinkEmailProps) => (
           <Text style={otpHint}>驗證碼在寄發後的 10 分鐘內有效</Text>
 
           <Section style={notice}>
-            <Text style={noticeTitle}>重要事項：</Text>
+            <Text style={noticeTitle}>安全提醒</Text>
             <Text style={noticeText}>
-              為了保護您的帳號安全，請勿將此驗證碼透露給他人。如果您並未要求此驗證碼，請忽略此封電子郵件。
+              • 請勿將驗證碼轉發或告知任何人，包含自稱客服或平台人員。
+            </Text>
+            <Text style={noticeText}>
+              • 我們不會以電話、簡訊或社群訊息向您索取驗證碼。
+            </Text>
+            <Text style={noticeText}>
+              • 請直接回到您原本的訂房頁面輸入驗證碼，勿點擊他人提供的連結（可能為釣魚網站）。
+            </Text>
+            <Text style={noticeText}>
+              • 若您並未要求此驗證碼，請忽略本信；您的帳號仍然安全。
             </Text>
           </Section>
 
