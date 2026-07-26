@@ -247,6 +247,10 @@ interface DetailData {
   paid_amount: number;
   deposit_required_amount: number;
   notes: string | null;
+  atm_vacc_no: string | null;
+  atm_vacc_bank_code: string | null;
+  atm_expire_at: string | null;
+
   accommodation_id: string;
   accommodation_name: string;
   accommodation_address: string | null;
