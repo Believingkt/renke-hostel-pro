@@ -3,19 +3,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronLeft,
-  ChevronDown,
   Loader2,
   MapPin,
   CalendarDays,
   Phone,
   Mail,
   User,
-  BedDouble,
   Users,
   Gift,
   Share2,
   Copy,
+  Sparkles,
+  Check,
+  X,
+  Plus,
+  LayoutGrid,
+  KeyRound,
 } from "lucide-react";
+
 import { format, differenceInCalendarDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
