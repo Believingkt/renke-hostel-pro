@@ -323,6 +323,10 @@ export default function PaymentAudit() {
         </CardContent>
       </Card>
 
+      <PaymentAuditActionLog accommodationId={currentAccommodationId} reloadKey={reloadKey} />
+
+
+
       <PaymentAuditResolveDialog
         target={resolveTarget}
         onOpenChange={(open) => !open && setResolveTarget(null)}
