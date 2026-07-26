@@ -287,6 +287,19 @@ export default function AtmBookingSuccess() {
     return Math.max(0, (order.final_price || 0) - (order.paid_amount || 0));
   }, [order]);
 
+  /** ATM 匯款僅收訂金（預設 30%），尾款入住現場付清 */
+  const depositInfo = useMemo(
+    () => getDepositBreakdown(order?.final_price || 0, depositSettings),
+    [order?.final_price, depositSettings],
+  );
+
+  /** 本次應匯款金額＝訂金扣掉已付款 */
+  const amountDueNow = useMemo(
+    () => Math.max(0, Math.min(depositInfo.deposit, order?.final_price || 0) - (order?.paid_amount || 0)),
+    [depositInfo.deposit, order?.final_price, order?.paid_amount],
+  );
+
+
   const atmActive =
     !!order?.atm_vacc_no && !!order?.atm_expire_at && new Date(order.atm_expire_at) > new Date();
 
