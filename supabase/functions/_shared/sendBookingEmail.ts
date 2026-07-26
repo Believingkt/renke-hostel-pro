@@ -68,18 +68,31 @@ export async function sendBookingConfirmationByOrderId(
   };
 
   try {
-    const resp = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
+    // 新版訂單確認信（複製會員端訂單詳情頁版面）
+    const resp = await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${supabaseServiceKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ orderNumber: order.order_number, triggerSource, triggeredBy }),
     });
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
       console.error("[sendBookingEmail] send failed", resp.status, txt);
-      return { ok: false, reason: `http_${resp.status}`, status: resp.status };
+      // 後備：改寄舊版確認信，避免客人完全收不到信
+      const fallback = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!fallback.ok) {
+        return { ok: false, reason: `http_${resp.status}`, status: resp.status };
+      }
+      return { ok: true, status: fallback.status };
     }
     console.log("[sendBookingEmail] sent for order", order.order_number, "method:", paymentMethodLabel);
     return { ok: true, status: resp.status };

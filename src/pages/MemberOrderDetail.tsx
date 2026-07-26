@@ -299,6 +299,7 @@ const MemberOrderDetail = () => {
     freeCancel: boolean;
   } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const [changeOpen, setChangeOpen] = useState(false);
   const [newCheckIn, setNewCheckIn] = useState("");
@@ -533,6 +534,27 @@ const MemberOrderDetail = () => {
     } catch { /* user cancelled */ }
   };
 
+  const resendEmail = async () => {
+    setResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-order-confirmation", {
+        body: {
+          orderNumber: order.order_number,
+          triggerSource: "member_resend",
+          siteUrl: window.location.origin,
+        },
+      });
+      const res = (data || {}) as { success?: boolean; error?: string; to?: string };
+      if (error || !res.success) {
+        toast.error(res.error || error?.message || "寄送失敗，請稍後再試");
+        return;
+      }
+      toast.success(`訂單確認信已重新寄出至 ${maskEmail(res.to || order.guest_email)}`);
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div className="space-y-3 pb-24">
       {/* Header */}
@@ -564,13 +586,12 @@ const MemberOrderDetail = () => {
             </p>
           )}
           <button
-            onClick={() => {
-              navigator.clipboard?.writeText(order.order_number);
-              toast.success("已複製訂單編號");
-            }}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+            disabled={resending}
+            onClick={resendEmail}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground disabled:opacity-50"
           >
-            <Copy className="h-3.5 w-3.5" /> 複製訂單編號
+            {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+            重新傳送信件
           </button>
         </div>
 
