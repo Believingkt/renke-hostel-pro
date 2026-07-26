@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
+import { getDepositBreakdown } from "@/lib/bookingDeposit";
+
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -2003,6 +2005,10 @@ const BookingFlow = () => {
   // 訂金功能已移除：所有訂單一律以扣除折扣後的全額計算
   const calculateDeposit = () => 0;
 
+  /** ATM 匯款訂金拆分：線上僅收訂金（預設 30%），尾款現場付清 */
+  const getAtmDepositBreakdown = () => getDepositBreakdown(calculateFinalTotal(), bookingSettings);
+
+
   const handleApplyDiscount = async (code?: string) => {
     const codeToApply = code || discountCode;
     if (!codeToApply.trim() || !accommodationId) {
@@ -3177,9 +3183,14 @@ const BookingFlow = () => {
       } else {
         // 準備訂單備註（如果有交易 ID，加入備註）
         let orderNotes = guestInfo.notes || "";
+        if (orderPaymentType === "atm") {
+          const dep = getAtmDepositBreakdown();
+          orderNotes = `[訂金制] ATM 線上匯款訂金 NT$ ${dep.deposit.toLocaleString()}（總額 NT$ ${calculateFinalTotal().toLocaleString()} 的 ${dep.percentage}%），尾款 NT$ ${dep.balance.toLocaleString()} 入住現場付清${orderNotes ? ` ${orderNotes}` : ""}`;
+        }
         if (paymentTransactionId) {
           orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
         }
+
         const { data: insertedOrder, error: orderError } = await supabase
           .from("orders")
           .insert([{
@@ -4798,12 +4809,18 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
-                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
-                          { key: "atm", label: "ATM 虛擬帳號轉帳", icon: Building2, desc: "送出訂單後產生專屬虛擬帳號（繳費期限 3 天）" },
+                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "線上一次付清訂單全額，由 TapPay 安全加密處理" },
+                          {
+                            key: "atm",
+                            label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
+                            icon: Building2,
+                            desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 3 天）`,
+                          },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
-                          const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(calculateFinalTotal());
+                          const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(getAtmDepositBreakdown().deposit);
+
                           return (
                             <div
                               key={opt.key}
@@ -4827,7 +4844,7 @@ const BookingFlow = () => {
                                 <div className="flex-1">
                                   <span className="font-medium text-base text-foreground">{opt.label}</span>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {atmBlocked ? atmAmountLimitMessage(calculateFinalTotal()) : opt.desc}
+                                    {atmBlocked ? atmAmountLimitMessage(getAtmDepositBreakdown().deposit) : opt.desc}
                                   </p>
                                 </div>
                                 {selected && !atmBlocked && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
@@ -4894,22 +4911,41 @@ const BookingFlow = () => {
                         )}
 
                         {/* ATM 虛擬帳號 說明 */}
-                        {orderPaymentType === "atm" && (
+                        {orderPaymentType === "atm" && (() => {
+                          const dep = getAtmDepositBreakdown();
+                          return (
                           <div className="mt-4 p-4 border rounded-lg bg-muted/30">
                             <div className="flex items-start gap-2">
                               <Building2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳</p>
+                              <div className="space-y-2 w-full">
+                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳（訂金制）</p>
+                                <div className="rounded-md border bg-background p-3 space-y-1.5">
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>訂單總額</span>
+                                    <span>NT$ {calculateFinalTotal().toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm font-semibold text-primary">
+                                    <span>本次需匯款訂金（{dep.percentage}%）</span>
+                                    <span>NT$ {dep.deposit.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>入住現場付清尾款</span>
+                                    <span>NT$ {dep.balance.toLocaleString()}</span>
+                                  </div>
+                                </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
                                   ・ 送出訂單後將跳轉到「ATM 匯款資訊頁」，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
+                                  ・ 虛擬帳號金額為 <span className="font-medium text-foreground">訂金 NT$ {dep.deposit.toLocaleString()}</span>，請勿更改匯款金額，以免無法自動核帳。<br />
                                   ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
-                                  ・ 繳費期限 3 天，逾期未繳款訂單將自動取消。<br />
-                                  ・ 系統收到入帳通知後將自動更新訂單狀態。
+                                  ・ 繳費期限 3 天，逾期未繳訂金訂單將自動取消。<br />
+                                  ・ 系統收到入帳通知後將自動確認訂房，剩餘尾款 NT$ {dep.balance.toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
                                 </p>
                               </div>
                             </div>
                           </div>
-                        )}
+                          );
+                        })()}
+
 
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && orderPaymentType && (
@@ -5107,7 +5143,26 @@ const BookingFlow = () => {
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </span>
                           </div>
+                          {orderPaymentType === "atm" && (() => {
+                            const dep = getAtmDepositBreakdown();
+                            return (
+                              <div className="pt-2 mt-1 border-t space-y-1.5">
+                                <div className="flex justify-between items-center text-sm font-semibold text-primary">
+                                  <span>本次線上匯款訂金（{dep.percentage}%）</span>
+                                  <span>NT$ {dep.deposit.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                  <span>入住現場付清尾款</span>
+                                  <span>NT$ {dep.balance.toLocaleString()}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                  送出訂單後將產生專屬虛擬帳號，金額為訂金 NT$ {dep.deposit.toLocaleString()}，請於 3 天內完成匯款；尾款可於入住當天以現金、刷卡或匯款付清。
+                                </p>
+                              </div>
+                            );
+                          })()}
                         </div>
+
                         {appliedDiscount && (
                           <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
                             <div className="flex items-center gap-2">

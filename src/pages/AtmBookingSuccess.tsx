@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
+import { getDepositBreakdown, type DepositSettingsLike } from "@/lib/bookingDeposit";
+
 
 interface OrderRow {
   id: string;
@@ -137,7 +139,27 @@ export default function AtmBookingSuccess() {
   const [paidDetected, setPaidDetected] = useState(false);
   const [redirectIn, setRedirectIn] = useState(5);
   const [dismissed, setDismissed] = useState(false);
+  const [depositSettings, setDepositSettings] = useState<DepositSettingsLike | null>(null);
   const redirectedRef = useRef(false);
+
+  // 載入該民宿訂金比例設定（ATM 匯款僅收訂金，預設 30%）
+  useEffect(() => {
+    const accommodationId = order?.accommodation_id || accId;
+    if (!accommodationId) return;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+      if (alive) setDepositSettings((data as DepositSettingsLike) ?? {});
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [order?.accommodation_id, accId]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -265,6 +287,19 @@ export default function AtmBookingSuccess() {
     return Math.max(0, (order.final_price || 0) - (order.paid_amount || 0));
   }, [order]);
 
+  /** ATM 匯款僅收訂金（預設 30%），尾款入住現場付清 */
+  const depositInfo = useMemo(
+    () => getDepositBreakdown(order?.final_price || 0, depositSettings),
+    [order?.final_price, depositSettings],
+  );
+
+  /** 本次應匯款金額＝訂金扣掉已付款 */
+  const amountDueNow = useMemo(
+    () => Math.max(0, Math.min(depositInfo.deposit, order?.final_price || 0) - (order?.paid_amount || 0)),
+    [depositInfo.deposit, order?.final_price, order?.paid_amount],
+  );
+
+
   const atmActive =
     !!order?.atm_vacc_no && !!order?.atm_expire_at && new Date(order.atm_expire_at) > new Date();
 
@@ -324,7 +359,8 @@ export default function AtmBookingSuccess() {
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">訂單已建立</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            請於下方完成 ATM 匯款，我們收到入帳通知後將自動確認您的訂房。
+            本次僅需匯款 <span className="font-semibold text-primary">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），
+            我們收到入帳通知後將自動確認您的訂房，尾款請於入住當天現場付清。
           </p>
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-sm">訂單編號 {order.order_number}</Badge>
@@ -359,7 +395,7 @@ export default function AtmBookingSuccess() {
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">應付總金額</span>
+              <span className="text-muted-foreground">訂單總金額</span>
               <span className="font-semibold">NT$ {order.final_price.toLocaleString()}</span>
             </div>
             {order.paid_amount > 0 && (
@@ -369,9 +405,22 @@ export default function AtmBookingSuccess() {
               </div>
             )}
             <div className="flex items-center justify-between text-base">
-              <span className="font-semibold">需匯款金額</span>
-              <span className="font-bold text-primary text-lg">NT$ {remainingAmount.toLocaleString()}</span>
+              <span className="font-semibold">本次需匯款訂金（{depositInfo.percentage}%）</span>
+              <span className="font-bold text-primary text-lg">NT$ {amountDueNow.toLocaleString()}</span>
             </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>入住現場付清尾款</span>
+              <span>NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span>
+            </div>
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-sm font-semibold">本次僅需匯款訂金</AlertTitle>
+              <AlertDescription className="text-xs leading-relaxed">
+                虛擬帳號金額為訂金 NT$ {amountDueNow.toLocaleString()}（訂單總額的 {depositInfo.percentage}%），請勿更改匯款金額，以免無法自動核帳。
+                收到入帳通知後訂房即確認，剩餘尾款 NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
+              </AlertDescription>
+            </Alert>
+
           </CardContent>
         </Card>
 
@@ -387,10 +436,17 @@ export default function AtmBookingSuccess() {
             {order.atm_expire_at && (
               <AtmDeadlineAlert expireAt={order.atm_expire_at} />
             )}
+            {depositSettings === null ? (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                計算訂金金額中...
+              </div>
+            ) : (
             <AtmPaymentPanel
               orderId={order.id}
               orderNumber={order.order_number}
-              amount={remainingAmount || order.final_price}
+              amount={amountDueNow || remainingAmount || order.final_price}
+              amountLabel={`轉帳金額（訂金 ${depositInfo.percentage}%）`}
               cardholder={{
                 name: order.guest_name,
                 email: sanitizeEmailForTapPay(order.guest_email),
@@ -402,10 +458,11 @@ export default function AtmBookingSuccess() {
                       vaccNo: order.atm_vacc_no!,
                       bankCode: order.atm_vacc_bank_code,
                       expireAt: order.atm_expire_at!,
-                      amount: remainingAmount || order.final_price,
+                      amount: amountDueNow || remainingAmount || order.final_price,
                     }
                   : null
               }
+
               onCreated={(info) => {
                 setOrder((prev) =>
                   prev
@@ -419,6 +476,8 @@ export default function AtmBookingSuccess() {
                 );
               }}
             />
+            )}
+
           </CardContent>
         </Card>
 
@@ -432,12 +491,15 @@ export default function AtmBookingSuccess() {
           </CardHeader>
           <CardContent className="text-sm space-y-3">
             <ol className="list-decimal pl-5 space-y-2 text-muted-foreground leading-relaxed">
+              <li>本次匯款金額為 <span className="font-medium text-foreground">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），非訂單全額。</li>
               <li>取得虛擬帳號後，請於繳費期限內以 <span className="font-medium text-foreground">ATM、網路銀行或臨櫃</span> 方式匯款。</li>
               <li>轉帳金額請務必與顯示金額一致，<span className="font-medium text-foreground">不可分次匯款</span>，否則無法自動對帳。</li>
-              <li>系統收到入帳通知後將自動更新訂單狀態，並寄發訂房確認信至您的 Email。</li>
-              <li>逾期未繳款，訂單將自動取消，房間庫存會釋出供其他旅客預訂。</li>
+              <li>系統收到訂金入帳通知後將自動確認訂房，並寄發訂房確認信至您的 Email。</li>
+              <li>剩餘尾款 <span className="font-medium text-foreground">NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span> 請於入住當天現場以現金、刷卡或匯款付清。</li>
+              <li>逾期未繳訂金，訂單將自動取消，房間庫存會釋出供其他旅客預訂。</li>
               <li>若已完成匯款但長時間未收到確認信，請聯繫客服並提供訂單編號 <span className="font-mono font-medium text-foreground">{order.order_number}</span>。</li>
             </ol>
+
           </CardContent>
         </Card>
 
