@@ -544,30 +544,36 @@ const MemberOrderDetail = () => {
           </div>
         )}
 
-        <div className="mt-4 pt-4 border-t border-border/70 flex gap-3">
-          <div className="flex-1 min-w-0">
-            <h4 className="text-[15px] font-semibold leading-snug">
-              {order.room_type_name || "住宿房型"}
-            </h4>
-            <p className="mt-0.5 text-sm text-muted-foreground">1 間 {nights} 晚</p>
-            <div className="mt-2 space-y-1.5 text-sm">
-              <p className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" /> {order.guest_count} 位旅客
-              </p>
-              <p className="flex items-center gap-2">
-                <BedDouble className="h-4 w-4 text-muted-foreground" /> 1 間房
+        {order.facilities.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
+            <LayoutGrid className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+            <div className="text-sm min-w-0">
+              <p className="font-medium">住宿設施</p>
+              <p className="mt-1 text-muted-foreground leading-relaxed">
+                {order.facilities.join("｜")}
               </p>
             </div>
           </div>
-          {order.room_photo_url && (
-            <img
-              src={order.room_photo_url}
-              alt={order.room_type_name || "房型"}
-              className="h-16 w-20 rounded-lg object-cover shrink-0"
-              loading="lazy"
-            />
-          )}
+        )}
+
+        <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
+          <KeyRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="text-sm min-w-0">
+            <p className="font-medium">{order.check_in_title || "如何辦理入住"}</p>
+            <div className="mt-1 space-y-1 text-muted-foreground leading-relaxed">
+              {order.check_in_subtitle && <p>{order.check_in_subtitle}</p>}
+              {order.check_in_time && <p>入住時間：{order.check_in_time} 後</p>}
+              {order.check_out_time && <p>退房時間：{order.check_out_time} 前</p>}
+              {htmlToLines(order.other_notes).map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+              {order.accommodation_phone && (
+                <p>抵達前請先致電住宿 {order.accommodation_phone} 聯繫辦理入住。</p>
+              )}
+            </div>
+          </div>
         </div>
+
 
         {order.notes && (
           <div className="mt-3 pt-3 border-t border-border/70">
