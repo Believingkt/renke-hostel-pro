@@ -38,6 +38,8 @@ interface Props {
   otpSent: boolean;
   setOtpSent: (v: boolean) => void;
   otpVerifying: boolean;
+  otpError: string;
+  setOtpError: (v: string) => void;
   handleVerifyOtp: () => void;
   registerPassword: string;
   setRegisterPassword: (v: string) => void;
