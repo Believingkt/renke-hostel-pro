@@ -254,6 +254,11 @@ interface DetailData {
   atm_vacc_no: string | null;
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
+  pet_count: number;
+  pet_plan_price: number;
+  meal_plan_total: number;
+  meal_plan_details: Array<{ date?: string; count?: number; price?: number }>;
+  custom_addon_details: Array<{ addon_type?: string; count?: number; total?: number; unit_label?: string }>;
 
   accommodation_id: string;
   accommodation_name: string;
