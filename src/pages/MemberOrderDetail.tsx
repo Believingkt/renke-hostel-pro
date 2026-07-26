@@ -254,6 +254,11 @@ interface DetailData {
   atm_vacc_no: string | null;
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
+  pet_count: number;
+  pet_plan_price: number;
+  meal_plan_total: number;
+  meal_plan_details: Array<{ date?: string; count?: number; price?: number }>;
+  custom_addon_details: Array<{ addon_type?: string; count?: number; total?: number; unit_label?: string }>;
 
   accommodation_id: string;
   accommodation_name: string;
@@ -314,7 +319,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -395,6 +400,15 @@ const MemberOrderDetail = () => {
         atm_vacc_no: (data as any).atm_vacc_no || null,
         atm_vacc_bank_code: (data as any).atm_vacc_bank_code || null,
         atm_expire_at: (data as any).atm_expire_at || null,
+        pet_count: Number((data as any).pet_count || 0),
+        pet_plan_price: Number((data as any).pet_plan_price || 0),
+        meal_plan_total: Number((data as any).meal_plan_total || 0),
+        meal_plan_details: Array.isArray((data as any).meal_plan_details)
+          ? (data as any).meal_plan_details
+          : [],
+        custom_addon_details: Array.isArray((data as any).custom_addon_details)
+          ? (data as any).custom_addon_details
+          : [],
 
         accommodation_id: data.accommodation_id,
         accommodation_name: acc?.name || "",
@@ -722,12 +736,66 @@ const MemberOrderDetail = () => {
           <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
             PRICE BREAKDOWN
           </p>
-          <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
-            <span className="shrink-0 font-semibold tabular-nums">
-              NT$ {order.total_price.toLocaleString()}
-            </span>
-          </div>
+          {(() => {
+            const customTotal = (order.custom_addon_details || []).reduce(
+              (s, a) => s + Number(a?.total || 0),
+              0
+            );
+            const addonsTotal =
+              Number(order.pet_plan_price || 0) + Number(order.meal_plan_total || 0) + customTotal;
+            const roomTotal = Math.max(0, order.total_price - addonsTotal);
+            return (
+              <>
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    NT$ {roomTotal.toLocaleString()}
+                  </span>
+                </div>
+                {order.pet_plan_price > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex-1 min-w-0 text-muted-foreground">
+                      寵物加購{order.pet_count > 0 ? ` × ${order.pet_count}` : ""}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      NT$ {order.pet_plan_price.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {order.meal_plan_total > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex-1 min-w-0 text-muted-foreground">
+                      餐點加購
+                      {order.meal_plan_details.length > 0
+                        ? `（${order.meal_plan_details
+                            .map((m) => `${m.date ?? ""} × ${m.count ?? 0}`)
+                            .join("、")}）`
+                        : ""}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      NT$ {order.meal_plan_total.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {(order.custom_addon_details || [])
+                  .filter((a) => Number(a?.total || 0) > 0)
+                  .map((a, i) => (
+                    <div
+                      key={`${a.addon_type}-${i}`}
+                      className="flex items-baseline justify-between gap-3 text-sm"
+                    >
+                      <span className="flex-1 min-w-0 text-muted-foreground">
+                        {a.addon_type || "加購項目"}
+                        {a.count ? ` × ${a.count}${a.unit_label || ""}` : ""}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        NT$ {Number(a.total).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+              </>
+            );
+          })()}
           {order.discount_amount > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="flex-1 min-w-0 text-muted-foreground">折扣</span>
