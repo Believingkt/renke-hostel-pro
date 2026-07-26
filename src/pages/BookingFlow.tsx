@@ -153,6 +153,11 @@ interface BookingSettings {
 
 const DEPOSIT_AMOUNT = 5000;
 
+import {
+  detectTierByDate,
+  useAccommodationHolidays,
+} from "@/hooks/use-accommodation-packages";
+
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
 const BookingFlow = () => {
@@ -1109,14 +1114,12 @@ const BookingFlow = () => {
     };
   }, [selectedPackageId]);
 
-  // 依日期取包區方案「每晚 sale」：週六 → tier_prices.weekend.sale；其餘 → sale_price
+  // 依日期取包區方案「每晚 sale」：依 tier（平日／週五日／假日，含國定假日）取方案設定價
   const getPackageNightlySale = (d: Date): number | null => {
     if (!selectedPackage) return null;
-    const day = d.getDay();
-    const isWeekend = day === 6;
-    if (isWeekend && selectedPackage.tier_prices?.weekend?.sale != null) {
-      return Number(selectedPackage.tier_prices.weekend.sale);
-    }
+    const tier = detectTierByDate(d, isPackageHolidayDate(d));
+    const override = selectedPackage.tier_prices?.[tier];
+    if (override && override.sale != null) return Number(override.sale);
     return selectedPackage.sale_price;
   };
 
