@@ -736,12 +736,66 @@ const MemberOrderDetail = () => {
           <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
             PRICE BREAKDOWN
           </p>
-          <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
-            <span className="shrink-0 font-semibold tabular-nums">
-              NT$ {order.total_price.toLocaleString()}
-            </span>
-          </div>
+          {(() => {
+            const customTotal = (order.custom_addon_details || []).reduce(
+              (s, a) => s + Number(a?.total || 0),
+              0
+            );
+            const addonsTotal =
+              Number(order.pet_plan_price || 0) + Number(order.meal_plan_total || 0) + customTotal;
+            const roomTotal = Math.max(0, order.total_price - addonsTotal);
+            return (
+              <>
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    NT$ {roomTotal.toLocaleString()}
+                  </span>
+                </div>
+                {order.pet_plan_price > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex-1 min-w-0 text-muted-foreground">
+                      寵物加購{order.pet_count > 0 ? ` × ${order.pet_count}` : ""}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      NT$ {order.pet_plan_price.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {order.meal_plan_total > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex-1 min-w-0 text-muted-foreground">
+                      餐點加購
+                      {order.meal_plan_details.length > 0
+                        ? `（${order.meal_plan_details
+                            .map((m) => `${m.date ?? ""} × ${m.count ?? 0}`)
+                            .join("、")}）`
+                        : ""}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      NT$ {order.meal_plan_total.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {(order.custom_addon_details || [])
+                  .filter((a) => Number(a?.total || 0) > 0)
+                  .map((a, i) => (
+                    <div
+                      key={`${a.addon_type}-${i}`}
+                      className="flex items-baseline justify-between gap-3 text-sm"
+                    >
+                      <span className="flex-1 min-w-0 text-muted-foreground">
+                        {a.addon_type || "加購項目"}
+                        {a.count ? ` × ${a.count}${a.unit_label || ""}` : ""}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        NT$ {Number(a.total).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+              </>
+            );
+          })()}
           {order.discount_amount > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="flex-1 min-w-0 text-muted-foreground">折扣</span>
