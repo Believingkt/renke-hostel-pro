@@ -11,6 +11,7 @@ import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { supabase } from "@/integrations/supabase/client";
+import { getAtmDisplayInfo } from "@/lib/atmPayment";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -260,6 +261,16 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                           {paymentStatusConfig.label}
                         </span>
                       )}
+                      {(() => {
+                        const atm = getAtmDisplayInfo(order as any);
+                        if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                        return (
+                          <div className={`mt-1 text-[11px] leading-tight ${atm.expired ? "text-destructive" : "text-muted-foreground"}`}>
+                            <div>ATM {atm.expired ? "已逾期" : "應繳"} NT$ {atm.amount.toLocaleString()}</div>
+                            {atm.expireAt && <div>期限 {atm.expireText}</div>}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm w-[160px]">
                       <div className="flex justify-start gap-1 -ml-5">
@@ -489,6 +500,22 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       </span>
                     )}
                   </div>
+
+                  {(() => {
+                    const atm = getAtmDisplayInfo(order as any);
+                    if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                    return (
+                      <div className={`mb-3 rounded-md border px-2.5 py-2 text-xs ${atm.expired ? "border-destructive/30 text-destructive" : "border-border text-muted-foreground"}`}>
+                        <div className="font-medium">
+                          ATM {atm.expired ? "已逾期" : "待匯款"} NT$ {atm.amount.toLocaleString()}
+                          {atm.depositPercent ? `（訂金 ${atm.depositPercent}%）` : ""}
+                        </div>
+                        {atm.expireAt && <div className="mt-0.5">繳費期限 {atm.expireText}</div>}
+                      </div>
+                    );
+                  })()}
+
+
 
                   {/* 操作按鈕 */}
                   <div className="flex gap-2">
