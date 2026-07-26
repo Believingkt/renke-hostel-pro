@@ -102,16 +102,14 @@ const MemberOrders = () => {
       .maybeSingle();
     if (!member) { setLoading(false); return; }
 
-    const conditions: string[] = [`member_id.eq.${member.id}`];
-    if (member.email) conditions.push(`guest_email.eq.${member.email}`);
-    if (member.phone) conditions.push(`guest_phone.eq.${member.phone}`);
-
+    // 僅顯示已綁定本會員的訂單。以 Email/電話模糊比對可能撈到他人以相同 Email 下的訂單，
+    // 未綁定的歷史訂單請走「認領訂單」（訂單編號＋姓名＋電話末4碼）驗證。
     const { data, error } = await supabase
       .from("orders")
       .select(
         "id, order_number, order_date, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
       )
-      .or(conditions.join(","))
+      .eq("member_id", member.id)
       .order("check_in_date", { ascending: false })
       .limit(50);
 
