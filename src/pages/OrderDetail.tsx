@@ -3314,9 +3314,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               </div>
               <Separator />
               <div className="flex justify-between items-center gap-2">
-                <span className="text-sm text-muted-foreground flex-shrink-0">應繳金額</span>
+                <span className="text-sm text-muted-foreground flex-shrink-0">
+                  應繳金額{getAtmDepositPercent(o) ? `（訂金 ${getAtmDepositPercent(o)}%）` : ""}
+                </span>
                 <span className="font-semibold text-base text-primary">
-                  {orderCurrencyPrefix} {Math.max(0, (order.final_price || 0) - (order.paid_amount || 0)).toLocaleString()}
+                  {orderCurrencyPrefix} {getAtmTransferAmount(o).toLocaleString()}
                 </span>
               </div>
               {expireAt && (
@@ -3325,11 +3327,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm text-muted-foreground flex-shrink-0">繳費期限</span>
                     <span className={`font-medium text-sm ${isExpired ? "text-destructive" : ""}`}>
-                      {format(expireAt, "yyyy-MM-dd HH:mm")}
+                      {format(expireAt, "yyyy/MM/dd HH:mm")}
+                      {isExpired ? "（已逾期）" : ""}
                     </span>
                   </div>
                 </>
               )}
+
             </CardContent>
           </Card>
         );
