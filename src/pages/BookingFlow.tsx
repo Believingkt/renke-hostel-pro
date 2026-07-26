@@ -5112,7 +5112,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}
+                              {orderPaymentType === "credit_card" ? "信用卡（入住當天扣款）" : "ATM 虛擬帳號"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -5121,6 +5121,22 @@ const BookingFlow = () => {
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </span>
                           </div>
+                          {orderPaymentType === "credit_card" && (
+                            <div className="pt-2 mt-1 border-t space-y-1.5">
+                              <div className="flex justify-between items-center text-sm font-semibold text-primary">
+                                <span>本次線上扣款</span>
+                                <span>NT$ 0（僅綁卡）</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <span>入住當天自動扣款</span>
+                                <span>NT$ {calculateFinalTotal().toLocaleString()}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                送出訂單後僅完成信用卡綁定，不會立即扣款；入住當天系統自動扣取全額。入住日前 14 日（含）以前取消完全免費，14 日內取消將依取消政策比例自動收取手續費。
+                              </p>
+                            </div>
+                          )}
+
                           {orderPaymentType === "atm" && (() => {
                             const dep = getAtmDepositBreakdown();
                             return (
