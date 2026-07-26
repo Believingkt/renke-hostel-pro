@@ -246,21 +246,18 @@ export default function BookerForm(props: Props) {
                       }
                       setOtpError("");
                       setOtpSending(true);
-                      const { error } = await supabase.auth.signInWithOtp({
-                        email,
-                        options: { shouldCreateUser: false },
-                      });
+                      const result = await requestMemberOtp(email);
                       setOtpSending(false);
-                      if (!error) {
-                        markOtpSent(email);
+                      setCooldown(result.cooldown);
+                      if (result.ok) {
                         setOtpSent(true);
                         setOtpCode("");
-                        setCooldown(getOtpCooldown(email) || 60);
                         toast({ title: "驗證碼已重新寄出", description: "請查看信箱中最新一封驗證信" });
                       } else {
-                        setOtpError(error.message || "驗證碼寄送失敗，請稍後再試。");
+                        setOtpError(result.message || "驗證碼寄送失敗，請稍後再試。");
                       }
                     }}
+
                     disabled={otpSending || otpVerifying || cooldown > 0}
                   >
                     {otpSending
