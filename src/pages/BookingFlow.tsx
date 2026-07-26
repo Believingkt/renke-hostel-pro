@@ -258,24 +258,20 @@ const BookingFlow = () => {
             });
           } else if (!otpSending) {
             setOtpSending(true);
-            const { error: otpErr } = await supabase.auth.signInWithOtp({
-              email,
-              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-            });
+            const result = await requestMemberOtp(email, { redirectTo: window.location.href });
             setOtpSending(false);
-            if (otpErr) {
+            if (!result.ok) {
+              if (result.rateLimited) setOtpSent(true);
               toast({
-                title: "驗證碼寄送失敗",
-                description: otpErr.message?.includes("not confirmed")
-                  ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證"
-                  : (otpErr.message || "請稍後再試"),
-                variant: "destructive",
+                title: result.rateLimited ? "驗證碼稍候可再寄送" : "驗證碼寄送失敗",
+                description: result.message || "請稍後再試",
+                variant: result.rateLimited ? "default" : "destructive",
               });
             } else {
-              markOtpSent(email);
               setOtpSent(true);
             }
           }
+
         } else {
           setEmailCheckStatus("new");
           setOtpSent(false);
