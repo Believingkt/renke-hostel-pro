@@ -47,7 +47,7 @@ export const SignupEmail = ({ siteName, siteUrl, recipient, confirmationUrl, tok
 
           <Heading style={h2}>還沒註冊？</Heading>
           <Text style={text}>
-            別擔心 — 可能是其他用戶不小心輸入了您的電子郵件地址（{recipient}）。您可以直接忽略這封信，未經驗證的帳號不會啟用。請注意：此連結有效期限為 7 天。
+            別擔心 — 可能是其他用戶不小心輸入了您的電子郵件地址（{recipient}）。您可以不用理會這封信，未經驗證的帳號不會啟用。請注意：此連結有效期限為 7 天。
           </Text>
 
           {confirmationUrl && (

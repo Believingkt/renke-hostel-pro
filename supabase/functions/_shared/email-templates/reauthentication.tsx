@@ -27,7 +27,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
           <Text style={otpLabel}>您的 6 位數驗證碼</Text>
           <Text style={otp}>{token}</Text>
           <Text style={otpHint}>驗證碼將於 10 分鐘內失效</Text>
-          <Text style={footer}>若非本人操作，請忽略此郵件。</Text>
+          <Text style={footer}>若非本人操作，請不用理會此郵件。</Text>
         </Section>
         <Section style={footerWrap}>
           <Text style={copyright}>© {new Date().getFullYear()} 人客多 Lakeze. All rights reserved.</Text>

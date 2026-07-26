@@ -42,7 +42,7 @@ export const RecoveryEmail = ({ siteName, confirmationUrl, token }: RecoveryEmai
               </Text>
             </>
           )}
-          <Text style={footer}>若您沒有申請重設密碼，請忽略此郵件，您的密碼不會被變更。</Text>
+          <Text style={footer}>若您沒有申請重設密碼，請不用理會此郵件，您的密碼不會被變更。</Text>
         </Section>
         <Section style={footerWrap}>
           <Text style={copyright}>© {new Date().getFullYear()} {siteName} Lakeze. All rights reserved.</Text>
