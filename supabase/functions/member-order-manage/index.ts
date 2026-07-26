@@ -161,8 +161,11 @@ serve(async (req) => {
             status: r.success ? "success" : "failed",
             trigger_source: "member_cancel",
             rec_trade_id: r.recTradeId ?? null,
+            webhook_status: r.success ? "pending" : "failed",
+            needs_manual_review: !r.success,
             error_message: r.success ? null : (r.msg || `TapPay error ${r.status}`),
           });
+
           if (r.success) {
             chargedFee = quote.feeAmount;
             lines.push(`🔒 已收取取消手續費 NT$${chargedFee.toLocaleString()}（TapPay ${r.recTradeId}）`);
