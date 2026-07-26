@@ -200,7 +200,7 @@ export default function BookerForm(props: Props) {
             {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" id="booker-email">
             <Label htmlFor="email" className="text-sm font-medium">
               電子郵件 <span className="text-destructive">*</span>
             </Label>
