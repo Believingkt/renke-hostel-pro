@@ -581,7 +581,8 @@ const MemberOrderDetail = () => {
 
                 {order.payment_status === "paid" ? "已付款" : order.atm_vacc_no ? "待匯款訂金" : "已授權稍後付款"}{" "}
                 <span className="text-xl font-bold" style={{ color: ORANGE }}>
-                  NT$ {(order.payment_status === "paid" ? order.final_price : order.deposit_required_amount || order.final_price).toLocaleString()}
+                  NT$ {(order.payment_status === "paid" ? order.final_price : order.atm_vacc_no ? atmTransferAmount : order.deposit_required_amount || order.final_price).toLocaleString()}
+
                 </span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
