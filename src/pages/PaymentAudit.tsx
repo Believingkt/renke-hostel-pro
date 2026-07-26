@@ -112,21 +112,18 @@ export default function PaymentAudit() {
 
   const pendingReview = rows.filter((r) => r.needs_manual_review && !r.resolved_at).length;
 
-  const markResolved = async (row: ChargeRow) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("deposit_charges")
-      .update({
-        needs_manual_review: false,
-        resolved_at: new Date().toISOString(),
-        resolved_by: user?.id ?? null,
-        resolution_note: "客服已人工處理完成",
-      })
-      .eq("id", row.id);
-    if (error) return toast.error(`更新失敗：${error.message}`);
-    toast.success("已標記為人工處理完成");
-    setReloadKey((k) => k + 1);
+  const openResolve = (row: ChargeRow) => {
+    setResolveTarget({
+      id: row.id,
+      action: row.action,
+      amount: row.amount,
+      rec_trade_id: row.rec_trade_id,
+      error_message: row.error_message,
+      orderNumber: row.orders?.order_number ?? null,
+      guestName: row.orders?.guest_name ?? null,
+    });
   };
+
 
   const downloadCsv = () => {
     const header = [
