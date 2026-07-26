@@ -229,7 +229,7 @@ const MemberOrderDetail = () => {
           <p className="text-sm font-medium">訂單編號 {order.order_number}</p>
         </div>
         <button onClick={share} className="p-1 text-muted-foreground hover:text-foreground" aria-label="分享">
-          <Share2 className="h-4.5 w-4.5 h-5 w-5" />
+          <Share2 className="h-5 w-5" />
         </button>
       </div>
 
