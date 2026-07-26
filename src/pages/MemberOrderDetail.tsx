@@ -534,6 +534,27 @@ const MemberOrderDetail = () => {
     } catch { /* user cancelled */ }
   };
 
+  const resendEmail = async () => {
+    setResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-order-confirmation", {
+        body: {
+          orderNumber: order.order_number,
+          triggerSource: "member_resend",
+          siteUrl: window.location.origin,
+        },
+      });
+      const res = (data || {}) as { success?: boolean; error?: string; to?: string };
+      if (error || !res.success) {
+        toast.error(res.error || error?.message || "寄送失敗，請稍後再試");
+        return;
+      }
+      toast.success(`訂單確認信已重新寄出至 ${maskEmail(res.to || order.guest_email)}`);
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div className="space-y-3 pb-24">
       {/* Header */}
