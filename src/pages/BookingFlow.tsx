@@ -41,6 +41,8 @@ import {
   bookingFlowDateSchema as dateValidationSchema,
 } from "@/lib/schemas/booking";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
+import { requestMemberOtp } from "@/lib/requestMemberOtp";
+
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { isTemplateActiveForDates, getTierForDate, hasSegments as templateHasSegments } from "@/utils/pricingTemplateHelpers";
