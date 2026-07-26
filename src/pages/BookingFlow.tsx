@@ -951,11 +951,16 @@ const BookingFlow = () => {
   // Read checkIn/checkOut/adults/children from URL params and set in context
   // 注意：URL 參數為權威來源。使用者從詳情頁重新選日期後會導回同一個 /book 路由，
   // 元件不會重新掛載，若只在 context 為空時才套用，就會殘留上一次搜尋的舊日期。
+  const lastSyncedSearchRef = useRef<string | null>(null);
   useEffect(() => {
+    const search = searchParams.toString();
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
     const adultsParam = searchParams.get("adults");
     const childrenParam = searchParams.get("children");
+    const hasNewSearch = lastSyncedSearchRef.current !== search;
+    lastSyncedSearchRef.current = search;
+
     if (ciParam) {
       const d = new Date(ciParam + "T00:00:00");
       if (!isNaN(d.getTime()) && (!checkInDate || format(checkInDate, "yyyy-MM-dd") !== ciParam)) {
@@ -967,6 +972,12 @@ const BookingFlow = () => {
       if (!isNaN(d.getTime()) && (!checkOutDate || format(checkOutDate, "yyyy-MM-dd") !== coParam)) {
         setCheckOutDate(d);
       }
+    }
+
+    // 從詳情頁重新選方案但未帶日期時，清掉上一筆殘留的月份，避免沿用舊搜尋
+    if (hasNewSearch && !ciParam && !coParam && (searchParams.get("roomId") || searchParams.get("packageId"))) {
+      if (checkInDate) setCheckInDate(undefined);
+      if (checkOutDate) setCheckOutDate(undefined);
     }
 
     if (adultsParam || childrenParam) {
@@ -986,7 +997,26 @@ const BookingFlow = () => {
       const v = parseInt(toddlersParam, 10);
       if (!isNaN(v)) setToddlersCount(Math.max(0, v));
     }
+  }, [searchParams, checkInDate, checkOutDate]);
+
+  // 登入（OTP / 社群）完成後重新以 URL 為準同步一次，避免會員資料載入時覆蓋成舊日期
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN" && event !== "USER_UPDATED") return;
+      const ciParam = searchParams.get("checkIn");
+      const coParam = searchParams.get("checkOut");
+      if (ciParam) {
+        const d = new Date(ciParam + "T00:00:00");
+        if (!isNaN(d.getTime())) setCheckInDate(d);
+      }
+      if (coParam) {
+        const d = new Date(coParam + "T00:00:00");
+        if (!isNaN(d.getTime())) setCheckOutDate(d);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [searchParams]);
+
 
   // 從 URL 帶入旅客在詳情頁選定的方案 ID（accommodation_packages.id）
   // 三條建單路徑都會寫入 orders.package_id：
@@ -1072,15 +1102,18 @@ const BookingFlow = () => {
     return hasAny ? total : null;
   };
 
+  const lastRoomSyncSearchRef = useRef<string | null>(null);
   useEffect(() => {
+    const search = searchParams.toString();
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
+    const hasNewSearch = lastRoomSyncSearchRef.current !== search;
 
     // roomId 同樣以 URL 為準：重新從詳情頁選方案時要覆蓋掉舊房型
     if (roomId && roomTypes.length > 0 && selectedRoom?.id !== roomId) {
-
+      lastRoomSyncSearchRef.current = search;
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
@@ -1093,8 +1126,19 @@ const BookingFlow = () => {
           setCurrentStep("dates");
         }
       }
+      return;
+    }
+
+    // 新的方案連結未帶 roomId 時，清掉上一筆殘留的房型選擇
+    if (hasNewSearch) {
+      lastRoomSyncSearchRef.current = search;
+      if (!roomId && searchParams.get("packageId") && selectedRoom) {
+        setSelectedRoom(null);
+        setCurrentStep("room");
+      }
     }
   }, [searchParams, roomTypes, selectedRoom]);
+
 
   // 載入日期可用性（供日期選擇器使用），以調整後庫存與包區互斥邏輯判斷
   useEffect(() => {
