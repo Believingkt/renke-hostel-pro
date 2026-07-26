@@ -501,6 +501,22 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     )}
                   </div>
 
+                  {(() => {
+                    const atm = getAtmDisplayInfo(order as any);
+                    if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                    return (
+                      <div className={`mb-3 rounded-md border px-2.5 py-2 text-xs ${atm.expired ? "border-destructive/30 text-destructive" : "border-border text-muted-foreground"}`}>
+                        <div className="font-medium">
+                          ATM {atm.expired ? "已逾期" : "待匯款"} NT$ {atm.amount.toLocaleString()}
+                          {atm.depositPercent ? `（訂金 ${atm.depositPercent}%）` : ""}
+                        </div>
+                        {atm.expireAt && <div className="mt-0.5">繳費期限 {atm.expireText}</div>}
+                      </div>
+                    );
+                  })()}
+
+
+
                   {/* 操作按鈕 */}
                   <div className="flex gap-2">
                     <Button
