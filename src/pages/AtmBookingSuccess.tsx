@@ -474,6 +474,8 @@ export default function AtmBookingSuccess() {
                 );
               }}
             />
+            )}
+
           </CardContent>
         </Card>
 
