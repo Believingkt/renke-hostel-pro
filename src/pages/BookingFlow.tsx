@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -4802,13 +4803,17 @@ const BookingFlow = () => {
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
+                          const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(calculateFinalTotal());
                           return (
                             <div
                               key={opt.key}
-                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
-                                selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"
+                              className={`transition-all rounded-lg border-2 p-4 ${
+                                atmBlocked
+                                  ? "cursor-not-allowed opacity-60 border-border bg-muted/30"
+                                  : `cursor-pointer hover:border-primary/50 ${selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"}`
                               }`}
                               onClick={() => {
+                                if (atmBlocked) return;
                                 setOrderPaymentType(opt.key);
                                 setPaymentMethod(
                                   opt.key === "credit_card" ? "信用卡" : "ATM 虛擬帳號"
@@ -4816,14 +4821,16 @@ const BookingFlow = () => {
                               }}
                             >
                               <div className="flex items-center gap-3">
-                                <div className={`rounded-full p-2 ${selected ? "bg-primary/20" : "bg-muted"}`}>
-                                  <Icon className={`h-5 w-5 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                                <div className={`rounded-full p-2 ${selected && !atmBlocked ? "bg-primary/20" : "bg-muted"}`}>
+                                  <Icon className={`h-5 w-5 ${selected && !atmBlocked ? "text-primary" : "text-muted-foreground"}`} />
                                 </div>
                                 <div className="flex-1">
                                   <span className="font-medium text-base text-foreground">{opt.label}</span>
-                                  <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {atmBlocked ? atmAmountLimitMessage(calculateFinalTotal()) : opt.desc}
+                                  </p>
                                 </div>
-                                {selected && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
+                                {selected && !atmBlocked && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
                               </div>
                             </div>
                           );

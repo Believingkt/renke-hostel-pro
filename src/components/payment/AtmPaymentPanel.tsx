@@ -6,6 +6,7 @@ import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck, Rot
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
+import { ATM_MAX_AMOUNT, atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 
 const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect : undefined);
 
@@ -117,6 +118,7 @@ export function AtmPaymentPanel({
   // 自動取得虛擬帳號（不需使用者按按鈕）
   useEffect(() => {
     if (!sdkReady || atmInfo || processing || error || attemptCount > 0) return;
+    if (!isAtmAmountAllowed(amount)) return;
     if (!TP()?.virtualAccount?.getPrime) return;
     handleCreate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,6 +133,11 @@ export function AtmPaymentPanel({
 
   const handleCreate = async () => {
     if (!TP()?.virtualAccount?.getPrime) return;
+    if (!isAtmAmountAllowed(amount)) {
+      setError(atmAmountLimitMessage(amount));
+      setErrorDetail({ title: "金額超過 ATM 上限", suggestion: atmAmountLimitMessage(amount), canRetrySamePrime: false });
+      return;
+    }
     setProcessing(true);
     setError(null);
     setErrorDetail(null);
@@ -179,6 +186,16 @@ export function AtmPaymentPanel({
   const copy = (text: string) => {
     navigator.clipboard?.writeText(text).then(() => toast.success("已複製"));
   };
+
+  if (!atmInfo && !isAtmAmountAllowed(amount)) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>金額超過 ATM 虛擬帳號上限</AlertTitle>
+        <AlertDescription className="text-sm">{atmAmountLimitMessage(amount)}</AlertDescription>
+      </Alert>
+    );
+  }
 
   if (atmInfo) {
     const exp = new Date(atmInfo.expireAt);
