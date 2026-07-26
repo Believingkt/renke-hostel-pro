@@ -87,6 +87,13 @@ serve(async (req: Request) => {
       return json({ success: false, error: msg }, status);
     }
 
+    // 預覽模式：只回傳 HTML，不實際寄送
+    if (body?.preview === true) {
+      return new Response(built.html, {
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
     if (!RESEND_API_KEY) {
       console.error("[send-order-confirmation] RESEND_API_KEY missing");
       return json({ success: false, error: "郵件服務尚未設定" }, 500);
