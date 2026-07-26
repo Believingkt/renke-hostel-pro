@@ -121,3 +121,99 @@ export function mapTapPayErrorToUserMessage(status: number, msg?: string): {
   }
   return { userMessage, suggestion };
 }
+
+// ---------------------------------------------------------------------------
+// Bind Card / Pay by Card Token (用於「結帳只綁卡、入住當天才扣款」流程)
+// Docs: https://docs.tappaysdk.com/tutorial/zh/back.html#bind-card-api
+// ---------------------------------------------------------------------------
+
+export function getTapPayTokenEndpoints() {
+  const env = Deno.env.get("TAPPAY_ENV") === "sandbox" ? "sandbox" : "production";
+  const base = env === "sandbox" ? "https://sandbox.tappaysdk.com" : "https://prod.tappaysdk.com";
+  return {
+    bindCard: `${base}/tpc/card/bind`,
+    payByToken: `${base}/tpc/payment/pay-by-token`,
+  };
+}
+
+export interface BindCardResult {
+  success: boolean;
+  status: number;
+  msg?: string;
+  cardKey?: string;
+  cardToken?: string;
+  cardLastFour?: string | null;
+  cardType?: string | null;
+  cardExpiry?: string | null;
+}
+
+export async function bindCardByPrime(args: {
+  partnerKey: string;
+  merchantId: string;
+  prime: string;
+  cardholder: { name: string; email: string; phoneNumber: string };
+}): Promise<BindCardResult> {
+  const { bindCard } = getTapPayTokenEndpoints();
+  const resp = await fetch(bindCard, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": args.partnerKey },
+    body: JSON.stringify({
+      prime: args.prime,
+      partner_key: args.partnerKey,
+      merchant_id: args.merchantId,
+      currency: "TWD",
+      cardholder: {
+        phone_number: normalizePhoneE164(args.cardholder.phoneNumber),
+        name: args.cardholder.name,
+        email: args.cardholder.email,
+      },
+    }),
+  });
+  const result = await resp.json();
+  const cardInfo = result.card_info ?? {};
+  return {
+    success: result.status === 0 && !!result.card_secret?.card_key && !!result.card_secret?.card_token,
+    status: result.status,
+    msg: result.msg,
+    cardKey: result.card_secret?.card_key,
+    cardToken: result.card_secret?.card_token,
+    cardLastFour: cardInfo.last_four ?? null,
+    cardType: cardInfo.type != null ? String(cardInfo.type) : null,
+    cardExpiry: cardInfo.expiry_date ?? null,
+  };
+}
+
+export async function payByCardToken(args: {
+  partnerKey: string;
+  merchantId: string;
+  cardKey: string;
+  cardToken: string;
+  amount: number;
+  details: string;
+  orderNumber: string;
+}): Promise<{ success: boolean; status: number; msg?: string; recTradeId?: string; authCode?: string }> {
+  const { payByToken } = getTapPayTokenEndpoints();
+  const resp = await fetch(payByToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": args.partnerKey },
+    body: JSON.stringify({
+      card_key: args.cardKey,
+      card_token: args.cardToken,
+      partner_key: args.partnerKey,
+      merchant_id: args.merchantId,
+      amount: args.amount,
+      currency: "TWD",
+      details: args.details.substring(0, 100),
+      order_number: args.orderNumber.substring(0, 50),
+      three_domain_secure: false,
+    }),
+  });
+  const result = await resp.json();
+  return {
+    success: result.status === 0,
+    status: result.status,
+    msg: result.msg,
+    recTradeId: result.rec_trade_id,
+    authCode: result.auth_code,
+  };
+}
