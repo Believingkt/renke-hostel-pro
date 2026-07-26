@@ -489,12 +489,15 @@ export default function AtmBookingSuccess() {
           </CardHeader>
           <CardContent className="text-sm space-y-3">
             <ol className="list-decimal pl-5 space-y-2 text-muted-foreground leading-relaxed">
+              <li>本次匯款金額為 <span className="font-medium text-foreground">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），非訂單全額。</li>
               <li>取得虛擬帳號後，請於繳費期限內以 <span className="font-medium text-foreground">ATM、網路銀行或臨櫃</span> 方式匯款。</li>
               <li>轉帳金額請務必與顯示金額一致，<span className="font-medium text-foreground">不可分次匯款</span>，否則無法自動對帳。</li>
-              <li>系統收到入帳通知後將自動更新訂單狀態，並寄發訂房確認信至您的 Email。</li>
-              <li>逾期未繳款，訂單將自動取消，房間庫存會釋出供其他旅客預訂。</li>
+              <li>系統收到訂金入帳通知後將自動確認訂房，並寄發訂房確認信至您的 Email。</li>
+              <li>剩餘尾款 <span className="font-medium text-foreground">NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span> 請於入住當天現場以現金、刷卡或匯款付清。</li>
+              <li>逾期未繳訂金，訂單將自動取消，房間庫存會釋出供其他旅客預訂。</li>
               <li>若已完成匯款但長時間未收到確認信，請聯繫客服並提供訂單編號 <span className="font-mono font-medium text-foreground">{order.order_number}</span>。</li>
             </ol>
+
           </CardContent>
         </Card>
 
