@@ -22,6 +22,8 @@ import {
   MessageSquare,
   Building2,
   Clock,
+  ShieldCheck,
+
 
 } from "lucide-react";
 import {
@@ -547,25 +549,65 @@ const MemberOrderDetail = () => {
       </div>
 
       {/* 1. 訂單摘要 */}
-      <div className="rounded-2xl px-4 py-5 bg-orange-50 border border-orange-100">
-        <h1 className={`text-2xl font-bold ${cancelled ? "text-red-500" : ""}`} style={cancelled ? undefined : { color: ORANGE }}>
-          {statusLabel}
-        </h1>
-        {order.guest_email && !cancelled && (
-          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-            我們已寄發訂單確認函至 {maskEmail(order.guest_email)}。
-          </p>
+      <div className="rounded-2xl px-4 py-5 bg-orange-50 border border-orange-100 space-y-4">
+        <div>
+          <h1 className={`text-2xl font-bold ${cancelled ? "text-red-500" : ""}`} style={cancelled ? undefined : { color: ORANGE }}>
+            {statusLabel}
+          </h1>
+          {order.guest_email && !cancelled && (
+            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+              您已準備就緒！我們已寄發您的訂單確認函至 {maskEmail(order.guest_email)}。
+            </p>
+          )}
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(order.order_number);
+              toast.success("已複製訂單編號");
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+          >
+            <Copy className="h-3.5 w-3.5" /> 複製訂單編號
+          </button>
+        </div>
+
+        {!cancelled && (
+          <>
+            <div className="border-t border-orange-100 pt-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium" style={{ color: ORANGE }}>
+                <span className="inline-flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5" /> 訂房價格保障
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5" /> 民宿住宿保障
+                </span>
+              </div>
+              <p className="mt-2 text-base font-semibold">
+                {order.payment_status === "paid" ? "已付款" : order.atm_vacc_no ? "待匯款訂金" : "已授權稍後付款"}{" "}
+                <span className="text-xl font-bold" style={{ color: ORANGE }}>
+                  NT$ {(order.payment_status === "paid" ? order.final_price : order.deposit_required_amount || order.final_price).toLocaleString()}
+                </span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                {order.payment_status === "paid"
+                  ? "款項已收訖，入住當日請出示訂單編號辦理報到。"
+                  : order.atm_vacc_no
+                    ? "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
+                    : `系統將於 ${format(new Date(order.check_in_date), "M 月 d 日", { locale: zhTW })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`}
+              </p>
+            </div>
+
+            <div className="border-t border-orange-100 pt-3">
+              <p className="text-base font-semibold">
+                {differenceInCalendarDays(new Date(order.check_in_date), new Date()) >= 14 ? "現在可以免費取消" : "取消將依政策收取費用"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                於 {format(addDays(new Date(order.check_in_date), -14), "yyyy 年 M 月 d 日", { locale: zhTW })} 23:59 前（住宿當地時間）可免費取消。此後，將依取消政策收取費用。
+              </p>
+            </div>
+          </>
         )}
-        <button
-          onClick={() => {
-            navigator.clipboard?.writeText(order.order_number);
-            toast.success("已複製訂單編號");
-          }}
-          className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-        >
-          <Copy className="h-3.5 w-3.5" /> 複製訂單編號
-        </button>
       </div>
+
 
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <div className="px-4 py-3 bg-orange-50 border-b border-border text-center">
