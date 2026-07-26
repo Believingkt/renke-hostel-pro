@@ -187,6 +187,18 @@ serve(async (req) => {
         chargedFee = Math.min(Number(order.paid_amount || 0), quote.feeAmount);
         if (refundAmount > 0 && partnerKey && order.room_charge_rec_trade_id) {
           const r = await refundTapPay(partnerKey, order.room_charge_rec_trade_id, refundAmount);
+          await supabase.from("deposit_charges").insert({
+            order_id: order.id,
+            accommodation_id: order.accommodation_id,
+            action: "refund",
+            amount: refundAmount,
+            status: r.success ? "success" : "failed",
+            trigger_source: "member_cancel",
+            rec_trade_id: order.room_charge_rec_trade_id,
+            webhook_status: r.success ? "pending" : "failed",
+            needs_manual_review: !r.success,
+            error_message: r.success ? null : (r.msg || `TapPay error ${r.status}`),
+          });
           if (r.success) {
             refunded = refundAmount;
             lines.push(
@@ -198,6 +210,16 @@ serve(async (req) => {
           }
         } else if (refundAmount > 0) {
           needManual = true;
+          await supabase.from("deposit_charges").insert({
+            order_id: order.id,
+            accommodation_id: order.accommodation_id,
+            action: "refund",
+            amount: refundAmount,
+            status: "failed",
+            trigger_source: "member_cancel",
+            needs_manual_review: true,
+            error_message: "無可退刷交易編號，需人工退款",
+          });
           lines.push(`🔒 應退款 NT$${refundAmount.toLocaleString()}，無可退刷交易編號，待人工退款`);
         } else {
           lines.push("🔒 依取消政策不予退款");
@@ -205,6 +227,7 @@ serve(async (req) => {
       } else {
         lines.push("🔒 訂單尚未收款，取消不產生退款");
       }
+
 
       const { error } = await supabase
         .from("orders")
