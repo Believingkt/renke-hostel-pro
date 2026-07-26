@@ -626,15 +626,20 @@ const MemberOrderDetail = () => {
       <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-3 py-2.5 sm:static sm:bottom-auto sm:border-0 sm:bg-transparent sm:px-0">
         <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
           <button
-            disabled={cancelled}
-            onClick={() => navigate("/member/messages")}
+            disabled={cancelled || acting}
+            onClick={() => setCancelOpen(true)}
             className="rounded-lg py-2.5 text-sm font-medium bg-muted text-muted-foreground disabled:opacity-50"
           >
             取消訂單
           </button>
           <button
-            disabled={cancelled}
-            onClick={() => navigate("/member/messages")}
+            disabled={cancelled || acting}
+            onClick={() => {
+              setNewCheckIn(order.check_in_date);
+              setNewCheckOut(order.check_out_date);
+              setNewGuests(order.guest_count);
+              setChangeOpen(true);
+            }}
             className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: ORANGE }}
           >
@@ -642,21 +647,140 @@ const MemberOrderDetail = () => {
           </button>
           <button
             disabled={cancelled}
-            onClick={() => navigate(detailPath)}
+            onClick={() => navigate(`${detailPath}?checkIn=${order.check_out_date}&checkOut=${extendCheckOut}`)}
             className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: ORANGE }}
           >
             延長入住
           </button>
-          <button
-            onClick={() => navigate("/member/messages")}
-            className="rounded-lg py-2.5 text-sm font-medium text-white"
-            style={{ backgroundColor: ORANGE }}
-          >
-            管理訂單
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="rounded-lg py-2.5 text-sm font-medium text-white"
+                style={{ backgroundColor: ORANGE }}
+              >
+                管理訂單
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 bg-popover z-50">
+              <DropdownMenuItem
+                onClick={() => {
+                  navigator.clipboard?.writeText(order.order_number);
+                  toast.success("已複製訂單編號");
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" /> 複製訂單編號
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={share}>
+                <Share2 className="h-4 w-4 mr-2" /> 分享訂單連結
+              </DropdownMenuItem>
+              {order.accommodation_phone && (
+                <DropdownMenuItem asChild>
+                  <a href={`tel:${order.accommodation_phone}`}>
+                    <Phone className="h-4 w-4 mr-2" /> 致電住宿
+                  </a>
+                </DropdownMenuItem>
+              )}
+              {order.accommodation_email && (
+                <DropdownMenuItem asChild>
+                  <a href={`mailto:${order.accommodation_email}`}>
+                    <Mail className="h-4 w-4 mr-2" /> 郵件聯絡住宿
+                  </a>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => navigate("/member/messages")}>
+                <MessageSquare className="h-4 w-4 mr-2" /> 聯絡客服
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(detailPath)}>
+                <LayoutGrid className="h-4 w-4 mr-2" /> 再次預訂
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {/* 取消訂單確認 */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定要取消這筆訂單嗎？</AlertDialogTitle>
+            <AlertDialogDescription>
+              取消後無法復原，若已付款將由客服人員協助辦理退款（依住宿取消政策辦理）。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={acting}>再想想</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={acting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancel();
+              }}
+            >
+              {acting ? "處理中…" : "確認取消訂單"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 更改訂單 */}
+      <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>更改訂單</DialogTitle>
+            <DialogDescription>可調整入住日期與入住人數，送出後將重新確認空房。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">入住日</label>
+                <input
+                  type="date"
+                  value={newCheckIn}
+                  min={format(new Date(), "yyyy-MM-dd")}
+                  onChange={(e) => setNewCheckIn(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">退房日</label>
+                <input
+                  type="date"
+                  value={newCheckOut}
+                  min={newCheckIn}
+                  onChange={(e) => setNewCheckOut(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">入住人數</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={newGuests}
+                onChange={(e) => setNewGuests(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              已付款訂單無法線上改期，請透過「管理訂單 → 聯絡客服」協助處理。
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              disabled={acting}
+              onClick={handleChange}
+              className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
+              style={{ backgroundColor: ORANGE }}
+            >
+              {acting ? "送出中…" : "確認更改"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
     </div>
   );
