@@ -319,7 +319,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -400,6 +400,15 @@ const MemberOrderDetail = () => {
         atm_vacc_no: (data as any).atm_vacc_no || null,
         atm_vacc_bank_code: (data as any).atm_vacc_bank_code || null,
         atm_expire_at: (data as any).atm_expire_at || null,
+        pet_count: Number((data as any).pet_count || 0),
+        pet_plan_price: Number((data as any).pet_plan_price || 0),
+        meal_plan_total: Number((data as any).meal_plan_total || 0),
+        meal_plan_details: Array.isArray((data as any).meal_plan_details)
+          ? (data as any).meal_plan_details
+          : [],
+        custom_addon_details: Array.isArray((data as any).custom_addon_details)
+          ? (data as any).custom_addon_details
+          : [],
 
         accommodation_id: data.accommodation_id,
         accommodation_name: acc?.name || "",
