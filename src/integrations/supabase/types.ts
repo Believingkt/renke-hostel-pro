@@ -1369,6 +1369,7 @@ export type Database = {
           is_active: boolean
           notify_frontend_error: boolean
           notify_health_check: boolean
+          notify_payment_webhook: boolean
         }
         Insert: {
           created_at?: string
@@ -1378,6 +1379,7 @@ export type Database = {
           is_active?: boolean
           notify_frontend_error?: boolean
           notify_health_check?: boolean
+          notify_payment_webhook?: boolean
         }
         Update: {
           created_at?: string
@@ -1387,6 +1389,7 @@ export type Database = {
           is_active?: boolean
           notify_frontend_error?: boolean
           notify_health_check?: boolean
+          notify_payment_webhook?: boolean
         }
         Relationships: []
       }
@@ -2519,16 +2522,20 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          last_retry_at: string | null
           needs_manual_review: boolean
           order_id: string
           performed_by: string | null
           raw_response: Json | null
           rec_trade_id: string | null
+          resolution_action: string | null
           resolution_note: string | null
           resolved_at: string | null
           resolved_by: string | null
+          retry_count: number
           status: string
           trigger_source: string
+          verified_amount: number | null
           webhook_status: string | null
         }
         Insert: {
@@ -2540,16 +2547,20 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           needs_manual_review?: boolean
           order_id: string
           performed_by?: string | null
           raw_response?: Json | null
           rec_trade_id?: string | null
+          resolution_action?: string | null
           resolution_note?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          retry_count?: number
           status: string
           trigger_source: string
+          verified_amount?: number | null
           webhook_status?: string | null
         }
         Update: {
@@ -2561,16 +2572,20 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           needs_manual_review?: boolean
           order_id?: string
           performed_by?: string | null
           raw_response?: Json | null
           rec_trade_id?: string | null
+          resolution_action?: string | null
           resolution_note?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          retry_count?: number
           status?: string
           trigger_source?: string
+          verified_amount?: number | null
           webhook_status?: string | null
         }
         Relationships: [
@@ -9176,48 +9191,63 @@ export type Database = {
       }
       tappay_webhook_events: {
         Row: {
+          alerted_at: string | null
           amount: number | null
           bank_transaction_id: string | null
           created_at: string
           currency: string | null
           event_type: string
+          gave_up: boolean
           id: string
+          last_retry_at: string | null
           matched_order_id: string | null
+          next_retry_at: string | null
           order_number: string | null
           process_error: string | null
           processed: boolean
           raw: Json
           rec_trade_id: string | null
+          retry_count: number
           status: number | null
         }
         Insert: {
+          alerted_at?: string | null
           amount?: number | null
           bank_transaction_id?: string | null
           created_at?: string
           currency?: string | null
           event_type?: string
+          gave_up?: boolean
           id?: string
+          last_retry_at?: string | null
           matched_order_id?: string | null
+          next_retry_at?: string | null
           order_number?: string | null
           process_error?: string | null
           processed?: boolean
           raw?: Json
           rec_trade_id?: string | null
+          retry_count?: number
           status?: number | null
         }
         Update: {
+          alerted_at?: string | null
           amount?: number | null
           bank_transaction_id?: string | null
           created_at?: string
           currency?: string | null
           event_type?: string
+          gave_up?: boolean
           id?: string
+          last_retry_at?: string | null
           matched_order_id?: string | null
+          next_retry_at?: string | null
           order_number?: string | null
           process_error?: string | null
           processed?: boolean
           raw?: Json
           rec_trade_id?: string | null
+          retry_count?: number
           status?: number | null
         }
         Relationships: []
