@@ -5292,6 +5292,33 @@ export type Database = {
           },
         ]
       }
+      order_create_attempts: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          ip: string | null
+          order_number: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          order_number?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          order_number?: string | null
+        }
+        Relationships: []
+      }
       order_meta: {
         Row: {
           accommodation_id: string | null
