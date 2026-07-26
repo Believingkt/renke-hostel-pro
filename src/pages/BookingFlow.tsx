@@ -4839,7 +4839,7 @@ const BookingFlow = () => {
                                 <div className="flex-1">
                                   <span className="font-medium text-base text-foreground">{opt.label}</span>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {atmBlocked ? atmAmountLimitMessage(calculateFinalTotal()) : opt.desc}
+                                    {atmBlocked ? atmAmountLimitMessage(getAtmDepositBreakdown().deposit) : opt.desc}
                                   </p>
                                 </div>
                                 {selected && !atmBlocked && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
