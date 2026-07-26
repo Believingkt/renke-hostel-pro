@@ -64,6 +64,12 @@ const htmlToLines = (html?: string | null): string[] => {
 };
 
 
+interface PackageInclude {
+  text: string;
+  available?: "yes" | "no" | "optional";
+  price_note?: string;
+}
+
 interface DetailData {
   id: string;
   order_number: string;
@@ -93,7 +99,16 @@ interface DetailData {
   check_in_time: string | null;
   check_out_time: string | null;
   cancellation_policy: string | null;
+  check_in_title: string | null;
+  check_in_subtitle: string | null;
+  other_notes: string | null;
+  package_name: string | null;
+  package_subtitle: string | null;
+  room_allocation: string | null;
+  package_includes: PackageInclude[];
+  facilities: string[];
 }
+
 
 const Section = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-card rounded-2xl border border-border px-4 py-4">{children}</div>
