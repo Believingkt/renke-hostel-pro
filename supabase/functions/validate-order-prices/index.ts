@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { checkOrderRateLimit, recordOrderAttempt, getClientIp } from "../_shared/orderRateLimit.ts";
 
 interface CustomAddonInput {
   addon_type: string;
