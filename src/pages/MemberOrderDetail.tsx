@@ -128,7 +128,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, accommodation_id, room_type_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, accommodation_id, room_type_id, package_id, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -139,33 +139,55 @@ const MemberOrderDetail = () => {
         return;
       }
 
-      const [{ data: acc }, { data: settings }, { data: accPhotos }, { data: roomPhotos }] =
-        await Promise.all([
-          supabase
-            .from("accommodation_info")
-            .select("id, name, address, phone, email, short_url_alias")
-            .eq("id", data.accommodation_id)
-            .maybeSingle(),
-          supabase
-            .from("booking_settings")
-            .select("check_in_time, check_out_time, cancellation_policy")
-            .eq("accommodation_id", data.accommodation_id)
-            .maybeSingle(),
-          supabase
-            .from("accommodation_photos")
-            .select("photo_url, display_order")
-            .eq("accommodation_id", data.accommodation_id)
-            .order("display_order", { ascending: true })
-            .limit(1),
-          data.room_type_id
-            ? supabase
-                .from("room_photos")
-                .select("photo_url, display_order")
-                .eq("room_type_id", data.room_type_id)
-                .order("display_order", { ascending: true })
-                .limit(1)
-            : Promise.resolve({ data: [] as any[] }),
-        ]);
+      const packageId = (data as any).package_id as string | null;
+
+      const [
+        { data: acc },
+        { data: settings },
+        { data: accPhotos },
+        { data: roomPhotos },
+        { data: pkg },
+        { data: facilities },
+      ] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name, address, phone, email, short_url_alias")
+          .eq("id", data.accommodation_id)
+          .maybeSingle(),
+        supabase
+          .from("booking_settings")
+          .select(
+            "check_in_time, check_out_time, cancellation_policy, check_in_section_title, check_in_section_subtitle, other_notes"
+          )
+          .eq("accommodation_id", data.accommodation_id)
+          .maybeSingle(),
+        supabase
+          .from("accommodation_photos")
+          .select("photo_url, display_order")
+          .eq("accommodation_id", data.accommodation_id)
+          .order("display_order", { ascending: true })
+          .limit(1),
+        data.room_type_id
+          ? supabase
+              .from("room_photos")
+              .select("photo_url, display_order")
+              .eq("room_type_id", data.room_type_id)
+              .order("display_order", { ascending: true })
+              .limit(1)
+          : Promise.resolve({ data: [] as any[] }),
+        packageId
+          ? supabase
+              .from("accommodation_packages")
+              .select("name, subtitle, room_allocation, includes")
+              .eq("id", packageId)
+              .maybeSingle()
+          : Promise.resolve({ data: null as any }),
+        supabase
+          .from("accommodation_facilities")
+          .select("facility_name, is_available")
+          .eq("accommodation_id", data.accommodation_id)
+          .order("category", { ascending: true }),
+      ]);
 
       setOrder({
         id: data.id,
@@ -196,7 +218,21 @@ const MemberOrderDetail = () => {
         check_in_time: settings?.check_in_time || null,
         check_out_time: settings?.check_out_time || null,
         cancellation_policy: settings?.cancellation_policy || null,
+        check_in_title: (settings as any)?.check_in_section_title || null,
+        check_in_subtitle: (settings as any)?.check_in_section_subtitle || null,
+        other_notes: (settings as any)?.other_notes || null,
+        package_name: (pkg as any)?.name || null,
+        package_subtitle: (pkg as any)?.subtitle || null,
+        room_allocation: (pkg as any)?.room_allocation || null,
+        package_includes: Array.isArray((pkg as any)?.includes)
+          ? ((pkg as any).includes as PackageInclude[]).filter((i) => i?.text)
+          : [],
+        facilities: (facilities || [])
+          .filter((f: any) => f.is_available !== false)
+          .map((f: any) => f.facility_name)
+          .filter(Boolean),
       });
+
       setLoading(false);
     };
     load();
