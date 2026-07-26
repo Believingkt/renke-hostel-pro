@@ -93,6 +93,133 @@ const htmlToLines = (html?: string | null): string[] => {
     .filter(Boolean);
 };
 
+/** 只取出客人自己填寫的特殊需求，濾掉系統寫入的 [訂金制] / [ATM] / [TapPay] 等後台備註 */
+const extractGuestNotes = (notes?: string | null): string => {
+  if (!notes) return "";
+  return notes
+    .split("\n")
+    .map((line) => {
+      let s = line.trim();
+      if (!s) return "";
+      s = s.replace(/^\[訂金制\][\s\S]*?入住現場付清\s*/, "").trim();
+      s = s.replace(/^\[TapPay[^\]]*\]\s*/, "").trim();
+      if (/^\[[^\]]+\]/.test(s)) return "";
+      return s;
+    })
+    .filter(Boolean)
+    .join("\n");
+};
+
+const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行" };
+
+const CopyField = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
+  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
+    <div className="min-w-0 flex-1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p
+        className={`truncate font-semibold tabular-nums ${highlight ? "text-base" : "text-sm"}`}
+        style={highlight ? { color: ORANGE } : undefined}
+      >
+        {value}
+      </p>
+    </div>
+    <button
+      type="button"
+      aria-label={`複製${label}`}
+      onClick={() => {
+        navigator.clipboard.writeText(value.replace(/[^\dA-Za-z]/g, ""));
+        toast.success("已複製");
+      }}
+      className="shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted"
+    >
+      <Copy className="h-4 w-4" />
+    </button>
+  </div>
+);
+
+const AtmVirtualAccountCard = ({
+  bankCode,
+  vaccNo,
+  expireAt,
+  amount,
+  amountLabel,
+}: {
+  bankCode?: string | null;
+  vaccNo: string;
+  expireAt?: string | null;
+  amount: number;
+  amountLabel: string;
+}) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const expire = expireAt ? new Date(expireAt) : null;
+  const diff = expire ? expire.getTime() - now : 0;
+  const expired = !!expire && diff <= 0;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+
+  return (
+    <div className="rounded-2xl border border-border p-4">
+      <p className="flex items-center gap-2 text-base font-semibold">
+        <Building2 className="h-4 w-4" style={{ color: ORANGE }} /> ATM 虛擬帳號
+      </p>
+
+      {expire && (
+        <div
+          className="mt-3 rounded-xl border p-3"
+          style={{ borderColor: "hsl(24,100%,80%)", background: "hsl(24,100%,97%)" }}
+        >
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Clock className="h-4 w-4" style={{ color: ORANGE }} />
+            {expired ? "繳費期限已到期" : "繳費期限倒數計時"}
+          </p>
+          {!expired && (
+            <p className="mt-1 text-xl font-bold tabular-nums" style={{ color: ORANGE }}>
+              {days} 天 {hours} 小時 {mins} 分
+            </p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            期限：{format(expire, "yyyy/M/d aa h:mm", { locale: zhTW })}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-3 rounded-xl border border-border p-3">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <Check className="h-4 w-4" style={{ color: ORANGE }} /> 虛擬帳號已開立
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">請於繳費期限前以 ATM、網路銀行或臨櫃匯款。</p>
+        <div className="mt-3 space-y-2">
+          <CopyField
+            label={`銀行代碼${bankCode && BANK_NAMES[bankCode] ? `（${BANK_NAMES[bankCode]}）` : ""}`}
+            value={bankCode || "—"}
+          />
+          <CopyField label="虛擬帳號" value={vaccNo} />
+          <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} highlight />
+        </div>
+        {expire && (
+          <div
+            className="mt-3 rounded-xl border p-3 text-xs"
+            style={{ borderColor: "hsl(45,90%,80%)", background: "hsl(45,100%,96%)" }}
+          >
+            <p className="font-medium">繳費期限</p>
+            <p className="mt-0.5 font-semibold">
+              {format(expire, "yyyy年M月d日 aa h:mm", { locale: zhTW })}
+            </p>
+            <p className="mt-0.5" style={{ color: ORANGE }}>逾期未繳款訂單將自動取消。</p>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p>
+      </div>
+    </div>
+  );
+};
+
 
 interface PackageInclude {
   text: string;
