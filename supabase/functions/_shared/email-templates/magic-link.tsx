@@ -53,17 +53,17 @@ export const MagicLinkEmail = ({ siteName, token }: MagicLinkEmailProps) => (
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "-apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif" }
-const container = { maxWidth: '560px', margin: '0 auto', padding: '0' }
-const header = { background: 'linear-gradient(135deg,#d07218,#d47a0a)', padding: '28px 24px', textAlign: 'center' as const, borderRadius: '12px 12px 0 0' }
-const brand = { color: '#ffffff', fontSize: '20px', fontWeight: 700 as const, letterSpacing: '2px', margin: 0 }
-const body = { padding: '32px 28px', color: '#2d3344', fontSize: '15px', lineHeight: 1.7 }
-const otp = { textAlign: 'center' as const, fontSize: '36px', fontWeight: 700 as const, letterSpacing: '8px', color: '#2d3344', margin: '8px 0 12px' }
-const otpDesc = { textAlign: 'center' as const, fontSize: '15px', color: '#2d3344', margin: '0 0 6px' }
-const otpHint = { textAlign: 'center' as const, fontSize: '12px', color: '#999', margin: '0 0 24px' }
-const notice = { background: '#f7f8fa', borderRadius: '8px', padding: '18px' }
-const noticeTitle = { fontSize: '15px', fontWeight: 700 as const, color: '#2d3344', margin: '0 0 8px' }
-const noticeText = { fontSize: '14px', color: '#4b5563', lineHeight: 1.7, margin: '0 0 6px', wordBreak: 'break-word' as const }
-const footer = { fontSize: '13px', color: '#999', margin: '24px 0 0', textAlign: 'center' as const }
-const footerWrap = { background: '#fafafa', padding: '20px 28px', textAlign: 'center' as const, borderTop: '1px solid #eee', borderRadius: '0 0 12px 12px' }
-const copyright = { color: '#999', fontSize: '12px', margin: 0 }
+const main = { backgroundColor: '#ffffff', fontFamily: "-apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif", WebkitTextSizeAdjust: '100%', textSizeAdjust: '100%' }
+const container = { width: '100%', maxWidth: '560px', margin: '0 auto', padding: '0' }
+const header = { background: 'linear-gradient(135deg,#d07218,#d47a0a)', padding: '24px 20px', textAlign: 'center' as const, borderRadius: '12px 12px 0 0' }
+const brand = { color: '#ffffff', fontSize: '20px', fontWeight: 700 as const, letterSpacing: '1.5px', margin: 0, lineHeight: 1.4 }
+const body = { padding: '28px 20px', color: '#2d3344', fontSize: '15px', lineHeight: 1.8 }
+const otp = { textAlign: 'center' as const, fontSize: '32px', fontWeight: 700 as const, letterSpacing: '6px', color: '#2d3344', margin: '8px 0 12px', whiteSpace: 'nowrap' as const, lineHeight: 1.3 }
+const otpDesc = { textAlign: 'center' as const, fontSize: '15px', color: '#2d3344', margin: '0 0 6px', lineHeight: 1.7, letterSpacing: '0.3px' }
+const otpHint = { textAlign: 'center' as const, fontSize: '12px', color: '#999', margin: '0 0 24px', lineHeight: 1.6 }
+const notice = { background: '#f7f8fa', borderRadius: '8px', padding: '16px' }
+const noticeTitle = { fontSize: '15px', fontWeight: 700 as const, color: '#2d3344', margin: '0 0 8px', lineHeight: 1.6 }
+const noticeText = { fontSize: '14px', color: '#4b5563', lineHeight: 1.8, margin: '0 0 6px', wordBreak: 'break-word' as const, letterSpacing: '0.3px', lineBreak: 'strict' as const }
+const footer = { fontSize: '13px', color: '#999', margin: '24px 0 0', textAlign: 'center' as const, lineHeight: 1.7, wordBreak: 'break-word' as const }
+const footerWrap = { background: '#fafafa', padding: '18px 20px', textAlign: 'center' as const, borderTop: '1px solid #eee', borderRadius: '0 0 12px 12px' }
+const copyright = { color: '#999', fontSize: '12px', margin: 0, lineHeight: 1.7, wordBreak: 'break-word' as const }
