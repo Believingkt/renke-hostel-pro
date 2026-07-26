@@ -176,6 +176,15 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // TapPay 虛擬帳號單筆金額上限（超過會回 10050 Out of range : amount）
+    const ATM_MAX_AMOUNT = Number(Deno.env.get("TAPPAY_ATM_MAX_AMOUNT") || 30000);
+    if (data.amount > ATM_MAX_AMOUNT) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: `ATM 虛擬帳號單筆上限為 NT$${ATM_MAX_AMOUNT.toLocaleString()}，請改用信用卡付款或聯繫客服協助分次收款。`,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const unpaid = order.final_price - (order.paid_amount || 0);
     if (data.amount > unpaid) {
       return new Response(JSON.stringify({ success: false, message: `金額超過待付 NT$${unpaid}` }), {
