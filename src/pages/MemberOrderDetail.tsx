@@ -149,6 +149,14 @@ const MemberOrderDetail = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<DetailData | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [acting, setActing] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [newCheckIn, setNewCheckIn] = useState("");
+  const [newCheckOut, setNewCheckOut] = useState("");
+  const [newGuests, setNewGuests] = useState(1);
+
 
   useEffect(() => {
     const load = async () => {
