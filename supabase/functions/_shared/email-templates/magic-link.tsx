@@ -40,7 +40,7 @@ export const MagicLinkEmail = ({ siteName, token }: MagicLinkEmailProps) => (
               • 請直接回到您原本的訂房頁面輸入驗證碼，勿點擊他人提供的連結（可能為釣魚網站）。
             </Text>
             <Text style={noticeText}>
-              • 若您並未要求此驗證碼，請不用理會這封信；您的帳號仍然安全。
+              • 若您並未要求此驗證碼，請忽略本信；您的帳號仍然安全。
             </Text>
           </Section>
 
