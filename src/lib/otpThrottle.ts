@@ -34,7 +34,9 @@ export function getOtpCooldown(email: string): number {
   const recent = (rec.recent || []).filter((t) => t > cutoff);
   const sinceLast = Date.now() - (rec.last || 0);
   let waitMs = 0;
-  if (sinceLast < COOLDOWN_MS) waitMs = COOLDOWN_MS - sinceLast;
+  if (rec.nextAllowedAt && rec.nextAllowedAt > Date.now()) waitMs = rec.nextAllowedAt - Date.now();
+  if (sinceLast < COOLDOWN_MS) waitMs = Math.max(waitMs, COOLDOWN_MS - sinceLast);
+
   if (recent.length >= HOURLY_MAX) {
     const earliest = Math.min(...recent);
     const hourlyWait = HOUR_MS - (Date.now() - earliest);
