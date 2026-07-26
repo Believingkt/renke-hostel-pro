@@ -394,7 +394,7 @@ export default function AtmBookingSuccess() {
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">應付總金額</span>
+              <span className="text-muted-foreground">訂單總金額</span>
               <span className="font-semibold">NT$ {order.final_price.toLocaleString()}</span>
             </div>
             {order.paid_amount > 0 && (
@@ -404,9 +404,22 @@ export default function AtmBookingSuccess() {
               </div>
             )}
             <div className="flex items-center justify-between text-base">
-              <span className="font-semibold">需匯款金額</span>
-              <span className="font-bold text-primary text-lg">NT$ {remainingAmount.toLocaleString()}</span>
+              <span className="font-semibold">本次需匯款訂金（{depositInfo.percentage}%）</span>
+              <span className="font-bold text-primary text-lg">NT$ {amountDueNow.toLocaleString()}</span>
             </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>入住現場付清尾款</span>
+              <span>NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span>
+            </div>
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-sm font-semibold">本次僅需匯款訂金</AlertTitle>
+              <AlertDescription className="text-xs leading-relaxed">
+                虛擬帳號金額為訂金 NT$ {amountDueNow.toLocaleString()}（訂單總額的 {depositInfo.percentage}%），請勿更改匯款金額，以免無法自動核帳。
+                收到入帳通知後訂房即確認，剩餘尾款 NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
+              </AlertDescription>
+            </Alert>
+
           </CardContent>
         </Card>
 
