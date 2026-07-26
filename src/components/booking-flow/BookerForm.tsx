@@ -29,6 +29,8 @@ interface GuestInfo {
 
 interface Props {
   loggedInMember: { id: string; name: string; email: string; phone: string } | null;
+  isMemberEmailMismatch?: boolean;
+  onSwitchAccount?: () => void;
   guestInfo: GuestInfo;
   setGuestInfo: (info: GuestInfo) => void;
   errors: Record<string, string>;
@@ -53,6 +55,8 @@ interface Props {
 export default function BookerForm(props: Props) {
   const {
     loggedInMember,
+    isMemberEmailMismatch,
+    onSwitchAccount,
     guestInfo,
     setGuestInfo,
     errors,
@@ -90,13 +94,29 @@ export default function BookerForm(props: Props) {
 
   return (
     <div className="space-y-6">
-      {loggedInMember ? (
+      {loggedInMember && isMemberEmailMismatch ? (
+        <Card className="border-2 border-orange-300 bg-orange-50">
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-orange-900">
+                目前登入的會員帳號是 <span className="font-medium">{loggedInMember.email}</span>，
+                與本次填寫的 Email <span className="font-medium">{guestInfo.email}</span> 不同。
+                此訂單不會累積到目前登入的帳號，請先切換帳號並完成驗證登入。
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onSwitchAccount?.()}>
+              切換帳號並以此 Email 登入
+            </Button>
+          </CardContent>
+        </Card>
+      ) : loggedInMember ? (
         <Card className="border-2 border-green-200 bg-green-50/50">
           <CardContent className="py-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
               <p className="text-sm font-medium text-green-800">
-                已登入會員：{loggedInMember.name}，訂房可累積紅利點數
+                已登入會員：{loggedInMember.name}（{loggedInMember.email}），訂房可累積紅利點數
               </p>
             </div>
           </CardContent>
