@@ -4804,12 +4804,18 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
-                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
-                          { key: "atm", label: "ATM 虛擬帳號轉帳", icon: Building2, desc: "送出訂單後產生專屬虛擬帳號（繳費期限 3 天）" },
+                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "線上一次付清訂單全額，由 TapPay 安全加密處理" },
+                          {
+                            key: "atm",
+                            label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
+                            icon: Building2,
+                            desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 3 天）`,
+                          },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
-                          const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(calculateFinalTotal());
+                          const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(getAtmDepositBreakdown().deposit);
+
                           return (
                             <div
                               key={opt.key}
