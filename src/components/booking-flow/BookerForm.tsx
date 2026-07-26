@@ -62,7 +62,10 @@ export default function BookerForm(props: Props) {
     otpSent,
     setOtpSent,
     otpVerifying,
+    otpError,
+    setOtpError,
     handleVerifyOtp,
+
     registerPassword,
     setRegisterPassword,
     registerSubmitting,
