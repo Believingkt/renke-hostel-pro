@@ -203,6 +203,7 @@ const BookingFlow = () => {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpError, setOtpError] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registeredMemberId, setRegisteredMemberId] = useState<string | null>(null);
