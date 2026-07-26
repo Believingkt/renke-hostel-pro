@@ -87,6 +87,7 @@ import { cn } from "@/lib/utils";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import OrderSummarySidebar from "@/components/booking-flow/OrderSummarySidebar";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
+import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
