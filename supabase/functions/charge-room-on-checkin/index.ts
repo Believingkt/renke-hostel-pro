@@ -72,9 +72,12 @@ async function chargeOne(supabase: any, orderId: string, triggerSource: string, 
     status: result.success ? "success" : "failed",
     trigger_source: triggerSource,
     rec_trade_id: result.recTradeId ?? null,
+    webhook_status: result.success ? "pending" : "failed",
+    needs_manual_review: !result.success,
     error_message: result.success ? null : (result.msg || `TapPay error ${result.status}`),
     performed_by: performedBy,
   });
+
 
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
 

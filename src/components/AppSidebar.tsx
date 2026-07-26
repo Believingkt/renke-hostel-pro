@@ -25,6 +25,8 @@ import {
   Shield,
   UserCheck,
   KeyRound,
+  Receipt,
+
   Megaphone,
   BadgePercent,
   Banknote,
@@ -123,6 +125,8 @@ const menuItems = [
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
   // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
+  { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "owner_settlement" },
+
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
   { title: "AI 管家", url: "/admin/ai-training", icon: Sparkles, moduleKey: "ai_training" },

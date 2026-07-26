@@ -2514,43 +2514,64 @@ export type Database = {
           accommodation_id: string
           action: string
           amount: number
+          bank_transaction_id: string | null
           card_token_id: string | null
           created_at: string
           error_message: string | null
           id: string
+          needs_manual_review: boolean
           order_id: string
           performed_by: string | null
+          raw_response: Json | null
           rec_trade_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
           status: string
           trigger_source: string
+          webhook_status: string | null
         }
         Insert: {
           accommodation_id: string
           action: string
           amount: number
+          bank_transaction_id?: string | null
           card_token_id?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          needs_manual_review?: boolean
           order_id: string
           performed_by?: string | null
+          raw_response?: Json | null
           rec_trade_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status: string
           trigger_source: string
+          webhook_status?: string | null
         }
         Update: {
           accommodation_id?: string
           action?: string
           amount?: number
+          bank_transaction_id?: string | null
           card_token_id?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          needs_manual_review?: boolean
           order_id?: string
           performed_by?: string | null
+          raw_response?: Json | null
           rec_trade_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
           trigger_source?: string
+          webhook_status?: string | null
         }
         Relationships: [
           {
@@ -9150,6 +9171,54 @@ export type Database = {
           name?: string | null
           synced_at?: string | null
           year?: number
+        }
+        Relationships: []
+      }
+      tappay_webhook_events: {
+        Row: {
+          amount: number | null
+          bank_transaction_id: string | null
+          created_at: string
+          currency: string | null
+          event_type: string
+          id: string
+          matched_order_id: string | null
+          order_number: string | null
+          process_error: string | null
+          processed: boolean
+          raw: Json
+          rec_trade_id: string | null
+          status: number | null
+        }
+        Insert: {
+          amount?: number | null
+          bank_transaction_id?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          matched_order_id?: string | null
+          order_number?: string | null
+          process_error?: string | null
+          processed?: boolean
+          raw?: Json
+          rec_trade_id?: string | null
+          status?: number | null
+        }
+        Update: {
+          amount?: number | null
+          bank_transaction_id?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          matched_order_id?: string | null
+          order_number?: string | null
+          process_error?: string | null
+          processed?: boolean
+          raw?: Json
+          rec_trade_id?: string | null
+          status?: number | null
         }
         Relationships: []
       }
