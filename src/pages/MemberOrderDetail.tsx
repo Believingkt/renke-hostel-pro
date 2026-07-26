@@ -275,6 +275,47 @@ const MemberOrderDetail = () => {
   const points = Math.round(order.final_price * 0.04);
   const balance = Math.max(order.final_price - order.paid_amount, 0);
   const detailPath = order.short_url_alias ? `/${order.short_url_alias}` : `/booking/${order.accommodation_id}`;
+  const extendCheckOut = format(addDays(new Date(order.check_out_date), 1), "yyyy-MM-dd");
+
+  const runAction = async (payload: Record<string, unknown>, onDone?: () => void) => {
+    setActing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("member-order-manage", {
+        body: { orderNumber: order.order_number, ...payload },
+      });
+      const res = (data || {}) as { success?: boolean; message?: string };
+      if (error || !res.success) {
+        toast.error(res.message || error?.message || "操作失敗，請稍後再試");
+        return;
+      }
+      toast.success(res.message || "已完成");
+      onDone?.();
+      setReloadKey((k) => k + 1);
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
+
+  const handleChange = async () => {
+    const datesChanged =
+      newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date;
+    const guestsChanged = newGuests !== order.guest_count;
+    if (!datesChanged && !guestsChanged) {
+      toast.error("沒有任何變更");
+      return;
+    }
+    if (datesChanged) {
+      await runAction({ action: "change_dates", newCheckIn, newCheckOut });
+    }
+    if (guestsChanged) {
+      await runAction({ action: "change_guests", guestCount: newGuests });
+    }
+    setChangeOpen(false);
+  };
+
+
 
   const share = async () => {
     const url = window.location.href;
