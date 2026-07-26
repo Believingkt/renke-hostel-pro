@@ -573,15 +573,8 @@ const MemberOrderDetail = () => {
         {!cancelled && (
           <>
             <div className="border-t border-orange-100 pt-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium" style={{ color: ORANGE }}>
-                <span className="inline-flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5" /> 訂房價格保障
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5" /> 民宿住宿保障
-                </span>
-              </div>
-              <p className="mt-2 text-base font-semibold">
+              <p className="text-base font-semibold">
+
                 {order.payment_status === "paid" ? "已付款" : order.atm_vacc_no ? "待匯款訂金" : "已授權稍後付款"}{" "}
                 <span className="text-xl font-bold" style={{ color: ORANGE }}>
                   NT$ {(order.payment_status === "paid" ? order.final_price : order.deposit_required_amount || order.final_price).toLocaleString()}
