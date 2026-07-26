@@ -5138,7 +5138,26 @@ const BookingFlow = () => {
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </span>
                           </div>
+                          {orderPaymentType === "atm" && (() => {
+                            const dep = getAtmDepositBreakdown();
+                            return (
+                              <div className="pt-2 mt-1 border-t space-y-1.5">
+                                <div className="flex justify-between items-center text-sm font-semibold text-primary">
+                                  <span>本次線上匯款訂金（{dep.percentage}%）</span>
+                                  <span>NT$ {dep.deposit.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                  <span>入住現場付清尾款</span>
+                                  <span>NT$ {dep.balance.toLocaleString()}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                  送出訂單後將產生專屬虛擬帳號，金額為訂金 NT$ {dep.deposit.toLocaleString()}，請於 3 天內完成匯款；尾款可於入住當天以現金、刷卡或匯款付清。
+                                </p>
+                              </div>
+                            );
+                          })()}
                         </div>
+
                         {appliedDiscount && (
                           <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
                             <div className="flex items-center gap-2">
