@@ -44,6 +44,7 @@ import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import { getAtmTransferAmount, getAtmDepositPercent } from "@/lib/atmPayment";
 import {
   AlertDialog,
   AlertDialogAction,
