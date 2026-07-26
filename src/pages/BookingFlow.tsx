@@ -353,6 +353,7 @@ const BookingFlow = () => {
       }));
       toast({ title: "驗證成功", description: "已登入會員" });
     } catch (e: any) {
+      setOtpError(e?.message || "驗證時發生錯誤，請再試一次或重新寄送驗證碼。");
       toast({ title: "驗證失敗", description: e?.message || "請稍後再試", variant: "destructive" });
     } finally {
       setOtpVerifying(false);
