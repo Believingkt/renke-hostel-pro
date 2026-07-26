@@ -142,7 +142,10 @@ Deno.serve(async (req) => {
         error: "send_failed",
         message: raw.includes("not confirmed")
           ? "此信箱尚未完成驗證，請先透過重設密碼流程驗證。"
+          : raw.includes("signups not allowed") || raw.includes("user not found")
+          ? "查不到此 Email 的會員資料，請確認拼字或改用新客註冊。"
           : (sendErr.message || "驗證碼寄送失敗，請稍後再試。"),
+
         next_allowed_at: nextAllowedAt,
       },
       400,
