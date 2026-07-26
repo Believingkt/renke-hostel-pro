@@ -3555,7 +3555,7 @@ const BookingFlow = () => {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
-            {(() => {
+            {currentStep !== "confirm" && (() => {
               const nights = calculateNights();
               const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
               if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
