@@ -4771,7 +4771,7 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
-                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "線上一次付清訂單全額，由 TapPay 安全加密處理" },
+                          { key: "credit_card", label: "信用卡（入住當天扣款）", icon: CreditCard, desc: "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費" },
                           {
                             key: "atm",
                             label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
