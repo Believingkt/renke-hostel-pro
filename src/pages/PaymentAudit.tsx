@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, Receipt, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { PaymentAuditResolveDialog, type ResolveTarget } from "@/components/admin/PaymentAuditResolveDialog";
+
 
 interface ChargeRow {
   id: string;
