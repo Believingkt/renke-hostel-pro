@@ -115,7 +115,7 @@ const extractGuestNotes = (notes?: string | null): string => {
 
 const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行" };
 
-const CopyField = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
+const CopyField = ({ label, value, highlight, copyValue }: { label: string; value: string; highlight?: boolean; copyValue?: string }) => (
   <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
     <div className="min-w-0 flex-1">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -130,9 +130,10 @@ const CopyField = ({ label, value, highlight }: { label: string; value: string; 
       type="button"
       aria-label={`複製${label}`}
       onClick={() => {
-        navigator.clipboard.writeText(value.replace(/[^\dA-Za-z]/g, ""));
+        navigator.clipboard.writeText(copyValue ?? value.replace(/[^\dA-Za-z]/g, ""));
         toast.success("已複製");
       }}
+
       className="shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted"
     >
       <Copy className="h-4 w-4" />
@@ -203,7 +204,7 @@ const AtmVirtualAccountCard = ({
             value={bankCode || "—"}
           />
           <CopyField label="虛擬帳號" value={vaccNo} />
-          <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} highlight />
+          <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} copyValue={String(Math.round(amount))} highlight />
         </div>
         {expire && (
           <div
