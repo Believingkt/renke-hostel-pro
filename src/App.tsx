@@ -39,6 +39,7 @@ const MemberProfileEdit = lazy(() => import("./pages/MemberProfileEdit"));
 const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
+const MemberOrderDetail = lazy(() => import("./pages/MemberOrderDetail"));
 const MemberMessages = lazy(() => import("./pages/MemberMessages"));
 const MemberRecentViews = lazy(() => import("./pages/MemberRecentViews"));
 const MemberCards = lazy(() => import("./pages/MemberCards"));
@@ -199,6 +200,9 @@ function App() {
                       } />
                       <Route path="orders" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
+                      } />
+                      <Route path="orders/:orderNumber" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberOrderDetail /></Suspense>
                       } />
                       <Route path="messages" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberMessages /></Suspense>
