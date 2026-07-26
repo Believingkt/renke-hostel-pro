@@ -401,28 +401,27 @@ const BookingFlow = () => {
       } else {
         // 無密碼：切換至 OTP 驗證模式讓使用者完成登入
         const wait = getOtpCooldown(email);
-        const { error: otpErr } = wait > 0
-          ? { error: null as any }
-          : await supabase.auth.signInWithOtp({
-              email,
-              options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-            });
-        if (otpErr) {
+        const result = wait > 0
+          ? { ok: true, cooldown: wait, message: "" }
+          : await requestMemberOtp(email, { redirectTo: window.location.href });
+        if (!result.ok && !result.rateLimited) {
           setEmailCheckStatus("registered");
           toast({
             title: "註冊成功",
-            description: otpErr.message || "驗證信已寄出，請至信箱確認",
+            description: result.message || "驗證信已寄出，請至信箱確認",
           });
         } else {
-          if (wait === 0) markOtpSent(email);
           setEmailCheckStatus("exists");
           setOtpSent(true);
           setEmailCheckedFor(email);
           toast({
             title: "註冊成功，請輸入驗證碼",
-            description: "6 位數驗證碼已寄至您的信箱",
+            description: result.rateLimited
+              ? (result.message || "請稍候後再重新寄送驗證碼")
+              : "6 位數驗證碼已寄至您的信箱",
           });
         }
+
       }
     } catch (e: any) {
       const raw = e?.message || "";
