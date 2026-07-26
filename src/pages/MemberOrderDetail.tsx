@@ -299,6 +299,7 @@ const MemberOrderDetail = () => {
     freeCancel: boolean;
   } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const [changeOpen, setChangeOpen] = useState(false);
   const [newCheckIn, setNewCheckIn] = useState("");
