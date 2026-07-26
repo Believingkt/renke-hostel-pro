@@ -4965,97 +4965,68 @@ const BookingFlow = () => {
                 {/* Step 5: Confirmation */}
                 {currentStep === "confirm" && (
                   <div className="space-y-6">
-                    {/* 訂房資訊卡片 */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg font-bold flex items-center gap-2">
-                          <Home className="h-5 w-5 text-primary" />
-                          訂房資訊
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          請確認您的訂房資訊是否正確
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-5">
-                        <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
-                          <p className="text-xs text-muted-foreground mb-1">房型</p>
-                          <p className="font-semibold text-sm sm:text-base">{selectedRoom?.name}</p>
-                        </div>
+                    {/* 訂單摘要（與上方摘要一致） */}
+                    {(() => {
+                      const nights = calculateNights();
+                      const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+                      if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
+                        addonLines.push({
+                          label: "寵物加購",
+                          qty: `${petCount} 隻 × ${nights} 晚`,
+                          subtotal: petCount * petPlanSettings.pricePerUnit * nights,
+                        });
+                      }
+                      const bbqTotalCount = Object.values(bbqMealsByDate).reduce((s, c) => s + (c || 0), 0);
+                      if (mealPlanSettings.enabled && bbqTotalCount > 0) {
+                        addonLines.push({
+                          label: "BBQ 餐食",
+                          qty: `${bbqTotalCount} 人份`,
+                          subtotal: bbqTotalCount * mealPlanSettings.pricePerUnit,
+                        });
+                      }
+                      Object.entries(customAddonCounts).forEach(([type, count]) => {
+                        if (!count || count <= 0) return;
+                        const s = customAddonSettings.find((x) => x.addon_type === type);
+                        if (!s) return;
+                        addonLines.push({
+                          label: s.description || s.addon_type,
+                          qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                          subtotal: count * s.price_per_unit * nights,
+                        });
+                      });
+                      const childExtra = calculateChildExtraTotal();
+                      if (childExtra > 0) {
+                        addonLines.push({
+                          label: "兒童加價",
+                          qty: `${nights} 晚`,
+                          subtotal: childExtra,
+                        });
+                      }
+                      return (
+                        <MobileOrderSummary
+                          accommodationName={accommodationName}
+                          checkInDate={checkInDate}
+                          checkOutDate={checkOutDate}
+                          calculateNights={calculateNights}
+                          totalGuests={totalGuests}
+                          adultsCount={contextGuests?.adults || 0}
+                          childrenCount={contextGuests?.children || 0}
+                          infantsCount={infantsCount}
+                          toddlersCount={toddlersCount}
+                          selectedRoom={selectedRoom}
+                          selectedPackage={selectedPackage}
+                          roomAllocation={selectedPackage?.room_allocation || null}
+                          roomTypes={roomTypes}
+                          roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                          roomSubtotal={calculateTotal()}
+                          addonLines={addonLines}
+                          calculateFinalTotal={calculateFinalTotal}
+                          appliedDiscount={appliedDiscount}
+                          calculateDiscount={calculateDiscount}
+                        />
+                      );
+                    })()}
 
-                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">入住</p>
-                            <p className="font-medium text-xs sm:text-sm">{format(new Date(checkInDateStr), "MM/dd (E)", { locale: zhTW })}</p>
-                          </div>
-                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">退房</p>
-                            <p className="font-medium text-xs sm:text-sm">{format(new Date(checkOutDateStr), "MM/dd (E)", { locale: zhTW })}</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">人數</p>
-                            <p className="font-medium text-xs sm:text-sm">{totalGuests} 人</p>
-                          </div>
-                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">方案</p>
-                            <p className="font-medium text-xs sm:text-sm">{getMealPlanDisplayName(selectedMealPlan)}</p>
-                          </div>
-                        </div>
-
-                        {(petCount > 0 || Object.values(bbqMealsByDate).some(count => count > 0) || Object.values(customAddonCounts).some(c => c > 0)) && (
-                          <>
-                            <Separator />
-                            <div className="space-y-3">
-                              <p className="text-sm font-semibold flex items-center gap-2">
-                                <ShoppingBag className="h-4 w-4 text-primary" />
-                                加購方案
-                              </p>
-                              {petCount > 0 && (
-                                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm">🐾 寵物方案 × {petCount} 隻 × {calculateNights()} 晚</span>
-                                    <span className="text-sm font-semibold">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
-                                  </div>
-                                </div>
-                              )}
-                              {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).length > 0 && (
-                                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
-                                  <p className="text-sm font-medium flex items-center gap-2">
-                                    🍖 餐食方案
-                                  </p>
-                                  <div className="space-y-1 pl-4">
-                                    {Object.entries(bbqMealsByDate)
-                                      .filter(([_, count]) => count > 0)
-                                      .map(([dateStr, count]) => (
-                                        <div key={dateStr} className="flex justify-between text-xs">
-                                          <span className="text-muted-foreground">
-                                            {format(new Date(dateStr), "yyyy/MM/dd (E)", { locale: zhTW })} × {count} 人
-                                          </span>
-                                          <span className="font-medium">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
-                                        </div>
-                                      ))
-                                    }
-                                  </div>
-                                </div>
-                              )}
-                              {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                                const setting = customAddonSettings.find(s => s.addon_type === type);
-                                return (
-                                  <div key={type} className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm">🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚</span>
-                                      <span className="text-sm font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
 
                     {/* 旅客資訊卡片 */}
                     <Card className="border-2">
