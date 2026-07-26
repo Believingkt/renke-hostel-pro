@@ -341,6 +341,22 @@ const MemberOrderDetail = () => {
 
   const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
 
+  const openCancel = async () => {
+    setCancelQuote(null);
+    setCancelOpen(true);
+    setQuoteLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("member-order-manage", {
+        body: { orderNumber: order.order_number, action: "cancel_quote" },
+      });
+      const res = (data || {}) as { success?: boolean; quote?: typeof cancelQuote };
+      if (res.success && res.quote) setCancelQuote(res.quote);
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+
   const handleChange = async () => {
     const datesChanged =
       newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date;
