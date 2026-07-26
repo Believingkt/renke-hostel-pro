@@ -76,6 +76,8 @@ export default function PaymentAudit() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(null);
+
 
   useEffect(() => {
     if (!currentAccommodationId) return;
