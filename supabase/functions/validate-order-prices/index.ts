@@ -128,7 +128,30 @@ serve(async (req) => {
       packageId = null,
     } = body as any;
 
+    // --- 下單限流（僅計未付款訂單；後台/匯入來源不受限） ---
+    const guestEmail: string | null = (body as any)?.guestEmail ?? null;
+    const clientIp = getClientIp(req);
+    const rateLimit = await checkOrderRateLimit(supabase, { email: guestEmail, ip: clientIp });
+    if (rateLimit.limited) {
+      console.warn("[validate-order-prices] rate limited:", rateLimit.reason, { guestEmail, clientIp });
+      return new Response(
+        JSON.stringify({
+          isValid: false,
+          rateLimited: true,
+          errors: [rateLimit.message],
+          calculatedPrices: null,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    await recordOrderAttempt(supabase, {
+      email: guestEmail,
+      ip: clientIp,
+      accommodationId,
+    });
+
     const errors: string[] = [];
+
     
     // Validate required fields
     if (!accommodationId || !roomTypeId || !checkInDate || !checkOutDate) {
