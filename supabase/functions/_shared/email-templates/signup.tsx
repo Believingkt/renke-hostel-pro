@@ -2,7 +2,7 @@
 
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Button, Container, Head, Heading, Hr, Html, Link, Preview, Section, Text,
+  Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Text,
 } from 'npm:@react-email/components@0.0.22'
 
 interface SignupEmailProps {
@@ -28,16 +28,11 @@ export const SignupEmail = ({ siteName, siteUrl, recipient, confirmationUrl, tok
         <Section style={body}>
           <Heading style={h1}>註冊成功</Heading>
           <Text style={text}>
-            感謝您加入成為 {siteName} 會員！請在 7 天內驗證您的電子郵件，以完成帳號設定。
+            感謝您加入成為 {siteName} 會員！請於結帳頁面輸入以下 6 位數驗證碼，以完成帳號驗證。
           </Text>
-          {confirmationUrl && (
-            <Section style={btnWrap}>
-              <Button style={button} href={confirmationUrl}>驗證我的電子郵件</Button>
-            </Section>
-          )}
           {token && (
             <>
-              <Text style={otpLabel}>或於結帳頁面輸入 6 位數驗證碼</Text>
+              <Text style={otpLabel}>您的註冊驗證碼</Text>
               <Text style={otp}>{token}</Text>
               <Text style={otpHint}>驗證碼將於 10 分鐘內失效</Text>
             </>
@@ -45,17 +40,14 @@ export const SignupEmail = ({ siteName, siteUrl, recipient, confirmationUrl, tok
 
           <Hr style={hr} />
 
-          <Heading style={h2}>還沒註冊？</Heading>
+          <Heading style={h2}>不是您本人操作？</Heading>
           <Text style={text}>
-            別擔心 — 可能是其他用戶不小心輸入了您的電子郵件地址（{recipient}）。您可以不用理會這封信，未經驗證的帳號不會啟用。請注意：此連結有效期限為 7 天。
+            可能是其他人不小心輸入了您的電子郵件地址（{recipient}）。請忽略本信，未完成驗證的帳號不會啟用，也無法用來訂房。
+          </Text>
+          <Text style={text}>
+            請勿將此驗證碼提供給任何人，{siteName} 客服不會主動向您索取驗證碼。
           </Text>
 
-          {confirmationUrl && (
-            <Text style={linkFallback}>
-              若按鈕無法點擊，請複製此連結至瀏覽器：<br />
-              <Link href={confirmationUrl} style={link}>{confirmationUrl}</Link>
-            </Text>
-          )}
 
           <Section style={notice}>
             <Text style={noticeText}>請勿回覆此則訊息。寄發此則訊息的電子郵件地址無法接收電子郵件。</Text>
