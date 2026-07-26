@@ -233,7 +233,10 @@ const BookingFlow = () => {
   // Debounce Email 檢查
   useEffect(() => {
     const email = (guestInfo.email || "").trim().toLowerCase();
-    if (loggedInMember) { setEmailCheckStatus("idle"); return; }
+    if (loggedInMember && email === (loggedInMember.email || "").trim().toLowerCase()) {
+      setEmailCheckStatus("idle");
+      return;
+    }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailCheckStatus("idle");
       setEmailCheckedFor("");
@@ -291,6 +294,27 @@ const BookingFlow = () => {
     return () => clearTimeout(t);
   }, [guestInfo.email, loggedInMember, emailCheckedFor, toast]);
 
+  /** 已登入帳號與輸入 Email 不一致時，訂單不可掛在舊帳號上 */
+  const isMemberEmailMismatch = !!loggedInMember
+    && !!guestInfo.email.trim()
+    && guestInfo.email.trim().toLowerCase() !== (loggedInMember.email || "").trim().toLowerCase();
+  const effectiveMemberId = loggedInMember && !isMemberEmailMismatch ? loggedInMember.id || null : null;
+
+  const handleSwitchAccount = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("signOut failed", e);
+    }
+    setLoggedInMember(null);
+    setEmailCheckStatus("idle");
+    setEmailCheckedFor("");
+    setOtpSent(false);
+    setOtpCode("");
+    setOtpError("");
+    toast({ title: "已登出原帳號", description: "請以本次訂房的 Email 完成驗證登入" });
+  };
+
   const handleVerifyOtp = async () => {
     const email = guestInfo.email.trim().toLowerCase();
     if (!otpCode || otpCode.length < 6) {
@@ -344,8 +368,10 @@ const BookingFlow = () => {
         }
       }
 
-      const p = profile || { user_id: userId, name: guestInfo.name || "", email, phone: guestInfo.phone || "" };
-      setLoggedInMember({ id: p.user_id, name: p.name || "", email: p.email || email, phone: p.phone || "" });
+      const p: any = profile || { id: null, user_id: userId, name: guestInfo.name || "", email, phone: guestInfo.phone || "" };
+      // member_id 對應 platform_members.id（非 auth user id），會員中心以此查詢訂單
+      setLoggedInMember({ id: p.id || "", name: p.name || "", email: (p.email || email).toLowerCase(), phone: p.phone || "" });
+      setEmailCheckedFor((p.email || email).toLowerCase());
       setGuestInfo(prev => ({
         ...prev,
         name: prev.name || p.name || "",
@@ -395,12 +421,18 @@ const BookingFlow = () => {
             description: signInErr?.message || "驗證信已寄出，驗證後即可登入",
           });
         } else {
+          const { data: newMember } = await supabase
+            .from("platform_members")
+            .select("id, name, email, phone")
+            .eq("user_id", signInData.user.id)
+            .maybeSingle();
           setLoggedInMember({
-            id: signInData.user.id,
-            name: guestInfo.name || "",
-            email,
-            phone: guestInfo.phone || "",
+            id: newMember?.id || data?.member_id || "",
+            name: newMember?.name || guestInfo.name || "",
+            email: (newMember?.email || email).toLowerCase(),
+            phone: newMember?.phone || guestInfo.phone || "",
           });
+          setEmailCheckedFor(email);
           toast({ title: "註冊並登入成功" });
         }
       } else {
@@ -2936,7 +2968,7 @@ const BookingFlow = () => {
               discountAmount,
               totalGuests,
               customerId,
-              memberId: loggedInMember?.id || null,
+              memberId: effectiveMemberId,
               idempotencyKey, // 3DS 完成後 complete-3ds-booking 用此鍵防重複
               source: 'booking',
             };
@@ -2980,7 +3012,7 @@ const BookingFlow = () => {
                 discountAmount,
                 totalGuests,
                 customerId,
-                memberId: loggedInMember?.id || null,
+                memberId: effectiveMemberId,
                 customAddonDetails: Object.entries(customAddonCounts).filter(([_, c]) => c > 0).length > 0
                   ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
                       const setting = customAddonSettings.find(s => s.addon_type === type);
@@ -3197,7 +3229,7 @@ const BookingFlow = () => {
             accommodation_id: accommodationId,
             room_type_id: selectedRoom.id,
              customer_id: customerId,
-             member_id: loggedInMember?.id || null,
+             member_id: effectiveMemberId,
              order_number: "", // 由資料庫 trigger 自動生成
             guest_name: guestInfo.name,
             guest_phone: guestInfo.phone,
@@ -4708,6 +4740,8 @@ const BookingFlow = () => {
                 {currentStep === "payment" && (
                   <BookerForm
                     loggedInMember={loggedInMember}
+                    isMemberEmailMismatch={isMemberEmailMismatch}
+                    onSwitchAccount={handleSwitchAccount}
                     guestInfo={guestInfo}
                     setGuestInfo={setGuestInfo}
                     errors={errors}
