@@ -16,13 +16,24 @@ export interface RecentView {
   viewed_at: string;
 }
 
+/** 舊版 /booking/{uuid} 路徑一律正規化為新版包棟訂房頁。 */
+export function normalizeBookingPath(path: string): string {
+  if (!path) return path;
+  return path.replace(
+    /^\/booking\/(?!villa\/|search|atm-info)([^/?#]+)/,
+    "/booking/villa/$1",
+  );
+}
+
 function readLocal(): RecentView[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
+    return Array.isArray(arr)
+      ? arr.map((v) => ({ ...v, path: normalizeBookingPath(v?.path ?? "") }))
+      : [];
   } catch {
     return [];
   }
@@ -67,7 +78,7 @@ export async function fetchRecentViews(): Promise<RecentView[]> {
   if (error || !data) return local;
 
   const map = new Map<string, RecentView>();
-  for (const r of data as RecentView[]) map.set(r.accommodation_id, r);
+  for (const r of data as RecentView[]) map.set(r.accommodation_id, { ...r, path: normalizeBookingPath(r.path ?? "") });
   for (const r of local) {
     const ex = map.get(r.accommodation_id);
     if (!ex || new Date(r.viewed_at) > new Date(ex.viewed_at)) map.set(r.accommodation_id, r);
@@ -86,7 +97,7 @@ export function getRecentViews(): RecentView[] {
 
 export async function pushRecentView(v: RecentView) {
   if (!v.accommodation_id) return;
-  const entry: RecentView = { ...v, viewed_at: new Date().toISOString() };
+  const entry: RecentView = { ...v, path: normalizeBookingPath(v.path ?? ""), viewed_at: new Date().toISOString() };
   const list = readLocal().filter((x) => x.accommodation_id !== v.accommodation_id);
   list.unshift(entry);
   writeLocal(list);

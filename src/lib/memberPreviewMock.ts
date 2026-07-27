@@ -192,7 +192,7 @@ export const mockFavorites = [
     accommodation_name: "森山民宿",
     region: "宜蘭 頭城",
     image_url: null as string | null,
-    path: "/booking/mock-acc-1",
+    path: "/booking/villa/mock-acc-1",
     created_at: "2026-07-10T10:00:00Z",
   },
   {
@@ -201,7 +201,7 @@ export const mockFavorites = [
     accommodation_name: "雲岫海景",
     region: "花蓮 秀林",
     image_url: null,
-    path: "/booking/mock-acc-2",
+    path: "/booking/villa/mock-acc-2",
     created_at: "2026-06-25T10:00:00Z",
   },
 ];
@@ -212,7 +212,7 @@ export const mockRecentViews = [
     name: "雲岫海景",
     region: "花蓮 秀林",
     image_url: null as string | null,
-    path: "/booking/mock-acc-2",
+    path: "/booking/villa/mock-acc-2",
     viewed_at: new Date().toISOString(),
   },
   {
@@ -220,7 +220,7 @@ export const mockRecentViews = [
     name: "森山民宿",
     region: "宜蘭 頭城",
     image_url: null,
-    path: "/booking/mock-acc-1",
+    path: "/booking/villa/mock-acc-1",
     viewed_at: new Date(Date.now() - 3600_000 * 6).toISOString(),
   },
   {
@@ -228,7 +228,7 @@ export const mockRecentViews = [
     name: "田松 Villa",
     region: "南投 埔里",
     image_url: null,
-    path: "/booking/mock-acc-3",
+    path: "/booking/villa/mock-acc-3",
     viewed_at: new Date(Date.now() - 86400_000).toISOString(),
   },
 ];

@@ -96,7 +96,7 @@ const MemberFavorites = () => {
         region,
         region_1: acc?.region_1 || null,
         image_url: photoMap.get(r.accommodation_id) || null,
-        path: acc?.short_url_alias ? `/${acc.short_url_alias}` : `/booking/${r.accommodation_id}`,
+        path: acc?.short_url_alias ? `/${acc.short_url_alias}` : `/booking/villa/${r.accommodation_id}`,
         rating: ratingMap.get(r.accommodation_id) ?? null,
         created_at: r.created_at,
       };
