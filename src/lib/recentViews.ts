@@ -16,13 +16,24 @@ export interface RecentView {
   viewed_at: string;
 }
 
+/** 舊版 /booking/{uuid} 路徑一律正規化為新版包棟訂房頁。 */
+export function normalizeBookingPath(path: string): string {
+  if (!path) return path;
+  return path.replace(
+    /^\/booking\/(?!villa\/|search|atm-info)([^/?#]+)/,
+    "/booking/villa/$1",
+  );
+}
+
 function readLocal(): RecentView[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
+    return Array.isArray(arr)
+      ? arr.map((v) => ({ ...v, path: normalizeBookingPath(v?.path ?? "") }))
+      : [];
   } catch {
     return [];
   }
