@@ -147,7 +147,7 @@ export function AccommodationSelector() {
         </Tooltip>
       </TooltipProvider>
       <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
-        <SelectTrigger className="w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[180px] overflow-hidden [&>svg]:flex-shrink-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-hidden [&>span]:text-ellipsis [&>span]:min-w-0 [&>span]:block">
+        <SelectTrigger className="w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[180px] gap-1 overflow-hidden [&>svg]:flex-shrink-0 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:overflow-hidden [&>span]:whitespace-nowrap [&>span]:text-ellipsis">
           <SelectValue placeholder="切換民宿" />
         </SelectTrigger>
         <SelectContent>
