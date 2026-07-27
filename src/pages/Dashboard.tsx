@@ -26,6 +26,7 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
+import { CheckInRevenueTab } from "@/components/analytics/CheckInRevenueTab";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { currencyModeSymbol, type CurrencyMode } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
