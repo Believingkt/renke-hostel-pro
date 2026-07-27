@@ -12,3 +12,15 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# 後台與會員頁面不需被收錄
+User-agent: *
+Disallow: /admin
+Disallow: /hq
+Disallow: /member
+Disallow: /auth
+Disallow: /pay
+Disallow: /payment-result
+Disallow: /order-search
+
+Sitemap: https://booking.lakeze.com/sitemap.xml
