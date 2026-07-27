@@ -170,7 +170,10 @@ export default function AddonCenter() {
       quantity: String(it.quantity),
       unit_price: String(it.unit_price),
       notes: it.notes || "",
-      related_order_id: it.related_order_id || "",
+      related_order_id: it.related_order_id
+        ? orderNumbers[it.related_order_id] || it.related_order_id
+        : "",
+
     });
     setOpen(true);
   }
