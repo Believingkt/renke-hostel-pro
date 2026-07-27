@@ -107,11 +107,12 @@ const MemberOrders = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_number, order_date, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
+        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
       )
       .eq("member_id", member.id)
-      .order("check_in_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(50);
+
 
     if (error) { console.error(error); setLoading(false); return; }
 
@@ -140,23 +141,29 @@ const MemberOrders = () => {
       }
     });
 
+    const bookedAt = (o: any) =>
+      new Date(o.order_date || o.created_at || o.check_in_date).getTime();
+
     setOrders(
-      (data || []).map((o: any) => ({
-        id: o.id,
-        order_number: o.order_number,
-        order_date: o.order_date,
-        check_in_date: o.check_in_date,
-        check_out_date: o.check_out_date,
-        order_status: o.order_status,
-        final_price: o.final_price,
-        guest_name: o.guest_name,
-        guest_count: o.guest_count || 1,
-        accommodation_id: o.accommodation_id,
-        accommodation_name: accMap.get(o.accommodation_id) || "",
-        room_type_name: o.room_types?.name || null,
-        room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
-      }))
+      [...(data || [])]
+        .sort((a: any, b: any) => bookedAt(b) - bookedAt(a))
+        .map((o: any) => ({
+          id: o.id,
+          order_number: o.order_number,
+          order_date: o.order_date,
+          check_in_date: o.check_in_date,
+          check_out_date: o.check_out_date,
+          order_status: o.order_status,
+          final_price: o.final_price,
+          guest_name: o.guest_name,
+          guest_count: o.guest_count || 1,
+          accommodation_id: o.accommodation_id,
+          accommodation_name: accMap.get(o.accommodation_id) || "",
+          room_type_name: o.room_types?.name || null,
+          room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
+        }))
     );
+
     setLoading(false);
   };
 
