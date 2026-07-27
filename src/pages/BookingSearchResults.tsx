@@ -769,8 +769,8 @@ const BookingSearchResults = () => {
     if (toddlersCount) params.set("toddlers", String(toddlersCount));
     if (roomsParam) params.set("rooms", String(roomsParam));
     if (promoTag) params.set("promo", promoTag);
-    const useVilla = isSensanAccommodation(card.accommodation_name);
-    const path = useVilla ? `/booking/villa/${card.accommodation_id}` : `/booking/${card.accommodation_id}`;
+    const path = `/booking/villa/${card.accommodation_id}`;
+
     const qs = params.toString();
     navigate(`${path}${qs ? `?${qs}` : ""}`);
   }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam, promoTag]);

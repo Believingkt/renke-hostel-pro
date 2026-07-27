@@ -888,12 +888,10 @@ const BookingPortal = () => {
     if (toddlers) params.set("toddlers", String(toddlers));
     if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
-    // 有設定包區方案的民宿走 villa 訂房頁；否則走標準訂房頁。
-    // Sensan 為保險起見一律走 villa。
-    const acc = accommodations.find((a) => a.id === accId);
-    const useVilla = packagedAccIds.has(accId) || isSensanAccommodation(acc?.name);
-    const path = useVilla ? `/booking/villa/${accId}` : `/booking/${accId}`;
+    // 一律走新版包棟訂房頁（舊版一般訂房頁已停用）
+    const path = `/booking/villa/${accId}`;
     navigate(`${path}${qs ? `?${qs}` : ""}`);
+
   };
 
   const clearFilters = () => {

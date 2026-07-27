@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Navigate } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
@@ -67,6 +67,14 @@ const Index = () => {
     }
   }, [accommodationId, setCurrentAccommodationId]);
 
+  // 舊版「一般民宿訂房頁」已停用：解析到館別後一律導向新版包棟訂房頁
+  if (accommodationId) {
+    const params = new URLSearchParams(searchParams);
+    params.delete("accId");
+    const qs = params.toString();
+    return <Navigate to={`/booking/villa/${accommodationId}${qs ? `?${qs}` : ""}`} replace />;
+  }
+
   // 如果有 URL accId，不需等待 subdomain 解析完成
   // 嘗試從快取取得主題（用於載入畫面）
   const cachedTheme = accommodationId ? getCachedThemePreset(accommodationId) : null;
@@ -75,6 +83,7 @@ const Index = () => {
   if ((!urlAccId && subdomainLoading) || isLoading) {
     return <div className={`min-h-screen ${loadingThemeClass}`} />;
   }
+
 
   if (subdomainError) {
     return (
