@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { translateOrderError } from "@/lib/orderErrorMessages";
 
 
 interface RoomType {
