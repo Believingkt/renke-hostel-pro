@@ -83,7 +83,7 @@ const menuItems = [
     icon: Globe,
     moduleKey: "website_content",
     subItems: [
-      { title: "網頁設定", url: "/admin/website-content?tab=basic-info", icon: Info },
+      { title: "首頁與 SEO 設定", url: "/admin/website-content?tab=basic-info", icon: Info },
       { title: "訂房頁標頭", url: "/admin/website-content?tab=villa-header", icon: LayoutPanelTop },
       { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
       { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
