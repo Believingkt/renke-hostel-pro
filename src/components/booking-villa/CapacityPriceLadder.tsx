@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import PackagePhotoCarousel from "./PackagePhotoCarousel";
+import { OriginalPrice, SavingsBadge } from "@/components/booking-flow/SavingsBadge";
+
 import {
   Popover,
   PopoverContent,
@@ -490,11 +492,7 @@ const CapacityPriceLadder = ({
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
-                    {saved > 0 && (
-                      <span className="text-[15px] line-through text-muted-foreground tabular-nums">
-                        NT${opt.originalPrice.toLocaleString()}
-                      </span>
-                    )}
+                    {saved > 0 && <OriginalPrice amount={opt.originalPrice} size="md" />}
                     <span
                       className="font-bold text-[32px] leading-none tabular-nums tracking-tight"
                       style={{ color: "#A98467" }}
@@ -502,22 +500,10 @@ const CapacityPriceLadder = ({
                       NT${opt.totalPrice.toLocaleString()}
                     </span>
                     {saved > 0 && (
-                      <span
-                        className="inline-flex items-center text-[12px] font-medium px-2.5 py-0.5 rounded-full"
-                        style={{ background: "#FDF6F5", color: "#C25953" }}
-                      >
-                        人客多優惠
-                      </span>
-                    )}
-                    {saved > 0 && opt.discountPercent > 0 && (
-                      <span
-                        className="inline-flex items-center text-[12px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: "#C25953", color: "#fff" }}
-                      >
-                        -{opt.discountPercent}%
-                      </span>
+                      <SavingsBadge original={opt.originalPrice} price={opt.totalPrice} size="md" />
                     )}
                   </div>
+
 
                   {childExtraTotal > 0 && (
                     <Popover>
@@ -902,21 +888,22 @@ const PriceCard = ({
 
         <div className={`text-right shrink-0 ${opt.isRecommended ? "pt-5" : ""}`}>
           <div className="flex items-center justify-end gap-1 mb-0.5">
-            <span className="text-[10px] line-through text-muted-foreground">
-              NT${opt.originalPrice.toLocaleString()}
-            </span>
+            {saved > 0 && <OriginalPrice amount={opt.originalPrice} size="xs" />}
           </div>
           <div className="flex items-center justify-end gap-1 mb-0.5">
-            <span
-              className="text-[9px] font-bold px-1 py-px rounded leading-none"
-              style={{ background: "hsl(0, 75%, 95%)", color: "hsl(0, 75%, 45%)" }}
-            >
-              -{opt.discountPercent}%
-            </span>
-            <span className="text-[9px] font-medium" style={{ color: "hsl(0, 75%, 45%)" }}>
-              省 ${saved.toLocaleString()}
-            </span>
+            <SavingsBadge
+              original={opt.originalPrice}
+              price={opt.totalPrice}
+              size="xs"
+              showLabel={false}
+            />
+            {saved > 0 && (
+              <span className="text-[9px] font-medium text-primary">
+                省 ${saved.toLocaleString()}
+              </span>
+            )}
           </div>
+
           <p className="font-bold text-base leading-none" style={{ color: "hsl(0, 75%, 50%)" }}>
             NT${opt.totalPrice.toLocaleString()}
           </p>

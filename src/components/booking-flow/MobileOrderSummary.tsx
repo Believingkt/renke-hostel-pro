@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Users, Tag, Home, Check, X, Plus, Sparkles } from "lucide-react";
+import { OriginalPrice, SavingsBadge } from "./SavingsBadge";
+
 
 interface PackageInclude {
   text: string;
@@ -220,23 +222,23 @@ export default function MobileOrderSummary({
                 <span className="min-w-0 flex-1 text-foreground break-words">
                   房費（{nights} 晚）
                   {roomOriginalSubtotal != null && roomOriginalSubtotal > roomSubtotal && (
-                    <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary align-middle">
-                      人客多優惠 -
-                      {Math.round(((roomOriginalSubtotal - roomSubtotal) / roomOriginalSubtotal) * 100)}%
-                    </span>
+                    <SavingsBadge
+                      original={roomOriginalSubtotal}
+                      price={roomSubtotal}
+                      className="ml-1.5"
+                    />
                   )}
                 </span>
                 <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
                   {roomOriginalSubtotal != null && roomOriginalSubtotal > roomSubtotal && (
-                    <span className="mr-1.5 font-normal text-muted-foreground line-through">
-                      NT$ {roomOriginalSubtotal.toLocaleString()}
-                    </span>
+                    <OriginalPrice amount={roomOriginalSubtotal} className="mr-1.5" />
                   )}
                   NT$ {roomSubtotal.toLocaleString()}
                 </span>
               </div>
 
             )}
+
             {addonLines?.map((line, i) => (
               <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0 flex-1 text-foreground break-words">
