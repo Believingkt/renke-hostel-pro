@@ -19,7 +19,6 @@ import { SocialSharingSection } from "@/components/website-content/SocialSharing
 import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
-import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
 import VillaHeaderSettings from "@/components/website-content/VillaHeaderSettings";
@@ -3284,60 +3283,8 @@ const WebsiteContent = () => {
           <PageHeader title="首頁與 SEO 設定" icon={Info} />
 
 
-          {/* 首頁區塊顯示設定 - 獨立區塊，放在第一個位置 */}
-          <HomepageSectionsBlock
-            accommodationId={accommodationId}
-            sectionsOrder={basicInfo.homepage_sections_order}
-            sectionTitles={basicInfo.homepage_section_titles}
-            showAboutSection={basicInfo.show_about_section}
-            showRoomsSection={basicInfo.show_rooms_section}
-            showFacilitiesSection={basicInfo.show_facilities_section}
-            showGallerySection={basicInfo.show_gallery_section}
-            showReviewsSection={basicInfo.show_reviews_section}
-            showFaqSection={basicInfo.show_faq_section}
-            showLocationSection={basicInfo.show_location_section}
-            showBookingInfoSection={basicInfo.show_booking_info_section}
-            customSections={customImageSections.map(s => ({
-              id: s.id,
-              title: s.title,
-              is_enabled: s.is_enabled,
-            }))}
-            onSectionsOrderChange={(newOrder) => {
-              setBasicInfo(prev => ({ ...prev, homepage_sections_order: newOrder }));
-            }}
-            onSectionTitlesChange={(titles) => {
-              setBasicInfo(prev => ({ ...prev, homepage_section_titles: titles }));
-            }}
-            onShowAboutSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_about_section: value }));
-            }}
-            onShowRoomsSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_rooms_section: value }));
-            }}
-            onShowFacilitiesSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_facilities_section: value }));
-            }}
-            onShowGallerySectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_gallery_section: value }));
-            }}
-            onShowReviewsSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_reviews_section: value }));
-            }}
-            onShowFaqSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_faq_section: value }));
-            }}
-            onShowLocationSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_location_section: value }));
-            }}
-            onShowBookingInfoSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_booking_info_section: value }));
-            }}
-            onCustomSectionToggle={(id, enabled) => {
-              setCustomImageSections(prev => 
-                prev.map(s => s.id === id ? { ...s, is_enabled: enabled } : s)
-              );
-            }}
-          />
+          {/* 「首頁區塊顯示」已移除：各區塊改由左側分頁維護，顯示順序與開關維持資料庫既有值 */}
+
 
           <WebInfoSection
             accommodationId={accommodationId || ''}
