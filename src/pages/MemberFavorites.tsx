@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { isMemberPreview, mockFavorites } from "@/lib/memberPreviewMock";
+import { bookingPath } from "@/lib/frontendUrl";
 
 interface FavItem {
   id: string;
@@ -96,7 +97,7 @@ const MemberFavorites = () => {
         region,
         region_1: acc?.region_1 || null,
         image_url: photoMap.get(r.accommodation_id) || null,
-        path: acc?.short_url_alias ? `/${acc.short_url_alias}` : `/booking/villa/${r.accommodation_id}`,
+        path: acc?.short_url_alias ? `/${acc.short_url_alias}` : bookingPath(r.accommodation_id),
         rating: ratingMap.get(r.accommodation_id) ?? null,
         created_at: r.created_at,
       };

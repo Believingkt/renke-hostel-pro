@@ -22,6 +22,7 @@ import {
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
+import { openFrontendBooking } from "@/lib/frontendUrl";
   evaluateChildSelection,
   resolveChildRules,
   summarizeChildRules,
@@ -769,10 +770,13 @@ const BookingSearchResults = () => {
     if (toddlersCount) params.set("toddlers", String(toddlersCount));
     if (roomsParam) params.set("rooms", String(roomsParam));
     if (promoTag) params.set("promo", promoTag);
-    const path = `/booking/villa/${card.accommodation_id}`;
-
-    const qs = params.toString();
-    navigate(`${path}${qs ? `?${qs}` : ""}`);
+    openFrontendBooking(
+      {
+        accommodationId: card.accommodation_id,
+        params: Object.fromEntries(params.entries()),
+      },
+      { navigate },
+    );
   }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam, promoTag]);
 
   const summary = useMemo(() => {
