@@ -10,6 +10,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
   accommodationId: string;
