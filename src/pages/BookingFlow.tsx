@@ -4783,7 +4783,7 @@ const BookingFlow = () => {
                             key: "atm",
                             label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
                             icon: Building2,
-                            desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 3 天）`,
+                            desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 20 分鐘）`,
                           },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
@@ -4922,7 +4922,7 @@ const BookingFlow = () => {
                                   ・ 送出訂單後將跳轉到「ATM 匯款資訊頁」，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
                                   ・ 虛擬帳號金額為 <span className="font-medium text-foreground">訂金 NT$ {dep.deposit.toLocaleString()}</span>，請勿更改匯款金額，以免無法自動核帳。<br />
                                   ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
-                                  ・ 繳費期限 3 天，逾期未繳訂金訂單將自動取消。<br />
+                                  ・ 繳費期限 20 分鐘，逾期未繳訂金訂單將自動取消。<br />
                                   ・ 系統收到入帳通知後將自動確認訂房，剩餘尾款 NT$ {dep.balance.toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
                                 </p>
                               </div>
@@ -5157,7 +5157,7 @@ const BookingFlow = () => {
                                   <span>NT$ {dep.balance.toLocaleString()}</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                                  送出訂單後將產生專屬虛擬帳號，金額為訂金 NT$ {dep.deposit.toLocaleString()}，請於 3 天內完成匯款；尾款可於入住當天以現金、刷卡或匯款付清。
+                                  送出訂單後將產生專屬虛擬帳號，金額為訂金 NT$ {dep.deposit.toLocaleString()}，請於 20 分鐘內完成匯款；尾款可於入住當天以現金、刷卡或匯款付清。
                                 </p>
                               </div>
                             );

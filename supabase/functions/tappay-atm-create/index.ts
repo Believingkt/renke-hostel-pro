@@ -13,6 +13,7 @@ interface AtmCreatePayload {
   amount: number;
   cardholder: { name: string; email: string; phoneNumber: string };
   expireInDays?: number;    // 1-7，預設 3
+  expireInMinutes?: number; // 若指定（前台訂金 20 分鐘），系統以此為準覆寫 atm_expire_at
   details?: string;
 }
 
@@ -284,7 +285,13 @@ serve(async (req) => {
         expireDateStr = expireDateStr || fromRecord.expireDateStr;
       }
     }
-    const expireAt = parseTapPayExpireAt(expireDateStr, expireDays);
+    const expireMinutes = data.expireInMinutes && data.expireInMinutes > 0
+      ? Math.min(60 * 24 * 7, Math.max(5, Math.floor(data.expireInMinutes)))
+      : null;
+    // 系統端期限（前台訂金 20 分鐘）優先於 TapPay 回傳的天數期限
+    const expireAt = expireMinutes
+      ? new Date(Date.now() + expireMinutes * 60_000)
+      : parseTapPayExpireAt(expireDateStr, expireDays);
 
     if (!vaccNo) {
       return new Response(JSON.stringify({ success: false, message: "TapPay 未回傳虛擬帳號" }), {

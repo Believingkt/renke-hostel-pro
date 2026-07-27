@@ -64,11 +64,15 @@ interface Props {
   amountLabel?: string;
   /** 已存在的虛擬帳號（避免重複開立） */
   initialAtmInfo?: AtmInfo | null;
+  /** 繳費期限（分鐘）。前台訂房訂金為 20 分鐘；未指定時使用 expireInDays 天數制 */
+  expireInMinutes?: number;
+  /** 繳費期限（天），預設 3 */
+  expireInDays?: number;
   onCreated?: (info: AtmInfo) => void;
 }
 
 export function AtmPaymentPanel({
-  orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, onCreated,
+  orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, expireInMinutes, expireInDays = 3, onCreated,
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
@@ -158,7 +162,7 @@ export function AtmPaymentPanel({
       });
 
       const { data, error: invErr } = await supabase.functions.invoke("tappay-atm-create", {
-        body: { prime, orderId, orderNumber, amount, cardholder, expireInDays: 3 },
+        body: { prime, orderId, orderNumber, amount, cardholder, expireInDays, expireInMinutes },
       });
       if (invErr) throw invErr;
       if (!data?.success) throw new Error(data?.message || "建立虛擬帳號失敗");
@@ -263,7 +267,7 @@ export function AtmPaymentPanel({
           ATM 虛擬帳號轉帳
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 3 天），金額為 NT$ {amount.toLocaleString()}，請勿更改匯款金額。
+          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 {expireInMinutes ? `${expireInMinutes} 分鐘` : `${expireInDays} 天`}），金額為 NT$ {amount.toLocaleString()}，請勿更改匯款金額。
         </p>
       </div>
       {(configLoading || !sdkReady) && !configError && !error && (
