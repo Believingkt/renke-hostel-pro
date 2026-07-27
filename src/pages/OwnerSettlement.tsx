@@ -354,7 +354,7 @@ export default function OwnerSettlement() {
         description={`${monthLabel} 房務營運摘要與業主撥款明細`}
         icon={Banknote}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
             <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
               <Printer className="w-4 h-4 mr-1" />
