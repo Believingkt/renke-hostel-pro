@@ -37,6 +37,9 @@ interface Props {
   roomTypes?: Array<{ id: string; name: string }>;
   roomsCount?: number;
   roomSubtotal?: number;
+  /** 方案「原價（劃掉用）」總額；大於房費時顯示劃掉價與折扣% */
+  roomOriginalSubtotal?: number | null;
+
   addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
@@ -66,6 +69,8 @@ export default function MobileOrderSummary({
   roomTypes,
   roomsCount,
   roomSubtotal,
+  roomOriginalSubtotal,
+
   addonLines,
   calculateFinalTotal,
   appliedDiscount,
@@ -214,11 +219,23 @@ export default function MobileOrderSummary({
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0 flex-1 text-foreground break-words">
                   房費（{nights} 晚）
+                  {roomOriginalSubtotal != null && roomOriginalSubtotal > roomSubtotal && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary align-middle">
+                      人客多優惠 -
+                      {Math.round(((roomOriginalSubtotal - roomSubtotal) / roomOriginalSubtotal) * 100)}%
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 whitespace-nowrap font-semibold text-foreground tabular-nums">
+                  {roomOriginalSubtotal != null && roomOriginalSubtotal > roomSubtotal && (
+                    <span className="mr-1.5 font-normal text-muted-foreground line-through">
+                      NT$ {roomOriginalSubtotal.toLocaleString()}
+                    </span>
+                  )}
                   NT$ {roomSubtotal.toLocaleString()}
                 </span>
               </div>
+
             )}
             {addonLines?.map((line, i) => (
               <div key={i} className="flex items-baseline justify-between gap-3 text-sm">

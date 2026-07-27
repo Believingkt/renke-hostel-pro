@@ -3633,6 +3633,7 @@ const BookingFlow = () => {
                   roomTypes={roomTypes}
                   roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
                   roomSubtotal={calculateTotal()}
+                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
@@ -5094,6 +5095,7 @@ const BookingFlow = () => {
                           roomTypes={roomTypes}
                           roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
                           roomSubtotal={calculateTotal()}
+                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
@@ -5373,6 +5375,7 @@ const BookingFlow = () => {
                   roomTypes={roomTypes}
                   roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
                   roomSubtotal={calculateTotal()}
+                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
