@@ -3369,6 +3369,7 @@ const WebsiteContent = () => {
             photos={heroPhotos}
           />
 
+          {/* 「特色說明」已於前台下架，後台設定一併隱藏（資料表 about_features 保留，日後可再啟用）
           <AboutFeaturesSection
             accommodationId={accommodationId || ''}
             features={aboutFeatures}
@@ -3387,6 +3388,8 @@ const WebsiteContent = () => {
               setFeatureFormOpen(true);
             }}
           />
+          */}
+
 
           <SeoSettingsSection
             accommodationId={accommodationId || ''}
