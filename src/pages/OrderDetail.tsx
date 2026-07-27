@@ -3790,6 +3790,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         </CardContent>
       </Card>
 
+      {/* 關聯的購物商品（加購紀錄） */}
+      {order && <OrderAddonSalesCard orderId={order.id} />}
+
+
+
       {/* 通知與付款紀錄 */}
       {order && (
         <OrderNotificationHistory
