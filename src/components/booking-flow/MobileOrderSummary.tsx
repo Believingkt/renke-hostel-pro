@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Users, Tag, Home, Check, X, Plus, Sparkles } from "lucide-react";
+import { OriginalPrice, SavingsBadge } from "./SavingsBadge";
+
 
 interface PackageInclude {
   text: string;
