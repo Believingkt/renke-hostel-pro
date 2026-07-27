@@ -83,5 +83,10 @@ export async function checkOwltingPackageRequirement(
     (id) => !excludedIds.has(id) && !groupedIds.has(id),
   );
 
-  return { required: requiredRoomTypeIds.length > 0, requiredRoomTypeIds };
+  return {
+    required: requiredRoomTypeIds.length > 0,
+    requiredRoomTypeIds,
+    channel,
+    channelLabel: channelLabelOf(channel),
+  };
 }
