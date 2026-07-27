@@ -25,6 +25,7 @@ import { format, differenceInCalendarDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
+import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
 
 interface MemberOrder {
   id: string;
@@ -33,6 +34,9 @@ interface MemberOrder {
   check_in_date: string;
   check_out_date: string;
   order_status: string;
+  payment_status: string | null;
+  paid_amount: number;
+
   final_price: number;
   guest_name: string;
   guest_count: number;
