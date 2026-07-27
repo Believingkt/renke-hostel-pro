@@ -17,6 +17,7 @@ import { AccommodationSelector } from "@/components/AccommodationSelector";
 import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { frontendPath } from "@/lib/frontendUrl";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
@@ -25,7 +26,7 @@ export function Header() {
   const navigate = useNavigate();
   const { aliasNavigate } = useAliasPrefix();
   const { accommodationId } = useSubdomain();
-  const { userAccommodations } = useAccommodation();
+  const { userAccommodations, currentAccommodationId } = useAccommodation();
   const { open, isMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
@@ -186,7 +187,7 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-3">
+              <DropdownMenuItem onClick={() => navigate(frontendPath(currentAccommodationId))} className="cursor-pointer py-3">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 <span className="text-base">回到前台</span>
               </DropdownMenuItem>
