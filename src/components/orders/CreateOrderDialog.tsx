@@ -1561,18 +1561,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error creating order:", error);
-      const dbMsg = error?.message || error?.details || "";
-      let description = "無法建立訂單，請稍後再試";
-      if (dbMsg.includes("not available")) {
-        description = "所選日期房間不可用";
-      } else if (dbMsg.includes("No rooms available")) {
-        description = "所選日期已無空房";
-      } else if (dbMsg.includes("exceeds room capacity")) {
-        description = "入住人數超過房型上限";
-      } else if (dbMsg) {
-        description = dbMsg;
-      }
+      const description = translateOrderError(error);
       toast({ title: "新增失敗", description, variant: "destructive" });
+
     } finally {
       setIsSaving(false);
     }
