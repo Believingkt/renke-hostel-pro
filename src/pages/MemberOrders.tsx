@@ -107,11 +107,12 @@ const MemberOrders = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_number, order_date, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
+        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
       )
       .eq("member_id", member.id)
-      .order("check_in_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(50);
+
 
     if (error) { console.error(error); setLoading(false); return; }
 
