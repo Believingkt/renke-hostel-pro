@@ -97,6 +97,8 @@ export default function AddonCenter() {
     [monthStr]
   );
 
+  const [orderNumbers, setOrderNumbers] = useState<Record<string, string>>({});
+
   async function load() {
     if (!currentAccommodationId) return;
     setLoading(true);
@@ -109,14 +111,33 @@ export default function AddonCenter() {
       .order("sale_date", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) toast.error("載入失敗：" + error.message);
-    setItems((data || []) as AddonSale[]);
+    const rows = (data || []) as AddonSale[];
+    setItems(rows);
     setLoading(false);
+
+    const ids = Array.from(
+      new Set(rows.map((r) => r.related_order_id).filter(Boolean) as string[])
+    );
+    if (ids.length) {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("id, order_number")
+        .in("id", ids);
+      const map: Record<string, string> = {};
+      (ords || []).forEach((o: any) => {
+        map[o.id] = o.order_number;
+      });
+      setOrderNumbers(map);
+    } else {
+      setOrderNumbers({});
+    }
   }
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAccommodationId, monthStart, monthEnd]);
+
 
   const totals = useMemo(() => {
     const total = items.reduce((s, x) => s + (x.total_amount || 0), 0);
