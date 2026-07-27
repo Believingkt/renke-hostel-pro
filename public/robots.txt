@@ -12,9 +12,7 @@ Allow: /
 
 User-agent: *
 Allow: /
-
 # 後台與會員頁面不需被收錄
-User-agent: *
 Disallow: /admin
 Disallow: /hq
 Disallow: /member
