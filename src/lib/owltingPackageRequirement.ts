@@ -14,6 +14,8 @@ export type ChannelManager = "owlting" | "hotelnabe";
 
 export interface OwltingPackageRequirement {
   required: boolean;
+  /** 是否為「必填」（僅奧丁丁；hotelnabe 庫存推送只看房型，方案選填） */
+  blocking: boolean;
   requiredRoomTypeIds: string[];
   /** 實際啟用的通路（未啟用時為 null） */
   channel: ChannelManager | null;
@@ -24,6 +26,29 @@ export interface OwltingPackageRequirement {
 export function channelLabelOf(channel: ChannelManager | null): string {
   return channel === "hotelnabe" ? "hotelnabe" : channel === "owlting" ? "奧丁丁" : "";
 }
+
+/** 僅取得該民宿啟用中的通路（給 UI 決定是否顯示「對應方案」欄位） */
+export async function getAccommodationChannel(
+  accommodationId: string,
+): Promise<ChannelManager | null> {
+  if (!accommodationId) return null;
+  const [owltingRes, hotelnabeRes] = await Promise.all([
+    supabase
+      .from("accommodation_owlting_config")
+      .select("sync_enabled")
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle(),
+    supabase
+      .from("accommodation_hotelnabe_config")
+      .select("sync_enabled")
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle(),
+  ]);
+  if (owltingRes.data?.sync_enabled === true) return "owlting";
+  if (hotelnabeRes.data?.sync_enabled === true) return "hotelnabe";
+  return null;
+}
+
 
 export async function checkOwltingPackageRequirement(
   accommodationId: string,
