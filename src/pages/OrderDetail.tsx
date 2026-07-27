@@ -246,9 +246,9 @@ function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
     stage = "balance";
     if (balanceDue && now > balanceDue.getTime()) {
       effectiveStatus = "overdue";
-      reason = "訂金已收，但已超過尾款繳款期限（入住日前 3 天），故顯示已逾期。";
+      reason = "訂金已收，但已超過尾款繳款期限（入住日後 3 天），故顯示已逾期。";
     } else {
-      reason = "訂金已收，尾款期限為入住日前 3 天，尚未到期，故顯示已付訂金。";
+      reason = "訂金已收，尾款期限為入住日後 3 天（可提前付清），尚未到期，故顯示已付訂金。";
     }
   } else if (status === "paid") {
     reason = "款項已全額付清，不再判斷期限。";
