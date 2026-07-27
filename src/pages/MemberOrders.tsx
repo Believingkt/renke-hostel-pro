@@ -64,6 +64,16 @@ const statusLabels: Record<string, string> = {
   cancelled: "已取消",
 };
 
+const paymentLabels: Record<string, string> = {
+  paid: "已付款",
+  deposit_paid: "已付訂金",
+  partial: "已付部分",
+  partial_paid: "已付部分",
+  refunded: "已退款",
+  unpaid: "待付款",
+  pending_payment: "待付款",
+};
+
 const statusColors: Record<string, string> = {
   pending: "text-amber-600",
   confirmed: "text-emerald-600",
@@ -90,6 +100,29 @@ const MemberOrders = () => {
     loadOrders();
   }, []);
 
+  // TapPay 付款回呼寫回 orders 後，即時反映到列表
+  useOrderRealtime(
+    orders.map((o) => o.id),
+    (row) => {
+      setOrders((prev) =>
+        prev.map((o) => {
+          if (o.id !== row.id) return o;
+          const next = {
+            ...o,
+            payment_status: (row.payment_status as string) ?? o.payment_status,
+            order_status: (row.order_status as string) ?? o.order_status,
+            paid_amount: Number(row.paid_amount ?? o.paid_amount),
+          };
+          if (!isOrderPaid(o) && isOrderPaid(next)) {
+            toast.success(`訂單 ${o.order_number} 已收到付款`);
+          }
+          return next;
+        }),
+      );
+    },
+    { enabled: !isMemberPreview() },
+  );
+
   const loadOrders = async () => {
     if (isMemberPreview()) {
       setOrders(mockOrders as any);
@@ -111,7 +144,7 @@ const MemberOrders = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
+        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, payment_status, paid_amount, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
       )
       .eq("member_id", member.id)
       .order("created_at", { ascending: false })
@@ -158,6 +191,8 @@ const MemberOrders = () => {
           check_in_date: o.check_in_date,
           check_out_date: o.check_out_date,
           order_status: o.order_status,
+          payment_status: o.payment_status ?? null,
+          paid_amount: Number(o.paid_amount || 0),
           final_price: o.final_price,
           guest_name: o.guest_name,
           guest_count: o.guest_count || 1,
@@ -329,6 +364,13 @@ const MemberOrders = () => {
               const statusColor = statusColors[order.order_status] || "text-muted-foreground";
               const past = isPast(order.check_out_date);
               const cancelled = order.order_status === "cancelled";
+              const paymentLabel = paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
+              const paymentClass =
+                order.payment_status === "paid"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : isOrderPaid(order)
+                    ? "bg-sky-50 text-sky-700"
+                    : "bg-amber-50 text-amber-700";
               const pointsEarned = Math.round(order.final_price * 0.04);
               const earnedLabel = past || order.order_status === "checked_out" ? "您已賺得" : "您將賺得";
 
@@ -344,7 +386,12 @@ const MemberOrders = () => {
                       <BedDouble className="h-4 w-4" style={{ color: ORANGE }} />
                       <span>住宿</span>
                     </div>
-                    <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
+                    <div className="flex items-center gap-2">
+                      {!cancelled && paymentLabel && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${paymentClass}`}>{paymentLabel}</span>
+                      )}
+                      <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
+                    </div>
                   </div>
 
                   {/* Body */}
