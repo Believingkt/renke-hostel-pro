@@ -17,7 +17,7 @@ export function AliasResolver() {
   const location = useLocation();
   const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
   const [resolvedId, setResolvedId] = useState<string | null>(null);
-  const [hasPackages, setHasPackages] = useState<boolean>(false);
+  
 
   useEffect(() => {
     let cancelled = false;
