@@ -512,6 +512,11 @@ const BookingVilla = () => {
   const childBlockReason = childCtx?.evalResult.blockReason;
 
   const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+    const adultsParam = parseInt(searchParams.get("adults") || "0", 10) || 0;
+    if (!checkInStr || !checkOutStr || adultsParam < 1) {
+      setMissingInfoOpen(true);
+      return;
+    }
     if (childBlocked) {
       toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
         description: "請點選上方搜尋條調整人數後再試。",
