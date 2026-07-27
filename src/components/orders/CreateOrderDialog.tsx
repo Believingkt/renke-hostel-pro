@@ -15,6 +15,8 @@ import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
@@ -116,6 +118,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
   const orderSourceOptions = useOrderSources(currentAccommodationId);
   // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
@@ -1088,7 +1092,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             derivedPkgIds.add(pkgId);
           }
         }
-        if (missing.length > 0) {
+        if (req.blocking && missing.length > 0) {
           const names = Array.from(new Set(missing))
             .map((id) => roomTypes.find((r) => r.id === id)?.name)
             .filter(Boolean)
@@ -1099,6 +1103,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           });
           // 只提醒不擋
         }
+
         // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
         if (!effectivePackageId && derivedPkgIds.size === 1) {
           effectivePackageId = Array.from(derivedPkgIds)[0];
@@ -2650,15 +2655,28 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </Alert>
       )}
 
-      {accommodationPackages.length > 0 && (
+      {packageChannel.showPackageField && accommodationPackages.length > 0 && (
         <div className="space-y-2">
-          <Label>對應方案（accommodation_packages）</Label>
+          <Label>
+            對應方案
+            {packageChannel.isRequired ? (
+              <span className="text-destructive"> *</span>
+            ) : (
+              <span className="text-muted-foreground text-xs">（選填）</span>
+            )}
+          </Label>
           <Select
             value={form.package_id || "none"}
             onValueChange={(value) => setForm({ ...form, package_id: value === "none" ? "" : value })}
           >
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue placeholder="（選填）對應實際包區/包棟方案" />
+              <SelectValue
+                placeholder={
+                  packageChannel.isRequired
+                    ? "請選擇對應包區/包棟方案"
+                    : "（選填）對應實際包區/包棟方案"
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">（未指定，留空）</SelectItem>
@@ -2669,11 +2687,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            選定後將寫入 orders.package_id，OwlTing 推送的 RatePlanCode 會以此為準。
-          </p>
+          <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
         </div>
       )}
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">

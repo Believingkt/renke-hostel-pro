@@ -19,6 +19,8 @@ import { useAuditLog } from "@/hooks/use-audit-log";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
 
 interface RoomType {
   id: string;
@@ -54,6 +56,8 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
   const { logAction } = useAuditLog();
   const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
   const [isSaving, setIsSaving] = useState(false);
@@ -287,11 +291,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     }
     if (!currentAccommodationId) return;
 
-    // 檢查對應方案必填（僅當房型會同步到奧丁丁時）
+    // 檢查對應方案（僅奧丁丁需要；hotelnabe 庫存推送不依方案）
     try {
       const allRoomTypeIds = [form.room_type_id, ...extraSelections.map((e) => e.room_type_id)].filter(Boolean);
       const req = await checkOwltingPackageRequirement(currentAccommodationId, allRoomTypeIds);
-      if (req.required && !form.package_id) {
+      if (req.blocking && !form.package_id) {
+
         const names = req.requiredRoomTypeIds
           .map((id) => roomTypes.find((r) => r.id === id)?.name || id)
           .join("、");
@@ -479,16 +484,25 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         </Select>
       </div>
 
-      {/* 對應方案（會同步到奧丁丁時必填） */}
-      {form.room_type_id && applicablePackages.length > 0 && (
+      {/* 對應方案（僅在有串接通路時顯示；奧丁丁必填、hotelnabe 選填） */}
+      {packageChannel.showPackageField && form.room_type_id && applicablePackages.length > 0 && (
         <div className="space-y-2">
-          <Label>對應方案</Label>
+          <Label>
+            對應方案
+            {packageChannel.isRequired ? (
+              <span className="text-destructive"> *</span>
+            ) : (
+              <span className="text-muted-foreground text-xs">（選填）</span>
+            )}
+          </Label>
           <Select
             value={form.package_id || "none"}
             onValueChange={(v) => setForm({ ...form, package_id: v === "none" ? "" : v })}
           >
             <SelectTrigger className="h-12 sm:h-10">
-              <SelectValue placeholder="選擇方案（同步至奧丁丁時必填）" />
+              <SelectValue
+                placeholder={packageChannel.isRequired ? "請選擇方案" : "選擇方案（選填）"}
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">不指定</SelectItem>
@@ -499,7 +513,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
               ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
         </div>
+
       )}
 
       {isLoadingAvailability && (
