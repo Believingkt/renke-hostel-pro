@@ -757,8 +757,8 @@ export default function VillaLanding() {
         </section>
       )}
 
-      {/* ======================== FEATURES (about_features) ======================== */}
-      {aboutFeatures.length > 0 && (
+      {/* ======== FEATURES (about_features) — 已於前台下架，資料保留 ======== */}
+      {SHOW_ABOUT_FEATURES && aboutFeatures.length > 0 && (
         <section className="bg-white/60 py-20 backdrop-blur-sm sm:py-28">
           <div className="mx-auto max-w-5xl px-6">
             <div className="text-center reveal-on-scroll">

@@ -301,10 +301,9 @@ const BookingAccommodation = () => {
           const sectionTitles = (info as any).homepage_section_titles || {};
           const titles = sectionTitles[sectionKey] || {};
           switch (sectionKey) {
+            // 「特色說明」已於前台下架（資料表 about_features 保留，日後可再啟用）
             case 'about':
-              return info.show_about_section !== false && (
-                <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
-              );
+              return null;
             case 'rooms':
               if (info.show_rooms_section === false) return null;
               return (
