@@ -1268,7 +1268,7 @@ const BookingVilla = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>請先選擇日期與人數</AlertDialogTitle>
             <AlertDialogDescription>
-              需要先選好入住／退房日期與入住人數，才能계續下一步預約。
+              需要先選好入住／退房日期與入住人數，才能繼續下一步預約。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-2">
