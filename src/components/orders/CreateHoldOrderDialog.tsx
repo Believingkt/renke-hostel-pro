@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { translateOrderError } from "@/lib/orderErrorMessages";
 
 
 interface RoomType {
@@ -449,7 +450,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating hold order:", error);
-      toast({ title: "建立失敗", description: "無法建立保留單", variant: "destructive" });
+      toast({
+        title: "建立失敗",
+        description: translateOrderError(error, "無法建立保留單，請稍後再試"),
+        variant: "destructive",
+      });
+
     } finally {
       setIsSaving(false);
     }
