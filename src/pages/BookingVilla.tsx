@@ -8,6 +8,8 @@ import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { getThemeClass } from "@/constants/themes";
 import { SEOHead } from "@/components/SEOHead";
+import { buildAccommodationCanonical } from "@/lib/canonicalUrl";
+
 import { StructuredData } from "@/components/StructuredData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -600,9 +602,11 @@ const BookingVilla = () => {
     <div className={`min-h-screen bg-stone-50 pb-24 overflow-x-clip w-full max-w-[100vw] ${themeClass}`} style={{ overscrollBehaviorX: "none" }}>
       <SEOHead
         title={(info as any).seo_title || info.og_title || info.name}
+        url={buildAccommodationCanonical(info as any)}
         description={
           (info as any).seo_description || info.og_description || info.description || ""
         }
+
         keywords={
           (info as any).meta_keywords
             ? (info as any).meta_keywords
