@@ -88,6 +88,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [useDeposit, setUseDeposit] = useState(true);

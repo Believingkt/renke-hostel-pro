@@ -56,6 +56,8 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
   const { logAction } = useAuditLog();
   const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
   const [isSaving, setIsSaving] = useState(false);
