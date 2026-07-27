@@ -2336,10 +2336,8 @@ const WebsiteContent = () => {
         .update({
           name: basicInfo.name,
           description: basicInfo.description,
-          address: basicInfo.address,
-          phone: basicInfo.phone,
-          email: basicInfo.email,
-          line_id: basicInfo.line_id,
+          // address / phone / email / line_id 由「交通地圖」與「訂房確認通知」分頁維護，此處不寫入避免覆蓋
+
           facebook_url: basicInfo.facebook_url,
           instagram_url: basicInfo.instagram_url,
           threads_url: basicInfo.threads_url,
