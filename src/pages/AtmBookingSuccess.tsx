@@ -62,16 +62,24 @@ function formatCountdown(ms: number) {
   const hours = Math.floor((ms % 86400000) / 3600000);
   const minutes = Math.floor((ms % 3600000) / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
+  // 一小時內（前台訂金 20 分鐘制）用 mm:ss 顯示
+  if (days === 0 && hours === 0) {
+    return {
+      expired: false as const,
+      text: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
+    };
+  }
   const parts: string[] = [];
   if (days > 0) parts.push(`${days} 天`);
-  if (hours > 0 || days > 0) parts.push(`${hours} 小時`);
+  parts.push(`${hours} 小時`);
   parts.push(`${minutes} 分`);
-  if (days === 0 && hours === 0) parts.push(`${seconds} 秒`);
   return { expired: false as const, text: parts.join(" ") };
 }
 
-function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
+function AtmDeadlineAlert({ expireAt, onExpired }: { expireAt: string; onExpired?: () => void }) {
   const [now, setNow] = useState(Date.now());
+  const notifiedRef = useRef<Set<number>>(new Set());
+  const expiredNotifiedRef = useRef(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -79,6 +87,29 @@ function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
   }, []);
 
   const deadline = new Date(expireAt).getTime();
+
+  // 到期前提醒（10 / 5 / 1 分鐘）
+  useEffect(() => {
+    const left = deadline - now;
+    if (left <= 0) {
+      if (!expiredNotifiedRef.current) {
+        expiredNotifiedRef.current = true;
+        onExpired?.();
+      }
+      return;
+    }
+    for (const mark of [10, 5, 1]) {
+      const ms = mark * 60_000;
+      if (left <= ms && left > ms - 1500 && !notifiedRef.current.has(mark)) {
+        notifiedRef.current.add(mark);
+        toast.warning(`訂金繳款剩下 ${mark} 分鐘`, {
+          description: "逾期未收到訂金，系統將自動取消此訂單並釋出房間。",
+          duration: 8000,
+        });
+      }
+    }
+  }, [now, deadline, onExpired]);
+
   const diff = deadline - now;
   const { expired, text } = formatCountdown(diff);
 
@@ -94,8 +125,8 @@ function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
     );
   }
 
-  const urgent = diff < 3600000; // < 1 hour
-  const warning = diff < 86400000; // < 1 day
+  const urgent = diff < 5 * 60_000; // < 5 分鐘
+  const warning = diff < 10 * 60_000; // < 10 分鐘
 
   return (
     <div
@@ -111,7 +142,7 @@ function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
       <div>
         <div className="text-sm font-semibold">
           {urgent
-            ? "⚠️ 繳費期限即將到期"
+            ? "⚠️ 即將逾期取消，請立即完成匯款"
             : warning
             ? "繳費期限將至，請盡速匯款"
             : "繳費期限倒數計時"}
@@ -120,7 +151,7 @@ function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
           {text}
         </div>
         <div className="text-xs mt-1 opacity-80">
-          期限：{new Date(expireAt).toLocaleString("zh-TW")}
+          期限：{new Date(expireAt).toLocaleString("zh-TW")}（逾期未收到訂金將自動取消訂單）
         </div>
       </div>
     </div>
@@ -175,7 +206,13 @@ export default function AtmBookingSuccess() {
   }, [accId]);
 
   const isPaid = (o: OrderRow | null) =>
-    !!o && (o.payment_status === "paid" || o.payment_status === "partial_paid" || o.order_status === "confirmed");
+    !!o &&
+    (o.payment_status === "paid" ||
+      o.payment_status === "deposit_paid" ||
+      o.payment_status === "partial" ||
+      o.payment_status === "partial_paid" ||
+      (o.paid_amount || 0) > 0 ||
+      o.order_status === "confirmed");
 
   const goViewOrder = () => {
     redirectedRef.current = true;
@@ -434,7 +471,20 @@ export default function AtmBookingSuccess() {
           </CardHeader>
           <CardContent>
             {order.atm_expire_at && (
-              <AtmDeadlineAlert expireAt={order.atm_expire_at} />
+              <AtmDeadlineAlert
+                expireAt={order.atm_expire_at}
+                onExpired={() => {
+                  // 到期瞬間再抓一次最新狀態，避免款項已入帳卻顯示逾期
+                  supabase
+                    .from("orders")
+                    .select("payment_status, order_status, paid_amount")
+                    .eq("id", order.id)
+                    .maybeSingle()
+                    .then(({ data }) => {
+                      if (data) setOrder((prev) => (prev ? { ...prev, ...(data as Partial<OrderRow>) } : prev));
+                    });
+                }}
+              />
             )}
             {depositSettings === null ? (
               <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
