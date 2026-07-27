@@ -17,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 
 // Content sections (same as Index page)
 import HeroSection from "@/components/HeroSection";
-import AboutSection from "@/components/AboutSection";
 import RoomsSection from "@/components/RoomsSection";
 import FacilitiesSection from "@/components/FacilitiesSection";
 import PhotoGallerySection from "@/components/PhotoGallerySection";

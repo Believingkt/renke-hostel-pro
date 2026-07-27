@@ -13,7 +13,6 @@ import { getThemeClass, getCachedThemePreset } from "@/constants/themes";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
 // NOTE: 為避免自訂網域上 chunk 快取不一致造成的載入失敗，首屏與區塊組件改為 eager import。
-import AboutSection from "@/components/AboutSection";
 import RoomsSection from "@/components/RoomsSection";
 import FacilitiesSection from "@/components/FacilitiesSection";
 import PhotoGallerySection from "@/components/PhotoGallerySection";
