@@ -256,7 +256,7 @@ export default function MobileOrderSummary({
         {/* 折扣 */}
         {appliedDiscount && discount > 0 && (
           <div className="border-t border-border px-4 py-2.5">
-            <div className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1">
+            <div className="inline-flex items-center gap-1.5 text-xs text-destructive bg-primary/10 border border-primary/20 rounded-md px-2 py-1">
               <Tag className="h-3 w-3" />
               <span>
                 已套用 {appliedDiscount.code}
