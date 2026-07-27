@@ -888,21 +888,22 @@ const PriceCard = ({
 
         <div className={`text-right shrink-0 ${opt.isRecommended ? "pt-5" : ""}`}>
           <div className="flex items-center justify-end gap-1 mb-0.5">
-            <span className="text-[10px] line-through text-muted-foreground">
-              NT${opt.originalPrice.toLocaleString()}
-            </span>
+            {saved > 0 && <OriginalPrice amount={opt.originalPrice} size="xs" />}
           </div>
           <div className="flex items-center justify-end gap-1 mb-0.5">
-            <span
-              className="text-[9px] font-bold px-1 py-px rounded leading-none"
-              style={{ background: "hsl(0, 75%, 95%)", color: "hsl(0, 75%, 45%)" }}
-            >
-              -{opt.discountPercent}%
-            </span>
-            <span className="text-[9px] font-medium" style={{ color: "hsl(0, 75%, 45%)" }}>
-              省 ${saved.toLocaleString()}
-            </span>
+            <SavingsBadge
+              original={opt.originalPrice}
+              price={opt.totalPrice}
+              size="xs"
+              showLabel={false}
+            />
+            {saved > 0 && (
+              <span className="text-[9px] font-medium text-primary">
+                省 ${saved.toLocaleString()}
+              </span>
+            )}
           </div>
+
           <p className="font-bold text-base leading-none" style={{ color: "hsl(0, 75%, 50%)" }}>
             NT${opt.totalPrice.toLocaleString()}
           </p>
