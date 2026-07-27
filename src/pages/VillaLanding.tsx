@@ -29,6 +29,9 @@ const amenityIconMap: Record<string, React.ComponentType<any>> = {
 };
 const pickAmenityIcon = (name: string) => amenityIconMap[name] ?? ShieldCheck;
 
+/* 「特色說明」已於前台下架，資料表 about_features 保留供日後啟用 */
+const SHOW_ABOUT_FEATURES = false;
+
 /* about_features 的 icon_name (lucide) 動態解析 */
 const resolveLucide = (name?: string | null) => {
   if (!name) return Sparkles;
@@ -757,8 +760,8 @@ export default function VillaLanding() {
         </section>
       )}
 
-      {/* ======================== FEATURES (about_features) ======================== */}
-      {aboutFeatures.length > 0 && (
+      {/* ======== FEATURES (about_features) — 已於前台下架，資料保留 ======== */}
+      {SHOW_ABOUT_FEATURES && aboutFeatures.length > 0 && (
         <section className="bg-white/60 py-20 backdrop-blur-sm sm:py-28">
           <div className="mx-auto max-w-5xl px-6">
             <div className="text-center reveal-on-scroll">

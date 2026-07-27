@@ -13,7 +13,6 @@ import { getThemeClass, getCachedThemePreset } from "@/constants/themes";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
 // NOTE: 為避免自訂網域上 chunk 快取不一致造成的載入失敗，首屏與區塊組件改為 eager import。
-import AboutSection from "@/components/AboutSection";
 import RoomsSection from "@/components/RoomsSection";
 import FacilitiesSection from "@/components/FacilitiesSection";
 import PhotoGallerySection from "@/components/PhotoGallerySection";
@@ -179,10 +178,9 @@ const Index = () => {
           const sectionTitles = (info as any).homepage_section_titles || {};
           const titles = sectionTitles[sectionKey] || {};
           switch (sectionKey) {
+            // 「特色說明」已於前台下架（資料表 about_features 保留，日後可再啟用）
             case 'about':
-              return info.show_about_section !== false && (
-                <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
-              );
+              return null;
             case 'rooms':
               return info.show_rooms_section !== false && (
                 <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} customTitle={titles.title} customSubtitle={titles.subtitle} />
