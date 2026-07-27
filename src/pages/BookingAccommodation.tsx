@@ -140,7 +140,7 @@ const BookingAccommodation = () => {
     if (!info || !accId) return;
     const region = [(info as any).region_1, (info as any).region_2].filter(Boolean).join(" ") || null;
     const image_url = heroPhotos?.[0]?.photo_url || galleryPhotos?.[0]?.photo_url || null;
-    const path = (info as any).short_url_alias ? `/${(info as any).short_url_alias}` : `/booking/${accId}`;
+    const path = (info as any).short_url_alias ? `/${(info as any).short_url_alias}` : `/booking/villa/${accId}`;
     pushRecentView({
       accommodation_id: accId,
       name: info.name,

@@ -496,7 +496,7 @@ const MemberOrderDetail = () => {
   const cancelled = order.order_status === "cancelled";
   const points = Math.round(order.final_price * 0.04);
   const balance = Math.max(order.final_price - order.paid_amount, 0);
-  const detailPath = order.short_url_alias ? `/${order.short_url_alias}` : `/booking/${order.accommodation_id}`;
+  const detailPath = order.short_url_alias ? `/${order.short_url_alias}` : `/booking/villa/${order.accommodation_id}`;
   const extendCheckOut = format(addDays(new Date(order.check_out_date), 1), "yyyy-MM-dd");
 
   const runAction = async (payload: Record<string, unknown>, onDone?: () => void) => {
