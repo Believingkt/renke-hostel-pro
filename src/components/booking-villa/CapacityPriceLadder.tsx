@@ -490,6 +490,11 @@ const CapacityPriceLadder = ({
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+                    {saved > 0 && (
+                      <span className="text-[15px] line-through text-muted-foreground tabular-nums">
+                        NT${opt.originalPrice.toLocaleString()}
+                      </span>
+                    )}
                     <span
                       className="font-bold text-[32px] leading-none tabular-nums tracking-tight"
                       style={{ color: "#A98467" }}
@@ -501,10 +506,19 @@ const CapacityPriceLadder = ({
                         className="inline-flex items-center text-[12px] font-medium px-2.5 py-0.5 rounded-full"
                         style={{ background: "#FDF6F5", color: "#C25953" }}
                       >
-                        限時特別禮遇
+                        人客多優惠
+                      </span>
+                    )}
+                    {saved > 0 && opt.discountPercent > 0 && (
+                      <span
+                        className="inline-flex items-center text-[12px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "#C25953", color: "#fff" }}
+                      >
+                        -{opt.discountPercent}%
                       </span>
                     )}
                   </div>
+
                   {childExtraTotal > 0 && (
                     <Popover>
                       <PopoverTrigger asChild>
