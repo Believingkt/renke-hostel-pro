@@ -300,56 +300,46 @@ export const HeaderFooterSection = ({
           </p>
         </div>
 
-        {/* 聯絡資訊 */}
+        {/* 聯絡資訊（唯讀，於其他分頁維護） */}
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-medium">聯絡資訊</h3>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
               <Info className="h-3 w-3" />
-              這些資訊將顯示在網站頁尾和聯絡頁面
+              這些欄位由其他分頁維護，此處僅供檢視，避免重複儲存互相覆蓋
             </p>
           </div>
-          
-          <ValidatedInput
-            id="address"
-            label="地址"
-            value={formData.address}
-            error={errors.address}
-            placeholder="例如：台北市信義區市府路1號"
-            onChange={(value) => setFormData(prev => ({ ...prev, address: value }))}
-            onValidate={(value) => validateSingleField('address', value)}
-          />
 
-          <ValidatedInput
-            id="phone"
-            label="電話"
-            value={formData.phone}
-            error={errors.phone}
-            placeholder="例如：02-1234-5678 或 0912-345-678"
-            onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-            onValidate={(value) => validateSingleField('phone', value)}
-          />
-
-          <ValidatedInput
-            id="email"
-            label="Email"
-            type="email"
-            value={formData.email}
-            error={errors.email}
-            placeholder="例如：info@example.com"
-            onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
-            onValidate={(value) => validateSingleField('email', value)}
-          />
-
-          <ValidatedInput
-            id="line-id"
-            label="LINE ID"
-            value={formData.lineId}
-            error={errors.lineId}
-            placeholder="例如：@example"
-            onChange={(value) => setFormData(prev => ({ ...prev, lineId: value }))}
-            onValidate={(value) => validateSingleField('lineId', value)}
-          />
+          <div className="rounded-lg border divide-y">
+            <ReadOnlyRow
+              label="地址"
+              value={address}
+              hint="於「交通地圖」分頁維護"
+              onGo={() => goToTab('location')}
+              goLabel="前往交通地圖"
+            />
+            <ReadOnlyRow
+              label="電話"
+              value={phone}
+              hint="於「訂房確認通知」分頁維護"
+              onGo={() => goToTab('email-notification')}
+              goLabel="前往訂房確認通知"
+            />
+            <ReadOnlyRow
+              label="Email"
+              value={email}
+              hint="於「訂房確認通知」分頁維護"
+              onGo={() => goToTab('email-notification')}
+              goLabel="前往訂房確認通知"
+            />
+            <ReadOnlyRow
+              label="LINE ID"
+              value={lineId}
+              hint="於「訂房確認通知」分頁維護"
+              onGo={() => goToTab('email-notification')}
+              goLabel="前往訂房確認通知"
+            />
+          </div>
         </div>
 
         {/* 社群媒體連結 */}
@@ -357,9 +347,10 @@ export const HeaderFooterSection = ({
           <div>
             <h3 className="text-sm font-medium">社群媒體連結</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              填寫完整網址
+              填寫完整網址，會顯示在訂房頁頁尾
             </p>
           </div>
+
 
           <ValidatedInput
             id="facebook-url"
