@@ -37,6 +37,9 @@ interface Props {
   roomTypes?: Array<{ id: string; name: string }>;
   roomsCount?: number;
   roomSubtotal?: number;
+  /** 方案「原價（劃掉用）」總額；大於房費時顯示劃掉價與折扣% */
+  roomOriginalSubtotal?: number | null;
+
   addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
