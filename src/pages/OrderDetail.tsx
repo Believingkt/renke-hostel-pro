@@ -2334,7 +2334,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span>尾款期限（入住日 -3 天）</span>
+                    <span>尾款期限（入住日 +3 天，可提前付清）</span>
                     <span className={info.stage === "balance" ? "text-foreground font-medium tabular-nums" : "tabular-nums"}>
                       {info.balanceDue ? format(info.balanceDue, "yyyy 年 M 月 d 日 HH:mm") : "—"}
                     </span>
