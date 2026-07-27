@@ -45,23 +45,18 @@ export function SavingsBadge({
 
   const sizeCls =
     size === "md"
-      ? "text-[12px] px-2.5 py-0.5"
+      ? "text-[13px] px-2.5 py-1 gap-1.5"
       : size === "xs"
-        ? "text-[10px] px-1.5 py-px"
-        : "text-[11px] px-2 py-0.5";
+        ? "text-[10px] px-1.5 py-0.5 gap-1"
+        : "text-xs px-2 py-1 gap-1.5";
 
   return (
-    <span className={`inline-flex items-center gap-1.5 align-middle whitespace-nowrap ${className}`}>
-      {showLabel && (
-        <span className={`text-muted-foreground ${size === "md" ? "text-[13px]" : "text-xs"}`}>
-          人客多優惠
-        </span>
-      )}
-      <span
-        className={`inline-flex items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-destructive tabular-nums ${sizeCls}`}
-      >
-        -{percent}%
-      </span>
+    <span
+      className={`inline-flex items-center align-middle whitespace-nowrap rounded-md border border-primary/20 bg-primary/10 text-destructive ${sizeCls} ${className}`}
+    >
+      {showLabel && <span>人客多優惠</span>}
+      <span className="font-bold tabular-nums">-{percent}%</span>
     </span>
   );
 }
+
