@@ -422,11 +422,17 @@ serve(async (req) => {
         errors.push("Failed to validate discount code");
       } else if (discountResult && discountResult[0]?.is_valid) {
         const discountInfo = discountResult[0];
+        // 百分比折扣以「方案原價（劃掉價）」為基準，並以實際房費為上限
+        const discountBase = discountBaseTotal > 0 ? discountBaseTotal : calculatedRoomTotal;
         if (discountInfo.discount_type === "percentage") {
-          calculatedDiscount = Math.round(calculatedRoomTotal * (discountInfo.discount_value / 100));
+          calculatedDiscount = Math.min(
+            Math.round(discountBase * (discountInfo.discount_value / 100)),
+            calculatedRoomTotal,
+          );
         } else if (discountInfo.discount_type === "fixed") {
           calculatedDiscount = Math.min(discountInfo.discount_value, calculatedRoomTotal);
         }
+
       } else if (discountResult && discountResult[0] && !discountResult[0].is_valid) {
         errors.push(`Discount code invalid: ${discountResult[0].message || "Unknown error"}`);
       }
