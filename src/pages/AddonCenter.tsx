@@ -188,6 +188,24 @@ export default function AddonCenter() {
     if (!Number.isFinite(qty) || qty <= 0) return toast.error("數量需為正整數");
     if (!Number.isFinite(price) || price < 0) return toast.error("單價需為非負整數");
 
+    // 關聯訂單：使用者輸入的是訂單編號（8 碼），需轉成訂單 UUID
+    const rawOrder = form.related_order_id.trim();
+    let relatedOrderId: string | null = null;
+    if (rawOrder) {
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawOrder);
+      const { data: ord, error: ordErr } = isUuid
+        ? await supabase.from("orders").select("id").eq("id", rawOrder).maybeSingle()
+        : await supabase
+            .from("orders")
+            .select("id")
+            .eq("order_number", rawOrder.toUpperCase())
+            .maybeSingle();
+      if (ordErr) return toast.error("查詢訂單失敗：" + ordErr.message);
+      if (!ord) return toast.error(`找不到訂單編號 ${rawOrder}，請確認後再試`);
+      relatedOrderId = ord.id;
+    }
+
     setSaving(true);
     const payload = {
       accommodation_id: currentAccommodationId,
@@ -198,8 +216,9 @@ export default function AddonCenter() {
       unit_price: price,
       total_amount: qty * price,
       notes: form.notes.trim() || null,
-      related_order_id: form.related_order_id.trim() || null,
+      related_order_id: relatedOrderId,
     };
+
 
     const { error } = editingId
       ? await supabase.from("addon_sales").update(payload).eq("id", editingId)
