@@ -2043,15 +2043,26 @@ const BookingFlow = () => {
     return calculateTotal();
   };
 
+  /**
+   * 套用折扣碼時，房費以「原價」計價（折扣碼與人客多優惠不疊加）：
+   * 最終 = 原價 - 折扣。未套用折扣碼時維持售價。
+   */
+  const getRoomChargeTotal = () => {
+    const sale = calculateTotal();
+    if (!appliedDiscount) return sale;
+    return Math.max(sale, getDiscountBase());
+  };
+
   const calculateDiscount = () => {
     if (!appliedDiscount) return 0;
-    const total = calculateTotal();
+    const cap = getRoomChargeTotal();
     if (appliedDiscount.type === "percentage") {
       const raw = Math.round(getDiscountBase() * (appliedDiscount.value / 100));
-      return Math.min(raw, total); // 折扣不得超過實際房費
+      return Math.min(raw, cap); // 折扣不得超過房費
     }
-    return Math.min(appliedDiscount.value, total);
+    return Math.min(appliedDiscount.value, cap);
   };
+
 
 
   const getChildSelection = (): ChildSelection => ({
@@ -2082,8 +2093,9 @@ const BookingFlow = () => {
   };
 
   const calculateFinalTotal = () => {
-    return Math.max(0, calculateTotal() + calculateAddonsTotal() - calculateDiscount());
+    return Math.max(0, getRoomChargeTotal() + calculateAddonsTotal() - calculateDiscount());
   };
+
 
   // 訂金功能已移除：所有訂單一律以扣除折扣後的全額計算
   const calculateDeposit = () => 0;
@@ -2704,7 +2716,7 @@ const BookingFlow = () => {
 
 
     try {
-      const roomTotal = calculateTotal();
+      const roomTotal = getRoomChargeTotal();
       const addonsTotal = calculateAddonsTotal();
       const totalPrice = roomTotal + addonsTotal;
       const discountAmount = calculateDiscount();
@@ -3632,8 +3644,8 @@ const BookingFlow = () => {
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
                   roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
-                  roomSubtotal={calculateTotal()}
-                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
+                  roomSubtotal={getRoomChargeTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
@@ -5094,8 +5106,8 @@ const BookingFlow = () => {
                           roomAllocation={selectedPackage?.room_allocation || null}
                           roomTypes={roomTypes}
                           roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
-                          roomSubtotal={calculateTotal()}
-                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
+                          roomSubtotal={getRoomChargeTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
@@ -5374,8 +5386,8 @@ const BookingFlow = () => {
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
                   roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
-                  roomSubtotal={calculateTotal()}
-                  roomOriginalSubtotal={calculatePackageOriginalTotal()}
+                  roomSubtotal={getRoomChargeTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}

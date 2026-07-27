@@ -405,8 +405,12 @@ serve(async (req) => {
       }
     }
 
+    // 折扣碼與「人客多優惠」不疊加：套用折扣碼時房費以原價計價
+    const hasOriginalBase = discountBaseTotal > 0 && discountBaseTotal > calculatedRoomTotal;
+    const chargedRoomTotal = discountCode && hasOriginalBase ? discountBaseTotal : calculatedRoomTotal;
+
     // Calculate server-side total price
-    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
+    const calculatedTotalPrice = chargedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
 
     // Validate discount code if provided
     // Discount applies only to room total, NOT addons
@@ -416,7 +420,7 @@ serve(async (req) => {
         .rpc("validate_discount_code", {
           p_accommodation_id: accommodationId,
           p_code: discountCode,
-          p_order_amount: calculatedRoomTotal,
+          p_order_amount: chargedRoomTotal,
           p_room_type_id: roomTypeId,
           p_check_in_date: checkInDate
         });
@@ -426,15 +430,15 @@ serve(async (req) => {
         errors.push("Failed to validate discount code");
       } else if (discountResult && discountResult[0]?.is_valid) {
         const discountInfo = discountResult[0];
-        // 百分比折扣以「方案原價（劃掉價）」為基準，並以實際房費為上限
+        // 百分比折扣以「方案原價（劃掉價）」為基準，並以計價房費為上限
         const discountBase = discountBaseTotal > 0 ? discountBaseTotal : calculatedRoomTotal;
         if (discountInfo.discount_type === "percentage") {
           calculatedDiscount = Math.min(
             Math.round(discountBase * (discountInfo.discount_value / 100)),
-            calculatedRoomTotal,
+            chargedRoomTotal,
           );
         } else if (discountInfo.discount_type === "fixed") {
-          calculatedDiscount = Math.min(discountInfo.discount_value, calculatedRoomTotal);
+          calculatedDiscount = Math.min(discountInfo.discount_value, chargedRoomTotal);
         }
 
       } else if (discountResult && discountResult[0] && !discountResult[0].is_valid) {
@@ -444,6 +448,7 @@ serve(async (req) => {
 
     // Calculate final price
     const calculatedFinalPrice = calculatedTotalPrice - calculatedDiscount;
+
 
     // Validation tolerances (tightened from 10 → 2 currency units for rounding only)
     const priceTolerance = 2;
