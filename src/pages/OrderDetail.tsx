@@ -44,7 +44,7 @@ import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
-import { getAtmTransferAmount, getAtmDepositPercent } from "@/lib/atmPayment";
+import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -3269,7 +3269,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         const o = order as any;
         if (!o?.atm_vacc_no) return null;
         const expireAt = o.atm_expire_at ? new Date(o.atm_expire_at) : null;
-        const isExpired = expireAt ? expireAt.getTime() <= Date.now() : false;
+        // 已付訂金／已付清的訂單不視為逾期（與訂單列表狀態一致）
+        const isExpired = isAtmExpired(o);
+        const isAtmPaid = o.payment_status === "paid" || o.payment_status === "deposit_paid";
         const copyToClipboard = async (text: string, label: string) => {
           try {
             await navigator.clipboard.writeText(text);
@@ -3286,6 +3288,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                 ATM 虛擬帳號
                 {isExpired ? (
                   <Badge variant="outline" className="text-destructive border-destructive/30">已逾期</Badge>
+                ) : isAtmPaid ? (
+                  <Badge variant="outline" className="text-primary border-primary/30">
+                    {o.payment_status === "paid" ? "已付清" : "已付訂金"}
+                  </Badge>
                 ) : (
                   <Badge variant="outline" className="text-primary border-primary/30">有效</Badge>
                 )}
