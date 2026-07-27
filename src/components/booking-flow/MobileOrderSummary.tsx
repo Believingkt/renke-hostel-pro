@@ -258,7 +258,13 @@ export default function MobileOrderSummary({
           <div className="border-t border-border px-4 py-2.5">
             <div className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1">
               <Tag className="h-3 w-3" />
-              <span>已套用 {appliedDiscount.code}，折抵 NT$ {discount.toLocaleString()}</span>
+              <span>
+                已套用 {appliedDiscount.code}
+                {appliedDiscount.type === "percentage" && appliedDiscount.value
+                  ? ` 折扣原價${appliedDiscount.value}%`
+                  : ""}
+                ，折抵 NT$ {discount.toLocaleString()}
+              </span>
             </div>
           </div>
         )}
