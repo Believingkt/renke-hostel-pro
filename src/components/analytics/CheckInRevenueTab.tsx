@@ -491,6 +491,7 @@ export function CheckInRevenueTab({
               <TableRow>
                 <TableHead className="w-[140px]">入住日</TableHead>
                 <TableHead className="text-right whitespace-nowrap">訂單數</TableHead>
+                <TableHead className="text-right whitespace-nowrap">晚數</TableHead>
                 <TableHead className="text-right whitespace-nowrap">總金額</TableHead>
                 <TableHead className="text-right whitespace-nowrap">已收</TableHead>
                 <TableHead className="text-right whitespace-nowrap">未收</TableHead>
@@ -499,7 +500,7 @@ export function CheckInRevenueTab({
             <TableBody>
               {dailyRows.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     此區間尚無入住訂單
                   </TableCell>
                 </TableRow>
@@ -514,24 +515,41 @@ export function CheckInRevenueTab({
                       </span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{d.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">—</TableCell>
                     <TableCell className="text-right tabular-nums">{nt(d.total)}</TableCell>
                     <TableCell className="text-right tabular-nums">{nt(d.paid)}</TableCell>
                     <TableCell className="text-right tabular-nums">{nt(Math.max(0, d.total - d.paid))}</TableCell>
                   </TableRow>
                   {detailKey === d.date &&
-                    detailOrders.map((o) => (
+                    detailOrders.map((o) => {
+                      const nights =
+                        o.check_in_date && o.check_out_date
+                          ? Math.max(
+                              1,
+                              Math.round(
+                                (new Date(o.check_out_date).getTime() - new Date(o.check_in_date).getTime()) /
+                                  86400000,
+                              ),
+                            )
+                          : null;
+                      return (
                       <TableRow key={o.id} className="bg-muted/40 text-sm">
                         <TableCell className="pl-8 whitespace-nowrap">
                           {o.order_number || o.id.slice(0, 8)}
                         </TableCell>
                         <TableCell className="text-right truncate">{o.guest_name || "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums whitespace-nowrap">
+                          {nights ? `${nights} 晚` : "—"}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">{nt(Number(o.final_price) || 0)}</TableCell>
                         <TableCell className="text-right tabular-nums">{nt(Number(o.paid_amount) || 0)}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {nt(Math.max(0, (Number(o.final_price) || 0) - (Number(o.paid_amount) || 0)))}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
+
                 </Fragment>
               ))}
             </TableBody>
