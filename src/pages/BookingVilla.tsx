@@ -602,7 +602,7 @@ const BookingVilla = () => {
     <div className={`min-h-screen bg-stone-50 pb-24 overflow-x-clip w-full max-w-[100vw] ${themeClass}`} style={{ overscrollBehaviorX: "none" }}>
       <SEOHead
         title={(info as any).seo_title || info.og_title || info.name}
-        url={buildAccommodationCanonical(info as any)}
+        url={buildAccommodationCanonical({ ...(info as any), id: accId })}
         description={
           (info as any).seo_description || info.og_description || info.description || ""
         }
