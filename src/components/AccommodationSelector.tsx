@@ -26,8 +26,12 @@ interface Accommodation {
   is_villa?: boolean;
 }
 
+/**
+ * 一律導向新版包棟訂房頁 /booking/villa/{accId}。
+ * 不論帳號權限、是否有包區方案，都不再導向舊版一般民宿訂房頁或舊首頁。
+ */
 function buildFrontendUrl(acc: Accommodation | undefined): string {
-  if (!acc) return "/";
+  if (!acc) return "/booking";
 
   const host = window.location.hostname.toLowerCase();
   const isLovablePreview =
@@ -36,30 +40,17 @@ function buildFrontendUrl(acc: Accommodation | undefined): string {
     host.includes("lovableproject.com") ||
     host.includes("lovable.app");
 
-  // 包區型民宿 → 直接帶到 /booking/villa/{accId}，跳過 alias 解析與中間轉導
-  if (acc.is_villa) {
-    const qs = `?accId=${acc.id}`;
-    if (acc.custom_domain) {
-      return `https://${acc.custom_domain.replace(/^https?:\/\//, "")}/booking/villa/${acc.id}${qs}`;
-    }
-    if (isLovablePreview) {
-      return `${window.location.origin}/booking/villa/${acc.id}${qs}`;
-    }
-    return `https://booking.lakeze.com/booking/villa/${acc.id}${qs}`;
-  }
+  const path = `/booking/villa/${acc.id}?accId=${acc.id}`;
 
-  // 一般民宿：custom_domain > alias 首頁
   if (acc.custom_domain) {
-    return `https://${acc.custom_domain.replace(/^https?:\/\//, "")}/`;
+    return `https://${acc.custom_domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}${path}`;
   }
-  if (acc.short_url_alias) {
-    if (isLovablePreview) {
-      return `${window.location.origin}/?acc=${acc.short_url_alias}`;
-    }
-    return `https://booking.lakeze.com/${acc.short_url_alias}`;
+  if (isLovablePreview) {
+    return `${window.location.origin}${path}`;
   }
-  return "/";
+  return `https://booking.lakeze.com${path}`;
 }
+
 
 export function AccommodationSelector() {
   const { currentAccommodationId, setCurrentAccommodationId, userAccommodations, isLoading: contextIsLoading } = useAccommodation();
@@ -93,26 +84,18 @@ export function AccommodationSelector() {
 
       console.log('[AccommodationSelector] Loading accommodations:', accommodationIds);
 
-      const [{ data, error }, { data: pkgRows }] = await Promise.all([
-        supabase
-          .from('accommodation_info')
-          .select('id, name, short_url_alias, custom_domain, display_order')
-          .in('id', accommodationIds)
-          .order('display_order', { ascending: true, nullsFirst: false })
-          .order('name', { ascending: true }),
-        supabase
-          .from('accommodation_packages')
-          .select('accommodation_id')
-          .in('accommodation_id', accommodationIds)
-          .eq('enabled', true),
-      ]);
+      const { data, error } = await supabase
+        .from('accommodation_info')
+        .select('id, name, short_url_alias, custom_domain, display_order')
+        .in('id', accommodationIds)
+        .order('display_order', { ascending: true, nullsFirst: false })
+        .order('name', { ascending: true });
 
       if (error) throw error;
 
-      const villaSet = new Set((pkgRows || []).map((p: any) => p.accommodation_id));
-      const enriched = (data || []).map((a) => ({ ...a, is_villa: villaSet.has(a.id) }));
-      console.log('[AccommodationSelector] Loaded accommodation info:', enriched);
-      setAccommodations(enriched);
+      console.log('[AccommodationSelector] Loaded accommodation info:', data);
+      setAccommodations(data || []);
+
     } catch (error) {
       console.error('[AccommodationSelector] Error loading accommodations:', error);
     } finally {
