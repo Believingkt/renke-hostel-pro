@@ -1126,6 +1126,20 @@ const BookingFlow = () => {
     return selectedPackage.sale_price;
   };
 
+  // 依日期取包區方案「每晚原價（劃掉價）」：未設定時 fallback 為 sale
+  const getPackageNightlyOriginal = (d: Date): number | null => {
+    if (!selectedPackage) return null;
+    const tier = detectTierByDate(d, isPackageHolidayDate(d));
+    const override = selectedPackage.tier_prices?.[tier];
+    if (override && override.original != null && Number(override.original) > 0) {
+      return Number(override.original);
+    }
+    if (selectedPackage.original_price != null && selectedPackage.original_price > 0) {
+      return selectedPackage.original_price;
+    }
+    return getPackageNightlySale(d);
+  };
+
   // 依每晚 tier 計算包區方案總價
   const calculatePackageTotal = (): number | null => {
     if (!selectedPackage || !checkInDate || !checkOutDate) return null;
@@ -1143,6 +1157,23 @@ const BookingFlow = () => {
     }
     return hasAny ? total : null;
   };
+
+  // 折扣碼計算基準：包區方案「原價（劃掉用）」總額
+  const calculatePackageOriginalTotal = (): number | null => {
+    if (!selectedPackage || !checkInDate || !checkOutDate) return null;
+    const nights = calculateNights();
+    if (nights <= 0) return null;
+    let total = 0;
+    for (let i = 0; i < nights; i++) {
+      const d = new Date(checkInDate);
+      d.setDate(d.getDate() + i);
+      const nightly = getPackageNightlyOriginal(d);
+      if (nightly == null) return null;
+      total += nightly;
+    }
+    return total;
+  };
+
 
   const lastRoomSyncSearchRef = useRef<string | null>(null);
   useEffect(() => {
@@ -2001,14 +2032,23 @@ const BookingFlow = () => {
     return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
   };
 
+  // 折扣基準：有包區方案時以「原價（劃掉用）」計算；否則以實際房費計算
+  const getDiscountBase = () => {
+    const originalTotal = calculatePackageOriginalTotal();
+    if (originalTotal != null && originalTotal > 0) return originalTotal;
+    return calculateTotal();
+  };
+
   const calculateDiscount = () => {
     if (!appliedDiscount) return 0;
     const total = calculateTotal();
     if (appliedDiscount.type === "percentage") {
-      return Math.round(total * (appliedDiscount.value / 100));
+      const raw = Math.round(getDiscountBase() * (appliedDiscount.value / 100));
+      return Math.min(raw, total); // 折扣不得超過實際房費
     }
-    return appliedDiscount.value;
+    return Math.min(appliedDiscount.value, total);
   };
+
 
   const getChildSelection = (): ChildSelection => ({
     infants: infantsCount,
@@ -4746,10 +4786,11 @@ const BookingFlow = () => {
                                 <div>
                                   <p className="font-semibold text-base">已套用折扣代碼：{appliedDiscount.code}</p>
                                   <p className="text-sm text-muted-foreground mt-0.5">
-                                    折扣 {appliedDiscount.type === "percentage" 
-                                      ? `${appliedDiscount.value}%` 
-                                      : `NT$ ${appliedDiscount.value.toLocaleString()}`}
+                                    {appliedDiscount.type === "percentage"
+                                      ? `原價折扣 ${appliedDiscount.value}%`
+                                      : `折抵 NT$ ${appliedDiscount.value.toLocaleString()}`}
                                   </p>
+
                                 </div>
                               </div>
                               <Button
