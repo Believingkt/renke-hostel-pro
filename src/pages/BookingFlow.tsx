@@ -5231,7 +5231,8 @@ const BookingFlow = () => {
                               <Badge className="h-4 w-4 text-primary" />
                               <div>
                                 <p className="text-xs text-muted-foreground">已套用折扣代碼</p>
-                                <p className="font-medium text-sm">
+                                <p className="font-medium text-sm text-destructive">
+
                                   {appliedDiscount.code}
                                   {appliedDiscount.type === "percentage"
                                     ? ` 折扣原價${appliedDiscount.value}%`
