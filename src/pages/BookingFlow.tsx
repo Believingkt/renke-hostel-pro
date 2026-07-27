@@ -1126,7 +1126,7 @@ const BookingFlow = () => {
     return selectedPackage.sale_price;
   };
 
-  // 依日期取包區方案「每晚原價（劃掉價）」：未設定時 fallback 為 sale
+  // 依日期取包區方案「每晚原價（劃掉價）」：未設定時回退「房價價格設定」（逐晚庫存價），再回退 sale
   const getPackageNightlyOriginal = (d: Date): number | null => {
     if (!selectedPackage) return null;
     const tier = detectTierByDate(d, isPackageHolidayDate(d));
@@ -1137,8 +1137,12 @@ const BookingFlow = () => {
     if (selectedPackage.original_price != null && selectedPackage.original_price > 0) {
       return selectedPackage.original_price;
     }
+    // 回退：房價價格設定（room_inventory_pricing 逐晚價）
+    const invPrice = roomPricing[format(d, "yyyy-MM-dd")];
+    if (invPrice != null && invPrice > 0) return invPrice;
     return getPackageNightlySale(d);
   };
+
 
   // 依每晚 tier 計算包區方案總價
   const calculatePackageTotal = (): number | null => {
