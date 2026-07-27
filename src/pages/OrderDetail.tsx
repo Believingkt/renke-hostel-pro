@@ -2319,30 +2319,37 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     ))}
                   </SelectContent>
                 </Select>
-              ) : getPaymentStatusBadge(
-                (() => {
-                  const o = order as any;
-                  if (isNonPayableCurrency) return order.payment_status;
-                  const now = Date.now();
-                  const DAY = 24 * 60 * 60 * 1000;
-                  // 訂金：以訂單建立日起算 3 天為期限
-                  if (['unpaid', 'partial'].includes(order.payment_status)) {
-                    const base = o.payment_link_created_at || o.created_at;
-                    if (base && now > new Date(base).getTime() + 3 * DAY) return 'overdue';
-                    return order.payment_status;
-                  }
-                  // 尾款：以入住日前 3 天為期限
-                  if (order.payment_status === 'deposit_paid') {
-                    if (order.check_in_date && now > new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() - 3 * DAY) {
-                      return 'overdue';
-                    }
-                    return order.payment_status;
-                  }
-                  return order.payment_status;
-                })()
-              )}
+              ) : getPaymentStatusBadge(getPaymentDeadlineInfo(order, isNonPayableCurrency).effectiveStatus)}
 
             </div>
+            {!isEditing && (() => {
+              const info = getPaymentDeadlineInfo(order, isNonPayableCurrency);
+              return (
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground space-y-1">
+                  <div className="font-medium text-foreground">付款狀態說明</div>
+                  <div className="flex justify-between gap-2">
+                    <span>訂金期限（建立訂單 +3 天）</span>
+                    <span className={info.stage === "deposit" ? "text-foreground font-medium tabular-nums" : "tabular-nums"}>
+                      {info.depositDue ? format(info.depositDue, "yyyy 年 M 月 d 日 HH:mm") : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>尾款期限（入住日 -3 天）</span>
+                    <span className={info.stage === "balance" ? "text-foreground font-medium tabular-nums" : "tabular-nums"}>
+                      {info.balanceDue ? format(info.balanceDue, "yyyy 年 M 月 d 日 HH:mm") : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>目前判斷依據</span>
+                    <span className="text-foreground">
+                      {info.stage === "deposit" ? "訂金期限" : info.stage === "balance" ? "尾款期限" : "不適用"}
+                    </span>
+                  </div>
+                  <div className={info.effectiveStatus === "overdue" ? "text-destructive" : ""}>{info.reason}</div>
+                </div>
+              );
+            })()}
+
             {order.order_status !== 'cancelled' && (
               <>
                 <Separator />
