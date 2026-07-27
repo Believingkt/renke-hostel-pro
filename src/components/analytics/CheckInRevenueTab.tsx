@@ -273,28 +273,100 @@ export function CheckInRevenueTab({
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMonthCursor((m) => subMonths(m, 1)); setRangeMode("month"); }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => { setMonthCursor((m) => subMonths(m, 1)); setRangeMode("month"); }}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="text-sm font-medium px-3 h-7 min-w-[92px] text-center rounded hover:bg-background/60 transition-colors tabular-nums"
+                >
+                  {format(monthCursor, "yyyy-MM")}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3 pointer-events-auto" align="start">
+                <div className="flex items-center justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setMonthCursor((d) => new Date(d.getFullYear() - 1, d.getMonth(), 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="text-sm font-semibold tabular-nums">{monthCursor.getFullYear()}</div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setMonthCursor((d) => new Date(d.getFullYear() + 1, d.getMonth(), 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {Array.from({ length: 12 }, (_, i) => i).map((mIdx) => {
+                    const isActive = monthCursor.getMonth() === mIdx;
+                    return (
+                      <button
+                        key={mIdx}
+                        type="button"
+                        onClick={() => {
+                          setMonthCursor(new Date(monthCursor.getFullYear(), mIdx, 1));
+                          setRangeMode("month");
+                        }}
+                        className={`h-9 rounded-md text-sm font-medium transition-colors ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted hover:bg-muted/70 text-foreground"
+                        }`}
+                      >
+                        {mIdx + 1}月
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 pt-3 border-t flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={() => { setMonthCursor(startOfMonth(new Date())); setRangeMode("month"); }}
+                  >
+                    回到本月
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
-              variant={rangeMode === "month" ? "secondary" : "ghost"}
-              size="sm"
-              className="px-3 min-w-[90px]"
-              onClick={() => setRangeMode("month")}
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => { setMonthCursor((m) => subMonths(m, -1)); setRangeMode("month"); }}
             >
-              {format(monthCursor, "yyyy年M月")}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMonthCursor((m) => subMonths(m, -1)); setRangeMode("month"); }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex bg-muted rounded-lg p-1 gap-1">
             {([
+              ["month", "單月"],
               ["last3", "近3月"],
               ["last6", "近6月"],
               ["year", "今年"],
             ] as [RangeMode, string][]).map(([m, label]) => (
-              <Button key={m} variant={rangeMode === m ? "secondary" : "ghost"} size="sm" className="px-3" onClick={() => setRangeMode(m)}>
+              <Button
+                key={m}
+                variant={rangeMode === m ? "default" : "ghost"}
+                size="sm"
+                className={`px-3 h-7 ${rangeMode === m ? "" : "text-muted-foreground hover:bg-background"}`}
+                onClick={() => setRangeMode(m)}
+              >
                 {label}
               </Button>
             ))}
@@ -303,6 +375,7 @@ export function CheckInRevenueTab({
             <DateRangePicker
               dateRange={customRange}
               allowFutureDates
+              restartOnComplete
               onDateRangeChange={(r) => {
                 setCustomRange(r);
                 if (r?.from) setRangeMode("custom");
