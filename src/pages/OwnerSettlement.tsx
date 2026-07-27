@@ -87,6 +87,8 @@ export default function OwnerSettlement() {
   const [addonTotal, setAddonTotal] = useState(0);
   const [addonCount, setAddonCount] = useState(0);
   const [addonFeePct, setAddonFeePct] = useState(0);
+  const [addonItems, setAddonItems] = useState<AddonSaleRow[]>([]);
+
   const [config, setConfig] = useState<SettlementConfig>({
     commission_rate: 15,
     marketing_fee_base: 53000,
