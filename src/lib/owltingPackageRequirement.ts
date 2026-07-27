@@ -112,7 +112,9 @@ export async function checkOwltingPackageRequirement(
 
   return {
     required: requiredRoomTypeIds.length > 0,
+    blocking: channel === "owlting" && requiredRoomTypeIds.length > 0,
     requiredRoomTypeIds,
+
     channel,
     channelLabel: channelLabelOf(channel),
   };
