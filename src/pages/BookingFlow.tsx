@@ -3278,6 +3278,9 @@ const BookingFlow = () => {
           description = m
             ? `入住人數 ${m[1]} 人超過房型上限（最多 ${m[2]} 人），請調整人數或選擇其他房型`
             : raw;
+        } else if (lower.includes("v_pkg") || lower.includes("is not assigned yet")) {
+          // 後端方案資料未帶入時的保底提示（避免顯示資料庫內部訊息）
+          description = "請先選擇入住方案後再送出訂單";
         } else {
           description = raw;
         }
