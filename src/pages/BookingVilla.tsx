@@ -13,6 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   User,
   LogIn,
@@ -108,6 +118,7 @@ const BookingVilla = () => {
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
+  const [missingInfoOpen, setMissingInfoOpen] = useState(false);
   const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [bottomNavHeight, setBottomNavHeight] = useState(61);
   const handleBottomNavVisibility = useCallback((visible: boolean) => {
@@ -511,6 +522,11 @@ const BookingVilla = () => {
   const childBlockReason = childCtx?.evalResult.blockReason;
 
   const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+    const adultsParam = parseInt(searchParams.get("adults") || "0", 10) || 0;
+    if (!checkInStr || !checkOutStr || adultsParam < 1) {
+      setMissingInfoOpen(true);
+      return;
+    }
     if (childBlocked) {
       toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
         description: "請點選上方搜尋條調整人數後再試。",
@@ -1246,6 +1262,29 @@ const BookingVilla = () => {
           })()}
         />
       )}
+
+      <AlertDialog open={missingInfoOpen} onOpenChange={setMissingInfoOpen}>
+        <AlertDialogContent className="max-w-[340px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>請先選擇日期與人數</AlertDialogTitle>
+            <AlertDialogDescription>
+              需要先選好入住／退房日期與入住人數，才能繼續下一步預約。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="flex-1 mt-0">稍後再說</AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1"
+              onClick={() => {
+                setMissingInfoOpen(false);
+                setEditSearchOpen(true);
+              }}
+            >
+              立即選擇
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EditSearchSheet
         open={editSearchOpen}
