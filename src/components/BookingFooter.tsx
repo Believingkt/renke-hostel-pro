@@ -1,15 +1,40 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Facebook, Instagram, Youtube, AtSign, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
 
-const BookingFooter = () => {
+interface BookingFooterProps {
+  lineId?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  threadsUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
+}
+
+const BookingFooter = ({
+  lineId,
+  facebookUrl,
+  instagramUrl,
+  threadsUrl,
+  youtubeUrl,
+  tiktokUrl,
+}: BookingFooterProps = {}) => {
   const navigate = useNavigate();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const socials = [
+    { url: facebookUrl, label: "Facebook", Icon: Facebook },
+    { url: instagramUrl, label: "Instagram", Icon: Instagram },
+    { url: threadsUrl, label: "Threads", Icon: AtSign },
+    { url: youtubeUrl, label: "YouTube", Icon: Youtube },
+    { url: tiktokUrl, label: "TikTok", Icon: Music2 },
+    { url: lineId ? `https://line.me/R/ti/p/${lineId}` : "", label: "LINE", Icon: AtSign },
+  ].filter((s) => !!s.url);
 
   return (
     <footer
@@ -20,6 +45,7 @@ const BookingFooter = () => {
           <div className="flex items-center gap-2 md:-ml-3">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
           </div>
+
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm text-muted-foreground">
             <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
               會員中心
