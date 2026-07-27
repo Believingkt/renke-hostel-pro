@@ -39,6 +39,8 @@ import { DepositManagementSection } from "@/components/orders/DepositManagementS
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
+import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
+
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
