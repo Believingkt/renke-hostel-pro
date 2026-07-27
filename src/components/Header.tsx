@@ -152,10 +152,11 @@ export function Header() {
           )}
         </div>
         
-        <div className="flex items-center gap-1 md:gap-4 flex-shrink-0 min-w-0">
-          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[10rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink min-w-0">
+          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[7.5rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
             <AccommodationSelector />
           </div>
+
           
           
           <Button
