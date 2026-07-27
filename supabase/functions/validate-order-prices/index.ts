@@ -291,13 +291,17 @@ serve(async (req) => {
           calculatedRoomTotal += nightlySale;
 
           const tierOriginal = tierPrices?.[tier]?.original;
+          const invPrice = pricing?.price != null ? Number(pricing.price) : null;
           const nightlyOriginal =
             tierOriginal != null && Number(tierOriginal) > 0
               ? Number(tierOriginal)
               : pkgOriginal != null && pkgOriginal > 0
                 ? pkgOriginal
-                : nightlySale;
+                : invPrice != null && invPrice > 0
+                  ? invPrice
+                  : nightlySale;
           discountBaseTotal += nightlyOriginal;
+
         }
       }
     }
