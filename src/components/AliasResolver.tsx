@@ -82,13 +82,12 @@ export function AliasResolver() {
     return <Navigate to="/booking" replace />;
   }
 
-  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，直接進訂房頁。
-  // 有包區方案 → /booking/villa/{id}；否則 → /booking/{id}。
+  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，直接進新版包棟訂房頁。
   if (resolvedId && typeof window !== "undefined") {
     const hostname = window.location.hostname.toLowerCase();
     const segments = location.pathname.split("/").filter(Boolean);
     if (BOOKING_DOMAINS.includes(hostname) && segments.length === 1) {
-      const target = hasPackages ? `/booking/villa/${resolvedId}` : `/booking/${resolvedId}`;
+      const target = `/booking/villa/${resolvedId}`;
       return <Navigate to={`${target}${location.search}`} replace />;
     }
   }
