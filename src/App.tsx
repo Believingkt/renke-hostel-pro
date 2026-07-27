@@ -180,8 +180,9 @@ function App() {
                       <Suspense fallback={<FrontendSkeleton />}><VillaLanding /></Suspense>
                     } />
                     <Route path="booking/:accId" element={
-                      <Suspense fallback={<FrontendSkeleton />}><BookingAccommodation /></Suspense>
+                      <Suspense fallback={<FrontendSkeleton />}><LegacyBookingRedirect /></Suspense>
                     } />
+
                     <Route path="member/auth" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberAuth /></Suspense>
                     } />
