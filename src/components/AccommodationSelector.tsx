@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { buildFrontendUrl } from "@/lib/frontendUrl";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import {
@@ -100,7 +101,7 @@ export function AccommodationSelector() {
             <Button 
               variant="ghost" 
               size="icon"
-              className="hidden sm:inline-flex h-9 w-9"
+              className="inline-flex h-9 w-9"
               onClick={() => window.open(buildFrontendUrl(accommodations[0]), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
@@ -124,7 +125,7 @@ export function AccommodationSelector() {
             <Button 
               variant="ghost" 
               size="icon"
-              className="hidden sm:inline-flex h-9 w-9"
+              className="inline-flex h-9 w-9"
               onClick={() => window.open(buildFrontendUrl(currentAcc), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
