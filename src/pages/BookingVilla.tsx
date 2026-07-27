@@ -108,6 +108,7 @@ const BookingVilla = () => {
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
+  const [missingInfoOpen, setMissingInfoOpen] = useState(false);
   const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [bottomNavHeight, setBottomNavHeight] = useState(61);
   const handleBottomNavVisibility = useCallback((visible: boolean) => {
