@@ -449,7 +449,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating hold order:", error);
-      toast({ title: "建立失敗", description: "無法建立保留單", variant: "destructive" });
+      toast({
+        title: "建立失敗",
+        description: translateOrderError(error, "無法建立保留單，請稍後再試"),
+        variant: "destructive",
+      });
+
     } finally {
       setIsSaving(false);
     }
