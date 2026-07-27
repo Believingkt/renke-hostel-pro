@@ -64,6 +64,24 @@ const BookingFooter = ({
           </p>
         </div>
 
+        {socials.length > 0 && (
+          <div className="mt-4 flex justify-center md:justify-start gap-5">
+            {socials.map(({ url, label, Icon }) => (
+              <a
+                key={label}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon className="h-5 w-5" />
+              </a>
+            ))}
+          </div>
+        )}
+
+
         {/* 聯名合作夥伴 */}
         <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity">
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
