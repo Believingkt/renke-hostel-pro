@@ -2032,14 +2032,23 @@ const BookingFlow = () => {
     return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
   };
 
+  // 折扣基準：有包區方案時以「原價（劃掉用）」計算；否則以實際房費計算
+  const getDiscountBase = () => {
+    const originalTotal = calculatePackageOriginalTotal();
+    if (originalTotal != null && originalTotal > 0) return originalTotal;
+    return calculateTotal();
+  };
+
   const calculateDiscount = () => {
     if (!appliedDiscount) return 0;
     const total = calculateTotal();
     if (appliedDiscount.type === "percentage") {
-      return Math.round(total * (appliedDiscount.value / 100));
+      const raw = Math.round(getDiscountBase() * (appliedDiscount.value / 100));
+      return Math.min(raw, total); // 折扣不得超過實際房費
     }
-    return appliedDiscount.value;
+    return Math.min(appliedDiscount.value, total);
   };
+
 
   const getChildSelection = (): ChildSelection => ({
     infants: infantsCount,
