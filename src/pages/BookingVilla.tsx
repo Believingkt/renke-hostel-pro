@@ -1263,6 +1263,29 @@ const BookingVilla = () => {
         />
       )}
 
+      <AlertDialog open={missingInfoOpen} onOpenChange={setMissingInfoOpen}>
+        <AlertDialogContent className="max-w-[340px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>請先選擇日期與人數</AlertDialogTitle>
+            <AlertDialogDescription>
+              需要先選好入住／退房日期與入住人數，才能계續下一步預約。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="flex-1 mt-0">稍後再說</AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1"
+              onClick={() => {
+                setMissingInfoOpen(false);
+                setEditSearchOpen(true);
+              }}
+            >
+              立即選擇
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditSearchSheet
         open={editSearchOpen}
         onOpenChange={setEditSearchOpen}
