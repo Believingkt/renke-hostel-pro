@@ -268,6 +268,84 @@ export default function OwnerSettlement() {
   const monthShort = format(month, "M 月", { locale: zhTW });
   const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
 
+  const exportPdf = () => {
+    const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+    const orderRowsHtml = rows
+      .map(
+        (r) => `<tr>
+          <td>${esc(r.order.order_number)}</td>
+          <td>${esc(r.order.guest_name)}</td>
+          <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
+          <td class="r">${r.nightsInMonth}/${r.totalNights}</td>
+          <td class="r">${fmt(r.monthFinal)}</td>
+          <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const addonRowsHtml = addonItems
+      .map(
+        (a) => `<tr>
+          <td>${esc(a.sale_date)}</td>
+          <td>${esc(a.category || "—")}</td>
+          <td>${esc(a.item_name)}</td>
+          <td class="r">${a.quantity}</td>
+          <td class="r">${fmt(Number(a.unit_price) || 0)}</td>
+          <td class="r">${fmt(Number(a.total_amount) || 0)}</td>
+          <td>${esc(a.related_order_number || "—")}</td>
+          <td>${esc(a.notes || "")}</td>
+        </tr>`
+      )
+      .join("");
+
+    const html = `<html><head><meta charset="utf-8"><title>業主收益報告 ${esc(monthLabel)}</title>
+      <style>
+        body{font-family:"Noto Sans TC",sans-serif;padding:24px;color:#222;}
+        h1{font-size:20px;margin:0 0 4px;} h2{font-size:15px;margin:24px 0 8px;}
+        .muted{color:#666;font-size:12px;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:5px 7px;vertical-align:top;}
+        th{background:#f4f4f4;text-align:left;}
+        .r{text-align:right;font-variant-numeric:tabular-nums;}
+        .sum td{font-weight:600;background:#fafafa;}
+        .final{font-size:16px;font-weight:700;}
+      </style></head><body>
+      <h1>業主收益報告　${esc(monthLabel)}</h1>
+      <div class="muted">產出時間：${format(new Date(), "yyyy-MM-dd HH:mm")}　撥款期限：${paymentDueDate}</div>
+
+      <h2>收益拆解</h2>
+      <table>
+        <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
+        <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
+        <tr><td>行銷推廣費（${propertyCount} 棟）</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
+        <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(totals.ownerNet)}</td></tr>
+      </table>
+
+      <h2>訂單明細（依入住日攤分至本月）</h2>
+      <table>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th><th class="r">本月夜數</th><th class="r">本月營收</th><th class="r">抽成</th></tr></thead>
+        <tbody>${orderRowsHtml || `<tr><td colspan="6">本月無入住訂單</td></tr>`}</tbody>
+      </table>
+
+      <h2>購物商品（非訂房收入）明細　共 ${addonItems.length} 筆　合計 NT$ ${fmt(totals.addonTotal)}</h2>
+      <table>
+        <thead><tr><th>日期</th><th>分類</th><th>品項</th><th class="r">數量</th><th class="r">單價</th><th class="r">小計</th><th>關聯訂單</th><th>備註</th></tr></thead>
+        <tbody>${addonRowsHtml || `<tr><td colspan="8">本月無購物商品紀錄</td></tr>`}
+        ${addonItems.length ? `<tr class="sum"><td colspan="5">合計</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td><td colspan="2"></td></tr>` : ""}
+        </tbody>
+      </table>
+      <p class="muted">購物商品收入不列入平台抽成，全額計入業主淨收益。</p>
+      <script>window.onload=()=>window.print();<\/script>
+      </body></html>`;
+
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+  };
+
   return (
     <TooltipProvider delayDuration={150}>
     <div className="container mx-auto py-6 space-y-6">
@@ -278,6 +356,10 @@ export default function OwnerSettlement() {
         action={
           <div className="flex items-center gap-2">
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
+            <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
+              <Printer className="w-4 h-4 mr-1" />
+              下載 PDF
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/owner-settlement/settings">
                 <Settings className="w-4 h-4 mr-1" />
@@ -287,6 +369,7 @@ export default function OwnerSettlement() {
           </div>
         }
       />
+
 
       {/* Hero：業主實收 */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
