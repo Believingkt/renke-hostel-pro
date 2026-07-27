@@ -301,8 +301,9 @@ export function CheckInRevenueTab({
           </div>
           <div className="flex items-center gap-2">
             <DateRangePicker
-              date={customRange}
-              onDateChange={(r) => {
+              dateRange={customRange}
+              allowFutureDates
+              onDateRangeChange={(r) => {
                 setCustomRange(r);
                 if (r?.from) setRangeMode("custom");
               }}
