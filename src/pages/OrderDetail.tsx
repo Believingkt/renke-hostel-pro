@@ -216,6 +216,51 @@ interface OrderDetailPageProps {
   onClose?: () => void;
 }
 
+const PAYMENT_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 訂金（建立日 +3 天）與尾款（入住日 -3 天）期限判斷，供徽章與說明區共用 */
+function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
+  const base = order?.payment_link_created_at || order?.created_at;
+  const depositDue = base ? new Date(new Date(base).getTime() + 3 * PAYMENT_DAY_MS) : null;
+  const balanceDue = order?.check_in_date
+    ? new Date(new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() - 3 * PAYMENT_DAY_MS)
+    : null;
+  const now = Date.now();
+  const status = order?.payment_status;
+
+  let effectiveStatus = status;
+  let stage: "deposit" | "balance" | "none" = "none";
+  let reason = "";
+
+  if (isNonPayableCurrency) {
+    reason = "此訂單使用非線上金流幣別，不套用逾期判斷。";
+  } else if (["unpaid", "partial"].includes(status)) {
+    stage = "deposit";
+    if (depositDue && now > depositDue.getTime()) {
+      effectiveStatus = "overdue";
+      reason = "已超過訂金繳款期限（建立訂單起 3 天）且尚未收到訂金，故顯示已逾期。";
+    } else {
+      reason = "尚在訂金繳款期限內（建立訂單起 3 天），故維持原付款狀態。";
+    }
+  } else if (status === "deposit_paid") {
+    stage = "balance";
+    if (balanceDue && now > balanceDue.getTime()) {
+      effectiveStatus = "overdue";
+      reason = "訂金已收，但已超過尾款繳款期限（入住日前 3 天），故顯示已逾期。";
+    } else {
+      reason = "訂金已收，尾款期限為入住日前 3 天，尚未到期，故顯示已付訂金。";
+    }
+  } else if (status === "paid") {
+    reason = "款項已全額付清，不再判斷期限。";
+  } else {
+    reason = "此付款狀態不套用期限判斷。";
+  }
+
+  return { effectiveStatus, stage, reason, depositDue, balanceDue };
+}
+
+
+
 const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: OrderDetailPageProps = {}) => {
   const params = useParams<{ orderId: string }>();
   const orderId = orderIdProp ?? params.orderId;
