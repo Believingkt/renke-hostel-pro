@@ -26,6 +26,7 @@ import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
+import { CheckInRevenueTab } from "@/components/analytics/CheckInRevenueTab";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { currencyModeSymbol, type CurrencyMode } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
@@ -383,6 +384,12 @@ const Dashboard = () => {
           >
             訂單來源分析
           </TabsTrigger>
+          <TabsTrigger
+            value="checkin"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+          >
+            入住收款統計
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
@@ -590,6 +597,15 @@ const Dashboard = () => {
             exchangeRate={dualCurrencyEnabled ? Number(jpyRate) || 0 : undefined}
           />
 
+        </TabsContent>
+
+        <TabsContent value="checkin" className="mt-0">
+          <CheckInRevenueTab
+            accommodationId={accommodationId!}
+            viewMode={dualCurrencyEnabled ? currencyView : undefined}
+            selectedCurrency={dualCurrencyEnabled ? currencyChoice : undefined}
+            exchangeRate={dualCurrencyEnabled ? Number(jpyRate) || 0 : undefined}
+          />
         </TabsContent>
       </Tabs>
 
