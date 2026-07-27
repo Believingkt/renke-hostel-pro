@@ -2277,14 +2277,26 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               ) : getPaymentStatusBadge(
                 (() => {
                   const o = order as any;
-                  const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
-                  if (!isNonPayableCurrency && unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
-                    const created = new Date(o.payment_link_created_at);
-                    if (Date.now() > created.getTime() + 3 * 24 * 60 * 60 * 1000) return 'overdue';
+                  if (isNonPayableCurrency) return order.payment_status;
+                  const now = Date.now();
+                  const DAY = 24 * 60 * 60 * 1000;
+                  // 訂金：以訂單建立日起算 3 天為期限
+                  if (['unpaid', 'partial'].includes(order.payment_status)) {
+                    const base = o.payment_link_created_at || o.created_at;
+                    if (base && now > new Date(base).getTime() + 3 * DAY) return 'overdue';
+                    return order.payment_status;
+                  }
+                  // 尾款：以入住日前 3 天為期限
+                  if (order.payment_status === 'deposit_paid') {
+                    if (order.check_in_date && now > new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() - 3 * DAY) {
+                      return 'overdue';
+                    }
+                    return order.payment_status;
                   }
                   return order.payment_status;
                 })()
               )}
+
             </div>
             {order.order_status !== 'cancelled' && (
               <>
