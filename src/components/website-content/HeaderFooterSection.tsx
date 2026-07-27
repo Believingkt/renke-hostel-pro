@@ -83,6 +83,15 @@ export const HeaderFooterSection = ({
 }: HeaderFooterSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const goToTab = (tab: string) => {
+    const accId = searchParams.get("accId");
+    navigate(`/admin/website-content?tab=${tab}${accId ? `&accId=${accId}` : ""}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
 
   // 使用草稿功能
   const {
