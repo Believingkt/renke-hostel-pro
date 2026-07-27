@@ -14,12 +14,14 @@ const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect 
 function classifyAtmError(raw: string): { title: string; suggestion: string; canRetrySamePrime: boolean } {
   const m = (raw || "").toLowerCase();
   if (/app name mismatch|app.*mismatch|status\s*12|網域|domain|bundle/.test(m)) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
     return {
       title: "付款網域設定不符",
-      suggestion: "目前付款頁網址尚未加入 TapPay 允許網域，請使用正式付款連結，或聯繫客服確認付款網域設定。",
+      suggestion: `目前付款頁網址（${host || "未知網域"}）尚未加入 TapPay 允許網域，請使用正式付款連結，或聯繫客服將此網域加入 TapPay 設定。`,
       canRetrySamePrime: false,
     };
   }
+
   if (/app id not found|app key mismatch|credentials|app.*key|status\s*11|status\s*16/.test(m)) {
     return { title: "付款設定未完成", suggestion: "請聯繫客服確認 TapPay 付款設定。", canRetrySamePrime: false };
   }
