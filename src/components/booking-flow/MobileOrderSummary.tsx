@@ -70,8 +70,10 @@ export default function MobileOrderSummary({
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
+  variant = "mobile",
 }: Props) {
   if (!checkInDate || !checkOutDate) return null;
+
 
   const nights = calculateNights();
   const finalTotal = calculateFinalTotal();
