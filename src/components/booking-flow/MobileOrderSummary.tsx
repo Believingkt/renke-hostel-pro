@@ -44,7 +44,7 @@ interface Props {
 
   addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
-  appliedDiscount: { code: string } | null;
+  appliedDiscount: { code: string; type?: string; value?: number } | null;
   calculateDiscount: () => number;
   /** mobile：僅手機顯示；desktop：僅桌機側欄顯示（sticky） */
   variant?: "mobile" | "desktop";
