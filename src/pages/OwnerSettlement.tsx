@@ -354,7 +354,7 @@ export default function OwnerSettlement() {
         description={`${monthLabel} 房務營運摘要與業主撥款明細`}
         icon={Banknote}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
             <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
               <Printer className="w-4 h-4 mr-1" />
@@ -448,9 +448,10 @@ export default function OwnerSettlement() {
                     <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
                     <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
                   </div>
-                  <div className="mt-2 pt-2 border-t flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
+                  <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="min-w-0 break-words">請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）</span>
+
                   </div>
                 </div>
               </div>
