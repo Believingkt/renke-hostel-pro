@@ -19,7 +19,6 @@ import { SocialSharingSection } from "@/components/website-content/SocialSharing
 import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
-import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
 import VillaHeaderSettings from "@/components/website-content/VillaHeaderSettings";
