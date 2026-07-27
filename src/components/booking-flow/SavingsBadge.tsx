@@ -51,11 +51,17 @@ export function SavingsBadge({
         : "text-[11px] px-2 py-0.5";
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full bg-primary/10 font-medium text-primary align-middle whitespace-nowrap ${sizeCls} ${className}`}
-    >
-      {showLabel && <span>人客多優惠</span>}
-      <span className="font-bold tabular-nums">-{percent}%</span>
+    <span className={`inline-flex items-center gap-1.5 align-middle whitespace-nowrap ${className}`}>
+      {showLabel && (
+        <span className={`text-muted-foreground ${size === "md" ? "text-[13px]" : "text-xs"}`}>
+          人客多優惠
+        </span>
+      )}
+      <span
+        className={`inline-flex items-center rounded-full bg-destructive font-bold text-destructive-foreground tabular-nums ${sizeCls}`}
+      >
+        -{percent}%
+      </span>
     </span>
   );
 }
