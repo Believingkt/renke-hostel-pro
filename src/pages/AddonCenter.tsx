@@ -97,6 +97,8 @@ export default function AddonCenter() {
     [monthStr]
   );
 
+  const [orderNumbers, setOrderNumbers] = useState<Record<string, string>>({});
+
   async function load() {
     if (!currentAccommodationId) return;
     setLoading(true);
@@ -109,14 +111,33 @@ export default function AddonCenter() {
       .order("sale_date", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) toast.error("載入失敗：" + error.message);
-    setItems((data || []) as AddonSale[]);
+    const rows = (data || []) as AddonSale[];
+    setItems(rows);
     setLoading(false);
+
+    const ids = Array.from(
+      new Set(rows.map((r) => r.related_order_id).filter(Boolean) as string[])
+    );
+    if (ids.length) {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("id, order_number")
+        .in("id", ids);
+      const map: Record<string, string> = {};
+      (ords || []).forEach((o: any) => {
+        map[o.id] = o.order_number;
+      });
+      setOrderNumbers(map);
+    } else {
+      setOrderNumbers({});
+    }
   }
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAccommodationId, monthStart, monthEnd]);
+
 
   const totals = useMemo(() => {
     const total = items.reduce((s, x) => s + (x.total_amount || 0), 0);
@@ -149,7 +170,10 @@ export default function AddonCenter() {
       quantity: String(it.quantity),
       unit_price: String(it.unit_price),
       notes: it.notes || "",
-      related_order_id: it.related_order_id || "",
+      related_order_id: it.related_order_id
+        ? orderNumbers[it.related_order_id] || it.related_order_id
+        : "",
+
     });
     setOpen(true);
   }
@@ -164,6 +188,24 @@ export default function AddonCenter() {
     if (!Number.isFinite(qty) || qty <= 0) return toast.error("數量需為正整數");
     if (!Number.isFinite(price) || price < 0) return toast.error("單價需為非負整數");
 
+    // 關聯訂單：使用者輸入的是訂單編號（8 碼），需轉成訂單 UUID
+    const rawOrder = form.related_order_id.trim();
+    let relatedOrderId: string | null = null;
+    if (rawOrder) {
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawOrder);
+      const { data: ord, error: ordErr } = isUuid
+        ? await supabase.from("orders").select("id").eq("id", rawOrder).maybeSingle()
+        : await supabase
+            .from("orders")
+            .select("id")
+            .eq("order_number", rawOrder.toUpperCase())
+            .maybeSingle();
+      if (ordErr) return toast.error("查詢訂單失敗：" + ordErr.message);
+      if (!ord) return toast.error(`找不到訂單編號 ${rawOrder}，請確認後再試`);
+      relatedOrderId = ord.id;
+    }
+
     setSaving(true);
     const payload = {
       accommodation_id: currentAccommodationId,
@@ -174,8 +216,9 @@ export default function AddonCenter() {
       unit_price: price,
       total_amount: qty * price,
       notes: form.notes.trim() || null,
-      related_order_id: form.related_order_id.trim() || null,
+      related_order_id: relatedOrderId,
     };
+
 
     const { error } = editingId
       ? await supabase.from("addon_sales").update(payload).eq("id", editingId)
@@ -296,7 +339,10 @@ export default function AddonCenter() {
                       {it.notes || "—"}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {it.related_order_id || "—"}
+                      {it.related_order_id
+                        ? orderNumbers[it.related_order_id] || "（訂單已刪除）"
+                        : "—"}
+
                     </TableCell>
                     {editable && (
                       <TableCell>
@@ -387,7 +433,7 @@ export default function AddonCenter() {
               <Input
                 value={form.related_order_id}
                 onChange={(e) => setForm({ ...form, related_order_id: e.target.value })}
-                placeholder="若此筆銷售與某張訂單相關，可填訂單 ID"
+                placeholder="輸入 8 碼訂單編號，例：A3F7K9QM"
               />
             </div>
             <div className="space-y-1.5 col-span-2">
