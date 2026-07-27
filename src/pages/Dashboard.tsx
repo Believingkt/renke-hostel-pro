@@ -383,6 +383,12 @@ const Dashboard = () => {
           >
             訂單來源分析
           </TabsTrigger>
+          <TabsTrigger
+            value="checkin"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+          >
+            入住收款統計
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
