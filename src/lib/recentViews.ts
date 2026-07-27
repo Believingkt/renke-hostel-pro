@@ -78,7 +78,7 @@ export async function fetchRecentViews(): Promise<RecentView[]> {
   if (error || !data) return local;
 
   const map = new Map<string, RecentView>();
-  for (const r of data as RecentView[]) map.set(r.accommodation_id, r);
+  for (const r of data as RecentView[]) map.set(r.accommodation_id, { ...r, path: normalizeBookingPath(r.path ?? "") });
   for (const r of local) {
     const ex = map.get(r.accommodation_id);
     if (!ex || new Date(r.viewed_at) > new Date(ex.viewed_at)) map.set(r.accommodation_id, r);
