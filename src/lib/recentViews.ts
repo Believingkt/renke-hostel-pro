@@ -97,7 +97,7 @@ export function getRecentViews(): RecentView[] {
 
 export async function pushRecentView(v: RecentView) {
   if (!v.accommodation_id) return;
-  const entry: RecentView = { ...v, viewed_at: new Date().toISOString() };
+  const entry: RecentView = { ...v, path: normalizeBookingPath(v.path ?? ""), viewed_at: new Date().toISOString() };
   const list = readLocal().filter((x) => x.accommodation_id !== v.accommodation_id);
   list.unshift(entry);
   writeLocal(list);
