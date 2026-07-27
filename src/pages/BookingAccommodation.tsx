@@ -98,14 +98,14 @@ const BookingAccommodation = () => {
     }
   }, [accId, searchParams, navigate]);
 
-  // 若該民宿已設定包區方案 → 自動導向 BookingVilla（森山風格階梯卡 UI）
+  // 所有館別一律使用新版包棟訂房頁（BookingVilla），不再依是否設定包區方案判斷
   useEffect(() => {
-    if (packagesLoading) return;
-    if (accId && hasPackages) {
+    if (accId) {
       const qs = searchParams.toString();
       navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`, { replace: true });
     }
-  }, [accId, hasPackages, navigate, searchParams, packagesLoading]);
+  }, [accId, navigate, searchParams]);
+
 
   useEffect(() => {
     const checkAuth = async () => {
