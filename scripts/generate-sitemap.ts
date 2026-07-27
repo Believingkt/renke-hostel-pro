@@ -17,12 +17,12 @@ interface SitemapEntry {
 }
 
 async function fetchAccommodations(): Promise<
-  Array<{ short_url_alias: string | null; custom_domain: string | null }>
+  Array<{ id: string; short_url_alias: string | null; custom_domain: string | null }>
 > {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/accommodation_info?select=short_url_alias,custom_domain&is_active=eq.true`,
+      `${SUPABASE_URL}/rest/v1/accommodation_info?select=id,short_url_alias,custom_domain&is_active=eq.true`,
       { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
     );
     if (!res.ok) return [];
@@ -59,20 +59,19 @@ const entries: SitemapEntry[] = [
   { loc: `${BASE_URL}/booking`, changefreq: "daily", priority: "1.0" },
 ];
 
+// sitemap 只列出「與 canonical 完全一致」的最終網址（/booking/villa/{id}），
+// 避免列出會再轉址的 alias / 網域根路徑。
 for (const a of accommodations) {
+  if (!a.id) continue;
   const domain = a.custom_domain?.trim();
-  if (domain) {
-    entries.push({
-      loc: `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/`,
-      changefreq: "daily",
-      priority: "0.9",
-    });
-    continue;
-  }
-  const alias = a.short_url_alias?.trim();
-  if (alias) {
-    entries.push({ loc: `${BASE_URL}/${alias}`, changefreq: "daily", priority: "0.9" });
-  }
+  const origin = domain
+    ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
+    : BASE_URL;
+  entries.push({
+    loc: `${origin}/booking/villa/${a.id}`,
+    changefreq: "daily",
+    priority: "0.9",
+  });
 }
 
 writeFileSync(resolve("public/sitemap.xml"), render(entries));
