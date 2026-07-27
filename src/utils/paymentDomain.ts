@@ -15,8 +15,9 @@ const stripDomain = (value: string) =>
 
 /**
  * 已實際上線（DNS 已指向本專案）的網域清單。
- * alias 只是後台代稱，未必有對應網域；若 alias 推導出的網域不在清單內，
- * 一律留在目前網域，避免導向不存在的網站造成「網頁失效」。
+ * custom_domain 與 alias 都只是後台設定值，未必真的有對應網域；
+ * 若推導出的網域不在清單內，一律留在目前網域完成付款，
+ * 避免導向不存在的網站造成「網頁失效」。
  */
 const LIVE_DOMAINS = new Set([
   "sensaninn.lakeze.com",
@@ -24,18 +25,46 @@ const LIVE_DOMAINS = new Set([
   "oliviaboutiquehotel.lakeze.com",
   "traveldays.lakeze.com",
   "booking.lakeze.com",
+  "hq.lakeze.com",
+  "renke-hostel-pro.lovable.app",
 ]);
 
+/** 預覽 / 開發環境：一律留在當前網域，方便測試與避免跨網域 session 遺失 */
+function isPreviewHost(hostname: string) {
+  const h = hostname.toLowerCase();
+  return (
+    h === "localhost" ||
+    h.endsWith(".lovableproject.com") ||
+    h.endsWith("-preview--" + h) === false && h.includes("id-preview--")
+  );
+}
+
 export function getPaymentOriginFromAccommodation(acc?: AccommodationDomainRow | null) {
+  const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  if (typeof window !== "undefined" && isPreviewHost(window.location.hostname)) {
+    return currentOrigin;
+  }
+
   const customDomain = acc?.custom_domain ? stripDomain(acc.custom_domain) : "";
   const alias = acc?.short_url_alias ? stripDomain(acc.short_url_alias) : "";
   const aliasDomain = alias ? `${alias}.lakeze.com` : "";
-  const domain = customDomain || (LIVE_DOMAINS.has(aliasDomain) ? aliasDomain : "");
-  return domain ? `https://${domain}` : window.location.origin;
+
+  // 只接受確認上線的網域，custom_domain 也一樣要檢查
+  const domain = LIVE_DOMAINS.has(customDomain)
+    ? customDomain
+    : LIVE_DOMAINS.has(aliasDomain)
+      ? aliasDomain
+      : "";
+
+  return domain ? `https://${domain}` : currentOrigin;
 }
 
 
 export async function getPaymentOriginForAccommodation(accommodationId?: string | null) {
+  if (typeof window !== "undefined" && isPreviewHost(window.location.hostname)) {
+    return window.location.origin;
+  }
   if (!accommodationId) return window.location.origin;
 
   const { data } = await supabase
