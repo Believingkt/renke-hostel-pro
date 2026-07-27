@@ -30,6 +30,8 @@ import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { translateOrderError } from "@/lib/orderErrorMessages";
+import { reportFrontendError } from "@/utils/errorReporter";
+
 
 interface RoomType {
   id: string;
@@ -1563,7 +1565,41 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     } catch (error: any) {
       console.error("Error creating order:", error);
       const description = translateOrderError(error);
-      toast({ title: "新增失敗", description, variant: "destructive" });
+      const rawMessage =
+        error?.message || error?.details || error?.hint || String(error ?? "");
+      const rawCode = error?.code ?? null;
+      // 寫入 error_logs，方便後台追查「無法建立訂單，請稍後再試」這類無明確原因的失敗
+      void reportFrontendError({
+        category: "admin_create_order",
+        step: "handleSave",
+        errorMessage: rawMessage || "(no message)",
+        errorCode: rawCode ?? undefined,
+        accommodationId: currentAccommodationId ?? null,
+        context: {
+          order_source: form.order_source,
+          check_in_date: form.check_in_date,
+          check_out_date: form.check_out_date,
+          room_selections: roomSelections.map((s) => ({
+            room_type_id: s.room_type_id,
+            quantity: s.quantity,
+            template_id: s.template_id,
+            room_price: s.roomPrice,
+          })),
+          details: error?.details ?? null,
+          hint: error?.hint ?? null,
+          stack: typeof error?.stack === "string" ? error.stack.slice(0, 1000) : null,
+        },
+      });
+      // 若無法辨識原因，附上原始錯誤代碼／訊息，避免只看到「請稍後再試」
+      const isFallback = description === "無法建立訂單，請稍後再試";
+      toast({
+        title: "新增失敗",
+        description: isFallback && rawMessage
+          ? `${description}（${rawCode ? `${rawCode}: ` : ""}${rawMessage.slice(0, 160)}）`
+          : description,
+        variant: "destructive",
+      });
+
 
     } finally {
       setIsSaving(false);
