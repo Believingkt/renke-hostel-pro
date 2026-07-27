@@ -597,6 +597,15 @@ const Dashboard = () => {
           />
 
         </TabsContent>
+
+        <TabsContent value="checkin" className="mt-0">
+          <CheckInRevenueTab
+            accommodationId={accommodationId!}
+            viewMode={dualCurrencyEnabled ? currencyView : undefined}
+            selectedCurrency={dualCurrencyEnabled ? currencyChoice : undefined}
+            exchangeRate={dualCurrencyEnabled ? Number(jpyRate) || 0 : undefined}
+          />
+        </TabsContent>
       </Tabs>
 
     </div>
