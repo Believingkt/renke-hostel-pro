@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2, Info } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Upload, Trash2, Info, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { headerFooterSchema, validateField } from "@/utils/websiteValidation";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
+
+const ReadOnlyRow = ({
+  label,
+  value,
+  hint,
+  onGo,
+  goLabel,
+}: {
+  label: string;
+  value?: string;
+  hint: string;
+  onGo: () => void;
+  goLabel: string;
+}) => (
+  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3">
+    <div className="sm:w-24 shrink-0 text-sm font-medium">{label}</div>
+    <div className="flex-1 min-w-0">
+      <div className="text-sm break-words">{value || <span className="text-muted-foreground">未設定</span>}</div>
+      <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+    </div>
+    <Button type="button" variant="outline" size="sm" onClick={onGo} className="shrink-0">
+      {goLabel}
+      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+    </Button>
+  </div>
+);
+
 
 interface HeaderFooterSectionProps {
   accommodationId: string;
