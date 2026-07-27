@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import {
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import {
   detectTierByDate,
   getPackagePriceForTier,
   isPackageExcludedOnDate,

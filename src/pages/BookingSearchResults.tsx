@@ -21,8 +21,8 @@ import {
 } from "@/hooks/use-accommodation-packages";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import {
   evaluateChildSelection,
   resolveChildRules,
   summarizeChildRules,
