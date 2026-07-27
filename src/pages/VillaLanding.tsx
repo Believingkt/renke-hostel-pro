@@ -29,6 +29,9 @@ const amenityIconMap: Record<string, React.ComponentType<any>> = {
 };
 const pickAmenityIcon = (name: string) => amenityIconMap[name] ?? ShieldCheck;
 
+/* 「特色說明」已於前台下架，資料表 about_features 保留供日後啟用 */
+const SHOW_ABOUT_FEATURES = false;
+
 /* about_features 的 icon_name (lucide) 動態解析 */
 const resolveLucide = (name?: string | null) => {
   if (!name) return Sparkles;
