@@ -218,12 +218,12 @@ interface OrderDetailPageProps {
 
 const PAYMENT_DAY_MS = 24 * 60 * 60 * 1000;
 
-/** 訂金（建立日 +3 天）與尾款（入住日 -3 天）期限判斷，供徽章與說明區共用 */
+/** 訂金（建立日 +3 天）與尾款（入住日 +3 天，可提前付清）期限判斷，供徽章與說明區共用 */
 function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
   const base = order?.payment_link_created_at || order?.created_at;
   const depositDue = base ? new Date(new Date(base).getTime() + 3 * PAYMENT_DAY_MS) : null;
   const balanceDue = order?.check_in_date
-    ? new Date(new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() - 3 * PAYMENT_DAY_MS)
+    ? new Date(new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() + 3 * PAYMENT_DAY_MS)
     : null;
   const now = Date.now();
   const status = order?.payment_status;
