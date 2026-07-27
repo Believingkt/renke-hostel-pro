@@ -30,6 +30,8 @@ import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { translateOrderError } from "@/lib/orderErrorMessages";
+import { reportFrontendError } from "@/utils/errorReporter";
+
 
 interface RoomType {
   id: string;
