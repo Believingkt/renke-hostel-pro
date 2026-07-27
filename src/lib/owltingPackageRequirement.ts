@@ -56,10 +56,12 @@ export async function checkOwltingPackageRequirement(
 ): Promise<OwltingPackageRequirement> {
   const empty: OwltingPackageRequirement = {
     required: false,
+    blocking: false,
     requiredRoomTypeIds: [],
     channel: null,
     channelLabel: "",
   };
+
   if (!accommodationId || roomTypeIds.length === 0) return empty;
 
   // (a) 物業層級同步開關（奧丁丁 或 旭海 hotelnabe）
