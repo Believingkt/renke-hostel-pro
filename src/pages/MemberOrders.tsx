@@ -449,7 +449,7 @@ const MemberOrders = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/booking/${order.accommodation_id}`);
+                          navigate(`/booking/villa/${order.accommodation_id}`);
                         }}
                         className="px-4 py-1.5 rounded-full border text-sm font-medium"
                         style={{ borderColor: ORANGE, color: ORANGE }}
