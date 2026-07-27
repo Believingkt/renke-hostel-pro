@@ -15,6 +15,8 @@ import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
@@ -116,6 +118,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
   const orderSourceOptions = useOrderSources(currentAccommodationId);
   // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）

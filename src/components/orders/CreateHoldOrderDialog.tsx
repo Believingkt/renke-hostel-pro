@@ -19,6 +19,8 @@ import { useAuditLog } from "@/hooks/use-audit-log";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
 
 interface RoomType {
   id: string;

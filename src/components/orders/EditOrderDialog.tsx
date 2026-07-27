@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
