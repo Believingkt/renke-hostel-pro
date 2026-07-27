@@ -40,15 +40,6 @@ export function AliasResolver() {
         return;
       }
 
-      // 同步查詢是否設定包區方案；有 → 直接進 villa 頁，跳過 BookingAccommodation 中繼
-      const { data: pkgRows } = await (supabase as any)
-        .from("accommodation_packages")
-        .select("id")
-        .eq("accommodation_id", data.id)
-        .limit(1);
-
-      if (cancelled) return;
-
       try {
         sessionStorage.setItem("alias_accommodation_id", data.id);
         sessionStorage.setItem("alias_short_url_alias", data.short_url_alias || "");
@@ -57,8 +48,8 @@ export function AliasResolver() {
         /* silent */
       }
       setResolvedId(data.id);
-      setHasPackages(Array.isArray(pkgRows) && pkgRows.length > 0);
       setStatus("ready");
+
     })();
 
     return () => {
