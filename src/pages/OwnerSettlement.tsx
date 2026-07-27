@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MonthPicker } from "@/components/ui/month-picker";
-import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink, ShoppingBag, Settings } from "lucide-react";
+import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink, ShoppingBag, Settings, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
@@ -76,7 +76,21 @@ interface OrderRow {
   exempt: boolean;
 }
 
+interface AddonSaleRow {
+  id: string;
+  sale_date: string;
+  item_name: string;
+  category: string | null;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  notes: string | null;
+  related_order_id: string | null;
+  related_order_number?: string | null;
+}
+
 const fmt = (n: number) => Math.round(n).toLocaleString("zh-TW");
+
 
 export default function OwnerSettlement() {
   const { currentAccommodationId } = useAccommodation();
@@ -87,6 +101,8 @@ export default function OwnerSettlement() {
   const [addonTotal, setAddonTotal] = useState(0);
   const [addonCount, setAddonCount] = useState(0);
   const [addonFeePct, setAddonFeePct] = useState(0);
+  const [addonItems, setAddonItems] = useState<AddonSaleRow[]>([]);
+
   const [config, setConfig] = useState<SettlementConfig>({
     commission_rate: 15,
     marketing_fee_base: 53000,
@@ -133,10 +149,12 @@ export default function OwnerSettlement() {
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("addon_sales")
-          .select("total_amount")
+          .select("id, sale_date, item_name, category, quantity, unit_price, total_amount, notes, related_order_id")
           .eq("accommodation_id", currentAccommodationId)
           .gte("sale_date", monthStart)
-          .lte("sale_date", monthEnd),
+          .lte("sale_date", monthEnd)
+          .order("sale_date", { ascending: true }),
+
         supabase
           .from("split_rules")
           .select("addon_fee_percentage")
@@ -179,11 +197,30 @@ export default function OwnerSettlement() {
         tmap[t.id] = t.template_name || t.project_name || t.id;
       });
       setMealTemplateMap(tmap);
-      const addonRows = (addonRes.data || []) as Array<{ total_amount: number }>;
+      const addonRows = (addonRes.data || []) as AddonSaleRow[];
       setAddonTotal(addonRows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0));
       setAddonCount(addonRows.length);
       setAddonFeePct(Number((splitRuleRes.data as any)?.addon_fee_percentage) || 0);
+
+      // 解析關聯訂單編號
+      const relatedIds = Array.from(new Set(addonRows.map((r) => r.related_order_id).filter(Boolean) as string[]));
+      let numberMap: Record<string, string> = {};
+      if (relatedIds.length) {
+        const { data: relOrders } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .in("id", relatedIds);
+        for (const o of (relOrders || []) as any[]) numberMap[o.id] = o.order_number;
+      }
+      if (cancelled) return;
+      setAddonItems(
+        addonRows.map((r) => ({
+          ...r,
+          related_order_number: r.related_order_id ? numberMap[r.related_order_id] ?? null : null,
+        }))
+      );
       setLoading(false);
+
 
     })();
     return () => {
@@ -231,6 +268,84 @@ export default function OwnerSettlement() {
   const monthShort = format(month, "M 月", { locale: zhTW });
   const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
 
+  const exportPdf = () => {
+    const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+    const orderRowsHtml = rows
+      .map(
+        (r) => `<tr>
+          <td>${esc(r.order.order_number)}</td>
+          <td>${esc(r.order.guest_name)}</td>
+          <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
+          <td class="r">${r.nightsInMonth}/${r.totalNights}</td>
+          <td class="r">${fmt(r.monthFinal)}</td>
+          <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const addonRowsHtml = addonItems
+      .map(
+        (a) => `<tr>
+          <td>${esc(a.sale_date)}</td>
+          <td>${esc(a.category || "—")}</td>
+          <td>${esc(a.item_name)}</td>
+          <td class="r">${a.quantity}</td>
+          <td class="r">${fmt(Number(a.unit_price) || 0)}</td>
+          <td class="r">${fmt(Number(a.total_amount) || 0)}</td>
+          <td>${esc(a.related_order_number || "—")}</td>
+          <td>${esc(a.notes || "")}</td>
+        </tr>`
+      )
+      .join("");
+
+    const html = `<html><head><meta charset="utf-8"><title>業主收益報告 ${esc(monthLabel)}</title>
+      <style>
+        body{font-family:"Noto Sans TC",sans-serif;padding:24px;color:#222;}
+        h1{font-size:20px;margin:0 0 4px;} h2{font-size:15px;margin:24px 0 8px;}
+        .muted{color:#666;font-size:12px;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:5px 7px;vertical-align:top;}
+        th{background:#f4f4f4;text-align:left;}
+        .r{text-align:right;font-variant-numeric:tabular-nums;}
+        .sum td{font-weight:600;background:#fafafa;}
+        .final{font-size:16px;font-weight:700;}
+      </style></head><body>
+      <h1>業主收益報告　${esc(monthLabel)}</h1>
+      <div class="muted">產出時間：${format(new Date(), "yyyy-MM-dd HH:mm")}　撥款期限：${paymentDueDate}</div>
+
+      <h2>收益拆解</h2>
+      <table>
+        <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
+        <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
+        <tr><td>行銷推廣費（${propertyCount} 棟）</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
+        <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(totals.ownerNet)}</td></tr>
+      </table>
+
+      <h2>訂單明細（依入住日攤分至本月）</h2>
+      <table>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th><th class="r">本月夜數</th><th class="r">本月營收</th><th class="r">抽成</th></tr></thead>
+        <tbody>${orderRowsHtml || `<tr><td colspan="6">本月無入住訂單</td></tr>`}</tbody>
+      </table>
+
+      <h2>購物商品（非訂房收入）明細　共 ${addonItems.length} 筆　合計 NT$ ${fmt(totals.addonTotal)}</h2>
+      <table>
+        <thead><tr><th>日期</th><th>分類</th><th>品項</th><th class="r">數量</th><th class="r">單價</th><th class="r">小計</th><th>關聯訂單</th><th>備註</th></tr></thead>
+        <tbody>${addonRowsHtml || `<tr><td colspan="8">本月無購物商品紀錄</td></tr>`}
+        ${addonItems.length ? `<tr class="sum"><td colspan="5">合計</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td><td colspan="2"></td></tr>` : ""}
+        </tbody>
+      </table>
+      <p class="muted">購物商品收入不列入平台抽成，全額計入業主淨收益。</p>
+      <script>window.onload=()=>window.print();<\/script>
+      </body></html>`;
+
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+  };
+
   return (
     <TooltipProvider delayDuration={150}>
     <div className="container mx-auto py-6 space-y-6">
@@ -241,6 +356,10 @@ export default function OwnerSettlement() {
         action={
           <div className="flex items-center gap-2">
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
+            <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
+              <Printer className="w-4 h-4 mr-1" />
+              下載 PDF
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/owner-settlement/settings">
                 <Settings className="w-4 h-4 mr-1" />
@@ -250,6 +369,7 @@ export default function OwnerSettlement() {
           </div>
         }
       />
+
 
       {/* Hero：業主實收 */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
@@ -532,7 +652,66 @@ export default function OwnerSettlement() {
           )}
         </CardContent>
       </Card>
+
+      {/* 購物商品明細 */}
+      {addonItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              {monthLabel}購物商品（非訂房收入）明細
+            </CardTitle>
+            <CardDescription>
+              共 {addonItems.length} 筆，合計 NT$ {fmt(totals.addonTotal)}；不列入平台抽成，全額計入業主淨收益。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table className="fixed-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>日期</TableHead>
+                  <TableHead>分類</TableHead>
+                  <TableHead>品項</TableHead>
+                  <TableHead className="text-right">數量</TableHead>
+                  <TableHead className="text-right">單價</TableHead>
+                  <TableHead className="text-right">小計</TableHead>
+                  <TableHead>關聯訂單</TableHead>
+                  <TableHead>備註</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {addonItems.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="whitespace-nowrap text-xs">{a.sale_date}</TableCell>
+                    <TableCell className="text-xs">{a.category || "—"}</TableCell>
+                    <TableCell className="text-sm">{a.item_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{a.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(Number(a.unit_price) || 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(Number(a.total_amount) || 0)}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {a.related_order_id && a.related_order_number ? (
+                        <Link to={`/admin/orders/${a.related_order_id}`} className="text-primary hover:underline">
+                          {a.related_order_number}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{a.notes || ""}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-muted/40">
+                  <TableCell colSpan={5} className="font-medium">合計</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">NT$ {fmt(totals.addonTotal)}</TableCell>
+                  <TableCell colSpan={2} />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
+
     </TooltipProvider>
   );
 }
