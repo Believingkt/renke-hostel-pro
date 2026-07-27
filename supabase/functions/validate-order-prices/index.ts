@@ -251,15 +251,17 @@ serve(async (req) => {
 
     // 若為包區方案，一律以「訂房入住方案」設定為準：依 tier（平日／週五日／假日）取價
     let packageOverride = false;
+    let discountBaseTotal = 0; // 折扣碼計算基準（包區方案原價，劃掉價）
     if (packageId) {
       const { data: pkg } = await supabase
         .from("accommodation_packages")
-        .select("sale_price, tier_prices")
+        .select("sale_price, original_price, tier_prices")
         .eq("id", packageId)
         .maybeSingle();
       if (pkg && (pkg as any).sale_price != null) {
         packageOverride = true;
         const salePrice = Number((pkg as any).sale_price);
+        const pkgOriginal = (pkg as any).original_price != null ? Number((pkg as any).original_price) : null;
         const tierPrices = (pkg as any).tier_prices || {};
 
         // 國定假日（含補假）視為假日 tier
@@ -285,10 +287,21 @@ serve(async (req) => {
               ? "friday_sunday"
               : "weekday";
           const tierSale = tierPrices?.[tier]?.sale;
-          calculatedRoomTotal += tierSale != null ? Number(tierSale) : salePrice;
+          const nightlySale = tierSale != null ? Number(tierSale) : salePrice;
+          calculatedRoomTotal += nightlySale;
+
+          const tierOriginal = tierPrices?.[tier]?.original;
+          const nightlyOriginal =
+            tierOriginal != null && Number(tierOriginal) > 0
+              ? Number(tierOriginal)
+              : pkgOriginal != null && pkgOriginal > 0
+                ? pkgOriginal
+                : nightlySale;
+          discountBaseTotal += nightlyOriginal;
         }
       }
     }
+
 
 
     if (!packageOverride) {
