@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
 import {
   ChevronLeft,
   Loader2,
@@ -441,6 +442,27 @@ const MemberOrderDetail = () => {
     };
     load();
   }, [orderNumber, reloadKey]);
+
+  // TapPay 付款回呼寫回 orders 後，即時更新本頁狀態
+  useOrderRealtime(
+    order?.id ? [order.id] : [],
+    (row) => {
+      setOrder((prev) => {
+        if (!prev || prev.id !== row.id) return prev;
+        const next = {
+          ...prev,
+          payment_status: (row.payment_status as string) ?? prev.payment_status,
+          order_status: (row.order_status as string) ?? prev.order_status,
+          paid_amount: Number(row.paid_amount ?? prev.paid_amount),
+        };
+        if (!isOrderPaid(prev) && isOrderPaid(next)) {
+          toast.success("已收到您的付款，訂單狀態已更新");
+          setReloadKey((k) => k + 1);
+        }
+        return next;
+      });
+    },
+  );
 
   const nights = useMemo(() => {
     if (!order) return 0;
