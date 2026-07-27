@@ -173,11 +173,8 @@ export const HeaderFooterSection = ({
         .from("accommodation_info")
         .update({
           name: formData.browserTitle,
-          address: formData.address,
-          phone: formData.phone,
-          email: formData.email,
-          line_id: formData.lineId,
           facebook_url: formData.facebookUrl,
+
           instagram_url: formData.instagramUrl,
           threads_url: formData.threadsUrl,
           youtube_url: formData.youtubeUrl,
