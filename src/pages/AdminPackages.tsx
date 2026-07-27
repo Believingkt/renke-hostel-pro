@@ -42,6 +42,8 @@ import {
 import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { MissingPackagesAlert } from "@/components/packages/MissingPackagesAlert";
+
 import AdminPackagesPreview from "@/pages/AdminPackagesPreview";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
