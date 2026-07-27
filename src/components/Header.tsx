@@ -152,16 +152,18 @@ export function Header() {
           )}
         </div>
         
-        <div className="flex items-center gap-1 md:gap-4 flex-shrink-0 min-w-0">
-          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[10rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink min-w-0">
+          <div className="min-w-0 [&_[data-radix-select-trigger]]:max-w-[7.5rem] sm:[&_[data-radix-select-trigger]]:max-w-none">
             <AccommodationSelector />
           </div>
+
           
           
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 md:h-10 md:w-10 relative touch-manipulation"
+            className="h-9 w-9 md:h-10 md:w-10 relative touch-manipulation flex-shrink-0"
+
             onClick={() => aliasNavigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
@@ -177,7 +179,7 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 w-9 md:h-10 md:w-auto px-0 md:px-4 gap-2 touch-manipulation">
+              <Button variant="ghost" className="h-9 w-9 md:h-10 md:w-auto px-0 md:px-4 gap-2 touch-manipulation flex-shrink-0">
                 <UserCircle className="h-5 w-5 flex-shrink-0" />
                 {userName && (
                   <span className="hidden md:inline-block text-sm font-medium max-w-[120px] truncate">
