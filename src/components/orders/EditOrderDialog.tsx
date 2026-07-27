@@ -622,7 +622,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           if (!editForm.package_id && !fallback) {
             toast({
               title: "建議選擇對應方案",
-              description: "此房型會同步到奧丁丁，建議選擇對應方案，否則此單不會自動推送",
+              description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案，否則此單不會自動推送`,
             });
             // 只提醒不擋
           }

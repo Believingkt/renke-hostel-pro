@@ -1095,7 +1095,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             .join("、");
           toast({
             title: "建議選擇對應方案",
-            description: `此房型會同步到奧丁丁，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
+            description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
           });
           // 只提醒不擋
         }

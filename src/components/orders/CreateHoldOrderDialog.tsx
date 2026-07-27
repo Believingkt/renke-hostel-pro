@@ -297,7 +297,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
           .join("、");
         toast({
           title: "建議選擇對應方案",
-          description: `此房型會同步到奧丁丁，建議選擇對應方案（${names}），否則此單不會自動推送`,
+          description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案（${names}），否則此單不會自動推送`,
         });
         // 只提醒不擋
       }

@@ -10,25 +10,54 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * 只要 roomTypeIds 中有「任一」符合以上三條件的房型，就要求填 package_id。
  */
+export type ChannelManager = "owlting" | "hotelnabe";
+
 export interface OwltingPackageRequirement {
   required: boolean;
   requiredRoomTypeIds: string[];
+  /** 實際啟用的通路（未啟用時為 null） */
+  channel: ChannelManager | null;
+  /** 顯示用通路名稱：奧丁丁 / hotelnabe */
+  channelLabel: string;
+}
+
+export function channelLabelOf(channel: ChannelManager | null): string {
+  return channel === "hotelnabe" ? "hotelnabe" : channel === "owlting" ? "奧丁丁" : "";
 }
 
 export async function checkOwltingPackageRequirement(
   accommodationId: string,
   roomTypeIds: string[],
 ): Promise<OwltingPackageRequirement> {
-  const empty: OwltingPackageRequirement = { required: false, requiredRoomTypeIds: [] };
+  const empty: OwltingPackageRequirement = {
+    required: false,
+    requiredRoomTypeIds: [],
+    channel: null,
+    channelLabel: "",
+  };
   if (!accommodationId || roomTypeIds.length === 0) return empty;
 
-  // (a) 物業層級同步開關
-  const { data: cfg } = await supabase
-    .from("accommodation_owlting_config")
-    .select("sync_enabled")
-    .eq("accommodation_id", accommodationId)
-    .maybeSingle();
-  if (!cfg || cfg.sync_enabled !== true) return empty;
+  // (a) 物業層級同步開關（奧丁丁 或 旭海 hotelnabe）
+  const [owltingRes, hotelnabeRes] = await Promise.all([
+    supabase
+      .from("accommodation_owlting_config")
+      .select("sync_enabled")
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle(),
+    supabase
+      .from("accommodation_hotelnabe_config")
+      .select("sync_enabled")
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle(),
+  ]);
+  const channel: ChannelManager | null =
+    owltingRes.data?.sync_enabled === true
+      ? "owlting"
+      : hotelnabeRes.data?.sync_enabled === true
+        ? "hotelnabe"
+        : null;
+  // 未串接任何通路 → 不強制填入對應方案
+  if (!channel) return empty;
 
   const uniqueIds = Array.from(new Set(roomTypeIds.filter(Boolean)));
   if (uniqueIds.length === 0) return empty;
@@ -54,5 +83,10 @@ export async function checkOwltingPackageRequirement(
     (id) => !excludedIds.has(id) && !groupedIds.has(id),
   );
 
-  return { required: requiredRoomTypeIds.length > 0, requiredRoomTypeIds };
+  return {
+    required: requiredRoomTypeIds.length > 0,
+    requiredRoomTypeIds,
+    channel,
+    channelLabel: channelLabelOf(channel),
+  };
 }
