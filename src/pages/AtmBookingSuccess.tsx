@@ -470,7 +470,7 @@ export default function AtmBookingSuccess() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {order.atm_expire_at && (
+            {order.atm_expire_at && !isPaid(order) && (
               <AtmDeadlineAlert
                 expireAt={order.atm_expire_at}
                 onExpired={() => {
