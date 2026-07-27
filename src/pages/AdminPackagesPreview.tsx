@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { bookingPath } from "@/lib/frontendUrl";
 
 type Device = "mobile" | "desktop";
 
@@ -51,10 +52,13 @@ const AdminPackagesPreview = ({ embedded = false }: AdminPackagesPreviewProps = 
       infants: String(infants),
       toddlers: String(toddlers),
       rooms: String(rooms),
-      accId: currentAccommodationId,
       previewMode: "1",
     });
-    return `/booking/villa/${currentAccommodationId}?${params.toString()}#capacity-price-section`;
+    return bookingPath({
+      accommodationId: currentAccommodationId,
+      params: Object.fromEntries(params.entries()),
+      hash: "capacity-price-section",
+    });
   }, [currentAccommodationId, checkIn, checkOut, adults, children, infants, toddlers, rooms]);
 
   // 自動把 iframe 捲到「入住方案」區段

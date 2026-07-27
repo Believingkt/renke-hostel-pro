@@ -26,6 +26,7 @@ import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
 import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
+import { openFrontendBooking } from "@/lib/frontendUrl";
 
 interface MemberOrder {
   id: string;
@@ -449,7 +450,7 @@ const MemberOrders = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/booking/villa/${order.accommodation_id}`);
+                          openFrontendBooking(order.accommodation_id, { navigate });
                         }}
                         className="px-4 py-1.5 rounded-full border text-sm font-medium"
                         style={{ borderColor: ORANGE, color: ORANGE }}

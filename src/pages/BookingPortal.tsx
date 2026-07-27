@@ -39,6 +39,7 @@ import {
   getSensanRangeForTier,
 } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
+import { openFrontendBooking } from "@/lib/frontendUrl";
 
 interface AccommodationInfo {
   id: string;
@@ -887,10 +888,11 @@ const BookingPortal = () => {
     if (infants) params.set("infants", String(infants));
     if (toddlers) params.set("toddlers", String(toddlers));
     if (rooms) params.set("rooms", String(rooms));
-    const qs = params.toString();
     // 一律走新版包棟訂房頁（舊版一般訂房頁已停用）
-    const path = `/booking/villa/${accId}`;
-    navigate(`${path}${qs ? `?${qs}` : ""}`);
+    openFrontendBooking(
+      { accommodationId: accId, params: Object.fromEntries(params.entries()) },
+      { navigate },
+    );
 
   };
 

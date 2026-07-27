@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { openFrontendBooking } from "@/lib/frontendUrl";
 import {
   detectTierByDate,
   getPackagePriceForTier,
@@ -193,7 +194,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
         {items.map((it) => (
           <button
             key={it.id}
-            onClick={() => navigate(`/booking/villa/${it.id}`)}
+            onClick={() => openFrontendBooking(it.id, { navigate })}
             className="snap-start shrink-0 w-[68%] text-left"
           >
             <Card className="overflow-hidden border-border/60 h-full">

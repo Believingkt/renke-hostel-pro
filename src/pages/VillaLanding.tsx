@@ -10,6 +10,7 @@ import {
   Camera, UserCheck, ShieldCheck, Home, ChevronDown,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { bookingPath, openFrontendBooking } from "@/lib/frontendUrl";
 
 /* ------------------------------------------------------------------ */
 /*  VillaLanding – Sensan single-page landing (data from backend)      */
@@ -446,7 +447,7 @@ export default function VillaLanding() {
               </div>
 
               <a
-                href={`/booking/villa/${resolvedId}`}
+                href={bookingPath(resolvedId)}
                 className="inline-flex shrink-0 items-center rounded-full border border-stone-400 px-7 py-3 text-sm font-medium tracking-wider text-stone-600 transition hover:bg-stone-700 hover:text-white hover:border-stone-700"
               >
                 查看此方案
@@ -521,7 +522,14 @@ export default function VillaLanding() {
                   if (checkIn) params.set("checkIn", checkIn);
                   if (checkOut) params.set("checkOut", checkOut);
                   if (guestCount) params.set("guests", String(guestCount));
-                  navigate(`/booking/villa/${resolvedId}${params.toString() ? `?${params.toString()}` : ""}#rooms`);
+                  openFrontendBooking(
+                    {
+                      accommodationId: resolvedId,
+                      params: Object.fromEntries(params.entries()),
+                      hash: "rooms",
+                    },
+                    { navigate },
+                  );
                 }}
                 className="w-full sm:w-auto rounded-xl bg-[#A98467] px-6 py-4 sm:py-3 text-sm font-medium tracking-wider text-white shadow-sm transition-all duration-200 hover:bg-[#8d6b52] active:scale-95"
               >
@@ -680,7 +688,7 @@ export default function VillaLanding() {
                           </div>
                         </div>
                         <a
-                          href={`/booking/villa/${resolvedId}`}
+                          href={bookingPath(resolvedId)}
                           className="shrink-0 rounded-full bg-[#A98467] px-4 py-2.5 text-xs font-medium tracking-wider text-white shadow-sm transition-all duration-200 hover:bg-[#8d6b52] active:scale-95"
                         >
                           立即預訂
@@ -813,7 +821,7 @@ export default function VillaLanding() {
           </p>
           <div className="mt-10">
             <a
-              href={`/booking/villa/${resolvedId}`}
+              href={bookingPath(resolvedId)}
               className="inline-block rounded-full bg-gray-800 px-10 py-4 text-sm font-medium tracking-widest text-white shadow-lg transition hover:bg-gray-700 hover:shadow-xl"
             >
               立即預約
@@ -878,7 +886,10 @@ export default function VillaLanding() {
               if (checkIn) params.set("checkIn", checkIn);
               if (checkOut) params.set("checkOut", checkOut);
               const qs = params.toString();
-              navigate(`/booking/villa/${resolvedId}${qs ? `?${qs}` : ""}`);
+              openFrontendBooking(
+                { accommodationId: resolvedId, params: Object.fromEntries(params.entries()) },
+                { navigate },
+              );
             }}
             className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-wider text-white shadow-md transition-all duration-200 hover:shadow-lg active:scale-95 sm:px-8 sm:py-3.5 sm:text-base"
             style={{ backgroundColor: "#A98467", minHeight: "44px" }}
