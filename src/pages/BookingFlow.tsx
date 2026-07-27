@@ -2093,8 +2093,9 @@ const BookingFlow = () => {
   };
 
   const calculateFinalTotal = () => {
-    return Math.max(0, calculateTotal() + calculateAddonsTotal() - calculateDiscount());
+    return Math.max(0, getRoomChargeTotal() + calculateAddonsTotal() - calculateDiscount());
   };
+
 
   // 訂金功能已移除：所有訂單一律以扣除折扣後的全額計算
   const calculateDeposit = () => 0;
