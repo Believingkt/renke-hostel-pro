@@ -433,7 +433,7 @@ export default function AddonCenter() {
               <Input
                 value={form.related_order_id}
                 onChange={(e) => setForm({ ...form, related_order_id: e.target.value })}
-                placeholder="若此筆銷售與某張訂單相關，可填訂單 ID"
+                placeholder="輸入 8 碼訂單編號，例：A3F7K9QM"
               />
             </div>
             <div className="space-y-1.5 col-span-2">
