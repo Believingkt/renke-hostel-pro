@@ -623,7 +623,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         if (req.required) {
           const tpl = pricingTemplates.find((t) => t.id === selectedTemplateId);
           const fallback = tpl?.default_package_id || null;
-          if (!editForm.package_id && !fallback) {
+          if (req.blocking && !editForm.package_id && !fallback) {
             toast({
               title: "建議選擇對應方案",
               description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案，否則此單不會自動推送`,
@@ -632,6 +632,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           }
           if (!effectivePackageId) effectivePackageId = fallback;
         }
+
       } catch (e) {
         console.error("checkOwltingPackageRequirement failed", e);
       }
@@ -752,9 +753,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
 
-          {accommodationPackages.length > 0 && (
+          {packageChannel.showPackageField && accommodationPackages.length > 0 && (
             <div className="space-y-2">
-              <Label>對應方案（accommodation_packages）</Label>
+              <Label>
+                對應方案
+                {packageChannel.isRequired ? (
+                  <span className="text-destructive"> *</span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">（選填）</span>
+                )}
+              </Label>
               <Select
                 value={editForm.package_id || "none"}
                 onValueChange={(value) =>
@@ -762,7 +770,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                 }
               >
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue placeholder="（選填）對應實際包區/包棟方案" />
+                  <SelectValue
+                    placeholder={
+                      packageChannel.isRequired
+                        ? "請選擇對應包區/包棟方案"
+                        : "（選填）對應實際包區/包棟方案"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">（未指定）</SelectItem>
@@ -773,11 +787,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                寫入 orders.package_id；OwlTing 推送的 RatePlanCode 會以此為準。
-              </p>
+              <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
             </div>
           )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>訂購人 <span className="text-destructive">*</span></Label>
