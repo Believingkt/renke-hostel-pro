@@ -29,7 +29,7 @@ import TeamAuth from "./pages/TeamAuth";
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
 const BookingSearchResults = lazy(() => import("./pages/BookingSearchResults"));
-const BookingAccommodation = lazy(() => import("./pages/BookingAccommodation"));
+const LegacyBookingRedirect = lazy(() => import("./components/LegacyBookingRedirect"));
 const BookingVilla = lazy(() => import("./pages/BookingVilla"));
 const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
