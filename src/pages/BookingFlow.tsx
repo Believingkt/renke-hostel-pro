@@ -1126,6 +1126,20 @@ const BookingFlow = () => {
     return selectedPackage.sale_price;
   };
 
+  // 依日期取包區方案「每晚原價（劃掉價）」：未設定時 fallback 為 sale
+  const getPackageNightlyOriginal = (d: Date): number | null => {
+    if (!selectedPackage) return null;
+    const tier = detectTierByDate(d, isPackageHolidayDate(d));
+    const override = selectedPackage.tier_prices?.[tier];
+    if (override && override.original != null && Number(override.original) > 0) {
+      return Number(override.original);
+    }
+    if (selectedPackage.original_price != null && selectedPackage.original_price > 0) {
+      return selectedPackage.original_price;
+    }
+    return getPackageNightlySale(d);
+  };
+
   // 依每晚 tier 計算包區方案總價
   const calculatePackageTotal = (): number | null => {
     if (!selectedPackage || !checkInDate || !checkOutDate) return null;
@@ -1143,6 +1157,23 @@ const BookingFlow = () => {
     }
     return hasAny ? total : null;
   };
+
+  // 折扣碼計算基準：包區方案「原價（劃掉用）」總額
+  const calculatePackageOriginalTotal = (): number | null => {
+    if (!selectedPackage || !checkInDate || !checkOutDate) return null;
+    const nights = calculateNights();
+    if (nights <= 0) return null;
+    let total = 0;
+    for (let i = 0; i < nights; i++) {
+      const d = new Date(checkInDate);
+      d.setDate(d.getDate() + i);
+      const nightly = getPackageNightlyOriginal(d);
+      if (nightly == null) return null;
+      total += nightly;
+    }
+    return total;
+  };
+
 
   const lastRoomSyncSearchRef = useRef<string | null>(null);
   useEffect(() => {
