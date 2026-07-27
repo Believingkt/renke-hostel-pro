@@ -197,11 +197,30 @@ export default function OwnerSettlement() {
         tmap[t.id] = t.template_name || t.project_name || t.id;
       });
       setMealTemplateMap(tmap);
-      const addonRows = (addonRes.data || []) as Array<{ total_amount: number }>;
+      const addonRows = (addonRes.data || []) as AddonSaleRow[];
       setAddonTotal(addonRows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0));
       setAddonCount(addonRows.length);
       setAddonFeePct(Number((splitRuleRes.data as any)?.addon_fee_percentage) || 0);
+
+      // 解析關聯訂單編號
+      const relatedIds = Array.from(new Set(addonRows.map((r) => r.related_order_id).filter(Boolean) as string[]));
+      let numberMap: Record<string, string> = {};
+      if (relatedIds.length) {
+        const { data: relOrders } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .in("id", relatedIds);
+        for (const o of (relOrders || []) as any[]) numberMap[o.id] = o.order_number;
+      }
+      if (cancelled) return;
+      setAddonItems(
+        addonRows.map((r) => ({
+          ...r,
+          related_order_number: r.related_order_id ? numberMap[r.related_order_id] ?? null : null,
+        }))
+      );
       setLoading(false);
+
 
     })();
     return () => {
