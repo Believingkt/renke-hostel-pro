@@ -41,7 +41,10 @@ interface Props {
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
+  /** mobile：僅手機顯示；desktop：僅桌機側欄顯示（sticky） */
+  variant?: "mobile" | "desktop";
 }
+
 
 /**
  * Booking.com 風格的行動版訂單摘要卡片。
@@ -67,8 +70,10 @@ export default function MobileOrderSummary({
   calculateFinalTotal,
   appliedDiscount,
   calculateDiscount,
+  variant = "mobile",
 }: Props) {
   if (!checkInDate || !checkOutDate) return null;
+
 
   const nights = calculateNights();
   const finalTotal = calculateFinalTotal();
@@ -108,7 +113,8 @@ export default function MobileOrderSummary({
   const perkTitle = selectedPackage?.subtitle || "尊榮禮遇";
 
   return (
-    <div className="lg:hidden mb-4">
+    <div className={variant === "desktop" ? "hidden lg:block sticky top-24" : "lg:hidden mb-4"}>
+
       <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-sm">
         {/* 民宿名稱 - 放大並置中 */}
         {accommodationName && (

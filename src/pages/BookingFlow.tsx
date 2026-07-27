@@ -85,7 +85,6 @@ import {
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import BookerForm from "@/components/booking-flow/BookerForm";
-import OrderSummarySidebar from "@/components/booking-flow/OrderSummarySidebar";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
@@ -5270,32 +5269,71 @@ const BookingFlow = () => {
             </div>
           </div>
 
-          {/* Right: Summary Sidebar - 只在有可用房型時顯示 */}
-          <OrderSummarySidebar
-            currentStep={currentStep}
-            checkInDate={checkInDate}
-            checkOutDate={checkOutDate}
-            checkInDateStr={checkInDateStr}
-            checkOutDateStr={checkOutDateStr}
-            calculateNights={calculateNights}
-            totalGuests={totalGuests}
-            selectedRoom={selectedRoom}
-            selectedMealPlan={selectedMealPlan}
-            getMealPlanDisplayName={getMealPlanDisplayName}
-            calculateTotal={calculateTotal}
-            calculateFinalTotal={calculateFinalTotal}
-            calculateDiscount={calculateDiscount}
-            petCount={petCount}
-            petPlanSettings={petPlanSettings}
-            bbqMealsByDate={bbqMealsByDate}
-            mealPlanSettings={mealPlanSettings}
-            customAddonCounts={customAddonCounts}
-            customAddonSettings={customAddonSettings}
-            appliedDiscount={appliedDiscount}
-            isCheckingAvailability={isCheckingAvailability}
-            roomTypes={roomTypes}
-            roomAvailability={roomAvailability}
-          />
+          {/* Right: Summary Sidebar - 桌機版比照手機版摘要 */}
+          <div className="hidden lg:block md:col-span-1">
+            {(() => {
+              const nights = calculateNights();
+              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+              if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
+                addonLines.push({
+                  label: "寵物加購",
+                  qty: `${petCount} 隻 × ${nights} 晚`,
+                  subtotal: petCount * petPlanSettings.pricePerUnit * nights,
+                });
+              }
+              const bbqTotalCount = Object.values(bbqMealsByDate).reduce((s, c) => s + (c || 0), 0);
+              if (mealPlanSettings.enabled && bbqTotalCount > 0) {
+                addonLines.push({
+                  label: "BBQ 餐食",
+                  qty: `${bbqTotalCount} 人份`,
+                  subtotal: bbqTotalCount * mealPlanSettings.pricePerUnit,
+                });
+              }
+              Object.entries(customAddonCounts).forEach(([type, count]) => {
+                if (!count || count <= 0) return;
+                const s = customAddonSettings.find((x) => x.addon_type === type);
+                if (!s) return;
+                addonLines.push({
+                  label: s.description || s.addon_type,
+                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                  subtotal: count * s.price_per_unit * nights,
+                });
+              });
+              const childExtra = calculateChildExtraTotal();
+              if (childExtra > 0) {
+                addonLines.push({
+                  label: "兒童加價",
+                  qty: `${nights} 晚`,
+                  subtotal: childExtra,
+                });
+              }
+              return (
+                <MobileOrderSummary
+                  variant="desktop"
+                  accommodationName={accommodationName}
+                  checkInDate={checkInDate}
+                  checkOutDate={checkOutDate}
+                  calculateNights={calculateNights}
+                  totalGuests={totalGuests}
+                  adultsCount={contextGuests?.adults || 0}
+                  childrenCount={contextGuests?.children || 0}
+                  infantsCount={infantsCount}
+                  toddlersCount={toddlersCount}
+                  selectedRoom={selectedRoom}
+                  selectedPackage={selectedPackage}
+                  roomAllocation={selectedPackage?.room_allocation || null}
+                  roomTypes={roomTypes}
+                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomSubtotal={calculateTotal()}
+                  addonLines={addonLines}
+                  calculateFinalTotal={calculateFinalTotal}
+                  appliedDiscount={appliedDiscount}
+                  calculateDiscount={calculateDiscount}
+                />
+              );
+            })()}
+          </div>
+
         </div>
       </div>
       </>
