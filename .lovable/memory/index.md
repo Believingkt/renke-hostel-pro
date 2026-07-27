@@ -1,1 +1,2 @@
 - [Legacy Booking Page Deprecation](mem://features/frontend/legacy-booking-page-deprecation.md) — 舊版一般民宿訂房頁全面停用，一律導向 /booking/villa/{accId}。
+- [Booking Link Single Entry](mem://features/frontend/booking-link-single-entry.md) — 訂房頁連結只能用 openFrontendBooking()；canonical/sitemap 統一 /booking/villa/{id}。
