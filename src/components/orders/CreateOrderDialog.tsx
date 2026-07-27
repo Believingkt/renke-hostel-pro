@@ -1092,7 +1092,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             derivedPkgIds.add(pkgId);
           }
         }
-        if (missing.length > 0) {
+        if (req.blocking && missing.length > 0) {
           const names = Array.from(new Set(missing))
             .map((id) => roomTypes.find((r) => r.id === id)?.name)
             .filter(Boolean)
@@ -1103,6 +1103,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           });
           // 只提醒不擋
         }
+
         // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
         if (!effectivePackageId && derivedPkgIds.size === 1) {
           effectivePackageId = Array.from(derivedPkgIds)[0];
