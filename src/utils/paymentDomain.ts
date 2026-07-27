@@ -34,10 +34,12 @@ function isPreviewHost(hostname: string) {
   const h = hostname.toLowerCase();
   return (
     h === "localhost" ||
+    h === "127.0.0.1" ||
     h.endsWith(".lovableproject.com") ||
-    h.endsWith("-preview--" + h) === false && h.includes("id-preview--")
+    h.includes("id-preview--")
   );
 }
+
 
 export function getPaymentOriginFromAccommodation(acc?: AccommodationDomainRow | null) {
   const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
