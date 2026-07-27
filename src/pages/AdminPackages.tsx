@@ -42,6 +42,8 @@ import {
 import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { MissingPackagesAlert } from "@/components/packages/MissingPackagesAlert";
+
 import AdminPackagesPreview from "@/pages/AdminPackagesPreview";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
@@ -613,6 +615,9 @@ const AdminPackages = () => {
           </Button>
         }
       />
+
+      <MissingPackagesAlert />
+
 
       {/* 禮遇範本庫（民宿層）：可建立多組命名範本，方案編輯時一鍵套用至「附加說明」 */}
       <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
