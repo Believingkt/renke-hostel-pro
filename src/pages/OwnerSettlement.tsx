@@ -76,7 +76,21 @@ interface OrderRow {
   exempt: boolean;
 }
 
+interface AddonSaleRow {
+  id: string;
+  sale_date: string;
+  item_name: string;
+  category: string | null;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  notes: string | null;
+  related_order_id: string | null;
+  related_order_number?: string | null;
+}
+
 const fmt = (n: number) => Math.round(n).toLocaleString("zh-TW");
+
 
 export default function OwnerSettlement() {
   const { currentAccommodationId } = useAccommodation();
