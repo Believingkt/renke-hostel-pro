@@ -40,6 +40,9 @@ export const AUTH_PATHS = [
 export const BOOKING_ALLOWED_PREFIXES = [
   "/booking",
   "/book",
+  "/pay",
+  "/payment-result",
+
   "/member",
   "/order-search",
   "/order-payment",
