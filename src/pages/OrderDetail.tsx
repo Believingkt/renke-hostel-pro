@@ -218,12 +218,12 @@ interface OrderDetailPageProps {
 
 const PAYMENT_DAY_MS = 24 * 60 * 60 * 1000;
 
-/** 訂金（建立日 +3 天）與尾款（入住日 -3 天）期限判斷，供徽章與說明區共用 */
+/** 訂金（建立日 +3 天）與尾款（入住日 +3 天，可提前付清）期限判斷，供徽章與說明區共用 */
 function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
   const base = order?.payment_link_created_at || order?.created_at;
   const depositDue = base ? new Date(new Date(base).getTime() + 3 * PAYMENT_DAY_MS) : null;
   const balanceDue = order?.check_in_date
-    ? new Date(new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() - 3 * PAYMENT_DAY_MS)
+    ? new Date(new Date(`${order.check_in_date}T00:00:00+08:00`).getTime() + 3 * PAYMENT_DAY_MS)
     : null;
   const now = Date.now();
   const status = order?.payment_status;
@@ -246,9 +246,9 @@ function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
     stage = "balance";
     if (balanceDue && now > balanceDue.getTime()) {
       effectiveStatus = "overdue";
-      reason = "訂金已收，但已超過尾款繳款期限（入住日前 3 天），故顯示已逾期。";
+      reason = "訂金已收，但已超過尾款繳款期限（入住日後 3 天），故顯示已逾期。";
     } else {
-      reason = "訂金已收，尾款期限為入住日前 3 天，尚未到期，故顯示已付訂金。";
+      reason = "訂金已收，尾款期限為入住日後 3 天（可提前付清），尚未到期，故顯示已付訂金。";
     }
   } else if (status === "paid") {
     reason = "款項已全額付清，不再判斷期限。";
@@ -2334,7 +2334,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span>尾款期限（入住日 -3 天）</span>
+                    <span>尾款期限（入住日 +3 天，可提前付清）</span>
                     <span className={info.stage === "balance" ? "text-foreground font-medium tabular-nums" : "tabular-nums"}>
                       {info.balanceDue ? format(info.balanceDue, "yyyy 年 M 月 d 日 HH:mm") : "—"}
                     </span>
