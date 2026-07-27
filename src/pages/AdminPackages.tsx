@@ -614,6 +614,9 @@ const AdminPackages = () => {
         }
       />
 
+      <MissingPackagesAlert />
+
+
       {/* 禮遇範本庫（民宿層）：可建立多組命名範本，方案編輯時一鍵套用至「附加說明」 */}
       <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
