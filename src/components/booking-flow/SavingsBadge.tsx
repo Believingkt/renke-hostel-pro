@@ -58,7 +58,7 @@ export function SavingsBadge({
         </span>
       )}
       <span
-        className={`inline-flex items-center rounded-full bg-destructive font-bold text-destructive-foreground tabular-nums ${sizeCls}`}
+        className={`inline-flex items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-destructive tabular-nums ${sizeCls}`}
       >
         -{percent}%
       </span>
