@@ -219,11 +219,12 @@ export default function OwnerSettlement() {
       Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
     // 原價：基本服務 + 每棟星鏈包專案 98,800
     const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
-    const addonCommission = addonTotal * (addonFeePct / 100);
-    const addonNet = addonTotal - addonCommission;
+    // 購物商品收入不列入平台抽成，全額歸業主
+    const addonCommission = 0;
+    const addonNet = addonTotal;
     const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
     return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
-  }, [rows, config, propertyCount, addonTotal, addonFeePct]);
+  }, [rows, config, propertyCount, addonTotal]);
 
 
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
@@ -392,22 +393,12 @@ export default function OwnerSettlement() {
             originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
-          {totals.addonCommission > 0 && (
-            <BreakdownRow
-              icon={Percent}
-              label={`加購手續費 ${addonFeePct}%`}
-              sublabel="僅針對商品收入收取"
-              value={-totals.addonCommission}
-              tone="fee"
-            />
-          )}
-
 
           <BreakdownRow
             icon={Wallet}
             label="平台費用合計"
-            sublabel={`服務費 + 行銷推廣費${totals.addonCommission > 0 ? " + 加購手續費" : ""}`}
-            value={-(totals.totalCommission + totals.marketingFee + totals.addonCommission)}
+            sublabel="服務費 + 行銷推廣費"
+            value={-(totals.totalCommission + totals.marketingFee)}
             tone="subtotal"
           />
 
@@ -417,11 +408,12 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={ShoppingBag}
               label="商品收入"
-              sublabel={`本月 ${addonCount} 筆非訂房收入（商品/餐飲/體驗等）`}
+              sublabel={`本月 ${addonCount} 筆非訂房收入（商品/餐飲/體驗等），不列入平台抽成，全額歸業主`}
               value={totals.addonTotal}
               tone="income"
             />
           )}
+
 
           {/* 實收 */}
           <BreakdownRow

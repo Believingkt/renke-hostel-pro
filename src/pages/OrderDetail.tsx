@@ -39,6 +39,8 @@ import { DepositManagementSection } from "@/components/orders/DepositManagementS
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
 import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
+import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
+
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
@@ -3789,6 +3791,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           )}
         </CardContent>
       </Card>
+
+      {/* 關聯的購物商品（加購紀錄） */}
+      {order && <OrderAddonSalesCard orderId={order.id} />}
+
+
 
       {/* 通知與付款紀錄 */}
       {order && (
