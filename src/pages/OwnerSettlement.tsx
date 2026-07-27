@@ -149,10 +149,12 @@ export default function OwnerSettlement() {
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("addon_sales")
-          .select("total_amount")
+          .select("id, sale_date, item_name, category, quantity, unit_price, total_amount, notes, related_order_id")
           .eq("accommodation_id", currentAccommodationId)
           .gte("sale_date", monthStart)
-          .lte("sale_date", monthEnd),
+          .lte("sale_date", monthEnd)
+          .order("sale_date", { ascending: true }),
+
         supabase
           .from("split_rules")
           .select("addon_fee_percentage")
