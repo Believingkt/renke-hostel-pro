@@ -41,7 +41,10 @@ interface Props {
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string } | null;
   calculateDiscount: () => number;
+  /** mobile：僅手機顯示；desktop：僅桌機側欄顯示（sticky） */
+  variant?: "mobile" | "desktop";
 }
+
 
 /**
  * Booking.com 風格的行動版訂單摘要卡片。
