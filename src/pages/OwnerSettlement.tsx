@@ -219,11 +219,12 @@ export default function OwnerSettlement() {
       Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
     // 原價：基本服務 + 每棟星鏈包專案 98,800
     const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
-    const addonCommission = addonTotal * (addonFeePct / 100);
-    const addonNet = addonTotal - addonCommission;
+    // 購物商品收入不列入平台抽成，全額歸業主
+    const addonCommission = 0;
+    const addonNet = addonTotal;
     const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
     return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
-  }, [rows, config, propertyCount, addonTotal, addonFeePct]);
+  }, [rows, config, propertyCount, addonTotal]);
 
 
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
