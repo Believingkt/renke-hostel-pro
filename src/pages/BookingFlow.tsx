@@ -4786,10 +4786,11 @@ const BookingFlow = () => {
                                 <div>
                                   <p className="font-semibold text-base">已套用折扣代碼：{appliedDiscount.code}</p>
                                   <p className="text-sm text-muted-foreground mt-0.5">
-                                    折扣 {appliedDiscount.type === "percentage" 
-                                      ? `${appliedDiscount.value}%` 
-                                      : `NT$ ${appliedDiscount.value.toLocaleString()}`}
+                                    {appliedDiscount.type === "percentage"
+                                      ? `原價折扣 ${appliedDiscount.value}%`
+                                      : `折抵 NT$ ${appliedDiscount.value.toLocaleString()}`}
                                   </p>
+
                                 </div>
                               </div>
                               <Button
