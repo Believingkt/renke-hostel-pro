@@ -652,7 +652,66 @@ export default function OwnerSettlement() {
           )}
         </CardContent>
       </Card>
+
+      {/* 購物商品明細 */}
+      {addonItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              {monthLabel}購物商品（非訂房收入）明細
+            </CardTitle>
+            <CardDescription>
+              共 {addonItems.length} 筆，合計 NT$ {fmt(totals.addonTotal)}；不列入平台抽成，全額計入業主淨收益。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table className="fixed-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>日期</TableHead>
+                  <TableHead>分類</TableHead>
+                  <TableHead>品項</TableHead>
+                  <TableHead className="text-right">數量</TableHead>
+                  <TableHead className="text-right">單價</TableHead>
+                  <TableHead className="text-right">小計</TableHead>
+                  <TableHead>關聯訂單</TableHead>
+                  <TableHead>備註</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {addonItems.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="whitespace-nowrap text-xs">{a.sale_date}</TableCell>
+                    <TableCell className="text-xs">{a.category || "—"}</TableCell>
+                    <TableCell className="text-sm">{a.item_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{a.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(Number(a.unit_price) || 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(Number(a.total_amount) || 0)}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {a.related_order_id && a.related_order_number ? (
+                        <Link to={`/admin/orders/${a.related_order_id}`} className="text-primary hover:underline">
+                          {a.related_order_number}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{a.notes || ""}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-muted/40">
+                  <TableCell colSpan={5} className="font-medium">合計</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">NT$ {fmt(totals.addonTotal)}</TableCell>
+                  <TableCell colSpan={2} />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
+
     </TooltipProvider>
   );
 }
