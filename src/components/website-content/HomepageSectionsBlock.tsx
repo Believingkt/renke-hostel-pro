@@ -23,7 +23,7 @@ import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
 // Section key to label mapping (built-in sections only)
 const SECTION_LABELS: Record<string, { label: string; description: string; defaultTitle: string; defaultSubtitle: string }> = {
-  about: { label: '特色說明', description: '控制首頁是否顯示特色說明區塊', defaultTitle: '關於我們', defaultSubtitle: '' },
+  // 「特色說明」(about) 已於前台下架，後台不再提供開關（資料保留，日後可再啟用）
   rooms: { label: '房型導覽', description: '控制首頁是否顯示房型導覽區塊', defaultTitle: '房型導覽', defaultSubtitle: '精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗' },
   facilities: { label: '設施服務', description: '控制首頁是否顯示設施服務區塊', defaultTitle: '設施服務', defaultSubtitle: '完善設施與貼心服務，讓您的住宿體驗更加舒適' },
   gallery: { label: '精選照片', description: '控制首頁是否顯示精選照片區塊', defaultTitle: '精選照片', defaultSubtitle: '探索更多精彩瞬間' },
