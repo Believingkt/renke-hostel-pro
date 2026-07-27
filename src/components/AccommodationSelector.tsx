@@ -26,30 +26,8 @@ interface Accommodation {
   is_villa?: boolean;
 }
 
-/**
- * 一律導向新版包棟訂房頁 /booking/villa/{accId}。
- * 不論帳號權限、是否有包區方案，都不再導向舊版一般民宿訂房頁或舊首頁。
- */
-function buildFrontendUrl(acc: Accommodation | undefined): string {
-  if (!acc) return "/booking";
+// 一律導向新版包棟訂房頁（共用邏輯見 src/lib/frontendUrl.ts）
 
-  const host = window.location.hostname.toLowerCase();
-  const isLovablePreview =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.includes("lovableproject.com") ||
-    host.includes("lovable.app");
-
-  const path = `/booking/villa/${acc.id}?accId=${acc.id}`;
-
-  if (acc.custom_domain) {
-    return `https://${acc.custom_domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}${path}`;
-  }
-  if (isLovablePreview) {
-    return `${window.location.origin}${path}`;
-  }
-  return `https://booking.lakeze.com${path}`;
-}
 
 
 export function AccommodationSelector() {
