@@ -1219,7 +1219,14 @@ const BookingVilla = () => {
       </div>
 
 
-      <BookingFooter />
+      <BookingFooter
+        lineId={(info as any)?.line_id}
+        facebookUrl={(info as any)?.facebook_url}
+        instagramUrl={(info as any)?.instagram_url}
+        threadsUrl={(info as any)?.threads_url}
+        youtubeUrl={(info as any)?.youtube_url}
+        tiktokUrl={(info as any)?.tiktok_url}
+      />
       {!editSearchOpen && (
         <MobileBottomNav
           onVisibilityChange={handleBottomNavVisibility}

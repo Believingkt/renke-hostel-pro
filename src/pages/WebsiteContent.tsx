@@ -494,7 +494,7 @@ const WebsiteContent = () => {
   // 麵包屑名稱映射
   const getBreadcrumbTitle = () => {
     const titleMap: Record<string, string> = {
-      'basic-info': '網頁設定',
+      'basic-info': '首頁與 SEO 設定',
       'villa-header': '訂房頁標頭',
       'facilities': '設施服務',
       'addon-plans': '加購方案',
@@ -2336,10 +2336,8 @@ const WebsiteContent = () => {
         .update({
           name: basicInfo.name,
           description: basicInfo.description,
-          address: basicInfo.address,
-          phone: basicInfo.phone,
-          email: basicInfo.email,
-          line_id: basicInfo.line_id,
+          // address / phone / email / line_id 由「交通地圖」與「訂房確認通知」分頁維護，此處不寫入避免覆蓋
+
           facebook_url: basicInfo.facebook_url,
           instagram_url: basicInfo.instagram_url,
           threads_url: basicInfo.threads_url,
@@ -2437,7 +2435,7 @@ const WebsiteContent = () => {
 
       // 清除前台快取
       if (accommodationId) invalidateAccommodationCache(accommodationId);
-      toast.success('網頁設定已儲存');
+      toast.success('首頁與 SEO 設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error saving basic info:", error);
@@ -3283,7 +3281,7 @@ const WebsiteContent = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
-          <PageHeader title="網頁設定" icon={Info} />
+          <PageHeader title="首頁與 SEO 設定" icon={Info} />
 
 
           {/* 首頁區塊顯示設定 - 獨立區塊，放在第一個位置 */}
