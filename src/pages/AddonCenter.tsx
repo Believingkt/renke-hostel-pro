@@ -339,7 +339,10 @@ export default function AddonCenter() {
                       {it.notes || "—"}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {it.related_order_id || "—"}
+                      {it.related_order_id
+                        ? orderNumbers[it.related_order_id] || "（訂單已刪除）"
+                        : "—"}
+
                     </TableCell>
                     {editable && (
                       <TableCell>
