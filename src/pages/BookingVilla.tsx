@@ -112,6 +112,22 @@ export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
 export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
 
 const BookingVilla = () => {
+  // 黏頂列高度動態量測（避免硬寫 px 造成重疊）
+  const headerRef = useRef<HTMLElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+  const [isDesktopSearch, setIsDesktopSearch] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 640px)").matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const onChange = () => setIsDesktopSearch(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  useStickyHeightVar(headerRef, "--vb-header-h");
+  useStickyHeightVar(searchBarRef, "--vb-search-h", isDesktopSearch);
+
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
