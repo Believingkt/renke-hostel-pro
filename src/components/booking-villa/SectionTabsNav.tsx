@@ -71,12 +71,8 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    // header（+ 桌機搜尋列 61）+ 本列高度 48
-    const headerOffset = window.matchMedia("(min-width: 768px)").matches
-      ? 175 + 50
-      : window.matchMedia("(min-width: 640px)").matches
-        ? 159 + 50
-        : 64 + 50;
+    // header + 桌機搜尋列 + 本列高度（動態量測）
+    const headerOffset = getLadderTop() + 8;
     const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
     // 鎖定 active，scroll 結束後再解鎖
