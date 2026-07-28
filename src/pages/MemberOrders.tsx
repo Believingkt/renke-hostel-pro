@@ -365,6 +365,8 @@ const MemberOrders = () => {
               const statusColor = statusColors[order.order_status] || "text-muted-foreground";
               const past = isPast(order.check_out_date);
               const cancelled = order.order_status === "cancelled";
+              const paidAmount = Math.max(0, Number(order.paid_amount || 0));
+
               const paymentLabel = paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
               const paymentClass =
                 order.payment_status === "paid"
@@ -421,22 +423,47 @@ const MemberOrders = () => {
                       </div>
                     )}
 
-                    {/* Price + refund line */}
+                    {/* Price line */}
                     <div className="mt-3 flex items-end justify-between">
                       <div className="flex-1" />
                       <div className="text-right">
                         {cancelled ? (
+                          paidAmount > 0 ? (
+                            <>
+                              <p className="text-sm text-muted-foreground line-through">
+                                線上預付 NT${paidAmount.toLocaleString()}
+                              </p>
+                              <p className="text-sm font-medium text-red-500 mt-0.5">
+                                {order.payment_status === "refunded"
+                                  ? `已退款 NT$${paidAmount.toLocaleString()}`
+                                  : "訂單已取消"}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                訂單金額 NT${order.final_price.toLocaleString()}
+                              </p>
+                              <p className="text-sm font-medium text-red-500 mt-0.5">
+                                未付款，訂單已取消
+                              </p>
+                            </>
+                          )
+                        ) : paidAmount > 0 && paidAmount < order.final_price ? (
                           <>
-                            <p className="text-sm text-muted-foreground line-through">
-                              線上預付 NT${order.final_price.toLocaleString()}
+                            <p className="text-sm text-muted-foreground">
+                              線上預付訂金{" "}
+                              <span className="text-foreground font-bold text-base ml-1">
+                                NT${paidAmount.toLocaleString()}
+                              </span>
                             </p>
-                            <p className="text-sm font-medium text-red-500 mt-0.5">
-                              已退款 NT${order.final_price.toLocaleString()}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              尾款 NT${(order.final_price - paidAmount).toLocaleString()} 入住現場支付
                             </p>
                           </>
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            線上預付{" "}
+                            {paidAmount > 0 ? "線上預付" : "訂單金額"}{" "}
                             <span className="text-foreground font-bold text-base ml-1">
                               NT${order.final_price.toLocaleString()}
                             </span>
@@ -444,6 +471,7 @@ const MemberOrders = () => {
                         )}
                       </div>
                     </div>
+
 
                     {/* Action buttons */}
                     <div className="mt-3 pt-3 border-t border-border/70 flex justify-end gap-2">
