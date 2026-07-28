@@ -711,7 +711,11 @@ const BookingVilla = () => {
       </header>
 
       {/* ── Desktop Search Bar ── */}
-      <div className="hidden sm:block sticky top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-border">
+      <div
+        ref={searchBarRef}
+        className="hidden sm:block sticky z-40 bg-white/95 backdrop-blur border-b border-border"
+        style={{ top: "var(--vb-header-h, 80px)" }}
+      >
         <div className="max-w-3xl mx-auto px-4 py-2.5">
           <button
             onClick={() => setEditSearchOpen(true)}
