@@ -19,6 +19,8 @@ interface SectionTabsNavProps {
 export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const [active, setActive] = useState<string>(tabs[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useStickyHeightVar(wrapRef, "--vb-tabs-h");
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // 點擊鎖：smooth scroll 期間忽略 observer，避免沿途 section 觸發 active 亂跳
   const lockRef = useRef(false);
