@@ -344,7 +344,7 @@ const CapacityPriceLadder = ({
           <div className="space-y-0">
             {/* 人數 Tab — 可左右滑動（緊貼圖卡）；sticky 讓使用者可隨時切換人數比對價格 */}
             <div
-              className="sticky top-28 sm:top-32 md:top-36 z-30 -mx-1 px-1 pt-1 pb-1 bg-white/95 backdrop-blur"
+              className="sticky top-[113px] sm:top-[190px] md:top-[206px] z-30 -mx-1 px-1 pt-1 pb-1 bg-white/95 backdrop-blur"
             >
               <GuestTabsScroller
                 tiers={allTiers}
