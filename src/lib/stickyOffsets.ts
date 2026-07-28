@@ -26,22 +26,38 @@ export function useStickyHeightVar(
         : (refOrEl as HTMLElement | null);
     if (!el) return;
 
+    // 用 ceil 避免縮放（zoom）時小數高度被無條件捨去而產生 1px 重疊
     const update = () => {
       const h = el.getBoundingClientRect().height;
-      root.style.setProperty(varName, `${Math.round(h)}px`);
+      root.style.setProperty(varName, `${Math.ceil(h)}px`);
+    };
+    // 旋轉／視窗縮放時瀏覽器回報的尺寸可能仍是舊值，延後一幀再量一次
+    const updateDeferred = () => {
+      update();
+      requestAnimationFrame(update);
+      setTimeout(update, 250);
     };
     update();
 
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
+    window.addEventListener("resize", updateDeferred);
+    window.addEventListener("orientationchange", updateDeferred);
+    // 手機瀏覽器網址列收合／雙指縮放只會觸發 visualViewport 事件
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", updateDeferred);
+    vv?.addEventListener("scroll", update);
+    // 字型載入完成後高度可能改變
+    (document as any).fonts?.ready?.then?.(update).catch?.(() => {});
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
+      window.removeEventListener("resize", updateDeferred);
+      window.removeEventListener("orientationchange", updateDeferred);
+      vv?.removeEventListener("resize", updateDeferred);
+      vv?.removeEventListener("scroll", update);
       root.style.removeProperty(varName);
     };
+
   }, [refOrEl, varName, enabled]);
 }
 
