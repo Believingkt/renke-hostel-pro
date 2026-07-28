@@ -365,6 +365,8 @@ const MemberOrders = () => {
               const statusColor = statusColors[order.order_status] || "text-muted-foreground";
               const past = isPast(order.check_out_date);
               const cancelled = order.order_status === "cancelled";
+              const paidAmount = Math.max(0, Number(order.paid_amount || 0));
+
               const paymentLabel = paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
               const paymentClass =
                 order.payment_status === "paid"
