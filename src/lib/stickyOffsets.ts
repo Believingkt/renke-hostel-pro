@@ -26,11 +26,13 @@ export function useStickyHeightVar(
         : (refOrEl as HTMLElement | null);
     if (!el) return;
 
-    // 用 ceil 避免縮放（zoom）時小數高度被無條件捨去而產生 1px 重疊
+    // offsetHeight 為未受 CSS zoom 縮放的版面 px，與 top: calc() 的單位一致；
+    // 用 ceil 避免小數高度被捨去而產生 1px 重疊
     const update = () => {
-      const h = el.getBoundingClientRect().height;
+      const h = el.offsetHeight || el.getBoundingClientRect().height;
       root.style.setProperty(varName, `${Math.ceil(h)}px`);
     };
+
     // 旋轉／視窗縮放時瀏覽器回報的尺寸可能仍是舊值，延後一幀再量一次
     const updateDeferred = () => {
       update();
