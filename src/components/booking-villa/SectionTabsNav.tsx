@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useStickyHeightVar, getLadderTop, TABS_TOP_CSS } from "@/lib/stickyOffsets";
+import { useStickyHeightRef, getLadderTop, TABS_TOP_CSS } from "@/lib/stickyOffsets";
 
 export interface SectionTab {
   id: string;
@@ -19,8 +19,7 @@ interface SectionTabsNavProps {
 export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const [active, setActive] = useState<string>(tabs[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useStickyHeightVar(wrapRef, "--vb-tabs-h");
+  const wrapRef = useStickyHeightRef<HTMLDivElement>("--vb-tabs-h");
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // 點擊鎖：smooth scroll 期間忽略 observer，避免沿途 section 觸發 active 亂跳
   const lockRef = useRef(false);
