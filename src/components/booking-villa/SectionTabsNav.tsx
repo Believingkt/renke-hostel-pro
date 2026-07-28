@@ -141,8 +141,9 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
 
   return (
     <div
-      className="sticky top-16 sm:top-[159px] md:top-[175px] z-40 bg-white/95 backdrop-blur border-b border-gray-100"
-      style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
+      ref={wrapRef}
+      className="sticky z-40 bg-white/95 backdrop-blur border-b border-gray-100"
+      style={{ top: TABS_TOP_CSS, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
     >
       <div
         ref={navRef}
