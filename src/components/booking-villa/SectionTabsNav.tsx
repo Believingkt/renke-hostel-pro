@@ -68,11 +68,11 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    // header (mobile 64) + 本列高度 (約 44)
+    // header（+ 桌機搜尋列 61）+ 本列高度 48
     const headerOffset = window.matchMedia("(min-width: 768px)").matches
-      ? 96 + 48
+      ? 157 + 48
       : window.matchMedia("(min-width: 640px)").matches
-        ? 80 + 48
+        ? 141 + 48
         : 64 + 48;
     const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
@@ -140,7 +140,7 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
 
   return (
     <div
-      className="sticky top-16 sm:top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-gray-100"
+      className="sticky top-16 sm:top-[141px] md:top-[157px] z-40 bg-white/95 backdrop-blur border-b border-gray-100"
       style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
     >
       <div
