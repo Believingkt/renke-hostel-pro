@@ -70,10 +70,10 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
     if (!el) return;
     // header（+ 桌機搜尋列 61）+ 本列高度 48
     const headerOffset = window.matchMedia("(min-width: 768px)").matches
-      ? 157 + 48
+      ? 175 + 50
       : window.matchMedia("(min-width: 640px)").matches
-        ? 141 + 48
-        : 64 + 48;
+        ? 159 + 50
+        : 64 + 50;
     const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
     // 鎖定 active，scroll 結束後再解鎖
@@ -140,7 +140,7 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
 
   return (
     <div
-      className="sticky top-16 sm:top-[141px] md:top-[157px] z-40 bg-white/95 backdrop-blur border-b border-gray-100"
+      className="sticky top-16 sm:top-[159px] md:top-[175px] z-40 bg-white/95 backdrop-blur border-b border-gray-100"
       style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
     >
       <div
