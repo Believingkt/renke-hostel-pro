@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useStickyHeightVar, getLadderTop, TABS_TOP_CSS } from "@/lib/stickyOffsets";
 
 export interface SectionTab {
   id: string;
