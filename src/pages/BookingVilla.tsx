@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useStickyHeightRef } from "@/lib/stickyOffsets";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +112,21 @@ export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
 export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
 
 const BookingVilla = () => {
+  // 黏頂列高度動態量測（避免硬寫 px 造成重疊）
+  const [isDesktopSearch, setIsDesktopSearch] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 640px)").matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const onChange = () => setIsDesktopSearch(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  const headerRef = useStickyHeightRef<HTMLElement>("--vb-header-h");
+  const searchBarRef = useStickyHeightRef<HTMLDivElement>("--vb-search-h", isDesktopSearch);
+
+
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -631,6 +647,7 @@ const BookingVilla = () => {
 
       {/* ── Sticky Header (Trip.com style: floating over hero on scroll-top) ── */}
       <header
+        ref={headerRef}
         className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
@@ -693,7 +710,11 @@ const BookingVilla = () => {
       </header>
 
       {/* ── Desktop Search Bar ── */}
-      <div className="hidden sm:block sticky top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-border">
+      <div
+        ref={searchBarRef}
+        className="hidden sm:block sticky z-40 bg-white/95 backdrop-blur border-b border-border"
+        style={{ top: "var(--vb-header-h, 80px)" }}
+      >
         <div className="max-w-3xl mx-auto px-4 py-2.5">
           <button
             onClick={() => setEditSearchOpen(true)}

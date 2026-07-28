@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useStickyHeightRef, getLadderTop, TABS_TOP_CSS } from "@/lib/stickyOffsets";
 
 export interface SectionTab {
   id: string;
@@ -18,6 +19,7 @@ interface SectionTabsNavProps {
 export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const [active, setActive] = useState<string>(tabs[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useStickyHeightRef<HTMLDivElement>("--vb-tabs-h");
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // 點擊鎖：smooth scroll 期間忽略 observer，避免沿途 section 觸發 active 亂跳
   const lockRef = useRef(false);
@@ -68,12 +70,8 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    // header（+ 桌機搜尋列 61）+ 本列高度 48
-    const headerOffset = window.matchMedia("(min-width: 768px)").matches
-      ? 175 + 50
-      : window.matchMedia("(min-width: 640px)").matches
-        ? 159 + 50
-        : 64 + 50;
+    // header + 桌機搜尋列 + 本列高度（動態量測）
+    const headerOffset = getLadderTop() + 8;
     const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
     // 鎖定 active，scroll 結束後再解鎖
@@ -140,8 +138,9 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
 
   return (
     <div
-      className="sticky top-16 sm:top-[159px] md:top-[175px] z-40 bg-white/95 backdrop-blur border-b border-gray-100"
-      style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
+      ref={wrapRef}
+      className="sticky z-40 bg-white/95 backdrop-blur border-b border-gray-100"
+      style={{ top: TABS_TOP_CSS, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
     >
       <div
         ref={navRef}
