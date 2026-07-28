@@ -1,4 +1,4 @@
-import { useLayoutEffect, RefObject } from "react";
+import { useLayoutEffect, useState, useCallback, RefObject } from "react";
 
 /**
  * 訂房頁黏頂列高度變數（動態量測，避免硬寫 px 造成重疊）
@@ -10,7 +10,7 @@ export type StickyVar = "--vb-header-h" | "--vb-search-h" | "--vb-tabs-h";
 
 /** 量測元素高度並寫入 :root CSS 變數；元素不存在／隱藏時寫 0px */
 export function useStickyHeightVar(
-  ref: RefObject<HTMLElement>,
+  refOrEl: RefObject<HTMLElement> | HTMLElement | null,
   varName: StickyVar,
   enabled = true,
 ) {
@@ -20,7 +20,10 @@ export function useStickyHeightVar(
       root.style.setProperty(varName, "0px");
       return () => root.style.removeProperty(varName);
     }
-    const el = ref.current;
+    const el =
+      refOrEl && "current" in (refOrEl as RefObject<HTMLElement>)
+        ? (refOrEl as RefObject<HTMLElement>).current
+        : (refOrEl as HTMLElement | null);
     if (!el) return;
 
     const update = () => {
@@ -39,7 +42,15 @@ export function useStickyHeightVar(
       window.removeEventListener("orientationchange", update);
       root.style.removeProperty(varName);
     };
-  }, [ref, varName, enabled]);
+  }, [refOrEl, varName, enabled]);
+}
+
+/** 回傳 callback ref，元素掛載/卸載時自動更新 CSS 變數（適用條件渲染的元素） */
+export function useStickyHeightRef<T extends HTMLElement>(varName: StickyVar, enabled = true) {
+  const [el, setEl] = useState<T | null>(null);
+  const ref = useCallback((node: T | null) => setEl(node), []);
+  useStickyHeightVar(el, varName, enabled);
+  return ref;
 }
 
 const readVar = (name: StickyVar, fallback: number) => {
