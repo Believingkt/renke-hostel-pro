@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useStickyHeightVar } from "@/lib/stickyOffsets";
+import { useStickyHeightRef } from "@/lib/stickyOffsets";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
