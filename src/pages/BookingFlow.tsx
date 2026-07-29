@@ -3410,7 +3410,7 @@ const BookingFlow = () => {
 
   const addonsSection = currentStep === "payment" ? (
                   <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
-                    <Card className="rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
+                    <Card className="w-full min-w-0 rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
@@ -3429,10 +3429,11 @@ const BookingFlow = () => {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-4 pb-4 pt-3 space-y-4 border-t border-border bg-muted/20">
+                        <div className="w-full min-w-0 px-3 sm:px-4 pb-4 pt-3 space-y-4 border-t border-border bg-muted/20">
 
 
-                  <div className="space-y-6">
+                  <div className="w-full min-w-0 space-y-6">
+
 
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
@@ -4032,7 +4033,8 @@ const BookingFlow = () => {
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-4 sm:gap-8 items-start">
           {/* Left: Form Content */}
-          <div className="w-full">
+          <div className="w-full min-w-0">
+
             <MemberSessionBar
               loggedInMember={loggedInMember}
               bookingEmail={guestInfo.email}
@@ -4107,7 +4109,7 @@ const BookingFlow = () => {
                 />
               );
             })()}
-            <div className="lg:hidden">{addonsSection}</div>
+            <div className="lg:hidden mb-4">{addonsSection}</div>
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
@@ -5364,8 +5366,9 @@ const BookingFlow = () => {
           </div>
 
           {/* Right: Summary Sidebar - 桌機版比照手機版摘要 */}
-          <div className="hidden lg:block">
-            <div className="sticky top-20 space-y-3 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain pr-1 pb-4">
+          <div className="hidden lg:block w-full min-w-0">
+            <div className="w-full min-w-0 space-y-4">
+
 
 
             {(() => {
