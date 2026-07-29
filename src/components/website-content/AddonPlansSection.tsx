@@ -52,6 +52,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AddonPlanPreview } from "./AddonPlanPreview";
+
 
 export interface AddonPlan {
   id?: string;
