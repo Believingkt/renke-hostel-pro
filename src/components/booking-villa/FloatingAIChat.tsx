@@ -254,8 +254,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="h-[80dvh] max-h-[80dvh] sm:h-[70dvh] sm:max-h-[620px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-lg sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
+          className="h-[67dvh] max-h-[67dvh] sm:h-[66dvh] sm:max-h-[560px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-md sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
         >
+
 
           <SheetHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0 shrink-0">
 
