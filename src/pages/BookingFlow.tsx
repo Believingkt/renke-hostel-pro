@@ -4108,7 +4108,7 @@ const BookingFlow = () => {
                 />
               );
             })()}
-            <div className="lg:hidden">{addonsSection}</div>
+            <div className="lg:hidden mb-4">{addonsSection}</div>
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
