@@ -647,10 +647,20 @@ const BookingVilla = () => {
         totalGuests,
         planMax,
         addRooms,
+        // 可加訂足夠間數時，提供「加訂並繼續」
+        proceed:
+          addRooms && addRooms.available >= addRooms.needed
+            ? () => goToBooking(opt, subPlanKey, addRooms!.needed)
+            : null,
       });
       return;
     }
 
+    goToBooking(opt, subPlanKey);
+  };
+
+  /** 導向結帳頁；roomsOverride 用於多間散房加訂 */
+  const goToBooking = (opt: CapacityOption, subPlanKey?: string, roomsOverride?: number) => {
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
@@ -663,9 +673,11 @@ const BookingVilla = () => {
     const roomsStr = searchParams.get("rooms");
     if (adultsStr) params.set("adults", adultsStr);
     if (childrenStr) params.set("children", childrenStr);
-    if (roomsStr) params.set("rooms", roomsStr);
+    if (roomsOverride && roomsOverride > 1) params.set("rooms", String(roomsOverride));
+    else if (roomsStr) params.set("rooms", roomsStr);
     navigate(`/book?${params.toString()}`);
   };
+
 
   const handleShare = async () => {
     const url = window.location.href;
