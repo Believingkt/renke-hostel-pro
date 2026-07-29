@@ -220,7 +220,12 @@ export default function MobileOrderSummary({
             {roomSubtotal != null && roomSubtotal > 0 && (
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0 flex-1 text-foreground break-words">
-                  房費（{nights} 晚）
+                  房費（{nights} 晚{roomsCount && roomsCount > 1 ? ` × ${roomsCount} 間` : ""}）
+                  {roomsCount && roomsCount > 1 && (
+                    <span className="block text-xs text-muted-foreground">
+                      每間 NT$ {Math.round(roomSubtotal / roomsCount).toLocaleString()}
+                    </span>
+                  )}
                   {roomOriginalSubtotal != null && roomOriginalSubtotal > roomSubtotal && (
                     <SavingsBadge
                       original={roomOriginalSubtotal}
