@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     // 1. 撈 KOL 主要記錄
     const { data: kolsRaw, error: kolErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url")
+      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id")
       .eq("check_in_date", targetCheckIn)
       .eq("booking_status", "成功訂房")
       .is("primary_profile_id", null)
@@ -85,6 +85,25 @@ Deno.serve(async (req) => {
         .in("user_id", scoutIds);
       (scouts ?? []).forEach((s: any) => scoutMap.set(s.user_id, s.display_name));
     }
+
+    // 2b. 撈館別名稱（venue_name 為空時，依 venue_id / accommodation_id 補）
+    const venueIds = Array.from(new Set(kols.map((k: any) => k.venue_id).filter(Boolean)));
+    const accIds = Array.from(new Set(kols.map((k: any) => k.accommodation_id).filter(Boolean)));
+    const venueMap = new Map<string, string>();
+    const accMap = new Map<string, string>();
+    if (venueIds.length > 0) {
+      const { data: vs } = await supabase.from("kol_venues").select("id, name").in("id", venueIds);
+      (vs ?? []).forEach((v: any) => venueMap.set(v.id, v.name));
+    }
+    if (accIds.length > 0) {
+      const { data: as_ } = await supabase.from("accommodation_info").select("id, name").in("id", accIds);
+      (as_ ?? []).forEach((a: any) => accMap.set(a.id, a.name));
+    }
+    const venueOf = (k: any) =>
+      (hasVal(k.venue_name) && k.venue_name) ||
+      (k.venue_id && venueMap.get(k.venue_id)) ||
+      (k.accommodation_id && accMap.get(k.accommodation_id)) ||
+      "未提供";
 
     // 3. 撈推播目標
     const { data: targets, error: tErr } = await supabase
@@ -122,17 +141,18 @@ Deno.serve(async (req) => {
     for (const k of kols as any[]) {
       const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
+      const venue = venueOf(k);
       const hasDate = hasVal(k.publish_date);
       const hasUrl = hasVal(k.publish_url);
 
       if (!hasDate && !hasUrl) {
         const deadline = addDays(k.check_in_date, 14);
         pendingBlocks.push(
-          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
         );
       } else {
         partialBlocks.push(
-          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
         );
       }
     }
