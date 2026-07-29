@@ -130,10 +130,17 @@ export interface BuiltEmail {
   accommodationName: string;
 }
 
+export interface DateChangeNotice {
+  oldCheckIn: string;
+  oldCheckOut: string;
+  reason?: string | null;
+  operator?: string | null;
+}
+
 export async function buildOrderConfirmationEmail(
   supabase: any,
   orderNumber: string,
-  opts: { siteUrl?: string } = {},
+  opts: { siteUrl?: string; dateChange?: DateChangeNotice | null } = {},
 ): Promise<BuiltEmail | { error: string }> {
   const { data: order } = await supabase
     .from("orders")
