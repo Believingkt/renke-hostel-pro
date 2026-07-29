@@ -752,13 +752,13 @@ const BookingVilla = () => {
         </div>
 
         {/* 手機版（改置於頁籤上方，取代原本底部搜尋列） */}
-        <div className="sm:hidden px-3 py-2">
+        <div className="sm:hidden px-2.5 max-[360px]:px-2 py-2">
           <button
             onClick={() => setEditSearchOpen(true)}
-            className="w-full flex items-center gap-3 rounded-2xl bg-card pl-3 pr-2 py-2 text-left active:scale-[0.99] transition-transform border border-primary/30 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.45)]"
+            className="w-full flex items-center gap-2.5 max-[360px]:gap-2 rounded-2xl bg-card pl-2.5 pr-2 py-2 text-left active:scale-[0.99] transition-transform border border-primary/30 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.45)] overflow-hidden"
           >
-            <span className="grid place-items-center h-9 w-9 shrink-0 rounded-xl bg-primary/12 text-primary">
-              <Calendar className="w-[18px] h-[18px]" />
+            <span className="grid place-items-center h-9 w-9 max-[360px]:h-8 max-[360px]:w-8 shrink-0 rounded-xl bg-primary/12 text-primary">
+              <Calendar className="w-[18px] h-[18px] max-[360px]:w-4 max-[360px]:h-4" />
             </span>
 
             <span className="flex-1 min-w-0">
@@ -771,29 +771,30 @@ const BookingVilla = () => {
                 const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
                 return (
                   <>
-                    <span className="block text-[15px] font-bold text-foreground truncate leading-tight">
+                    <span className="block text-[15px] max-[360px]:text-[14px] font-bold text-foreground truncate leading-tight">
                       {format(checkIn, "M/d")} – {format(checkOut, "M/d")}
                       <span className="text-muted-foreground font-medium">・{nights} 晚</span>
                     </span>
-                    <span className="block text-[13px] text-muted-foreground truncate mt-0.5">
+                    <span className="block text-[13px] max-[360px]:text-[12px] text-muted-foreground truncate mt-0.5">
                       {adultsN} 位大人{kidsN > 0 && <>・{kidsN} 位兒童</>}
                     </span>
                   </>
                 );
               })() : (
                 <>
-                  <span className="block text-[15px] font-bold text-foreground leading-tight">選擇日期與人數</span>
-                  <span className="block text-[13px] text-muted-foreground mt-0.5">查看即時空房與價格</span>
+                  <span className="block text-[15px] max-[360px]:text-[14px] font-bold text-foreground leading-tight truncate">選擇日期與人數</span>
+                  <span className="block text-[13px] max-[360px]:text-[12px] text-muted-foreground mt-0.5 truncate">查看即時空房與價格</span>
                 </>
               )}
             </span>
 
-            <span className="flex items-center gap-1 shrink-0 h-9 px-3.5 rounded-full bg-primary text-primary-foreground text-[13px] font-bold shadow-sm">
+            <span className="flex items-center gap-1 shrink-0 h-9 max-[360px]:h-8 px-3.5 max-[360px]:px-2.5 rounded-full bg-primary text-primary-foreground text-[13px] max-[360px]:text-[12px] font-bold shadow-sm whitespace-nowrap">
               修改
               <ChevronDown className="w-3.5 h-3.5" />
             </span>
           </button>
         </div>
+
 
       </div>
 
