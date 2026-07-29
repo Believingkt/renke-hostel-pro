@@ -74,6 +74,12 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
     el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
   };
 
+  const openLightbox = () => {
+    if (dragState.current?.moved) return;
+    setLightboxOpen(true);
+  };
+
+
   if (photos.length === 0) {
     return (
       <div
