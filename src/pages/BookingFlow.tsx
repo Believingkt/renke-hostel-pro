@@ -3330,7 +3330,20 @@ const BookingFlow = () => {
           throw orderError;
         }
         orderData = insertedOrder;
+
+        // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
+        if (isMultiRoom && insertedOrder?.id) {
+          const { error: orderRoomsError } = await supabase.from("order_rooms").insert([{
+            order_id: insertedOrder.id,
+            room_type_id: selectedRoom.id,
+            quantity: roomQuantity,
+          }]);
+          if (orderRoomsError) {
+            console.error("寫入多間房資料失敗:", orderRoomsError);
+          }
+        }
       }
+
 
       // 觸發 KOL Webhook（如果使用了折扣碼）
       if (appliedDiscount && orderData?.id) {
