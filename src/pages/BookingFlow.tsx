@@ -2548,6 +2548,10 @@ const BookingFlow = () => {
       navigate(-1);
       return;
     }
+    // 回訂房頁時保留住宿型態（包棟 / 單間房），避免從散房方案返回卻跳回包棟列表
+    const stayParam =
+      searchParams.get("stay") ??
+      (selectedRoom ? (selectedRoom.is_exclusive_package === true ? "package" : "common") : null);
     navigate(
       bookingPath({
         accommodationId,
@@ -2557,6 +2561,7 @@ const BookingFlow = () => {
           adults: searchParams.get("adults"),
           children: searchParams.get("children"),
           rooms: searchParams.get("rooms"),
+          stay: stayParam,
         },
       }),
     );
