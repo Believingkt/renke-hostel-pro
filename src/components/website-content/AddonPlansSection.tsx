@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Pencil } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil, Wand2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ADDON_COPY_TEMPLATES, type AddonCopyTemplate } from "@/constants/addonCopyTemplates";
+
 import {
   DndContext,
   closestCenter,
