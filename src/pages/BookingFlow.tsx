@@ -2040,26 +2040,41 @@ const BookingFlow = () => {
     return roomTypes;
   };
 
+  /**
+   * 多間預訂間數：
+   * 僅「非包棟 且 房間數 > 1」的散房房型才支援（一棟多人數方案的民宿不適用）。
+   * 其餘一律視為 1 間。
+   */
+  const roomQuantity = useMemo(() => {
+    const units = selectedRoom?.room_count ?? 1;
+    const multiUnitAllowed = !!selectedRoom && selectedRoom.is_exclusive_package !== true && units > 1;
+    if (!multiUnitAllowed) return 1;
+    const n = parseInt(searchParams.get("rooms") || "1", 10) || 1;
+    return Math.max(1, Math.min(n, units));
+  }, [selectedRoom, searchParams]);
+  const isMultiRoom = roomQuantity > 1;
+
   const calculateTotal = () => {
     if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
 
     // 若為包區方案，優先以方案的每晚 sale（週末 tier_prices.weekend.sale，其餘 sale_price）計算
     const packageTotal = calculatePackageTotal();
-    if (packageTotal != null) return packageTotal;
+    if (packageTotal != null) return packageTotal * roomQuantity;
 
     // 若 URL 帶了 packageId 但方案尚未載入完成，回傳 0 阻擋送出，避免誤用房型原價
     if (selectedPackageId) return 0;
 
-    // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）
-    return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
+    // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）× 間數
+    return Object.values(roomPricing).reduce((sum, price) => sum + price, 0) * roomQuantity;
   };
 
   // 折扣基準：有包區方案時以「原價（劃掉用）」計算；否則以實際房費計算
   const getDiscountBase = () => {
     const originalTotal = calculatePackageOriginalTotal();
-    if (originalTotal != null && originalTotal > 0) return originalTotal;
+    if (originalTotal != null && originalTotal > 0) return originalTotal * roomQuantity;
     return calculateTotal();
   };
+
 
   /**
    * 套用折扣碼時，房費以「原價」計價（折扣碼與人客多優惠不疊加）：
