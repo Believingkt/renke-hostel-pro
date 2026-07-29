@@ -524,7 +524,10 @@ const BookingFlow = () => {
     missingDates?: string[];
     hasNoAvailability?: boolean;
     unavailableDates?: string[];
+    /** 整段期間每晚可訂間數的最小值（多間預訂用） */
+    minAvailable?: number | null;
   }>>({});
+
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   
   // 預選房型的日期可用性（用於日期選擇器標記不可預訂日期）
