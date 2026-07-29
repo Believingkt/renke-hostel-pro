@@ -86,6 +86,25 @@ Deno.serve(async (req) => {
       (scouts ?? []).forEach((s: any) => scoutMap.set(s.user_id, s.display_name));
     }
 
+    // 2b. 撈館別名稱（venue_name 為空時，依 venue_id / accommodation_id 補）
+    const venueIds = Array.from(new Set(kols.map((k: any) => k.venue_id).filter(Boolean)));
+    const accIds = Array.from(new Set(kols.map((k: any) => k.accommodation_id).filter(Boolean)));
+    const venueMap = new Map<string, string>();
+    const accMap = new Map<string, string>();
+    if (venueIds.length > 0) {
+      const { data: vs } = await supabase.from("kol_venues").select("id, name").in("id", venueIds);
+      (vs ?? []).forEach((v: any) => venueMap.set(v.id, v.name));
+    }
+    if (accIds.length > 0) {
+      const { data: as_ } = await supabase.from("accommodation_info").select("id, name").in("id", accIds);
+      (as_ ?? []).forEach((a: any) => accMap.set(a.id, a.name));
+    }
+    const venueOf = (k: any) =>
+      (hasVal(k.venue_name) && k.venue_name) ||
+      (k.venue_id && venueMap.get(k.venue_id)) ||
+      (k.accommodation_id && accMap.get(k.accommodation_id)) ||
+      "未提供";
+
     // 3. 撈推播目標
     const { data: targets, error: tErr } = await supabase
       .from("line_push_targets")
