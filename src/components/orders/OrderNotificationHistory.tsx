@@ -154,6 +154,12 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                   onConfirm={() => resend("booking_confirmation")}
                 />
                 <ResendButton
+                  label="重送訂金通知"
+                  emailType="deposit_received"
+                  loading={resendingType === "deposit_received"}
+                  onConfirm={() => resend("deposit_received")}
+                />
+                <ResendButton
                   label="重送尾款通知"
                   emailType="final_payment_received"
                   loading={resendingType === "final_payment_received"}
