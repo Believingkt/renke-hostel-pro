@@ -3466,50 +3466,41 @@ const BookingFlow = () => {
                             size="lg"
                             className="w-full h-12"
                           >
-                            <ShoppingBag className="mr-2 h-5 w-5" />
-                            加購寵物方案
+                            <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
+                            <span className="truncate">加購此方案</span>
                           </Button>
                         ) : (
                           <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                              <div>
-                                <p className="font-semibold text-sm sm:text-base">攜帶寵物數量</p>
-                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 sm:p-4 gap-2">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm sm:text-base">數量</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground break-words">
                                   {petCount} 隻 × NT$ {petPlanSettings.pricePerUnit.toLocaleString()} × {calculateNights()} 晚
                                 </p>
                               </div>
-                              <Button
-                                onClick={() => setPetCount(0)}
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                <Button
+                                  onClick={() => setPetCount(Math.max(0, petCount - 1))}
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
+                                >
+                                  -
+                                </Button>
+                                <span className="w-8 text-center text-lg font-bold">{petCount}</span>
+                                <Button
+                                  onClick={() => setPetCount(Math.min(petPlanSettings.maxQuantity, petCount + 1))}
+                                  disabled={petCount >= petPlanSettings.maxQuantity}
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
+                                >
+                                  +
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-center gap-4">
-                              <Button
-                                onClick={() => setPetCount(Math.max(0, petCount - 1))}
-                                disabled={petCount === 0}
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 rounded-lg"
-                              >
-                                -
-                              </Button>
-                              <span className="w-12 text-center font-bold text-xl">{petCount}</span>
-                              <Button
-                                onClick={() => setPetCount(Math.min(petPlanSettings.maxQuantity, petCount + 1))}
-                                disabled={petCount >= petPlanSettings.maxQuantity}
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 rounded-lg"
-                              >
-                                +
-                              </Button>
-                            </div>
-                            <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
-                              <p className="font-bold text-sm sm:text-base text-center">
+                            <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
+                              <p className="font-bold text-sm sm:text-base">
                                 小計：NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
                               </p>
                             </div>
