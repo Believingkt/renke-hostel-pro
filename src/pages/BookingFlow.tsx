@@ -2357,6 +2357,22 @@ const BookingFlow = () => {
         return;
       }
 
+      // 多間預訂：確認整段期間每晚都還有足夠間數（防超賣）
+      if (
+        isMultiRoom &&
+        typeof availability?.minAvailable === "number" &&
+        availability.minAvailable < roomQuantity
+      ) {
+        toast({
+          title: "可訂間數不足",
+          description: `您選擇 ${roomQuantity} 間，但所選日期最少僅剩 ${availability.minAvailable} 間，請調整間數或日期`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+
+
       // 檢查是否被互斥房型阻擋
       if (availability?.isBlocked) {
         toast({
