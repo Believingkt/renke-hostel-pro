@@ -1429,6 +1429,56 @@ const BookingVilla = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog
+        open={!!capacityAlert}
+        onOpenChange={(o) => {
+          if (!o) setCapacityAlert(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-[360px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>入住人數超過此方案上限</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                <p>
+                  您選擇的「{capacityAlert?.planName}」最多可入住 {capacityAlert?.planMax} 位，
+                  目前搜尋人數為 {capacityAlert?.totalGuests} 位。
+                </p>
+                {capacityAlert?.addRooms ? (
+                  capacityAlert.addRooms.available >= capacityAlert.addRooms.needed ? (
+                    <p>
+                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間
+                      {capacityAlert.addRooms.roomTypeName}（所選日期尚有 {capacityAlert.addRooms.available} 間可訂）。
+                      請調整搜尋條的「房間數」後再選擇方案。
+                    </p>
+                  ) : (
+                    <p>
+                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間，
+                      但所選日期僅剩 {capacityAlert.addRooms.available} 間可訂，無法容納。
+                      建議改選包棟方案或調整日期／人數。
+                    </p>
+                  )
+                ) : (
+                  <p>請重新選擇適合人數的方案，或調整搜尋人數後再試。</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="flex-1 mt-0">重新選方案</AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1"
+              onClick={() => {
+                setCapacityAlert(null);
+                setEditSearchOpen(true);
+              }}
+            >
+              調整搜尋條件
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditSearchSheet
         open={editSearchOpen}
         onOpenChange={setEditSearchOpen}
@@ -1442,7 +1492,8 @@ const BookingVilla = () => {
         availableDates={availableDateSet}
         packageDates={availablePackageSet}
         commonDates={availableCommonSet}
-        onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms }) => {
+        stayMode={stayMode}
+        onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms, stayMode: mode }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));
           params.set("checkOut", format(co, "yyyy-MM-dd"));
@@ -1453,6 +1504,8 @@ const BookingVilla = () => {
           if (toddlers > 0) params.set("toddlers", String(toddlers));
           else params.delete("toddlers");
           params.set("rooms", String(rooms));
+          if (mode) params.set("stay", mode);
+          else params.delete("stay");
           setSearchParams(params, { replace: true });
         }}
       />
