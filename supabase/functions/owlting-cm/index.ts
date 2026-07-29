@@ -578,10 +578,15 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
       }
 
     } else {
+      // Room-level message (no RatePlanCode).
+      if (inboundAvailMode === "ignore") continue; // PMS is the single source of truth
       const patch: { available_rooms?: number; is_available?: boolean } = {};
       if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
-      if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
+      // NEVER accept Open/Close from inbound: OwlTing derives it from BookingLimit=0
+      // (= sold out), which is not the same as PMS "停售". Writing it strands the
+      // room closed after the order is changed or cancelled.
       if (Object.keys(patch).length === 0) continue;
+
       // Fan-out: if room is a group canonical, write to every member room_type
       // (= sell-one-close-all). Otherwise write to the room itself.
       const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
