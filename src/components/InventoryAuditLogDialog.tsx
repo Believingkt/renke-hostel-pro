@@ -219,7 +219,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
           </div>
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0 h-[60vh] -mx-6 px-6">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-background border-b z-10">
               <tr className="text-left">
