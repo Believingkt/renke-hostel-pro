@@ -49,7 +49,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: accData } = await admin
       .from("accommodation_info")
       .select("name")
-      .eq("id", accommodation_id)
+      .eq("id", accommodation_id || (data as any).accommodation_id)
       .maybeSingle();
 
     return new Response(
