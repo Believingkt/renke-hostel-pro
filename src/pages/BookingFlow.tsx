@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { bookingPath } from "@/lib/frontendUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { getDepositBreakdown } from "@/lib/bookingDeposit";
@@ -2493,11 +2494,34 @@ const BookingFlow = () => {
     }
   };
 
+  /** 回到民宿訂房頁（保留日期／人數等條件） */
+  const goBackToVilla = () => {
+    if (!accommodationId) {
+      navigate(-1);
+      return;
+    }
+    navigate(
+      bookingPath({
+        accommodationId,
+        params: {
+          checkIn: searchParams.get("checkIn"),
+          checkOut: searchParams.get("checkOut"),
+          adults: searchParams.get("adults"),
+          children: searchParams.get("children"),
+          rooms: searchParams.get("rooms"),
+        },
+      }),
+    );
+  };
+
   const handlePrevStep = () => {
-    const steps: BookingStep[] = ["dates", "room", "payment", "confirm"];
-    const currentIndex = steps.indexOf(currentStep);
-    if (currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1]);
+    // 結帳頁的「上一步」直接回民宿訂房頁
+    if (currentStep === "payment" || currentStep === "dates" || currentStep === "room") {
+      goBackToVilla();
+      return;
+    }
+    if (currentStep === "confirm") {
+      setCurrentStep("payment");
     }
   };
 
@@ -3378,8 +3402,6 @@ const BookingFlow = () => {
   const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
   
   const stepIndicators = [
-    { key: "dates", label: "選擇日期", icon: Calendar },
-    { key: "room", label: "選擇房型", icon: Home },
     { key: "payment", label: "結帳", icon: CreditCard },
     { key: "confirm", label: "確認訂單", icon: CheckCircle },
   ];
@@ -3394,7 +3416,7 @@ const BookingFlow = () => {
           <Link to="/booking" className="flex items-center gap-2">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
           </Link>
-          <Button variant="ghost" onClick={() => navigate(-1)} size="sm">
+          <Button variant="ghost" onClick={goBackToVilla} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
             返回
           </Button>
@@ -5275,7 +5297,7 @@ const BookingFlow = () => {
             >
 
 
-              {currentStep !== "dates" && (
+              {(
                 <Button
                   variant="outline"
                   onClick={handlePrevStep}
