@@ -585,7 +585,7 @@ const BookingVilla = () => {
   const childBlocked = childCtx?.evalResult.blocked ?? false;
   const childBlockReason = childCtx?.evalResult.blockReason;
 
-  const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+  const handleSelectOption = async (opt: CapacityOption, subPlanKey?: string) => {
     const adultsParam = parseInt(searchParams.get("adults") || "0", 10) || 0;
     if (!checkInStr || !checkOutStr || adultsParam < 1) {
       setMissingInfoOpen(true);
@@ -597,6 +597,60 @@ const BookingVilla = () => {
       });
       return;
     }
+
+    // ── 超過方案可住人數：擋下並提示 ─────────────────────────────
+    const childrenCount = Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0);
+    const toddlersCount = Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0);
+    const totalGuests = adultsParam + childrenCount + toddlersCount;
+    const pkg = opt.packageId ? packages.find((p) => p.id === opt.packageId) : null;
+    const planMax = pkg
+      ? pkg.guest_count_max ?? pkg.guest_count
+      : opt.guestCount;
+    if (planMax && totalGuests > planMax) {
+      const roomType: any = (secondaryData?.roomTypes || []).find(
+        (rt: any) => rt.id === opt.roomTypeId,
+      );
+      const isExclusive = roomType?.is_exclusive_package === true;
+      let addRooms: { needed: number; available: number; roomTypeName: string } | null = null;
+      // 單間房型（非包棟）→ 可能可用加訂房間解決，實際查當期各晚可訂房間數
+      if (roomType && !isExclusive && roomType.capacity > 0) {
+        const needed = Math.ceil(totalGuests / roomType.capacity);
+        let available = 0;
+        try {
+          const nightDates: string[] = [];
+          for (
+            let d = new Date(checkInStr);
+            d < new Date(checkOutStr);
+            d.setDate(d.getDate() + 1)
+          ) {
+            nightDates.push(formatISO(d, { representation: "date" }));
+          }
+          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: roomType.id,
+            p_dates: nightDates,
+            p_accommodation_id: info.id,
+          });
+          const rows = (data as any[]) || [];
+          available =
+            rows.length > 0
+              ? Math.min(
+                  ...rows.map((r) => (r.is_blocked === true ? 0 : r.available_rooms ?? 0)),
+                )
+              : 0;
+        } catch {
+          available = 0;
+        }
+        addRooms = { needed, available, roomTypeName: roomType.name };
+      }
+      setCapacityAlert({
+        planName: opt.roomTypeName,
+        totalGuests,
+        planMax,
+        addRooms,
+      });
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
