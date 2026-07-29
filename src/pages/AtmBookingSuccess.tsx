@@ -471,15 +471,14 @@ export default function AtmBookingSuccess() {
                 expireAt={order.atm_expire_at}
                 onExpired={() => {
                   // 到期瞬間再抓一次最新狀態，避免款項已入帳卻顯示逾期
-                  supabase
-                    .from("orders")
-                    .select("payment_status, order_status, paid_amount")
-                    .eq("id", order.id)
-                    .maybeSingle()
+                  supabase.functions
+                    .invoke("get-public-order", { body: { order_number: order.order_number } })
                     .then(({ data }) => {
-                      if (data) setOrder((prev) => (prev ? { ...prev, ...(data as Partial<OrderRow>) } : prev));
+                      const next = (data as any)?.order as Partial<OrderRow> | undefined;
+                      if (next) setOrder((prev) => (prev ? { ...prev, ...next } : prev));
                     });
                 }}
+
               />
             )}
             {depositSettings === null ? (
