@@ -136,6 +136,8 @@ interface SortablePlanCardProps {
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
   onDeleteClick: (addonType: string) => void;
   onRenameClick: (addonType: string) => void;
+  onApplyTemplate: (index: number, tpl: AddonCopyTemplate) => void;
+
 }
 
 const isBuiltInType = (addonType: string) => addonType === 'pet' || addonType === 'meal';
