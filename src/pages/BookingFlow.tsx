@@ -1400,6 +1400,9 @@ const BookingFlow = () => {
       let blockedByName = '';
       let hasMissingPricing = false;
       let hasNoAvailability = false;
+      // 多間預訂用：整段期間「每晚可訂間數」的最小值
+      let minAvailable = Number.POSITIVE_INFINITY;
+
       const missingDates: string[] = [];
       const unavailableDates: string[] = [];
 
