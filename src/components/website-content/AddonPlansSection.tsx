@@ -534,6 +534,8 @@ export const AddonPlansSection = ({
                   onToggleEnabled={onToggleEnabled}
                   onDeleteClick={setDeleteTarget}
                   onRenameClick={handleRenameClick}
+                  onApplyTemplate={handleApplyTemplate}
+
                 />
               ))}
             </div>
