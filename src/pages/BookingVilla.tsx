@@ -408,7 +408,7 @@ const BookingVilla = () => {
     };
   }, [accId, checkIn && formatISO(checkIn, { representation: "date" }), packages]);
 
-  const visiblePackages = useMemo(() => {
+  const availabilityFilteredPackages = useMemo(() => {
     if (!checkIn) return dateFilteredPackages;
     // 尚未載入房型可訂資料時，先照日期規則顯示，避免閃爍。
     if (Object.keys(roomAvailByDate).length === 0) return dateFilteredPackages;
@@ -424,6 +424,45 @@ const BookingVilla = () => {
       });
     });
   }, [dateFilteredPackages, roomAvailByDate, checkIn]);
+
+  // ── 住宿型態（包棟 / 單間房）分軌 ─────────────────────────────
+  // 雲岫等雙軌住宿：搜尋條選「包棟」只顯示包棟方案，選「單間房非包棟」只顯示散客方案。
+  const stayMode = (() => {
+    const v = searchParams.get("stay");
+    return v === "package" || v === "common" ? v : null;
+  })();
+
+  const exclusiveRoomTypeIds = useMemo(() => {
+    const rts = secondaryData?.roomTypes || [];
+    return new Set(
+      rts.filter((rt: any) => rt.is_exclusive_package === true).map((rt: any) => rt.id as string),
+    );
+  }, [secondaryData]);
+
+  /** 方案是否屬於「包棟」：任一使用到的房型為 is_exclusive_package */
+  const isPackageExclusive = useCallback(
+    (p: any) => {
+      const ids: string[] = [
+        ...(Array.isArray(p.room_type_ids) ? p.room_type_ids.filter(Boolean) : []),
+        ...(p.primary_room_type_id ? [p.primary_room_type_id] : []),
+      ];
+      if (ids.length === 0) return null; // 無法判定
+      return ids.some((id) => exclusiveRoomTypeIds.has(id));
+    },
+    [exclusiveRoomTypeIds],
+  );
+
+  const visiblePackages = useMemo(() => {
+    if (!stayMode || exclusiveRoomTypeIds.size === 0) return availabilityFilteredPackages;
+    const filtered = availabilityFilteredPackages.filter((p: any) => {
+      const excl = isPackageExclusive(p);
+      if (excl === null) return true; // 沒綁房型的方案兩邊都顯示
+      return stayMode === "package" ? excl : !excl;
+    });
+    // 若該型態下完全沒有方案，退回未過濾結果避免頁面空白
+    return filtered.length > 0 ? filtered : availabilityFilteredPackages;
+  }, [availabilityFilteredPackages, stayMode, isPackageExclusive, exclusiveRoomTypeIds]);
+
 
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
   const childCtx = useMemo(() => {
