@@ -127,7 +127,21 @@ serve(async (req) => {
       childSelection = null,
       childExtraTotal = 0,
       packageId = null,
+      roomQuantity: rawRoomQuantity = 1,
     } = body as any;
+
+    // 多間預訂（僅限「非包棟且房間數 > 1」的散房房型）
+    const { data: roomTypeRow } = await supabase
+      .from("room_types")
+      .select("room_count, is_exclusive_package")
+      .eq("id", roomTypeId)
+      .maybeSingle();
+    const roomTypeUnits = Number((roomTypeRow as any)?.room_count ?? 1) || 1;
+    const multiUnitAllowed =
+      (roomTypeRow as any)?.is_exclusive_package !== true && roomTypeUnits > 1;
+    const requestedQty = Math.max(1, Math.floor(Number(rawRoomQuantity) || 1));
+    const roomQuantity = multiUnitAllowed ? Math.min(requestedQty, roomTypeUnits) : 1;
+
 
     // --- 下單限流（僅計未付款訂單；後台/匯入來源不受限） ---
     const guestEmail: string | null = (body as any)?.guestEmail ?? null;
