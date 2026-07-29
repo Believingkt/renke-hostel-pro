@@ -555,21 +555,11 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
           }
         }
       } else {
-        // Package (雲岫 1001–1007 / SENSAN 包區 canonical)：只吃 BookingLimit（可售數）。
-        // 方案層級的 RestrictionStatus 不可寫入房型 is_available —— 同一房型的多個
-        // 方案會各自送 Open/Close，若寫入會造成房型開關秒級來回跳動（flapping）。
-        // 房型層級開關只由「無 RatePlanCode」的訊息決定（見下方 else 分支）。
-        const patch: { available_rooms?: number; is_available?: boolean } = {};
-        if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
-        if (Object.keys(patch).length > 0) {
-          const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
-          const targetRoomIds = memberIds && memberIds.length > 0 ? memberIds : [room.id];
-          for (const d of dates) {
-            for (const rid of targetRoomIds) {
-              inventoryRows.push({ room_type_id: rid, date: d, pricing_template_id: null, ...patch });
-            }
-          }
-        }
+        // Package (雲岫 1001–1007 / SENSAN 包區 canonical)：完全不回寫房型庫存。
+        // 同一房型會掛多個方案，OwlTing 會逐方案送 Open/Close / BookingLimit；
+        // 任一方案的狀態或數量都不是 PMS 房型總庫存，寫入會造成秒級開關/數量跳動。
+        // 房型層級 available_rooms / is_available 只由「無 RatePlanCode」訊息決定。
+        continue;
       }
 
     } else {
