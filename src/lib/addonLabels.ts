@@ -28,3 +28,17 @@ export function addonPriceLine(pricePerUnit: number, unitLabel?: string | null, 
   if (maxQuantity && maxQuantity > 0) parts.push(`最多 ${maxQuantity} ${u}`);
   return parts.join("・");
 }
+
+/** 名稱是否含價格前綴（例："NT$ 800 /…"、"每人 NT$ 500"） */
+export function hasPricePrefix(raw?: string | null): boolean {
+  const s = (raw ?? "").trim();
+  if (!s) return false;
+  return /NT\$?\s*[\d,]+/i.test(s) || /^每[^\s/／]{0,8}\s*(?=NT|\d)/i.test(s);
+}
+
+/** 單位詞是否過長或含標點（顯示時會被回退成「份」） */
+export function isVerboseUnit(raw?: string | null): boolean {
+  const s = (raw ?? "").trim();
+  if (!s) return false;
+  return s.length > 3 || /[，,、。．/／（）()]/.test(s);
+}
