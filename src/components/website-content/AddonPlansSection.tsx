@@ -399,7 +399,14 @@ export const AddonPlansSection = ({
     setNewPlanNameError("");
   };
 
+  const handleApplyTemplate = (index: number, tpl: AddonCopyTemplate) => {
+    const updatedPlans = [...addonPlans];
+    updatedPlans[index] = { ...updatedPlans[index], ...tpl.values };
+    onUpdate(updatedPlans);
+  };
+
   const handleUpdatePlan = (index: number, updates: Partial<AddonPlan>) => {
+
     const updatedPlans = [...addonPlans];
     updatedPlans[index] = { ...updatedPlans[index], ...updates };
     onUpdate(updatedPlans);
