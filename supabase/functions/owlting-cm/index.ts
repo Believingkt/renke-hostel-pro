@@ -562,14 +562,13 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
         return r;
       }
       if (plan.kind === "template") {
-        // SENSAN 散客一泊一食等：availability writes to pricing_template_availability.
-        if (p.restrictionStatus) {
-          const isClosed = p.restrictionStatus.toLowerCase() === "close";
-          for (const d of dates) {
-            templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
-          }
-        }
+        // SENSAN 散客一泊一食等：PMS 為庫存唯一主控，inbound 的 Open/Close 一律不回寫。
+        // 奧丁丁的 Close 只代表「賣完」，寫進 pricing_template_availability 會變成
+        // PMS 的「停售」，訂單改期/取消後不會自動開回，造成方案永久卡關。
+        // （templateAvailRows 保留供未來手動模式使用，目前不寫入。）
+        continue;
       } else {
+
         // Package (雲岫 1001–1007 / SENSAN 包區 canonical)：完全不回寫房型庫存。
         // 同一房型會掛多個方案，OwlTing 會逐方案送 Open/Close / BookingLimit；
         // 任一方案的狀態或數量都不是 PMS 房型總庫存，寫入會造成秒級開關/數量跳動。
