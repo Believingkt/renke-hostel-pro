@@ -1469,6 +1469,12 @@ const BookingFlow = () => {
             blockedByName = adjusted.blocked_by_room_name || blockedByName;
           }
           const adjustedAvailable = adjusted?.available_rooms;
+          if (adjustedAvailable !== null && adjustedAvailable !== undefined) {
+            minAvailable = Math.min(
+              minAvailable,
+              adjusted?.is_blocked ? 0 : Number(adjustedAvailable),
+            );
+          }
           if (
             adjustedAvailable !== null &&
             adjustedAvailable !== undefined &&
@@ -1478,6 +1484,7 @@ const BookingFlow = () => {
             hasNoAvailability = true;
             unavailableDates.push(dateStr);
           }
+
         }
       } catch (error) {
         if (import.meta.env.DEV) {
