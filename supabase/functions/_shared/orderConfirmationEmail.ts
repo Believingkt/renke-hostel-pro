@@ -459,6 +459,7 @@ export async function buildOrderConfirmationEmail(
       <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;font-family:'Microsoft JhengHei','PingFang TC',Arial,sans-serif;color:#222;">
         <tr><td style="padding:0 12px;">
           <p style="margin:0 0 12px 0;text-align:center;font-size:13px;color:#888;">訂單編號 ${esc(order.order_number)}</p>
+          ${changeBanner}
           ${summary}
           ${stayCard}
           ${atmCard}
