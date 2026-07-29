@@ -4154,9 +4154,9 @@ const BookingFlow = () => {
                   selectedPackage={selectedPackage}
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
-                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
@@ -5187,9 +5187,9 @@ const BookingFlow = () => {
                           selectedPackage={selectedPackage}
                           roomAllocation={selectedPackage?.room_allocation || null}
                           roomTypes={roomTypes}
-                          roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                          roomsCount={roomQuantity}
                           roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
@@ -5478,9 +5478,9 @@ const BookingFlow = () => {
                   selectedPackage={selectedPackage}
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
-                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
