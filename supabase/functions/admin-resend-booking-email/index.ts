@@ -64,15 +64,14 @@ serve(async (req) => {
       return forbiddenResponse(corsHeaders);
     }
 
-    if (emailType === "final_payment_received") {
-      // Clear idempotency guard by inserting fresh manual send (unique index allows only one 'sent'
-      // with email_type='final_payment_received'). For manual resends we mark previous as
-      // 'sent' -> 'resent' to allow the send to proceed.
+    if (emailType === "final_payment_received" || emailType === "deposit_received") {
+      // Clear idempotency guard: mark previous 'sent' rows of the same type as 'resent'
+      // so the send function proceeds.
       await admin
         .from("booking_email_log")
         .update({ status: "resent" })
         .eq("order_id", orderId)
-        .eq("email_type", "final_payment_received")
+        .eq("email_type", emailType)
         .eq("status", "sent");
 
       const methodLabel = order.balance_payment_method || order.payment_method || "";
