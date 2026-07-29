@@ -137,6 +137,13 @@ const BookingVilla = () => {
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [missingInfoOpen, setMissingInfoOpen] = useState(false);
+  const [capacityAlert, setCapacityAlert] = useState<{
+    planName: string;
+    totalGuests: number;
+    planMax: number;
+    /** 單間房型可加訂：需要幾間、目前可訂幾間 */
+    addRooms?: { needed: number; available: number; roomTypeName: string } | null;
+  } | null>(null);
   const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [bottomNavHeight, setBottomNavHeight] = useState(61);
   const handleBottomNavVisibility = useCallback((visible: boolean) => {
