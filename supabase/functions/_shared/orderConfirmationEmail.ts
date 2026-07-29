@@ -504,7 +504,7 @@ export async function buildOrderConfirmationEmail(
 </body></html>`;
 
   return {
-    subject: `${accName ? `【${accName}】` : ""}訂房確認通知 - 訂單編號 ${order.order_number}`,
+    subject: `${accName ? `【${accName}】` : ""}${dc ? "【入住日期已更改】" : ""}訂房確認通知 - 訂單編號 ${order.order_number}`,
     html,
     to: order.guest_email,
     guestName: order.guest_name,
