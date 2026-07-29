@@ -5364,8 +5364,9 @@ const BookingFlow = () => {
           </div>
 
           {/* Right: Summary Sidebar - 桌機版比照手機版摘要 */}
-          <div className="hidden lg:block">
-            <div className="sticky top-20 space-y-3 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain pr-1 pb-4">
+          <div className="hidden lg:block w-full min-w-0">
+            <div className="w-full min-w-0 space-y-4">
+
 
 
             {(() => {
