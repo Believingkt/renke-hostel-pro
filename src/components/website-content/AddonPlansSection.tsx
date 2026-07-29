@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Pencil } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil, Wand2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ADDON_COPY_TEMPLATES, type AddonCopyTemplate } from "@/constants/addonCopyTemplates";
+
 import {
   DndContext,
   closestCenter,
@@ -126,6 +136,8 @@ interface SortablePlanCardProps {
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
   onDeleteClick: (addonType: string) => void;
   onRenameClick: (addonType: string) => void;
+  onApplyTemplate: (index: number, tpl: AddonCopyTemplate) => void;
+
 }
 
 const isBuiltInType = (addonType: string) => addonType === 'pet' || addonType === 'meal';
@@ -139,6 +151,8 @@ const SortablePlanCard = ({
   onToggleEnabled,
   onDeleteClick,
   onRenameClick,
+  onApplyTemplate,
+
 }: SortablePlanCardProps) => {
   const {
     attributes,
@@ -213,6 +227,35 @@ const SortablePlanCard = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              不確定怎麼填？先套用文案範本，再微調細節。
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!plan.enabled}>
+                  <Wand2 className="h-3.5 w-3.5" />
+                  一鍵套用文案範本
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
+                <DropdownMenuLabel>選擇範本</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {ADDON_COPY_TEMPLATES.map((tpl) => (
+                  <DropdownMenuItem
+                    key={tpl.id}
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => onApplyTemplate(index, tpl)}
+                  >
+                    <span className="text-sm">{tpl.label}</span>
+                    <span className="text-xs text-muted-foreground">{tpl.hint}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+
           <div className="grid grid-cols-2 gap-6">
             <ValidatedNumberInput
               label={getPriceLabel(plan.addon_type)}
@@ -356,7 +399,14 @@ export const AddonPlansSection = ({
     setNewPlanNameError("");
   };
 
+  const handleApplyTemplate = (index: number, tpl: AddonCopyTemplate) => {
+    const updatedPlans = [...addonPlans];
+    updatedPlans[index] = { ...updatedPlans[index], ...tpl.values };
+    onUpdate(updatedPlans);
+  };
+
   const handleUpdatePlan = (index: number, updates: Partial<AddonPlan>) => {
+
     const updatedPlans = [...addonPlans];
     updatedPlans[index] = { ...updatedPlans[index], ...updates };
     onUpdate(updatedPlans);
@@ -491,6 +541,8 @@ export const AddonPlansSection = ({
                   onToggleEnabled={onToggleEnabled}
                   onDeleteClick={setDeleteTarget}
                   onRenameClick={handleRenameClick}
+                  onApplyTemplate={handleApplyTemplate}
+
                 />
               ))}
             </div>
