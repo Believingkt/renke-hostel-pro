@@ -113,7 +113,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
     load();
   }, [load]);
 
-  const resend = async (emailType: "booking_confirmation" | "final_payment_received") => {
+  const resend = async (emailType: ResendType) => {
     setResendingType(emailType);
     try {
       const { data, error } = await supabase.functions.invoke("admin-resend-booking-email", {
