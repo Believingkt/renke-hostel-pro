@@ -85,6 +85,7 @@ import {
 } from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { cleanAddonName, shortUnit, addonPriceLine } from "@/lib/addonLabels";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
@@ -3440,7 +3441,7 @@ const BookingFlow = () => {
                     <Card className="border-2">
                       <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
+                          <CardTitle className="text-sm sm:text-base font-bold leading-snug">
                             🐾 寵物方案
                           </CardTitle>
                           <Button
@@ -3453,7 +3454,7 @@ const BookingFlow = () => {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1.5">
-                          每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
+                          每隻 NT$ {petPlanSettings.pricePerUnit.toLocaleString()}／晚・最多 {petPlanSettings.maxQuantity} 隻
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-4 px-3 sm:px-6">
@@ -3471,9 +3472,9 @@ const BookingFlow = () => {
                           <div className="space-y-4">
                             <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                               <div>
-                                <p className="font-semibold text-base">攜帶寵物數量</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  NT$ {petPlanSettings.pricePerUnit} × {petCount} 隻 × {calculateNights()} 晚
+                                <p className="font-semibold text-sm sm:text-base">攜帶寵物數量</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                  {petCount} 隻 × NT$ {petPlanSettings.pricePerUnit.toLocaleString()} × {calculateNights()} 晚
                                 </p>
                               </div>
                               <Button
@@ -3507,7 +3508,7 @@ const BookingFlow = () => {
                               </Button>
                             </div>
                             <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
-                              <p className="text-base font-bold text-center">
+                              <p className="font-bold text-sm sm:text-base text-center">
                                 小計：NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
                               </p>
                             </div>
@@ -3522,7 +3523,7 @@ const BookingFlow = () => {
                     <Card className="border-2">
                       <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
+                          <CardTitle className="text-sm sm:text-base font-bold leading-snug">
                             🍖 餐食方案
                           </CardTitle>
                           <Button
@@ -3535,7 +3536,7 @@ const BookingFlow = () => {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1.5">
-                          每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
+                          每人 NT$ {mealPlanSettings.pricePerUnit.toLocaleString()}／日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・最多 {mealPlanSettings.maxQuantity} 人
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-4 px-3 sm:px-6">
@@ -3699,8 +3700,8 @@ const BookingFlow = () => {
                         <Card key={addon.addon_type} className="border-2">
                           <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-sm sm:text-xl font-bold leading-snug break-words">
-                                🛏️ {addon.description || addon.addon_type}
+                              <CardTitle className="text-sm sm:text-base font-bold leading-snug break-words">
+                                🛏️ {cleanAddonName(addon.description || addon.addon_type)}
                               </CardTitle>
                               {addon.detailed_description && (
                                 <Button
@@ -3709,7 +3710,7 @@ const BookingFlow = () => {
                                   className="shrink-0 text-xs"
                                   onClick={() => {
                                     toast({
-                                      title: addon.description || addon.addon_type,
+                                      title: cleanAddonName(addon.description || addon.addon_type),
                                       description: addon.detailed_description || '',
                                     });
                                   }}
@@ -3719,7 +3720,7 @@ const BookingFlow = () => {
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1.5">
-                              每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
+                              {addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity)}
                             </p>
                           </CardHeader>
                           <CardContent className="space-y-4 px-3 sm:px-6">
@@ -3739,7 +3740,7 @@ const BookingFlow = () => {
                                   <div className="min-w-0">
                                     <p className="font-semibold text-sm sm:text-base">數量</p>
                                     <p className="text-xs sm:text-sm text-muted-foreground break-words">
-                                      {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
+                                      {count} {shortUnit(addon.unit_label)} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -3813,7 +3814,7 @@ const BookingFlow = () => {
                               return (
                                 <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
                                   <span className="text-muted-foreground min-w-0 truncate">
-                                    🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                    🛏️ {cleanAddonName(setting?.description || type)} × {count} {shortUnit(setting?.unit_label)} × {calculateNights()} 晚
                                   </span>
                                   <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
                                 </div>
@@ -4071,8 +4072,8 @@ const BookingFlow = () => {
                 const s = customAddonSettings.find((x) => x.addon_type === type);
                 if (!s) return;
                 addonLines.push({
-                  label: s.description || s.addon_type,
-                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                  label: cleanAddonName(s.description || s.addon_type),
+                  qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                   subtotal: count * s.price_per_unit * nights,
                 });
               });
@@ -5104,8 +5105,8 @@ const BookingFlow = () => {
                         const s = customAddonSettings.find((x) => x.addon_type === type);
                         if (!s) return;
                         addonLines.push({
-                          label: s.description || s.addon_type,
-                          qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                          label: cleanAddonName(s.description || s.addon_type),
+                          qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                           subtotal: count * s.price_per_unit * nights,
                         });
                       });
@@ -5394,8 +5395,8 @@ const BookingFlow = () => {
                 const s = customAddonSettings.find((x) => x.addon_type === type);
                 if (!s) return;
                 addonLines.push({
-                  label: s.description || s.addon_type,
-                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                  label: cleanAddonName(s.description || s.addon_type),
+                  qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                   subtotal: count * s.price_per_unit * nights,
                 });
               });
