@@ -2892,6 +2892,7 @@ const BookingFlow = () => {
               accommodationId,
               roomTypeId: selectedRoom.id,
               packageId: selectedPackageId,
+              roomQuantity,
               checkInDate: checkInDateStr,
               checkOutDate: checkOutDateStr,
               totalPrice,
