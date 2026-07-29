@@ -12,13 +12,15 @@ interface Props {
   photos: Photo[];
   startIndex?: number;
   accommodationName: string;
+  /** 開啟時直接顯示全部照片格狀檢視 */
+  startInGrid?: boolean;
   onClose: () => void;
 }
 
 /** 全螢幕圖片瀏覽器：單張大圖 + 左右切換 + 縮圖列 + 全部照片格狀檢視 */
-const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, onClose }: Props) => {
+const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startInGrid = false, onClose }: Props) => {
   const [index, setIndex] = useState(Math.min(Math.max(startIndex, 0), Math.max(photos.length - 1, 0)));
-  const [gridMode, setGridMode] = useState(false);
+  const [gridMode, setGridMode] = useState(startInGrid);
   const thumbRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
 

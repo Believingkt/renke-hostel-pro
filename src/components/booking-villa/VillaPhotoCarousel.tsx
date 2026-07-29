@@ -25,6 +25,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxGrid, setLightboxGrid] = useState(false);
   const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
   const lastMoved = useRef(false);
 
@@ -79,6 +80,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
 
   const openLightbox = () => {
     if (lastMoved.current) return;
+    setLightboxGrid(false);
     setLightboxOpen(true);
   };
 
@@ -172,6 +174,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
         type="button"
         onClick={(e) => {
           e.stopPropagation();
+          setLightboxGrid(true);
           setLightboxOpen(true);
         }}
         className="absolute left-3 bottom-3 z-20 flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur px-3 py-1.5 text-white text-xs md:text-sm font-medium hover:bg-black/70 transition-colors"
@@ -185,6 +188,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
           photos={photos}
           startIndex={activeIdx}
           accommodationName={accommodationName}
+          startInGrid={lightboxGrid}
           onClose={() => setLightboxOpen(false)}
         />
       )}
