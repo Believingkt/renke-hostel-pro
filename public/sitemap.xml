@@ -6,11 +6,6 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://traveldays.lakeze.com/booking/villa/fb894708-d807-42b0-aaba-d4329ab34467</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://booking.lakeze.com/booking/villa/49435ec7-beb2-40cf-9e20-2450be227ba6</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -26,7 +21,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://booking.lakeze.com/booking/villa/7e82c589-a5f6-468a-8a38-570b6f2ce891</loc>
+    <loc>https://traveldays.lakeze.com/booking/villa/fb894708-d807-42b0-aaba-d4329ab34467</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -52,6 +47,11 @@
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/6b6ac0dc-602b-4dec-9167-7791ac412ba3</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://booking.lakeze.com/booking/villa/7e82c589-a5f6-468a-8a38-570b6f2ce891</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
