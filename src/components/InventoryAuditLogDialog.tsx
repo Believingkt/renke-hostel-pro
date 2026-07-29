@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -150,7 +149,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-6xl h-[90dvh] max-h-[90dvh] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
@@ -161,7 +160,7 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-end gap-3 py-2 border-b">
+        <div className="flex flex-wrap items-end gap-3 py-2 border-b shrink-0">
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">房型</span>
             <Select value={roomTypeFilter} onValueChange={setRoomTypeFilter}>
@@ -219,8 +218,8 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
           </div>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 h-[60vh] -mx-6 px-6">
-          <table className="w-full text-sm">
+        <div className="flex-1 min-h-0 -mx-4 sm:-mx-6 px-4 sm:px-6 overflow-auto overscroll-contain">
+          <table className="w-full min-w-[960px] text-sm">
             <thead className="sticky top-0 bg-background border-b z-10">
               <tr className="text-left">
                 <th className="py-2 pr-3 font-medium whitespace-nowrap">變更時間</th>
@@ -329,10 +328,10 @@ export function InventoryAuditLogDialog({ open, onOpenChange, accommodationId, r
               })}
             </tbody>
           </table>
-        </ScrollArea>
+        </div>
 
         {totalCount > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t pt-3">
+          <div className="flex shrink-0 flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs text-muted-foreground tabular-nums">
               第 {page + 1} / {totalPages} 頁 · 每頁 {PAGE_SIZE} 筆
             </div>
