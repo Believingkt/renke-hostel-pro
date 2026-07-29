@@ -514,7 +514,11 @@ export const AddonPlansSection = ({
               error={renameError}
               onChange={(value) => { setRenameValue(value); setRenameError(""); }}
             />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              名稱不要含價格（NT$…）與說明文字，詳細規則請填在方案的「詳細說明」欄位。
+            </p>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>取消</Button>
             <Button onClick={handleConfirmRename}>儲存</Button>
