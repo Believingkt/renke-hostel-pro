@@ -151,6 +151,8 @@ const SortablePlanCard = ({
   onToggleEnabled,
   onDeleteClick,
   onRenameClick,
+  onApplyTemplate,
+
 }: SortablePlanCardProps) => {
   const {
     attributes,
