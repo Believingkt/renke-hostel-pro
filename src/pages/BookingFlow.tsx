@@ -3675,6 +3675,436 @@ const BookingFlow = () => {
                 />
               );
             })()}
+                {/* Step 3: Add-ons (Collapsible) */}
+                {currentStep === "payment" && (
+                  <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
+                    <Card className="border-2">
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left hover:bg-muted/40 transition-colors rounded-t-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <ShoppingBag className="h-5 w-5 text-primary" />
+                            <span className="text-lg font-bold">加購項目（選填）</span>
+                          </div>
+                          <ChevronRight
+                            className={cn(
+                              "h-5 w-5 text-muted-foreground transition-transform",
+                              isAddonsExpanded && "rotate-90",
+                            )}
+                          />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 sm:px-6 pb-6 pt-2 space-y-6 border-t">
+                  <div className="space-y-6">
+
+                    {/* 寵物方案 */}
+                    {petPlanSettings.enabled && (
+                    <Card className="border-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
+                            🐾 寵物方案
+                          </CardTitle>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 text-xs"
+                            onClick={() => setIsPetPolicyDialogOpen(true)}
+                          >
+                            詳細內容
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4 px-3 sm:px-6">
+                        {petCount === 0 ? (
+                          <Button
+                            onClick={() => setPetCount(1)}
+                            variant="outline"
+                            size="lg"
+                            className="w-full h-12"
+                          >
+                            <ShoppingBag className="mr-2 h-5 w-5" />
+                            加購寵物方案
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                              <div>
+                                <p className="font-semibold text-base">攜帶寵物數量</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  NT$ {petPlanSettings.pricePerUnit} × {petCount} 隻 × {calculateNights()} 晚
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setPetCount(0)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center justify-center gap-4">
+                              <Button
+                                onClick={() => setPetCount(Math.max(0, petCount - 1))}
+                                disabled={petCount === 0}
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-lg"
+                              >
+                                -
+                              </Button>
+                              <span className="w-12 text-center font-bold text-xl">{petCount}</span>
+                              <Button
+                                onClick={() => setPetCount(Math.min(petPlanSettings.maxQuantity, petCount + 1))}
+                                disabled={petCount >= petPlanSettings.maxQuantity}
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-lg"
+                              >
+                                +
+                              </Button>
+                            </div>
+                            <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
+                              <p className="text-base font-bold text-center">
+                                小計：NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    )}
+
+                    {/* 餐食方案 */}
+                    {mealPlanSettings.enabled && (
+                    <Card className="border-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
+                            🍖 餐食方案
+                          </CardTitle>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 text-xs"
+                            onClick={() => setIsBbqDetailsDialogOpen(true)}
+                          >
+                            詳細內容
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4 px-3 sm:px-6">
+                        {!isBbqMealsExpanded ? (
+                          <Button
+                            onClick={() => {
+                                const dates = getStayDates();
+                              if (dates.length > 0) {
+                                const newBbqMeals: Record<string, number> = {};
+                                dates.forEach(dateStr => {
+                                  const date = new Date(dateStr);
+                                  const isWeekendDate = isWeekend(date);
+                                  const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
+                                  newBbqMeals[dateStr] = minCount;
+                                });
+                                setBbqMealsByDate(newBbqMeals);
+                                setIsBbqMealsExpanded(true);
+                              }
+                            }}
+                            variant="outline"
+                            size="lg"
+                            className="w-full h-12"
+                          >
+                            <ShoppingBag className="mr-2 h-5 w-5" />
+                            加購餐食方案
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                              <div>
+                                <p className="font-semibold text-base">已選擇日期與人數</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  可針對各日期調整用餐人數
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setBbqMealsByDate({});
+                                  setHiddenBbqDates(new Set());
+                                  setIsBbqMealsExpanded(false);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* 日期選擇與人數設定 */}
+                            {checkInDate && checkOutDate && (
+                            <div className="border-t pt-4">
+                              <Label className="text-sm font-semibold mb-3 block">選擇用餐日期及人數</Label>
+                              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                                {getStayDates().filter(dateStr => !hiddenBbqDates.has(dateStr)).map((dateStr) => {
+                                  const date = new Date(dateStr);
+                                  const currentCount = bbqMealsByDate[dateStr] || 0;
+                                  const isWeekendDate = isWeekend(date);
+                                  const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
+                                  const maxCount = mealPlanSettings.maxQuantity;
+                                  
+                                  return (
+                                    <div
+                                      key={dateStr}
+                                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 bg-card gap-3 sm:gap-4"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <Label className="text-sm font-semibold">
+                                            {format(date, "MM/dd (E)", { locale: zhTW })}
+                                          </Label>
+                                          {isWeekendDate && <Badge variant="secondary" className="text-xs">假日</Badge>}
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                          {currentCount > 0 ? (
+                                            `NT$ ${(currentCount * mealPlanSettings.pricePerUnit).toLocaleString()}`
+                                          ) : (
+                                            `基本 ${minCount} 人`
+                                          )}
+                                        </p>
+                                       </div>
+                                        <div className="flex items-center gap-2">
+                                           <Button
+                                             type="button"
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setHiddenBbqDates(prev => new Set([...prev, dateStr]));
+                                               setBbqMealsByDate(prev => {
+                                                 const newData = { ...prev };
+                                                 delete newData[dateStr];
+                                                 return newData;
+                                               });
+                                             }}
+                                             variant="ghost"
+                                             size="icon"
+                                             className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                             title="清除此日期"
+                                           >
+                                             <X className="h-4 w-4" />
+                                           </Button>
+                                        <Button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newCount = currentCount - 1;
+                                            if (newCount >= minCount) {
+                                              setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
+                                            }
+                                          }}
+                                          disabled={currentCount === 0 || currentCount === minCount}
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-9 w-9 rounded-lg"
+                                        >
+                                          -
+                                        </Button>
+                                        <span className="w-10 text-center font-semibold">{currentCount === 0 ? minCount : currentCount}</span>
+                                        <Button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
+                                            setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
+                                          }}
+                                          disabled={currentCount >= maxCount}
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-9 w-9 rounded-lg"
+                                        >
+                                          +
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            )}
+                          </div>
+                        )}
+
+                        {Object.values(bbqMealsByDate).some(count => count > 0) && (
+                          <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
+                            <p className="text-base font-bold text-center">
+                              小計：NT$ {Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0).toLocaleString()}
+                              <span className="text-muted-foreground font-normal ml-2 text-sm">
+                                ({Object.keys(bbqMealsByDate).length} 天)
+                              </span>
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    )}
+
+                    {/* 自訂加購方案（如加床服務等） */}
+                    {customAddonSettings.map((addon) => {
+                      const count = customAddonCounts[addon.addon_type] || 0;
+                      const nights = calculateNights();
+                      return (
+                        <Card key={addon.addon_type} className="border-2">
+                          <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex items-start justify-between gap-2">
+                              <CardTitle className="text-sm sm:text-xl font-bold leading-snug break-words">
+                                🛏️ {addon.description || addon.addon_type}
+                              </CardTitle>
+                              {addon.detailed_description && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="shrink-0 text-xs"
+                                  onClick={() => {
+                                    toast({
+                                      title: addon.description || addon.addon_type,
+                                      description: addon.detailed_description || '',
+                                    });
+                                  }}
+                                >
+                                  詳細內容
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1.5">
+                              每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
+                            </p>
+                          </CardHeader>
+                          <CardContent className="space-y-4 px-3 sm:px-6">
+                            {count === 0 ? (
+                              <Button
+                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
+                                variant="outline"
+                                size="lg"
+                                className="w-full h-12"
+                              >
+                                <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
+                                <span className="truncate">加購此方案</span>
+                              </Button>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 sm:p-4 gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-sm sm:text-base">數量</p>
+                                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                                      {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    <Button
+                                      onClick={() => {
+                                        const newCount = count - 1;
+                                        if (newCount <= 0) {
+                                          setCustomAddonCounts(prev => {
+                                            const next = { ...prev };
+                                            delete next[addon.addon_type];
+                                            return next;
+                                          });
+                                        } else {
+                                          setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: newCount }));
+                                        }
+                                      }}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
+                                    >
+                                      -
+                                    </Button>
+                                    <span className="w-8 text-center text-lg font-bold">{count}</span>
+                                    <Button
+                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: Math.min(addon.max_quantity, count + 1) }))}
+                                      disabled={count >= addon.max_quantity}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
+                                  <p className="font-bold text-sm sm:text-base">
+                                    小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+
+                    {/* 加購總計 */}
+                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
+                      <Card className="bg-primary/5 border-2 border-primary/30">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="space-y-2 sm:space-y-3">
+                            <p className="text-base sm:text-lg font-bold">加購方案總計</p>
+                            {petCount > 0 && (
+                              <div className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🐾 寵物 × {petCount} × {calculateNights()} 晚
+                                </span>
+                                <span className="font-semibold shrink-0">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
+                              <div key={dateStr} className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食 × {count} 人
+                                </span>
+                                <span className="font-semibold shrink-0">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
+                              </div>
+                            ))}
+                            {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                              const setting = customAddonSettings.find(s => s.addon_type === type);
+                              return (
+                                <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
+                                  <span className="text-muted-foreground min-w-0 truncate">
+                                    🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                  </span>
+                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                </div>
+                              );
+                            })}
+                            <Separator className="my-2 sm:my-3" />
+                            <div className="flex justify-between text-lg sm:text-xl">
+                              <span className="font-bold">總計</span>
+                              <span className="font-bold text-primary">NT$ {calculateAddonsTotal().toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0) && !Object.values(customAddonCounts).some(c => c > 0)) && (
+                      <div className="text-center py-6 text-sm text-muted-foreground">
+                        <p>目前尚未加購任何項目</p>
+                      </div>
+                    )}
+                  </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                )}
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
@@ -4321,436 +4751,6 @@ const BookingFlow = () => {
                   </div>
                 )}
 
-                {/* Step 3: Add-ons (Collapsible) */}
-                {currentStep === "payment" && (
-                  <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
-                    <Card className="border-2">
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left hover:bg-muted/40 transition-colors rounded-t-lg"
-                        >
-                          <div className="flex items-center gap-2">
-                            <ShoppingBag className="h-5 w-5 text-primary" />
-                            <span className="text-lg font-bold">加購項目（選填）</span>
-                          </div>
-                          <ChevronRight
-                            className={cn(
-                              "h-5 w-5 text-muted-foreground transition-transform",
-                              isAddonsExpanded && "rotate-90",
-                            )}
-                          />
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="px-4 sm:px-6 pb-6 pt-2 space-y-6 border-t">
-                  <div className="space-y-6">
-
-                    {/* 寵物方案 */}
-                    {petPlanSettings.enabled && (
-                    <Card className="border-2">
-                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
-                            🐾 寵物方案
-                          </CardTitle>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 text-xs"
-                            onClick={() => setIsPetPolicyDialogOpen(true)}
-                          >
-                            詳細內容
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1.5">
-                          每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-4 px-3 sm:px-6">
-                        {petCount === 0 ? (
-                          <Button
-                            onClick={() => setPetCount(1)}
-                            variant="outline"
-                            size="lg"
-                            className="w-full h-12"
-                          >
-                            <ShoppingBag className="mr-2 h-5 w-5" />
-                            加購寵物方案
-                          </Button>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                              <div>
-                                <p className="font-semibold text-base">攜帶寵物數量</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  NT$ {petPlanSettings.pricePerUnit} × {petCount} 隻 × {calculateNights()} 晚
-                                </p>
-                              </div>
-                              <Button
-                                onClick={() => setPetCount(0)}
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="flex items-center justify-center gap-4">
-                              <Button
-                                onClick={() => setPetCount(Math.max(0, petCount - 1))}
-                                disabled={petCount === 0}
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 rounded-lg"
-                              >
-                                -
-                              </Button>
-                              <span className="w-12 text-center font-bold text-xl">{petCount}</span>
-                              <Button
-                                onClick={() => setPetCount(Math.min(petPlanSettings.maxQuantity, petCount + 1))}
-                                disabled={petCount >= petPlanSettings.maxQuantity}
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 rounded-lg"
-                              >
-                                +
-                              </Button>
-                            </div>
-                            <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
-                              <p className="text-base font-bold text-center">
-                                小計：NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                    )}
-
-                    {/* 餐食方案 */}
-                    {mealPlanSettings.enabled && (
-                    <Card className="border-2">
-                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
-                            🍖 餐食方案
-                          </CardTitle>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 text-xs"
-                            onClick={() => setIsBbqDetailsDialogOpen(true)}
-                          >
-                            詳細內容
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1.5">
-                          每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-4 px-3 sm:px-6">
-                        {!isBbqMealsExpanded ? (
-                          <Button
-                            onClick={() => {
-                                const dates = getStayDates();
-                              if (dates.length > 0) {
-                                const newBbqMeals: Record<string, number> = {};
-                                dates.forEach(dateStr => {
-                                  const date = new Date(dateStr);
-                                  const isWeekendDate = isWeekend(date);
-                                  const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
-                                  newBbqMeals[dateStr] = minCount;
-                                });
-                                setBbqMealsByDate(newBbqMeals);
-                                setIsBbqMealsExpanded(true);
-                              }
-                            }}
-                            variant="outline"
-                            size="lg"
-                            className="w-full h-12"
-                          >
-                            <ShoppingBag className="mr-2 h-5 w-5" />
-                            加購餐食方案
-                          </Button>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                              <div>
-                                <p className="font-semibold text-base">已選擇日期與人數</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  可針對各日期調整用餐人數
-                                </p>
-                              </div>
-                              <Button
-                                onClick={() => {
-                                  setBbqMealsByDate({});
-                                  setHiddenBbqDates(new Set());
-                                  setIsBbqMealsExpanded(false);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            {/* 日期選擇與人數設定 */}
-                            {checkInDate && checkOutDate && (
-                            <div className="border-t pt-4">
-                              <Label className="text-sm font-semibold mb-3 block">選擇用餐日期及人數</Label>
-                              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                                {getStayDates().filter(dateStr => !hiddenBbqDates.has(dateStr)).map((dateStr) => {
-                                  const date = new Date(dateStr);
-                                  const currentCount = bbqMealsByDate[dateStr] || 0;
-                                  const isWeekendDate = isWeekend(date);
-                                  const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
-                                  const maxCount = mealPlanSettings.maxQuantity;
-                                  
-                                  return (
-                                    <div
-                                      key={dateStr}
-                                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 bg-card gap-3 sm:gap-4"
-                                    >
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <Label className="text-sm font-semibold">
-                                            {format(date, "MM/dd (E)", { locale: zhTW })}
-                                          </Label>
-                                          {isWeekendDate && <Badge variant="secondary" className="text-xs">假日</Badge>}
-                                        </div>
-                                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                                          {currentCount > 0 ? (
-                                            `NT$ ${(currentCount * mealPlanSettings.pricePerUnit).toLocaleString()}`
-                                          ) : (
-                                            `基本 ${minCount} 人`
-                                          )}
-                                        </p>
-                                       </div>
-                                        <div className="flex items-center gap-2">
-                                           <Button
-                                             type="button"
-                                             onClick={(e) => {
-                                               e.stopPropagation();
-                                               setHiddenBbqDates(prev => new Set([...prev, dateStr]));
-                                               setBbqMealsByDate(prev => {
-                                                 const newData = { ...prev };
-                                                 delete newData[dateStr];
-                                                 return newData;
-                                               });
-                                             }}
-                                             variant="ghost"
-                                             size="icon"
-                                             className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                             title="清除此日期"
-                                           >
-                                             <X className="h-4 w-4" />
-                                           </Button>
-                                        <Button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newCount = currentCount - 1;
-                                            if (newCount >= minCount) {
-                                              setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
-                                            }
-                                          }}
-                                          disabled={currentCount === 0 || currentCount === minCount}
-                                          variant="outline"
-                                          size="icon"
-                                          className="h-9 w-9 rounded-lg"
-                                        >
-                                          -
-                                        </Button>
-                                        <span className="w-10 text-center font-semibold">{currentCount === 0 ? minCount : currentCount}</span>
-                                        <Button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
-                                            setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
-                                          }}
-                                          disabled={currentCount >= maxCount}
-                                          variant="outline"
-                                          size="icon"
-                                          className="h-9 w-9 rounded-lg"
-                                        >
-                                          +
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                            )}
-                          </div>
-                        )}
-
-                        {Object.values(bbqMealsByDate).some(count => count > 0) && (
-                          <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg">
-                            <p className="text-base font-bold text-center">
-                              小計：NT$ {Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0).toLocaleString()}
-                              <span className="text-muted-foreground font-normal ml-2 text-sm">
-                                ({Object.keys(bbqMealsByDate).length} 天)
-                              </span>
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                    )}
-
-                    {/* 自訂加購方案（如加床服務等） */}
-                    {customAddonSettings.map((addon) => {
-                      const count = customAddonCounts[addon.addon_type] || 0;
-                      const nights = calculateNights();
-                      return (
-                        <Card key={addon.addon_type} className="border-2">
-                          <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
-                            <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-sm sm:text-xl font-bold leading-snug break-words">
-                                🛏️ {addon.description || addon.addon_type}
-                              </CardTitle>
-                              {addon.detailed_description && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="shrink-0 text-xs"
-                                  onClick={() => {
-                                    toast({
-                                      title: addon.description || addon.addon_type,
-                                      description: addon.detailed_description || '',
-                                    });
-                                  }}
-                                >
-                                  詳細內容
-                                </Button>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1.5">
-                              每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
-                            </p>
-                          </CardHeader>
-                          <CardContent className="space-y-4 px-3 sm:px-6">
-                            {count === 0 ? (
-                              <Button
-                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
-                                variant="outline"
-                                size="lg"
-                                className="w-full h-12"
-                              >
-                                <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
-                                <span className="truncate">加購此方案</span>
-                              </Button>
-                            ) : (
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 sm:p-4 gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-sm sm:text-base">數量</p>
-                                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
-                                      {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                    <Button
-                                      onClick={() => {
-                                        const newCount = count - 1;
-                                        if (newCount <= 0) {
-                                          setCustomAddonCounts(prev => {
-                                            const next = { ...prev };
-                                            delete next[addon.addon_type];
-                                            return next;
-                                          });
-                                        } else {
-                                          setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: newCount }));
-                                        }
-                                      }}
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
-                                    >
-                                      -
-                                    </Button>
-                                    <span className="w-8 text-center text-lg font-bold">{count}</span>
-                                    <Button
-                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: Math.min(addon.max_quantity, count + 1) }))}
-                                      disabled={count >= addon.max_quantity}
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
-                                    >
-                                      +
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
-                                  <p className="font-bold text-sm sm:text-base">
-                                    小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-
-                    {/* 加購總計 */}
-                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
-                      <Card className="bg-primary/5 border-2 border-primary/30">
-                        <CardContent className="p-4 sm:p-6">
-                          <div className="space-y-2 sm:space-y-3">
-                            <p className="text-base sm:text-lg font-bold">加購方案總計</p>
-                            {petCount > 0 && (
-                              <div className="flex justify-between text-xs sm:text-base gap-2">
-                                <span className="text-muted-foreground min-w-0 truncate">
-                                  🐾 寵物 × {petCount} × {calculateNights()} 晚
-                                </span>
-                                <span className="font-semibold shrink-0">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
-                              </div>
-                            )}
-                            {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
-                              <div key={dateStr} className="flex justify-between text-xs sm:text-base gap-2">
-                                <span className="text-muted-foreground min-w-0 truncate">
-                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食 × {count} 人
-                                </span>
-                                <span className="font-semibold shrink-0">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
-                              </div>
-                            ))}
-                            {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                              const setting = customAddonSettings.find(s => s.addon_type === type);
-                              return (
-                                <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
-                                  <span className="text-muted-foreground min-w-0 truncate">
-                                    🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
-                                  </span>
-                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
-                                </div>
-                              );
-                            })}
-                            <Separator className="my-2 sm:my-3" />
-                            <div className="flex justify-between text-lg sm:text-xl">
-                              <span className="font-bold">總計</span>
-                              <span className="font-bold text-primary">NT$ {calculateAddonsTotal().toLocaleString()}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0) && !Object.values(customAddonCounts).some(c => c > 0)) && (
-                      <div className="text-center py-6 text-sm text-muted-foreground">
-                        <p>目前尚未加購任何項目</p>
-                      </div>
-                    )}
-                  </div>
-                        </div>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                )}
 
                 {/* Step 4: Guest Info */}
                 {currentStep === "payment" && (
