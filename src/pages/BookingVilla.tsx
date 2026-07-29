@@ -678,6 +678,12 @@ const BookingVilla = () => {
     if (childrenStr) params.set("children", childrenStr);
     if (roomsOverride && roomsOverride > 1) params.set("rooms", String(roomsOverride));
     else if (roomsStr) params.set("rooms", roomsStr);
+    // 帶上住宿型態，讓結帳頁「上一步」能回到正確的（包棟／單間房）方案列表
+    const stayForBooking =
+      stayMode ?? (exclusiveRoomTypeIds.size > 0
+        ? (exclusiveRoomTypeIds.has(opt.roomTypeId) ? "package" : "common")
+        : null);
+    if (stayForBooking) params.set("stay", stayForBooking);
     navigate(`/book?${params.toString()}`);
   };
 
