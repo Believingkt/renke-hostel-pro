@@ -285,6 +285,21 @@ Deno.serve(async (req) => {
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
 
+    // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
+    const roomQuantity = Math.max(1, Math.floor(Number((body as any).roomQuantity) || 1));
+    if (roomQuantity > 1) {
+      const { error: orderRoomsError } = await supabase.from("order_rooms").insert([{
+        order_id: orderData.id,
+        room_type_id: body.selectedRoom.id,
+        quantity: roomQuantity,
+      }]);
+      if (orderRoomsError) {
+        console.error("[create-paid-order] order_rooms insert failed:", orderRoomsError);
+      }
+    }
+
+
+
     if (body.discountCode) {
       try {
         await fetch(`${supabaseUrl}/functions/v1/kol-webhook`, {
