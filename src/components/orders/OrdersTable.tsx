@@ -504,7 +504,8 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
 
                   {(() => {
                     const atm = getAtmDisplayInfo(order as any);
-                    if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                    const atmSettled = order.payment_status === 'deposit_paid' || order.payment_status === 'paid';
+                    if (!atm.hasAtm || atmSettled || order.order_status === 'cancelled') return null;
                     return (
                       <div className={`mb-3 rounded-md border px-2.5 py-2 text-xs ${atm.expired ? "border-destructive/30 text-destructive" : "border-border text-muted-foreground"}`}>
                         <div className="font-medium">
