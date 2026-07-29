@@ -188,10 +188,14 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                 <li key={e.id} className="rounded-md border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={EMAIL_STATUS_VARIANT[e.status] || "secondary"}>{e.status}</Badge>
+                      <Badge variant={EMAIL_STATUS_VARIANT[e.status] || "secondary"}>
+                        {EMAIL_STATUS_LABEL[e.status] || e.status}
+                      </Badge>
                       <span className="font-medium">{EMAIL_TYPE_LABEL[e.email_type] || e.email_type}</span>
                       {e.trigger_source && (
-                        <span className="text-xs text-muted-foreground">({e.trigger_source})</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({TRIGGER_SOURCE_LABEL[e.trigger_source] || e.trigger_source})
+                        </span>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground">
