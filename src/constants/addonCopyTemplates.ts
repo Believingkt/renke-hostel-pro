@@ -17,7 +17,7 @@ export const ADDON_COPY_TEMPLATES: AddonCopyTemplate[] = [
       description: "寵物入住",
       unit_label: "隻",
       detailed_description:
-        "<ul><li>每隻寵物每晚計價，入住期間需全程由飼主陪同。</li><li>提供寵物睡墊與食碗，不含寵物food。</li><li>請自備牽繩與尿布墊，公共區域請勿放養。</li><li>如造成布品或家具損壞，將依實際維修費用另行收取。</li></ul>",
+        "<ul><li>每隻寵物每晚計價，入住期間需全程由飼主陪同。</li><li>提供寵物睡墊與食碗，不含寵物食品。</li><li>請自備牽繩與尿布墊，公共區域請勿放養。</li><li>如造成布品或家具損壞，將依實際維修費用另行收取。</li></ul>",
     },
   },
   {
@@ -28,7 +28,7 @@ export const ADDON_COPY_TEMPLATES: AddonCopyTemplate[] = [
       description: "在地風味早餐",
       unit_label: "人",
       detailed_description:
-        "<ul><li>每人每日計價，供應時間 08:00–10:00。</li><li>菜色依季節food材調整，如有素食或過敏需求請於備註告知。</li><li>需於入住前一日 18:00 前確認人數，逾期恕不受理。</li></ul>",
+        "<ul><li>每人每日計價，供應時間 08:00–10:00。</li><li>菜色依季節食材調整，如有素食或過敏需求請於備註告知。</li><li>需於入住前一日 18:00 前確認人數，逾期恕不受理。</li></ul>",
     },
   },
   {
