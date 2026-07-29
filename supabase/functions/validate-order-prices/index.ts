@@ -349,6 +349,32 @@ serve(async (req) => {
       }
     }
 
+    // 多間預訂：房費 × 間數，並確認每晚實際可訂間數足夠（防超賣）
+    if (roomQuantity > 1) {
+      calculatedRoomTotal *= roomQuantity;
+      discountBaseTotal *= roomQuantity;
+      try {
+        const { data: invRows } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+          p_room_type_id: roomTypeId,
+          p_dates: dates,
+          p_accommodation_id: accommodationId,
+        });
+        for (const row of (invRows as any[]) || []) {
+          const avail = row?.is_blocked === true ? 0 : Number(row?.available_rooms ?? 0);
+          if (avail < roomQuantity) {
+            errors.push(
+              `Not enough rooms on ${row?.date_value}: requested=${roomQuantity}, available=${avail}`,
+            );
+          }
+        }
+      } catch (e) {
+        console.error("[validate-order-prices] inventory check failed", e);
+        errors.push("Inventory check failed");
+      }
+    }
+
+
+
     // Calculate pet plan price
     let calculatedPetPrice = 0;
     if (petCount && petCount > 0) {
