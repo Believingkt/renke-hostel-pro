@@ -52,6 +52,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AddonPlanPreview } from "./AddonPlanPreview";
+
 
 export interface AddonPlan {
   id?: string;
@@ -256,17 +258,22 @@ const SortablePlanCard = ({
             </div>
           )}
 
-          <ValidatedInput
-            label="簡短說明"
-            placeholder="例如：每隻寵物、每人每日"
-            value={plan.unit_label}
-            error={planErrors.unit_label}
-            maxLength={100}
-            showCharCount
-            disabled={!plan.enabled}
-            onChange={(value) => onUpdate(index, { unit_label: value })}
-            onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
-          />
+          <div className="space-y-1.5">
+            <ValidatedInput
+              label="簡短說明（單位詞）"
+              placeholder="例如：人、隻、份、床"
+              value={plan.unit_label}
+              error={planErrors.unit_label}
+              maxLength={100}
+              showCharCount
+              disabled={!plan.enabled}
+              onChange={(value) => onUpdate(index, { unit_label: value })}
+              onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              只填「單一字詞」（人／隻／份／床）。超過 3 字或含標點時，前台會自動顯示為「份」。
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
@@ -276,8 +283,14 @@ const SortablePlanCard = ({
               placeholder="請輸入方案的詳細說明，包含注意事項、規則等..."
               error={planErrors.detailed_description}
             />
+            <p className="text-xs text-muted-foreground">
+              規則、注意事項、包含內容都放這裡，不要寫進方案名稱或單位欄位。
+            </p>
           </div>
+
+          <AddonPlanPreview plan={plan} />
         </CardContent>
+
       </Card>
     </div>
   );
@@ -403,7 +416,11 @@ export const AddonPlansSection = ({
             error={newPlanNameError}
             onChange={(value) => { setNewPlanName(value); setNewPlanNameError(""); }}
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            只填方案名稱（例：不加床加備品）。名稱不要放「NT$ 800 /」等價格前綴，價格請填在下方價格欄位。
+          </p>
         </div>
+
         <DrawerFooter>
           <Button onClick={handleAddPlan}>新增</Button>
           <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
@@ -425,7 +442,11 @@ export const AddonPlansSection = ({
             error={newPlanNameError}
             onChange={(value) => { setNewPlanName(value); setNewPlanNameError(""); }}
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            只填方案名稱（例：不加床加備品）。名稱不要放「NT$ 800 /」等價格前綴，價格請填在下方價格欄位。
+          </p>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
           <Button onClick={handleAddPlan}>新增</Button>
@@ -493,7 +514,11 @@ export const AddonPlansSection = ({
               error={renameError}
               onChange={(value) => { setRenameValue(value); setRenameError(""); }}
             />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              名稱不要含價格（NT$…）與說明文字，詳細規則請填在方案的「詳細說明」欄位。
+            </p>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>取消</Button>
             <Button onClick={handleConfirmRename}>儲存</Button>
