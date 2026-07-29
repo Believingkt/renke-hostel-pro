@@ -124,7 +124,7 @@ const BookingVilla = () => {
     return () => mq.removeEventListener("change", onChange);
   }, []);
   const headerRef = useStickyHeightRef<HTMLElement>("--vb-header-h");
-  const searchBarRef = useStickyHeightRef<HTMLDivElement>("--vb-search-h", isDesktopSearch);
+  const searchBarRef = useStickyHeightRef<HTMLDivElement>("--vb-search-h");
 
 
   const { accId } = useParams<{ accId: string }>();
@@ -709,13 +709,14 @@ const BookingVilla = () => {
         </div>
       </header>
 
-      {/* ── Desktop Search Bar ── */}
+      {/* ── Search Bar（手機／桌機皆置於頁籤上方） ── */}
       <div
         ref={searchBarRef}
-        className="hidden sm:block sticky z-40 bg-white/95 backdrop-blur border-b border-border"
+        className="sticky z-40 bg-white/95 backdrop-blur border-b border-border"
         style={{ top: "var(--vb-header-h, 80px)" }}
       >
-        <div className="max-w-3xl mx-auto px-4 py-2.5">
+        {/* 桌機版 */}
+        <div className="hidden sm:block max-w-3xl mx-auto px-4 py-2.5">
           <button
             onClick={() => setEditSearchOpen(true)}
             className="w-full rounded-full border border-border bg-muted/40 hover:bg-muted/60 px-4 py-2.5 flex items-center justify-between text-left transition gap-4"
@@ -746,6 +747,48 @@ const BookingVilla = () => {
               style={{ background: "hsl(25, 76%, 50%)" }}
             >
               修改搜尋
+            </span>
+          </button>
+        </div>
+
+        {/* 手機版（改置於頁籤上方，取代原本底部搜尋列） */}
+        <div className="sm:hidden px-3 py-2">
+          <button
+            onClick={() => setEditSearchOpen(true)}
+            className="w-full flex justify-between items-center gap-2 rounded-xl px-3 py-2.5 active:scale-[0.99] transition ring-1"
+            style={{
+              backgroundColor: "rgba(240,138,62,0.10)",
+              boxShadow: "0 2px 10px rgba(240,138,62,0.18)",
+              // @ts-ignore inline ring color
+              "--tw-ring-color": "rgba(240,138,62,0.45)",
+            } as React.CSSProperties}
+          >
+            <span className="flex items-center gap-2 text-[15px] font-semibold text-gray-900 min-w-0 truncate">
+              <Calendar className="w-4 h-4 shrink-0" style={{ color: "#F08A3E" }} />
+              {checkIn && checkOut ? (() => {
+                const adultsN = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1);
+                const kidsN =
+                  Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0) +
+                  Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
+                  Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0);
+                const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
+                return (
+                  <span className="truncate">
+                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")}｜{nights}晚
+                    {" · "}{adultsN}大
+                    {kidsN > 0 && <>{" · "}{kidsN}小</>}
+                  </span>
+                );
+              })() : (
+                <span className="animate-pulse">選擇日期與人數</span>
+              )}
+            </span>
+            <span
+              className="flex items-center gap-1 text-[13px] font-bold text-white rounded-full px-2.5 py-1 shrink-0"
+              style={{ backgroundColor: "#F08A3E" }}
+            >
+              修改
+              <ChevronDown className="w-3.5 h-3.5" />
             </span>
           </button>
         </div>
