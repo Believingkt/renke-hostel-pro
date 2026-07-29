@@ -263,7 +263,8 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       )}
                       {(() => {
                         const atm = getAtmDisplayInfo(order as any);
-                        if (!atm.hasAtm || order.order_status === 'cancelled') return null;
+                        const atmSettled = order.payment_status === 'deposit_paid' || order.payment_status === 'paid';
+                        if (!atm.hasAtm || atmSettled || order.order_status === 'cancelled') return null;
                         return (
                           <div className={`mt-1 text-[11px] leading-tight ${atm.expired ? "text-destructive" : "text-muted-foreground"}`}>
                             <div>ATM {atm.expired ? "已逾期" : "應繳"} NT$ {atm.amount.toLocaleString()}</div>
