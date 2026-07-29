@@ -736,6 +736,7 @@ export type Database = {
           cm_api_endpoint_url: string
           created_at: string
           id: string
+          inbound_avail_mode: string
           last_successful_sync_at: string | null
           owlting_hotel_code: string
           sync_enabled: boolean
@@ -746,6 +747,7 @@ export type Database = {
           cm_api_endpoint_url?: string
           created_at?: string
           id?: string
+          inbound_avail_mode?: string
           last_successful_sync_at?: string | null
           owlting_hotel_code: string
           sync_enabled?: boolean
@@ -756,6 +758,7 @@ export type Database = {
           cm_api_endpoint_url?: string
           created_at?: string
           id?: string
+          inbound_avail_mode?: string
           last_successful_sync_at?: string | null
           owlting_hotel_code?: string
           sync_enabled?: boolean

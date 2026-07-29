@@ -517,6 +517,21 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   // appear in AvailRS in the first place).
   const excludedRoomTypeIds = await loadExcludedRoomTypeIds(supabase, auth.accommodationId!);
 
+  // Inbound availability authority.
+  //   ignore        → PMS 是庫存唯一主控。奧丁丁的房型層級可售/開關一律不回寫。
+  //                   （我方推 ARI / 建單 → 奧丁丁重算 → 又把 BookingLimit=0 + Close
+  //                    echo 回來；PMS 的 remaining = available_rooms − 已訂，寫回去會
+  //                    重複扣量，且 Close 會把「售完」變成「停售」，訂單改期/取消後
+  //                    庫存不會自己回來，後續修改就報錯。）
+  //   quantity_only → 只接受 BookingLimit（可售數），永不接受 Open/Close。
+  const { data: cmCfg } = await supabase
+    .from("accommodation_owlting_config")
+    .select("inbound_avail_mode")
+    .eq("accommodation_id", auth.accommodationId!)
+    .maybeSingle();
+  const inboundAvailMode: string = cmCfg?.inbound_avail_mode ?? "ignore";
+
+
   // Batch buffers.
   // IMPORTANT: rows MUST NOT carry a `price` field — availability push must
   // not overwrite prices. The RPC only updates fields explicitly present.
@@ -563,10 +578,15 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
       }
 
     } else {
+      // Room-level message (no RatePlanCode).
+      if (inboundAvailMode === "ignore") continue; // PMS is the single source of truth
       const patch: { available_rooms?: number; is_available?: boolean } = {};
       if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
-      if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
+      // NEVER accept Open/Close from inbound: OwlTing derives it from BookingLimit=0
+      // (= sold out), which is not the same as PMS "停售". Writing it strands the
+      // room closed after the order is changed or cancelled.
       if (Object.keys(patch).length === 0) continue;
+
       // Fan-out: if room is a group canonical, write to every member room_type
       // (= sell-one-close-all). Otherwise write to the room itself.
       const memberIds = groupCtx.memberRoomTypeIdsByCanonical.get(room.id);
