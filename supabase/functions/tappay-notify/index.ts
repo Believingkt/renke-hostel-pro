@@ -293,6 +293,15 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         };
 
+        // 收到訂金／全額後，待確認訂單自動轉為已確認
+        if (
+          (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid' || newPaymentStatus === 'partial') &&
+          (order.order_status === 'pending' || order.order_status === 'pending_payment')
+        ) {
+          updatePayload.order_status = 'confirmed';
+          updatePayload.confirmed_at = new Date().toISOString();
+        }
+
         const { error: updateError } = await supabase
           .from('orders')
           .update(updatePayload)
