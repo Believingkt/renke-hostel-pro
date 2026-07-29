@@ -137,6 +137,13 @@ const BookingVilla = () => {
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [missingInfoOpen, setMissingInfoOpen] = useState(false);
+  const [capacityAlert, setCapacityAlert] = useState<{
+    planName: string;
+    totalGuests: number;
+    planMax: number;
+    /** 單間房型可加訂：需要幾間、目前可訂幾間 */
+    addRooms?: { needed: number; available: number; roomTypeName: string } | null;
+  } | null>(null);
   const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [bottomNavHeight, setBottomNavHeight] = useState(61);
   const handleBottomNavVisibility = useCallback((visible: boolean) => {
@@ -401,7 +408,7 @@ const BookingVilla = () => {
     };
   }, [accId, checkIn && formatISO(checkIn, { representation: "date" }), packages]);
 
-  const visiblePackages = useMemo(() => {
+  const availabilityFilteredPackages = useMemo(() => {
     if (!checkIn) return dateFilteredPackages;
     // 尚未載入房型可訂資料時，先照日期規則顯示，避免閃爍。
     if (Object.keys(roomAvailByDate).length === 0) return dateFilteredPackages;
@@ -417,6 +424,45 @@ const BookingVilla = () => {
       });
     });
   }, [dateFilteredPackages, roomAvailByDate, checkIn]);
+
+  // ── 住宿型態（包棟 / 單間房）分軌 ─────────────────────────────
+  // 雲岫等雙軌住宿：搜尋條選「包棟」只顯示包棟方案，選「單間房非包棟」只顯示散客方案。
+  const stayMode = (() => {
+    const v = searchParams.get("stay");
+    return v === "package" || v === "common" ? v : null;
+  })();
+
+  const exclusiveRoomTypeIds = useMemo(() => {
+    const rts = secondaryData?.roomTypes || [];
+    return new Set(
+      rts.filter((rt: any) => rt.is_exclusive_package === true).map((rt: any) => rt.id as string),
+    );
+  }, [secondaryData]);
+
+  /** 方案是否屬於「包棟」：任一使用到的房型為 is_exclusive_package */
+  const isPackageExclusive = useCallback(
+    (p: any) => {
+      const ids: string[] = [
+        ...(Array.isArray(p.room_type_ids) ? p.room_type_ids.filter(Boolean) : []),
+        ...(p.primary_room_type_id ? [p.primary_room_type_id] : []),
+      ];
+      if (ids.length === 0) return null; // 無法判定
+      return ids.some((id) => exclusiveRoomTypeIds.has(id));
+    },
+    [exclusiveRoomTypeIds],
+  );
+
+  const visiblePackages = useMemo(() => {
+    if (!stayMode || exclusiveRoomTypeIds.size === 0) return availabilityFilteredPackages;
+    const filtered = availabilityFilteredPackages.filter((p: any) => {
+      const excl = isPackageExclusive(p);
+      if (excl === null) return true; // 沒綁房型的方案兩邊都顯示
+      return stayMode === "package" ? excl : !excl;
+    });
+    // 若該型態下完全沒有方案，退回未過濾結果避免頁面空白
+    return filtered.length > 0 ? filtered : availabilityFilteredPackages;
+  }, [availabilityFilteredPackages, stayMode, isPackageExclusive, exclusiveRoomTypeIds]);
+
 
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
   const childCtx = useMemo(() => {
@@ -539,7 +585,7 @@ const BookingVilla = () => {
   const childBlocked = childCtx?.evalResult.blocked ?? false;
   const childBlockReason = childCtx?.evalResult.blockReason;
 
-  const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+  const handleSelectOption = async (opt: CapacityOption, subPlanKey?: string) => {
     const adultsParam = parseInt(searchParams.get("adults") || "0", 10) || 0;
     if (!checkInStr || !checkOutStr || adultsParam < 1) {
       setMissingInfoOpen(true);
@@ -551,6 +597,60 @@ const BookingVilla = () => {
       });
       return;
     }
+
+    // ── 超過方案可住人數：擋下並提示 ─────────────────────────────
+    const childrenCount = Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0);
+    const toddlersCount = Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0);
+    const totalGuests = adultsParam + childrenCount + toddlersCount;
+    const pkg = opt.packageId ? packages.find((p) => p.id === opt.packageId) : null;
+    const planMax = pkg
+      ? pkg.guest_count_max ?? pkg.guest_count
+      : opt.guestCount;
+    if (planMax && totalGuests > planMax) {
+      const roomType: any = (secondaryData?.roomTypes || []).find(
+        (rt: any) => rt.id === opt.roomTypeId,
+      );
+      const isExclusive = roomType?.is_exclusive_package === true;
+      let addRooms: { needed: number; available: number; roomTypeName: string } | null = null;
+      // 單間房型（非包棟）→ 可能可用加訂房間解決，實際查當期各晚可訂房間數
+      if (roomType && !isExclusive && roomType.capacity > 0) {
+        const needed = Math.ceil(totalGuests / roomType.capacity);
+        let available = 0;
+        try {
+          const nightDates: string[] = [];
+          for (
+            let d = new Date(checkInStr);
+            d < new Date(checkOutStr);
+            d.setDate(d.getDate() + 1)
+          ) {
+            nightDates.push(formatISO(d, { representation: "date" }));
+          }
+          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: roomType.id,
+            p_dates: nightDates,
+            p_accommodation_id: info.id,
+          });
+          const rows = (data as any[]) || [];
+          available =
+            rows.length > 0
+              ? Math.min(
+                  ...rows.map((r) => (r.is_blocked === true ? 0 : r.available_rooms ?? 0)),
+                )
+              : 0;
+        } catch {
+          available = 0;
+        }
+        addRooms = { needed, available, roomTypeName: roomType.name };
+      }
+      setCapacityAlert({
+        planName: opt.roomTypeName,
+        totalGuests,
+        planMax,
+        addRooms,
+      });
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
@@ -1329,6 +1429,56 @@ const BookingVilla = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog
+        open={!!capacityAlert}
+        onOpenChange={(o) => {
+          if (!o) setCapacityAlert(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-[360px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>入住人數超過此方案上限</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                <p>
+                  您選擇的「{capacityAlert?.planName}」最多可入住 {capacityAlert?.planMax} 位，
+                  目前搜尋人數為 {capacityAlert?.totalGuests} 位。
+                </p>
+                {capacityAlert?.addRooms ? (
+                  capacityAlert.addRooms.available >= capacityAlert.addRooms.needed ? (
+                    <p>
+                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間
+                      {capacityAlert.addRooms.roomTypeName}（所選日期尚有 {capacityAlert.addRooms.available} 間可訂）。
+                      請調整搜尋條的「房間數」後再選擇方案。
+                    </p>
+                  ) : (
+                    <p>
+                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間，
+                      但所選日期僅剩 {capacityAlert.addRooms.available} 間可訂，無法容納。
+                      建議改選包棟方案或調整日期／人數。
+                    </p>
+                  )
+                ) : (
+                  <p>請重新選擇適合人數的方案，或調整搜尋人數後再試。</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="flex-1 mt-0">重新選方案</AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1"
+              onClick={() => {
+                setCapacityAlert(null);
+                setEditSearchOpen(true);
+              }}
+            >
+              調整搜尋條件
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditSearchSheet
         open={editSearchOpen}
         onOpenChange={setEditSearchOpen}
@@ -1342,7 +1492,8 @@ const BookingVilla = () => {
         availableDates={availableDateSet}
         packageDates={availablePackageSet}
         commonDates={availableCommonSet}
-        onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms }) => {
+        stayMode={stayMode}
+        onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms, stayMode: mode }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));
           params.set("checkOut", format(co, "yyyy-MM-dd"));
@@ -1353,6 +1504,8 @@ const BookingVilla = () => {
           if (toddlers > 0) params.set("toddlers", String(toddlers));
           else params.delete("toddlers");
           params.set("rooms", String(rooms));
+          if (mode) params.set("stay", mode);
+          else params.delete("stay");
           setSearchParams(params, { replace: true });
         }}
       />

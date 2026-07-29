@@ -30,6 +30,8 @@ interface EditSearchSheetProps {
   packageDates?: Set<string> | null;
   /** 雲岫等有分軌住宿：散客可訂日集合 */
   commonDates?: Set<string> | null;
+  /** 目前的住宿型態（包棟 / 單間房），用於初始化切換 chips */
+  stayMode?: "package" | "common" | null;
   onConfirm: (v: {
     checkIn: Date;
     checkOut: Date;
@@ -38,6 +40,8 @@ interface EditSearchSheetProps {
     infants: number;
     toddlers: number;
     rooms: number;
+    /** 雙軌住宿時回傳所選型態；非雙軌為 null */
+    stayMode: "package" | "common" | null;
   }) => void;
 }
 
@@ -99,6 +103,7 @@ const EditSearchSheet = ({
   availableDates,
   packageDates,
   commonDates,
+  stayMode = null,
   onConfirm,
 }: EditSearchSheetProps) => {
 
@@ -114,13 +119,15 @@ const EditSearchSheet = ({
 
   // 雲岫等雙軌住宿：包棟 / 散客 切換
   const hasDualAxis = !!(packageDates && commonDates);
-  const autoAxis: "package" | "common" = rooms >= 2 || adults >= 6 ? "package" : "common";
+  const autoAxis: "package" | "common" =
+    stayMode ?? (rooms >= 2 || adults >= 6 ? "package" : "common");
   const [axis, setAxis] = useState<"all" | "package" | "common">(autoAxis);
   useEffect(() => {
-    if (hasDualAxis) setAxis(rooms >= 2 || a >= 6 ? "package" : "common");
+    if (hasDualAxis) setAxis(stayMode ?? (rooms >= 2 || a >= 6 ? "package" : "common"));
     // 只在 sheet 打開重置時同步；此 effect 由外層 open 觸發的重置區塊補齊
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const effAvail: Set<string> | null = hasDualAxis
     ? axis === "package"
@@ -153,9 +160,9 @@ const EditSearchSheet = ({
       setI(infants);
       setTod(toddlers);
       setR(rooms);
-      if (hasDualAxis) setAxis(rooms >= 2 || adults >= 6 ? "package" : "common");
+      if (hasDualAxis) setAxis(stayMode ?? (rooms >= 2 || adults >= 6 ? "package" : "common"));
     }
-  }, [open, checkIn, checkOut, adults, children, infants, toddlers, rooms, hasDualAxis]);
+  }, [open, checkIn, checkOut, adults, children, infants, toddlers, rooms, hasDualAxis, stayMode]);
 
 
   const today = new Date();
@@ -266,6 +273,7 @@ const EditSearchSheet = ({
       infants: i,
       toddlers: tod,
       rooms: r,
+      stayMode: hasDualAxis && axis !== "all" ? axis : null,
     });
     onOpenChange(false);
   };
