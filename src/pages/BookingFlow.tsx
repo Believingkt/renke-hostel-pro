@@ -3410,7 +3410,7 @@ const BookingFlow = () => {
 
   const addonsSection = currentStep === "payment" ? (
                   <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
-                    <Card className="rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
+                    <Card className="w-full min-w-0 rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
@@ -3429,10 +3429,11 @@ const BookingFlow = () => {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-4 pb-4 pt-3 space-y-4 border-t border-border bg-muted/20">
+                        <div className="w-full min-w-0 px-3 sm:px-4 pb-4 pt-3 space-y-4 border-t border-border bg-muted/20">
 
 
-                  <div className="space-y-6">
+                  <div className="w-full min-w-0 space-y-6">
+
 
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
