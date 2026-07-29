@@ -3408,275 +3408,7 @@ const BookingFlow = () => {
 
   const currentStepIndex = stepIndicators.findIndex((s) => s.key === currentStep);
 
-  return (
-    <div className={`min-h-screen bg-background ${themeClass}`}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
-          </Link>
-          <Button variant="ghost" onClick={goBackToVilla} size="sm">
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            返回
-          </Button>
-        </div>
-      </header>
-
-      {bookingSuccess && successOrderData ? (
-        /* 訂房成功頁面 */
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-2xl mx-auto">
-            <Card className="border-2 border-primary/20 shadow-lg">
-              <CardContent className="pt-12 pb-8 px-6 md:px-12">
-                {/* 成功圖示 */}
-                <div className="flex justify-center mb-6">
-                  <div className="rounded-full bg-primary/10 p-6">
-                    <CheckCircle className="h-16 w-16 text-primary" />
-                  </div>
-                </div>
-
-                {/* 標題 */}
-                <h1 className="text-3xl font-bold text-center mb-2">訂房成功！</h1>
-                <p className="text-center text-muted-foreground mb-8">
-                  您的訂單已成功建立
-                </p>
-
-                <Separator className="mb-6" />
-
-                {/* 訂單編號 */}
-                <div className="bg-primary/5 rounded-lg p-6 mb-6">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">訂單編號</p>
-                    <p className="text-2xl font-bold text-primary">{successOrderData.order_number}</p>
-                  </div>
-                </div>
-
-                {/* 確認信狀態 */}
-                {successOrderData.guest_email && (
-                  <div className={`rounded-lg p-4 mb-6 ${
-                    successOrderData.emailSent 
-                      ? 'bg-primary/10 border border-primary/20' 
-                      : 'bg-muted border border-border'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                        successOrderData.emailSent ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
-                      <div className="flex-1">
-                        <p className="font-medium mb-1">
-                          {successOrderData.emailSent ? '確認信已發送' : '確認信發送失敗'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {successOrderData.emailSent 
-                            ? `訂房確認信已發送至 ${successOrderData.guest_email}` 
-                            : '郵件發送失敗，但您的訂單已成功建立。如有需要，請聯繫我們。'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 訂單摘要 */}
-                <div className="space-y-4 mb-8">
-                  <h3 className="font-semibold text-lg">訂單摘要</h3>
-                  
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-muted-foreground">房型</span>
-                      <span className="font-medium">{successOrderData.roomName}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-muted-foreground">入住日期</span>
-                      <span className="font-medium">{successOrderData.check_in_date}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-muted-foreground">退房日期</span>
-                      <span className="font-medium">{successOrderData.check_out_date}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-muted-foreground">住宿天數</span>
-                      <span className="font-medium">{successOrderData.nights} 晚</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-muted-foreground">入住人數</span>
-                      <span className="font-medium">{successOrderData.guest_count} 人</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg mt-4">
-                      <span className="font-semibold">總金額</span>
-                      <span className="font-bold text-lg text-primary">
-                        NT$ {successOrderData.final_price?.toLocaleString()}
-                      </span>
-                    </div>
-                    
-                    {/* 訂金欄位已移除 */}
-                  </div>
-                </div>
-
-                {/* 提醒資訊 */}
-                <div className="bg-muted/50 rounded-lg p-4 mb-8">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    我們會在入住前與您聯繫確認相關細節。如有任何問題，請隨時與我們聯絡。
-                  </p>
-                </div>
-
-                {/* 操作按鈕 */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => navigate("/")}
-                  >
-                    返回首頁
-                  </Button>
-                  <Button 
-                    className="flex-1"
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      navigate("/");
-                    }}
-                  >
-                    查看更多房型
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Progress Indicator */}
-          <div className="border-b bg-card">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-              <div className="flex items-center justify-between max-w-4xl mx-auto">
-                {stepIndicators.map((step, index) => {
-                  const Icon = step.icon;
-                  const isActive = index === currentStepIndex;
-                  const isCompleted = index < currentStepIndex;
-                  
-                  return (
-                    <div key={step.key} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center flex-1">
-                        <div
-                          className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors ${
-                            isCompleted
-                              ? "bg-primary border-primary text-primary-foreground"
-                              : isActive
-                              ? "border-primary text-primary"
-                              : "border-muted text-muted-foreground"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </div>
-                        <span
-                          className={`mt-2 text-xs font-medium hidden sm:block ${
-                            isActive ? "text-primary" : "text-muted-foreground"
-                          }`}
-                        >
-                          {step.label}
-                        </span>
-                      </div>
-                      {index < stepIndicators.length - 1 && (
-                        <div
-                          className={`h-0.5 flex-1 mx-2 transition-colors ${
-                            isCompleted ? "bg-primary" : "bg-muted"
-                          }`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
-          {/* Left: Form Content */}
-          <div className="w-full">
-            <MemberSessionBar
-              loggedInMember={loggedInMember}
-              bookingEmail={guestInfo.email}
-              isMismatch={isMemberEmailMismatch}
-              onSwitchAccount={handleSwitchAccount}
-              showGoToBookerStep={currentStep !== "payment"}
-              onGoToBookerStep={() => {
-                setCurrentStep("payment");
-                setTimeout(() => {
-                  document.getElementById("booker-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 100);
-              }}
-            />
-            {currentStep !== "confirm" && (() => {
-              const nights = calculateNights();
-              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
-              if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
-                addonLines.push({
-                  label: "寵物加購",
-                  qty: `${petCount} 隻 × ${nights} 晚`,
-                  subtotal: petCount * petPlanSettings.pricePerUnit * nights,
-                });
-              }
-              const bbqTotalCount = Object.values(bbqMealsByDate).reduce((s, c) => s + (c || 0), 0);
-              if (mealPlanSettings.enabled && bbqTotalCount > 0) {
-                addonLines.push({
-                  label: "BBQ 餐食",
-                  qty: `${bbqTotalCount} 人份`,
-                  subtotal: bbqTotalCount * mealPlanSettings.pricePerUnit,
-                });
-              }
-              Object.entries(customAddonCounts).forEach(([type, count]) => {
-                if (!count || count <= 0) return;
-                const s = customAddonSettings.find((x) => x.addon_type === type);
-                if (!s) return;
-                addonLines.push({
-                  label: s.description || s.addon_type,
-                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
-                  subtotal: count * s.price_per_unit * nights,
-                });
-              });
-              const childExtra = calculateChildExtraTotal();
-              if (childExtra > 0) {
-                addonLines.push({
-                  label: "兒童加價",
-                  qty: `${nights} 晚`,
-                  subtotal: childExtra,
-                });
-              }
-              return (
-                <MobileOrderSummary
-                  accommodationName={accommodationName}
-                  checkInDate={checkInDate}
-                  checkOutDate={checkOutDate}
-                  calculateNights={calculateNights}
-                  totalGuests={totalGuests}
-                  adultsCount={contextGuests?.adults || 0}
-                  childrenCount={contextGuests?.children || 0}
-                  infantsCount={infantsCount}
-                  toddlersCount={toddlersCount}
-                  selectedRoom={selectedRoom}
-                  selectedPackage={selectedPackage}
-                  roomAllocation={selectedPackage?.room_allocation || null}
-                  roomTypes={roomTypes}
-                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
-                  roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
-                  addonLines={addonLines}
-                  calculateFinalTotal={calculateFinalTotal}
-                  appliedDiscount={appliedDiscount}
-                  calculateDiscount={calculateDiscount}
-                />
-              );
-            })()}
-                {/* Step 3: Add-ons (Collapsible) */}
-                {currentStep === "payment" && (
+  const addonsSection = currentStep === "payment" ? (
                   <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
                     <Card className="border-2">
                       <CollapsibleTrigger asChild>
@@ -4104,7 +3836,276 @@ const BookingFlow = () => {
                       </CollapsibleContent>
                     </Card>
                   </Collapsible>
+  ) : null;
+
+  return (
+    <div className={`min-h-screen bg-background ${themeClass}`}>
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/booking" className="flex items-center gap-2">
+            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+          </Link>
+          <Button variant="ghost" onClick={goBackToVilla} size="sm">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            返回
+          </Button>
+        </div>
+      </header>
+
+      {bookingSuccess && successOrderData ? (
+        /* 訂房成功頁面 */
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto">
+            <Card className="border-2 border-primary/20 shadow-lg">
+              <CardContent className="pt-12 pb-8 px-6 md:px-12">
+                {/* 成功圖示 */}
+                <div className="flex justify-center mb-6">
+                  <div className="rounded-full bg-primary/10 p-6">
+                    <CheckCircle className="h-16 w-16 text-primary" />
+                  </div>
+                </div>
+
+                {/* 標題 */}
+                <h1 className="text-3xl font-bold text-center mb-2">訂房成功！</h1>
+                <p className="text-center text-muted-foreground mb-8">
+                  您的訂單已成功建立
+                </p>
+
+                <Separator className="mb-6" />
+
+                {/* 訂單編號 */}
+                <div className="bg-primary/5 rounded-lg p-6 mb-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">訂單編號</p>
+                    <p className="text-2xl font-bold text-primary">{successOrderData.order_number}</p>
+                  </div>
+                </div>
+
+                {/* 確認信狀態 */}
+                {successOrderData.guest_email && (
+                  <div className={`rounded-lg p-4 mb-6 ${
+                    successOrderData.emailSent 
+                      ? 'bg-primary/10 border border-primary/20' 
+                      : 'bg-muted border border-border'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                        successOrderData.emailSent ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
+                      <div className="flex-1">
+                        <p className="font-medium mb-1">
+                          {successOrderData.emailSent ? '確認信已發送' : '確認信發送失敗'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {successOrderData.emailSent 
+                            ? `訂房確認信已發送至 ${successOrderData.guest_email}` 
+                            : '郵件發送失敗，但您的訂單已成功建立。如有需要，請聯繫我們。'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
+
+                {/* 訂單摘要 */}
+                <div className="space-y-4 mb-8">
+                  <h3 className="font-semibold text-lg">訂單摘要</h3>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">房型</span>
+                      <span className="font-medium">{successOrderData.roomName}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">入住日期</span>
+                      <span className="font-medium">{successOrderData.check_in_date}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">退房日期</span>
+                      <span className="font-medium">{successOrderData.check_out_date}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">住宿天數</span>
+                      <span className="font-medium">{successOrderData.nights} 晚</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">入住人數</span>
+                      <span className="font-medium">{successOrderData.guest_count} 人</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg mt-4">
+                      <span className="font-semibold">總金額</span>
+                      <span className="font-bold text-lg text-primary">
+                        NT$ {successOrderData.final_price?.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    {/* 訂金欄位已移除 */}
+                  </div>
+                </div>
+
+                {/* 提醒資訊 */}
+                <div className="bg-muted/50 rounded-lg p-4 mb-8">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    我們會在入住前與您聯繫確認相關細節。如有任何問題，請隨時與我們聯絡。
+                  </p>
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => navigate("/")}
+                  >
+                    返回首頁
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      navigate("/");
+                    }}
+                  >
+                    查看更多房型
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Progress Indicator */}
+          <div className="border-b bg-card">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+              <div className="flex items-center justify-between max-w-4xl mx-auto">
+                {stepIndicators.map((step, index) => {
+                  const Icon = step.icon;
+                  const isActive = index === currentStepIndex;
+                  const isCompleted = index < currentStepIndex;
+                  
+                  return (
+                    <div key={step.key} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center flex-1">
+                        <div
+                          className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors ${
+                            isCompleted
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : isActive
+                              ? "border-primary text-primary"
+                              : "border-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </div>
+                        <span
+                          className={`mt-2 text-xs font-medium hidden sm:block ${
+                            isActive ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                      {index < stepIndicators.length - 1 && (
+                        <div
+                          className={`h-0.5 flex-1 mx-2 transition-colors ${
+                            isCompleted ? "bg-primary" : "bg-muted"
+                          }`}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
+          {/* Left: Form Content */}
+          <div className="w-full">
+            <MemberSessionBar
+              loggedInMember={loggedInMember}
+              bookingEmail={guestInfo.email}
+              isMismatch={isMemberEmailMismatch}
+              onSwitchAccount={handleSwitchAccount}
+              showGoToBookerStep={currentStep !== "payment"}
+              onGoToBookerStep={() => {
+                setCurrentStep("payment");
+                setTimeout(() => {
+                  document.getElementById("booker-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 100);
+              }}
+            />
+            {currentStep !== "confirm" && (() => {
+              const nights = calculateNights();
+              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+              if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
+                addonLines.push({
+                  label: "寵物加購",
+                  qty: `${petCount} 隻 × ${nights} 晚`,
+                  subtotal: petCount * petPlanSettings.pricePerUnit * nights,
+                });
+              }
+              const bbqTotalCount = Object.values(bbqMealsByDate).reduce((s, c) => s + (c || 0), 0);
+              if (mealPlanSettings.enabled && bbqTotalCount > 0) {
+                addonLines.push({
+                  label: "BBQ 餐食",
+                  qty: `${bbqTotalCount} 人份`,
+                  subtotal: bbqTotalCount * mealPlanSettings.pricePerUnit,
+                });
+              }
+              Object.entries(customAddonCounts).forEach(([type, count]) => {
+                if (!count || count <= 0) return;
+                const s = customAddonSettings.find((x) => x.addon_type === type);
+                if (!s) return;
+                addonLines.push({
+                  label: s.description || s.addon_type,
+                  qty: `${count} ${s.unit_label || "份"} × ${nights} 晚`,
+                  subtotal: count * s.price_per_unit * nights,
+                });
+              });
+              const childExtra = calculateChildExtraTotal();
+              if (childExtra > 0) {
+                addonLines.push({
+                  label: "兒童加價",
+                  qty: `${nights} 晚`,
+                  subtotal: childExtra,
+                });
+              }
+              return (
+                <MobileOrderSummary
+                  accommodationName={accommodationName}
+                  checkInDate={checkInDate}
+                  checkOutDate={checkOutDate}
+                  calculateNights={calculateNights}
+                  totalGuests={totalGuests}
+                  adultsCount={contextGuests?.adults || 0}
+                  childrenCount={contextGuests?.children || 0}
+                  infantsCount={infantsCount}
+                  toddlersCount={toddlersCount}
+                  selectedRoom={selectedRoom}
+                  selectedPackage={selectedPackage}
+                  roomAllocation={selectedPackage?.room_allocation || null}
+                  roomTypes={roomTypes}
+                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomSubtotal={getRoomChargeTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  addonLines={addonLines}
+                  calculateFinalTotal={calculateFinalTotal}
+                  appliedDiscount={appliedDiscount}
+                  calculateDiscount={calculateDiscount}
+                />
+              );
+            })()}
+            <div className="lg:hidden">{addonsSection}</div>
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl">
@@ -5424,7 +5425,9 @@ const BookingFlow = () => {
                 />
               );
             })()}
+            {addonsSection && <div className="mt-4">{addonsSection}</div>}
           </div>
+
 
         </div>
       </div>
