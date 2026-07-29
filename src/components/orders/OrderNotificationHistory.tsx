@@ -54,7 +54,25 @@ const STATUS_LABEL: Record<string, string> = {
 
 const EMAIL_TYPE_LABEL: Record<string, string> = {
   booking_confirmation: "訂房確認通知",
+  deposit_received: "訂金已收到",
   final_payment_received: "尾款已收到",
+  order_cancelled: "訂單取消通知",
+};
+
+const EMAIL_STATUS_LABEL: Record<string, string> = {
+  sent: "已寄出",
+  failed: "寄送失敗",
+  resent: "已重送",
+  pending: "寄送中",
+};
+
+const TRIGGER_SOURCE_LABEL: Record<string, string> = {
+  manual_resend: "手動重送",
+  auto_final_payment: "系統自動（付款）",
+  auto_deposit: "系統自動（訂金入帳）",
+  date_change: "改期重寄",
+  member_cancel: "會員自行取消",
+  atm_notify: "ATM 入帳通知",
 };
 
 const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -62,6 +80,9 @@ const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructiv
   failed: "destructive",
   resent: "outline",
 };
+
+type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_received";
+
 
 export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
