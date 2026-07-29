@@ -210,7 +210,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 setHintDismissed(true);
                 setOpen(true);
               }}
-              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border px-3 py-2 text-xs md:text-sm text-foreground animate-fade-in max-w-[180px]"
+              className="relative cursor-pointer select-none rounded-2xl bg-white shadow-lg border border-border pl-3 pr-4 py-2 text-xs md:text-sm text-foreground animate-fade-in max-w-[min(60vw,220px)] whitespace-nowrap"
 
             >
               <button
@@ -220,7 +220,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                   setHintDismissed(true);
                 }}
                 aria-label="關閉提示"
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground/20 flex items-center justify-center text-[10px] leading-none"
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground/20 flex items-center justify-center text-[10px] leading-none border border-border shadow-sm"
               >
                 ✕
               </button>
@@ -229,6 +229,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               <span className="absolute right-[-6px] bottom-3 w-3 h-3 bg-white border-r border-b border-border rotate-[-45deg]" />
             </div>
           )}
+
           <button
             onClick={() => {
               setShowHint(false);
@@ -254,8 +255,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="h-[80dvh] max-h-[80dvh] sm:h-[70dvh] sm:max-h-[620px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-lg sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
+          className="h-[67dvh] max-h-[67dvh] sm:h-[66dvh] sm:max-h-[560px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-md sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
         >
+
 
           <SheetHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0 shrink-0">
 

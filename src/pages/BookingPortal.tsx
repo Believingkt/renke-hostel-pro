@@ -1316,7 +1316,7 @@ const BookingPortal = () => {
       <Sheet open={aiOpen} onOpenChange={setAiOpen}>
         <SheetContent
           side="bottom"
-          className="h-[85dvh] max-h-[85dvh] sm:h-[80dvh] sm:max-h-[680px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-2xl sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
+          className="h-[67dvh] max-h-[67dvh] sm:h-[66dvh] sm:max-h-[620px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-xl sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
         >
           <SheetHeader className="px-4 py-3 border-b shrink-0">
             <SheetTitle className="text-base flex items-center gap-2">
