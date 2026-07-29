@@ -252,21 +252,19 @@ export default function AtmBookingSuccess() {
     if (paidDetected) return;
 
     const refetch = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
-        )
-        .eq("id", order.id)
-        .maybeSingle();
-      if (data) {
-        setOrder(data as OrderRow);
-        if (isPaid(data as OrderRow)) {
+      const { data } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: order.order_number },
+      });
+      const next = (data as any)?.order as OrderRow | undefined;
+      if (next) {
+        setOrder(next);
+        if (isPaid(next)) {
           setPaidDetected(true);
           toast.success("已收到您的匯款，訂單付款完成！");
         }
       }
     };
+
 
     const channel = supabase
       .channel(`atm-order-${order.id}`)
