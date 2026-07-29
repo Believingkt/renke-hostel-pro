@@ -582,6 +582,7 @@ const BookingFlow = () => {
   const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
   const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
+  const [customAddonDetail, setCustomAddonDetail] = useState<{ title: string; subtitle: string; html: string } | null>(null);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
   // TapPay 設定 - 從後端動態載入
