@@ -107,32 +107,32 @@ Deno.test("Mixed batch: template + package resolved in one call", async () => {
   assertEquals(map.get("1007")?.kind, "package");
 });
 
-// ---- Group canonical fan-out regression: the fan-out logic lives inside
-// handleAvailNotifRQ but is triggered by (room is canonical) && (plan.kind
-// !== "template"). Mirror the decision here to lock the behavior.
+// ---- Package RatePlan availability regression: handleAvailNotifRQ must ignore
+// package-level BookingLimit / RestrictionStatus entirely. A single PMS room_type
+// can expose multiple OwlTing RatePlans; writing any package-level value back to
+// base room inventory causes open/close and quantity flapping.
 
 interface GroupContext {
   canonicalRoomTypeIds: Set<string>;
   memberRoomTypeIdsByCanonical: Map<string, string[]>;
 }
 
-function availTargetsForPackagePlan(roomId: string, ctx: GroupContext): string[] {
-  const members = ctx.memberRoomTypeIdsByCanonical.get(roomId);
-  return members && members.length > 0 ? members : [roomId];
+function availTargetsForPackagePlan(_roomId: string, _ctx: GroupContext): string[] {
+  return [];
 }
 
-Deno.test("Group canonical + package plan → fan-out to members", () => {
+Deno.test("Group canonical + package plan → ignored (no fan-out)", () => {
   const ctx: GroupContext = {
     canonicalRoomTypeIds: new Set(["rt-canon"]),
     memberRoomTypeIdsByCanonical: new Map([["rt-canon", ["rt-m1", "rt-m2"]]]),
   };
-  assertEquals(availTargetsForPackagePlan("rt-canon", ctx), ["rt-m1", "rt-m2"]);
+  assertEquals(availTargetsForPackagePlan("rt-canon", ctx), []);
 });
 
-Deno.test("Non-canonical room + package plan → writes on itself (雲岫 case)", () => {
+Deno.test("Non-canonical room + package plan → ignored (雲岫 flapping guard)", () => {
   const ctx: GroupContext = {
     canonicalRoomTypeIds: new Set(),
     memberRoomTypeIdsByCanonical: new Map(),
   };
-  assertEquals(availTargetsForPackagePlan("rt-yunxiu-a1", ctx), ["rt-yunxiu-a1"]);
+  assertEquals(availTargetsForPackagePlan("rt-yunxiu-a1", ctx), []);
 });
