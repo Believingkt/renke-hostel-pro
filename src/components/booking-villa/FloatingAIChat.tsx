@@ -284,7 +284,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
           <>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+              <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3">
                 {messages.length === 0 && !streaming && (
                   <div className="text-center pt-6 space-y-3">
                     <p className="text-sm text-muted-foreground">
