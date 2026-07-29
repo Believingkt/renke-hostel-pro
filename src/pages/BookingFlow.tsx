@@ -5363,6 +5363,8 @@ const BookingFlow = () => {
 
           {/* Right: Summary Sidebar - 桌機版比照手機版摘要 */}
           <div className="hidden lg:block md:col-span-1">
+            <div className="sticky top-20 space-y-3">
+
             {(() => {
               const nights = calculateNights();
               const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
