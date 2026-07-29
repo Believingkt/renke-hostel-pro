@@ -30,6 +30,8 @@ interface EditSearchSheetProps {
   packageDates?: Set<string> | null;
   /** 雲岫等有分軌住宿：散客可訂日集合 */
   commonDates?: Set<string> | null;
+  /** 目前的住宿型態（包棟 / 單間房），用於初始化切換 chips */
+  stayMode?: "package" | "common" | null;
   onConfirm: (v: {
     checkIn: Date;
     checkOut: Date;
@@ -38,6 +40,8 @@ interface EditSearchSheetProps {
     infants: number;
     toddlers: number;
     rooms: number;
+    /** 雙軌住宿時回傳所選型態；非雙軌為 null */
+    stayMode: "package" | "common" | null;
   }) => void;
 }
 
