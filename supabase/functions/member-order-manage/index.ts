@@ -248,6 +248,27 @@ serve(async (req) => {
         .eq("id", order.id);
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
 
+      // 客人自行取消 → 寄取消通知信（後台人員取消不會走這裡，因此不寄信）
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-cancelled-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            reason: body.reason ?? null,
+            chargedFee,
+            refunded,
+            needManual,
+            triggerSource: "member_cancel",
+          }),
+        });
+      } catch (mailErr) {
+        console.error("[member-order-manage] cancellation email failed", mailErr);
+      }
+
       return json(
         {
           success: true,
@@ -296,9 +317,14 @@ serve(async (req) => {
     if (newCheckIn <= today) {
       return json({ success: false, message: "入住日必須是未來日期" }, 400, corsHeaders);
     }
-    if (order.payment_status === "paid") {
+    const hasPaid = Number(order.paid_amount || 0) > 0 ||
+      ["paid", "deposit_paid", "partial"].includes(String(order.payment_status));
+    if (hasPaid) {
       return json(
-        { success: false, message: "已付款訂單無法線上改期，請聯繫住宿客服協助" },
+        {
+          success: false,
+          message: "已付訂金或已付款的訂單無法線上改期，請聯繫客服或住宿業者協助處理",
+        },
         400,
         corsHeaders,
       );
@@ -330,6 +356,28 @@ serve(async (req) => {
         ),
       })
       .eq("id", order.id);
+
+    // 改期後重寄訂單確認函，信中標明日期已更改
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-confirmation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          orderNumber: order.order_number,
+          triggerSource: "member_date_change",
+          dateChange: {
+            oldCheckIn: order.check_in_date,
+            oldCheckOut: order.check_out_date,
+            operator: "會員自行改期",
+          },
+        }),
+      });
+    } catch (mailErr) {
+      console.error("[member-order-manage] resend confirmation failed", mailErr);
+    }
 
     return json({ success: true, message: "訂單日期已更新" }, 200, corsHeaders);
   } catch (e) {

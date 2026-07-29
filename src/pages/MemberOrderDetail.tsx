@@ -539,12 +539,21 @@ const MemberOrderDetail = () => {
   };
 
 
+  // 已付訂金／已付款的訂單不可線上改期，需聯繫客服或民宿
+  const dateChangeLocked =
+    Number(order.paid_amount || 0) > 0 ||
+    ["paid", "deposit_paid", "partial"].includes(String(order.payment_status));
+
   const handleChange = async () => {
     const datesChanged =
       newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date;
     const guestsChanged = newGuests !== order.guest_count;
     if (!datesChanged && !guestsChanged) {
       toast.error("沒有任何變更");
+      return;
+    }
+    if (datesChanged && dateChangeLocked) {
+      toast.error("已付訂金的訂單無法線上改期，請聯繫客服或民宿協助");
       return;
     }
     if (datesChanged) {
@@ -1185,8 +1194,9 @@ const MemberOrderDetail = () => {
                   type="date"
                   value={newCheckIn}
                   min={format(new Date(), "yyyy-MM-dd")}
+                  disabled={dateChangeLocked}
                   onChange={(e) => setNewCheckIn(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
               <div>
@@ -1195,8 +1205,9 @@ const MemberOrderDetail = () => {
                   type="date"
                   value={newCheckOut}
                   min={newCheckIn}
+                  disabled={dateChangeLocked}
                   onChange={(e) => setNewCheckOut(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
             </div>
@@ -1211,9 +1222,15 @@ const MemberOrderDetail = () => {
                 className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              已付款訂單無法線上改期，請透過「管理訂單 → 聯絡客服」協助處理。
-            </p>
+            {dateChangeLocked ? (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                此訂單已付訂金／已付款，無法線上改期。如需更改入住日期，請聯繫客服或直接與民宿聯絡協助處理。
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                已付訂金或已付款的訂單無法線上改期，請聯繫客服或民宿協助處理。
+              </p>
+            )}
           </div>
           <DialogFooter>
             <button

@@ -130,10 +130,17 @@ export interface BuiltEmail {
   accommodationName: string;
 }
 
+export interface DateChangeNotice {
+  oldCheckIn: string;
+  oldCheckOut: string;
+  reason?: string | null;
+  operator?: string | null;
+}
+
 export async function buildOrderConfirmationEmail(
   supabase: any,
   orderNumber: string,
-  opts: { siteUrl?: string } = {},
+  opts: { siteUrl?: string; dateChange?: DateChangeNotice | null } = {},
 ): Promise<BuiltEmail | { error: string }> {
   const { data: order } = await supabase
     .from("orders")
@@ -443,6 +450,30 @@ export async function buildOrderConfirmationEmail(
       )
     : "";
 
+  // 0. 改期通知橫幅（僅在改期重寄時顯示）
+  const dc = opts.dateChange;
+  const changeBanner = dc
+    ? `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:2px solid #ef4444;border-radius:14px;margin:0 0 12px 0;">
+    <tr><td style="padding:16px;">
+      <p style="margin:0;font-size:17px;font-weight:800;color:#b91c1c;">🔄 您的入住日期已更改</p>
+      <p style="margin:8px 0 0 0;font-size:14px;color:#7f1d1d;line-height:1.7;">本封為更新後的訂單確認函，請以下列新日期為準：</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;background:#fff;border-radius:10px;">
+        <tr>
+          <td style="padding:10px 12px;font-size:13px;color:#888;">原訂日期</td>
+          <td align="right" style="padding:10px 12px;font-size:14px;color:#888;text-decoration:line-through;">${esc(dc.oldCheckIn)} → ${esc(dc.oldCheckOut)}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px;font-size:13px;color:#b91c1c;font-weight:700;border-top:1px solid #fee2e2;">更改後日期</td>
+          <td align="right" style="padding:10px 12px;font-size:15px;font-weight:800;color:#b91c1c;border-top:1px solid #fee2e2;">${esc(order.check_in_date)} → ${esc(order.check_out_date)}</td>
+        </tr>
+      </table>
+      ${dc.reason ? `<p style="margin:10px 0 0 0;font-size:13px;color:#7f1d1d;">更改原因：${esc(dc.reason)}</p>` : ""}
+      <p style="margin:10px 0 0 0;font-size:13px;color:#7f1d1d;">如有任何疑問，請儘速與住宿聯繫。</p>
+    </td></tr>
+  </table>`
+    : "";
+
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
 <body style="margin:0;padding:0;background:#f5f5f5;">
@@ -452,6 +483,7 @@ export async function buildOrderConfirmationEmail(
       <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;font-family:'Microsoft JhengHei','PingFang TC',Arial,sans-serif;color:#222;">
         <tr><td style="padding:0 12px;">
           <p style="margin:0 0 12px 0;text-align:center;font-size:13px;color:#888;">訂單編號 ${esc(order.order_number)}</p>
+          ${changeBanner}
           ${summary}
           ${stayCard}
           ${atmCard}
@@ -472,7 +504,7 @@ export async function buildOrderConfirmationEmail(
 </body></html>`;
 
   return {
-    subject: `${accName ? `【${accName}】` : ""}訂房確認通知 - 訂單編號 ${order.order_number}`,
+    subject: `${accName ? `【${accName}】` : ""}${dc ? "【入住日期已更改】" : ""}訂房確認通知 - 訂單編號 ${order.order_number}`,
     html,
     to: order.guest_email,
     guestName: order.guest_name,

@@ -45,6 +45,14 @@ serve(async (req: Request) => {
     const orderNumber = String(body?.orderNumber || "").trim();
     const triggerSource = String(body?.triggerSource || "auto");
     const siteUrl = typeof body?.siteUrl === "string" ? body.siteUrl : undefined;
+    const dateChange = body?.dateChange && body.dateChange.oldCheckIn && body.dateChange.oldCheckOut
+      ? {
+          oldCheckIn: String(body.dateChange.oldCheckIn),
+          oldCheckOut: String(body.dateChange.oldCheckOut),
+          reason: body.dateChange.reason ? String(body.dateChange.reason) : null,
+          operator: body.dateChange.operator ? String(body.dateChange.operator) : null,
+        }
+      : null;
 
     if (!orderNumber || orderNumber.length < 5) {
       return json({ success: false, error: "無效的訂單編號" }, 400);
@@ -77,7 +85,7 @@ serve(async (req: Request) => {
       }
     }
 
-    const built = await buildOrderConfirmationEmail(supabase, orderNumber, { siteUrl });
+    const built = await buildOrderConfirmationEmail(supabase, orderNumber, { siteUrl, dateChange });
     if ("error" in built) {
       const map: Record<string, [string, number]> = {
         order_not_found: ["找不到指定的訂單", 404],

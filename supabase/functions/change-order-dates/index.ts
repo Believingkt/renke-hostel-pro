@@ -283,6 +283,31 @@ serve(async (req) => {
       console.error("[change-order-dates] append notes failed", e);
     }
 
+    // 改期後重寄一次訂單確認函，並在信中明確標示日期已更改
+    try {
+      const resp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-confirmation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          orderNumber: order.order_number,
+          triggerSource: "date_change",
+          dateChange: {
+            oldCheckIn: order.check_in_date,
+            oldCheckOut: order.check_out_date,
+            reason: body.reason ?? null,
+            operator: operatorName,
+          },
+        }),
+      });
+      console.log("[change-order-dates] confirmation resend status", resp.status);
+    } catch (e) {
+      console.error("[change-order-dates] resend confirmation failed", e);
+    }
+
+
     return json(
       {
         success: true,

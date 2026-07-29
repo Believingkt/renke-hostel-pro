@@ -14,6 +14,8 @@ interface FinalPaymentRequest {
   triggeredBy?: string | null;
   paymentMethodLabel?: string;
   paidThisTime?: number;
+  /** 'deposit' = 訂金入帳通知；'final' = 尾款/全額付清通知 */
+  paymentKind?: "deposit" | "final";
 }
 
 serve(async (req) => {
@@ -22,7 +24,9 @@ serve(async (req) => {
   }
 
   try {
-    const { orderId, triggerSource = "auto_final_payment", triggeredBy = null, paymentMethodLabel, paidThisTime }: FinalPaymentRequest = await req.json();
+    const { orderId, triggerSource = "auto_final_payment", triggeredBy = null, paymentMethodLabel, paidThisTime, paymentKind = "final" }: FinalPaymentRequest = await req.json();
+    const isDeposit = paymentKind === "deposit";
+    const emailType = isDeposit ? "deposit_received" : "final_payment_received";
 
     if (!orderId) {
       return new Response(JSON.stringify({ success: false, error: "orderId required" }), {
@@ -65,7 +69,7 @@ serve(async (req) => {
       .from("booking_email_log")
       .select("id")
       .eq("order_id", orderId)
-      .eq("email_type", "final_payment_received")
+      .eq("email_type", emailType)
       .eq("status", "sent")
       .limit(1);
     if (existing && existing.length > 0) {
@@ -99,7 +103,9 @@ serve(async (req) => {
     const thisTime = typeof paidThisTime === "number" && paidThisTime > 0 ? paidThisTime : Math.max(0, paidAmount - 0);
     const method = paymentMethodLabel || order.balance_payment_method || order.payment_method || "";
 
-    const subject = `${accommodationName ? `【${accommodationName}】` : ""}尾款已收到 - 訂單編號 ${order.order_number}`;
+    const balance = Math.max(0, finalPrice - paidAmount);
+    const headline = isDeposit ? "✅ 訂金已收到" : "✅ 尾款已收到";
+    const subject = `${accommodationName ? `【${accommodationName}】` : ""}${isDeposit ? "訂金已收到" : "尾款已收到"} - 訂單編號 ${order.order_number}`;
 
     const html = `
     <!DOCTYPE html>
@@ -119,14 +125,14 @@ serve(async (req) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1 style="margin: 0; font-size: 26px;">✅ 尾款已收到</h1>
+          <h1 style="margin: 0; font-size: 26px;">${headline}</h1>
           ${accommodationName ? `<p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;">${accommodationName}</p>` : ""}
           <p style="margin: 8px 0 0 0; opacity: 0.9;">感謝您完成本次付款！</p>
         </div>
 
         <div class="content">
           <p style="font-size: 16px;">親愛的 ${order.guest_name} 您好，</p>
-          <p>我們已收到您的尾款，訂單已全額付清，以下為付款明細：</p>
+          <p>${isDeposit ? "我們已收到您的訂金，訂單已確認，以下為付款明細：" : "我們已收到您的款項，訂單已全額付清，以下為付款明細："}</p>
 
           <div style="margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -134,7 +140,7 @@ serve(async (req) => {
               ${roomName ? `<tr style="border-bottom: 1px solid #f0f0f0;"><td style="color:#666; padding:12px 0;">房型</td><td style="text-align:right; font-weight:600; padding:12px 0;">${roomName}</td></tr>` : ""}
               <tr style="border-bottom: 1px solid #f0f0f0;"><td style="color:#666; padding:12px 0;">入住 / 退房</td><td style="text-align:right; font-weight:600; padding:12px 0;">${order.check_in_date} → ${order.check_out_date}</td></tr>
               <tr style="border-bottom: 1px solid #f0f0f0;"><td style="color:#666; padding:12px 0;">入住人數</td><td style="text-align:right; font-weight:600; padding:12px 0;">${order.guest_count} 人</td></tr>
-              ${method ? `<tr style="border-bottom: 1px solid #f0f0f0;"><td style="color:#666; padding:12px 0;">尾款付款方式</td><td style="text-align:right; font-weight:600; padding:12px 0;">${method}</td></tr>` : ""}
+              ${method ? `<tr style="border-bottom: 1px solid #f0f0f0;"><td style="color:#666; padding:12px 0;">${isDeposit ? "付款方式" : "尾款付款方式"}</td><td style="text-align:right; font-weight:600; padding:12px 0;">${method}</td></tr>` : ""}
             </table>
           </div>
 
@@ -143,6 +149,7 @@ serve(async (req) => {
               <tr><td style="font-size:15px; color:#333; padding:6px 0;">本次繳付</td><td style="text-align:right; font-weight:700; color:#16a34a; font-size:18px; padding:6px 0;">NT$ ${thisTime.toLocaleString()}</td></tr>
               <tr><td style="font-size:15px; color:#666; padding:6px 0; border-top:1px dashed #d0d0d0;">累計已付</td><td style="text-align:right; font-weight:600; padding:6px 0; border-top:1px dashed #d0d0d0;">NT$ ${paidAmount.toLocaleString()}</td></tr>
               <tr><td style="font-size:18px; font-weight:600; padding:10px 0;">訂單總額</td><td style="text-align:right; padding:10px 0;"><span class="total-price">NT$ ${finalPrice.toLocaleString()}</span></td></tr>
+              ${balance > 0 ? `<tr><td style="font-size:15px; color:#b45309; padding:6px 0; border-top:1px dashed #d0d0d0;">尚需支付餘額</td><td style="text-align:right; font-weight:700; color:#b45309; padding:6px 0; border-top:1px dashed #d0d0d0;">NT$ ${balance.toLocaleString()}</td></tr>` : ""}
             </table>
           </div>
 
@@ -162,6 +169,7 @@ serve(async (req) => {
             </div>
           </div>` : ""}
 
+          ${isDeposit && balance > 0 ? `<p style="margin-top:20px; color:#b45309;">餘額 NT$ ${balance.toLocaleString()} 請依住宿指示於入住前或入住當日繳付。</p>` : ""}
           <p style="margin-top:20px; color:#16a34a; font-weight:600;">期待您的光臨！</p>
         </div>
 
@@ -189,12 +197,12 @@ serve(async (req) => {
 
     if (!resp.ok) {
       const errorText = await resp.text();
-      console.error("[send-final-payment-received] Resend error:", errorText);
+      console.error("[send-payment-received] Resend error:", errorText);
       try {
         await supabase.from("booking_email_log").insert({
           order_id: order.id,
           order_number: order.order_number,
-          email_type: "final_payment_received",
+          email_type: emailType,
           recipient: order.guest_email,
           subject,
           status: "failed",
@@ -203,7 +211,7 @@ serve(async (req) => {
           trigger_source: triggerSource,
         });
       } catch (logErr) {
-        console.error("[send-final-payment-received] log failure:", logErr);
+        console.error("[send-payment-received] log failure:", logErr);
       }
       return new Response(JSON.stringify({ success: false, error: errorText }), {
         status: 502,
@@ -216,7 +224,7 @@ serve(async (req) => {
       await supabase.from("booking_email_log").insert({
         order_id: order.id,
         order_number: order.order_number,
-        email_type: "final_payment_received",
+        email_type: emailType,
         recipient: order.guest_email,
         subject,
         status: "sent",
@@ -234,7 +242,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("[send-final-payment-received] Error:", error);
+    console.error("[send-payment-received] Error:", error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

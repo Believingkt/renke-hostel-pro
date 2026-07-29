@@ -366,17 +366,26 @@ Deno.serve(async (req) => {
           // （3DS/非3DS 信用卡的通知信由 complete-3ds-booking / create-paid-order 在建單時寄出，
           //  webhook 不重複發送。）
           const wasUnpaid = !order.payment_status || order.payment_status === 'unpaid' || order.payment_status === 'pending_payment';
-          if (isAtm && wasUnpaid && (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid')) {
+          // ATM 訂金入帳 → 寄「訂金已收到」收據式通知（與尾款通知同一版型）
+          if (isAtm && newPaymentStatus === 'deposit_paid') {
             try {
-              const r = await sendBookingConfirmationByOrderId(
-                supabaseUrl,
-                supabaseServiceKey,
-                order.id,
-                'ATM 虛擬帳號轉帳',
-              );
-              console.log('[tappay-notify] ATM booking email result:', r);
+              const resp = await fetch(`${supabaseUrl}/functions/v1/send-final-payment-received`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  triggerSource: 'auto_atm_deposit',
+                  paymentMethodLabel: 'ATM 虛擬帳號轉帳',
+                  paidThisTime: amount,
+                  paymentKind: 'deposit',
+                }),
+              });
+              console.log('[tappay-notify] deposit-received email status:', resp.status);
             } catch (mailErr) {
-              console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
+              console.error('[tappay-notify] deposit email send failed (non-fatal):', mailErr);
             }
           } else if (!isAtm && order.order_source === 'manual' && wasUnpaid && (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid')) {
             try {
