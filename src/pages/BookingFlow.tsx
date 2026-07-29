@@ -3428,11 +3428,9 @@ const BookingFlow = () => {
                           />
                         </button>
                       </CollapsibleTrigger>
-
-                        </button>
-                      </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-4 sm:px-6 pb-6 pt-2 space-y-6 border-t">
+                        <div className="px-4 sm:px-5 pb-5 pt-4 space-y-5 border-t border-border">
+
                   <div className="space-y-6">
 
                     {/* 寵物方案 */}
