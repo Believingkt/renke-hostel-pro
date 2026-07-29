@@ -54,7 +54,25 @@ const STATUS_LABEL: Record<string, string> = {
 
 const EMAIL_TYPE_LABEL: Record<string, string> = {
   booking_confirmation: "訂房確認通知",
+  deposit_received: "訂金已收到",
   final_payment_received: "尾款已收到",
+  order_cancelled: "訂單取消通知",
+};
+
+const EMAIL_STATUS_LABEL: Record<string, string> = {
+  sent: "已寄出",
+  failed: "寄送失敗",
+  resent: "已重送",
+  pending: "寄送中",
+};
+
+const TRIGGER_SOURCE_LABEL: Record<string, string> = {
+  manual_resend: "手動重送",
+  auto_final_payment: "系統自動（付款）",
+  auto_deposit: "系統自動（訂金入帳）",
+  date_change: "改期重寄",
+  member_cancel: "會員自行取消",
+  atm_notify: "ATM 入帳通知",
 };
 
 const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -62,6 +80,9 @@ const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructiv
   failed: "destructive",
   resent: "outline",
 };
+
+type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_received";
+
 
 export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
@@ -92,7 +113,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
     load();
   }, [load]);
 
-  const resend = async (emailType: "booking_confirmation" | "final_payment_received") => {
+  const resend = async (emailType: ResendType) => {
     setResendingType(emailType);
     try {
       const { data, error } = await supabase.functions.invoke("admin-resend-booking-email", {
@@ -133,6 +154,12 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                   onConfirm={() => resend("booking_confirmation")}
                 />
                 <ResendButton
+                  label="重送訂金通知"
+                  emailType="deposit_received"
+                  loading={resendingType === "deposit_received"}
+                  onConfirm={() => resend("deposit_received")}
+                />
+                <ResendButton
                   label="重送尾款通知"
                   emailType="final_payment_received"
                   loading={resendingType === "final_payment_received"}
@@ -161,10 +188,14 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                 <li key={e.id} className="rounded-md border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={EMAIL_STATUS_VARIANT[e.status] || "secondary"}>{e.status}</Badge>
+                      <Badge variant={EMAIL_STATUS_VARIANT[e.status] || "secondary"}>
+                        {EMAIL_STATUS_LABEL[e.status] || e.status}
+                      </Badge>
                       <span className="font-medium">{EMAIL_TYPE_LABEL[e.email_type] || e.email_type}</span>
                       {e.trigger_source && (
-                        <span className="text-xs text-muted-foreground">({e.trigger_source})</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({TRIGGER_SOURCE_LABEL[e.trigger_source] || e.trigger_source})
+                        </span>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground">
