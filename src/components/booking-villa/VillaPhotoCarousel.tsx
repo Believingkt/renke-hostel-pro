@@ -26,6 +26,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
+  const lastMoved = useRef(false);
 
 
   const handleScroll = () => {
@@ -39,6 +40,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
     if (e.pointerType !== "mouse") return;
     const el = scrollerRef.current;
     if (!el) return;
+    lastMoved.current = false;
     dragState.current = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -62,6 +64,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
     const el = scrollerRef.current;
     dragState.current = null;
     if (!s || !el) return;
+    lastMoved.current = s.moved;
     if (s.moved) {
       const idx = Math.round(el.scrollLeft / el.clientWidth);
       el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
@@ -75,7 +78,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
   };
 
   const openLightbox = () => {
-    if (dragState.current?.moved) return;
+    if (lastMoved.current) return;
     setLightboxOpen(true);
   };
 
@@ -106,7 +109,11 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
         style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
       >
         {photos.map((p, i) => (
-          <div key={p.id} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
+          <div
+            key={p.id}
+            onClick={openLightbox}
+            className="relative shrink-0 w-full h-full snap-start overflow-hidden cursor-zoom-in"
+          >
             <img
               src={p.photo_url}
               alt={p.title || `${accommodationName} - ${i + 1}`}
@@ -158,6 +165,28 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
             )}
           </div>
         </>
+      )}
+
+      {/* 左下：查看全部照片 */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setLightboxOpen(true);
+        }}
+        className="absolute left-3 bottom-3 z-20 flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur px-3 py-1.5 text-white text-xs md:text-sm font-medium hover:bg-black/70 transition-colors"
+      >
+        <Expand className="h-3.5 w-3.5" />
+        查看全部照片
+      </button>
+
+      {lightboxOpen && (
+        <VillaPhotoLightbox
+          photos={photos}
+          startIndex={activeIdx}
+          accommodationName={accommodationName}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
 
       {/* 右下：小圓點頁籤 / 多張時計數 */}
