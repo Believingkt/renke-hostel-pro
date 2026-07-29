@@ -3048,6 +3048,7 @@ const BookingFlow = () => {
                 mealPlanDetails: mealPlanDetailsData,
                 mealPlanTotal: mealPlanTotalPrice,
                 packageId: selectedPackageId,
+                roomQuantity,
                 petCount,
                 petPlanPrice,
                 finalPrice,
