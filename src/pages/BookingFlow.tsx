@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
 import { supabase } from "@/integrations/supabase/client";
@@ -524,7 +524,10 @@ const BookingFlow = () => {
     missingDates?: string[];
     hasNoAvailability?: boolean;
     unavailableDates?: string[];
+    /** 整段期間每晚可訂間數的最小值（多間預訂用） */
+    minAvailable?: number | null;
   }>>({});
+
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   
   // 預選房型的日期可用性（用於日期選擇器標記不可預訂日期）
@@ -1400,6 +1403,9 @@ const BookingFlow = () => {
       let blockedByName = '';
       let hasMissingPricing = false;
       let hasNoAvailability = false;
+      // 多間預訂用：整段期間「每晚可訂間數」的最小值
+      let minAvailable = Number.POSITIVE_INFINITY;
+
       const missingDates: string[] = [];
       const unavailableDates: string[] = [];
 
@@ -1469,6 +1475,12 @@ const BookingFlow = () => {
             blockedByName = adjusted.blocked_by_room_name || blockedByName;
           }
           const adjustedAvailable = adjusted?.available_rooms;
+          if (adjustedAvailable !== null && adjustedAvailable !== undefined) {
+            minAvailable = Math.min(
+              minAvailable,
+              adjusted?.is_blocked ? 0 : Number(adjustedAvailable),
+            );
+          }
           if (
             adjustedAvailable !== null &&
             adjustedAvailable !== undefined &&
@@ -1478,6 +1490,7 @@ const BookingFlow = () => {
             hasNoAvailability = true;
             unavailableDates.push(dateStr);
           }
+
         }
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -1500,9 +1513,11 @@ const BookingFlow = () => {
           hasMissingPricing,
           missingDates,
           hasNoAvailability,
-          unavailableDates
+          unavailableDates,
+          minAvailable: Number.isFinite(minAvailable) ? minAvailable : null,
         }
       }));
+
     };
 
     fetchRoomPricingAndAvailability();
@@ -2025,26 +2040,41 @@ const BookingFlow = () => {
     return roomTypes;
   };
 
+  /**
+   * 多間預訂間數：
+   * 僅「非包棟 且 房間數 > 1」的散房房型才支援（一棟多人數方案的民宿不適用）。
+   * 其餘一律視為 1 間。
+   */
+  const roomQuantity = useMemo(() => {
+    const units = selectedRoom?.room_count ?? 1;
+    const multiUnitAllowed = !!selectedRoom && selectedRoom.is_exclusive_package !== true && units > 1;
+    if (!multiUnitAllowed) return 1;
+    const n = parseInt(searchParams.get("rooms") || "1", 10) || 1;
+    return Math.max(1, Math.min(n, units));
+  }, [selectedRoom, searchParams]);
+  const isMultiRoom = roomQuantity > 1;
+
   const calculateTotal = () => {
     if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
 
     // 若為包區方案，優先以方案的每晚 sale（週末 tier_prices.weekend.sale，其餘 sale_price）計算
     const packageTotal = calculatePackageTotal();
-    if (packageTotal != null) return packageTotal;
+    if (packageTotal != null) return packageTotal * roomQuantity;
 
     // 若 URL 帶了 packageId 但方案尚未載入完成，回傳 0 阻擋送出，避免誤用房型原價
     if (selectedPackageId) return 0;
 
-    // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）
-    return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
+    // 使用預先獲取的價格（room_inventory_pricing 逐晚 price）× 間數
+    return Object.values(roomPricing).reduce((sum, price) => sum + price, 0) * roomQuantity;
   };
 
   // 折扣基準：有包區方案時以「原價（劃掉用）」計算；否則以實際房費計算
   const getDiscountBase = () => {
     const originalTotal = calculatePackageOriginalTotal();
-    if (originalTotal != null && originalTotal > 0) return originalTotal;
+    if (originalTotal != null && originalTotal > 0) return originalTotal * roomQuantity;
     return calculateTotal();
   };
+
 
   /**
    * 套用折扣碼時，房費以「原價」計價（折扣碼與人客多優惠不疊加）：
@@ -2326,6 +2356,22 @@ const BookingFlow = () => {
         });
         return;
       }
+
+      // 多間預訂：確認整段期間每晚都還有足夠間數（防超賣）
+      if (
+        isMultiRoom &&
+        typeof availability?.minAvailable === "number" &&
+        availability.minAvailable < roomQuantity
+      ) {
+        toast({
+          title: "可訂間數不足",
+          description: `您選擇 ${roomQuantity} 間，但所選日期最少僅剩 ${availability.minAvailable} 間，請調整間數或日期`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+
 
       // 檢查是否被互斥房型阻擋
       if (availability?.isBlocked) {
@@ -2846,6 +2892,7 @@ const BookingFlow = () => {
               accommodationId,
               roomTypeId: selectedRoom.id,
               packageId: selectedPackageId,
+              roomQuantity,
               checkInDate: checkInDateStr,
               checkOutDate: checkOutDateStr,
               totalPrice,
@@ -3002,6 +3049,7 @@ const BookingFlow = () => {
                 mealPlanDetails: mealPlanDetailsData,
                 mealPlanTotal: mealPlanTotalPrice,
                 packageId: selectedPackageId,
+                roomQuantity,
                 petCount,
                 petPlanPrice,
                 finalPrice,
@@ -3282,7 +3330,20 @@ const BookingFlow = () => {
           throw orderError;
         }
         orderData = insertedOrder;
+
+        // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
+        if (isMultiRoom && insertedOrder?.id) {
+          const { error: orderRoomsError } = await supabase.from("order_rooms").insert([{
+            order_id: insertedOrder.id,
+            room_type_id: selectedRoom.id,
+            quantity: roomQuantity,
+          }]);
+          if (orderRoomsError) {
+            console.error("寫入多間房資料失敗:", orderRoomsError);
+          }
+        }
       }
+
 
       // 觸發 KOL Webhook（如果使用了折扣碼）
       if (appliedDiscount && orderData?.id) {
@@ -4093,9 +4154,9 @@ const BookingFlow = () => {
                   selectedPackage={selectedPackage}
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
-                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
@@ -5126,9 +5187,9 @@ const BookingFlow = () => {
                           selectedPackage={selectedPackage}
                           roomAllocation={selectedPackage?.room_allocation || null}
                           roomTypes={roomTypes}
-                          roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                          roomsCount={roomQuantity}
                           roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
@@ -5417,9 +5478,9 @@ const BookingFlow = () => {
                   selectedPackage={selectedPackage}
                   roomAllocation={selectedPackage?.room_allocation || null}
                   roomTypes={roomTypes}
-                  roomsCount={parseInt(searchParams.get("rooms") || "1", 10) || 1}
+                  roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : calculatePackageOriginalTotal()}
+                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}

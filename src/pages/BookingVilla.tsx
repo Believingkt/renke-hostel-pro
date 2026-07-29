@@ -143,7 +143,10 @@ const BookingVilla = () => {
     planMax: number;
     /** 單間房型可加訂：需要幾間、目前可訂幾間 */
     addRooms?: { needed: number; available: number; roomTypeName: string } | null;
+    /** 可加訂足夠間數時的「加訂並繼續」動作 */
+    proceed?: (() => void) | null;
   } | null>(null);
+
   const [bottomNavVisible, setBottomNavVisible] = useState(true);
   const [bottomNavHeight, setBottomNavHeight] = useState(61);
   const handleBottomNavVisibility = useCallback((visible: boolean) => {
@@ -647,10 +650,20 @@ const BookingVilla = () => {
         totalGuests,
         planMax,
         addRooms,
+        // 可加訂足夠間數時，提供「加訂並繼續」
+        proceed:
+          addRooms && addRooms.available >= addRooms.needed
+            ? () => goToBooking(opt, subPlanKey, addRooms!.needed)
+            : null,
       });
       return;
     }
 
+    goToBooking(opt, subPlanKey);
+  };
+
+  /** 導向結帳頁；roomsOverride 用於多間散房加訂 */
+  const goToBooking = (opt: CapacityOption, subPlanKey?: string, roomsOverride?: number) => {
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
@@ -663,9 +676,11 @@ const BookingVilla = () => {
     const roomsStr = searchParams.get("rooms");
     if (adultsStr) params.set("adults", adultsStr);
     if (childrenStr) params.set("children", childrenStr);
-    if (roomsStr) params.set("rooms", roomsStr);
+    if (roomsOverride && roomsOverride > 1) params.set("rooms", String(roomsOverride));
+    else if (roomsStr) params.set("rooms", roomsStr);
     navigate(`/book?${params.toString()}`);
   };
+
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -1449,7 +1464,7 @@ const BookingVilla = () => {
                     <p>
                       此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間
                       {capacityAlert.addRooms.roomTypeName}（所選日期尚有 {capacityAlert.addRooms.available} 間可訂）。
-                      請調整搜尋條的「房間數」後再選擇方案。
+                      可直接加訂足夠間數並繼續結帳，房費將以 {capacityAlert.addRooms.needed} 間計算。
                     </p>
                   ) : (
                     <p>
@@ -1469,13 +1484,18 @@ const BookingVilla = () => {
             <AlertDialogAction
               className="flex-1"
               onClick={() => {
+                const proceed = capacityAlert?.proceed;
                 setCapacityAlert(null);
-                setEditSearchOpen(true);
+                if (proceed) proceed();
+                else setEditSearchOpen(true);
               }}
             >
-              調整搜尋條件
+              {capacityAlert?.proceed
+                ? `加訂 ${capacityAlert.addRooms?.needed} 間並繼續`
+                : "調整搜尋條件"}
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
 

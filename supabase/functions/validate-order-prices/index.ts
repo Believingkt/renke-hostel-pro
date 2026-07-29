@@ -127,7 +127,21 @@ serve(async (req) => {
       childSelection = null,
       childExtraTotal = 0,
       packageId = null,
+      roomQuantity: rawRoomQuantity = 1,
     } = body as any;
+
+    // 多間預訂（僅限「非包棟且房間數 > 1」的散房房型）
+    const { data: roomTypeRow } = await supabase
+      .from("room_types")
+      .select("room_count, is_exclusive_package")
+      .eq("id", roomTypeId)
+      .maybeSingle();
+    const roomTypeUnits = Number((roomTypeRow as any)?.room_count ?? 1) || 1;
+    const multiUnitAllowed =
+      (roomTypeRow as any)?.is_exclusive_package !== true && roomTypeUnits > 1;
+    const requestedQty = Math.max(1, Math.floor(Number(rawRoomQuantity) || 1));
+    const roomQuantity = multiUnitAllowed ? Math.min(requestedQty, roomTypeUnits) : 1;
+
 
     // --- 下單限流（僅計未付款訂單；後台/匯入來源不受限） ---
     const guestEmail: string | null = (body as any)?.guestEmail ?? null;
@@ -334,6 +348,32 @@ serve(async (req) => {
         }
       }
     }
+
+    // 多間預訂：房費 × 間數，並確認每晚實際可訂間數足夠（防超賣）
+    if (roomQuantity > 1) {
+      calculatedRoomTotal *= roomQuantity;
+      discountBaseTotal *= roomQuantity;
+      try {
+        const { data: invRows } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+          p_room_type_id: roomTypeId,
+          p_dates: dates,
+          p_accommodation_id: accommodationId,
+        });
+        for (const row of (invRows as any[]) || []) {
+          const avail = row?.is_blocked === true ? 0 : Number(row?.available_rooms ?? 0);
+          if (avail < roomQuantity) {
+            errors.push(
+              `Not enough rooms on ${row?.date_value}: requested=${roomQuantity}, available=${avail}`,
+            );
+          }
+        }
+      } catch (e) {
+        console.error("[validate-order-prices] inventory check failed", e);
+        errors.push("Inventory check failed");
+      }
+    }
+
+
 
     // Calculate pet plan price
     let calculatedPetPrice = 0;
