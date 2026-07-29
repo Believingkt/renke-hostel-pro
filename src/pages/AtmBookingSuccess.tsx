@@ -227,25 +227,23 @@ export default function AtmBookingSuccess() {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
-        )
-        .eq("order_number", orderNumber)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: orderNumber, ...(accId ? { accommodation_id: accId } : {}) },
+      });
       if (!alive) return;
-      if (error || !data) {
-        setError(error?.message || "找不到訂單");
+      const found = (data as any)?.order;
+      if (error || !found) {
+        setError((data as any)?.error === "not_found" ? "找不到訂單" : error?.message || "找不到訂單");
       } else {
-        setOrder(data as OrderRow);
+        setOrder(found as OrderRow);
       }
       setLoading(false);
     })();
     return () => {
       alive = false;
     };
-  }, [orderNumber]);
+  }, [orderNumber, accId]);
+
 
   // Auto-refresh: realtime + polling fallback. When payment confirmed, redirect.
   useEffect(() => {
@@ -254,21 +252,19 @@ export default function AtmBookingSuccess() {
     if (paidDetected) return;
 
     const refetch = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
-        )
-        .eq("id", order.id)
-        .maybeSingle();
-      if (data) {
-        setOrder(data as OrderRow);
-        if (isPaid(data as OrderRow)) {
+      const { data } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: order.order_number },
+      });
+      const next = (data as any)?.order as OrderRow | undefined;
+      if (next) {
+        setOrder(next);
+        if (isPaid(next)) {
           setPaidDetected(true);
           toast.success("已收到您的匯款，訂單付款完成！");
         }
       }
     };
+
 
     const channel = supabase
       .channel(`atm-order-${order.id}`)
@@ -475,15 +471,14 @@ export default function AtmBookingSuccess() {
                 expireAt={order.atm_expire_at}
                 onExpired={() => {
                   // 到期瞬間再抓一次最新狀態，避免款項已入帳卻顯示逾期
-                  supabase
-                    .from("orders")
-                    .select("payment_status, order_status, paid_amount")
-                    .eq("id", order.id)
-                    .maybeSingle()
+                  supabase.functions
+                    .invoke("get-public-order", { body: { order_number: order.order_number } })
                     .then(({ data }) => {
-                      if (data) setOrder((prev) => (prev ? { ...prev, ...(data as Partial<OrderRow>) } : prev));
+                      const next = (data as any)?.order as Partial<OrderRow> | undefined;
+                      if (next) setOrder((prev) => (prev ? { ...prev, ...next } : prev));
                     });
                 }}
+
               />
             )}
             {depositSettings === null ? (
