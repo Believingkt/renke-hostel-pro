@@ -86,6 +86,7 @@ serve(async (req) => {
           triggerSource: "manual_resend",
           triggeredBy: ctx.userId,
           paymentMethodLabel: methodLabel,
+          paymentKind: emailType === "deposit_received" ? "deposit" : "final",
         }),
       });
       const body = await resp.json().catch(() => ({}));
