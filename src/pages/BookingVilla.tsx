@@ -1464,7 +1464,7 @@ const BookingVilla = () => {
                     <p>
                       此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間
                       {capacityAlert.addRooms.roomTypeName}（所選日期尚有 {capacityAlert.addRooms.available} 間可訂）。
-                      請調整搜尋條的「房間數」後再選擇方案。
+                      可直接加訂足夠間數並繼續結帳，房費將以 {capacityAlert.addRooms.needed} 間計算。
                     </p>
                   ) : (
                     <p>
