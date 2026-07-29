@@ -160,9 +160,9 @@ const EditSearchSheet = ({
       setI(infants);
       setTod(toddlers);
       setR(rooms);
-      if (hasDualAxis) setAxis(rooms >= 2 || adults >= 6 ? "package" : "common");
+      if (hasDualAxis) setAxis(stayMode ?? (rooms >= 2 || adults >= 6 ? "package" : "common"));
     }
-  }, [open, checkIn, checkOut, adults, children, infants, toddlers, rooms, hasDualAxis]);
+  }, [open, checkIn, checkOut, adults, children, infants, toddlers, rooms, hasDualAxis, stayMode]);
 
 
   const today = new Date();
