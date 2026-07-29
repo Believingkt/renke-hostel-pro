@@ -1138,10 +1138,17 @@ const BookingVilla = () => {
           {/* 上層：搜尋修改入口 */}
           <button
             onClick={() => setEditSearchOpen(true)}
-            className="w-full flex justify-between items-center bg-gray-50 rounded-lg px-2.5 py-1.5 active:scale-[0.99] transition"
+            className="w-full flex justify-between items-center rounded-xl px-3 py-2.5 active:scale-[0.99] transition ring-1"
+            style={{
+              backgroundColor: "rgba(240,138,62,0.10)",
+              borderColor: "rgba(240,138,62,0.45)",
+              boxShadow: "0 2px 10px rgba(240,138,62,0.18)",
+              // @ts-ignore inline ring color
+              "--tw-ring-color": "rgba(240,138,62,0.45)",
+            } as React.CSSProperties}
           >
-            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <Calendar className="w-3.5 h-3.5 text-gray-500" />
+            <span className="flex items-center gap-2 text-[15px] font-semibold text-gray-900">
+              <Calendar className="w-4 h-4" style={{ color: "#F08A3E" }} />
               {checkIn && checkOut ? (() => {
                 const adultsN = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1);
                 const kidsN =
@@ -1159,14 +1166,18 @@ const BookingVilla = () => {
                 );
               })() : (
 
-                <span>選擇日期與人數</span>
+                <span className="animate-pulse">選擇日期與人數</span>
               )}
             </span>
-            <span className="flex items-center gap-1 text-[13px] font-semibold" style={{ color: "#F08A3E" }}>
+            <span
+              className="flex items-center gap-1 text-[13px] font-bold text-white rounded-full px-2.5 py-1 shrink-0"
+              style={{ backgroundColor: "#F08A3E" }}
+            >
               修改
               <ChevronDown className="w-3.5 h-3.5" />
             </span>
           </button>
+
 
           {/* 下層：價格與主行動呼籲（「預約這段專屬假期」按鈕進入畫面時隱藏，附動畫過渡） */}
           <div
