@@ -442,7 +442,11 @@ export const AddonPlansSection = ({
             error={newPlanNameError}
             onChange={(value) => { setNewPlanName(value); setNewPlanNameError(""); }}
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            只填方案名稱（例：不加床加備品）。名稱不要放「NT$ 800 /」等價格前綴，價格請填在下方價格欄位。
+          </p>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
           <Button onClick={handleAddPlan}>新增</Button>
