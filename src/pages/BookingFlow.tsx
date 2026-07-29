@@ -5427,8 +5427,10 @@ const BookingFlow = () => {
                 />
               );
             })()}
-            {addonsSection && <div className="mt-4">{addonsSection}</div>}
+            {addonsSection && <div>{addonsSection}</div>}
+            </div>
           </div>
+
 
 
         </div>
