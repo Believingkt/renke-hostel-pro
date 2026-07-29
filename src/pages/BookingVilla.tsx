@@ -1484,13 +1484,18 @@ const BookingVilla = () => {
             <AlertDialogAction
               className="flex-1"
               onClick={() => {
+                const proceed = capacityAlert?.proceed;
                 setCapacityAlert(null);
-                setEditSearchOpen(true);
+                if (proceed) proceed();
+                else setEditSearchOpen(true);
               }}
             >
-              調整搜尋條件
+              {capacityAlert?.proceed
+                ? `加訂 ${capacityAlert.addRooms?.needed} 間並繼續`
+                : "調整搜尋條件"}
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
 
