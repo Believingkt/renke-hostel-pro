@@ -5583,6 +5583,34 @@ const BookingFlow = () => {
         </DialogContent>
       </Dialog>
 
+      {/* 自訂加購詳細內容對話框 */}
+      <Dialog open={!!customAddonDetail} onOpenChange={(open) => !open && setCustomAddonDetail(null)}>
+        <DialogContent className="max-w-3xl w-[95vw] md:w-full max-h-[85vh] md:max-h-[90vh] flex flex-col gap-0 p-0">
+          <div className="p-4 md:p-6 border-b">
+            <DialogTitle className="text-xl md:text-2xl font-bold mb-2">
+              🛏️ {customAddonDetail?.title}
+            </DialogTitle>
+            <DialogDescription className="text-base text-primary font-semibold">
+              {customAddonDetail?.subtitle}
+            </DialogDescription>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div
+              className="space-y-4 md:space-y-5 text-sm md:text-base prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={createSanitizedHtml(customAddonDetail?.html || '')}
+            />
+          </div>
+
+          <div className="p-4 md:p-6 border-t bg-muted/30">
+            <Button onClick={() => setCustomAddonDetail(null)} className="w-full h-11 md:h-10 text-base">
+              我了解了
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       {/* 付款重試對話框 */}
       <Dialog open={showRetryDialog} onOpenChange={(open) => {
         setShowRetryDialog(open);
