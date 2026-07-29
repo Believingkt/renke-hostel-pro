@@ -24,7 +24,9 @@ interface Props {
 const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
+
 
   const handleScroll = () => {
     const el = scrollerRef.current;
