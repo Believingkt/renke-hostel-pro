@@ -227,25 +227,23 @@ export default function AtmBookingSuccess() {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
-        )
-        .eq("order_number", orderNumber)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: orderNumber, ...(accId ? { accommodation_id: accId } : {}) },
+      });
       if (!alive) return;
-      if (error || !data) {
-        setError(error?.message || "找不到訂單");
+      const found = (data as any)?.order;
+      if (error || !found) {
+        setError((data as any)?.error === "not_found" ? "找不到訂單" : error?.message || "找不到訂單");
       } else {
-        setOrder(data as OrderRow);
+        setOrder(found as OrderRow);
       }
       setLoading(false);
     })();
     return () => {
       alive = false;
     };
-  }, [orderNumber]);
+  }, [orderNumber, accId]);
+
 
   // Auto-refresh: realtime + polling fallback. When payment confirmed, redirect.
   useEffect(() => {
