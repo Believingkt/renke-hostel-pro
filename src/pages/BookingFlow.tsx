@@ -3410,22 +3410,25 @@ const BookingFlow = () => {
 
   const addonsSection = currentStep === "payment" ? (
                   <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
-                    <Card className="border-2">
+                    <Card className="border border-border shadow-sm overflow-hidden">
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left hover:bg-muted/40 transition-colors rounded-t-lg"
+                          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-muted/40 transition-colors"
                         >
-                          <div className="flex items-center gap-2">
-                            <ShoppingBag className="h-5 w-5 text-primary" />
-                            <span className="text-lg font-bold">加購項目（選填）</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <ShoppingBag className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="text-base font-semibold tracking-tight truncate">加購項目（選填）</span>
                           </div>
                           <ChevronRight
                             className={cn(
-                              "h-5 w-5 text-muted-foreground transition-transform",
+                              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
                               isAddonsExpanded && "rotate-90",
                             )}
                           />
+                        </button>
+                      </CollapsibleTrigger>
+
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
