@@ -4029,7 +4029,7 @@ const BookingFlow = () => {
 
           {/* Main Content */}
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-4 sm:gap-8 items-start">
           {/* Left: Form Content */}
           <div className="w-full">
             <MemberSessionBar
