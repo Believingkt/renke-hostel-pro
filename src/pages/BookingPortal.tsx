@@ -1314,8 +1314,11 @@ const BookingPortal = () => {
       </button>
 
       <Sheet open={aiOpen} onOpenChange={setAiOpen}>
-        <SheetContent side="bottom" className="h-[92vh] p-0 flex flex-col rounded-t-2xl z-[80]">
-          <SheetHeader className="px-4 py-3 border-b">
+        <SheetContent
+          side="bottom"
+          className="h-[85dvh] max-h-[85dvh] sm:h-[80dvh] sm:max-h-[680px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-2xl sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
+        >
+          <SheetHeader className="px-4 py-3 border-b shrink-0">
             <SheetTitle className="text-base flex items-center gap-2">
               <span
                 className="w-7 h-7 rounded-full flex items-center justify-center text-white"
@@ -1326,9 +1329,10 @@ const BookingPortal = () => {
               AI 找房間
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {aiOpen && <PortalAIChatPanel />}
           </div>
+
         </SheetContent>
       </Sheet>
 
