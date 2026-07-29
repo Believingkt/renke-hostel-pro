@@ -141,17 +141,18 @@ Deno.serve(async (req) => {
     for (const k of kols as any[]) {
       const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
+      const venue = venueOf(k);
       const hasDate = hasVal(k.publish_date);
       const hasUrl = hasVal(k.publish_url);
 
       if (!hasDate && !hasUrl) {
         const deadline = addDays(k.check_in_date, 14);
         pendingBlocks.push(
-          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
         );
       } else {
         partialBlocks.push(
-          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
         );
       }
     }
