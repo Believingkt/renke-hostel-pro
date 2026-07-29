@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, Expand } from "lucide-react";
+import VillaPhotoLightbox from "./VillaPhotoLightbox";
+
 
 interface Photo {
   id: string;
