@@ -213,6 +213,35 @@ const SortablePlanCard = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              不確定怎麼填？先套用文案範本，再微調細節。
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!plan.enabled}>
+                  <Wand2 className="h-3.5 w-3.5" />
+                  一鍵套用文案範本
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
+                <DropdownMenuLabel>選擇範本</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {ADDON_COPY_TEMPLATES.map((tpl) => (
+                  <DropdownMenuItem
+                    key={tpl.id}
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => onApplyTemplate(index, tpl)}
+                  >
+                    <span className="text-sm">{tpl.label}</span>
+                    <span className="text-xs text-muted-foreground">{tpl.hint}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+
           <div className="grid grid-cols-2 gap-6">
             <ValidatedNumberInput
               label={getPriceLabel(plan.addon_type)}
