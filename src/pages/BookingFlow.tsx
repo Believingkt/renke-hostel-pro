@@ -3410,15 +3410,15 @@ const BookingFlow = () => {
 
   const addonsSection = currentStep === "payment" ? (
                   <Collapsible open={isAddonsExpanded} onOpenChange={setIsAddonsExpanded}>
-                    <Card className="border border-border shadow-sm overflow-hidden">
+                    <Card className="rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-muted/40 transition-colors"
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <ShoppingBag className="h-4 w-4 shrink-0 text-primary" />
-                            <span className="text-base font-semibold tracking-tight truncate">加購項目（選填）</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span className="text-sm font-bold text-foreground leading-snug truncate">加購項目（選填）</span>
                           </div>
                           <ChevronRight
                             className={cn(
@@ -3429,7 +3429,8 @@ const BookingFlow = () => {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-4 sm:px-5 pb-5 pt-4 space-y-5 border-t border-border">
+                        <div className="px-4 pb-4 pt-3 space-y-4 border-t border-border bg-muted/20">
+
 
                   <div className="space-y-6">
 
@@ -4029,7 +4030,7 @@ const BookingFlow = () => {
 
           {/* Main Content */}
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-4 sm:gap-8 items-start">
           {/* Left: Form Content */}
           <div className="w-full">
             <MemberSessionBar
@@ -5363,8 +5364,9 @@ const BookingFlow = () => {
           </div>
 
           {/* Right: Summary Sidebar - 桌機版比照手機版摘要 */}
-          <div className="hidden lg:block md:col-span-1">
-            <div className="sticky top-20 space-y-3">
+          <div className="hidden lg:block">
+            <div className="sticky top-20 space-y-3 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain pr-1 pb-4">
+
 
             {(() => {
               const nights = calculateNights();

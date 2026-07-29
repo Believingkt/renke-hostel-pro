@@ -120,7 +120,7 @@ export default function MobileOrderSummary({
   const perkTitle = selectedPackage?.subtitle || "尊榮禮遇";
 
   return (
-    <div className={variant === "desktop" ? "hidden lg:block sticky top-24" : "lg:hidden mb-4"}>
+    <div className={variant === "desktop" ? "hidden lg:block" : "lg:hidden mb-4"}>
 
       <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-sm">
         {/* 民宿名稱 - 放大並置中 */}
