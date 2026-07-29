@@ -3710,9 +3710,10 @@ const BookingFlow = () => {
                                   size="sm"
                                   className="shrink-0 text-xs"
                                   onClick={() => {
-                                    toast({
+                                    setCustomAddonDetail({
                                       title: cleanAddonName(addon.description || addon.addon_type),
-                                      description: addon.detailed_description || '',
+                                      subtitle: addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity),
+                                      html: addon.detailed_description || '',
                                     });
                                   }}
                                 >
