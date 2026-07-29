@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
     let order = null;
     let orderSource = '';
 
-    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method, order_source';
+    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, order_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method, order_source';
 
     if (order_number) {
       const { data, error } = await supabase
@@ -292,6 +292,15 @@ Deno.serve(async (req) => {
           notes: newNotes,
           updated_at: new Date().toISOString(),
         };
+
+        // 收到訂金／全額後，待確認訂單自動轉為已確認
+        if (
+          (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid' || newPaymentStatus === 'partial') &&
+          (order.order_status === 'pending' || order.order_status === 'pending_payment')
+        ) {
+          updatePayload.order_status = 'confirmed';
+          updatePayload.confirmed_at = new Date().toISOString();
+        }
 
         const { error: updateError } = await supabase
           .from('orders')

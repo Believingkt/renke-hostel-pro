@@ -3353,13 +3353,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                 <Building2 className="w-5 h-5 text-primary" />
                 ATM 虛擬帳號
                 {isExpired ? (
-                  <Badge variant="outline" className="text-destructive border-destructive/30">已逾期</Badge>
+                  <Badge variant="outline" className="ml-auto text-destructive border-destructive/30">已逾期</Badge>
                 ) : isAtmPaid ? (
-                  <Badge variant="outline" className="text-primary border-primary/30">
+                  <Badge variant="outline" className="ml-auto text-primary border-primary/30">
                     {o.payment_status === "paid" ? "已付清" : "已付訂金"}
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-primary border-primary/30">有效</Badge>
+                  <Badge variant="outline" className="ml-auto text-primary border-primary/30">待付款</Badge>
                 )}
               </CardTitle>
             </CardHeader>
