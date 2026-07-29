@@ -273,6 +273,7 @@ const EditSearchSheet = ({
       infants: i,
       toddlers: tod,
       rooms: r,
+      stayMode: hasDualAxis && axis !== "all" ? axis : null,
     });
     onOpenChange(false);
   };
