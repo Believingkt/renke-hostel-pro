@@ -1510,9 +1510,11 @@ const BookingFlow = () => {
           hasMissingPricing,
           missingDates,
           hasNoAvailability,
-          unavailableDates
+          unavailableDates,
+          minAvailable: Number.isFinite(minAvailable) ? minAvailable : null,
         }
       }));
+
     };
 
     fetchRoomPricingAndAvailability();
