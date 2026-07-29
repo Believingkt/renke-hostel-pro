@@ -755,16 +755,13 @@ const BookingVilla = () => {
         <div className="sm:hidden px-3 py-2">
           <button
             onClick={() => setEditSearchOpen(true)}
-            className="w-full flex justify-between items-center gap-2 rounded-xl px-3 py-2.5 active:scale-[0.99] transition ring-1"
-            style={{
-              backgroundColor: "rgba(240,138,62,0.10)",
-              boxShadow: "0 2px 10px rgba(240,138,62,0.18)",
-              // @ts-ignore inline ring color
-              "--tw-ring-color": "rgba(240,138,62,0.45)",
-            } as React.CSSProperties}
+            className="w-full flex items-center gap-3 rounded-2xl bg-card pl-3 pr-2 py-2 text-left active:scale-[0.99] transition-transform border border-primary/30 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.45)]"
           >
-            <span className="flex items-center gap-2 text-[15px] font-semibold text-gray-900 min-w-0 truncate">
-              <Calendar className="w-4 h-4 shrink-0" style={{ color: "#F08A3E" }} />
+            <span className="grid place-items-center h-9 w-9 shrink-0 rounded-xl bg-primary/12 text-primary">
+              <Calendar className="w-[18px] h-[18px]" />
+            </span>
+
+            <span className="flex-1 min-w-0">
               {checkIn && checkOut ? (() => {
                 const adultsN = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1);
                 const kidsN =
@@ -773,25 +770,31 @@ const BookingVilla = () => {
                   Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0);
                 const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
                 return (
-                  <span className="truncate">
-                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")}｜{nights}晚
-                    {" · "}{adultsN}大
-                    {kidsN > 0 && <>{" · "}{kidsN}小</>}
-                  </span>
+                  <>
+                    <span className="block text-[15px] font-bold text-foreground truncate leading-tight">
+                      {format(checkIn, "M/d")} – {format(checkOut, "M/d")}
+                      <span className="text-muted-foreground font-medium">・{nights} 晚</span>
+                    </span>
+                    <span className="block text-[13px] text-muted-foreground truncate mt-0.5">
+                      {adultsN} 位大人{kidsN > 0 && <>・{kidsN} 位兒童</>}
+                    </span>
+                  </>
                 );
               })() : (
-                <span className="animate-pulse">選擇日期與人數</span>
+                <>
+                  <span className="block text-[15px] font-bold text-foreground leading-tight">選擇日期與人數</span>
+                  <span className="block text-[13px] text-muted-foreground mt-0.5">查看即時空房與價格</span>
+                </>
               )}
             </span>
-            <span
-              className="flex items-center gap-1 text-[13px] font-bold text-white rounded-full px-2.5 py-1 shrink-0"
-              style={{ backgroundColor: "#F08A3E" }}
-            >
+
+            <span className="flex items-center gap-1 shrink-0 h-9 px-3.5 rounded-full bg-primary text-primary-foreground text-[13px] font-bold shadow-sm">
               修改
               <ChevronDown className="w-3.5 h-3.5" />
             </span>
           </button>
         </div>
+
       </div>
 
       {/* ── Section Anchor Tabs（Trip.com 風格橫向頁籤） ── */}
