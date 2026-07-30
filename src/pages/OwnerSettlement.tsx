@@ -1135,6 +1135,10 @@ export default function OwnerSettlement() {
                                     <div>
                                       抽成基礎 NT$ {fmt(gc.commissionBase)} × {config.commission_rate}% = 人客多抽成 NT$ {fmt(gc.commission)}
                                       {gc.exempt && "（不抽成）"}
+                                      {!gc.exempt && effectiveRule.commission_threshold > 0 && (
+                                        <span className="text-muted-foreground">（已依當月營收門檻 NT$ {fmt(effectiveRule.commission_threshold)} 分攤）</span>
+                                      )}
+
                                     </div>
                                     <div>
                                       入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
