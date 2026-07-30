@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
+import { Send, Loader2, ArrowLeft, ArrowRight, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
