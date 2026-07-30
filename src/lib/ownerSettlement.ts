@@ -304,7 +304,7 @@ export interface GuestCountTotals {
 export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals {
   const sum = (f: (r: GuestCountRow) => number) => rows.reduce((s, r) => s + f(r), 0);
   return {
-    totalRevenue: sum((r) => Number(r.order.final_price || 0)),
+    totalRevenue: sum((r) => r.finalPrice),
     totalAddonTotal: sum((r) => r.addonTotal),
     totalCommissionBase: sum((r) => r.commissionBase),
     totalCommission: sum((r) => r.commission),
