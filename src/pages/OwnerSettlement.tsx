@@ -232,6 +232,10 @@ export default function OwnerSettlement() {
         });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
+      setAccCurrency({
+        secondary_currency: (accRes.data as any)?.secondary_currency ?? null,
+        secondary_currency_rate: (accRes.data as any)?.secondary_currency_rate ?? null,
+      });
       const tmap: Record<string, string> = {};
       (templatesRes.data || []).forEach((t: any) => {
         tmap[t.id] = t.template_name || t.project_name || t.id;
