@@ -6935,6 +6935,65 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_settlement_pricing_rules: {
+        Row: {
+          accommodation_id: string
+          commission_rate: number
+          commission_threshold: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          exempt_order_sources: string[] | null
+          id: string
+          marketing_fee_high: number
+          marketing_fee_low: number
+          marketing_fee_threshold: number
+          note: string | null
+          revenue_breakdown_type: string | null
+          tier_rate_enabled: boolean
+        }
+        Insert: {
+          accommodation_id: string
+          commission_rate: number
+          commission_threshold?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          exempt_order_sources?: string[] | null
+          id?: string
+          marketing_fee_high?: number
+          marketing_fee_low?: number
+          marketing_fee_threshold?: number
+          note?: string | null
+          revenue_breakdown_type?: string | null
+          tier_rate_enabled?: boolean
+        }
+        Update: {
+          accommodation_id?: string
+          commission_rate?: number
+          commission_threshold?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          exempt_order_sources?: string[] | null
+          id?: string
+          marketing_fee_high?: number
+          marketing_fee_low?: number
+          marketing_fee_threshold?: number
+          note?: string | null
+          revenue_breakdown_type?: string | null
+          tier_rate_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_settlement_pricing_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_analytics: {
         Row: {
           accommodation_id: string
