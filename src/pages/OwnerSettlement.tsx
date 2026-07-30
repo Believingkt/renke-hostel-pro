@@ -1026,6 +1026,14 @@ export default function OwnerSettlement() {
 
                               <div className="text-xs text-muted-foreground border-t pt-2 space-y-0.5">
                                 {useGc ? (
+                                  r.isForeign && r.order.currency_at_booking ? (
+                                    <>
+                                      <div>
+                                        入住營收 {getCurrencySymbol(r.currency)}{fmt(gc.finalPriceOriginal)} × 匯率快照 {r.exchangeRate} = NT$ {fmt(gc.finalPrice)}
+                                      </div>
+                                      <div className="text-amber-700">非台幣訂單不列入抽成與溢價分潤</div>
+                                    </>
+                                  ) : (
                                   <>
                                     <div>
                                       入住營收 NT$ {fmt(gc.finalPrice)} − 加購項目 NT$ {fmt(gc.addonTotal)} = 抽成基礎 NT$ {fmt(gc.commissionBase)}
@@ -1042,6 +1050,8 @@ export default function OwnerSettlement() {
                                       平台費用合計 = 人客多抽成 NT$ {fmt(gc.commission)} + 溢價分潤 NT$ {fmt(gc.premiumShare)} = NT$ {fmt(gc.platformFeeTotal)}
                                     </div>
                                   </>
+                                  )
+
 
                                 ) : (
                                   <div>
