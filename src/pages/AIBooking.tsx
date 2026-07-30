@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
+import { Send, Loader2, ArrowLeft, ArrowRight, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -18,6 +18,27 @@ import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
+
+// 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
+const BOOKING_LINK_REGEX = /(?:https?:\/\/[^\s)]+)?\/book\?[^\s)\]，。、]+/g;
+function stripBookingLinks(content: string): { text: string; links: string[] } {
+  if (!content) return { text: content, links: [] };
+  const matches = content.match(BOOKING_LINK_REGEX) || [];
+  const links = Array.from(
+    new Set(
+      matches.map((m) => {
+        const idx = m.indexOf('/book?');
+        return m.slice(idx);
+      })
+    )
+  );
+  const text = content
+    .replace(BOOKING_LINK_REGEX, '')
+    .replace(/\[([^\]]*)\]\(\s*\)/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return { text, links };
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -205,6 +226,10 @@ export default function AIBooking() {
                     const roomNames = tc.data.map((r: any) => r.name).join('、');
                     return `[系統：已向客人展示房型卡片：${roomNames}]`;
                   }
+                  if (tc.type === 'packages') {
+                    const pkgNames = tc.data.map((p: any) => p.name).join('、');
+                    return `[系統：已向客人展示包棟方案卡片（含訂購連結）：${pkgNames}，不需重複列出連結]`;
+                  }
                   if (tc.type === 'booking' && tc.data?.success) {
                     return `[系統：已成功建立訂單 ${tc.data.order_number}]`;
                   }
@@ -270,6 +295,7 @@ export default function AIBooking() {
             if (parsed.type === 'tool_calls_complete') {
               parsed.results.forEach((r: any) => {
                 if (r.result?.rooms) fbToolCalls.push({ type: 'rooms', data: r.result.rooms });
+                if (r.result?.packages?.length) fbToolCalls.push({ type: 'packages', data: r.result.packages });
                 if (r.result?.success !== undefined) fbToolCalls.push({ type: 'booking', data: r.result });
                 if (r.result?.is_valid !== undefined) fbToolCalls.push({ type: 'discount', data: r.result });
               });
@@ -355,6 +381,9 @@ export default function AIBooking() {
                 const lastMsg = updated[updated.length - 1];
                 
                 const toolCalls = parsed.results.map((r: any) => {
+                  if (r.result?.packages?.length) {
+                    return { type: 'packages', data: r.result.packages };
+                  }
                   if (r.result?.rooms) {
                     // Skip rendering room cards if already shown
                     if (roomsAlreadyShown) return null;
@@ -1160,9 +1189,27 @@ export default function AIBooking() {
                       >
                         {/* Sanitize AI-generated content to prevent XSS attacks */}
                         {message.role === "assistant" 
-                          ? sanitizeAIContent(message.content) 
+                          ? stripBookingLinks(sanitizeAIContent(message.content)).text
                           : message.content}
+
+                        {/* AI 文字內提到的訂購連結，改為 App 內跳轉按鈕 */}
+                        {message.role === "assistant" && stripBookingLinks(sanitizeAIContent(message.content)).links.length > 0 && (
+                          <div className="mt-2.5 flex flex-col gap-1.5">
+                            {stripBookingLinks(sanitizeAIContent(message.content)).links.map((link, linkIdx) => (
+                              <Button
+                                key={linkIdx}
+                                size="sm"
+                                className="w-full text-xs md:text-sm shadow-sm"
+                                onClick={() => navigate(link)}
+                              >
+                                前往訂購頁
+                                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
+
                       
                       {/* 時間戳記 */}
                       {message.timestamp && (
@@ -1314,16 +1361,29 @@ export default function AIBooking() {
                                         </div>
                                         
                                         {/* 選擇按鈕 */}
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          className="w-full md:h-10 shadow-sm hover:shadow-md transition-all duration-200 text-xs md:text-sm"
-                                          onClick={() => handleSelectRoom(room.name, room.id)}
-                                          disabled={isLoading}
-                                        >
-                                          <span className="mr-1">✨</span>
-                                          選擇此房型
-                                        </Button>
+                                        <div className="flex flex-col gap-1.5">
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="w-full md:h-10 shadow-sm hover:shadow-md transition-all duration-200 text-xs md:text-sm"
+                                            onClick={() => handleSelectRoom(room.name, room.id)}
+                                            disabled={isLoading}
+                                          >
+                                            <span className="mr-1">✨</span>
+                                            選擇此房型
+                                          </Button>
+                                          {room.booking_url && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full md:h-10 text-xs md:text-sm border-primary/40 text-primary hover:bg-primary/10"
+                                              onClick={() => navigate(room.booking_url)}
+                                            >
+                                              前往訂購頁
+                                              <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                            </Button>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </Card>
@@ -1331,6 +1391,77 @@ export default function AIBooking() {
                               })}
                             </div>
                           )}
+
+                          {/* 包棟／包區方案 */}
+                          {tool.type === 'packages' && Array.isArray(tool.data) && tool.data.length > 0 && (
+                            <div className="space-y-2.5 mt-3">
+                              <p className="text-sm font-semibold text-foreground flex items-center gap-2 px-1">
+                                <span className="text-base">🏡</span>
+                                <span>包棟／包區方案</span>
+                              </p>
+                              {tool.data.map((pkg: any, pkgIdx: number) => (
+                                <Card
+                                  key={pkgIdx}
+                                  className={`p-3 md:p-4 border-primary/20 transition-all duration-200 ${
+                                    pkg.is_available_for_range === false ? 'opacity-70' : 'hover:shadow-lg'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <h3 className="font-bold text-sm md:text-base truncate">{pkg.name}</h3>
+                                      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                                        👥 可住 {pkg.guest_count_max ?? pkg.guest_count} 人
+                                        {pkg.nights ? ` ・ ${pkg.nights} 晚` : ''}
+                                        {pkg.accommodation ? ` ・ ${pkg.accommodation}` : ''}
+                                      </p>
+                                      {pkg.check_in_date && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          📅 {pkg.check_in_date} ~ {pkg.check_out_date}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      {pkg.total_price ? (
+                                        <>
+                                          <div className="font-bold text-primary text-base md:text-lg">
+                                            NT$ {Number(pkg.total_price).toLocaleString()}
+                                          </div>
+                                          {pkg.avg_price_per_night && pkg.nights > 1 && (
+                                            <div className="text-[11px] text-muted-foreground">
+                                              每晚均價 NT$ {Number(pkg.avg_price_per_night).toLocaleString()}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : pkg.price_from ? (
+                                        <div className="font-bold text-primary text-base md:text-lg">
+                                          NT$ {Number(pkg.price_from).toLocaleString()} 起
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </div>
+
+                                  {pkg.is_available_for_range === false ? (
+                                    <p className="mt-2 text-xs text-destructive">
+                                      此日期已滿房
+                                      {pkg.unavailable_dates?.length ? `（${pkg.unavailable_dates.slice(0, 3).join('、')}${pkg.unavailable_dates.length > 3 ? '…' : ''}）` : ''}
+                                    </p>
+                                  ) : (
+                                    pkg.booking_url && (
+                                      <Button
+                                        size="sm"
+                                        className="w-full mt-2.5 md:h-10 text-xs md:text-sm shadow-sm"
+                                        onClick={() => navigate(pkg.booking_url)}
+                                      >
+                                        立即前往訂購
+                                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                      </Button>
+                                    )
+                                  )}
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+
                           
                           {/* 訂單創建結果 */}
                           {tool.type === 'booking' && tool.data.success && (

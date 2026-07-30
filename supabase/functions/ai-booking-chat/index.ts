@@ -579,6 +579,16 @@ serve(async (req) => {
                 }
               }
 
+              const roomBookingUrl = (() => {
+                const q = new URLSearchParams();
+                q.set('acc', accommodationId);
+                q.set('roomId', rt.id);
+                q.set('checkIn', args.check_in_date);
+                q.set('checkOut', args.check_out_date);
+                q.set('stay', 'common');
+                return `/book?${q.toString()}`;
+              })();
+
               return {
                 id: rt.id,
                 name: rt.name,
@@ -590,10 +600,14 @@ serve(async (req) => {
                 is_available_for_range: unavailableDates.length === 0,
                 unavailable_dates: unavailableDates,
                 blocked_reasons: blockedReasons,
+                check_in_date: args.check_in_date,
+                check_out_date: args.check_out_date,
+                booking_url: unavailableDates.length === 0 ? roomBookingUrl : null,
                 range_total_price: unavailableDates.length === 0 ? totalPrice : null,
                 range_total_price_2_meals: unavailableDates.length === 0 && has2MealsPricing ? totalPrice2Meals : null,
                 range_total_price_3_meals: unavailableDates.length === 0 && has3MealsPricing ? totalPrice3Meals : null,
               };
+
             })
           };
         }
@@ -646,8 +660,10 @@ serve(async (req) => {
               max_3_meals: max3Meals,
               description: rt.description,
               size_sqm: rt.size_sqm,
-              photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
+              photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || [],
+              booking_url: `/book?acc=${accommodationId}&roomId=${rt.id}&stay=common`
             };
+
           })
         };
       }
