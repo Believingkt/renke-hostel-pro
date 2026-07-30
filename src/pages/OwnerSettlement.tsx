@@ -513,19 +513,30 @@ export default function OwnerSettlement() {
 
       <h2>收益拆解</h2>
       <table>
+        ${isGuestCount ? `
+        <tr><td>入住營收</td><td class="r">NT$ ${fmt(gcTotals.totalRevenue)}</td></tr>
+        <tr><td>加購項目（全額歸業主）</td><td class="r">NT$ ${fmt(gcTotals.totalAddonTotal)}</td></tr>
+        <tr><td>抽成基礎</td><td class="r">NT$ ${fmt(gcTotals.totalCommissionBase)}</td></tr>
+        <tr><td>人客多抽成 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
+        <tr><td>溢價分潤</td><td class="r">−NT$ ${fmt(gcTotals.totalPremiumShare)}</td></tr>
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet)}</td></tr>
+        ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
         <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
         <tr><td>行銷推廣費（${propertyCount} 棟）</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
         <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
         <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(totals.ownerNet)}</td></tr>
+        `}
       </table>
 
-      <h2>訂單明細（依入住日攤分至本月）</h2>
+      <h2>${isGuestCount ? "訂單明細（依入住月份全額計算）" : "訂單明細（依入住日攤分至本月）"}</h2>
       <table>
-        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th><th class="r">本月夜數</th><th class="r">本月營收</th><th class="r">抽成</th></tr></thead>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "入住營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">抽成基礎</th>` : ""}<th class="r">抽成</th></tr></thead>
         <tbody>${orderRowsHtml || `<tr><td colspan="6">本月無入住訂單</td></tr>`}</tbody>
       </table>
+
 
       <h2>購物商品（非訂房收入）明細　共 ${addonItems.length} 筆　合計 NT$ ${fmt(totals.addonTotal)}</h2>
       <table>
