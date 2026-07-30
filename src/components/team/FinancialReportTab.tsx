@@ -798,14 +798,24 @@ export default function FinancialReportTab() {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map(({ row, depth, isChild }) => {
+                rows.map(({ row, depth, isChild }, idx) => {
                   const total = row.buckets.reduce((a, b) => a + b, 0);
                   const expandable = !isChild && (row.children?.length ?? 0) > 0;
                   const isOpen = !!expanded[row.key];
                   const isRow5 = row.key === "row5";
                   const totalDash = isRow5 && !row5.hasAnyRate;
+                  const nextKey = rows[idx + 1]?.row.key;
+                  const isRow2Group = row.key === "row2" || row.key.startsWith("row2-");
+                  const showTotalsAfter =
+                    isRow2Group && (!nextKey || !(nextKey === "row2" || nextKey.startsWith("row2-")));
+                  const totalsBuckets = emptyBuckets(weekCount);
+                  for (let i = 0; i < weekCount; i++) {
+                    totalsBuckets[i] = (row1.buckets[i] ?? 0) + (row2.buckets[i] ?? 0);
+                  }
+                  const totalsGrand = totalsBuckets.reduce((a, b) => a + b, 0);
                   return (
-                    <TableRow key={row.key} className={isChild ? "bg-muted/30" : ""}>
+                    <Fragment key={row.key}>
+                    <TableRow className={isChild ? "bg-muted/30" : ""}>
                       <TableCell className={`font-medium ${depth > 0 ? "pl-8" : ""}`}>
                         {expandable ? (
                           <button
@@ -835,8 +845,32 @@ export default function FinancialReportTab() {
                         {totalDash ? "—" : fmtMoney(total)}
                       </TableCell>
                     </TableRow>
+                    {showTotalsAfter && (
+                      <TableRow className="bg-muted font-bold border-y-2">
+                        <TableCell className="font-bold">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 hover:underline"
+                            onClick={() => setTotalsOpen((v) => !v)}
+                          >
+                            {totalsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            合計（訂房組＋KOL）
+                          </button>
+                        </TableCell>
+                        {totalsBuckets.map((v, i) => (
+                          <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
+                            {totalsOpen ? fmtMoney(v) : "—"}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
+                          {totalsOpen ? fmtMoney(totalsGrand) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   );
                 })
+
               )}
             </TableBody>
           </Table>
