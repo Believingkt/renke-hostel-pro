@@ -589,29 +589,30 @@ export default function OwnerSettlement() {
                 {monthLabel} 業主淨收益
               </div>
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
-                NT$ {fmt(totals.ownerNet)}
+                NT$ {fmt(summary.ownerNet)}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
               <div>
                 <div className="text-muted-foreground">本月入住營收</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  NT$ {fmt(totals.totalRevenue)}
+                  NT$ {fmt(summary.totalRevenue)}
                 </div>
               </div>
               <div>
                 <div className="text-muted-foreground">訂單數</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  {rows.length}
+                  {summary.orderCount}
                 </div>
               </div>
               <div>
-                <div className="text-muted-foreground">本月總夜數</div>
+                <div className="text-muted-foreground">{isGuestCount ? "平台費用合計" : "本月總夜數"}</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  {rows.reduce((s, r) => s + r.nightsInMonth, 0)}
+                  {isGuestCount ? `NT$ ${fmt(summary.platformTotal)}` : summary.totalNights}
                 </div>
               </div>
             </div>
+
           </div>
         </CardContent>
       </Card>
