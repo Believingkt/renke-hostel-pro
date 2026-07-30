@@ -332,6 +332,71 @@ export default function OwnerSettlement() {
     return m;
   }, [gcRows]);
 
+  /**
+   * 訂單明細表格的統一資料源：
+   * - guestcount 型：直接迭代 gcRows（篩選 = check_in_date 落在本月）
+   * - standard 型：維持原本的 rows（依本月夜數攤分）
+   */
+  const tableRows = useMemo(() => {
+    if (isGuestCount) {
+      return (gcRows as any[])
+        .map((g) => ({
+          id: g.order.id as string,
+          order: g.order as Order,
+          gc: g,
+          std: null as OrderRow | null,
+          revenue: g.finalPrice as number,
+          revenueOriginal: g.finalPriceOriginal as number,
+          orderAmount: g.commissionBase as number,
+          commission: (g.commission + g.premiumShare) as number,
+          exempt: g.exempt as boolean,
+          currency: g.currency as string,
+          exchangeRate: g.exchangeRate as number,
+          isForeign: g.isForeign as boolean,
+        }))
+        .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
+    }
+    return rows.map((r) => ({
+      id: r.order.id,
+      order: r.order,
+      gc: null as any,
+      std: r as OrderRow | null,
+      revenue: r.monthFinal,
+      revenueOriginal: r.monthFinalOriginal,
+      orderAmount: r.monthCommissionable,
+      commission: r.commission,
+      exempt: r.exempt,
+      currency: r.currency,
+      exchangeRate: r.exchangeRate,
+      isForeign: r.isForeign,
+    }));
+  }, [isGuestCount, gcRows, rows]);
+
+  /** 頁面總計：guestcount 型改吃 gcTotals */
+  const summary = useMemo(() => {
+    if (isGuestCount) {
+      return {
+        totalRevenue: gcTotals.totalRevenue,
+        platformTotal: gcTotals.totalPlatformFee,
+        totalCommission: gcTotals.totalCommission,
+        marketingFee: 0,
+        ownerNet: gcTotals.ownerNet,
+        orderCount: gcRows.length,
+        totalNights: null as number | null,
+      };
+    }
+    return {
+      totalRevenue: totals.totalRevenue,
+      platformTotal: totals.totalCommission + totals.marketingFee,
+      totalCommission: totals.totalCommission,
+      marketingFee: totals.marketingFee,
+      ownerNet: totals.ownerNet,
+      orderCount: rows.length,
+      totalNights: rows.reduce((s, r) => s + r.nightsInMonth, 0) as number | null,
+    };
+  }, [isGuestCount, gcTotals, gcRows, totals, rows]);
+
+
   /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
   const foreignSummary = useMemo(() => {
     const source: Array<{ isForeign: boolean; currency: string; exchangeRate: number; original: number }> =
