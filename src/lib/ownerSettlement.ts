@@ -130,6 +130,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
+  currencyFallback?: AccommodationCurrencyFallback | null,
 ): OwnerSettlementRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -147,11 +148,16 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     }
     if (nightsInMonth === 0) continue;
 
+    const resolved = resolveOrderCurrency(o, currencyFallback);
     const ratio = nightsInMonth / totalNights;
-    const monthFinal = Number(o.final_price || 0) * ratio;
-    const monthDiscount = Number(o.discount_amount || 0) * ratio;
+    const monthFinalOriginal = Number(o.final_price || 0) * ratio;
+    const monthFinal = convertToTwd(monthFinalOriginal, resolved);
+    const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
     const monthCommissionable = monthFinal;
-    const exempt = !!o.owner_direct || (o.order_source ? exemptSet.has(o.order_source) : false);
+    const exempt =
+      !!o.owner_direct ||
+      (o.order_source ? exemptSet.has(o.order_source) : false) ||
+      resolved.isForeign;
     const commission = exempt ? 0 : monthCommissionable * (config.commission_rate / 100);
 
     rows.push({
@@ -164,10 +170,15 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
       monthCommissionable,
       commission,
       exempt,
+      currency: resolved.currency,
+      exchangeRate: resolved.rate,
+      isForeign: resolved.currency !== "TWD",
+      monthFinalOriginal,
     });
   }
   return rows;
 }
+
 
 export interface OwnerSettlementTotals {
   totalRevenue: number;
