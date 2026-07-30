@@ -451,7 +451,7 @@ export default function OwnerSettlement() {
       orderCount: rows.length,
       totalNights: rows.reduce((s, r) => s + r.nightsInMonth, 0) as number | null,
     };
-  }, [isGuestCount, gcTotals, gcRows, totals, rows]);
+  }, [isGuestCount, gcTotals, gcRows, totals, rows, gcMarketingFee]);
 
 
   /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
