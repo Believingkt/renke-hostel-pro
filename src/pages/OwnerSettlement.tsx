@@ -362,6 +362,20 @@ export default function OwnerSettlement() {
   );
 
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
+
+  /**
+   * guestcount 型的行銷推廣費：僅在該館別已套用新制（owner_settlement_pricing_rules）
+   * 且金額 > 0 時才列入，避免改動既有館別的拆解結果。
+   */
+  const gcMarketingFee = useMemo(() => {
+    if (!isGuestCount || !effectiveRule.fromTable) return 0;
+    return resolveMarketingFee(
+      effectiveRule,
+      getGuestCountThresholdBase(gcRows as any),
+      propertyCount
+    );
+  }, [isGuestCount, effectiveRule, gcRows, propertyCount]);
+
   const gcCrossMonthOrders = useMemo(
     () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
     [gcRows]
