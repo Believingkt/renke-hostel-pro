@@ -123,9 +123,9 @@ export default function OwnerSettlementSettings() {
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
           revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
-          // 舊制沒有門檻概念，門檻相關欄位預設 0；行銷費（未達門檻）沿用基本服務費
+          // 舊制沒有門檻概念，門檻相關欄位一律預設 0（未啟用門檻機制）
           commission_threshold: 0,
-          marketing_fee_low: Number(raw.marketing_fee_base ?? DEFAULT_CONFIG.marketing_fee_base) || 0,
+          marketing_fee_low: 0,
           marketing_fee_high: 0,
           marketing_fee_threshold: 0,
         };
@@ -478,7 +478,14 @@ export default function OwnerSettlementSettings() {
               min={0}
               step={1000}
               value={config.marketing_fee_threshold}
-              onChange={(e) => setConfig({ ...config, marketing_fee_threshold: Number(e.target.value) })}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setConfig((prev) => ({
+                  ...prev,
+                  marketing_fee_threshold: next,
+                  ...(next > 0 ? {} : { marketing_fee_low: 0, marketing_fee_high: 0 }),
+                }));
+              }}
             />
             <p className="text-xs text-muted-foreground">
               0 = 恆用「未達門檻」金額，並沿用「每多一棟加收」的舊公式；超過門檻改用「超過門檻」金額。
@@ -490,27 +497,40 @@ export default function OwnerSettlementSettings() {
 
           <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
             <div className="space-y-2">
-              <Label htmlFor="marketing_fee_low">行銷推廣費（未達門檻，NT$）</Label>
+              <Label htmlFor="marketing_fee_low" className={config.marketing_fee_threshold > 0 ? "" : "text-muted-foreground"}>
+                行銷推廣費（未達門檻，NT$）
+              </Label>
               <Input
                 id="marketing_fee_low"
                 type="number"
                 min={0}
                 step={100}
-                value={config.marketing_fee_low}
+                disabled={!(config.marketing_fee_threshold > 0)}
+                className={config.marketing_fee_threshold > 0 ? "" : "opacity-60"}
+                value={config.marketing_fee_threshold > 0 ? config.marketing_fee_low : 0}
                 onChange={(e) => setConfig({ ...config, marketing_fee_low: Number(e.target.value) })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="marketing_fee_high">行銷推廣費（超過門檻，NT$）</Label>
+              <Label htmlFor="marketing_fee_high" className={config.marketing_fee_threshold > 0 ? "" : "text-muted-foreground"}>
+                行銷推廣費（超過門檻，NT$）
+              </Label>
               <Input
                 id="marketing_fee_high"
                 type="number"
                 min={0}
                 step={100}
-                value={config.marketing_fee_high}
+                disabled={!(config.marketing_fee_threshold > 0)}
+                className={config.marketing_fee_threshold > 0 ? "" : "opacity-60"}
+                value={config.marketing_fee_threshold > 0 ? config.marketing_fee_high : 0}
                 onChange={(e) => setConfig({ ...config, marketing_fee_high: Number(e.target.value) })}
               />
             </div>
+            {!(config.marketing_fee_threshold > 0) && (
+              <p className="sm:col-span-2 text-xs text-muted-foreground">
+                門檻為 0，未啟用門檻機制：這兩個欄位停用，行銷費以「基本服務費 + 每多一棟加收」計算。
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
