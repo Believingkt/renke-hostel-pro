@@ -1032,10 +1032,11 @@ export default function OwnerSettlement() {
                                   </>
                                 ) : (
                                   <div>
-                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights}
-                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.monthFinal)}
-                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
+                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.revenue)}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
                                   </div>
+
                                 )}
                                 {r.exempt && r.isForeign && r.order.currency_at_booking && (
                                   <div className="text-amber-700">非台幣訂單不列入抽成與溢價分潤</div>
