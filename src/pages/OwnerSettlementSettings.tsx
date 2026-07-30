@@ -368,6 +368,81 @@ export default function OwnerSettlementSettings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>業績門檻收費規則</CardTitle>
+          <CardDescription>
+            以「單一館別當月營收」（未扣加購項目、排除非台幣與不抽成訂單）作為門檻判斷基礎。門檻填 0 代表沿用原本的計算方式。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="commission_threshold">抽成門檻（NT$）</Label>
+            <Input
+              id="commission_threshold"
+              type="number"
+              min={0}
+              step={1000}
+              value={config.commission_threshold}
+              onChange={(e) => setConfig({ ...config, commission_threshold: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {config.commission_threshold > 0
+                ? `當月營收超過 NT$ ${config.commission_threshold.toLocaleString()} 的部分，才以 ${config.commission_rate}% 抽成`
+                : "0 = 全額抽成，無門檻（與現行邏輯相同）"}
+            </p>
+          </div>
+
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="marketing_fee_threshold">行銷推廣費門檻（NT$）</Label>
+            <Input
+              id="marketing_fee_threshold"
+              type="number"
+              min={0}
+              step={1000}
+              value={config.marketing_fee_threshold}
+              onChange={(e) => setConfig({ ...config, marketing_fee_threshold: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {config.marketing_fee_threshold > 0
+                ? `未達 NT$ ${config.marketing_fee_threshold.toLocaleString()} 收「未達門檻」金額，達標則收「超過門檻」金額`
+                : "0 = 恆用「未達門檻」金額，並沿用「每多一棟加收」的舊公式"}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_low">行銷推廣費（未達門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_low"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_low}
+                onChange={(e) => setConfig({ ...config, marketing_fee_low: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_high">行銷推廣費（超過門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_high"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_high}
+                onChange={(e) => setConfig({ ...config, marketing_fee_high: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            儲存後會建立一筆「{currentMonthStartTaipei().slice(0, 7)}」生效的版本；過去月份的規則不可修改，歷史月結報表金額不受影響。
+          </p>
+        </CardContent>
+      </Card>
+
+
+
+      <Card>
+        <CardHeader>
           <CardTitle>不抽成的訂單來源</CardTitle>
           <CardDescription>
             依各民宿實際使用的訂單來源分組列出，勾選後該來源訂單於業主月結中不計服務費（等同「業主自帶」）。同名來源跨民宿共用同一設定。
