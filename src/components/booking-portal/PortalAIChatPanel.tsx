@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -41,7 +43,9 @@ const HOT_PICKS = [
 ];
 
 const PortalAIChatPanel = () => {
+  const navigate = useNavigate();
   const smartDefault = useMemo(() => getSmartDefault(), []);
+
   const [showAvatar, setShowAvatar] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -132,6 +136,7 @@ const PortalAIChatPanel = () => {
       const decoder = new TextDecoder();
       let assistantMessage = "";
       let textBuffer = "";
+      let searchIntent: { checkIn?: string; checkOut?: string; guests?: number } | null = null;
 
       setMessages((prev) => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
@@ -153,7 +158,20 @@ const PortalAIChatPanel = () => {
 
           try {
             const parsed = JSON.parse(jsonStr);
-            if (parsed.type === "tool_calls_complete") continue;
+            if (parsed.type === "tool_calls_complete") {
+              const hit = (parsed.results || []).find(
+                (r: any) => r?.name === "get_available_rooms" || r?.name === "get_packages",
+              );
+              const res = hit?.result;
+              if (res && !res.error) {
+                searchIntent = {
+                  checkIn: res.check_in_date || format(checkIn, "yyyy-MM-dd"),
+                  checkOut: res.check_out_date || format(checkOut, "yyyy-MM-dd"),
+                  guests: res.guest_count || defaultGuests,
+                };
+              }
+              continue;
+            }
 
             const ct = parsed.choices?.[0]?.delta?.content;
             if (ct) {
@@ -181,6 +199,24 @@ const PortalAIChatPanel = () => {
           } catch {}
         }
       }
+
+      // 有搜尋意圖 → 直接跳到與手動搜尋相同的結果分頁
+      if (searchIntent?.checkIn && searchIntent?.checkOut) {
+        const params = new URLSearchParams();
+        params.set("checkIn", searchIntent.checkIn);
+        params.set("checkOut", searchIntent.checkOut);
+        params.set("adults", String(searchIntent.guests || defaultGuests));
+        params.set("ai", "1");
+        params.set("aiQuery", content.trim().slice(0, 80));
+        const note = assistantMessage
+          .replace(/\[SUGGEST:\s*[^\]]+\]/g, "")
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l && !/^[🏠🏡✅💰📐📅]/.test(l))[0];
+        if (note) params.set("aiNote", note.replace(/\*\*/g, "").slice(0, 160));
+        navigate(`/booking/search?${params.toString()}`);
+      }
+
 
       setIsLoading(false);
     } catch (e) {
