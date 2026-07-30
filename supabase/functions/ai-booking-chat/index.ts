@@ -1177,6 +1177,8 @@ serve(async (req) => {
 
 ## 工具使用：
 - get_available_rooms：查本地房型/價格。看到「[系統：已向客人展示房型卡片]」時不要重複調用
+- get_packages：查包棟／包區方案。客人講「包棟、包場、整棟、我們有 N 人」時優先用；缺日期就先問入住／退房日期，再帶日期＋人數重查
+
 - search_external_rooms：查詢外部訂房平台的房型和價格。當本地沒有房型資料時自動嘗試，需提供入住/退房日期
 - check_discount_code：驗折扣碼
 - create_booking：建訂單時，room_type_id 必須使用對話中最新的 room_type_id UUID，禁止自行改寫成名稱或別名
