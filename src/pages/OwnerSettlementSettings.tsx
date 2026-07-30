@@ -335,7 +335,7 @@ export default function OwnerSettlementSettings() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            guestcount 類型適用包棟訂房，溢價分潤依入住人數計算，清潔費不計入抽成基礎
+            guestcount 類型適用包棟訂房，溢價分潤依入住人數計算，加購項目不計入抽成基礎
           </p>
         </CardContent>
       </Card>
