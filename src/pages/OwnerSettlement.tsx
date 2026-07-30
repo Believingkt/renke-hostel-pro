@@ -130,6 +130,13 @@ export default function OwnerSettlement() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
+  // 館別幣別現值（訂單快照為 null 時的 fallback）
+  const [accCurrency, setAccCurrency] = useState<AccommodationCurrencyFallback | null>(null);
+  // 匯率快照編輯
+  const [rateEdit, setRateEdit] = useState<{ orderId: string; value: string } | null>(null);
+  const [rateConfirmOrderId, setRateConfirmOrderId] = useState<string | null>(null);
+  const [savingRate, setSavingRate] = useState(false);
+
 
 
   useEffect(() => {
