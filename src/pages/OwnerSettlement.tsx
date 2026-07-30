@@ -696,8 +696,14 @@ export default function OwnerSettlement() {
             label="入住營收"
             sublabel="本月所有訂單依夜數攤分"
             value={totals.totalRevenue}
+            prefixNote={
+              foreignSummary
+                ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(foreignSummary.original)} ÷ ${foreignSummary.rate} =`
+                : undefined
+            }
             tone="income"
           />
+
 
 
           <div className="h-px bg-border my-2" />
