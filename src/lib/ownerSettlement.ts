@@ -70,12 +70,13 @@ export interface ResolvedOrderCurrency {
 }
 
 /**
- * 幣別/匯率判斷：優先使用訂單快照，快照為 null 時 fallback 館別現值。
- * 注意「非台幣不抽成」僅在 currency_at_booking 快照存在且非 TWD 時成立。
+ * 幣別/匯率判斷：只認訂單自身的快照。
+ * 快照為 null（舊訂單）一律視為台幣 —— 館別的 secondary_currency 只是「參考顯示幣別」，
+ * 不代表訂單金額是外幣，不可用來回溯換算，否則台幣訂單會被誤除以匯率。
  */
 export function resolveOrderCurrency(
   order: OwnerSettlementOrderInput,
-  fallback?: AccommodationCurrencyFallback | null,
+  _fallback?: AccommodationCurrencyFallback | null,
 ): ResolvedOrderCurrency {
   const snapCode = (order.currency_at_booking || "").trim().toUpperCase();
   if (snapCode) {
@@ -87,13 +88,9 @@ export function resolveOrderCurrency(
       fromSnapshot: true,
     };
   }
-  const fbCode = (fallback?.secondary_currency || "").trim().toUpperCase();
-  const fbRate = Number(fallback?.secondary_currency_rate);
-  if (fbCode && fbCode !== "TWD" && Number.isFinite(fbRate) && fbRate > 0) {
-    return { currency: fbCode, rate: fbRate, isForeign: false, fromSnapshot: false };
-  }
   return { currency: "TWD", rate: 1, isForeign: false, fromSnapshot: false };
 }
+
 
 /** 外幣金額換算台幣：TWD = 原幣別金額 ÷ 匯率（匯率為「外幣 per TWD」） */
 export function convertToTwd(amount: number, resolved: ResolvedOrderCurrency): number {
