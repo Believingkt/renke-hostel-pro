@@ -125,6 +125,12 @@ const BookingSearchResults = () => {
   const toddlersCount = Number(searchParams.get("toddlers") || 0);
   const roomsParam = Number(searchParams.get("rooms") || 0);
   const q = searchParams.get("q") || "";
+  const isAiSearch = searchParams.get("ai") === "1";
+  const aiNote = searchParams.get("aiNote") || "";
+  const aiQuery = searchParams.get("aiQuery") || "";
+  const [aiOpen, setAiOpen] = useState(true);
+
+
 
   const checkIn = useMemo(() => (checkInStr ? parseISO(checkInStr) : null), [checkInStr]);
   const checkOut = useMemo(() => (checkOutStr ? parseISO(checkOutStr) : null), [checkOutStr]);
