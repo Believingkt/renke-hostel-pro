@@ -1006,7 +1006,7 @@ function BreakdownRow({
         {prefixNote && (
           <span className="tabular-nums text-xs text-muted-foreground">{prefixNote}</span>
         )}
-
+        {showOriginal && (
           <span className="tabular-nums text-xs text-muted-foreground/70 line-through">
             {originalDisplay}
           </span>
