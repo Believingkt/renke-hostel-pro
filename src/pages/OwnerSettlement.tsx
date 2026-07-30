@@ -474,7 +474,7 @@ export default function OwnerSettlement() {
           <td>${esc(r.order.guest_name)}</td>
           <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
           ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
-          <td class="r">${fmt(r.revenue)}</td>
+          <td class="r">${isGuestCount && r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}` : fmt(r.revenue)}</td>
           ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
