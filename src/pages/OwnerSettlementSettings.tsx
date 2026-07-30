@@ -75,7 +75,7 @@ export default function OwnerSettlementSettings() {
   const [currentRuleId, setCurrentRuleId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyRows, setHistoryRows] = useState<any[[]] | any[]>([]);
+  const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
 
