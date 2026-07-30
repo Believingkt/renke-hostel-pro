@@ -56,6 +56,7 @@ export default function AIBooking() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [bookingStep, setBookingStep] = useState(1);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
@@ -693,18 +694,25 @@ export default function AIBooking() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+
+      // 依瀏覽器支援度挑選容器格式（Safari 會落到 audio/mp4）
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+      const mimeType = candidates.find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const audioChunks: Blob[] = [];
 
       recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
+        if (event.data && event.data.size > 0) audioChunks.push(event.data);
       };
 
       recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const blobType = recorder.mimeType || mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunks, { type: blobType });
+        stream.getTracks().forEach((track) => track.stop());
         await processAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
       };
 
       recorder.start();
@@ -736,40 +744,76 @@ export default function AIBooking() {
     }
   };
 
-  const processAudio = async (audioBlob: Blob) => {
-    setIsLoading(true);
-    try {
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        
-        const { data, error } = await supabase.functions.invoke('speech-to-text', {
-          body: { audio: base64Audio }
-        });
-
-        if (error) throw error;
-
-        if (data?.text) {
-          setInput(data.text);
-          toast({
-            title: "✅ 語音識別成功",
-            description: "已將語音轉換為文字，您可以編輯後發送",
-          });
-        }
+      reader.onerror = () => reject(new Error("讀取錄音失敗"));
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1] ?? "");
       };
+      reader.readAsDataURL(blob);
+    });
+
+  const processAudio = async (audioBlob: Blob) => {
+    if (audioBlob.size < 2048) {
+      toast({
+        title: "錄音太短",
+        description: "沒有收到足夠的聲音，請再說一次",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTranscribing(true);
+    try {
+      const base64Audio = await blobToBase64(audioBlob);
+
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio, mimeType: audioBlob.type || 'audio/webm' },
+      });
+
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx?.text) {
+            const raw = await ctx.text();
+            detail = JSON.parse(raw)?.error ?? raw ?? detail;
+          }
+        } catch { /* 保留原始訊息 */ }
+        throw new Error(detail);
+      }
+
+      if (data?.error) throw new Error(data.error);
+
+      const text = (data?.text ?? "").trim();
+      if (!text) {
+        toast({
+          title: "沒有聽清楚",
+          description: "未辨識到內容，請靠近麥克風再試一次",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setInput((prev) => (prev ? `${prev} ${text}` : text));
+      toast({
+        title: "✅ 語音識別成功",
+        description: "已將語音轉換為文字，您可以編輯後發送",
+      });
     } catch (error) {
       console.error('語音處理錯誤:', error);
       toast({
         title: "語音處理失敗",
-        description: "無法處理您的語音，請重試或直接輸入文字",
+        description: error instanceof Error ? error.message : "無法處理您的語音，請重試或直接輸入文字",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsTranscribing(false);
     }
   };
+
 
   const toggleRecording = () => {
     if (isRecording) {
@@ -1644,18 +1688,21 @@ export default function AIBooking() {
             <div className="flex gap-3">
               <Button
                 onClick={toggleRecording}
-                disabled={isLoading}
+                disabled={isLoading || isTranscribing}
                 size="icon"
                 variant={isRecording ? "destructive" : "outline"}
                 className={`h-12 w-12 transition-all duration-200 ${isRecording ? "animate-pulse" : ""}`}
                 title={isRecording ? "停止錄音" : "語音輸入"}
               >
-                {isRecording ? (
+                {isTranscribing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isRecording ? (
                   <MicOff className="h-5 w-5" />
                 ) : (
                   <Mic className="h-5 w-5" />
                 )}
               </Button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1681,10 +1728,11 @@ export default function AIBooking() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={isRecording ? "🎤 正在錄音中..." : "輸入訊息或點擊麥克風說話..."}
-                disabled={isLoading || isRecording}
+                placeholder={isRecording ? "🎤 正在錄音中..." : isTranscribing ? "正在辨識語音..." : "輸入訊息或點擊麥克風說話..."}
+                disabled={isLoading || isRecording || isTranscribing}
                 className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20 h-12 text-base"
               />
+
               <Button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
@@ -1729,14 +1777,31 @@ export default function AIBooking() {
                 <Paperclip className="h-4 w-4" />
               )}
             </Button>
+            <Button
+              onClick={toggleRecording}
+              disabled={isLoading || isTranscribing}
+              size="icon"
+              variant={isRecording ? "destructive" : "outline"}
+              className={`h-10 w-10 rounded-full shrink-0 ${isRecording ? "animate-pulse" : ""}`}
+              title={isRecording ? "停止錄音" : "語音輸入"}
+            >
+              {isTranscribing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isRecording ? "🎤 錄音中..." : "輸入訊息..."}
-              disabled={isLoading || isRecording}
+              placeholder={isRecording ? "🎤 錄音中..." : isTranscribing ? "辨識中..." : "輸入訊息..."}
+              disabled={isLoading || isRecording || isTranscribing}
               className="flex-1 h-10 text-base rounded-full px-4 focus:ring-2 focus:ring-primary/20"
             />
+
             <Button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
