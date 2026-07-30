@@ -72,6 +72,44 @@ export default function OwnerSettlementSettings() {
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
   const [accName, setAccName] = useState<string>("");
   const [usingFallback, setUsingFallback] = useState(false);
+  const [currentRuleId, setCurrentRuleId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRows, setHistoryRows] = useState<any[[]] | any[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
+
+  const loadHistory = async () => {
+    if (!currentAccommodationId) {
+      setHistoryRows([]);
+      setHistoryLoaded(true);
+      return;
+    }
+    setHistoryLoading(true);
+    const { data } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("*")
+      .eq("accommodation_id", currentAccommodationId)
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false });
+    const rows = data ?? [];
+    setHistoryRows(rows);
+    const ids = Array.from(new Set(rows.map((r: any) => r.created_by).filter(Boolean)));
+    if (ids.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", ids as string[]);
+      const map: Record<string, string> = {};
+      for (const p of (profs ?? []) as Array<{ id: string; name: string | null; email: string | null }>) {
+        map[p.id] = p.name || p.email || p.id;
+      }
+      setCreatorNames(map);
+    }
+    setHistoryLoading(false);
+    setHistoryLoaded(true);
+  };
+
 
   useEffect(() => {
     (async () => {
