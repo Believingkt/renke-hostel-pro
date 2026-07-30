@@ -19,6 +19,11 @@ interface SettlementConfig {
   marketing_fee_per_extra_property: number;
   exempt_order_sources: string[];
   revenue_breakdown_type: "standard" | "guestcount";
+  /* 門檻式收費規則（owner_settlement_pricing_rules） */
+  commission_threshold: number;
+  marketing_fee_low: number;
+  marketing_fee_high: number;
+  marketing_fee_threshold: number;
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -27,6 +32,10 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_per_extra_property: 3000,
   exempt_order_sources: [],
   revenue_breakdown_type: "standard",
+  commission_threshold: 0,
+  marketing_fee_low: 53000,
+  marketing_fee_high: 0,
+  marketing_fee_threshold: 0,
 };
 
 interface AccommodationGroup {
@@ -37,6 +46,19 @@ interface AccommodationGroup {
 
 const GLOBAL_SETTING_KEY = "owner_settlement_config";
 const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
+
+/** 當月月初（Asia/Taipei），格式 YYYY-MM-01 */
+function currentMonthStartTaipei(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  return `${y}-${m}-01`;
+}
+
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
