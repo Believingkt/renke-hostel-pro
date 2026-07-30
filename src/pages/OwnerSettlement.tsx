@@ -21,7 +21,13 @@ import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, 
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode } from "@/utils/orderHelpers";
-import { computeOwnerSettlementRows } from "@/lib/ownerSettlement";
+import {
+  computeOwnerSettlementRows,
+  computeGuestCountRows,
+  computeGuestCountTotals,
+  getRevenueBreakdownType,
+  type RevenueBreakdownType,
+} from "@/lib/ownerSettlement";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
