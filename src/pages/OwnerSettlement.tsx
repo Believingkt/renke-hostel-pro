@@ -656,9 +656,19 @@ export default function OwnerSettlement() {
                     NT$ {fmt(platformTotal)}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                    <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
-                    <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                    {isGuestCount ? (
+                      <>
+                        <span>人客多抽成 {config.commission_rate}%：NT$ {fmt(gcTotals.totalCommission)}</span>
+                        <span>溢價分潤：NT$ {fmt(gcTotals.totalPremiumShare)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
+                        <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                      </>
+                    )}
                   </div>
+
                   <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
                     <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="min-w-0 break-words">請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）</span>
