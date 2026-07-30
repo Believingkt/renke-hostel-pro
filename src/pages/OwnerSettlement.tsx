@@ -433,14 +433,15 @@ export default function OwnerSettlement() {
     if (isGuestCount) {
       return {
         totalRevenue: gcTotals.totalRevenue,
-        platformTotal: gcTotals.totalPlatformFee,
+        platformTotal: gcTotals.totalPlatformFee + gcMarketingFee,
         totalCommission: gcTotals.totalCommission,
-        marketingFee: 0,
-        ownerNet: gcTotals.ownerNet,
+        marketingFee: gcMarketingFee,
+        ownerNet: gcTotals.ownerNet - gcMarketingFee,
         orderCount: gcRows.length,
         totalNights: null as number | null,
       };
     }
+
     return {
       totalRevenue: totals.totalRevenue,
       platformTotal: totals.totalCommission + totals.marketingFee,
