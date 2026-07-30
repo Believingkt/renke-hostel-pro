@@ -56,6 +56,7 @@ export default function AIBooking() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [bookingStep, setBookingStep] = useState(1);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
