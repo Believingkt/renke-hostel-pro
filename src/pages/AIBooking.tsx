@@ -1688,18 +1688,21 @@ export default function AIBooking() {
             <div className="flex gap-3">
               <Button
                 onClick={toggleRecording}
-                disabled={isLoading}
+                disabled={isLoading || isTranscribing}
                 size="icon"
                 variant={isRecording ? "destructive" : "outline"}
                 className={`h-12 w-12 transition-all duration-200 ${isRecording ? "animate-pulse" : ""}`}
                 title={isRecording ? "停止錄音" : "語音輸入"}
               >
-                {isRecording ? (
+                {isTranscribing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isRecording ? (
                   <MicOff className="h-5 w-5" />
                 ) : (
                   <Mic className="h-5 w-5" />
                 )}
               </Button>
+
               <input
                 ref={fileInputRef}
                 type="file"
