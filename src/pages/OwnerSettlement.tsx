@@ -1015,7 +1015,31 @@ export default function OwnerSettlement() {
           </CardContent>
         </Card>
       )}
+
+    <AlertDialog open={!!rateConfirmOrderId} onOpenChange={(o) => !o && setRateConfirmOrderId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>確認修改匯率快照</AlertDialogTitle>
+          <AlertDialogDescription>
+            修改此匯率將影響已計算的抽成與獎金結果，請確認是否同意修改？
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={savingRate}>取消</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={savingRate}
+            onClick={(e) => {
+              e.preventDefault();
+              handleSaveRate();
+            }}
+          >
+            確認修改
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </div>
+
 
     </TooltipProvider>
   );
