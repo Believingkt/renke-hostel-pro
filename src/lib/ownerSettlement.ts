@@ -26,18 +26,14 @@ export function getRevenueBreakdownType(config: Partial<OwnerSettlementConfig> |
 /** 溢價分潤：每人 300 元的一半 */
 export const PREMIUM_SHARE_PER_GUEST = 300;
 
-export const CLEANING_FEE_ADDON_TYPE = "清潔費";
-
-/** 從 orders.custom_addon_details（jsonb array）精確比對 addon_type = '清潔費' 並加總 total */
-export function extractCleaningFee(customAddonDetails: unknown): number {
+/** 從 orders.custom_addon_details（jsonb array）加總「全部」加購項目 total（含清潔費、接機車資等） */
+export function extractAddonTotal(customAddonDetails: unknown): number {
   if (!Array.isArray(customAddonDetails)) return 0;
   let sum = 0;
   for (const item of customAddonDetails) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
-    if (rec.addon_type === CLEANING_FEE_ADDON_TYPE) {
-      sum += Number(rec.total ?? 0) || 0;
-    }
+    sum += Number(rec.total ?? 0) || 0;
   }
   return sum;
 }
