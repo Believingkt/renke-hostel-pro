@@ -717,6 +717,7 @@ export default function OwnerSettlement() {
                       <>
                         <span>人客多抽成 {config.commission_rate}%：NT$ {fmt(gcTotals.totalCommission)}</span>
                         <span>溢價分潤：NT$ {fmt(gcTotals.totalPremiumShare)}</span>
+                        {gcMarketingFee > 0 && <span>行銷推廣費：NT$ {fmt(gcMarketingFee)}</span>}
                       </>
                     ) : (
                       <>
@@ -724,6 +725,7 @@ export default function OwnerSettlement() {
                         <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
                       </>
                     )}
+
                   </div>
 
                   <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
