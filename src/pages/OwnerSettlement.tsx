@@ -715,11 +715,6 @@ export default function OwnerSettlement() {
               label="入住營收"
               sublabel={`本月入住 ${gcRows.length} 筆訂單實付總額`}
               value={gcTotals.totalRevenue}
-              prefixNote={
-                foreignSummary
-                  ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(foreignSummary.original)} ÷ ${foreignSummary.rate} =`
-                  : undefined
-              }
               tone="income"
             />
             <BreakdownRow
