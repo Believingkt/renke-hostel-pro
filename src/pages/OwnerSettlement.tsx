@@ -347,7 +347,8 @@ export default function OwnerSettlement() {
           std: null as OrderRow | null,
           revenue: g.finalPrice as number,
           revenueOriginal: g.finalPriceOriginal as number,
-          orderAmount: g.commissionBase as number,
+          // 訂單金額 = final_price 換算台幣後總額（非台幣訂單為 ÷ 匯率快照後金額）
+          orderAmount: g.finalPrice as number,
           commission: (g.commission + g.premiumShare) as number,
           exempt: g.exempt as boolean,
           currency: g.currency as string,
