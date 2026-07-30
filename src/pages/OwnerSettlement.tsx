@@ -326,6 +326,75 @@ export default function OwnerSettlement() {
     [gcRows]
   );
 
+  const gcRowByOrderId = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const r of gcRows as any[]) m[r.order.id] = r;
+    return m;
+  }, [gcRows]);
+
+  /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
+  const foreignSummary = useMemo(() => {
+    const source: Array<{ isForeign: boolean; currency: string; exchangeRate: number; original: number }> =
+      isGuestCount
+        ? (gcRows as any[]).map((r) => ({
+            isForeign: r.isForeign,
+            currency: r.currency,
+            exchangeRate: r.exchangeRate,
+            original: r.finalPriceOriginal,
+          }))
+        : rows.map((r) => ({
+            isForeign: r.isForeign,
+            currency: r.currency,
+            exchangeRate: r.exchangeRate,
+            original: r.monthFinalOriginal,
+          }));
+    const foreign = source.filter((s) => s.isForeign);
+    if (!foreign.length) return null;
+    const codes = new Set(foreign.map((f) => f.currency));
+    const rates = new Set(foreign.map((f) => f.exchangeRate));
+    if (codes.size !== 1 || rates.size !== 1) return null;
+    return {
+      currency: foreign[0].currency,
+      rate: foreign[0].exchangeRate,
+      original: foreign.reduce((s, f) => s + f.original, 0),
+      allForeign: foreign.length === source.length,
+    };
+  }, [isGuestCount, gcRows, rows]);
+
+  /** 加購項目（guestcount）外幣加總 */
+  const gcAddonForeignOriginal = useMemo(
+    () => (gcRows as any[]).filter((r) => r.isForeign).reduce((s, r) => s + (r.addonTotalOriginal || 0), 0),
+    [gcRows]
+  );
+
+  const handleSaveRate = async () => {
+    if (!rateEdit) return;
+    const num = Number(rateEdit.value);
+    if (!Number.isFinite(num) || num <= 0) {
+      toast.error("匯率必須為大於 0 的數字");
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ exchange_rate_snapshot: num } as any)
+        .eq("id", rateEdit.orderId);
+      if (error) throw error;
+      setOrders((prev) =>
+        prev.map((o) => (o.id === rateEdit.orderId ? { ...o, exchange_rate_snapshot: num } : o))
+      );
+      toast.success("匯率快照已更新");
+      setRateConfirmOrderId(null);
+      setRateEdit(null);
+    } catch (err: any) {
+      toast.error("更新失敗", { description: err.message });
+    } finally {
+      setSavingRate(false);
+    }
+  };
+
+
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
   const monthShort = format(month, "M 月", { locale: zhTW });
   const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
