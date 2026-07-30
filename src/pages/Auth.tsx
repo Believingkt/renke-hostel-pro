@@ -19,8 +19,17 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // 登入後導向：優先使用同源相對路徑的 ?next=（例如 MCP OAuth 同意頁）
+  const getNextPath = () => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+    return null;
+  };
+
   // 若目前 URL 含 alias 前綴（如 /traveldays/auth），登入後導向同 alias 之 /admin
   const getAdminPath = () => {
+    const nextPath = getNextPath();
+    if (nextPath) return nextPath;
     const segments = window.location.pathname.split("/").filter(Boolean);
     const RESERVED = new Set([
       "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
@@ -33,6 +42,7 @@ export default function Auth() {
     }
     return "/admin";
   };
+
 
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
