@@ -524,9 +524,11 @@ export default function FinancialReportTab() {
           new Set(fees.map((f) => f.accommodation_id).filter(Boolean) as string[])
         );
 
-        // Row 4/5 適用館別 = 有管顧費率設定的館
-        const stayAccIdSet = new Set<string>(consultingAccIds);
+        // Row 4/5 適用館別 = 有管顧費率設定「且」為特許加盟的館別
+        const franchiseIdSet = new Set(franchiseAccIds);
+        const stayAccIdSet = new Set<string>(consultingAccIds.filter((id) => franchiseIdSet.has(id)));
         const stayAccIds = Array.from(stayAccIdSet);
+
 
         // 補齊名稱對照
         const stayAccNameMap = new Map<string, string>(franchiseAccNameMap);
