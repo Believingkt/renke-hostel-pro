@@ -157,6 +157,8 @@ export default function FinancialReportTab() {
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: [], children: [] });
   const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: [], children: [], hasAnyRate: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [totalsOpen, setTotalsOpen] = useState(false);
+
   const [canManageFees, setCanManageFees] = useState(false);
   const [canViewFees, setCanViewFees] = useState(false);
 
@@ -524,9 +526,11 @@ export default function FinancialReportTab() {
           new Set(fees.map((f) => f.accommodation_id).filter(Boolean) as string[])
         );
 
-        // Row 4/5 適用館別 = 有管顧費率設定的館
-        const stayAccIdSet = new Set<string>(consultingAccIds);
+        // Row 4/5 適用館別 = 有管顧費率設定「且」為特許加盟的館別
+        const franchiseIdSet = new Set(franchiseAccIds);
+        const stayAccIdSet = new Set<string>(consultingAccIds.filter((id) => franchiseIdSet.has(id)));
         const stayAccIds = Array.from(stayAccIdSet);
+
 
         // 補齊名稱對照
         const stayAccNameMap = new Map<string, string>(franchiseAccNameMap);
@@ -786,6 +790,36 @@ export default function FinancialReportTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {!loading && (() => {
+                const totals = emptyBuckets(weekCount);
+                for (const b of [row1.buckets, row2.buckets]) {
+                  for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
+                }
+                const grand = totals.reduce((a, b) => a + b, 0);
+                return (
+                  <TableRow className="bg-muted font-bold border-b-2">
+                    <TableCell className="font-bold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline"
+                        onClick={() => setTotalsOpen((v) => !v)}
+                      >
+                        {totalsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        合計（訂房組＋KOL）
+                      </button>
+                    </TableCell>
+                    {totals.map((v, i) => (
+                      <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
+                        {totalsOpen ? fmtMoney(v) : "—"}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
+                      {totalsOpen ? fmtMoney(grand) : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })()}
+
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={weekCount + 2} className="text-center py-8">
@@ -833,28 +867,6 @@ export default function FinancialReportTab() {
                   );
                 })
               )}
-              {!loading && (() => {
-                const totals = emptyBuckets(weekCount);
-                // Row 5 週欄位不納入合計；只有 TOTAL 加入 Row 5 總額
-                for (const b of [row1.buckets, row2.buckets, row3.buckets, row4.buckets]) {
-                  for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
-                }
-                const row5Total = row5.buckets.reduce((a, b) => a + b, 0);
-                const grand = totals.reduce((a, b) => a + b, 0) + row5Total;
-                return (
-                  <TableRow className="bg-muted font-bold border-t-2">
-                    <TableCell className="font-bold">合計</TableCell>
-                    {totals.map((v, i) => (
-                      <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
-                        {fmtMoney(v)}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
-                      {fmtMoney(grand)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })()}
             </TableBody>
           </Table>
         </div>
