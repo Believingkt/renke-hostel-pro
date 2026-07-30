@@ -19,6 +19,27 @@ import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
 
+// 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
+const BOOKING_LINK_REGEX = /(?:https?:\/\/[^\s)]+)?\/book\?[^\s)\]，。、]+/g;
+function stripBookingLinks(content: string): { text: string; links: string[] } {
+  if (!content) return { text: content, links: [] };
+  const matches = content.match(BOOKING_LINK_REGEX) || [];
+  const links = Array.from(
+    new Set(
+      matches.map((m) => {
+        const idx = m.indexOf('/book?');
+        return m.slice(idx);
+      })
+    )
+  );
+  const text = content
+    .replace(BOOKING_LINK_REGEX, '')
+    .replace(/\[([^\]]*)\]\(\s*\)/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return { text, links };
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
