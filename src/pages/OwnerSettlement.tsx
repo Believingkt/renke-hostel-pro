@@ -851,22 +851,89 @@ export default function OwnerSettlement() {
                           )}
                         </TableCell>
                       </TableRow>
-                      {isOpen && (
+                      {isOpen && (() => {
+                        const cur = r.isForeign ? getCurrencySymbol(r.currency) : "NT$ ";
+                        const gc = gcRowByOrderId[r.order.id];
+                        const useGc = isGuestCount && !!gc;
+                        return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={9} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                <DetailItem label="訂單總額" value={`NT$ ${fmt(Number(r.order.total_price || 0))}`} />
-                                <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
-                                <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
+                                <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
+                                <DetailItem label="折扣" value={`-${cur}${fmt(Number(r.order.discount_amount || 0))}`} />
+                                <DetailItem label="實付金額" value={`${cur}${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source, getOrderOtaCode(r.order as any)).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
+                                <DetailItem label="入住人數" value={r.order.guest_count != null ? `${r.order.guest_count} 人` : "—"} />
                               </div>
-                              <div className="text-xs text-muted-foreground border-t pt-2">
-                                本月營收 = 實付 NT$ {fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights} = NT$ {fmt(r.monthFinal)}
-                                {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+
+                              {r.isForeign && (
+                                <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+                                  <span className="text-muted-foreground">
+                                    幣別 {r.currency}　匯率快照（{r.currency} per TWD）
+                                  </span>
+                                  <Input
+                                    className="h-8 w-28"
+                                    type="number"
+                                    step="0.01"
+                                    value={
+                                      rateEdit?.orderId === r.order.id
+                                        ? rateEdit.value
+                                        : String(r.order.exchange_rate_snapshot ?? r.exchangeRate)
+                                    }
+                                    onChange={(e) => setRateEdit({ orderId: r.order.id, value: e.target.value })}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      rateEdit?.orderId !== r.order.id ||
+                                      rateEdit.value === String(r.order.exchange_rate_snapshot ?? r.exchangeRate)
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRateConfirmOrderId(r.order.id);
+                                    }}
+                                  >
+                                    儲存匯率
+                                  </Button>
+                                  {r.order.currency_at_booking == null && (
+                                    <span className="text-[11px] text-amber-700">
+                                      此訂單無快照，目前使用館別現值計算
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="text-xs text-muted-foreground border-t pt-2 space-y-0.5">
+                                {useGc ? (
+                                  <>
+                                    <div>
+                                      入住營收 NT$ {fmt(gc.finalPrice)} − 加購項目 NT$ {fmt(gc.addonTotal)} = 抽成基礎 NT$ {fmt(gc.commissionBase)}
+                                    </div>
+                                    <div>
+                                      抽成基礎 NT$ {fmt(gc.commissionBase)} × {config.commission_rate}% = 人客多抽成 NT$ {fmt(gc.commission)}
+                                      {gc.exempt && "（不抽成）"}
+                                    </div>
+                                    <div>
+                                      入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
+                                      {gc.exempt && "（不分潤）"}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div>
+                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights}
+                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.monthFinal)}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                  </div>
+                                )}
+                                {r.exempt && r.isForeign && r.order.currency_at_booking && (
+                                  <div className="text-amber-700">非台幣訂單不列入抽成與溢價分潤</div>
+                                )}
                               </div>
                               <div>
                                 <Link
@@ -876,6 +943,7 @@ export default function OwnerSettlement() {
                                   開啟完整訂單頁 <ExternalLink className="h-3 w-3" />
                                 </Link>
                               </div>
+
                             </div>
                           </TableCell>
                         </TableRow>
