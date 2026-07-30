@@ -624,6 +624,11 @@ export default function OwnerSettlement() {
               label="入住營收"
               sublabel={`本月入住 ${gcRows.length} 筆訂單實付總額`}
               value={gcTotals.totalRevenue}
+              prefixNote={
+                foreignSummary
+                  ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(foreignSummary.original)} ÷ ${foreignSummary.rate} =`
+                  : undefined
+              }
               tone="income"
             />
             <BreakdownRow
@@ -631,8 +636,14 @@ export default function OwnerSettlement() {
               label="加購項目"
               sublabel="加購項目中的金額（包含清潔費、接機車資等），全額歸業主"
               value={gcTotals.totalAddonTotal}
+              prefixNote={
+                foreignSummary && gcAddonForeignOriginal > 0
+                  ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(gcAddonForeignOriginal)} ÷ ${foreignSummary.rate} =`
+                  : undefined
+              }
               tone="income"
             />
+
             <div className="h-px bg-border my-2" />
             <BreakdownRow
               icon={Percent}
