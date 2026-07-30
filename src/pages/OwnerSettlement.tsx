@@ -55,6 +55,8 @@ interface Order {
   room_type_id: string | null;
   guest_count: number | null;
   custom_addon_details: unknown;
+  exchange_rate_snapshot: number | null;
+  currency_at_booking: string | null;
 }
 
 interface SettlementConfig {
@@ -83,7 +85,12 @@ interface OrderRow {
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  monthFinalOriginal: number;
 }
+
 
 interface AddonSaleRow {
   id: string;
