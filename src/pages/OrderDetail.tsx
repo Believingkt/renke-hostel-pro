@@ -362,8 +362,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       clearEditAmountsRef.current();
     }
     setOrderDisplayCurrency(code);
-    (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
-  }, [order?.id, secondaryCurrencyConfig?.code, secondaryCurrencyConfig?.symbol, orderDisplayCurrency]);
+    try {
+      await (await import("@/lib/orderDisplayCurrency")).setOrderDisplayCurrency(order.id, code);
+    } catch (e: any) {
+      console.error("[displayCurrency] failed", e);
+      toast({
+        variant: "destructive",
+        title: "幣別切換失敗",
+        description: e?.message || "幣別標記未能寫入，請稍後再試。",
+      });
+    }
+  }, [order?.id, secondaryCurrencyConfig?.code, secondaryCurrencyConfig?.symbol, orderDisplayCurrency, toast]);
+
   // 訂單顯示貨幣前綴（旅行日 JPY 時原幣顯示，其他 TWD）
   const orderCurrencyPrefix = useMemo(() => {
     if (!secondaryCurrencyConfig) return "NT$";
