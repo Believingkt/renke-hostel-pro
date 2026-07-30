@@ -210,6 +210,8 @@ export interface GuestCountOrderInput extends OwnerSettlementOrderInput {
 
 export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderInput> {
   order: T;
+  /** 以下金額皆為台幣（外幣訂單已依匯率換算） */
+  finalPrice: number;
   addonTotal: number;
   commissionBase: number;
   commission: number;
@@ -218,6 +220,12 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
   ownerNet: number;
   isCrossMonth: boolean;
   exempt: boolean;
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  /** 原幣別實付金額 */
+  finalPriceOriginal: number;
+  addonTotalOriginal: number;
 }
 
 /**
@@ -229,6 +237,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
+  currencyFallback?: AccommodationCurrencyFallback | null,
 ): GuestCountRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -245,16 +254,23 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const isCrossMonth =
       ci.getFullYear() !== co.getFullYear() || ci.getMonth() !== co.getMonth();
 
-    const finalPrice = Number(o.final_price || 0);
-    const addonTotal = extractAddonTotal(o.custom_addon_details);
+    const resolved = resolveOrderCurrency(o, currencyFallback);
+    const finalPriceOriginal = Number(o.final_price || 0);
+    const addonTotalOriginal = extractAddonTotal(o.custom_addon_details);
+    const finalPrice = convertToTwd(finalPriceOriginal, resolved);
+    const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
-    const exempt = !!o.owner_direct || (o.order_source ? exemptSet.has(o.order_source) : false);
+    const exempt =
+      !!o.owner_direct ||
+      (o.order_source ? exemptSet.has(o.order_source) : false) ||
+      resolved.isForeign;
     const commission = exempt ? 0 : commissionBase * rate;
     const premiumShare = exempt ? 0 : (Number(o.guest_count || 0) * PREMIUM_SHARE_PER_GUEST) / 2;
     const platformFeeTotal = commission + premiumShare;
 
     rows.push({
       order: o,
+      finalPrice,
       addonTotal,
       commissionBase,
       commission,
@@ -263,10 +279,16 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       ownerNet: finalPrice - platformFeeTotal,
       isCrossMonth,
       exempt,
+      currency: resolved.currency,
+      exchangeRate: resolved.rate,
+      isForeign: resolved.currency !== "TWD",
+      finalPriceOriginal,
+      addonTotalOriginal,
     });
   }
   return rows;
 }
+
 
 export interface GuestCountTotals {
   totalRevenue: number;
