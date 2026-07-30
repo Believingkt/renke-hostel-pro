@@ -19,6 +19,11 @@ interface SettlementConfig {
   marketing_fee_per_extra_property: number;
   exempt_order_sources: string[];
   revenue_breakdown_type: "standard" | "guestcount";
+  /* 門檻式收費規則（owner_settlement_pricing_rules） */
+  commission_threshold: number;
+  marketing_fee_low: number;
+  marketing_fee_high: number;
+  marketing_fee_threshold: number;
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -27,6 +32,10 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_per_extra_property: 3000,
   exempt_order_sources: [],
   revenue_breakdown_type: "standard",
+  commission_threshold: 0,
+  marketing_fee_low: 53000,
+  marketing_fee_high: 0,
+  marketing_fee_threshold: 0,
 };
 
 interface AccommodationGroup {
@@ -37,6 +46,19 @@ interface AccommodationGroup {
 
 const GLOBAL_SETTING_KEY = "owner_settlement_config";
 const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
+
+/** 當月月初（Asia/Taipei），格式 YYYY-MM-01 */
+function currentMonthStartTaipei(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  return `${y}-${m}-01`;
+}
+
 
 export default function OwnerSettlementSettings() {
   const navigate = useNavigate();
@@ -93,17 +115,59 @@ export default function OwnerSettlementSettings() {
       const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
       const picked = perAcc ?? global;
       setUsingFallback(!!currentAccommodationId && !perAcc);
+      let baseConfig: SettlementConfig = DEFAULT_CONFIG;
       if (picked?.setting_value) {
         const raw = picked.setting_value as any;
-        setConfig({
+        baseConfig = {
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
           revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
+          // 舊制沒有門檻概念，門檻相關欄位預設 0；行銷費（未達門檻）沿用基本服務費
+          commission_threshold: 0,
+          marketing_fee_low: Number(raw.marketing_fee_base ?? DEFAULT_CONFIG.marketing_fee_base) || 0,
+          marketing_fee_high: 0,
+          marketing_fee_threshold: 0,
+        };
+      }
+
+      // 新制優先：取該館別 effective_from <= 當月的最新一筆生效規則
+      let ruleRow: any = null;
+      if (currentAccommodationId) {
+        const { data } = await supabase
+          .from("owner_settlement_pricing_rules")
+          .select("*")
+          .eq("accommodation_id", currentAccommodationId)
+          .lte("effective_from", currentMonthStartTaipei())
+          .order("effective_from", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        ruleRow = data ?? null;
+      }
+      if (ruleRow) {
+        setConfig({
+          ...baseConfig,
+          // 資料表存小數，UI 以百分比顯示
+          commission_rate: (Number(ruleRow.commission_rate) || 0) * 100,
+          commission_threshold: Number(ruleRow.commission_threshold) || 0,
+          marketing_fee_low: Number(ruleRow.marketing_fee_low) || 0,
+          marketing_fee_high: Number(ruleRow.marketing_fee_high) || 0,
+          marketing_fee_threshold: Number(ruleRow.marketing_fee_threshold) || 0,
+          exempt_order_sources: Array.isArray(ruleRow.exempt_order_sources)
+            ? ruleRow.exempt_order_sources
+            : baseConfig.exempt_order_sources,
+          revenue_breakdown_type:
+            ruleRow.revenue_breakdown_type === "guestcount"
+              ? "guestcount"
+              : ruleRow.revenue_breakdown_type === "standard"
+                ? "standard"
+                : baseConfig.revenue_breakdown_type,
         });
       } else {
-        setConfig(DEFAULT_CONFIG);
+        setConfig(baseConfig);
       }
+
 
       const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
       if (currentAccommodationId) {
@@ -158,6 +222,15 @@ export default function OwnerSettlementSettings() {
       toast.error("行銷費不可為負數");
       return;
     }
+    if (
+      config.commission_threshold < 0 ||
+      config.marketing_fee_low < 0 ||
+      config.marketing_fee_high < 0 ||
+      config.marketing_fee_threshold < 0
+    ) {
+      toast.error("門檻與行銷推廣費不可為負數");
+      return;
+    }
     const settingKey = currentAccommodationId
       ? perAccKey(currentAccommodationId)
       : GLOBAL_SETTING_KEY;
@@ -176,14 +249,43 @@ export default function OwnerSettlementSettings() {
       ? await supabase.from("system_settings").update(payload).eq("setting_key", settingKey)
       : await supabase.from("system_settings").insert(payload);
 
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error(`儲存失敗：${error.message}`);
       return;
     }
+
+    // 新制：append-only 寫入一筆當月版本（同月重複儲存即以最新一筆為準，使用者無感）
+    if (currentAccommodationId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: ruleError } = await supabase
+        .from("owner_settlement_pricing_rules")
+        .insert({
+          accommodation_id: currentAccommodationId,
+          effective_from: currentMonthStartTaipei(),
+          // 費率一律小數存法（10% → 0.10）
+          commission_rate: config.commission_rate / 100,
+          commission_threshold: config.commission_threshold,
+          marketing_fee_low: config.marketing_fee_low,
+          marketing_fee_high: config.marketing_fee_high,
+          marketing_fee_threshold: config.marketing_fee_threshold,
+          tier_rate_enabled: false,
+          exempt_order_sources: config.exempt_order_sources,
+          revenue_breakdown_type: config.revenue_breakdown_type,
+          created_by: user?.id ?? null,
+        });
+      if (ruleError) {
+        setSaving(false);
+        toast.error(`門檻式收費規則儲存失敗：${ruleError.message}`);
+        return;
+      }
+    }
+
+    setSaving(false);
     setUsingFallback(false);
     toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
   };
+
 
   if (loading) return null;
 
@@ -263,6 +365,81 @@ export default function OwnerSettlementSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>業績門檻收費規則</CardTitle>
+          <CardDescription>
+            以「單一館別當月營收」（未扣加購項目、排除非台幣與不抽成訂單）作為門檻判斷基礎。門檻填 0 代表沿用原本的計算方式。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="commission_threshold">抽成門檻（NT$）</Label>
+            <Input
+              id="commission_threshold"
+              type="number"
+              min={0}
+              step={1000}
+              value={config.commission_threshold}
+              onChange={(e) => setConfig({ ...config, commission_threshold: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {config.commission_threshold > 0
+                ? `當月營收超過 NT$ ${config.commission_threshold.toLocaleString()} 的部分，才以 ${config.commission_rate}% 抽成`
+                : "0 = 全額抽成，無門檻（與現行邏輯相同）"}
+            </p>
+          </div>
+
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="marketing_fee_threshold">行銷推廣費門檻（NT$）</Label>
+            <Input
+              id="marketing_fee_threshold"
+              type="number"
+              min={0}
+              step={1000}
+              value={config.marketing_fee_threshold}
+              onChange={(e) => setConfig({ ...config, marketing_fee_threshold: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {config.marketing_fee_threshold > 0
+                ? `未達 NT$ ${config.marketing_fee_threshold.toLocaleString()} 收「未達門檻」金額，達標則收「超過門檻」金額`
+                : "0 = 恆用「未達門檻」金額，並沿用「每多一棟加收」的舊公式"}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_low">行銷推廣費（未達門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_low"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_low}
+                onChange={(e) => setConfig({ ...config, marketing_fee_low: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_high">行銷推廣費（超過門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_high"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_high}
+                onChange={(e) => setConfig({ ...config, marketing_fee_high: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            儲存後會建立一筆「{currentMonthStartTaipei().slice(0, 7)}」生效的版本；過去月份的規則不可修改，歷史月結報表金額不受影響。
+          </p>
+        </CardContent>
+      </Card>
+
+
 
       <Card>
         <CardHeader>

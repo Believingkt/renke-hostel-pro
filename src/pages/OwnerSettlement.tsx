@@ -26,10 +26,17 @@ import {
   computeGuestCountRows,
   computeGuestCountTotals,
   getRevenueBreakdownType,
+  resolvePricingRule,
+  resolveMarketingFee,
+  getStandardThresholdBase,
+  getGuestCountThresholdBase,
+  pricingRuleFromLegacyConfig,
   PREMIUM_SHARE_PER_GUEST,
   type RevenueBreakdownType,
   type AccommodationCurrencyFallback,
+  type OwnerPricingRule,
 } from "@/lib/ownerSettlement";
+
 import { getCurrencySymbol } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -141,7 +148,9 @@ export default function OwnerSettlement() {
     exempt_order_sources: [],
     revenue_breakdown_type: "standard",
   });
+  const [pricingRule, setPricingRule] = useState<OwnerPricingRule | null>(null);
   const [propertyCount, setPropertyCount] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
@@ -222,15 +231,36 @@ export default function OwnerSettlement() {
       const perAccCfg = cfgRows.find((r) => r.setting_key === `owner_settlement_config:${currentAccommodationId}`);
       const globalCfg = cfgRows.find((r) => r.setting_key === "owner_settlement_config");
       const rawCfg = (perAccCfg ?? globalCfg)?.setting_value as any;
-      if (rawCfg) {
-        setConfig({
-          commission_rate: rawCfg.commission_rate ?? 15,
-          marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
-          marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
-          exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
-          revenue_breakdown_type: getRevenueBreakdownType(rawCfg),
-        });
+      const nextConfig: SettlementConfig = rawCfg
+        ? {
+            commission_rate: rawCfg.commission_rate ?? 15,
+            marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
+            marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
+            exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
+            revenue_breakdown_type: getRevenueBreakdownType(rawCfg),
+          }
+        : {
+            commission_rate: 15,
+            marketing_fee_base: 53000,
+            marketing_fee_per_extra_property: 3000,
+            exempt_order_sources: [],
+            revenue_breakdown_type: "standard",
+          };
+      if (rawCfg) setConfig(nextConfig);
+
+      // 門檻式收費規則：新表優先，無資料則 fallback 舊制（threshold = 0，行為不變）
+      const rule = await resolvePricingRule(supabase as any, currentAccommodationId, month, nextConfig);
+      if (cancelled) return;
+      setPricingRule(rule);
+      if (rule.fromTable) {
+        setConfig((prev) => ({
+          ...prev,
+          commission_rate: rule.commission_rate * 100,
+          exempt_order_sources: rule.exempt_order_sources,
+          revenue_breakdown_type: rule.revenue_breakdown_type,
+        }));
       }
+
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
       setAccCurrency({
         secondary_currency: (accRes.data as any)?.secondary_currency ?? null,
@@ -272,8 +302,14 @@ export default function OwnerSettlement() {
     };
   }, [currentAccommodationId, month]);
 
+  /** 目前套用的收費規則（無新表資料時等同舊制，threshold = 0） */
+  const effectiveRule = useMemo(
+    () => pricingRule ?? pricingRuleFromLegacyConfig(config as any),
+    [pricingRule, config]
+  );
+
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency);
+    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency, effectiveRule);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -292,7 +328,7 @@ export default function OwnerSettlement() {
         monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config.commission_rate, config.exempt_order_sources, accCurrency]);
+  }, [orders, month, config, accCurrency, effectiveRule]);
 
 
   const totals = useMemo(() => {
@@ -300,9 +336,13 @@ export default function OwnerSettlement() {
     const totalFood = rows.reduce((s, r) => s + r.monthFood, 0);
     const totalCommissionable = rows.reduce((s, r) => s + r.monthCommissionable, 0);
     const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
-    const marketingFee =
-      config.marketing_fee_base +
-      Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
+    // 門檻式：行銷推廣費依「當月營收（未扣加購、排除非台幣/免抽成訂單）」二選一；
+    // 門檻 = 0 時回到舊公式（基本服務費 + 每多一棟加收）
+    const marketingFee = resolveMarketingFee(
+      effectiveRule,
+      getStandardThresholdBase(rows as any),
+      propertyCount
+    );
     // 原價：基本服務 + 每棟星鏈包專案 98,800
     const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
     // 購物商品收入不列入平台抽成，全額歸業主
@@ -310,17 +350,32 @@ export default function OwnerSettlement() {
     const addonNet = addonTotal;
     const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
     return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
-  }, [rows, config, propertyCount, addonTotal]);
+  }, [rows, config, propertyCount, addonTotal, effectiveRule]);
 
 
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency) : []),
-    [isGuestCount, orders, config, month, accCurrency]
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule) : []),
+    [isGuestCount, orders, config, month, accCurrency, effectiveRule]
+
   );
 
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
+
+  /**
+   * guestcount 型的行銷推廣費：僅在該館別已套用新制（owner_settlement_pricing_rules）
+   * 且金額 > 0 時才列入，避免改動既有館別的拆解結果。
+   */
+  const gcMarketingFee = useMemo(() => {
+    if (!isGuestCount || !effectiveRule.fromTable) return 0;
+    return resolveMarketingFee(
+      effectiveRule,
+      getGuestCountThresholdBase(gcRows as any),
+      propertyCount
+    );
+  }, [isGuestCount, effectiveRule, gcRows, propertyCount]);
+
   const gcCrossMonthOrders = useMemo(
     () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
     [gcRows]
@@ -378,14 +433,15 @@ export default function OwnerSettlement() {
     if (isGuestCount) {
       return {
         totalRevenue: gcTotals.totalRevenue,
-        platformTotal: gcTotals.totalPlatformFee,
+        platformTotal: gcTotals.totalPlatformFee + gcMarketingFee,
         totalCommission: gcTotals.totalCommission,
-        marketingFee: 0,
-        ownerNet: gcTotals.ownerNet,
+        marketingFee: gcMarketingFee,
+        ownerNet: gcTotals.ownerNet - gcMarketingFee,
         orderCount: gcRows.length,
         totalNights: null as number | null,
       };
     }
+
     return {
       totalRevenue: totals.totalRevenue,
       platformTotal: totals.totalCommission + totals.marketingFee,
@@ -395,7 +451,7 @@ export default function OwnerSettlement() {
       orderCount: rows.length,
       totalNights: rows.reduce((s, r) => s + r.nightsInMonth, 0) as number | null,
     };
-  }, [isGuestCount, gcTotals, gcRows, totals, rows]);
+  }, [isGuestCount, gcTotals, gcRows, totals, rows, gcMarketingFee]);
 
 
   /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
@@ -518,14 +574,17 @@ export default function OwnerSettlement() {
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(gcTotals.totalRevenue)}</td></tr>
         <tr><td>加購項目（全額歸業主）</td><td class="r">NT$ ${fmt(gcTotals.totalAddonTotal)}</td></tr>
         <tr><td>抽成基礎</td><td class="r">NT$ ${fmt(gcTotals.totalCommissionBase)}</td></tr>
-        <tr><td>人客多抽成 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
+        <tr><td>人客多抽成 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
         <tr><td>溢價分潤</td><td class="r">−NT$ ${fmt(gcTotals.totalPremiumShare)}</td></tr>
-        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee)}</td></tr>
-        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet)}</td></tr>
+        ${gcMarketingFee > 0 ? `<tr><td>行銷推廣費</td><td class="r">−NT$ ${fmt(gcMarketingFee)}</td></tr>` : ""}
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee + gcMarketingFee)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet - gcMarketingFee)}</td></tr>
+
         ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
-        <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
-        <tr><td>行銷推廣費（${propertyCount} 棟）</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
+        <tr><td>平台服務費 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
+        <tr><td>行銷推廣費${effectiveRule.marketing_fee_threshold > 0 ? "" : `（${propertyCount} 棟）`}</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
+
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
         <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
         <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(totals.ownerNet)}</td></tr>
@@ -661,6 +720,7 @@ export default function OwnerSettlement() {
                       <>
                         <span>人客多抽成 {config.commission_rate}%：NT$ {fmt(gcTotals.totalCommission)}</span>
                         <span>溢價分潤：NT$ {fmt(gcTotals.totalPremiumShare)}</span>
+                        {gcMarketingFee > 0 && <span>行銷推廣費：NT$ {fmt(gcMarketingFee)}</span>}
                       </>
                     ) : (
                       <>
@@ -668,6 +728,7 @@ export default function OwnerSettlement() {
                         <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
                       </>
                     )}
+
                   </div>
 
                   <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
@@ -690,6 +751,12 @@ export default function OwnerSettlement() {
           <CardHeader className="pb-3">
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="text-base">本月收益拆解</CardTitle>
+              {effectiveRule.fromTable && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                  <ShieldCheck className="h-3 w-3" />
+                  已套用門檻式收費規則
+                </span>
+              )}
               {gcTotals.crossMonthCount > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -741,7 +808,11 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={Percent}
               label={`人客多抽成 ${config.commission_rate}%`}
-              sublabel="抽成基礎 × 服務費率"
+              sublabel={
+                effectiveRule.commission_threshold > 0
+                  ? `抽成基礎 × 服務費率（當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成）`
+                  : "抽成基礎 × 服務費率"
+              }
               value={-gcTotals.totalCommission}
               tone="fee"
             />
@@ -752,11 +823,24 @@ export default function OwnerSettlement() {
               value={-gcTotals.totalPremiumShare}
               tone="fee"
             />
+            {gcMarketingFee > 0 && (
+              <BreakdownRow
+                icon={Megaphone}
+                label="行銷推廣費"
+                sublabel={
+                  effectiveRule.marketing_fee_threshold > 0
+                    ? `當月營收 ${getGuestCountThresholdBase(gcRows as any) >= effectiveRule.marketing_fee_threshold ? "已達" : "未達"} NT$ ${fmt(effectiveRule.marketing_fee_threshold)} 門檻`
+                    : "固定金額"
+                }
+                value={-gcMarketingFee}
+                tone="fee"
+              />
+            )}
             <BreakdownRow
               icon={Wallet}
               label="平台費用合計"
-              sublabel="人客多抽成 + 溢價分潤"
-              value={-gcTotals.totalPlatformFee}
+              sublabel={gcMarketingFee > 0 ? "人客多抽成 + 溢價分潤 + 行銷推廣費" : "人客多抽成 + 溢價分潤"}
+              value={-(gcTotals.totalPlatformFee + gcMarketingFee)}
               tone="subtotal"
             />
             <div className="h-px bg-border my-2" />
@@ -764,9 +848,10 @@ export default function OwnerSettlement() {
               icon={Banknote}
               label="業主淨收益"
               sublabel="入住營收 − 平台費用合計（加購項目不列入扣項）"
-              value={gcTotals.ownerNet}
+              value={gcTotals.ownerNet - gcMarketingFee}
               tone="final"
             />
+
           </CardContent>
         </Card>
       ) : (
@@ -802,16 +887,32 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Percent}
             label={`平台服務費 ${config.commission_rate}%`}
-            sublabel="含金流處理、客服、系統維運、訂單管理、網紅抽成"
+            sublabel={
+              effectiveRule.commission_threshold > 0
+                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　含金流處理、客服、系統維運、訂單管理、網紅抽成`
+                : "含金流處理、客服、系統維運、訂單管理、網紅抽成"
+            }
             value={-totals.totalCommission}
             tone="fee"
           />
           <BreakdownRow
             icon={Megaphone}
-            label={`行銷推廣費（${propertyCount} 棟）`}
+            label={
+              effectiveRule.marketing_fee_threshold > 0
+                ? "行銷推廣費"
+                : `行銷推廣費（${propertyCount} 棟）`
+            }
             sublabel={
               <>
-                基本 {fmt(config.marketing_fee_base)} + {Math.max(0, propertyCount - 1)} × {fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放、
+                {effectiveRule.marketing_fee_threshold > 0 ? (
+                  <>
+                    當月營收 {getStandardThresholdBase(rows as any) >= effectiveRule.marketing_fee_threshold ? "已達" : "未達"} NT$ {fmt(effectiveRule.marketing_fee_threshold)} 門檻　含 OTA 上架、SEO、廣告投放、
+                  </>
+                ) : (
+                  <>
+                    基本 {fmt(config.marketing_fee_base)} + {Math.max(0, propertyCount - 1)} × {fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放、
+                  </>
+                )}
                 <a
                   href="https://star.lakeze.com/"
                   target="_blank"
@@ -827,6 +928,7 @@ export default function OwnerSettlement() {
             originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
+
 
           <BreakdownRow
             icon={Wallet}
@@ -1036,6 +1138,10 @@ export default function OwnerSettlement() {
                                     <div>
                                       抽成基礎 NT$ {fmt(gc.commissionBase)} × {config.commission_rate}% = 人客多抽成 NT$ {fmt(gc.commission)}
                                       {gc.exempt && "（不抽成）"}
+                                      {!gc.exempt && effectiveRule.commission_threshold > 0 && (
+                                        <span className="text-muted-foreground">（已依當月營收門檻 NT$ {fmt(effectiveRule.commission_threshold)} 分攤）</span>
+                                      )}
+
                                     </div>
                                     <div>
                                       入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
@@ -1052,7 +1158,7 @@ export default function OwnerSettlement() {
                                   <div>
                                     本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
                                     {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.revenue)}
-                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}{effectiveRule.commission_threshold > 0 ? `（已依當月營收門檻 NT$ ${fmt(effectiveRule.commission_threshold)} 分攤）` : ""}</>}
                                   </div>
 
                                 )}
