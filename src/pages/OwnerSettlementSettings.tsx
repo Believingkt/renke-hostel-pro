@@ -469,14 +469,61 @@ export default function OwnerSettlementSettings() {
               3 棟 NT$ {(config.marketing_fee_base + config.marketing_fee_per_extra_property * 2).toLocaleString()}
             </p>
           </div>
+
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="marketing_fee_threshold">行銷推廣費門檻（NT$）</Label>
+            <Input
+              id="marketing_fee_threshold"
+              type="number"
+              min={0}
+              step={1000}
+              value={config.marketing_fee_threshold}
+              onChange={(e) => setConfig({ ...config, marketing_fee_threshold: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              0 = 恆用「未達門檻」金額，並沿用「每多一棟加收」的舊公式；超過門檻改用「超過門檻」金額。
+              {config.marketing_fee_threshold > 0
+                ? ` 目前設定：當月營收未達 NT$ ${config.marketing_fee_threshold.toLocaleString()} 收「未達門檻」金額，達標則收「超過門檻」金額。`
+                : ""}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_low">行銷推廣費（未達門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_low"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_low}
+                onChange={(e) => setConfig({ ...config, marketing_fee_low: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marketing_fee_high">行銷推廣費（超過門檻，NT$）</Label>
+              <Input
+                id="marketing_fee_high"
+                type="number"
+                min={0}
+                step={100}
+                value={config.marketing_fee_high}
+                onChange={(e) => setConfig({ ...config, marketing_fee_high: Number(e.target.value) })}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-2">
+        <p className="text-xs text-muted-foreground text-right">
+          儲存後會建立一筆「{currentMonthStartTaipei().slice(0, 7)}」生效的版本；過去月份的規則不可修改，歷史月結報表金額不受影響。
+        </p>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "儲存中..." : "儲存設定"}
         </Button>
       </div>
+
     </div>
   );
 }
