@@ -165,6 +165,20 @@ serve(async (req) => {
         }
       },
       {
+        name: "get_packages",
+        description: "查詢包棟／包區方案的可訂天數、人數上限、庫存與價格，並取得可直接前往的訂房連結。客人提到包棟、包區、整棟、包場、多人入住時優先使用。",
+        input_schema: {
+          type: "object",
+          properties: {
+            check_in_date: { type: "string", description: "入住日期，格式：YYYY-MM-DD（選填，未提供只回起始價）" },
+            check_out_date: { type: "string", description: "退房日期，格式：YYYY-MM-DD（選填）" },
+            guest_count: { type: "number", description: "總人數（選填，用於過濾可容納的方案）" }
+          },
+          required: []
+        }
+      },
+      {
+
         name: "check_discount_code",
         description: "驗證折扣碼是否有效",
         input_schema: {
