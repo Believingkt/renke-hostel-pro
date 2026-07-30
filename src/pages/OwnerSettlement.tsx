@@ -947,7 +947,8 @@ export default function OwnerSettlement() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                        );
+                      })()}
                     </React.Fragment>
                   );
                 })}
