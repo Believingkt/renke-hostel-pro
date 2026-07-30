@@ -950,11 +950,12 @@ export default function OwnerSettlement() {
                       </TableRow>
                       {isOpen && (() => {
                         const cur = r.isForeign ? getCurrencySymbol(r.currency) : "NT$ ";
-                        const gc = gcRowByOrderId[r.order.id];
+                        const gc = r.gc;
                         const useGc = isGuestCount && !!gc;
+                        const std = r.std;
                         return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={9} className="p-0">
+                          <TableCell colSpan={isGuestCount ? 8 : 9} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
@@ -963,9 +964,17 @@ export default function OwnerSettlement() {
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source, getOrderOtaCode(r.order as any)).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
-                                <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
+                                {useGc ? (
+                                  <DetailItem
+                                    label="入住 / 退房"
+                                    value={`${r.order.check_in_date} → ${r.order.check_out_date}${gc.isCrossMonth ? "（跨月，全額計入入住月）" : ""}`}
+                                  />
+                                ) : (
+                                  <DetailItem label="本月攤分比例" value={`${((std?.monthRatio ?? 0) * 100).toFixed(1)}%`} />
+                                )}
                                 <DetailItem label="入住人數" value={r.order.guest_count != null ? `${r.order.guest_count} 人` : "—"} />
                               </div>
+
 
                               {r.isForeign && (
                                 <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
