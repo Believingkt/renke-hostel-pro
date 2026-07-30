@@ -115,17 +115,59 @@ export default function OwnerSettlementSettings() {
       const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
       const picked = perAcc ?? global;
       setUsingFallback(!!currentAccommodationId && !perAcc);
+      let baseConfig: SettlementConfig = DEFAULT_CONFIG;
       if (picked?.setting_value) {
         const raw = picked.setting_value as any;
-        setConfig({
+        baseConfig = {
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
           revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
+          // 舊制沒有門檻概念，門檻相關欄位預設 0；行銷費（未達門檻）沿用基本服務費
+          commission_threshold: 0,
+          marketing_fee_low: Number(raw.marketing_fee_base ?? DEFAULT_CONFIG.marketing_fee_base) || 0,
+          marketing_fee_high: 0,
+          marketing_fee_threshold: 0,
+        };
+      }
+
+      // 新制優先：取該館別 effective_from <= 當月的最新一筆生效規則
+      let ruleRow: any = null;
+      if (currentAccommodationId) {
+        const { data } = await supabase
+          .from("owner_settlement_pricing_rules")
+          .select("*")
+          .eq("accommodation_id", currentAccommodationId)
+          .lte("effective_from", currentMonthStartTaipei())
+          .order("effective_from", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        ruleRow = data ?? null;
+      }
+      if (ruleRow) {
+        setConfig({
+          ...baseConfig,
+          // 資料表存小數，UI 以百分比顯示
+          commission_rate: (Number(ruleRow.commission_rate) || 0) * 100,
+          commission_threshold: Number(ruleRow.commission_threshold) || 0,
+          marketing_fee_low: Number(ruleRow.marketing_fee_low) || 0,
+          marketing_fee_high: Number(ruleRow.marketing_fee_high) || 0,
+          marketing_fee_threshold: Number(ruleRow.marketing_fee_threshold) || 0,
+          exempt_order_sources: Array.isArray(ruleRow.exempt_order_sources)
+            ? ruleRow.exempt_order_sources
+            : baseConfig.exempt_order_sources,
+          revenue_breakdown_type:
+            ruleRow.revenue_breakdown_type === "guestcount"
+              ? "guestcount"
+              : ruleRow.revenue_breakdown_type === "standard"
+                ? "standard"
+                : baseConfig.revenue_breakdown_type,
         });
       } else {
-        setConfig(DEFAULT_CONFIG);
+        setConfig(baseConfig);
       }
+
 
       const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
       if (currentAccommodationId) {
