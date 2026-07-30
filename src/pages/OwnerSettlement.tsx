@@ -152,7 +152,7 @@ export default function OwnerSettlement() {
         supabase
           .from("orders")
           .select(
-            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details"
+            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking"
           )
           .eq("accommodation_id", currentAccommodationId)
           .neq("order_status", "cancelled")
