@@ -205,6 +205,10 @@ export default function AIBooking() {
                     const roomNames = tc.data.map((r: any) => r.name).join('、');
                     return `[系統：已向客人展示房型卡片：${roomNames}]`;
                   }
+                  if (tc.type === 'packages') {
+                    const pkgNames = tc.data.map((p: any) => p.name).join('、');
+                    return `[系統：已向客人展示包棟方案卡片（含訂購連結）：${pkgNames}，不需重複列出連結]`;
+                  }
                   if (tc.type === 'booking' && tc.data?.success) {
                     return `[系統：已成功建立訂單 ${tc.data.order_number}]`;
                   }
