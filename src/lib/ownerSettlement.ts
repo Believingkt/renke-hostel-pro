@@ -1,10 +1,13 @@
 import { addDays, differenceInDays, endOfMonth, parseISO, startOfMonth } from "date-fns";
 
+export type RevenueBreakdownType = "standard" | "guestcount";
+
 export interface OwnerSettlementConfig {
   commission_rate: number;
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
   exempt_order_sources: string[];
+  revenue_breakdown_type?: RevenueBreakdownType;
 }
 
 export const DEFAULT_OWNER_SETTLEMENT_CONFIG: OwnerSettlementConfig = {
@@ -12,7 +15,33 @@ export const DEFAULT_OWNER_SETTLEMENT_CONFIG: OwnerSettlementConfig = {
   marketing_fee_base: 53000,
   marketing_fee_per_extra_property: 3000,
   exempt_order_sources: [],
+  revenue_breakdown_type: "standard",
 };
+
+/** 讀取拆解類型，未設定時視為 standard */
+export function getRevenueBreakdownType(config: Partial<OwnerSettlementConfig> | null | undefined): RevenueBreakdownType {
+  return config?.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard";
+}
+
+/** 溢價分潤：每人 300 元的一半 */
+export const PREMIUM_SHARE_PER_GUEST = 300;
+
+export const CLEANING_FEE_ADDON_TYPE = "清潔費";
+
+/** 從 orders.custom_addon_details（jsonb array）精確比對 addon_type = '清潔費' 並加總 total */
+export function extractCleaningFee(customAddonDetails: unknown): number {
+  if (!Array.isArray(customAddonDetails)) return 0;
+  let sum = 0;
+  for (const item of customAddonDetails) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    if (rec.addon_type === CLEANING_FEE_ADDON_TYPE) {
+      sum += Number(rec.total ?? 0) || 0;
+    }
+  }
+  return sum;
+}
+
 
 export interface OwnerSettlementOrderInput {
   check_in_date: string;
