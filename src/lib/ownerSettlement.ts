@@ -46,6 +46,59 @@ export interface OwnerSettlementOrderInput {
   discount_amount?: number | string | null;
   order_source?: string | null;
   owner_direct?: boolean | null;
+  /** 建單當下幣別快照（null = 舊訂單，fallback 館別現值） */
+  currency_at_booking?: string | null;
+  /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
+  exchange_rate_snapshot?: number | string | null;
+}
+
+/** 館別現值（快照為 null 時的 fallback 來源） */
+export interface AccommodationCurrencyFallback {
+  secondary_currency?: string | null;
+  secondary_currency_rate?: number | string | null;
+}
+
+export interface ResolvedOrderCurrency {
+  /** 該筆訂單金額實際的幣別（TWD 或外幣代碼） */
+  currency: string;
+  /** 外幣 per TWD（例：JPY 5.02）；TWD 訂單為 1 */
+  rate: number;
+  /** 是否為非台幣訂單（依快照判斷；快照為 null 才 fallback 館別現值） */
+  isForeign: boolean;
+  /** 快照是否存在（false = 使用館別現值 fallback） */
+  fromSnapshot: boolean;
+}
+
+/**
+ * 幣別/匯率判斷：優先使用訂單快照，快照為 null 時 fallback 館別現值。
+ * 注意「非台幣不抽成」僅在 currency_at_booking 快照存在且非 TWD 時成立。
+ */
+export function resolveOrderCurrency(
+  order: OwnerSettlementOrderInput,
+  fallback?: AccommodationCurrencyFallback | null,
+): ResolvedOrderCurrency {
+  const snapCode = (order.currency_at_booking || "").trim().toUpperCase();
+  if (snapCode) {
+    const snapRate = Number(order.exchange_rate_snapshot);
+    return {
+      currency: snapCode,
+      rate: Number.isFinite(snapRate) && snapRate > 0 ? snapRate : 1,
+      isForeign: snapCode !== "TWD",
+      fromSnapshot: true,
+    };
+  }
+  const fbCode = (fallback?.secondary_currency || "").trim().toUpperCase();
+  const fbRate = Number(fallback?.secondary_currency_rate);
+  if (fbCode && fbCode !== "TWD" && Number.isFinite(fbRate) && fbRate > 0) {
+    return { currency: fbCode, rate: fbRate, isForeign: false, fromSnapshot: false };
+  }
+  return { currency: "TWD", rate: 1, isForeign: false, fromSnapshot: false };
+}
+
+/** 外幣金額換算台幣：TWD = 原幣別金額 ÷ 匯率（匯率為「外幣 per TWD」） */
+export function convertToTwd(amount: number, resolved: ResolvedOrderCurrency): number {
+  if (resolved.currency === "TWD" || !resolved.rate || resolved.rate <= 0) return amount;
+  return amount / resolved.rate;
 }
 
 export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerSettlementOrderInput> {
@@ -53,12 +106,20 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   nightsInMonth: number;
   totalNights: number;
   monthRatio: number;
+  /** 台幣金額（外幣訂單已換算） */
   monthFinal: number;
   monthDiscount: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
+  /** 幣別資訊 */
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  /** 原幣別的本月營收（台幣訂單等同 monthFinal） */
+  monthFinalOriginal: number;
 }
+
 
 /**
  * 純函式：把訂單依當月夜數分攤，套用 exempt 規則後計算抽成。
