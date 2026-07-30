@@ -316,9 +316,10 @@ export default function OwnerSettlement() {
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month) : []),
-    [isGuestCount, orders, config, month]
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency) : []),
+    [isGuestCount, orders, config, month, accCurrency]
   );
+
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
   const gcCrossMonthOrders = useMemo(
     () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
