@@ -261,18 +261,26 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
  * 純函式：把訂單依當月夜數分攤，套用 exempt 規則後計算抽成。
  * 抽離自 OwnerSettlement 頁面，任何角色只要拿到相同 config + orders，
  * 就會得到完全相同的金額，避免 RLS/讀取權限造成的差異。
+ *
+ * rule：門檻式收費規則（可省略 → 由 config 組出等義的舊制規則，threshold = 0，
+ * 計算結果與修改前完全一致）。
  */
 export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
   currencyFallback?: AccommodationCurrencyFallback | null,
+  rule?: OwnerPricingRule | null,
 ): OwnerSettlementRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
-  const exemptSet = new Set((config.exempt_order_sources ?? []).map((s) => s));
+  const effectiveRule = rule ?? pricingRuleFromLegacyConfig(config);
+  const exemptSet = new Set(effectiveRule.exempt_order_sources ?? []);
 
-  const rows: OwnerSettlementRow<T>[] = [];
+  interface Draft {
+    row: OwnerSettlementRow<T>;
+  }
+  const drafts: Draft[] = [];
   for (const o of orders) {
     const ci = parseISO(o.check_in_date);
     const co = parseISO(o.check_out_date);
@@ -294,27 +302,39 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
       resolved.isForeign;
-    const commission = exempt ? 0 : monthCommissionable * (config.commission_rate / 100);
 
-    rows.push({
-      order: o,
-      nightsInMonth,
-      totalNights,
-      monthRatio: ratio,
-      monthFinal,
-      monthDiscount,
-      monthCommissionable,
-      commission,
-      exempt,
-      currency: resolved.currency,
-      exchangeRate: resolved.rate,
-      isForeign: resolved.currency !== "TWD",
-      monthFinalOriginal,
+    drafts.push({
+      row: {
+        order: o,
+        nightsInMonth,
+        totalNights,
+        monthRatio: ratio,
+        monthFinal,
+        monthDiscount,
+        monthCommissionable,
+        commission: 0,
+        exempt,
+        currency: resolved.currency,
+        exchangeRate: resolved.rate,
+        isForeign: resolved.currency !== "TWD",
+        monthFinalOriginal,
+      },
     });
   }
-  return rows;
+
+  // 業績門檻基礎：未扣加購的當月營收，排除非台幣 / exempt 訂單
+  const thresholdBase = drafts.reduce((s, d) => s + (d.row.exempt ? 0 : d.row.monthFinal), 0);
+  const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
+  for (const d of drafts) {
+    d.row.commission = d.row.exempt ? 0 : d.row.monthCommissionable * effectiveRule.commission_rate * factor;
+  }
+  return drafts.map((d) => d.row);
 }
 
+/** standard 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+export function getStandardThresholdBase(rows: OwnerSettlementRow[]): number {
+  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.monthFinal), 0);
+}
 
 export interface OwnerSettlementTotals {
   totalRevenue: number;
@@ -327,15 +347,20 @@ export function computeOwnerSettlementTotals(
   rows: OwnerSettlementRow[],
   config: OwnerSettlementConfig,
   propertyCount: number,
+  rule?: OwnerPricingRule | null,
 ): OwnerSettlementTotals {
+  const effectiveRule = rule ?? pricingRuleFromLegacyConfig(config);
   const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
   const totalCommissionable = rows.reduce((s, r) => s + r.monthCommissionable, 0);
   const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
-  const marketingFee =
-    config.marketing_fee_base +
-    Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
+  const marketingFee = resolveMarketingFee(
+    effectiveRule,
+    getStandardThresholdBase(rows),
+    propertyCount,
+  );
   return { totalRevenue, totalCommissionable, totalCommission, marketingFee };
 }
+
 
 /* ===================== guestcount 型（旅行日六館） ===================== */
 
