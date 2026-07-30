@@ -5658,6 +5658,7 @@ export type Database = {
           checked_out_at: string | null
           confirmed_at: string | null
           created_at: string | null
+          currency_at_booking: string | null
           custom_addon_details: Json | null
           customer_id: string | null
           deposit_amount: number | null
@@ -5671,6 +5672,7 @@ export type Database = {
           deposit_status: string
           discount_amount: number | null
           discount_code: string | null
+          exchange_rate_snapshot: number | null
           final_price: number
           guest_address: string | null
           guest_count: number
@@ -5740,6 +5742,7 @@ export type Database = {
           checked_out_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          currency_at_booking?: string | null
           custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
@@ -5753,6 +5756,7 @@ export type Database = {
           deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
+          exchange_rate_snapshot?: number | null
           final_price: number
           guest_address?: string | null
           guest_count?: number
@@ -5822,6 +5826,7 @@ export type Database = {
           checked_out_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          currency_at_booking?: string | null
           custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
@@ -5835,6 +5840,7 @@ export type Database = {
           deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
+          exchange_rate_snapshot?: number | null
           final_price?: number
           guest_address?: string | null
           guest_count?: number
