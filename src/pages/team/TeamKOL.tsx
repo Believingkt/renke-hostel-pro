@@ -505,13 +505,16 @@ function InvitationsTab({
   const accommodationOptions = useMemo<VenueOption[]>(() => {
     // 從 kol_venues 建立 accommodation_id → venue_id 的映射（PMS 母館）
     const accToVenueId = new Map<string, string>();
+    const activeVenueAccIds = new Set<string>();
     for (const v of venues) {
       if (v.accommodation_id && !v.room_type_id) {
         accToVenueId.set(v.accommodation_id, v.id);
+        if (v.is_active) activeVenueAccIds.add(v.accommodation_id);
       }
     }
     const pms: VenueOption[] = accommodations
-      .filter((a) => a.is_active !== false)
+      // 只要 kol_venues 有對應且 active 就顯示，不受 accommodation_info.is_active 影響
+      .filter((a) => activeVenueAccIds.has(a.id) || a.is_active !== false)
       .map((a) => ({
         value: `acc:${a.id}`,
         label: a.name,
