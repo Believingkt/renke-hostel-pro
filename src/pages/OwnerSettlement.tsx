@@ -520,16 +520,16 @@ export default function OwnerSettlement() {
             />
             <BreakdownRow
               icon={Sparkles}
-              label="清潔費（不計入抽成）"
-              sublabel="加購項目中的清潔費，全額歸業主"
-              value={gcTotals.totalCleaningFee}
+              label="加購項目"
+              sublabel="加購項目中的金額（包含清潔費、接機車資等），全額歸業主"
+              value={gcTotals.totalAddonTotal}
               tone="income"
             />
             <div className="h-px bg-border my-2" />
             <BreakdownRow
               icon={Percent}
               label="抽成基礎"
-              sublabel="入住營收 − 清潔費"
+              sublabel="入住營收 − 加購項目"
               value={gcTotals.totalCommissionBase}
               tone="subtotal"
             />
