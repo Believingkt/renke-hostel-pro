@@ -123,9 +123,9 @@ export default function OwnerSettlementSettings() {
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
           revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
-          // 舊制沒有門檻概念，門檻相關欄位預設 0；行銷費（未達門檻）沿用基本服務費
+          // 舊制沒有門檻概念，門檻相關欄位一律預設 0（未啟用門檻機制）
           commission_threshold: 0,
-          marketing_fee_low: Number(raw.marketing_fee_base ?? DEFAULT_CONFIG.marketing_fee_base) || 0,
+          marketing_fee_low: 0,
           marketing_fee_high: 0,
           marketing_fee_threshold: 0,
         };
@@ -478,7 +478,14 @@ export default function OwnerSettlementSettings() {
               min={0}
               step={1000}
               value={config.marketing_fee_threshold}
-              onChange={(e) => setConfig({ ...config, marketing_fee_threshold: Number(e.target.value) })}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setConfig((prev) => ({
+                  ...prev,
+                  marketing_fee_threshold: next,
+                  ...(next > 0 ? {} : { marketing_fee_low: 0, marketing_fee_high: 0 }),
+                }));
+              }}
             />
             <p className="text-xs text-muted-foreground">
               0 = 恆用「未達門檻」金額，並沿用「每多一棟加收」的舊公式；超過門檻改用「超過門檻」金額。
