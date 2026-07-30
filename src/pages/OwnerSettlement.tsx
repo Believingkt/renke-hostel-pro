@@ -868,15 +868,19 @@ export default function OwnerSettlement() {
       {/* 訂單明細 */}
       <Card>
         <CardHeader>
-          <CardTitle>{monthLabel}訂單明細（依入住日逐日攤分至本月）</CardTitle>
+          <CardTitle>
+            {monthLabel}訂單明細{isGuestCount ? "（依入住月份全額計算）" : "（依入住日逐日攤分至本月）"}
+          </CardTitle>
           <CardDescription>
-            含 {monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。
+            {isGuestCount
+              ? `入住日落在 ${monthLabel} 的訂單；跨月訂單全額計入入住月份，不做夜數分攤。已取消訂單不列入。`
+              : `含 ${monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {loading ? (
             <TableSkeleton rows={6} columns={8} />
-          ) : rows.length === 0 ? (
+          ) : tableRows.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">{monthLabel} 無入住訂單</p>
           ) : (
             <Table className="fixed-table">
@@ -886,15 +890,15 @@ export default function OwnerSettlement() {
                   <TableHead>訂單編號</TableHead>
                   <TableHead>訂購人</TableHead>
                   <TableHead>入住 / 退房</TableHead>
-                  <TableHead className="text-right">本月夜數</TableHead>
-                  <TableHead className="text-right tabular-nums">本月營收</TableHead>
-                  <TableHead className="text-right tabular-nums">訂單金額</TableHead>
+                  {!isGuestCount && <TableHead className="text-right">本月夜數</TableHead>}
+                  <TableHead className="text-right tabular-nums">{isGuestCount ? "入住營收" : "本月營收"}</TableHead>
+                  <TableHead className="text-right tabular-nums">{isGuestCount ? "抽成基礎" : "訂單金額"}</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => {
+                {tableRows.map((r) => {
                   const isOpen = expandedId === r.order.id;
                   return (
                     <React.Fragment key={r.order.id}>
@@ -910,20 +914,23 @@ export default function OwnerSettlement() {
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.order.check_in_date} → {r.order.check_out_date}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r.nightsInMonth} / {r.totalNights}
-                        </TableCell>
+                        {!isGuestCount && (
+                          <TableCell className="text-right tabular-nums">
+                            {r.std!.nightsInMonth} / {r.std!.totalNights}
+                          </TableCell>
+                        )}
                         <TableCell className="text-right tabular-nums">
                           {r.isForeign && (
                             <span className="mr-1 text-[11px] text-muted-foreground">
-                              {getCurrencySymbol(r.currency)}{fmt(r.monthFinalOriginal)} ÷ {r.exchangeRate} =
+                              {getCurrencySymbol(r.currency)}{fmt(r.revenueOriginal)} ÷ {r.exchangeRate} =
                             </span>
                           )}
-                          {fmt(r.monthFinal)}
+                          {fmt(r.revenue)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {fmt(r.monthCommissionable)}
+                          {fmt(r.orderAmount)}
                         </TableCell>
+
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
                             <Badge variant="secondary">
