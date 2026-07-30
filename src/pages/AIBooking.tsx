@@ -1777,14 +1777,31 @@ export default function AIBooking() {
                 <Paperclip className="h-4 w-4" />
               )}
             </Button>
+            <Button
+              onClick={toggleRecording}
+              disabled={isLoading || isTranscribing}
+              size="icon"
+              variant={isRecording ? "destructive" : "outline"}
+              className={`h-10 w-10 rounded-full shrink-0 ${isRecording ? "animate-pulse" : ""}`}
+              title={isRecording ? "停止錄音" : "語音輸入"}
+            >
+              {isTranscribing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isRecording ? "🎤 錄音中..." : "輸入訊息..."}
-              disabled={isLoading || isRecording}
+              placeholder={isRecording ? "🎤 錄音中..." : isTranscribing ? "辨識中..." : "輸入訊息..."}
+              disabled={isLoading || isRecording || isTranscribing}
               className="flex-1 h-10 text-base rounded-full px-4 focus:ring-2 focus:ring-primary/20"
             />
+
             <Button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
