@@ -846,27 +846,44 @@ export default function FinancialReportTab() {
                       </TableCell>
                     </TableRow>
                     {showTotalsAfter && (
-                      <TableRow className="bg-muted font-bold border-y-2">
-                        <TableCell className="font-bold">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 hover:underline"
-                            onClick={() => setTotalsOpen((v) => !v)}
-                          >
-                            {totalsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            合計（訂房組＋KOL）
-                          </button>
-                        </TableCell>
-                        {totalsBuckets.map((v, i) => (
-                          <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
-                            {totalsOpen ? fmtMoney(v) : "—"}
+                      totalsOpen ? (
+                        <TableRow className="bg-muted font-bold border-y-2">
+                          <TableCell className="font-bold">
+                            <span className="inline-flex items-center gap-2">
+                              合計
+                              <button
+                                type="button"
+                                className="text-xs font-normal text-muted-foreground hover:underline"
+                                onClick={() => setTotalsOpen(false)}
+                              >
+                                − 收合
+                              </button>
+                            </span>
                           </TableCell>
-                        ))}
-                        <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
-                          {totalsOpen ? fmtMoney(totalsGrand) : "—"}
-                        </TableCell>
-                      </TableRow>
+                          {totalsBuckets.map((v, i) => (
+                            <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
+                              {fmtMoney(v)}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
+                            {fmtMoney(totalsGrand)}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <TableRow className="hover:bg-transparent border-0">
+                          <TableCell colSpan={weekCount + 2} className="py-1 text-center">
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                              onClick={() => setTotalsOpen(true)}
+                            >
+                              + 展開合計
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      )
                     )}
+
                     </Fragment>
                   );
                 })
