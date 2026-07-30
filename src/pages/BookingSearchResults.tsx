@@ -4,7 +4,7 @@ import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays 
 import { supabase } from "@/integrations/supabase/client";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Search, User, LogIn, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Search, User, LogIn, SlidersHorizontal, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
