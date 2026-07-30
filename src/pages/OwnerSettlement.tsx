@@ -1029,7 +1029,11 @@ export default function OwnerSettlement() {
                                       入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
                                       {gc.exempt && "（不分潤）"}
                                     </div>
+                                    <div className="font-medium text-foreground">
+                                      平台費用合計 = 人客多抽成 NT$ {fmt(gc.commission)} + 溢價分潤 NT$ {fmt(gc.premiumShare)} = NT$ {fmt(gc.platformFeeTotal)}
+                                    </div>
                                   </>
+
                                 ) : (
                                   <div>
                                     本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
