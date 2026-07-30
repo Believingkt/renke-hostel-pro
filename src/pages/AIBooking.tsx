@@ -1322,16 +1322,29 @@ export default function AIBooking() {
                                         </div>
                                         
                                         {/* 選擇按鈕 */}
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          className="w-full md:h-10 shadow-sm hover:shadow-md transition-all duration-200 text-xs md:text-sm"
-                                          onClick={() => handleSelectRoom(room.name, room.id)}
-                                          disabled={isLoading}
-                                        >
-                                          <span className="mr-1">✨</span>
-                                          選擇此房型
-                                        </Button>
+                                        <div className="flex flex-col gap-1.5">
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="w-full md:h-10 shadow-sm hover:shadow-md transition-all duration-200 text-xs md:text-sm"
+                                            onClick={() => handleSelectRoom(room.name, room.id)}
+                                            disabled={isLoading}
+                                          >
+                                            <span className="mr-1">✨</span>
+                                            選擇此房型
+                                          </Button>
+                                          {room.booking_url && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full md:h-10 text-xs md:text-sm border-primary/40 text-primary hover:bg-primary/10"
+                                              onClick={() => navigate(room.booking_url)}
+                                            >
+                                              前往訂購頁
+                                              <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                            </Button>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </Card>
@@ -1339,6 +1352,77 @@ export default function AIBooking() {
                               })}
                             </div>
                           )}
+
+                          {/* 包棟／包區方案 */}
+                          {tool.type === 'packages' && Array.isArray(tool.data) && tool.data.length > 0 && (
+                            <div className="space-y-2.5 mt-3">
+                              <p className="text-sm font-semibold text-foreground flex items-center gap-2 px-1">
+                                <span className="text-base">🏡</span>
+                                <span>包棟／包區方案</span>
+                              </p>
+                              {tool.data.map((pkg: any, pkgIdx: number) => (
+                                <Card
+                                  key={pkgIdx}
+                                  className={`p-3 md:p-4 border-primary/20 transition-all duration-200 ${
+                                    pkg.is_available_for_range === false ? 'opacity-70' : 'hover:shadow-lg'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <h3 className="font-bold text-sm md:text-base truncate">{pkg.name}</h3>
+                                      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                                        👥 可住 {pkg.guest_count_max ?? pkg.guest_count} 人
+                                        {pkg.nights ? ` ・ ${pkg.nights} 晚` : ''}
+                                        {pkg.accommodation ? ` ・ ${pkg.accommodation}` : ''}
+                                      </p>
+                                      {pkg.check_in_date && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          📅 {pkg.check_in_date} ~ {pkg.check_out_date}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      {pkg.total_price ? (
+                                        <>
+                                          <div className="font-bold text-primary text-base md:text-lg">
+                                            NT$ {Number(pkg.total_price).toLocaleString()}
+                                          </div>
+                                          {pkg.avg_price_per_night && pkg.nights > 1 && (
+                                            <div className="text-[11px] text-muted-foreground">
+                                              每晚均價 NT$ {Number(pkg.avg_price_per_night).toLocaleString()}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : pkg.price_from ? (
+                                        <div className="font-bold text-primary text-base md:text-lg">
+                                          NT$ {Number(pkg.price_from).toLocaleString()} 起
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </div>
+
+                                  {pkg.is_available_for_range === false ? (
+                                    <p className="mt-2 text-xs text-destructive">
+                                      此日期已滿房
+                                      {pkg.unavailable_dates?.length ? `（${pkg.unavailable_dates.slice(0, 3).join('、')}${pkg.unavailable_dates.length > 3 ? '…' : ''}）` : ''}
+                                    </p>
+                                  ) : (
+                                    pkg.booking_url && (
+                                      <Button
+                                        size="sm"
+                                        className="w-full mt-2.5 md:h-10 text-xs md:text-sm shadow-sm"
+                                        onClick={() => navigate(pkg.booking_url)}
+                                      >
+                                        立即前往訂購
+                                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                      </Button>
+                                    )
+                                  )}
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+
                           
                           {/* 訂單創建結果 */}
                           {tool.type === 'booking' && tool.data.success && (
