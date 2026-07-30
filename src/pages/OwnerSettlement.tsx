@@ -229,15 +229,36 @@ export default function OwnerSettlement() {
       const perAccCfg = cfgRows.find((r) => r.setting_key === `owner_settlement_config:${currentAccommodationId}`);
       const globalCfg = cfgRows.find((r) => r.setting_key === "owner_settlement_config");
       const rawCfg = (perAccCfg ?? globalCfg)?.setting_value as any;
-      if (rawCfg) {
-        setConfig({
-          commission_rate: rawCfg.commission_rate ?? 15,
-          marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
-          marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
-          exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
-          revenue_breakdown_type: getRevenueBreakdownType(rawCfg),
-        });
+      const nextConfig: SettlementConfig = rawCfg
+        ? {
+            commission_rate: rawCfg.commission_rate ?? 15,
+            marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
+            marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
+            exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
+            revenue_breakdown_type: getRevenueBreakdownType(rawCfg),
+          }
+        : {
+            commission_rate: 15,
+            marketing_fee_base: 53000,
+            marketing_fee_per_extra_property: 3000,
+            exempt_order_sources: [],
+            revenue_breakdown_type: "standard",
+          };
+      if (rawCfg) setConfig(nextConfig);
+
+      // 門檻式收費規則：新表優先，無資料則 fallback 舊制（threshold = 0，行為不變）
+      const rule = await resolvePricingRule(supabase as any, currentAccommodationId, month, nextConfig);
+      if (cancelled) return;
+      setPricingRule(rule);
+      if (rule.fromTable) {
+        setConfig((prev) => ({
+          ...prev,
+          commission_rate: rule.commission_rate * 100,
+          exempt_order_sources: rule.exempt_order_sources,
+          revenue_breakdown_type: rule.revenue_breakdown_type,
+        }));
       }
+
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
       setAccCurrency({
         secondary_currency: (accRes.data as any)?.secondary_currency ?? null,
