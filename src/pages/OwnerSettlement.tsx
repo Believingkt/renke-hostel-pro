@@ -26,8 +26,23 @@ import {
   computeGuestCountRows,
   computeGuestCountTotals,
   getRevenueBreakdownType,
+  PREMIUM_SHARE_PER_GUEST,
   type RevenueBreakdownType,
+  type AccommodationCurrencyFallback,
 } from "@/lib/ownerSettlement";
+import { getCurrencySymbol } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
