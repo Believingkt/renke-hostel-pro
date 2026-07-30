@@ -951,6 +951,7 @@ function BreakdownRow({
   sublabel,
   value,
   originalValue,
+  prefixNote,
   tone,
   indent,
 }: {
@@ -959,6 +960,8 @@ function BreakdownRow({
   sublabel?: React.ReactNode;
   value: number;
   originalValue?: number;
+  /** 台幣金額左側的外幣換算式，例：¥14,769 ÷ 5.02 = */
+  prefixNote?: React.ReactNode;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
 }) {
