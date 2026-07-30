@@ -1554,11 +1554,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         description: `訂單 ${orderNumber} 已建立`,
       });
 
-      // 寫入訂單顯示幣別（依使用者建立時最後一次切換的輸入模式）
+      // 寫入訂單顯示幣別 + orders 幣別/匯率快照（依使用者建立時最後一次切換的輸入模式）
       if (createDisplayCurrency && secondaryCurrencyConfig) {
-        const { setOrderDisplayCurrency } = await import("@/lib/orderDisplayCurrency");
-        setOrderDisplayCurrency(orderData.id, createDisplayCurrency);
+        try {
+          const { setOrderDisplayCurrency } = await import("@/lib/orderDisplayCurrency");
+          await setOrderDisplayCurrency(orderData.id, createDisplayCurrency);
+        } catch (currencyError: any) {
+          console.error("[displayCurrency] failed", currencyError);
+          toast({
+            variant: "destructive",
+            title: "幣別標記寫入失敗",
+            description: `訂單 ${orderNumber} 已建立，但幣別快照未寫入，請至訂單詳情重新選擇幣別。${currencyError?.message ?? ""}`,
+          });
+        }
       }
+
 
       onSuccess(orderData.id);
       onOpenChange(false);
