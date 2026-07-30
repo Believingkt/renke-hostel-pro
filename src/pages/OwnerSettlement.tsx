@@ -641,7 +641,7 @@ export default function OwnerSettlement() {
                     業主淨收益
                   </div>
                   <div className="mt-1 text-2xl font-bold text-primary tabular-nums">
-                    NT$ {fmt(totals.ownerNet)}
+                    NT$ {fmt(summary.ownerNet)}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-1">
                     占入住營收 {ownerPct.toFixed(1)}%
