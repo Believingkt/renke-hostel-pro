@@ -618,16 +618,17 @@ export default function OwnerSettlement() {
       </Card>
 
       {/* 收益歸屬一覽：業主 vs 平台 */}
-      {totals.totalRevenue > 0 && (() => {
-        const platformTotal = totals.totalCommission + totals.marketingFee;
-        const ownerPct = Math.max(0, Math.min(100, (totals.ownerNet / totals.totalRevenue) * 100));
-        const platformPct = Math.max(0, Math.min(100, (platformTotal / totals.totalRevenue) * 100));
+      {summary.totalRevenue > 0 && (() => {
+        const platformTotal = summary.platformTotal;
+        const ownerPct = Math.max(0, Math.min(100, (summary.ownerNet / summary.totalRevenue) * 100));
+        const platformPct = Math.max(0, Math.min(100, (platformTotal / summary.totalRevenue) * 100));
         return (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">本月收益歸屬</CardTitle>
-              <CardDescription>本月入住營收 NT$ {fmt(totals.totalRevenue)} 的分配比例</CardDescription>
+              <CardDescription>本月入住營收 NT$ {fmt(summary.totalRevenue)} 的分配比例</CardDescription>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div className="bg-primary" style={{ width: `${ownerPct}%` }} title={`業主淨收益 ${ownerPct.toFixed(1)}%`} />
