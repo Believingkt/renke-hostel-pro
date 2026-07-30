@@ -185,6 +185,10 @@ export default function OwnerSettlementSettings() {
           .maybeSingle();
         ruleRow = data ?? null;
       }
+      setCurrentRuleId(ruleRow?.id ?? null);
+      setHistoryOpen(false);
+      setHistoryLoaded(false);
+      setHistoryRows([]);
       if (ruleRow) {
         setConfig({
           ...baseConfig,
