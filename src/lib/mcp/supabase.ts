@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { ToolContext } from "@lovable.dev/mcp-js";
 
+declare const process: { env: Record<string, string | undefined> };
+
 /** Supabase client bound to the MCP caller's verified token, so RLS runs as that user. */
 export function supabaseForUser(ctx: ToolContext) {
   return createClient(
