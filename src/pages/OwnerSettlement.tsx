@@ -574,10 +574,12 @@ export default function OwnerSettlement() {
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(gcTotals.totalRevenue)}</td></tr>
         <tr><td>加購項目（全額歸業主）</td><td class="r">NT$ ${fmt(gcTotals.totalAddonTotal)}</td></tr>
         <tr><td>抽成基礎</td><td class="r">NT$ ${fmt(gcTotals.totalCommissionBase)}</td></tr>
-        <tr><td>人客多抽成 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
+        <tr><td>人客多抽成 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
         <tr><td>溢價分潤</td><td class="r">−NT$ ${fmt(gcTotals.totalPremiumShare)}</td></tr>
-        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee)}</td></tr>
-        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet)}</td></tr>
+        ${gcMarketingFee > 0 ? `<tr><td>行銷推廣費</td><td class="r">−NT$ ${fmt(gcMarketingFee)}</td></tr>` : ""}
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee + gcMarketingFee)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet - gcMarketingFee)}</td></tr>
+
         ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
         <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
