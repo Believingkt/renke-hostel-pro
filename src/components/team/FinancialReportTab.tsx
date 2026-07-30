@@ -790,37 +790,8 @@ export default function FinancialReportTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!loading && (() => {
-                const totals = emptyBuckets(weekCount);
-                for (const b of [row1.buckets, row2.buckets]) {
-                  for (let i = 0; i < weekCount; i++) totals[i] += (b[i] ?? 0);
-                }
-                const grand = totals.reduce((a, b) => a + b, 0);
-                return (
-                  <TableRow className="bg-muted font-bold border-b-2">
-                    <TableCell className="font-bold">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 hover:underline"
-                        onClick={() => setTotalsOpen((v) => !v)}
-                      >
-                        {totalsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        合計（訂房組＋KOL）
-                      </button>
-                    </TableCell>
-                    {totals.map((v, i) => (
-                      <TableCell key={i} className="text-right tabular-nums whitespace-nowrap font-bold">
-                        {totalsOpen ? fmtMoney(v) : "—"}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right tabular-nums whitespace-nowrap font-bold">
-                      {totalsOpen ? fmtMoney(grand) : "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })()}
-
               {loading ? (
+
                 <TableRow>
                   <TableCell colSpan={weekCount + 2} className="text-center py-8">
                     <Loader2 className="inline h-4 w-4 animate-spin mr-2" />載入中…
