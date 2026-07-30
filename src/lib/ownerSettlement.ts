@@ -26,18 +26,14 @@ export function getRevenueBreakdownType(config: Partial<OwnerSettlementConfig> |
 /** 溢價分潤：每人 300 元的一半 */
 export const PREMIUM_SHARE_PER_GUEST = 300;
 
-export const CLEANING_FEE_ADDON_TYPE = "清潔費";
-
-/** 從 orders.custom_addon_details（jsonb array）精確比對 addon_type = '清潔費' 並加總 total */
-export function extractCleaningFee(customAddonDetails: unknown): number {
+/** 從 orders.custom_addon_details（jsonb array）加總「全部」加購項目 total（含清潔費、接機車資等） */
+export function extractAddonTotal(customAddonDetails: unknown): number {
   if (!Array.isArray(customAddonDetails)) return 0;
   let sum = 0;
   for (const item of customAddonDetails) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
-    if (rec.addon_type === CLEANING_FEE_ADDON_TYPE) {
-      sum += Number(rec.total ?? 0) || 0;
-    }
+    sum += Number(rec.total ?? 0) || 0;
   }
   return sum;
 }
@@ -142,7 +138,7 @@ export interface GuestCountOrderInput extends OwnerSettlementOrderInput {
 
 export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderInput> {
   order: T;
-  cleaningFee: number;
+  addonTotal: number;
   commissionBase: number;
   commission: number;
   premiumShare: number;
@@ -154,7 +150,7 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
 
 /**
  * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price - 清潔費；人客多抽成 = 抽成基礎 × rate；
+ * 抽成基礎 = final_price - 加購項目總額；人客多抽成 = 抽成基礎 × rate；
  * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
  */
 export function computeGuestCountRows<T extends GuestCountOrderInput>(
@@ -178,8 +174,8 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       ci.getFullYear() !== co.getFullYear() || ci.getMonth() !== co.getMonth();
 
     const finalPrice = Number(o.final_price || 0);
-    const cleaningFee = extractCleaningFee(o.custom_addon_details);
-    const commissionBase = finalPrice - cleaningFee;
+    const addonTotal = extractAddonTotal(o.custom_addon_details);
+    const commissionBase = finalPrice - addonTotal;
     const exempt = !!o.owner_direct || (o.order_source ? exemptSet.has(o.order_source) : false);
     const commission = exempt ? 0 : commissionBase * rate;
     const premiumShare = exempt ? 0 : (Number(o.guest_count || 0) * PREMIUM_SHARE_PER_GUEST) / 2;
@@ -187,7 +183,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
 
     rows.push({
       order: o,
-      cleaningFee,
+      addonTotal,
       commissionBase,
       commission,
       premiumShare,
@@ -202,7 +198,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
 
 export interface GuestCountTotals {
   totalRevenue: number;
-  totalCleaningFee: number;
+  totalAddonTotal: number;
   totalCommissionBase: number;
   totalCommission: number;
   totalPremiumShare: number;
@@ -215,7 +211,7 @@ export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals
   const sum = (f: (r: GuestCountRow) => number) => rows.reduce((s, r) => s + f(r), 0);
   return {
     totalRevenue: sum((r) => Number(r.order.final_price || 0)),
-    totalCleaningFee: sum((r) => r.cleaningFee),
+    totalAddonTotal: sum((r) => r.addonTotal),
     totalCommissionBase: sum((r) => r.commissionBase),
     totalCommission: sum((r) => r.commission),
     totalPremiumShare: sum((r) => r.premiumShare),
