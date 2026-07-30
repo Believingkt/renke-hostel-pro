@@ -717,9 +717,6 @@ export default function OwnerSettlement() {
               value={gcTotals.totalRevenue}
               tone="income"
             />
-
-              tone="income"
-            />
             <BreakdownRow
               icon={Sparkles}
               label="加購項目"
