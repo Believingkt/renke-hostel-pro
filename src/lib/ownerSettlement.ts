@@ -303,7 +303,7 @@ export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals
   return {
     totalRevenue: sum((r) => r.finalPrice),
     totalAddonTotal: sum((r) => r.addonTotal),
-    totalCommissionBase: sum((r) => r.commissionBase),
+    totalCommissionBase: sum((r) => (r.exempt ? 0 : r.commissionBase)),
     totalCommission: sum((r) => r.commission),
     totalPremiumShare: sum((r) => r.premiumShare),
     totalPlatformFee: sum((r) => r.platformFeeTotal),
