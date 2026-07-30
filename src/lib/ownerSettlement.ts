@@ -391,19 +391,23 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
 
 /**
  * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price - 加購項目總額；人客多抽成 = 抽成基礎 × rate；
+ * 抽成基礎 = final_price - 加購項目總額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
  * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
+ *
+ * rule 省略時等同舊制（threshold = 0），結果與修改前完全一致。
  */
 export function computeGuestCountRows<T extends GuestCountOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
   currencyFallback?: AccommodationCurrencyFallback | null,
+  rule?: OwnerPricingRule | null,
 ): GuestCountRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
-  const exemptSet = new Set(config.exempt_order_sources ?? []);
-  const rate = (config.commission_rate ?? 0) / 100;
+  const effectiveRule = rule ?? pricingRuleFromLegacyConfig(config);
+  const exemptSet = new Set(effectiveRule.exempt_order_sources ?? []);
+  const rate = effectiveRule.commission_rate;
 
   const rows: GuestCountRow<T>[] = [];
   for (const o of orders) {
@@ -425,19 +429,17 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
       resolved.isForeign;
-    const commission = exempt ? 0 : commissionBase * rate;
     const premiumShare = exempt ? 0 : (Number(o.guest_count || 0) * PREMIUM_SHARE_PER_GUEST) / 2;
-    const platformFeeTotal = commission + premiumShare;
 
     rows.push({
       order: o,
       finalPrice,
       addonTotal,
       commissionBase,
-      commission,
+      commission: 0,
       premiumShare,
-      platformFeeTotal,
-      ownerNet: finalPrice - platformFeeTotal,
+      platformFeeTotal: premiumShare,
+      ownerNet: finalPrice - premiumShare,
       isCrossMonth,
       exempt,
       currency: resolved.currency,
@@ -447,8 +449,23 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       addonTotalOriginal,
     });
   }
+
+  // 業績門檻基礎：未扣加購的當月營收（final_price 全額），排除非台幣 / exempt 訂單
+  const thresholdBase = getGuestCountThresholdBase(rows);
+  const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
+  for (const r of rows) {
+    r.commission = r.exempt ? 0 : r.commissionBase * rate * factor;
+    r.platformFeeTotal = r.commission + r.premiumShare;
+    r.ownerNet = r.finalPrice - r.platformFeeTotal;
+  }
   return rows;
 }
+
+/** guestcount 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+export function getGuestCountThresholdBase(rows: GuestCountRow[]): number {
+  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.finalPrice), 0);
+}
+
 
 
 export interface GuestCountTotals {
