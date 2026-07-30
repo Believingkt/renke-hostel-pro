@@ -734,7 +734,7 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={Percent}
               label="抽成基礎"
-              sublabel="入住營收 − 加購項目"
+              sublabel="入住營收 − 加購項目（不含免抽成訂單）"
               value={gcTotals.totalCommissionBase}
               tone="subtotal"
             />
