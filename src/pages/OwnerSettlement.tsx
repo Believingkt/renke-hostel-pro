@@ -273,7 +273,7 @@ export default function OwnerSettlement() {
   }, [currentAccommodationId, month]);
 
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month);
+    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -286,9 +286,14 @@ export default function OwnerSettlement() {
         monthCommissionable: r.monthCommissionable,
         commission: r.commission,
         exempt: r.exempt,
+        currency: r.currency,
+        exchangeRate: r.exchangeRate,
+        isForeign: r.isForeign,
+        monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config.commission_rate, config.exempt_order_sources]);
+  }, [orders, month, config.commission_rate, config.exempt_order_sources, accCurrency]);
+
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
