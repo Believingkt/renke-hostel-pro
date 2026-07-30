@@ -356,6 +356,9 @@ export default function AIBooking() {
                 const lastMsg = updated[updated.length - 1];
                 
                 const toolCalls = parsed.results.map((r: any) => {
+                  if (r.result?.packages?.length) {
+                    return { type: 'packages', data: r.result.packages };
+                  }
                   if (r.result?.rooms) {
                     // Skip rendering room cards if already shown
                     if (roomsAlreadyShown) return null;
