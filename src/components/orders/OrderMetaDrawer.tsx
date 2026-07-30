@@ -107,7 +107,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     const { setOrderDisplayCurrency, modeToCurrencyCode } = await import("@/lib/orderDisplayCurrency");
     const code = modeToCurrencyCode(m, secondaryCurrencyConfig?.code);
     setDisplayCurrency(code);
-    setOrderDisplayCurrency(orderId, code);
+    try {
+      await setOrderDisplayCurrency(orderId, code);
+    } catch (e: any) {
+      console.error("[displayCurrency] failed", e);
+      toast.error("幣別切換失敗", { description: e?.message || "幣別標記未能寫入，請稍後再試。" });
+    }
+
   }, [orderId, secondaryCurrencyConfig?.code]);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
