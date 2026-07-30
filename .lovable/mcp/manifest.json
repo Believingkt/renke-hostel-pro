@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "sdk_version": "0.25.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://dmafqwfynatdvnaeovhz.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "renke-hostel-pro",
+      "version": "0.1.0",
+      "title": "renke-hostel-pro"
+    },
+    "tools": [
+      {
+        "name": "list_accommodations",
+        "title": "列出民宿館別",
+        "description": "List the accommodations (properties) the signed-in user can access, with id, name, region and active status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_orders",
+        "title": "查詢訂單",
+        "description": "List bookings for the signed-in user's accommodations. Filter by accommodation, check-in date range, order status and guest keyword.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "accommodation_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Accommodation UUID from list_accommodations."
+            },
+            "check_in_from": {
+              "type": "string",
+              "description": "Earliest check-in date, YYYY-MM-DD."
+            },
+            "check_in_to": {
+              "type": "string",
+              "description": "Latest check-in date, YYYY-MM-DD."
+            },
+            "order_status": {
+              "type": "string",
+              "description": "e.g. pending, confirmed, cancelled."
+            },
+            "guest_keyword": {
+              "type": "string",
+              "description": "Partial guest name match."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Max rows, default 50."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_order",
+        "title": "取得訂單明細",
+        "description": "Get the full detail of a single booking by its order number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "order_number": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The 8-character order number."
+            }
+          },
+          "required": [
+            "order_number"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_room_types",
+        "title": "列出房型與方案",
+        "description": "List room types and sales packages (including capacity and pricing) for one accommodation.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "accommodation_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Accommodation UUID from list_accommodations."
+            }
+          },
+          "required": [
+            "accommodation_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "revenue_summary",
+        "title": "營收概況",
+        "description": "Summarise bookings for one accommodation over a check-in date range: order count, total revenue, paid amount and room nights. Cancelled orders are excluded.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "accommodation_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Accommodation UUID from list_accommodations."
+            },
+            "check_in_from": {
+              "type": "string",
+              "description": "Start of the check-in range, YYYY-MM-DD."
+            },
+            "check_in_to": {
+              "type": "string",
+              "description": "End of the check-in range, YYYY-MM-DD."
+            }
+          },
+          "required": [
+            "accommodation_id",
+            "check_in_from",
+            "check_in_to"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
