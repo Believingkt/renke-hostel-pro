@@ -157,6 +157,8 @@ export default function FinancialReportTab() {
   const [row4, setRow4] = useState<GroupedRow>({ key: "row4", label: "住房營收", buckets: [], children: [] });
   const [row5, setRow5] = useState<GroupedRow & { hasAnyRate: boolean }>({ key: "row5", label: "管顧費用", buckets: [], children: [], hasAnyRate: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [totalsOpen, setTotalsOpen] = useState(false);
+
   const [canManageFees, setCanManageFees] = useState(false);
   const [canViewFees, setCanViewFees] = useState(false);
 
