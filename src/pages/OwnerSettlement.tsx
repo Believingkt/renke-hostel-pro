@@ -148,7 +148,9 @@ export default function OwnerSettlement() {
     exempt_order_sources: [],
     revenue_breakdown_type: "standard",
   });
+  const [pricingRule, setPricingRule] = useState<OwnerPricingRule | null>(null);
   const [propertyCount, setPropertyCount] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
