@@ -275,6 +275,18 @@ export default function OwnerSettlement() {
   }, [rows, config, propertyCount, addonTotal]);
 
 
+  const isGuestCount = config.revenue_breakdown_type === "guestcount";
+
+  const gcRows = useMemo(
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month) : []),
+    [isGuestCount, orders, config, month]
+  );
+  const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
+  const gcCrossMonthOrders = useMemo(
+    () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
+    [gcRows]
+  );
+
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
   const monthShort = format(month, "M 月", { locale: zhTW });
   const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
@@ -474,6 +486,85 @@ export default function OwnerSettlement() {
         );
       })()}
 
+      {isGuestCount ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-base">本月收益拆解</CardTitle>
+              {gcTotals.crossMonthCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900">
+                      <Info className="h-3 w-3" />
+                      本月包含 {gcTotals.crossMonthCount} 筆跨月訂單
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <div className="text-xs">溢價分潤與清潔費已全額計入入住月份。</div>
+                    <div className="mt-1 text-xs font-mono break-all">
+                      {gcCrossMonthOrders.join("、")}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            <CardDescription>依入住月份全額計算（不跨月分攤），清潔費全額歸業主</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <BreakdownRow
+              icon={TrendingUp}
+              label="入住營收"
+              sublabel={`本月入住 ${gcRows.length} 筆訂單實付總額`}
+              value={gcTotals.totalRevenue}
+              tone="income"
+            />
+            <BreakdownRow
+              icon={Sparkles}
+              label="清潔費（不計入抽成）"
+              sublabel="加購項目中的清潔費，全額歸業主"
+              value={gcTotals.totalCleaningFee}
+              tone="income"
+            />
+            <div className="h-px bg-border my-2" />
+            <BreakdownRow
+              icon={Percent}
+              label="抽成基礎"
+              sublabel="入住營收 − 清潔費"
+              value={gcTotals.totalCommissionBase}
+              tone="subtotal"
+            />
+            <BreakdownRow
+              icon={Percent}
+              label={`人客多抽成 ${config.commission_rate}%`}
+              sublabel="抽成基礎 × 服務費率"
+              value={-gcTotals.totalCommission}
+              tone="fee"
+            />
+            <BreakdownRow
+              icon={MegaphoneIcon}
+              label="溢價分潤"
+              sublabel="入住人數 × 300 ÷ 2"
+              value={-gcTotals.totalPremiumShare}
+              tone="fee"
+            />
+            <BreakdownRow
+              icon={Wallet}
+              label="平台費用合計"
+              sublabel="人客多抽成 + 溢價分潤"
+              value={-gcTotals.totalPlatformFee}
+              tone="subtotal"
+            />
+            <div className="h-px bg-border my-2" />
+            <BreakdownRow
+              icon={Banknote}
+              label="業主淨收益"
+              sublabel="入住營收 − 平台費用合計（清潔費不列入扣項）"
+              value={gcTotals.ownerNet}
+              tone="final"
+            />
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">本月收益拆解</CardTitle>
@@ -557,6 +648,7 @@ export default function OwnerSettlement() {
           />
         </CardContent>
       </Card>
+      )}
 
       {/* 訂單明細 */}
       <Card>
