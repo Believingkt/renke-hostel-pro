@@ -921,12 +921,20 @@ export default function OwnerSettlement() {
                           </TableCell>
                         )}
                         <TableCell className="text-right tabular-nums">
-                          {r.isForeign && (
-                            <span className="mr-1 text-[11px] text-muted-foreground">
-                              {getCurrencySymbol(r.currency)}{fmt(r.revenueOriginal)} ÷ {r.exchangeRate} =
-                            </span>
+                          {isGuestCount ? (
+                            r.isForeign
+                              ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}`
+                              : fmt(r.revenue)
+                          ) : (
+                            <>
+                              {r.isForeign && (
+                                <span className="mr-1 text-[11px] text-muted-foreground">
+                                  {getCurrencySymbol(r.currency)}{fmt(r.revenueOriginal)} ÷ {r.exchangeRate} =
+                                </span>
+                              )}
+                              {fmt(r.revenue)}
+                            </>
                           )}
-                          {fmt(r.revenue)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.orderAmount)}
