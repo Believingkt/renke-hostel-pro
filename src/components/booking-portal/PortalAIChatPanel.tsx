@@ -43,7 +43,9 @@ const HOT_PICKS = [
 ];
 
 const PortalAIChatPanel = () => {
+  const navigate = useNavigate();
   const smartDefault = useMemo(() => getSmartDefault(), []);
+
   const [showAvatar, setShowAvatar] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
