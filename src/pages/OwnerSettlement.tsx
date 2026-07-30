@@ -500,7 +500,7 @@ export default function OwnerSettlement() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <div className="text-xs">溢價分潤與清潔費已全額計入入住月份。</div>
+                    <div className="text-xs">溢價分潤與加購項目已全額計入入住月份。</div>
                     <div className="mt-1 text-xs font-mono break-all">
                       {gcCrossMonthOrders.join("、")}
                     </div>
@@ -508,7 +508,7 @@ export default function OwnerSettlement() {
                 </Tooltip>
               )}
             </div>
-            <CardDescription>依入住月份全額計算（不跨月分攤），清潔費全額歸業主</CardDescription>
+            <CardDescription>依入住月份全額計算（不跨月分攤），加購項目全額歸業主</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
             <BreakdownRow
@@ -558,7 +558,7 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={Banknote}
               label="業主淨收益"
-              sublabel="入住營收 − 平台費用合計（清潔費不列入扣項）"
+              sublabel="入住營收 − 平台費用合計（加購項目不列入扣項）"
               value={gcTotals.ownerNet}
               tone="final"
             />
