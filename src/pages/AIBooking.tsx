@@ -1728,10 +1728,11 @@ export default function AIBooking() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={isRecording ? "🎤 正在錄音中..." : "輸入訊息或點擊麥克風說話..."}
-                disabled={isLoading || isRecording}
+                placeholder={isRecording ? "🎤 正在錄音中..." : isTranscribing ? "正在辨識語音..." : "輸入訊息或點擊麥克風說話..."}
+                disabled={isLoading || isRecording || isTranscribing}
                 className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20 h-12 text-base"
               />
+
               <Button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
