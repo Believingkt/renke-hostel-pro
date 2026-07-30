@@ -26,8 +26,23 @@ import {
   computeGuestCountRows,
   computeGuestCountTotals,
   getRevenueBreakdownType,
+  PREMIUM_SHARE_PER_GUEST,
   type RevenueBreakdownType,
+  type AccommodationCurrencyFallback,
 } from "@/lib/ownerSettlement";
+import { getCurrencySymbol } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
@@ -55,6 +70,8 @@ interface Order {
   room_type_id: string | null;
   guest_count: number | null;
   custom_addon_details: unknown;
+  exchange_rate_snapshot: number | null;
+  currency_at_booking: string | null;
 }
 
 interface SettlementConfig {
@@ -83,7 +100,12 @@ interface OrderRow {
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  monthFinalOriginal: number;
 }
+
 
 interface AddonSaleRow {
   id: string;
@@ -123,6 +145,13 @@ export default function OwnerSettlement() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
+  // 館別幣別現值（訂單快照為 null 時的 fallback）
+  const [accCurrency, setAccCurrency] = useState<AccommodationCurrencyFallback | null>(null);
+  // 匯率快照編輯
+  const [rateEdit, setRateEdit] = useState<{ orderId: string; value: string } | null>(null);
+  const [rateConfirmOrderId, setRateConfirmOrderId] = useState<string | null>(null);
+  const [savingRate, setSavingRate] = useState(false);
+
 
 
   useEffect(() => {
@@ -138,7 +167,7 @@ export default function OwnerSettlement() {
         supabase
           .from("orders")
           .select(
-            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details"
+            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking"
           )
           .eq("accommodation_id", currentAccommodationId)
           .neq("order_status", "cancelled")
@@ -152,7 +181,7 @@ export default function OwnerSettlement() {
           .from("system_settings")
           .select("setting_key, setting_value")
           .in("setting_key", [`owner_settlement_config:${currentAccommodationId}`, "owner_settlement_config"]),
-        supabase.from("accommodation_info").select("building_count").eq("id", currentAccommodationId).maybeSingle(),
+        supabase.from("accommodation_info").select("building_count, secondary_currency, secondary_currency_rate").eq("id", currentAccommodationId).maybeSingle(),
         supabase
           .from("pricing_templates")
           .select("id, template_name, project_name")
@@ -203,6 +232,10 @@ export default function OwnerSettlement() {
         });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
+      setAccCurrency({
+        secondary_currency: (accRes.data as any)?.secondary_currency ?? null,
+        secondary_currency_rate: (accRes.data as any)?.secondary_currency_rate ?? null,
+      });
       const tmap: Record<string, string> = {};
       (templatesRes.data || []).forEach((t: any) => {
         tmap[t.id] = t.template_name || t.project_name || t.id;
@@ -240,7 +273,7 @@ export default function OwnerSettlement() {
   }, [currentAccommodationId, month]);
 
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month);
+    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -253,9 +286,14 @@ export default function OwnerSettlement() {
         monthCommissionable: r.monthCommissionable,
         commission: r.commission,
         exempt: r.exempt,
+        currency: r.currency,
+        exchangeRate: r.exchangeRate,
+        isForeign: r.isForeign,
+        monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config.commission_rate, config.exempt_order_sources]);
+  }, [orders, month, config.commission_rate, config.exempt_order_sources, accCurrency]);
+
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
@@ -278,14 +316,84 @@ export default function OwnerSettlement() {
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month) : []),
-    [isGuestCount, orders, config, month]
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency) : []),
+    [isGuestCount, orders, config, month, accCurrency]
   );
+
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
   const gcCrossMonthOrders = useMemo(
     () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
     [gcRows]
   );
+
+  const gcRowByOrderId = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const r of gcRows as any[]) m[r.order.id] = r;
+    return m;
+  }, [gcRows]);
+
+  /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
+  const foreignSummary = useMemo(() => {
+    const source: Array<{ isForeign: boolean; currency: string; exchangeRate: number; original: number }> =
+      isGuestCount
+        ? (gcRows as any[]).map((r) => ({
+            isForeign: r.isForeign,
+            currency: r.currency,
+            exchangeRate: r.exchangeRate,
+            original: r.finalPriceOriginal,
+          }))
+        : rows.map((r) => ({
+            isForeign: r.isForeign,
+            currency: r.currency,
+            exchangeRate: r.exchangeRate,
+            original: r.monthFinalOriginal,
+          }));
+    const foreign = source.filter((s) => s.isForeign);
+    if (!foreign.length) return null;
+    const codes = new Set(foreign.map((f) => f.currency));
+    const rates = new Set(foreign.map((f) => f.exchangeRate));
+    if (codes.size !== 1 || rates.size !== 1) return null;
+    return {
+      currency: foreign[0].currency,
+      rate: foreign[0].exchangeRate,
+      original: foreign.reduce((s, f) => s + f.original, 0),
+      allForeign: foreign.length === source.length,
+    };
+  }, [isGuestCount, gcRows, rows]);
+
+  /** 加購項目（guestcount）外幣加總 */
+  const gcAddonForeignOriginal = useMemo(
+    () => (gcRows as any[]).filter((r) => r.isForeign).reduce((s, r) => s + (r.addonTotalOriginal || 0), 0),
+    [gcRows]
+  );
+
+  const handleSaveRate = async () => {
+    if (!rateEdit) return;
+    const num = Number(rateEdit.value);
+    if (!Number.isFinite(num) || num <= 0) {
+      toast.error("匯率必須為大於 0 的數字");
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ exchange_rate_snapshot: num } as any)
+        .eq("id", rateEdit.orderId);
+      if (error) throw error;
+      setOrders((prev) =>
+        prev.map((o) => (o.id === rateEdit.orderId ? { ...o, exchange_rate_snapshot: num } : o))
+      );
+      toast.success("匯率快照已更新");
+      setRateConfirmOrderId(null);
+      setRateEdit(null);
+    } catch (err: any) {
+      toast.error("更新失敗", { description: err.message });
+    } finally {
+      setSavingRate(false);
+    }
+  };
+
 
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
   const monthShort = format(month, "M 月", { locale: zhTW });
@@ -516,6 +624,11 @@ export default function OwnerSettlement() {
               label="入住營收"
               sublabel={`本月入住 ${gcRows.length} 筆訂單實付總額`}
               value={gcTotals.totalRevenue}
+              prefixNote={
+                foreignSummary
+                  ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(foreignSummary.original)} ÷ ${foreignSummary.rate} =`
+                  : undefined
+              }
               tone="income"
             />
             <BreakdownRow
@@ -523,8 +636,14 @@ export default function OwnerSettlement() {
               label="加購項目"
               sublabel="加購項目中的金額（包含清潔費、接機車資等），全額歸業主"
               value={gcTotals.totalAddonTotal}
+              prefixNote={
+                foreignSummary && gcAddonForeignOriginal > 0
+                  ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(gcAddonForeignOriginal)} ÷ ${foreignSummary.rate} =`
+                  : undefined
+              }
               tone="income"
             />
+
             <div className="h-px bg-border my-2" />
             <BreakdownRow
               icon={Percent}
@@ -577,8 +696,14 @@ export default function OwnerSettlement() {
             label="入住營收"
             sublabel="本月所有訂單依夜數攤分"
             value={totals.totalRevenue}
+            prefixNote={
+              foreignSummary
+                ? `${getCurrencySymbol(foreignSummary.currency)}${fmt(foreignSummary.original)} ÷ ${foreignSummary.rate} =`
+                : undefined
+            }
             tone="income"
           />
+
 
 
           <div className="h-px bg-border my-2" />
@@ -698,7 +823,14 @@ export default function OwnerSettlement() {
                         <TableCell className="text-right tabular-nums">
                           {r.nightsInMonth} / {r.totalNights}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{fmt(r.monthFinal)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.isForeign && (
+                            <span className="mr-1 text-[11px] text-muted-foreground">
+                              {getCurrencySymbol(r.currency)}{fmt(r.monthFinalOriginal)} ÷ {r.exchangeRate} =
+                            </span>
+                          )}
+                          {fmt(r.monthFinal)}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.monthCommissionable)}
                         </TableCell>
@@ -719,22 +851,89 @@ export default function OwnerSettlement() {
                           )}
                         </TableCell>
                       </TableRow>
-                      {isOpen && (
+                      {isOpen && (() => {
+                        const cur = r.isForeign ? getCurrencySymbol(r.currency) : "NT$ ";
+                        const gc = gcRowByOrderId[r.order.id];
+                        const useGc = isGuestCount && !!gc;
+                        return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={9} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                <DetailItem label="訂單總額" value={`NT$ ${fmt(Number(r.order.total_price || 0))}`} />
-                                <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
-                                <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
+                                <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
+                                <DetailItem label="折扣" value={`-${cur}${fmt(Number(r.order.discount_amount || 0))}`} />
+                                <DetailItem label="實付金額" value={`${cur}${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source, getOrderOtaCode(r.order as any)).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
+                                <DetailItem label="入住人數" value={r.order.guest_count != null ? `${r.order.guest_count} 人` : "—"} />
                               </div>
-                              <div className="text-xs text-muted-foreground border-t pt-2">
-                                本月營收 = 實付 NT$ {fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights} = NT$ {fmt(r.monthFinal)}
-                                {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+
+                              {r.isForeign && (
+                                <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+                                  <span className="text-muted-foreground">
+                                    幣別 {r.currency}　匯率快照（{r.currency} per TWD）
+                                  </span>
+                                  <Input
+                                    className="h-8 w-28"
+                                    type="number"
+                                    step="0.01"
+                                    value={
+                                      rateEdit?.orderId === r.order.id
+                                        ? rateEdit.value
+                                        : String(r.order.exchange_rate_snapshot ?? r.exchangeRate)
+                                    }
+                                    onChange={(e) => setRateEdit({ orderId: r.order.id, value: e.target.value })}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      rateEdit?.orderId !== r.order.id ||
+                                      rateEdit.value === String(r.order.exchange_rate_snapshot ?? r.exchangeRate)
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRateConfirmOrderId(r.order.id);
+                                    }}
+                                  >
+                                    儲存匯率
+                                  </Button>
+                                  {r.order.currency_at_booking == null && (
+                                    <span className="text-[11px] text-amber-700">
+                                      此訂單無快照，目前使用館別現值計算
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="text-xs text-muted-foreground border-t pt-2 space-y-0.5">
+                                {useGc ? (
+                                  <>
+                                    <div>
+                                      入住營收 NT$ {fmt(gc.finalPrice)} − 加購項目 NT$ {fmt(gc.addonTotal)} = 抽成基礎 NT$ {fmt(gc.commissionBase)}
+                                    </div>
+                                    <div>
+                                      抽成基礎 NT$ {fmt(gc.commissionBase)} × {config.commission_rate}% = 人客多抽成 NT$ {fmt(gc.commission)}
+                                      {gc.exempt && "（不抽成）"}
+                                    </div>
+                                    <div>
+                                      入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
+                                      {gc.exempt && "（不分潤）"}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div>
+                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights}
+                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.monthFinal)}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                  </div>
+                                )}
+                                {r.exempt && r.isForeign && r.order.currency_at_booking && (
+                                  <div className="text-amber-700">非台幣訂單不列入抽成與溢價分潤</div>
+                                )}
                               </div>
                               <div>
                                 <Link
@@ -744,10 +943,12 @@ export default function OwnerSettlement() {
                                   開啟完整訂單頁 <ExternalLink className="h-3 w-3" />
                                 </Link>
                               </div>
+
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                        );
+                      })()}
                     </React.Fragment>
                   );
                 })}
@@ -814,7 +1015,31 @@ export default function OwnerSettlement() {
           </CardContent>
         </Card>
       )}
+
+    <AlertDialog open={!!rateConfirmOrderId} onOpenChange={(o) => !o && setRateConfirmOrderId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>確認修改匯率快照</AlertDialogTitle>
+          <AlertDialogDescription>
+            修改此匯率將影響已計算的抽成與獎金結果，請確認是否同意修改？
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={savingRate}>取消</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={savingRate}
+            onClick={(e) => {
+              e.preventDefault();
+              handleSaveRate();
+            }}
+          >
+            確認修改
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </div>
+
 
     </TooltipProvider>
   );
@@ -826,6 +1051,7 @@ function BreakdownRow({
   sublabel,
   value,
   originalValue,
+  prefixNote,
   tone,
   indent,
 }: {
@@ -834,6 +1060,8 @@ function BreakdownRow({
   sublabel?: React.ReactNode;
   value: number;
   originalValue?: number;
+  /** 台幣金額左側的外幣換算式，例：¥14,769 ÷ 5.02 = */
+  prefixNote?: React.ReactNode;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
 }) {
@@ -875,6 +1103,9 @@ function BreakdownRow({
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        {prefixNote && (
+          <span className="tabular-nums text-xs text-muted-foreground">{prefixNote}</span>
+        )}
         {showOriginal && (
           <span className="tabular-nums text-xs text-muted-foreground/70 line-through">
             {originalDisplay}

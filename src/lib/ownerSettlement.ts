@@ -46,6 +46,59 @@ export interface OwnerSettlementOrderInput {
   discount_amount?: number | string | null;
   order_source?: string | null;
   owner_direct?: boolean | null;
+  /** 建單當下幣別快照（null = 舊訂單，fallback 館別現值） */
+  currency_at_booking?: string | null;
+  /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
+  exchange_rate_snapshot?: number | string | null;
+}
+
+/** 館別現值（快照為 null 時的 fallback 來源） */
+export interface AccommodationCurrencyFallback {
+  secondary_currency?: string | null;
+  secondary_currency_rate?: number | string | null;
+}
+
+export interface ResolvedOrderCurrency {
+  /** 該筆訂單金額實際的幣別（TWD 或外幣代碼） */
+  currency: string;
+  /** 外幣 per TWD（例：JPY 5.02）；TWD 訂單為 1 */
+  rate: number;
+  /** 是否為非台幣訂單（依快照判斷；快照為 null 才 fallback 館別現值） */
+  isForeign: boolean;
+  /** 快照是否存在（false = 使用館別現值 fallback） */
+  fromSnapshot: boolean;
+}
+
+/**
+ * 幣別/匯率判斷：優先使用訂單快照，快照為 null 時 fallback 館別現值。
+ * 注意「非台幣不抽成」僅在 currency_at_booking 快照存在且非 TWD 時成立。
+ */
+export function resolveOrderCurrency(
+  order: OwnerSettlementOrderInput,
+  fallback?: AccommodationCurrencyFallback | null,
+): ResolvedOrderCurrency {
+  const snapCode = (order.currency_at_booking || "").trim().toUpperCase();
+  if (snapCode) {
+    const snapRate = Number(order.exchange_rate_snapshot);
+    return {
+      currency: snapCode,
+      rate: Number.isFinite(snapRate) && snapRate > 0 ? snapRate : 1,
+      isForeign: snapCode !== "TWD",
+      fromSnapshot: true,
+    };
+  }
+  const fbCode = (fallback?.secondary_currency || "").trim().toUpperCase();
+  const fbRate = Number(fallback?.secondary_currency_rate);
+  if (fbCode && fbCode !== "TWD" && Number.isFinite(fbRate) && fbRate > 0) {
+    return { currency: fbCode, rate: fbRate, isForeign: false, fromSnapshot: false };
+  }
+  return { currency: "TWD", rate: 1, isForeign: false, fromSnapshot: false };
+}
+
+/** 外幣金額換算台幣：TWD = 原幣別金額 ÷ 匯率（匯率為「外幣 per TWD」） */
+export function convertToTwd(amount: number, resolved: ResolvedOrderCurrency): number {
+  if (resolved.currency === "TWD" || !resolved.rate || resolved.rate <= 0) return amount;
+  return amount / resolved.rate;
 }
 
 export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerSettlementOrderInput> {
@@ -53,12 +106,20 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   nightsInMonth: number;
   totalNights: number;
   monthRatio: number;
+  /** 台幣金額（外幣訂單已換算） */
   monthFinal: number;
   monthDiscount: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
+  /** 幣別資訊 */
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  /** 原幣別的本月營收（台幣訂單等同 monthFinal） */
+  monthFinalOriginal: number;
 }
+
 
 /**
  * 純函式：把訂單依當月夜數分攤，套用 exempt 規則後計算抽成。
@@ -69,6 +130,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
+  currencyFallback?: AccommodationCurrencyFallback | null,
 ): OwnerSettlementRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -86,11 +148,16 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     }
     if (nightsInMonth === 0) continue;
 
+    const resolved = resolveOrderCurrency(o, currencyFallback);
     const ratio = nightsInMonth / totalNights;
-    const monthFinal = Number(o.final_price || 0) * ratio;
-    const monthDiscount = Number(o.discount_amount || 0) * ratio;
+    const monthFinalOriginal = Number(o.final_price || 0) * ratio;
+    const monthFinal = convertToTwd(monthFinalOriginal, resolved);
+    const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
     const monthCommissionable = monthFinal;
-    const exempt = !!o.owner_direct || (o.order_source ? exemptSet.has(o.order_source) : false);
+    const exempt =
+      !!o.owner_direct ||
+      (o.order_source ? exemptSet.has(o.order_source) : false) ||
+      resolved.isForeign;
     const commission = exempt ? 0 : monthCommissionable * (config.commission_rate / 100);
 
     rows.push({
@@ -103,10 +170,15 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
       monthCommissionable,
       commission,
       exempt,
+      currency: resolved.currency,
+      exchangeRate: resolved.rate,
+      isForeign: resolved.currency !== "TWD",
+      monthFinalOriginal,
     });
   }
   return rows;
 }
+
 
 export interface OwnerSettlementTotals {
   totalRevenue: number;
@@ -138,6 +210,8 @@ export interface GuestCountOrderInput extends OwnerSettlementOrderInput {
 
 export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderInput> {
   order: T;
+  /** 以下金額皆為台幣（外幣訂單已依匯率換算） */
+  finalPrice: number;
   addonTotal: number;
   commissionBase: number;
   commission: number;
@@ -146,6 +220,12 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
   ownerNet: number;
   isCrossMonth: boolean;
   exempt: boolean;
+  currency: string;
+  exchangeRate: number;
+  isForeign: boolean;
+  /** 原幣別實付金額 */
+  finalPriceOriginal: number;
+  addonTotalOriginal: number;
 }
 
 /**
@@ -157,6 +237,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
+  currencyFallback?: AccommodationCurrencyFallback | null,
 ): GuestCountRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -173,16 +254,23 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const isCrossMonth =
       ci.getFullYear() !== co.getFullYear() || ci.getMonth() !== co.getMonth();
 
-    const finalPrice = Number(o.final_price || 0);
-    const addonTotal = extractAddonTotal(o.custom_addon_details);
+    const resolved = resolveOrderCurrency(o, currencyFallback);
+    const finalPriceOriginal = Number(o.final_price || 0);
+    const addonTotalOriginal = extractAddonTotal(o.custom_addon_details);
+    const finalPrice = convertToTwd(finalPriceOriginal, resolved);
+    const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
-    const exempt = !!o.owner_direct || (o.order_source ? exemptSet.has(o.order_source) : false);
+    const exempt =
+      !!o.owner_direct ||
+      (o.order_source ? exemptSet.has(o.order_source) : false) ||
+      resolved.isForeign;
     const commission = exempt ? 0 : commissionBase * rate;
     const premiumShare = exempt ? 0 : (Number(o.guest_count || 0) * PREMIUM_SHARE_PER_GUEST) / 2;
     const platformFeeTotal = commission + premiumShare;
 
     rows.push({
       order: o,
+      finalPrice,
       addonTotal,
       commissionBase,
       commission,
@@ -191,10 +279,16 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       ownerNet: finalPrice - platformFeeTotal,
       isCrossMonth,
       exempt,
+      currency: resolved.currency,
+      exchangeRate: resolved.rate,
+      isForeign: resolved.currency !== "TWD",
+      finalPriceOriginal,
+      addonTotalOriginal,
     });
   }
   return rows;
 }
+
 
 export interface GuestCountTotals {
   totalRevenue: number;
@@ -210,7 +304,7 @@ export interface GuestCountTotals {
 export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals {
   const sum = (f: (r: GuestCountRow) => number) => rows.reduce((s, r) => s + f(r), 0);
   return {
-    totalRevenue: sum((r) => Number(r.order.final_price || 0)),
+    totalRevenue: sum((r) => r.finalPrice),
     totalAddonTotal: sum((r) => r.addonTotal),
     totalCommissionBase: sum((r) => r.commissionBase),
     totalCommission: sum((r) => r.commission),
