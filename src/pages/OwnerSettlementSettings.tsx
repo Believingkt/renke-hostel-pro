@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
@@ -17,6 +18,7 @@ interface SettlementConfig {
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
   exempt_order_sources: string[];
+  revenue_breakdown_type: "standard" | "guestcount";
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -24,6 +26,7 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_base: 53000,
   marketing_fee_per_extra_property: 3000,
   exempt_order_sources: [],
+  revenue_breakdown_type: "standard",
 };
 
 interface AccommodationGroup {
@@ -96,6 +99,7 @@ export default function OwnerSettlementSettings() {
           ...DEFAULT_CONFIG,
           ...raw,
           exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+          revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
         });
       } else {
         setConfig(DEFAULT_CONFIG);
@@ -206,6 +210,33 @@ export default function OwnerSettlementSettings() {
           此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>收益拆解類型</CardTitle>
+          <CardDescription>決定業主月結頁面的收益拆解結構與計算方式。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 max-w-sm">
+          <Label htmlFor="revenue_breakdown_type">收益拆解類型</Label>
+          <Select
+            value={config.revenue_breakdown_type}
+            onValueChange={(v) =>
+              setConfig({ ...config, revenue_breakdown_type: v as SettlementConfig["revenue_breakdown_type"] })
+            }
+          >
+            <SelectTrigger id="revenue_breakdown_type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="standard">standard（標準）</SelectItem>
+              <SelectItem value="guestcount">guestcount（人數型）</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            guestcount 類型適用包棟訂房，溢價分潤依入住人數計算，清潔費不計入抽成基礎
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
