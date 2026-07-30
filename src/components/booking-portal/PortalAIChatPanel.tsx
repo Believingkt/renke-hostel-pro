@@ -200,6 +200,35 @@ const PortalAIChatPanel = () => {
         }
       }
 
+      // 沒有工具結果時，直接從使用者輸入辨識日期／人數（只給入住日 → 預設住 1 晚）
+      if (!searchIntent?.checkIn) {
+        const text = content.trim();
+        const dates = [...text.matchAll(/(\d{1,2})\s*[\/\-月]\s*(\d{1,2})/g)].map((m) => {
+          const mo = Number(m[1]);
+          const d = Number(m[2]);
+          const now = new Date();
+          let y = now.getFullYear();
+          const candidate = new Date(y, mo - 1, d);
+          if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) y += 1;
+          return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        });
+        if (dates.length > 0) {
+          const inDate = dates[0];
+          let outDate = dates[1];
+          if (!outDate || outDate <= inDate) {
+            const d = new Date(`${inDate}T00:00:00`);
+            d.setDate(d.getDate() + 1);
+            outDate = format(d, "yyyy-MM-dd");
+          }
+          const guestMatch = text.match(/(\d{1,2})\s*(?:位|人|大人)/);
+          searchIntent = {
+            checkIn: inDate,
+            checkOut: outDate,
+            guests: guestMatch ? Number(guestMatch[1]) : defaultGuests,
+          };
+        }
+      }
+
       // 有搜尋意圖 → 直接跳到與手動搜尋相同的結果分頁
       if (searchIntent?.checkIn && searchIntent?.checkOut) {
         const params = new URLSearchParams();
