@@ -4,12 +4,26 @@ import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays 
 import { supabase } from "@/integrations/supabase/client";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Search, User, LogIn, SlidersHorizontal, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Search, User, LogIn, SlidersHorizontal, Sparkles, ChevronUp, ChevronDown, ArrowUpDown, MapPin, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import SearchRoomCard, { type SearchRoomCardData } from "@/components/booking-portal/SearchRoomCard";
-import RoomFilterBar, { type RoomFilters } from "@/components/booking-portal/RoomFilterBar";
+import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  default: "排序",
+  price_asc: "價格由低到高",
+  price_desc: "價格由高到低",
+  capacity_asc: "人數由少到多",
+  capacity_desc: "人數由多到少",
+};
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
@@ -824,32 +838,71 @@ const BookingSearchResults = () => {
         </div>
       </header>
 
-      {/* 搜尋摘要 bar */}
+      {/* 可編輯搜尋條件列 */}
       <div className="bg-card border-b border-border sticky top-14 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/booking")}>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2.5 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => navigate("/booking")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <button
             onClick={openEdit}
-            className="flex-1 min-w-0 text-left bg-muted/40 hover:bg-muted/60 transition rounded-xl px-3 py-2 border border-border/60"
+            className="flex-1 min-w-0 flex items-stretch gap-2 text-left bg-background hover:bg-muted/50 transition rounded-xl border border-border px-3 py-1.5 shadow-sm"
           >
-            <p className="text-xs text-muted-foreground leading-none mb-0.5">搜尋條件（點此修改）</p>
-            <p className="text-sm font-medium text-foreground truncate">
-              {summary || "點此設定日期與人數"}
-            </p>
+            <span className="flex items-center gap-1 shrink-0">
+              <span className="flex flex-col leading-tight text-sm font-semibold text-foreground">
+                <span>{checkIn ? format(checkIn, "M 月 d 日") : "選擇日期"}</span>
+                <span>{checkOut ? format(checkOut, "M 月 d 日") : "—"}</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <span className="w-px bg-border shrink-0" />
+            <span className="flex-1 min-w-0 flex items-center text-sm font-medium text-foreground truncate">
+              {q || "全部地區"}
+            </span>
           </button>
+        </div>
+
+        {/* 快速條件 chips */}
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 pb-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9">
+                <ArrowUpDown className="h-4 w-4" />
+                {SORT_LABELS[filters.sortBy]}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-popover z-50">
+              {(Object.keys(SORT_LABELS) as Array<keyof typeof SORT_LABELS>).map((key) => (
+                <DropdownMenuItem key={key} onSelect={() => setFilters({ ...filters, sortBy: key })}>
+                  {SORT_LABELS[key]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
-            variant="outline"
+            variant={showFilters ? "default" : "outline"}
             size="sm"
-            className="shrink-0 gap-1.5"
+            className="shrink-0 gap-1.5 rounded-lg h-9"
             onClick={() => setShowFilters((v) => !v)}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">篩選</span>
+            篩選
+          </Button>
+
+          <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
+            <MapPin className="h-4 w-4" />
+            {q || "位置"}
+          </Button>
+
+          <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
+            <Users className="h-4 w-4" />
+            {roomsParam ? `${roomsParam} 房 · ` : ""}
+            {adults + childrenCount + infantsCount + toddlersCount} 人
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
+
         {showFilters && (
           <div className="max-w-7xl mx-auto px-3 sm:px-4 pb-3 overflow-x-auto">
             <RoomFilterBar
@@ -861,6 +914,7 @@ const BookingSearchResults = () => {
           </div>
         )}
       </div>
+
 
       {/* 結果列表 */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-6">
