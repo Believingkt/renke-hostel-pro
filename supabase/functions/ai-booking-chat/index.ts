@@ -660,8 +660,10 @@ serve(async (req) => {
               max_3_meals: max3Meals,
               description: rt.description,
               size_sqm: rt.size_sqm,
-              photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
+              photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || [],
+              booking_url: `/book?acc=${accommodationId}&roomId=${rt.id}&stay=common`
             };
+
           })
         };
       }
