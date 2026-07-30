@@ -332,6 +332,71 @@ export default function OwnerSettlement() {
     return m;
   }, [gcRows]);
 
+  /**
+   * 訂單明細表格的統一資料源：
+   * - guestcount 型：直接迭代 gcRows（篩選 = check_in_date 落在本月）
+   * - standard 型：維持原本的 rows（依本月夜數攤分）
+   */
+  const tableRows = useMemo(() => {
+    if (isGuestCount) {
+      return (gcRows as any[])
+        .map((g) => ({
+          id: g.order.id as string,
+          order: g.order as Order,
+          gc: g,
+          std: null as OrderRow | null,
+          revenue: g.finalPrice as number,
+          revenueOriginal: g.finalPriceOriginal as number,
+          orderAmount: g.commissionBase as number,
+          commission: (g.commission + g.premiumShare) as number,
+          exempt: g.exempt as boolean,
+          currency: g.currency as string,
+          exchangeRate: g.exchangeRate as number,
+          isForeign: g.isForeign as boolean,
+        }))
+        .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
+    }
+    return rows.map((r) => ({
+      id: r.order.id,
+      order: r.order,
+      gc: null as any,
+      std: r as OrderRow | null,
+      revenue: r.monthFinal,
+      revenueOriginal: r.monthFinalOriginal,
+      orderAmount: r.monthCommissionable,
+      commission: r.commission,
+      exempt: r.exempt,
+      currency: r.currency,
+      exchangeRate: r.exchangeRate,
+      isForeign: r.isForeign,
+    }));
+  }, [isGuestCount, gcRows, rows]);
+
+  /** 頁面總計：guestcount 型改吃 gcTotals */
+  const summary = useMemo(() => {
+    if (isGuestCount) {
+      return {
+        totalRevenue: gcTotals.totalRevenue,
+        platformTotal: gcTotals.totalPlatformFee,
+        totalCommission: gcTotals.totalCommission,
+        marketingFee: 0,
+        ownerNet: gcTotals.ownerNet,
+        orderCount: gcRows.length,
+        totalNights: null as number | null,
+      };
+    }
+    return {
+      totalRevenue: totals.totalRevenue,
+      platformTotal: totals.totalCommission + totals.marketingFee,
+      totalCommission: totals.totalCommission,
+      marketingFee: totals.marketingFee,
+      ownerNet: totals.ownerNet,
+      orderCount: rows.length,
+      totalNights: rows.reduce((s, r) => s + r.nightsInMonth, 0) as number | null,
+    };
+  }, [isGuestCount, gcTotals, gcRows, totals, rows]);
+
+
   /** 彙總範圍內的外幣資訊：全部同一外幣時才顯示換算式 */
   const foreignSummary = useMemo(() => {
     const source: Array<{ isForeign: boolean; currency: string; exchangeRate: number; original: number }> =
@@ -401,18 +466,20 @@ export default function OwnerSettlement() {
 
   const exportPdf = () => {
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
-    const orderRowsHtml = rows
+    const orderRowsHtml = tableRows
       .map(
         (r) => `<tr>
           <td>${esc(r.order.order_number)}</td>
           <td>${esc(r.order.guest_name)}</td>
           <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
-          <td class="r">${r.nightsInMonth}/${r.totalNights}</td>
-          <td class="r">${fmt(r.monthFinal)}</td>
+          ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
+          <td class="r">${fmt(r.revenue)}</td>
+          ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
       )
       .join("");
+
 
     const addonRowsHtml = addonItems
       .map(
@@ -446,19 +513,30 @@ export default function OwnerSettlement() {
 
       <h2>收益拆解</h2>
       <table>
+        ${isGuestCount ? `
+        <tr><td>入住營收</td><td class="r">NT$ ${fmt(gcTotals.totalRevenue)}</td></tr>
+        <tr><td>加購項目（全額歸業主）</td><td class="r">NT$ ${fmt(gcTotals.totalAddonTotal)}</td></tr>
+        <tr><td>抽成基礎</td><td class="r">NT$ ${fmt(gcTotals.totalCommissionBase)}</td></tr>
+        <tr><td>人客多抽成 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(gcTotals.totalCommission)}</td></tr>
+        <tr><td>溢價分潤</td><td class="r">−NT$ ${fmt(gcTotals.totalPremiumShare)}</td></tr>
+        <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee)}</td></tr>
+        <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet)}</td></tr>
+        ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
         <tr><td>平台服務費 ${config.commission_rate}%</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
         <tr><td>行銷推廣費（${propertyCount} 棟）</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
         <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
         <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(totals.ownerNet)}</td></tr>
+        `}
       </table>
 
-      <h2>訂單明細（依入住日攤分至本月）</h2>
+      <h2>${isGuestCount ? "訂單明細（依入住月份全額計算）" : "訂單明細（依入住日攤分至本月）"}</h2>
       <table>
-        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th><th class="r">本月夜數</th><th class="r">本月營收</th><th class="r">抽成</th></tr></thead>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "入住營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">抽成基礎</th>` : ""}<th class="r">抽成</th></tr></thead>
         <tbody>${orderRowsHtml || `<tr><td colspan="6">本月無入住訂單</td></tr>`}</tbody>
       </table>
+
 
       <h2>購物商品（非訂房收入）明細　共 ${addonItems.length} 筆　合計 NT$ ${fmt(totals.addonTotal)}</h2>
       <table>
@@ -511,44 +589,46 @@ export default function OwnerSettlement() {
                 {monthLabel} 業主淨收益
               </div>
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
-                NT$ {fmt(totals.ownerNet)}
+                NT$ {fmt(summary.ownerNet)}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
               <div>
                 <div className="text-muted-foreground">本月入住營收</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  NT$ {fmt(totals.totalRevenue)}
+                  NT$ {fmt(summary.totalRevenue)}
                 </div>
               </div>
               <div>
                 <div className="text-muted-foreground">訂單數</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  {rows.length}
+                  {summary.orderCount}
                 </div>
               </div>
               <div>
-                <div className="text-muted-foreground">本月總夜數</div>
+                <div className="text-muted-foreground">{isGuestCount ? "平台費用合計" : "本月總夜數"}</div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
-                  {rows.reduce((s, r) => s + r.nightsInMonth, 0)}
+                  {isGuestCount ? `NT$ ${fmt(summary.platformTotal)}` : summary.totalNights}
                 </div>
               </div>
             </div>
+
           </div>
         </CardContent>
       </Card>
 
       {/* 收益歸屬一覽：業主 vs 平台 */}
-      {totals.totalRevenue > 0 && (() => {
-        const platformTotal = totals.totalCommission + totals.marketingFee;
-        const ownerPct = Math.max(0, Math.min(100, (totals.ownerNet / totals.totalRevenue) * 100));
-        const platformPct = Math.max(0, Math.min(100, (platformTotal / totals.totalRevenue) * 100));
+      {summary.totalRevenue > 0 && (() => {
+        const platformTotal = summary.platformTotal;
+        const ownerPct = Math.max(0, Math.min(100, (summary.ownerNet / summary.totalRevenue) * 100));
+        const platformPct = Math.max(0, Math.min(100, (platformTotal / summary.totalRevenue) * 100));
         return (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">本月收益歸屬</CardTitle>
-              <CardDescription>本月入住營收 NT$ {fmt(totals.totalRevenue)} 的分配比例</CardDescription>
+              <CardDescription>本月入住營收 NT$ {fmt(summary.totalRevenue)} 的分配比例</CardDescription>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div className="bg-primary" style={{ width: `${ownerPct}%` }} title={`業主淨收益 ${ownerPct.toFixed(1)}%`} />
@@ -561,7 +641,7 @@ export default function OwnerSettlement() {
                     業主淨收益
                   </div>
                   <div className="mt-1 text-2xl font-bold text-primary tabular-nums">
-                    NT$ {fmt(totals.ownerNet)}
+                    NT$ {fmt(summary.ownerNet)}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-1">
                     占入住營收 {ownerPct.toFixed(1)}%
@@ -576,9 +656,19 @@ export default function OwnerSettlement() {
                     NT$ {fmt(platformTotal)}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                    <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
-                    <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                    {isGuestCount ? (
+                      <>
+                        <span>人客多抽成 {config.commission_rate}%：NT$ {fmt(gcTotals.totalCommission)}</span>
+                        <span>溢價分潤：NT$ {fmt(gcTotals.totalPremiumShare)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
+                        <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                      </>
+                    )}
                   </div>
+
                   <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
                     <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="min-w-0 break-words">請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）</span>
@@ -778,15 +868,19 @@ export default function OwnerSettlement() {
       {/* 訂單明細 */}
       <Card>
         <CardHeader>
-          <CardTitle>{monthLabel}訂單明細（依入住日逐日攤分至本月）</CardTitle>
+          <CardTitle>
+            {monthLabel}訂單明細{isGuestCount ? "（依入住月份全額計算）" : "（依入住日逐日攤分至本月）"}
+          </CardTitle>
           <CardDescription>
-            含 {monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。
+            {isGuestCount
+              ? `入住日落在 ${monthLabel} 的訂單；跨月訂單全額計入入住月份，不做夜數分攤。已取消訂單不列入。`
+              : `含 ${monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {loading ? (
             <TableSkeleton rows={6} columns={8} />
-          ) : rows.length === 0 ? (
+          ) : tableRows.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">{monthLabel} 無入住訂單</p>
           ) : (
             <Table className="fixed-table">
@@ -796,15 +890,15 @@ export default function OwnerSettlement() {
                   <TableHead>訂單編號</TableHead>
                   <TableHead>訂購人</TableHead>
                   <TableHead>入住 / 退房</TableHead>
-                  <TableHead className="text-right">本月夜數</TableHead>
-                  <TableHead className="text-right tabular-nums">本月營收</TableHead>
-                  <TableHead className="text-right tabular-nums">訂單金額</TableHead>
+                  {!isGuestCount && <TableHead className="text-right">本月夜數</TableHead>}
+                  <TableHead className="text-right tabular-nums">{isGuestCount ? "入住營收" : "本月營收"}</TableHead>
+                  <TableHead className="text-right tabular-nums">{isGuestCount ? "抽成基礎" : "訂單金額"}</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => {
+                {tableRows.map((r) => {
                   const isOpen = expandedId === r.order.id;
                   return (
                     <React.Fragment key={r.order.id}>
@@ -820,20 +914,23 @@ export default function OwnerSettlement() {
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.order.check_in_date} → {r.order.check_out_date}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r.nightsInMonth} / {r.totalNights}
-                        </TableCell>
+                        {!isGuestCount && (
+                          <TableCell className="text-right tabular-nums">
+                            {r.std!.nightsInMonth} / {r.std!.totalNights}
+                          </TableCell>
+                        )}
                         <TableCell className="text-right tabular-nums">
                           {r.isForeign && (
                             <span className="mr-1 text-[11px] text-muted-foreground">
-                              {getCurrencySymbol(r.currency)}{fmt(r.monthFinalOriginal)} ÷ {r.exchangeRate} =
+                              {getCurrencySymbol(r.currency)}{fmt(r.revenueOriginal)} ÷ {r.exchangeRate} =
                             </span>
                           )}
-                          {fmt(r.monthFinal)}
+                          {fmt(r.revenue)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {fmt(r.monthCommissionable)}
+                          {fmt(r.orderAmount)}
                         </TableCell>
+
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
                             <Badge variant="secondary">
@@ -853,11 +950,12 @@ export default function OwnerSettlement() {
                       </TableRow>
                       {isOpen && (() => {
                         const cur = r.isForeign ? getCurrencySymbol(r.currency) : "NT$ ";
-                        const gc = gcRowByOrderId[r.order.id];
+                        const gc = r.gc;
                         const useGc = isGuestCount && !!gc;
+                        const std = r.std;
                         return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={9} className="p-0">
+                          <TableCell colSpan={isGuestCount ? 8 : 9} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
@@ -866,9 +964,17 @@ export default function OwnerSettlement() {
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source, getOrderOtaCode(r.order as any)).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
-                                <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
+                                {useGc ? (
+                                  <DetailItem
+                                    label="入住 / 退房"
+                                    value={`${r.order.check_in_date} → ${r.order.check_out_date}${gc.isCrossMonth ? "（跨月，全額計入入住月）" : ""}`}
+                                  />
+                                ) : (
+                                  <DetailItem label="本月攤分比例" value={`${((std?.monthRatio ?? 0) * 100).toFixed(1)}%`} />
+                                )}
                                 <DetailItem label="入住人數" value={r.order.guest_count != null ? `${r.order.guest_count} 人` : "—"} />
                               </div>
+
 
                               {r.isForeign && (
                                 <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
@@ -923,13 +1029,18 @@ export default function OwnerSettlement() {
                                       入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
                                       {gc.exempt && "（不分潤）"}
                                     </div>
+                                    <div className="font-medium text-foreground">
+                                      平台費用合計 = 人客多抽成 NT$ {fmt(gc.commission)} + 溢價分潤 NT$ {fmt(gc.premiumShare)} = NT$ {fmt(gc.platformFeeTotal)}
+                                    </div>
                                   </>
+
                                 ) : (
                                   <div>
-                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights}
-                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.monthFinal)}
-                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                    本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
+                                    {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.revenue)}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
                                   </div>
+
                                 )}
                                 {r.exempt && r.isForeign && r.order.currency_at_booking && (
                                   <div className="text-amber-700">非台幣訂單不列入抽成與溢價分潤</div>
