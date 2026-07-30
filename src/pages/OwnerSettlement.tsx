@@ -53,6 +53,8 @@ interface Order {
   order_source: string;
   owner_direct: boolean;
   room_type_id: string | null;
+  guest_count: number | null;
+  custom_addon_details: unknown;
 }
 
 interface SettlementConfig {
@@ -60,6 +62,7 @@ interface SettlementConfig {
   marketing_fee_base: number;
   marketing_fee_per_extra_property: number;
   exempt_order_sources: string[];
+  revenue_breakdown_type: RevenueBreakdownType;
 }
 
 interface RoomTypePricing {
@@ -114,6 +117,7 @@ export default function OwnerSettlement() {
     marketing_fee_base: 53000,
     marketing_fee_per_extra_property: 3000,
     exempt_order_sources: [],
+    revenue_breakdown_type: "standard",
   });
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -134,7 +138,7 @@ export default function OwnerSettlement() {
         supabase
           .from("orders")
           .select(
-            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id"
+            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details"
           )
           .eq("accommodation_id", currentAccommodationId)
           .neq("order_status", "cancelled")
@@ -195,6 +199,7 @@ export default function OwnerSettlement() {
           marketing_fee_base: rawCfg.marketing_fee_base ?? 53000,
           marketing_fee_per_extra_property: rawCfg.marketing_fee_per_extra_property ?? 3000,
           exempt_order_sources: Array.isArray(rawCfg.exempt_order_sources) ? rawCfg.exempt_order_sources : [],
+          revenue_breakdown_type: getRevenueBreakdownType(rawCfg),
         });
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
