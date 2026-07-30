@@ -302,8 +302,14 @@ export default function OwnerSettlement() {
     };
   }, [currentAccommodationId, month]);
 
+  /** 目前套用的收費規則（無新表資料時等同舊制，threshold = 0） */
+  const effectiveRule = useMemo(
+    () => pricingRule ?? pricingRuleFromLegacyConfig(config as any),
+    [pricingRule, config]
+  );
+
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency);
+    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency, effectiveRule);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -322,7 +328,7 @@ export default function OwnerSettlement() {
         monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config.commission_rate, config.exempt_order_sources, accCurrency]);
+  }, [orders, month, config, accCurrency, effectiveRule]);
 
 
   const totals = useMemo(() => {
@@ -330,9 +336,13 @@ export default function OwnerSettlement() {
     const totalFood = rows.reduce((s, r) => s + r.monthFood, 0);
     const totalCommissionable = rows.reduce((s, r) => s + r.monthCommissionable, 0);
     const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
-    const marketingFee =
-      config.marketing_fee_base +
-      Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
+    // 門檻式：行銷推廣費依「當月營收（未扣加購、排除非台幣/免抽成訂單）」二選一；
+    // 門檻 = 0 時回到舊公式（基本服務費 + 每多一棟加收）
+    const marketingFee = resolveMarketingFee(
+      effectiveRule,
+      getStandardThresholdBase(rows as any),
+      propertyCount
+    );
     // 原價：基本服務 + 每棟星鏈包專案 98,800
     const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
     // 購物商品收入不列入平台抽成，全額歸業主
@@ -340,14 +350,15 @@ export default function OwnerSettlement() {
     const addonNet = addonTotal;
     const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
     return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
-  }, [rows, config, propertyCount, addonTotal]);
+  }, [rows, config, propertyCount, addonTotal, effectiveRule]);
 
 
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency) : []),
-    [isGuestCount, orders, config, month, accCurrency]
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule) : []),
+    [isGuestCount, orders, config, month, accCurrency, effectiveRule]
+
   );
 
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
