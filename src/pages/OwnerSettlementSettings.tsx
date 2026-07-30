@@ -222,6 +222,15 @@ export default function OwnerSettlementSettings() {
       toast.error("行銷費不可為負數");
       return;
     }
+    if (
+      config.commission_threshold < 0 ||
+      config.marketing_fee_low < 0 ||
+      config.marketing_fee_high < 0 ||
+      config.marketing_fee_threshold < 0
+    ) {
+      toast.error("門檻與行銷推廣費不可為負數");
+      return;
+    }
     const settingKey = currentAccommodationId
       ? perAccKey(currentAccommodationId)
       : GLOBAL_SETTING_KEY;
@@ -240,14 +249,43 @@ export default function OwnerSettlementSettings() {
       ? await supabase.from("system_settings").update(payload).eq("setting_key", settingKey)
       : await supabase.from("system_settings").insert(payload);
 
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error(`儲存失敗：${error.message}`);
       return;
     }
+
+    // 新制：append-only 寫入一筆當月版本（同月重複儲存即以最新一筆為準，使用者無感）
+    if (currentAccommodationId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: ruleError } = await supabase
+        .from("owner_settlement_pricing_rules")
+        .insert({
+          accommodation_id: currentAccommodationId,
+          effective_from: currentMonthStartTaipei(),
+          // 費率一律小數存法（10% → 0.10）
+          commission_rate: config.commission_rate / 100,
+          commission_threshold: config.commission_threshold,
+          marketing_fee_low: config.marketing_fee_low,
+          marketing_fee_high: config.marketing_fee_high,
+          marketing_fee_threshold: config.marketing_fee_threshold,
+          tier_rate_enabled: false,
+          exempt_order_sources: config.exempt_order_sources,
+          revenue_breakdown_type: config.revenue_breakdown_type,
+          created_by: user?.id ?? null,
+        });
+      if (ruleError) {
+        setSaving(false);
+        toast.error(`門檻式收費規則儲存失敗：${ruleError.message}`);
+        return;
+      }
+    }
+
+    setSaving(false);
     setUsingFallback(false);
     toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
   };
+
 
   if (loading) return null;
 
