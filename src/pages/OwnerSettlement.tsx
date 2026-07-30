@@ -1155,7 +1155,7 @@ export default function OwnerSettlement() {
                                   <div>
                                     本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
                                     {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.revenue)}
-                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}{effectiveRule.commission_threshold > 0 ? `（已依當月營收門檻 NT$ ${fmt(effectiveRule.commission_threshold)} 分攤）` : ""}</>}
                                   </div>
 
                                 )}
