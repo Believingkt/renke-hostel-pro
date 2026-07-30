@@ -423,7 +423,7 @@ serve(async (req) => {
     };
 
     // 工具白名單 — 任何不在此清單的呼叫一律拒絕（防止 prompt-injected 工具調用）
-    const ALLOWED_TOOLS = new Set(['get_available_rooms', 'check_discount_code', 'search_external_rooms', 'create_booking']);
+    const ALLOWED_TOOLS = new Set(['get_available_rooms', 'get_packages', 'check_discount_code', 'search_external_rooms', 'create_booking']);
 
     // 處理工具調用
     const handleToolCall = async (toolName: string, args: any) => {
