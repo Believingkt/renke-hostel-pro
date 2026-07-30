@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, ArrowLeft } from "lucide-react";
+import { Settings, ArrowLeft, ChevronDown, History } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -70,6 +72,44 @@ export default function OwnerSettlementSettings() {
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
   const [accName, setAccName] = useState<string>("");
   const [usingFallback, setUsingFallback] = useState(false);
+  const [currentRuleId, setCurrentRuleId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRows, setHistoryRows] = useState<any[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
+
+  const loadHistory = async () => {
+    if (!currentAccommodationId) {
+      setHistoryRows([]);
+      setHistoryLoaded(true);
+      return;
+    }
+    setHistoryLoading(true);
+    const { data } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("*")
+      .eq("accommodation_id", currentAccommodationId)
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false });
+    const rows = data ?? [];
+    setHistoryRows(rows);
+    const ids = Array.from(new Set(rows.map((r: any) => r.created_by).filter(Boolean)));
+    if (ids.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", ids as string[]);
+      const map: Record<string, string> = {};
+      for (const p of (profs ?? []) as Array<{ id: string; name: string | null; email: string | null }>) {
+        map[p.id] = p.name || p.email || p.id;
+      }
+      setCreatorNames(map);
+    }
+    setHistoryLoading(false);
+    setHistoryLoaded(true);
+  };
+
 
   useEffect(() => {
     (async () => {
@@ -145,6 +185,10 @@ export default function OwnerSettlementSettings() {
           .maybeSingle();
         ruleRow = data ?? null;
       }
+      setCurrentRuleId(ruleRow?.id ?? null);
+      setHistoryOpen(false);
+      setHistoryLoaded(false);
+      setHistoryRows([]);
       if (ruleRow) {
         setConfig({
           ...baseConfig,
@@ -534,6 +578,71 @@ export default function OwnerSettlementSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <Collapsible
+        open={historyOpen}
+        onOpenChange={(open) => {
+          setHistoryOpen(open);
+          if (open && !historyLoaded && !historyLoading) loadHistory();
+        }}
+      >
+        <Card>
+          <CollapsibleTrigger className="w-full text-left">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  歷史生效版本
+                </CardTitle>
+                <CardDescription>唯讀檢視此民宿所有已建立的收費規則版本（不可修改或刪除）。</CardDescription>
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 shrink-0 transition-transform ${historyOpen ? "rotate-180" : ""}`}
+              />
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-3">
+              {historyLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
+              {!historyLoading && historyLoaded && historyRows.length === 0 && (
+                <p className="text-sm text-muted-foreground">尚無歷史版本紀錄，目前套用舊制設定</p>
+              )}
+              {!historyLoading &&
+                historyRows.map((r: any) => (
+                  <div key={r.id} className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">
+                        生效月份：{String(r.effective_from).slice(0, 7)}
+                      </span>
+                      {r.id === currentRuleId && <Badge>目前生效中</Badge>}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <div>抽成費率：{((Number(r.commission_rate) || 0) * 100).toFixed(2)}%</div>
+                      <div>抽成門檻：NT$ {(Number(r.commission_threshold) || 0).toLocaleString()}</div>
+                      <div>行銷推廣費門檻：NT$ {(Number(r.marketing_fee_threshold) || 0).toLocaleString()}</div>
+                      <div>行銷推廣費（未達門檻）：NT$ {(Number(r.marketing_fee_low) || 0).toLocaleString()}</div>
+                      <div>行銷推廣費（超過門檻）：NT$ {(Number(r.marketing_fee_high) || 0).toLocaleString()}</div>
+                      <div>基本服務費：NT$ {config.marketing_fee_base.toLocaleString()}（舊制設定）</div>
+                      <div>
+                        每多一棟加收：NT$ {config.marketing_fee_per_extra_property.toLocaleString()}（舊制設定）
+                      </div>
+                      <div>
+                        建立時間：
+                        {r.created_at
+                          ? new Date(r.created_at).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })
+                          : "-"}
+                      </div>
+                      <div>
+                        建立人員：{r.created_by ? creatorNames[r.created_by] ?? r.created_by : "系統"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
 
       <div className="flex flex-col items-end gap-2">
         <p className="text-xs text-muted-foreground text-right">
