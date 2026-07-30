@@ -638,6 +638,207 @@ serve(async (req) => {
         };
       }
 
+      // 包棟／包區方案：只回傳導覽必要資訊（天數、場域、庫存、人數、價格、訂房連結）
+      if (toolName === "get_packages") {
+        const { data: pkgs } = await supabase
+          .from('accommodation_packages')
+          .select('id, name, guest_count, guest_count_max, child_count_max, sale_price, original_price, tier_prices, applicable_tiers, excluded_date_ranges, primary_room_type_id, room_type_ids, room_type_allocation, display_order')
+          .eq('accommodation_id', accommodationId)
+          .eq('enabled', true)
+          .order('display_order');
+
+        if (!pkgs || pkgs.length === 0) {
+          return { packages: [], message: "此住宿目前沒有包棟／包區方案" };
+        }
+
+        const { data: accRow } = await supabase
+          .from('accommodation_info')
+          .select('name')
+          .eq('id', accommodationId)
+          .maybeSingle();
+        const accName = accRow?.name ?? null;
+
+        const guestCount = Number(args?.guest_count) > 0 ? Number(args.guest_count) : null;
+
+        // 依人數過濾（超過方案上限就不列出）
+        const candidates = pkgs.filter((p: any) => {
+          if (!guestCount) return true;
+          const max = Number(p.guest_count_max ?? p.guest_count) + Number(p.child_count_max ?? 0);
+          return guestCount <= max;
+        });
+
+        // 方案所需房型（包棟通常對應一或多個獨立房型）
+        const reqsOf = (p: any): { room_type_id: string; qty: number }[] => {
+          const alloc = Array.isArray(p.room_type_allocation) ? p.room_type_allocation : [];
+          if (alloc.length > 0) {
+            return alloc
+              .filter((a: any) => a?.room_type_id)
+              .map((a: any) => ({ room_type_id: a.room_type_id, qty: Number(a.qty) > 0 ? Number(a.qty) : 1 }));
+          }
+          if (Array.isArray(p.room_type_ids) && p.room_type_ids.length > 0) {
+            return p.room_type_ids.map((id: string) => ({ room_type_id: id, qty: 1 }));
+          }
+          if (p.primary_room_type_id) return [{ room_type_id: p.primary_room_type_id, qty: 1 }];
+          return [];
+        };
+
+        const tierOf = (dateStr: string, holidaySet: Set<string>): string => {
+          if (holidaySet.has(dateStr)) return 'weekend';
+          const day = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+          if (day === 6) return 'weekend';
+          if (day === 5 || day === 0) return 'friday_sunday';
+          return 'weekday';
+        };
+
+        const saleOf = (p: any, tier: string): number => {
+          const override = p.tier_prices?.[tier];
+          if (override && override.sale != null) return Number(override.sale);
+          return Number(p.sale_price ?? 0);
+        };
+
+        const isExcluded = (p: any, dateStr: string): boolean => {
+          const ranges = Array.isArray(p.excluded_date_ranges) ? p.excluded_date_ranges : [];
+          return ranges.some((r: any) => r?.start && r?.end && dateStr >= r.start && dateStr <= r.end);
+        };
+
+        const bookingUrl = (p: any, ci?: string, co?: string) => {
+          const reqs = reqsOf(p);
+          const roomId = p.primary_room_type_id ?? reqs[0]?.room_type_id ?? null;
+          if (!roomId) return null;
+          const q = new URLSearchParams();
+          q.set('acc', accommodationId);
+          q.set('roomId', roomId);
+          q.set('packageId', p.id);
+          if (ci) q.set('checkIn', ci);
+          if (co) q.set('checkOut', co);
+          if (guestCount) q.set('adults', String(guestCount));
+          q.set('stay', 'package');
+          return `/book?${q.toString()}`;
+        };
+
+        const hasRange = Boolean(args?.check_in_date && args?.check_out_date);
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        if (!hasRange) {
+          return {
+            accommodation: accName,
+            packages: candidates.map((p: any) => {
+              const tiers = (['weekday', 'friday_sunday', 'weekend'] as const).filter(
+                (t) => !Array.isArray(p.applicable_tiers) || p.applicable_tiers.length === 0 || p.applicable_tiers.includes(t)
+              );
+              const prices = (tiers.length ? tiers : (['weekday'] as const)).map((t) => saleOf(p, t));
+              return {
+                name: p.name,
+                guest_count: p.guest_count,
+                guest_count_max: p.guest_count_max ?? p.guest_count,
+                price_from: Math.min(...prices),
+                booking_url: bookingUrl(p),
+              };
+            }),
+            note: "未指定日期，僅提供起始價；請先問客人入住／退房日期再確認庫存。",
+          };
+        }
+
+        if (!dateRegex.test(args.check_in_date) || !dateRegex.test(args.check_out_date)) {
+          return { packages: [], error: "日期格式錯誤，請使用 YYYY-MM-DD" };
+        }
+        if (args.check_out_date <= args.check_in_date) {
+          return { packages: [], error: "退房日期必須晚於入住日期" };
+        }
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (args.check_in_date < todayStr) {
+          return { packages: [], error: `入住日期必須為今日（${todayStr}）或之後` };
+        }
+
+        const nightDates: string[] = [];
+        {
+          const cur = new Date(`${args.check_in_date}T00:00:00Z`);
+          const end = new Date(`${args.check_out_date}T00:00:00Z`);
+          while (cur < end) {
+            nightDates.push(cur.toISOString().split('T')[0]);
+            cur.setUTCDate(cur.getUTCDate() + 1);
+          }
+        }
+
+        const { data: holidayRows } = await supabase
+          .from('public_holidays')
+          .select('holiday_date')
+          .eq('accommodation_id', accommodationId)
+          .gte('holiday_date', nightDates[0])
+          .lte('holiday_date', nightDates[nightDates.length - 1]);
+        const holidaySet = new Set((holidayRows ?? []).map((h: any) => h.holiday_date));
+
+        // 取出所有方案涉及的房型庫存（每個房型只查一次）
+        const neededRoomIds = Array.from(
+          new Set(candidates.flatMap((p: any) => reqsOf(p).map((r) => r.room_type_id)))
+        );
+        const invResults = await Promise.all(
+          neededRoomIds.map((rid: string) =>
+            supabase
+              .rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: rid,
+                p_dates: nightDates,
+                p_accommodation_id: accommodationId,
+              })
+              .then(({ data }: any) => ({ rid, data: data || [] }))
+          )
+        );
+        const availMap = new Map<string, number>();
+        invResults.forEach((res: any) => {
+          res.data.forEach((row: any) => {
+            availMap.set(`${res.rid}:${row.date_value}`, row.is_blocked === true ? 0 : Number(row.available_rooms ?? 0));
+          });
+        });
+
+        const packages = candidates.map((p: any) => {
+          const reqs = reqsOf(p);
+          const unavailable: string[] = [];
+          let total = 0;
+          let priceable = true;
+
+          for (const d of nightDates) {
+            const tier = tierOf(d, holidaySet);
+            const tierOk =
+              !Array.isArray(p.applicable_tiers) || p.applicable_tiers.length === 0 || p.applicable_tiers.includes(tier);
+            const invOk = reqs.length > 0 && reqs.every((r) => (availMap.get(`${r.room_type_id}:${d}`) ?? 0) >= r.qty);
+            if (!tierOk || !invOk || isExcluded(p, d)) {
+              unavailable.push(d);
+              continue;
+            }
+            const sale = saleOf(p, tier);
+            if (!(sale > 0)) priceable = false;
+            total += sale;
+          }
+
+          const available = unavailable.length === 0 && priceable && reqs.length > 0;
+
+          return {
+            name: p.name,
+            accommodation: accName,
+            guest_count: p.guest_count,
+            guest_count_max: p.guest_count_max ?? p.guest_count,
+            child_count_max: p.child_count_max ?? 0,
+            nights: nightDates.length,
+            check_in_date: args.check_in_date,
+            check_out_date: args.check_out_date,
+            total_price: available ? total : null,
+            avg_price_per_night: available ? Math.round(total / nightDates.length) : null,
+            is_available_for_range: available,
+            unavailable_dates: unavailable,
+            booking_url: available ? bookingUrl(p, args.check_in_date, args.check_out_date) : null,
+          };
+        });
+
+        return {
+          accommodation: accName,
+          check_in_date: args.check_in_date,
+          check_out_date: args.check_out_date,
+          nights: nightDates.length,
+          guest_count: guestCount,
+          packages,
+        };
+      }
+
       if (toolName === "search_external_rooms") {
         try {
           // Check if this accommodation has external mapping
