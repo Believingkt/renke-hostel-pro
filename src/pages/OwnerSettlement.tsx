@@ -466,18 +466,20 @@ export default function OwnerSettlement() {
 
   const exportPdf = () => {
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
-    const orderRowsHtml = rows
+    const orderRowsHtml = tableRows
       .map(
         (r) => `<tr>
           <td>${esc(r.order.order_number)}</td>
           <td>${esc(r.order.guest_name)}</td>
           <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
-          <td class="r">${r.nightsInMonth}/${r.totalNights}</td>
-          <td class="r">${fmt(r.monthFinal)}</td>
+          ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
+          <td class="r">${fmt(r.revenue)}</td>
+          ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
       )
       .join("");
+
 
     const addonRowsHtml = addonItems
       .map(
