@@ -797,7 +797,11 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={Percent}
               label={`人客多抽成 ${config.commission_rate}%`}
-              sublabel="抽成基礎 × 服務費率"
+              sublabel={
+                effectiveRule.commission_threshold > 0
+                  ? `抽成基礎 × 服務費率（當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成）`
+                  : "抽成基礎 × 服務費率"
+              }
               value={-gcTotals.totalCommission}
               tone="fee"
             />
@@ -808,11 +812,24 @@ export default function OwnerSettlement() {
               value={-gcTotals.totalPremiumShare}
               tone="fee"
             />
+            {gcMarketingFee > 0 && (
+              <BreakdownRow
+                icon={Megaphone}
+                label="行銷推廣費"
+                sublabel={
+                  effectiveRule.marketing_fee_threshold > 0
+                    ? `當月營收 ${getGuestCountThresholdBase(gcRows as any) >= effectiveRule.marketing_fee_threshold ? "已達" : "未達"} NT$ ${fmt(effectiveRule.marketing_fee_threshold)} 門檻`
+                    : "固定金額"
+                }
+                value={-gcMarketingFee}
+                tone="fee"
+              />
+            )}
             <BreakdownRow
               icon={Wallet}
               label="平台費用合計"
-              sublabel="人客多抽成 + 溢價分潤"
-              value={-gcTotals.totalPlatformFee}
+              sublabel={gcMarketingFee > 0 ? "人客多抽成 + 溢價分潤 + 行銷推廣費" : "人客多抽成 + 溢價分潤"}
+              value={-(gcTotals.totalPlatformFee + gcMarketingFee)}
               tone="subtotal"
             />
             <div className="h-px bg-border my-2" />
@@ -820,9 +837,10 @@ export default function OwnerSettlement() {
               icon={Banknote}
               label="業主淨收益"
               sublabel="入住營收 − 平台費用合計（加購項目不列入扣項）"
-              value={gcTotals.ownerNet}
+              value={gcTotals.ownerNet - gcMarketingFee}
               tone="final"
             />
+
           </CardContent>
         </Card>
       ) : (
