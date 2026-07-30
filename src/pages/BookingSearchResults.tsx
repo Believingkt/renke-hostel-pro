@@ -858,11 +858,47 @@ const BookingSearchResults = () => {
 
       {/* 結果列表 */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-6">
+        {isAiSearch && (
+          <div className="mb-4 rounded-2xl border border-[hsl(25,60%,85%)] bg-[hsl(35,90%,97%)] overflow-hidden">
+            <button
+              onClick={() => setAiOpen((v) => !v)}
+              className="w-full flex items-center gap-2 px-4 py-3 text-left"
+            >
+              <Sparkles className="h-5 w-5 text-[hsl(25,80%,50%)] shrink-0" />
+              <span className="flex-1 font-bold text-foreground text-base">
+                {loading ? "AI 搜尋中…" : `${filtered.length} 間住宿符合您的搜尋`}
+              </span>
+              {aiOpen ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              )}
+            </button>
+            {aiOpen && (
+              <div className="px-4 pb-4 space-y-1.5 text-sm text-foreground/80 leading-relaxed">
+                {aiNote && <p>{aiNote}</p>}
+                <p>
+                  您的搜尋：
+                  {aiQuery ? `${aiQuery}，` : ""}
+                  {checkIn && checkOut
+                    ? `${format(checkIn, "M 月 d 日")} – ${format(checkOut, "M 月 d 日")}（${nights} 晚），`
+                    : ""}
+                  {roomsParam ? `${roomsParam} 房，` : ""}
+                  {adults} 位成人
+                  {childrenCount + infantsCount + toddlersCount > 0
+                    ? `、${childrenCount + infantsCount + toddlersCount} 位兒童`
+                    : ""}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h1 className="text-lg sm:text-xl font-bold text-foreground">
             找到 {loading ? "…" : filtered.length} 個房型
           </h1>
         </div>
+
 
         {loading ? null : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
