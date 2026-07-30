@@ -23,6 +23,7 @@ import Index from "./pages/Index";
 
 // Auth 頁面 - 關鍵路徑，直接 import
 import Auth from "./pages/Auth";
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 import HQAuth from "./pages/HQAuth";
 import TeamAuth from "./pages/TeamAuth";
 
@@ -538,6 +539,13 @@ function App() {
                     <Route element={<ConditionalLayout />}>
                       {/* 根層路由（向下相容） */}
                       {sharedRoutes}
+
+                      {/* MCP / Agent 整合的 OAuth 同意頁 */}
+                      <Route path="/.lovable/oauth/consent" element={
+                        <Suspense fallback={null}><OAuthConsent /></Suspense>
+                      } />
+
+
 
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
