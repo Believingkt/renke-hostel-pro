@@ -746,6 +746,12 @@ export default function OwnerSettlement() {
           <CardHeader className="pb-3">
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="text-base">本月收益拆解</CardTitle>
+              {effectiveRule.fromTable && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                  <ShieldCheck className="h-3 w-3" />
+                  已套用門檻式收費規則
+                </span>
+              )}
               {gcTotals.crossMonthCount > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
