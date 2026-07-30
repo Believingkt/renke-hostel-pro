@@ -858,16 +858,32 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Percent}
             label={`平台服務費 ${config.commission_rate}%`}
-            sublabel="含金流處理、客服、系統維運、訂單管理、網紅抽成"
+            sublabel={
+              effectiveRule.commission_threshold > 0
+                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　含金流處理、客服、系統維運、訂單管理、網紅抽成`
+                : "含金流處理、客服、系統維運、訂單管理、網紅抽成"
+            }
             value={-totals.totalCommission}
             tone="fee"
           />
           <BreakdownRow
             icon={Megaphone}
-            label={`行銷推廣費（${propertyCount} 棟）`}
+            label={
+              effectiveRule.marketing_fee_threshold > 0
+                ? "行銷推廣費"
+                : `行銷推廣費（${propertyCount} 棟）`
+            }
             sublabel={
               <>
-                基本 {fmt(config.marketing_fee_base)} + {Math.max(0, propertyCount - 1)} × {fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放、
+                {effectiveRule.marketing_fee_threshold > 0 ? (
+                  <>
+                    當月營收 {getStandardThresholdBase(rows as any) >= effectiveRule.marketing_fee_threshold ? "已達" : "未達"} NT$ {fmt(effectiveRule.marketing_fee_threshold)} 門檻　含 OTA 上架、SEO、廣告投放、
+                  </>
+                ) : (
+                  <>
+                    基本 {fmt(config.marketing_fee_base)} + {Math.max(0, propertyCount - 1)} × {fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放、
+                  </>
+                )}
                 <a
                   href="https://star.lakeze.com/"
                   target="_blank"
@@ -883,6 +899,7 @@ export default function OwnerSettlement() {
             originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
+
 
           <BreakdownRow
             icon={Wallet}
