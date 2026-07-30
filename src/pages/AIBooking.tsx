@@ -270,6 +270,7 @@ export default function AIBooking() {
             if (parsed.type === 'tool_calls_complete') {
               parsed.results.forEach((r: any) => {
                 if (r.result?.rooms) fbToolCalls.push({ type: 'rooms', data: r.result.rooms });
+                if (r.result?.packages?.length) fbToolCalls.push({ type: 'packages', data: r.result.packages });
                 if (r.result?.success !== undefined) fbToolCalls.push({ type: 'booking', data: r.result });
                 if (r.result?.is_valid !== undefined) fbToolCalls.push({ type: 'discount', data: r.result });
               });
