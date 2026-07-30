@@ -1003,7 +1003,10 @@ function BreakdownRow({
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {showOriginal && (
+        {prefixNote && (
+          <span className="tabular-nums text-xs text-muted-foreground">{prefixNote}</span>
+        )}
+
           <span className="tabular-nums text-xs text-muted-foreground/70 line-through">
             {originalDisplay}
           </span>
