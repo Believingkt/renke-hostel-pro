@@ -15,7 +15,15 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import SearchRoomCard, { type SearchRoomCardData } from "@/components/booking-portal/SearchRoomCard";
-import RoomFilterBar, { type RoomFilters } from "@/components/booking-portal/RoomFilterBar";
+import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  default: "排序",
+  price_asc: "價格由低到高",
+  price_desc: "價格由高到低",
+  capacity_asc: "人數由少到多",
+  capacity_desc: "人數由多到少",
+};
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
