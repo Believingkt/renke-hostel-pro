@@ -18,6 +18,7 @@ import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
+import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 
 const navItems = [
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
@@ -95,6 +96,7 @@ const MemberLayout = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b">
+        <AtmPaymentBanner />
         <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
             <img src={portalLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />

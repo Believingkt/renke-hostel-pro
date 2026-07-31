@@ -4,6 +4,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import assistantAvatar from "@/assets/ai-butler-alpaca.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
+import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
@@ -923,6 +924,7 @@ const BookingPortal = () => {
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+        <AtmPaymentBanner />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
