@@ -147,7 +147,7 @@ const MemberOrders = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, payment_status, paid_amount, final_price, guest_name, guest_count, accommodation_id, room_type_id, room_types(name)"
+        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, payment_status, paid_amount, final_price, guest_name, guest_count, accommodation_id, room_type_id, atm_vacc_no, atm_expire_at, room_types(name)"
       )
       .eq("member_id", member.id)
       .order("created_at", { ascending: false })
