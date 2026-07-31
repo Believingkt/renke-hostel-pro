@@ -3759,7 +3759,7 @@ const BookingFlow = () => {
                           <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex items-start justify-between gap-2">
                               <CardTitle className="text-sm sm:text-base font-bold leading-snug break-words">
-                                🛏️ {cleanAddonName(addon.description || addon.addon_type)}
+                                🛏️ {cleanAddonName(addon.addon_type)}
                               </CardTitle>
                               {addon.detailed_description && (
                                 <Button
@@ -3768,7 +3768,7 @@ const BookingFlow = () => {
                                   className="shrink-0 text-xs"
                                   onClick={() => {
                                     setCustomAddonDetail({
-                                      title: cleanAddonName(addon.description || addon.addon_type),
+                                      title: cleanAddonName(addon.addon_type),
                                       subtitle: addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity),
                                       html: addon.detailed_description || '',
                                     });
@@ -3873,7 +3873,7 @@ const BookingFlow = () => {
                               return (
                                 <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
                                   <span className="text-muted-foreground min-w-0 truncate">
-                                    🛏️ {cleanAddonName(setting?.description || type)} × {count} {shortUnit(setting?.unit_label)} × {calculateNights()} 晚
+                                    🛏️ {cleanAddonName(type)} × {count} {shortUnit(setting?.unit_label)} × {calculateNights()} 晚
                                   </span>
                                   <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
                                 </div>
@@ -4131,7 +4131,7 @@ const BookingFlow = () => {
                 const s = customAddonSettings.find((x) => x.addon_type === type);
                 if (!s) return;
                 addonLines.push({
-                  label: cleanAddonName(s.description || s.addon_type),
+                  label: cleanAddonName(s.addon_type),
                   qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                   subtotal: count * s.price_per_unit * nights,
                 });
@@ -5164,7 +5164,7 @@ const BookingFlow = () => {
                         const s = customAddonSettings.find((x) => x.addon_type === type);
                         if (!s) return;
                         addonLines.push({
-                          label: cleanAddonName(s.description || s.addon_type),
+                          label: cleanAddonName(s.addon_type),
                           qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                           subtotal: count * s.price_per_unit * nights,
                         });
@@ -5454,7 +5454,7 @@ const BookingFlow = () => {
                 const s = customAddonSettings.find((x) => x.addon_type === type);
                 if (!s) return;
                 addonLines.push({
-                  label: cleanAddonName(s.description || s.addon_type),
+                  label: cleanAddonName(s.addon_type),
                   qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
                   subtotal: count * s.price_per_unit * nights,
                 });
