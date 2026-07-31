@@ -105,11 +105,17 @@ serve(async (req) => {
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, order_status, final_price, currency_at_booking")
+        .select("id, order_status, final_price, currency_at_booking, accommodation_id, order_date, owner_direct, order_source")
         .in("id", orderIds);
       if (ordersErr) throw ordersErr;
       const ordersMap = new Map<string, any>();
       for (const o of orders ?? []) ordersMap.set(o.id as string, o);
+
+      // 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
+      const isExemptA = await buildExemptResolver(
+        supabase,
+        (orders ?? []).map((o) => o.accommodation_id as string),
+      );
 
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
@@ -126,6 +132,8 @@ serve(async (req) => {
         if (ord.order_status === "cancelled") continue; // handled in scenario B
         // 非台幣訂單不計入獎金（null 視為台幣）
         if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
+        // 免抽成來源訂單不產生調整
+        if (isExemptA(ord)) continue;
 
         const meta = metaMap.get(orderId);
         const currentBase = Number(
