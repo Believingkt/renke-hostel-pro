@@ -860,12 +860,18 @@ const MemberOrderDetail = () => {
                   待匯款訂金
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      atmExpired
-                        ? "bg-red-100 text-red-700"
-                        : "bg-amber-100 text-amber-700"
+                      order.order_status === "cancelled"
+                        ? "bg-muted text-muted-foreground"
+                        : atmExpired
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
                     }`}
                   >
-                    {atmExpired ? "已逾期" : "未付款"}
+                    {order.order_status === "cancelled"
+                      ? "已取消"
+                      : atmExpired
+                        ? "已逾期（待自動取消）"
+                        : "未付款"}
                   </span>
                 </span>
                 <span
