@@ -79,6 +79,8 @@ export interface AddonPlan {
   pricing_mode?: 'per_night' | 'per_stay';
   description?: string;
   detailed_description?: string;
+  icon_key?: string | null;
+  show_icon?: boolean;
 }
 
 interface AddonPlansSectionProps {
