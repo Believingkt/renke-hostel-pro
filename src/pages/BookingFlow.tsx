@@ -2473,7 +2473,7 @@ const BookingFlow = () => {
           setErrors(newErrors);
           toast({
             title: "請完成必填欄位",
-            description: messages.join("\n"),
+            description: messages.join("；"),
             variant: "destructive",
           });
           const firstKey = Object.keys(newErrors)[0];
