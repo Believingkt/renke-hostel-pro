@@ -390,6 +390,14 @@ export default function OwnerSettlementSettings() {
           <CardDescription>
             套用至所有訂單（除 <code>owner_direct = true</code> 或訂單來源被勾選為不抽成）。計算方式：本月分攤後金額 × 服務費率。
           </CardDescription>
+          <details className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
+            <summary className="cursor-pointer font-medium">常見方案填法對照</summary>
+            <ul className="mt-2 space-y-1 text-muted-foreground">
+              <li>• 月付方案：抽成門檻 0、服務費率 15%</li>
+              <li>• 保障分潤方案：抽成門檻 = 保障營收金額、服務費率 50%</li>
+            </ul>
+          </details>
+
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 max-w-sm">
