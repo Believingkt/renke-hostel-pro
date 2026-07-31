@@ -165,6 +165,9 @@ serve(async (req) => {
       if (!meta) continue;
       if (meta.is_excluded === true) continue;
       if (!meta.closer_id) continue;
+      // 非台幣訂單不計入獎金（null 視為台幣）
+      const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
+      if (cur && cur !== "TWD") continue;
       processed++;
 
       if (existingSet.has(o.id as string)) {
