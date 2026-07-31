@@ -295,17 +295,8 @@ export default function AtmBookingSuccess() {
     };
   }, [order?.id, paidDetected]);
 
-  // Countdown then redirect once payment detected
-  useEffect(() => {
-    if (!paidDetected || dismissed) return;
-    if (redirectedRef.current) return;
-    if (redirectIn <= 0) {
-      goViewOrder();
-      return;
-    }
-    const id = setTimeout(() => setRedirectIn((s) => s - 1), 1000);
-    return () => clearTimeout(id);
-  }, [paidDetected, redirectIn, dismissed]);
+
+
 
 
   const nights = useMemo(() => {
