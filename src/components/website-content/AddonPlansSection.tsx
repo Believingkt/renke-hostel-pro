@@ -254,7 +254,7 @@ const SortablePlanCard = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 md:col-span-3">
+            <div className="col-span-2 md:col-span-2">
               <ValidatedNumberInput
                 label={getPriceLabel(plan.addon_type)}
                 prefix="NT$"
@@ -266,7 +266,7 @@ const SortablePlanCard = ({
                 onValidate={(value) => onValidate(plan.addon_type, 'price_per_unit', value)}
               />
             </div>
-            <div className="md:col-span-1.5 col-span-1 md:[grid-column:span_1/span_1]">
+            <div className="col-span-1 md:col-span-2">
               <ValidatedNumberInput
                 label="數量下限"
                 value={plan.min_quantity ?? 0}
