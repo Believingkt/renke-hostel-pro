@@ -887,11 +887,15 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Percent}
             label={`平台服務費 ${config.commission_rate}%`}
-            sublabel={
+            sublabel={`${
+              stdAddonDeducted > 0
+                ? `（本月分攤後營收 − 本月分攤後加購項目 NT$ ${fmt(stdAddonDeducted)}）× 服務費率　`
+                : "（本月分攤後營收 − 本月分攤後加購項目）× 服務費率　"
+            }${
               effectiveRule.commission_threshold > 0
-                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　含金流處理、客服、系統維運、訂單管理、網紅抽成`
-                : "含金流處理、客服、系統維運、訂單管理、網紅抽成"
-            }
+                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　`
+                : ""
+            }含金流處理、客服、系統維運、訂單管理、網紅抽成`}
             value={-totals.totalCommission}
             tone="fee"
           />
