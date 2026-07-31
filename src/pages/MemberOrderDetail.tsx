@@ -878,14 +878,22 @@ const MemberOrderDetail = () => {
             );
           })()}
 
-          {balance > 0 && (
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
-              <span className="shrink-0 font-medium tabular-nums">
-                NT$ {balance.toLocaleString()}
-              </span>
-            </div>
-          )}
+          {(() => {
+            const pendingDeposit =
+              order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid"
+                ? atmTransferAmount
+                : 0;
+            const onSiteBalance = Math.max(balance - pendingDeposit, 0);
+            if (onSiteBalance <= 0) return null;
+            return (
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
+                <span className="shrink-0 font-medium tabular-nums">
+                  NT$ {onSiteBalance.toLocaleString()}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 總金額 */}
