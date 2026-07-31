@@ -70,6 +70,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AddonPlanPreview } from "./AddonPlanPreview";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
 export interface AddonPlan {
