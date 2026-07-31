@@ -222,124 +222,25 @@ const SortablePlanCard = ({
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2">
-            <p className="text-xs text-muted-foreground">
-              不確定怎麼填？先套用文案範本，再微調細節。
-            </p>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5" disabled={!plan.enabled}>
-                  <Wand2 className="h-3.5 w-3.5" />
-                  一鍵套用文案範本
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
-                <DropdownMenuLabel>選擇範本</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {ADDON_COPY_TEMPLATES.map((tpl) => (
-                  <DropdownMenuItem
-                    key={tpl.id}
-                    className="flex-col items-start gap-0.5"
-                    onSelect={() => onApplyTemplate(index, tpl)}
-                  >
-                    <span className="text-sm">{tpl.label}</span>
-                    <span className="text-xs text-muted-foreground">{tpl.hint}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {(() => {
-            const showIcon = plan.show_icon !== false;
-            const iconKey = plan.icon_key ?? null;
-            const source = addonIconSource(iconKey, plan.addon_type);
-            const PreviewIcon = resolveAddonIcon(iconKey, plan.addon_type);
-            return (
-              <div className="space-y-2 rounded-md border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-sm">前台圖示</Label>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`${plan.addon_type}-show-icon`} className="text-sm font-normal">
-                      顯示圖示
-                    </Label>
-                    <Switch
-                      id={`${plan.addon_type}-show-icon`}
-                      checked={showIcon}
-                      disabled={!plan.enabled}
-                      onCheckedChange={(checked) => onUpdate(index, { show_icon: checked })}
-                    />
-                  </div>
-                </div>
-
-                <Select
-                  value={iconKey ?? "auto"}
-                  disabled={!plan.enabled || !showIcon}
-                  onValueChange={(value) => onUpdate(index, { icon_key: value === "auto" ? null : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" className="z-50">
-                    <div className="max-h-64 overflow-y-auto overscroll-contain">
-                      <SelectItem value="auto">自動（依方案名稱判斷）</SelectItem>
-                      {ADDON_ICON_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          <span className="inline-flex items-center gap-2">
-                            <opt.icon className="h-4 w-4" />
-                            {opt.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </div>
-                  </SelectContent>
-
-                </Select>
-
-                <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-                  {showIcon ? (
-                    <PreviewIcon className="h-4 w-4 text-primary shrink-0" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
-                  <span className="text-sm font-semibold truncate">{plan.addon_type}</span>
-                  <span className="ml-auto text-xs text-muted-foreground shrink-0">
-                    {!showIcon
-                      ? "前台不顯示圖示"
-                      : source === "manual"
-                        ? "使用手動指定圖示"
-                        : source === "auto"
-                          ? "已依名稱自動配對圖示"
-                          : `找不到對應圖示，使用預設圖：${DEFAULT_ADDON_ICON_LABEL}`}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-
-
-          <div className="space-y-1.5">
-            <Label>計價方式</Label>
-            <Select
-              value={plan.pricing_mode || "per_night"}
-              disabled={!plan.enabled}
-              onValueChange={(value) => onUpdate(index, { pricing_mode: value as 'per_night' | 'per_stay' })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="per_night">每晚計算（價格 × 數量 × 入住晚數）</SelectItem>
-                <SelectItem value="per_stay">單次計算（整筆訂單只收一次，不乘晚數）</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              加床、寵物這類每晚都要收的選「每晚計算」；接送、清潔、門票這類一筆訂單只收一次的選「單次計算」。
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-6">
+        <CardContent className="space-y-4">
+          {/* 核心設定：一列搞定計價與數量 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="col-span-2 md:col-span-1 space-y-1.5">
+              <Label className="text-sm">計價方式</Label>
+              <Select
+                value={plan.pricing_mode || "per_night"}
+                disabled={!plan.enabled}
+                onValueChange={(value) => onUpdate(index, { pricing_mode: value as 'per_night' | 'per_stay' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="z-50">
+                  <SelectItem value="per_night">每晚計算（× 晚數）</SelectItem>
+                  <SelectItem value="per_stay">單次計算（不乘晚數）</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <ValidatedNumberInput
               label={getPriceLabel(plan.addon_type)}
               prefix="NT$"
@@ -351,7 +252,7 @@ const SortablePlanCard = ({
               onValidate={(value) => onValidate(plan.addon_type, 'price_per_unit', value)}
             />
             <ValidatedNumberInput
-              label="數量下限（選填）"
+              label="數量下限"
               value={plan.min_quantity ?? 0}
               error={planErrors.min_quantity}
               min="0"
@@ -369,48 +270,10 @@ const SortablePlanCard = ({
               onValidate={(value) => onValidate(plan.addon_type, 'max_quantity', value)}
             />
           </div>
-          <p className="text-xs text-muted-foreground -mt-3">
-            數量下限為選填（0 = 不限）。設定後，客人或後台第一次加購時會直接帶入此數量，低於下限則自動歸零取消。
-          </p>
 
-          <div className="rounded-md border p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <Label className="text-sm">自動帶入新訂單</Label>
-                <p className="text-xs text-muted-foreground">
-                  開啟後，前台下訂與後台建立新訂單時會自動帶入此加購（數量取數量下限，未設定則為 1）。
-                </p>
-              </div>
-              <Switch
-                checked={plan.auto_include === true}
-                disabled={!plan.enabled}
-                onCheckedChange={(checked) =>
-                  onUpdate(index, { auto_include: checked, ...(checked ? {} : { is_locked: false }) })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <Label className="text-sm">客人不可取消</Label>
-                <p className="text-xs text-muted-foreground">
-                  開啟後，前台無法把此加購數量減到低於下限（例如清潔費為必收項目）。
-                </p>
-              </div>
-              <Switch
-                checked={plan.is_locked === true}
-                disabled={!plan.enabled || plan.auto_include !== true}
-                onCheckedChange={(checked) => onUpdate(index, { is_locked: checked })}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              為避免回溯改金額，「自動帶入」只對新訂單生效；後台編輯既有訂單不會自動追加。
-            </p>
-          </div>
-
-
-          <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
             <ValidatedInput
-              label="簡短說明（單位詞）"
+              label="單位詞"
               placeholder="例如：人、隻、份、床"
               value={plan.unit_label}
               error={planErrors.unit_label}
@@ -420,26 +283,169 @@ const SortablePlanCard = ({
               onChange={(value) => onUpdate(index, { unit_label: value })}
               onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
             />
-            <p className="text-xs text-muted-foreground">
-              只填「單一字詞」（人／隻／份／床）。超過 3 字或含標點時，前台會自動顯示為「份」。
-            </p>
+            <div className="flex md:justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={!plan.enabled}>
+                    <Wand2 className="h-3.5 w-3.5" />
+                    一鍵套用文案範本
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
+                  <DropdownMenuLabel>選擇範本</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {ADDON_COPY_TEMPLATES.map((tpl) => (
+                    <DropdownMenuItem
+                      key={tpl.id}
+                      className="flex-col items-start gap-0.5"
+                      onSelect={() => onApplyTemplate(index, tpl)}
+                    >
+                      <span className="text-sm">{tpl.label}</span>
+                      <span className="text-xs text-muted-foreground">{tpl.hint}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
-            <RichTextEditor
-              value={plan.detailed_description || ""}
-              onChange={(value) => onUpdate(index, { detailed_description: value })}
-              placeholder="請輸入方案的詳細說明，包含注意事項、規則等..."
-              error={planErrors.detailed_description}
-            />
-            <p className="text-xs text-muted-foreground">
-              規則、注意事項、包含內容都放這裡，不要寫進方案名稱或單位欄位。
-            </p>
-          </div>
+          {/* 進階設定收合，避免卡片過長 */}
+          <Accordion type="multiple" className="w-full border-t pt-1">
+            <AccordionItem value="behavior" className="border-b-0">
+              <AccordionTrigger className="py-2 text-sm hover:no-underline">
+                訂單行為
+                <span className="ml-auto mr-2 text-xs font-normal text-muted-foreground">
+                  {plan.auto_include ? (plan.is_locked ? "自動帶入・不可取消" : "自動帶入") : "手動選購"}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pt-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label className="text-sm">自動帶入新訂單</Label>
+                    <p className="text-xs text-muted-foreground">
+                      前台下訂與後台建立新訂單時自動帶入（數量取下限，未設定則 1）。
+                    </p>
+                  </div>
+                  <Switch
+                    checked={plan.auto_include === true}
+                    disabled={!plan.enabled}
+                    onCheckedChange={(checked) =>
+                      onUpdate(index, { auto_include: checked, ...(checked ? {} : { is_locked: false }) })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label className="text-sm">客人不可取消</Label>
+                    <p className="text-xs text-muted-foreground">
+                      前台無法把數量減到低於下限（例如清潔費為必收項目）。
+                    </p>
+                  </div>
+                  <Switch
+                    checked={plan.is_locked === true}
+                    disabled={!plan.enabled || plan.auto_include !== true}
+                    onCheckedChange={(checked) => onUpdate(index, { is_locked: checked })}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  「自動帶入」只對新訂單生效；後台編輯既有訂單不會自動追加。數量下限設定後，第一次加購會直接帶入此數量，低於下限則自動歸零取消。
+                </p>
+              </AccordionContent>
+            </AccordionItem>
 
-          <AddonPlanPreview plan={plan} />
+            <AccordionItem value="icon" className="border-b-0">
+              <AccordionTrigger className="py-2 text-sm hover:no-underline">前台圖示</AccordionTrigger>
+              <AccordionContent className="pt-1">
+                {(() => {
+                  const showIcon = plan.show_icon !== false;
+                  const iconKey = plan.icon_key ?? null;
+                  const source = addonIconSource(iconKey, plan.addon_type);
+                  const PreviewIcon = resolveAddonIcon(iconKey, plan.addon_type);
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Select
+                          value={iconKey ?? "auto"}
+                          disabled={!plan.enabled || !showIcon}
+                          onValueChange={(value) => onUpdate(index, { icon_key: value === "auto" ? null : value })}
+                        >
+                          <SelectTrigger className="max-w-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="popper" className="z-50">
+                            <div className="max-h-64 overflow-y-auto overscroll-contain">
+                              <SelectItem value="auto">自動（依方案名稱判斷）</SelectItem>
+                              {ADDON_ICON_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <span className="inline-flex items-center gap-2">
+                                    <opt.icon className="h-4 w-4" />
+                                    {opt.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </div>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Label htmlFor={`${plan.addon_type}-show-icon`} className="text-sm font-normal">
+                            顯示圖示
+                          </Label>
+                          <Switch
+                            id={`${plan.addon_type}-show-icon`}
+                            checked={showIcon}
+                            disabled={!plan.enabled}
+                            onCheckedChange={(checked) => onUpdate(index, { show_icon: checked })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
+                        {showIcon ? (
+                          <PreviewIcon className="h-4 w-4 text-primary shrink-0" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-sm font-semibold truncate">{plan.addon_type}</span>
+                        <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                          {!showIcon
+                            ? "前台不顯示圖示"
+                            : source === "manual"
+                              ? "使用手動指定圖示"
+                              : source === "auto"
+                                ? "已依名稱自動配對圖示"
+                                : `找不到對應圖示，使用預設圖：${DEFAULT_ADDON_ICON_LABEL}`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="detail" className="border-b-0">
+              <AccordionTrigger className="py-2 text-sm hover:no-underline">詳細說明</AccordionTrigger>
+              <AccordionContent className="space-y-2 pt-1">
+                <RichTextEditor
+                  value={plan.detailed_description || ""}
+                  onChange={(value) => onUpdate(index, { detailed_description: value })}
+                  placeholder="請輸入方案的詳細說明，包含注意事項、規則等..."
+                  error={planErrors.detailed_description}
+                />
+                <p className="text-xs text-muted-foreground">
+                  規則、注意事項、包含內容都放這裡，不要寫進方案名稱或單位欄位。
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="preview" className="border-b-0">
+              <AccordionTrigger className="py-2 text-sm hover:no-underline">結帳頁預覽</AccordionTrigger>
+              <AccordionContent className="pt-1">
+                <AddonPlanPreview plan={plan} />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
+
 
       </Card>
     </div>
