@@ -104,7 +104,7 @@ serve(async (req) => {
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, order_status, final_price")
+        .select("id, order_status, final_price, currency_at_booking")
         .in("id", orderIds);
       if (ordersErr) throw ordersErr;
       const ordersMap = new Map<string, any>();
