@@ -87,15 +87,18 @@ export const guestInfoSchema = z.object({
   name: z
     .string()
     .trim()
+    .min(1, { message: "請輸入姓名" })
     .min(2, { message: "姓名至少需要2個字元" })
     .max(50, { message: "姓名不能超過50個字元" }),
   phone: z
     .string()
     .trim()
+    .min(1, { message: "請輸入手機號碼" })
     .regex(/^09\d{8}$/, { message: "請輸入有效的手機號碼（09開頭，共10碼）" }),
   email: z
     .string()
     .trim()
+    .min(1, { message: "請輸入電子郵件" })
     .email({ message: "請輸入有效的電子郵件地址" })
     .max(100, { message: "電子郵件不能超過100個字元" }),
   address: z
