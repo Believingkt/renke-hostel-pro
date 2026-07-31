@@ -26,6 +26,7 @@ import {
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
+import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
 
 
 interface Stats {
