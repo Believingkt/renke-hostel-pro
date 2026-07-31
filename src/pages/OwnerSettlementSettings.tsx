@@ -490,6 +490,14 @@ export default function OwnerSettlementSettings() {
           <CardDescription>
             公式：<code>基本服務費 + 每多一棟加收 × (棟數 - 1)</code>。棟數取自 <code>accommodation_info.building_count</code>。
           </CardDescription>
+          <details className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
+            <summary className="cursor-pointer font-medium">常見方案填法對照</summary>
+            <ul className="mt-2 space-y-1 text-muted-foreground">
+              <li>• 月付方案：行銷推廣費門檻 0；基本服務費 / 每多一棟加收依合約金額（如 53,000 / 3,000）</li>
+              <li>• 保障分潤方案：行銷推廣費門檻 0；基本服務費、每多一棟加收皆填 0</li>
+            </ul>
+          </details>
+
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 max-w-sm">
