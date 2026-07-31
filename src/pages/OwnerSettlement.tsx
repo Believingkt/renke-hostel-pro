@@ -104,6 +104,7 @@ interface OrderRow {
   monthFinal: number;
   monthFood: number;
   monthDiscount: number;
+  monthAddonTotal: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
@@ -319,6 +320,7 @@ export default function OwnerSettlement() {
         monthFinal: r.monthFinal,
         monthFood: 0,
         monthDiscount: r.monthDiscount,
+        monthAddonTotal: r.monthAddonTotal,
         monthCommissionable: r.monthCommissionable,
         commission: r.commission,
         exempt: r.exempt,
@@ -329,6 +331,12 @@ export default function OwnerSettlement() {
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
   }, [orders, month, config, accCurrency, effectiveRule]);
+
+  /** standard 型：本月已從抽成基礎扣除的加購項目總額（已依夜數比例分攤） */
+  const stdAddonDeducted = useMemo(
+    () => rows.reduce((s, r) => s + r.monthAddonTotal, 0),
+    [rows]
+  );
 
 
   const totals = useMemo(() => {
@@ -580,7 +588,7 @@ export default function OwnerSettlement() {
 
         ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
-        <tr><td>平台服務費 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
+        <tr><td>平台服務費 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}（抽成基礎已扣除加購項目 NT$ ${fmt(stdAddonDeducted)}）</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
         <tr><td>行銷推廣費${effectiveRule.marketing_fee_threshold > 0 ? "" : `（${propertyCount} 棟）`}</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
 
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
@@ -885,11 +893,15 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Percent}
             label={`平台服務費 ${config.commission_rate}%`}
-            sublabel={
+            sublabel={`${
+              stdAddonDeducted > 0
+                ? `（本月分攤後營收 − 本月分攤後加購項目 NT$ ${fmt(stdAddonDeducted)}）× 服務費率　`
+                : "（本月分攤後營收 − 本月分攤後加購項目）× 服務費率　"
+            }${
               effectiveRule.commission_threshold > 0
-                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　含金流處理、客服、系統維運、訂單管理、網紅抽成`
-                : "含金流處理、客服、系統維運、訂單管理、網紅抽成"
-            }
+                ? `當月營收超過 NT$ ${fmt(effectiveRule.commission_threshold)} 的部分才抽成　`
+                : ""
+            }含金流處理、客服、系統維運、訂單管理、網紅抽成`}
             value={-totals.totalCommission}
             tone="fee"
           />
@@ -1156,7 +1168,7 @@ export default function OwnerSettlement() {
                                   <div>
                                     本月營收 = 實付 {cur}{fmt(Number(r.order.final_price || 0))} × {std?.nightsInMonth}/{std?.totalNights}
                                     {r.isForeign ? ` ÷ ${r.exchangeRate}` : ""} = NT$ {fmt(r.revenue)}
-                                    {!r.exempt && <>；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}{effectiveRule.commission_threshold > 0 ? `（已依當月營收門檻 NT$ ${fmt(effectiveRule.commission_threshold)} 分攤）` : ""}</>}
+                                    {!r.exempt && <>；抽成基礎 = NT$ {fmt(r.revenue)}{(std?.monthAddonTotal ?? 0) > 0 ? ` − 加購項目 NT$ ${fmt(std!.monthAddonTotal)}` : " − 加購項目 NT$ 0"} = NT$ {fmt(r.orderAmount)}；抽成 = NT$ {fmt(r.orderAmount)} × {config.commission_rate}% = NT$ {fmt(r.commission)}{effectiveRule.commission_threshold > 0 ? `（已依當月營收門檻 NT$ ${fmt(effectiveRule.commission_threshold)} 分攤）` : ""}</>}
                                   </div>
 
                                 )}

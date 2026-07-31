@@ -189,6 +189,8 @@ export interface OwnerSettlementOrderInput {
   currency_at_booking?: string | null;
   /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
   exchange_rate_snapshot?: number | string | null;
+  /** 加購項目明細（jsonb array），抽成基礎需扣除 */
+  custom_addon_details?: unknown;
 }
 
 /** 館別現值（快照為 null 時的 fallback 來源） */
@@ -245,6 +247,8 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   /** 台幣金額（外幣訂單已換算） */
   monthFinal: number;
   monthDiscount: number;
+  /** 本月分攤後的加購項目金額（台幣），已從抽成基礎扣除 */
+  monthAddonTotal: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
@@ -297,7 +301,10 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     const monthFinalOriginal = Number(o.final_price || 0) * ratio;
     const monthFinal = convertToTwd(monthFinalOriginal, resolved);
     const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
-    const monthCommissionable = monthFinal;
+    // 加購項目（清潔費、接機車資等）全額歸業主，不列入抽成基礎；
+    // 金額比照夜數比例分攤，避免跨月訂單重複扣除。
+    const monthAddonTotal = convertToTwd(extractAddonTotal(o.custom_addon_details) * ratio, resolved);
+    const monthCommissionable = monthFinal - monthAddonTotal;
     const exempt =
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
@@ -311,6 +318,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
         monthRatio: ratio,
         monthFinal,
         monthDiscount,
+        monthAddonTotal,
         monthCommissionable,
         commission: 0,
         exempt,
