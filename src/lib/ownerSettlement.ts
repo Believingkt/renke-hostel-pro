@@ -331,9 +331,9 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   return drafts.map((d) => d.row);
 }
 
-/** standard 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+/** standard 型的業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單） */
 export function getStandardThresholdBase(rows: OwnerSettlementRow[]): number {
-  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.monthFinal), 0);
+  return rows.reduce((s, r) => s + r.monthFinal, 0);
 }
 
 export interface OwnerSettlementTotals {
