@@ -337,8 +337,6 @@ Deno.serve(async (req) => {
         accommodation_id: acc.id,
         accommodation_name: acc.name,
         is_franchise: isFranchise,
-        original_currency: originalCurrency,
-        exchange_rate: exchangeRate,
         revenue_twd: revenueTwd,
         management_fee_twd: managementFeeRounded,
         fee_config: feeCfg,
