@@ -916,6 +916,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           <AccommodationOwnersManagement />
           <OwlTingAliasesEditor />
         </TabsContent>
+
+        <TabsContent value="legal" className="space-y-4">
+          <LegalDocumentsManagement />
+        </TabsContent>
+
       </Tabs>
     </div>
   );
