@@ -162,8 +162,12 @@ const MemberProfile = () => {
         </Button>
       </div>
 
+      {/* Email 缺漏提醒（LINE / Facebook 登入） */}
+      <MissingEmailNotice />
+
       {/* ATM 繳費倒數提醒 */}
       <AtmCountdownCard />
+
 
       {/* Membership card */}
       <Card className="relative overflow-hidden p-4 border-0 text-white shadow-lg bg-gradient-to-br from-[hsl(24,100%,52%)] via-[hsl(18,95%,55%)] to-[hsl(12,90%,58%)]">
