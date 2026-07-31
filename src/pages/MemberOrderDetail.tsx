@@ -853,8 +853,8 @@ const MemberOrderDetail = () => {
           )}
 
           {order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid" && (() => {
-            const atmExpired = !!order.atm_expire_at && new Date(order.atm_expire_at).getTime() <= Date.now();
             return (
+
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="flex-1 min-w-0 text-muted-foreground flex items-center gap-2 flex-wrap">
                   待匯款訂金
