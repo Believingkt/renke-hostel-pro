@@ -177,7 +177,7 @@ serve(async (req) => {
     // ===== Scenario B: cancellation — orders cancelled in target month with existing snapshot =====
     const { data: cancelledOrders, error: cancErr } = await supabase
       .from("orders")
-      .select("id")
+      .select("id, accommodation_id, order_date, owner_direct, order_source")
       .eq("order_status", "cancelled")
       .gte("cancelled_at", startUtc)
       .lt("cancelled_at", endUtc);
@@ -185,6 +185,13 @@ serve(async (req) => {
 
     const cancelledIds = (cancelledOrders ?? []).map((o) => o.id as string);
     if (cancelledIds.length > 0) {
+      const cancelledMap = new Map<string, any>();
+      for (const o of cancelledOrders ?? []) cancelledMap.set(o.id as string, o);
+      const isExemptB = await buildExemptResolver(
+        supabase,
+        (cancelledOrders ?? []).map((o) => o.accommodation_id as string),
+      );
+
       const { data: snapsB, error: snapsBErr } = await supabase
         .from("closer_commission_snapshots")
         .select("id, order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
@@ -207,6 +214,9 @@ serve(async (req) => {
       for (const s of snapsB ?? []) {
         const orderId = s.order_id as string;
         if (existingCancel.has(orderId)) continue;
+        // 免抽成來源訂單本來就不該有分潤，不產生扣回調整
+        const ordB = cancelledMap.get(orderId);
+        if (ordB && isExemptB(ordB)) continue;
 
         const row = {
           snapshot_id: s.id,
