@@ -343,13 +343,11 @@ export default function OwnerSettlement() {
       getStandardThresholdBase(rows as any),
       propertyCount
     );
-    // 原價：基本服務 + 每棟星鏈包專案 98,800
-    const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
     // 購物商品收入不列入平台抽成，全額歸業主
     const addonCommission = 0;
     const addonNet = addonTotal;
     const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
-    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
+    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, ownerNet, addonTotal, addonCommission, addonNet };
   }, [rows, config, propertyCount, addonTotal, effectiveRule]);
 
 
@@ -925,7 +923,7 @@ export default function OwnerSettlement() {
               </>
             }
             value={-totals.marketingFee}
-            originalValue={-totals.marketingFeeOriginal}
+            
             tone="fee"
           />
 

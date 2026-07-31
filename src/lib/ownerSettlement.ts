@@ -322,8 +322,8 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     });
   }
 
-  // 業績門檻基礎：未扣加購的當月營收，排除非台幣 / exempt 訂單
-  const thresholdBase = drafts.reduce((s, d) => s + (d.row.exempt ? 0 : d.row.monthFinal), 0);
+  // 業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單）
+  const thresholdBase = drafts.reduce((s, d) => s + d.row.monthFinal, 0);
   const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
   for (const d of drafts) {
     d.row.commission = d.row.exempt ? 0 : d.row.monthCommissionable * effectiveRule.commission_rate * factor;
@@ -331,9 +331,9 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   return drafts.map((d) => d.row);
 }
 
-/** standard 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+/** standard 型的業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單） */
 export function getStandardThresholdBase(rows: OwnerSettlementRow[]): number {
-  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.monthFinal), 0);
+  return rows.reduce((s, r) => s + r.monthFinal, 0);
 }
 
 export interface OwnerSettlementTotals {
@@ -450,7 +450,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     });
   }
 
-  // 業績門檻基礎：未扣加購的當月營收（final_price 全額），排除非台幣 / exempt 訂單
+  // 業績門檻基礎：未扣加購的當月毛營收（final_price 全額，含 exempt 訂單）
   const thresholdBase = getGuestCountThresholdBase(rows);
   const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
   for (const r of rows) {
@@ -461,9 +461,9 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   return rows;
 }
 
-/** guestcount 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+/** guestcount 型的業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單） */
 export function getGuestCountThresholdBase(rows: GuestCountRow[]): number {
-  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.finalPrice), 0);
+  return rows.reduce((s, r) => s + r.finalPrice, 0);
 }
 
 
