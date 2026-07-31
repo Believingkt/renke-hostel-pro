@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Pencil, Wand2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil, Wand2, EyeOff } from "lucide-react";
+import {
+  ADDON_ICON_OPTIONS,
+  DEFAULT_ADDON_ICON_LABEL,
+  addonIconSource,
+  resolveAddonIcon,
+} from "@/lib/addonIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,6 +85,8 @@ export interface AddonPlan {
   pricing_mode?: 'per_night' | 'per_stay';
   description?: string;
   detailed_description?: string;
+  icon_key?: string | null;
+  show_icon?: boolean;
 }
 
 interface AddonPlansSectionProps {
@@ -101,8 +109,11 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   unit_label: "份",
   pricing_mode: "per_night",
   description: "",
-  detailed_description: ""
+  detailed_description: "",
+  icon_key: null,
+  show_icon: true,
 };
+
 
 const getDisplayName = (addonType: string) => addonType;
 
@@ -236,8 +247,69 @@ const SortablePlanCard = ({
             </DropdownMenu>
           </div>
 
+          {(() => {
+            const showIcon = plan.show_icon !== false;
+            const iconKey = plan.icon_key ?? null;
+            const source = addonIconSource(iconKey, plan.addon_type);
+            const PreviewIcon = resolveAddonIcon(iconKey, plan.addon_type);
+            return (
+              <div className="space-y-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-sm">前台圖示</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`${plan.addon_type}-show-icon`} className="text-sm font-normal">
+                      顯示圖示
+                    </Label>
+                    <Switch
+                      id={`${plan.addon_type}-show-icon`}
+                      checked={showIcon}
+                      disabled={!plan.enabled}
+                      onCheckedChange={(checked) => onUpdate(index, { show_icon: checked })}
+                    />
+                  </div>
+                </div>
 
+                <Select
+                  value={iconKey ?? "auto"}
+                  disabled={!plan.enabled || !showIcon}
+                  onValueChange={(value) => onUpdate(index, { icon_key: value === "auto" ? null : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="auto">自動（依方案名稱判斷）</SelectItem>
+                    {ADDON_ICON_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className="inline-flex items-center gap-2">
+                          <opt.icon className="h-4 w-4" />
+                          {opt.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
+                <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
+                  {showIcon ? (
+                    <PreviewIcon className="h-4 w-4 text-primary shrink-0" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-sm font-semibold truncate">{plan.addon_type}</span>
+                  <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                    {!showIcon
+                      ? "前台不顯示圖示"
+                      : source === "manual"
+                        ? "使用手動指定圖示"
+                        : source === "auto"
+                          ? "已依名稱自動配對圖示"
+                          : `找不到對應圖示，使用預設圖：${DEFAULT_ADDON_ICON_LABEL}`}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
 
           <div className="space-y-1.5">

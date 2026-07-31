@@ -1,4 +1,5 @@
 import { AlertTriangle, Info } from "lucide-react";
+import { resolveAddonIcon, addonIconSource, DEFAULT_ADDON_ICON_LABEL } from "@/lib/addonIcon";
 import {
   cleanAddonName,
   shortUnit,
@@ -28,6 +29,9 @@ export const AddonPlanPreview = ({ plan, nights = 2, quantity = 1 }: AddonPlanPr
   const multiplier = addonNightsMultiplier(pricingMode, nights);
   const priceLine = addonPriceLine(plan.price_per_unit || 0, plan.unit_label, plan.max_quantity, pricingMode);
   const subtotal = (plan.price_per_unit || 0) * quantity * multiplier;
+  const showIcon = plan.show_icon !== false;
+  const PlanIcon = resolveAddonIcon(plan.icon_key, rawTitle);
+  const iconSource = addonIconSource(plan.icon_key, rawTitle);
 
   const warnings: string[] = [];
   if (hasPricePrefix(rawTitle)) warnings.push("方案名稱含價格文字，前台會自動移除；請把金額留在上方「價格」欄位。");
@@ -35,6 +39,7 @@ export const AddonPlanPreview = ({ plan, nights = 2, quantity = 1 }: AddonPlanPr
   if (title.length > 14) warnings.push("方案名稱偏長（建議 14 字以內），手機版可能換行。");
   if (!plan.price_per_unit || plan.price_per_unit <= 0) warnings.push("價格需大於 0，否則前台會顯示 NT$ 0。");
   if (!plan.max_quantity || plan.max_quantity < 1) warnings.push("數量上限需至少為 1，否則前台無法加購。");
+  if (showIcon && iconSource === "fallback") warnings.push(`此名稱找不到對應圖示，前台會使用預設圖示「${DEFAULT_ADDON_ICON_LABEL}」，可在上方手動指定或關閉圖示。`);
   if (pricingMode === "per_stay" && /晚|夜/.test(plan.unit_label || "")) warnings.push("此方案為「單次計算」，單位詞不建議寫「晚」，避免與計價方式衝突。");
 
   return (
@@ -47,7 +52,10 @@ export const AddonPlanPreview = ({ plan, nights = 2, quantity = 1 }: AddonPlanPr
       <div className="rounded-md border bg-background p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">🛏️ {title}</p>
+            <p className="text-sm font-semibold truncate inline-flex items-center gap-1.5">
+              {showIcon && <PlanIcon className="h-4 w-4 shrink-0 text-primary" />}
+              {title}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">{priceLine}</p>
           </div>
           <div className="text-right shrink-0">

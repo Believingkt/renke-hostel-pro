@@ -1113,11 +1113,13 @@ export type Database = {
           description: string | null
           detailed_description: string | null
           enabled: boolean | null
+          icon_key: string | null
           id: string
           max_quantity: number
           min_quantity: number | null
           price_per_unit: number
           pricing_mode: string
+          show_icon: boolean
           sort_order: number
           unit_label: string
           updated_at: string | null
@@ -1131,11 +1133,13 @@ export type Database = {
           description?: string | null
           detailed_description?: string | null
           enabled?: boolean | null
+          icon_key?: string | null
           id?: string
           max_quantity: number
           min_quantity?: number | null
           price_per_unit: number
           pricing_mode?: string
+          show_icon?: boolean
           sort_order?: number
           unit_label: string
           updated_at?: string | null
@@ -1149,11 +1153,13 @@ export type Database = {
           description?: string | null
           detailed_description?: string | null
           enabled?: boolean | null
+          icon_key?: string | null
           id?: string
           max_quantity?: number
           min_quantity?: number | null
           price_per_unit?: number
           pricing_mode?: string
+          show_icon?: boolean
           sort_order?: number
           unit_label?: string
           updated_at?: string | null
