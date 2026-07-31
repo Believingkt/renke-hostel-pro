@@ -225,8 +225,20 @@ const SortablePlanCard = ({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 核心設定：一列搞定計價與數量 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="col-span-2 md:col-span-1 space-y-1.5">
+          <div className="grid grid-cols-2 md:grid-cols-12 gap-3">
+            <div className="col-span-2 md:col-span-2">
+              <ValidatedInput
+                label="單位詞"
+                placeholder="人 / 隻 / 份"
+                value={plan.unit_label}
+                error={planErrors.unit_label}
+                maxLength={100}
+                disabled={!plan.enabled}
+                onChange={(value) => onUpdate(index, { unit_label: value })}
+                onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
+              />
+            </div>
+            <div className="col-span-2 md:col-span-4 space-y-1.5">
               <Label className="text-sm">計價方式</Label>
               <Select
                 value={plan.pricing_mode || "per_night"}
