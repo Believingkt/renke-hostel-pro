@@ -403,13 +403,20 @@ serve(async (req) => {
 
     // 加購計價方式（每晚 / 單次）一律以資料庫設定為準，不信任前端傳入值
     const addonPricingModes = new Map<string, string>();
-    if (customAddonDetails && Array.isArray(customAddonDetails) && customAddonDetails.length > 0) {
+    const mandatoryAddons: Array<{ addon_type: string; min: number }> = [];
+    {
       const { data: addonRows } = await supabase
         .from("addon_settings")
-        .select("addon_type, pricing_mode")
+        .select("addon_type, pricing_mode, enabled, auto_include, is_locked, min_quantity")
         .eq("accommodation_id", accommodationId);
       for (const row of addonRows ?? []) {
         addonPricingModes.set(row.addon_type, row.pricing_mode === "per_stay" ? "per_stay" : "per_night");
+        if (row.enabled !== false && row.auto_include === true && row.is_locked === true) {
+          mandatoryAddons.push({
+            addon_type: row.addon_type,
+            min: Math.max(1, Number(row.min_quantity) || 0),
+          });
+        }
       }
     }
     const addonMultiplier = (addonType: string) =>
@@ -549,6 +556,20 @@ serve(async (req) => {
         if (Math.abs(addon.total - expected) > priceTolerance) {
           errors.push(
             `Custom addon total mismatch (${addon.addon_type}): client=${addon.total}, expected=${expected}`,
+          );
+        }
+      }
+    }
+
+    // 必含加購（自動帶入且客人不可取消）：不得被移除或低於數量下限
+    if (mandatoryAddons.length > 0) {
+      const lines = Array.isArray(customAddonDetails) ? customAddonDetails : [];
+      for (const required of mandatoryAddons) {
+        const line = lines.find((a: any) => a?.addon_type === required.addon_type);
+        const count = typeof line?.count === "number" ? line.count : 0;
+        if (count < required.min) {
+          errors.push(
+            `Mandatory addon missing or below minimum (${required.addon_type}): client=${count}, required>=${required.min}`,
           );
         }
       }

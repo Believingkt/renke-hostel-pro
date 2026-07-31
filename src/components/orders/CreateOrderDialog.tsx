@@ -59,6 +59,7 @@ interface AddonSetting {
   min_quantity?: number | null;
   max_quantity: number;
   auto_include?: boolean | null;
+  is_locked?: boolean | null;
 }
 
 interface PricingTemplate {
@@ -373,7 +374,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("name"),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include, is_locked")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -2505,56 +2506,67 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
               const quantity = selectedAddon?.quantity || 0;
               
+              const locked = addon.is_locked === true && addon.auto_include === true;
+              const minQty = Math.max(1, addon.min_quantity ?? 0);
+
               return (
-                <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
-                    <div className="text-sm text-primary">
-                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix(addon.pricing_mode)}
+                <div key={addon.id} className="p-2 bg-background rounded-md space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{addon.addon_type}</div>
+                      <div className="text-sm text-primary">
+                        NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix(addon.pricing_mode)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => {
+                          const nextQty = addonStepDown(quantity, addon.min_quantity);
+                          if (locked && nextQty < minQty) return;
+                          const newAddons = nextQty <= 0
+                            ? selectedAddons.filter(a => a.addon_id !== addon.id)
+                            : selectedAddons.map(a =>
+                                a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
+                              );
+                          setSelectedAddons(newAddons);
+                        }}
+                        disabled={quantity === 0 || (locked && quantity <= minQty)}
+                      >
+                        -
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium">{quantity}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => {
+                          if (quantity < addon.max_quantity) {
+                            const nextQty = addonStepUp(quantity, addon.min_quantity, addon.max_quantity);
+                            const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
+                            const newAddons = existingIndex >= 0
+                              ? selectedAddons.map(a =>
+                                  a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
+                                )
+                              : [...selectedAddons, { addon_id: addon.id, quantity: nextQty }];
+                            setSelectedAddons(newAddons);
+                          }
+                        }}
+                        disabled={quantity >= addon.max_quantity}
+                      >
+                        +
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => {
-                        const nextQty = addonStepDown(quantity, addon.min_quantity);
-                        const newAddons = nextQty <= 0
-                          ? selectedAddons.filter(a => a.addon_id !== addon.id)
-                          : selectedAddons.map(a => 
-                              a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
-                            );
-                        setSelectedAddons(newAddons);
-                      }}
-                      disabled={quantity === 0}
-                    >
-                      -
-                    </Button>
-                    <span className="w-6 text-center text-sm font-medium">{quantity}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => {
-                        if (quantity < addon.max_quantity) {
-                          const nextQty = addonStepUp(quantity, addon.min_quantity, addon.max_quantity);
-                          const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
-                          const newAddons = existingIndex >= 0
-                            ? selectedAddons.map(a => 
-                                a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
-                              )
-                            : [...selectedAddons, { addon_id: addon.id, quantity: nextQty }];
-                          setSelectedAddons(newAddons);
-                        }
-                      }}
-                      disabled={quantity >= addon.max_quantity}
-                    >
-                      +
-                    </Button>
-                  </div>
+                  {locked && (
+                    <p className="text-[11px] text-muted-foreground">
+                      此為必要加購項目，已自動帶入，數量不可低於 {minQty}（僅新訂單適用）。
+                    </p>
+                  )}
                 </div>
               );
             })}
