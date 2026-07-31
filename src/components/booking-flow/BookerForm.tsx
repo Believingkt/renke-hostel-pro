@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 import { requestMemberOtp } from "@/lib/requestMemberOtp";
-import { isUsableEmail } from "@/components/member/MissingEmailNotice";
+
 
 
 interface GuestInfo {
