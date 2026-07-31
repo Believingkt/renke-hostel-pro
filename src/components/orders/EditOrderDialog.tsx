@@ -14,7 +14,7 @@ import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
-import { addonPricingSuffix } from "@/lib/addonLabels";
+import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
@@ -50,6 +50,7 @@ interface AddonSetting {
   price_per_unit: number;
   unit_label: string;
   enabled: boolean;
+  min_quantity?: number | null;
   max_quantity: number;
 }
 
@@ -155,7 +156,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, max_quantity")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -1004,10 +1005,11 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                           className="h-8 w-8 p-0"
                           onClick={() => {
                             if (quantity > 0) {
-                              const newAddons = quantity === 1
+                              const nextQty = addonStepDown(quantity, addon.min_quantity);
+                              const newAddons = nextQty <= 0
                                 ? editForm.selected_addons.filter(a => a.addon_id !== addon.id)
                                 : editForm.selected_addons.map(a => 
-                                    a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                                    a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
                                   );
                               setEditForm({ ...editForm, selected_addons: newAddons });
                             }
@@ -1024,12 +1026,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                           className="h-8 w-8 p-0"
                           onClick={() => {
                             if (quantity < addon.max_quantity) {
+                              const nextQty = addonStepUp(quantity, addon.min_quantity, addon.max_quantity);
                               const existingIndex = editForm.selected_addons.findIndex(a => a.addon_id === addon.id);
                               const newAddons = existingIndex >= 0
                                 ? editForm.selected_addons.map(a => 
-                                    a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                                    a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
                                   )
-                                : [...editForm.selected_addons, { addon_id: addon.id, quantity: 1 }];
+                                : [...editForm.selected_addons, { addon_id: addon.id, quantity: nextQty }];
                               setEditForm({ ...editForm, selected_addons: newAddons });
                             }
                           }}

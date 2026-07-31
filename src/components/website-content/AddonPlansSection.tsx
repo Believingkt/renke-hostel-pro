@@ -335,7 +335,7 @@ const SortablePlanCard = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <ValidatedNumberInput
               label={getPriceLabel(plan.addon_type)}
               prefix="NT$"
@@ -347,6 +347,15 @@ const SortablePlanCard = ({
               onValidate={(value) => onValidate(plan.addon_type, 'price_per_unit', value)}
             />
             <ValidatedNumberInput
+              label="數量下限（選填）"
+              value={plan.min_quantity ?? 0}
+              error={planErrors.min_quantity}
+              min="0"
+              disabled={!plan.enabled}
+              onChange={(value) => onUpdate(index, { min_quantity: value })}
+              onValidate={(value) => onValidate(plan.addon_type, 'min_quantity', value)}
+            />
+            <ValidatedNumberInput
               label={getMaxLabel(plan.addon_type)}
               value={plan.max_quantity}
               error={planErrors.max_quantity}
@@ -356,6 +365,10 @@ const SortablePlanCard = ({
               onValidate={(value) => onValidate(plan.addon_type, 'max_quantity', value)}
             />
           </div>
+          <p className="text-xs text-muted-foreground -mt-3">
+            數量下限為選填（0 = 不限）。設定後，客人或後台第一次加購時會直接帶入此數量，低於下限則自動歸零取消。
+          </p>
+
 
           <div className="space-y-1.5">
             <ValidatedInput

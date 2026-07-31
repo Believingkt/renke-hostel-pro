@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { addonNightsMultiplier, addonPricingSuffix } from "@/lib/addonLabels";
+import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
@@ -56,6 +56,7 @@ interface AddonSetting {
   unit_label: string;
   pricing_mode?: string | null;
   enabled: boolean;
+  min_quantity?: number | null;
   max_quantity: number;
 }
 
@@ -371,7 +372,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("name"),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, max_quantity")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -2505,10 +2506,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       size="sm"
                       className="h-7 w-7 p-0"
                       onClick={() => {
-                        const newAddons = quantity === 1
+                        const nextQty = addonStepDown(quantity, addon.min_quantity);
+                        const newAddons = nextQty <= 0
                           ? selectedAddons.filter(a => a.addon_id !== addon.id)
                           : selectedAddons.map(a => 
-                              a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                              a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
                             );
                         setSelectedAddons(newAddons);
                       }}
@@ -2524,12 +2526,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       className="h-7 w-7 p-0"
                       onClick={() => {
                         if (quantity < addon.max_quantity) {
+                          const nextQty = addonStepUp(quantity, addon.min_quantity, addon.max_quantity);
                           const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
                           const newAddons = existingIndex >= 0
                             ? selectedAddons.map(a => 
-                                a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                                a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
                               )
-                            : [...selectedAddons, { addon_id: addon.id, quantity: 1 }];
+                            : [...selectedAddons, { addon_id: addon.id, quantity: nextQty }];
                           setSelectedAddons(newAddons);
                         }
                       }}

@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { addonNightsMultiplier, addonPricingSuffix } from "@/lib/addonLabels";
+import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
@@ -177,6 +177,7 @@ interface AddonSetting {
   unit_label: string;
   price_per_unit: number;
   pricing_mode?: string | null;
+  min_quantity?: number | null;
   max_quantity: number;
   enabled: boolean;
 }
@@ -1629,7 +1630,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           accId
             ? supabase
                 .from("addon_settings")
-                .select("id, addon_type, description, unit_label, price_per_unit, pricing_mode, max_quantity, enabled")
+                .select("id, addon_type, description, unit_label, price_per_unit, pricing_mode, min_quantity, max_quantity, enabled")
                 .eq("accommodation_id", accId)
                 .eq("enabled", true)
                 .order("sort_order", { ascending: true })
@@ -3623,7 +3624,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                           <div className="flex items-center gap-2">
                             <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count <= 0}
                               onClick={() => {
-                                const newCount = Math.max(0, count - 1);
+                                const newCount = addonStepDown(count, addon.min_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
                                 const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
                                 if (newCount > 0) {
@@ -3636,7 +3637,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                             <span className="w-8 text-center text-sm font-medium">{count}</span>
                             <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count >= addon.max_quantity}
                               onClick={() => {
-                                const newCount = Math.min(addon.max_quantity, count + 1);
+                                const newCount = addonStepUp(count, addon.min_quantity, addon.max_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
                                 const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
                                 if (newCount > 0) {
