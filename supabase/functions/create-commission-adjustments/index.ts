@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,11 +105,17 @@ serve(async (req) => {
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, order_status, final_price, currency_at_booking")
+        .select("id, order_status, final_price, currency_at_booking, accommodation_id, order_date, owner_direct, order_source")
         .in("id", orderIds);
       if (ordersErr) throw ordersErr;
       const ordersMap = new Map<string, any>();
       for (const o of orders ?? []) ordersMap.set(o.id as string, o);
+
+      // 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
+      const isExemptA = await buildExemptResolver(
+        supabase,
+        (orders ?? []).map((o) => o.accommodation_id as string),
+      );
 
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
@@ -125,6 +132,8 @@ serve(async (req) => {
         if (ord.order_status === "cancelled") continue; // handled in scenario B
         // 非台幣訂單不計入獎金（null 視為台幣）
         if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
+        // 免抽成來源訂單不產生調整
+        if (isExemptA(ord)) continue;
 
         const meta = metaMap.get(orderId);
         const currentBase = Number(
@@ -168,7 +177,7 @@ serve(async (req) => {
     // ===== Scenario B: cancellation — orders cancelled in target month with existing snapshot =====
     const { data: cancelledOrders, error: cancErr } = await supabase
       .from("orders")
-      .select("id")
+      .select("id, accommodation_id, order_date, owner_direct, order_source")
       .eq("order_status", "cancelled")
       .gte("cancelled_at", startUtc)
       .lt("cancelled_at", endUtc);
@@ -176,6 +185,13 @@ serve(async (req) => {
 
     const cancelledIds = (cancelledOrders ?? []).map((o) => o.id as string);
     if (cancelledIds.length > 0) {
+      const cancelledMap = new Map<string, any>();
+      for (const o of cancelledOrders ?? []) cancelledMap.set(o.id as string, o);
+      const isExemptB = await buildExemptResolver(
+        supabase,
+        (cancelledOrders ?? []).map((o) => o.accommodation_id as string),
+      );
+
       const { data: snapsB, error: snapsBErr } = await supabase
         .from("closer_commission_snapshots")
         .select("id, order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
@@ -198,6 +214,9 @@ serve(async (req) => {
       for (const s of snapsB ?? []) {
         const orderId = s.order_id as string;
         if (existingCancel.has(orderId)) continue;
+        // 免抽成來源訂單本來就不該有分潤，不產生扣回調整
+        const ordB = cancelledMap.get(orderId);
+        if (ordB && isExemptB(ordB)) continue;
 
         const row = {
           snapshot_id: s.id,
@@ -239,11 +258,19 @@ serve(async (req) => {
 
       const { data: cOrders, error: cOrdErr } = await supabase
         .from("orders")
-        .select("id, order_status")
+        .select("id, order_status, accommodation_id, order_date, owner_direct, order_source")
         .in("id", cIds);
       if (cOrdErr) throw cOrdErr;
       const statusMap = new Map<string, string>();
-      for (const o of cOrders ?? []) statusMap.set(o.id as string, o.order_status as string);
+      const cOrderMap = new Map<string, any>();
+      for (const o of cOrders ?? []) {
+        statusMap.set(o.id as string, o.order_status as string);
+        cOrderMap.set(o.id as string, o);
+      }
+      const isExemptC = await buildExemptResolver(
+        supabase,
+        (cOrders ?? []).map((o) => o.accommodation_id as string),
+      );
 
       const { data: existReact, error: existRErr } = await supabase
         .from("closer_commission_adjustments")
@@ -267,6 +294,9 @@ serve(async (req) => {
         const status = statusMap.get(orderId);
         if (!status || status === "cancelled") continue;
         if (existingReact.has(orderId)) continue;
+        // 免抽成來源訂單不補回分潤
+        const ordC = cOrderMap.get(orderId);
+        if (ordC && isExemptC(ordC)) continue;
         const snap = snapByOrder.get(orderId);
         if (!snap) continue;
 

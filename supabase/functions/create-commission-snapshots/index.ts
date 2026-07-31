@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,7 +97,7 @@ serve(async (req) => {
     // 1) Orders in target month, not cancelled
     const { data: orders, error: ordersErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking")
+      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
       .neq("order_status", "cancelled")
       .gte("order_date", snapStartUtc)
       .lt("order_date", snapEndUtc);
@@ -153,6 +154,9 @@ serve(async (req) => {
       };
     }
 
+    // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
+    const isExempt = await buildExemptResolver(supabase, accIds as string[]);
+
     // 5) Build snapshot rows
     const errors: Array<{ order_id: string; error: string }> = [];
     const toInsert: any[] = [];
@@ -168,6 +172,8 @@ serve(async (req) => {
       // 非台幣訂單不計入獎金（null 視為台幣）
       const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
       if (cur && cur !== "TWD") continue;
+      // 免抽成來源訂單不計入獎金
+      if (isExempt(o as any)) continue;
       processed++;
 
       if (existingSet.has(o.id as string)) {

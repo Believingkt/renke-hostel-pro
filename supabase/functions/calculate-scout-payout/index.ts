@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -326,6 +327,12 @@ serve(async (req) => {
     const results: ScoutCalc[] = [];
     const calculatedAt = new Date().toISOString();
 
+    // 業主月結免抽成來源判斷（owner_direct 或館別 exempt_order_sources），一次建立、逐筆判斷
+    const isExempt = await buildExemptResolver(
+      supabase,
+      (accsRes.data ?? []).map((a) => a.id as string),
+    );
+
     for (const scout of profiles) {
       const scoutId = scout.user_id as string;
       const isExternal = !!(scout as any).is_external;
@@ -460,7 +467,7 @@ serve(async (req) => {
         // KOL 分潤訂單：以「訂單日期 order_date（timestamptz）」為發放條件，台北時區半開區間
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, discount_code, order_date, currency_at_booking")
+          .select("final_price, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source")
           .not("discount_code", "is", null)
           .gte("order_date", `${periodStart}T00:00:00+08:00`)
           .lt("order_date", `${periodEnd}T00:00:00+08:00`)
@@ -473,6 +480,8 @@ serve(async (req) => {
           // 非台幣訂單不計入分潤（null 視為台幣）
           const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
           if (cur && cur !== "TWD") continue;
+          // 業主月結免抽成來源（owner_direct / exempt_order_sources）不計入分潤
+          if (isExempt(o as any)) continue;
           kolCommission += Number(o.final_price ?? 0) * commissionRate;
         }
         kolCommission = Math.round(kolCommission);
