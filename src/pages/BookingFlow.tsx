@@ -5168,41 +5168,29 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 附屬細則與政策同意 */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-bold flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-primary" />
-                          住宿規定與退訂政策
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed space-y-2 max-h-56 overflow-y-auto rounded-md border bg-muted/30 p-3">
-                          <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. 住宿條款以本頁面公告為準，
-                            入住時間、退房時間、房內設施使用規則等，請於入住前確認。
-                          </p>
-                          <p>
-                            Sed do eiusmod tempor incidunt — 取消政策：如需取消訂單，將依訂單日與入住日之
-                            間隔天數，扣除相應手續費，實際比例以最終確認頁與客服說明為準。
-                          </p>
-                          <p>
-                            Ut enim ad minim veniam, 個人資料處理將依隱私權政策辦理；提交本訂單即代表您
-                            同意我們基於訂房目的處理您所提供之聯絡資訊。
-                          </p>
-                        </div>
-                        <label className="flex items-start gap-3 cursor-pointer select-none">
-                          <Checkbox
-                            checked={agreedToTerms}
-                            onCheckedChange={(v) => setAgreedToTerms(v === true)}
-                            className="mt-0.5"
-                          />
-                          <span className="text-sm text-foreground">
-                            我已詳細閱讀並同意<span className="font-medium">住宿規定及退訂政策</span>
-                          </span>
-                        </label>
-                      </CardContent>
-                    </Card>
+                    {/* 條款說明（送出訂單即視為同意） */}
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      送出訂單即表示我已閱讀並接受
+                      <a
+                        href="/legal/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mx-1 text-primary underline underline-offset-4"
+                      >
+                        條款及細則
+                      </a>
+                      與
+                      <a
+                        href="/legal/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mx-1 text-primary underline underline-offset-4"
+                      >
+                        隱私條款
+                      </a>
+                      。
+                    </p>
+
                   </div>
                 )}
 
