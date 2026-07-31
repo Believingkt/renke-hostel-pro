@@ -225,8 +225,20 @@ const SortablePlanCard = ({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 核心設定：一列搞定計價與數量 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="col-span-2 md:col-span-1 space-y-1.5">
+          <div className="grid grid-cols-2 md:grid-cols-12 gap-3">
+            <div className="col-span-2 md:col-span-2">
+              <ValidatedInput
+                label="單位詞"
+                placeholder="人 / 隻 / 份"
+                value={plan.unit_label}
+                error={planErrors.unit_label}
+                maxLength={100}
+                disabled={!plan.enabled}
+                onChange={(value) => onUpdate(index, { unit_label: value })}
+                onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
+              />
+            </div>
+            <div className="col-span-2 md:col-span-4 space-y-1.5">
               <Label className="text-sm">計價方式</Label>
               <Select
                 value={plan.pricing_mode || "per_night"}
@@ -242,48 +254,43 @@ const SortablePlanCard = ({
                 </SelectContent>
               </Select>
             </div>
-            <ValidatedNumberInput
-              label={getPriceLabel(plan.addon_type)}
-              prefix="NT$"
-              value={plan.price_per_unit}
-              error={planErrors.price_per_unit}
-              min="0"
-              disabled={!plan.enabled}
-              onChange={(value) => onUpdate(index, { price_per_unit: value })}
-              onValidate={(value) => onValidate(plan.addon_type, 'price_per_unit', value)}
-            />
-            <ValidatedNumberInput
-              label="數量下限"
-              value={plan.min_quantity ?? 0}
-              error={planErrors.min_quantity}
-              min="0"
-              disabled={!plan.enabled}
-              onChange={(value) => onUpdate(index, { min_quantity: value })}
-              onValidate={(value) => onValidate(plan.addon_type, 'min_quantity', value)}
-            />
-            <ValidatedNumberInput
-              label={getMaxLabel(plan.addon_type)}
-              value={plan.max_quantity}
-              error={planErrors.max_quantity}
-              min="1"
-              disabled={!plan.enabled}
-              onChange={(value) => onUpdate(index, { max_quantity: value })}
-              onValidate={(value) => onValidate(plan.addon_type, 'max_quantity', value)}
-            />
+            <div className="col-span-2 md:col-span-2">
+              <ValidatedNumberInput
+                label={getPriceLabel(plan.addon_type)}
+                prefix="NT$"
+                value={plan.price_per_unit}
+                error={planErrors.price_per_unit}
+                min="0"
+                disabled={!plan.enabled}
+                onChange={(value) => onUpdate(index, { price_per_unit: value })}
+                onValidate={(value) => onValidate(plan.addon_type, 'price_per_unit', value)}
+              />
+            </div>
+            <div className="col-span-1 md:col-span-2">
+              <ValidatedNumberInput
+                label="數量下限"
+                value={plan.min_quantity ?? 0}
+                error={planErrors.min_quantity}
+                min="0"
+                disabled={!plan.enabled}
+                onChange={(value) => onUpdate(index, { min_quantity: value })}
+                onValidate={(value) => onValidate(plan.addon_type, 'min_quantity', value)}
+              />
+            </div>
+            <div className="col-span-1 md:col-span-2">
+              <ValidatedNumberInput
+                label={getMaxLabel(plan.addon_type)}
+                value={plan.max_quantity}
+                error={planErrors.max_quantity}
+                min="1"
+                disabled={!plan.enabled}
+                onChange={(value) => onUpdate(index, { max_quantity: value })}
+                onValidate={(value) => onValidate(plan.addon_type, 'max_quantity', value)}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
-            <ValidatedInput
-              label="單位詞"
-              placeholder="例如：人、隻、份、床"
-              value={plan.unit_label}
-              error={planErrors.unit_label}
-              maxLength={100}
-              showCharCount
-              disabled={!plan.enabled}
-              onChange={(value) => onUpdate(index, { unit_label: value })}
-              onValidate={(value) => onValidate(plan.addon_type, 'unit_label', value)}
-            />
+          <div className="flex justify-end">
             <div className="flex md:justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
