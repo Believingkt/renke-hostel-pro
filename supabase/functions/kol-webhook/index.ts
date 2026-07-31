@@ -564,6 +564,7 @@ Deno.serve(async (req) => {
         total_price,
         discount_amount,
         final_price,
+        custom_addon_details,
         order_status,
         discount_code,
         created_at,
