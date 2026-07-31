@@ -319,7 +319,7 @@ export default function OwnerSettlement() {
         monthRatio: r.monthRatio,
         monthFinal: r.monthFinal,
         monthFood: 0,
-        monthDiscount: r.monthDiscount,
+        monthAddonTotal: r.monthAddonTotal,
         monthCommissionable: r.monthCommissionable,
         commission: r.commission,
         exempt: r.exempt,
