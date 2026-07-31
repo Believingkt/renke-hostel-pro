@@ -101,31 +101,11 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   detailed_description: ""
 };
 
-const getDisplayName = (addonType: string) => {
-  switch (addonType) {
-    case 'pet': return '寵物方案';
-    case 'meal': return '餐食方案';
-    default: return addonType;
-  }
-};
+const getDisplayName = (addonType: string) => addonType;
 
-const getPriceLabel = (addonType: string) => {
-  switch (addonType) {
-    case 'pet': return '價格 (每隻/每晚)';
-    case 'meal': return '價格 (每人/每日)';
-    default: return '價格';
-  }
-};
+const getPriceLabel = (_addonType: string) => '價格';
 
-const getMaxLabel = (addonType: string) => {
-  switch (addonType) {
-    case 'pet': return '數量上限 (隻)';
-    case 'meal': return '數量上限 (人)';
-    default: return '數量上限';
-  }
-};
-
-const isMealPlan = (addonType: string) => addonType === 'meal';
+const getMaxLabel = (_addonType: string) => '數量上限';
 
 interface SortablePlanCardProps {
   plan: AddonPlan;
@@ -139,8 +119,6 @@ interface SortablePlanCardProps {
   onApplyTemplate: (index: number, tpl: AddonCopyTemplate) => void;
 
 }
-
-const isBuiltInType = (addonType: string) => addonType === 'pet' || addonType === 'meal';
 
 const SortablePlanCard = ({
   plan,
@@ -170,7 +148,7 @@ const SortablePlanCard = ({
     zIndex: isDragging ? 10 : 'auto' as const,
   };
 
-  const canRename = !isBuiltInType(plan.addon_type);
+  const canRename = true;
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -294,29 +272,6 @@ const SortablePlanCard = ({
               onValidate={(value) => onValidate(plan.addon_type, 'max_quantity', value)}
             />
           </div>
-
-          {isMealPlan(plan.addon_type) && (
-            <div className="grid grid-cols-2 gap-6">
-              <ValidatedNumberInput
-                label="平日基本人數"
-                value={plan.weekday_min_quantity || 0}
-                error={planErrors.weekday_min_quantity}
-                min="0"
-                disabled={!plan.enabled}
-                onChange={(value) => onUpdate(index, { weekday_min_quantity: value })}
-                onValidate={(value) => onValidate(plan.addon_type, 'weekday_min_quantity', value)}
-              />
-              <ValidatedNumberInput
-                label="假日基本人數"
-                value={plan.weekend_min_quantity || 0}
-                error={planErrors.weekend_min_quantity}
-                min="0"
-                disabled={!plan.enabled}
-                onChange={(value) => onUpdate(index, { weekend_min_quantity: value })}
-                onValidate={(value) => onValidate(plan.addon_type, 'weekend_min_quantity', value)}
-              />
-            </div>
-          )}
 
           <div className="space-y-1.5">
             <ValidatedInput
