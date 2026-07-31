@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,7 +97,7 @@ serve(async (req) => {
     // 1) Orders in target month, not cancelled
     const { data: orders, error: ordersErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking")
+      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
       .neq("order_status", "cancelled")
       .gte("order_date", snapStartUtc)
       .lt("order_date", snapEndUtc);
