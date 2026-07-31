@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 import { requestMemberOtp } from "@/lib/requestMemberOtp";
-import { isUsableEmail } from "@/components/member/MissingEmailNotice";
+
 
 
 interface GuestInfo {
@@ -138,9 +138,9 @@ export default function BookerForm(props: Props) {
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
               <p className="text-sm font-medium text-green-800">
-                已登入會員：{loggedInMember.name}
-                {isUsableEmail(loggedInMember.email) ? `（${loggedInMember.email}）` : ""}，訂房可累積紅利點數
+                {loggedInMember.name} 會員，歡迎您回來！
               </p>
+
             </div>
           </CardContent>
         </Card>
