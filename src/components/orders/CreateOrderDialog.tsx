@@ -352,6 +352,26 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }
   }, [open, initialData]);
 
+  // 必要加購（auto_include）：每次開啟建單視窗都自動帶入下限數量
+  useEffect(() => {
+    if (!open) return;
+    const autoAddons = (addonSettings || []).filter(
+      (a: any) => a.enabled !== false && a.auto_include === true,
+    );
+    if (autoAddons.length === 0) return;
+    setSelectedAddons(prev => {
+      const next = [...prev];
+      let changed = false;
+      for (const a of autoAddons as any[]) {
+        if (!next.some(x => x.addon_id === a.id)) {
+          next.push({ addon_id: a.id, quantity: Math.max(1, a.min_quantity ?? 0) });
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [open, addonSettings]);
+
   // Fetch room types, public holidays, and customers
   useEffect(() => {
     const fetchData = async () => {
