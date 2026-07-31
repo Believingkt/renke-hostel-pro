@@ -86,7 +86,7 @@ import {
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { resolveAddonIcon } from "@/lib/addonIcon";
-import { cleanAddonName, shortUnit, addonPriceLine, addonNightsMultiplier, normalizeAddonPricingMode } from "@/lib/addonLabels";
+import { cleanAddonName, shortUnit, addonPriceLine, addonNightsMultiplier, normalizeAddonPricingMode, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";

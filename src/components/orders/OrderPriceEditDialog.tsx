@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { addonPricingSuffix } from "@/lib/addonLabels";
+import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
@@ -27,6 +27,7 @@ interface AddonSetting {
   price_per_unit: number;
   unit_label: string;
   pricing_mode?: string | null;
+  min_quantity?: number | null;
   max_quantity: number;
 }
 
@@ -113,7 +114,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (!currentAccommodationId) return;
     supabase
       .from("addon_settings")
-      .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, max_quantity")
+      .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, min_quantity, max_quantity")
       .eq("accommodation_id", currentAccommodationId)
       .eq("enabled", true)
       .order("sort_order", { ascending: true })
@@ -163,10 +164,10 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
   }, [open, order]);
 
-  const updateAddonQty = (addonType: string, delta: number, max: number) => {
+  const updateAddonQty = (addonType: string, delta: number, max: number, min = 0) => {
     setAddonQuantities(prev => {
       const current = prev[addonType] || 0;
-      const next = Math.max(0, Math.min(max, current + delta));
+      const next = delta > 0 ? addonStepUp(current, min, max) : addonStepDown(current, min);
       return { ...prev, [addonType]: next };
     });
   };
@@ -462,7 +463,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                           size="icon"
                           className="h-7 w-7"
                           disabled={qty <= 0}
-                          onClick={() => updateAddonQty(addon.addon_type, -1, addon.max_quantity)}
+                          onClick={() => updateAddonQty(addon.addon_type, -1, addon.max_quantity, addon.min_quantity ?? 0)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -473,7 +474,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                           size="icon"
                           className="h-7 w-7"
                           disabled={qty >= addon.max_quantity}
-                          onClick={() => updateAddonQty(addon.addon_type, 1, addon.max_quantity)}
+                          onClick={() => updateAddonQty(addon.addon_type, 1, addon.max_quantity, addon.min_quantity ?? 0)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
