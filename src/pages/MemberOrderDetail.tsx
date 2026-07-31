@@ -846,6 +846,14 @@ const MemberOrderDetail = () => {
               </span>
             </div>
           )}
+          {order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid" && (
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex-1 min-w-0 text-muted-foreground">待匯款訂金</span>
+              <span className="shrink-0 font-medium tabular-nums" style={{ color: ORANGE }}>
+                NT$ {atmTransferAmount.toLocaleString()}
+              </span>
+            </div>
+          )}
           {balance > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
