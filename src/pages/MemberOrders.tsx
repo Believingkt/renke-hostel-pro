@@ -379,7 +379,7 @@ const MemberOrders = () => {
                 new Date(order.atm_expire_at).getTime() < Date.now();
 
               const paymentLabel = atmExpired
-                ? "已逾期"
+                ? "已逾期（待自動取消）"
                 : paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
               const paymentClass = atmExpired
                 ? "bg-red-50 text-red-600"
