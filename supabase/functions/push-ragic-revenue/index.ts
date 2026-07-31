@@ -93,7 +93,6 @@ function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
   return sum;
 }
 
-}
 
 function ragicAuthHeader() {
   const apiKey = Deno.env.get("RAGIC_API_KEY");
