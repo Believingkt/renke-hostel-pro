@@ -840,20 +840,44 @@ const MemberOrderDetail = () => {
           )}
           {order.paid_amount > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="flex-1 min-w-0 text-muted-foreground">已付款</span>
-              <span className="shrink-0 tabular-nums">
+              <span className="flex-1 min-w-0 text-muted-foreground flex items-center gap-2 flex-wrap">
+                已付款
+                <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                  已付款
+                </span>
+              </span>
+              <span className="shrink-0 tabular-nums text-emerald-600">
                 NT$ {order.paid_amount.toLocaleString()}
               </span>
             </div>
           )}
-          {order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid" && (
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="flex-1 min-w-0 text-muted-foreground">待匯款訂金</span>
-              <span className="shrink-0 font-medium tabular-nums" style={{ color: ORANGE }}>
-                NT$ {atmTransferAmount.toLocaleString()}
-              </span>
-            </div>
-          )}
+
+          {order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid" && (() => {
+            return (
+
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="flex-1 min-w-0 text-muted-foreground flex items-center gap-2 flex-wrap">
+                  待匯款訂金
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      atmExpired
+                        ? "bg-red-100 text-red-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {atmExpired ? "已逾期" : "未付款"}
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 font-medium tabular-nums"
+                  style={{ color: atmExpired ? "hsl(0, 72%, 45%)" : ORANGE }}
+                >
+                  NT$ {atmTransferAmount.toLocaleString()}
+                </span>
+              </div>
+            );
+          })()}
+
           {balance > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
