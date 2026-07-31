@@ -277,17 +277,20 @@ const SortablePlanCard = ({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <SelectItem value="auto">自動（依方案名稱判斷）</SelectItem>
-                    {ADDON_ICON_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <span className="inline-flex items-center gap-2">
-                          <opt.icon className="h-4 w-4" />
-                          {opt.label}
-                        </span>
-                      </SelectItem>
-                    ))}
+                  <SelectContent position="popper" className="z-50">
+                    <div className="max-h-64 overflow-y-auto overscroll-contain">
+                      <SelectItem value="auto">自動（依方案名稱判斷）</SelectItem>
+                      {ADDON_ICON_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <span className="inline-flex items-center gap-2">
+                            <opt.icon className="h-4 w-4" />
+                            {opt.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </div>
                   </SelectContent>
+
                 </Select>
 
                 <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
