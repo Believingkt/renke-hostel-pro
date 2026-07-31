@@ -104,6 +104,7 @@ interface OrderRow {
   monthFinal: number;
   monthFood: number;
   monthDiscount: number;
+  monthAddonTotal: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
