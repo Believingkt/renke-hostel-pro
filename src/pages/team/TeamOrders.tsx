@@ -45,6 +45,7 @@ import TeamBonusDistributionTab from "@/components/team/TeamBonusDistributionTab
 import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
+import { extractAddonTotal } from "@/lib/ownerSettlement";
 
 interface Member {
   user_id: string;
@@ -64,6 +65,7 @@ interface OrderRow {
   check_in_date: string;
   check_out_date: string;
   final_price: number;
+  custom_addon_details?: unknown;
   discount_code: string | null;
   order_source: string | null;
   ota_channel: string | null;
@@ -567,7 +569,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
+             final_price, custom_addon_details, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
             { count: "exact" }
           )
       );
@@ -669,6 +671,7 @@ export default function TeamOrders() {
         check_in_date: o.check_in_date,
         check_out_date: o.check_out_date,
         final_price: o.final_price,
+        custom_addon_details: o.custom_addon_details ?? null,
         discount_code: o.discount_code,
         order_source: o.order_source,
         ota_channel: o.ota_channel,
@@ -1469,6 +1472,10 @@ export default function TeamOrders() {
                   const confirmedBy = form.commission_price_confirmed_by;
                   const confirmedAt = form.commission_price_confirmed_at;
                   const mismatch = Number(tcp) !== Number(fp);
+                  const addonTotal = extractAddonTotal(
+                    (editOrder as any).custom_addon_details,
+                  );
+                  const suggestedBase = Math.max(0, fp - addonTotal);
 
                   if (isEditing && canEdit) {
                     return (
@@ -1491,6 +1498,30 @@ export default function TeamOrders() {
                         <p className="text-xs text-muted-foreground">
                           請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          此欄位若手動填寫，系統不會自動扣除加購項目。
+                        </p>
+                        {addonTotal > 0 && (
+                          <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 space-y-1">
+                            <div>
+                              此訂單有加購項目 NT$ {addonTotal.toLocaleString()}（全額歸業主，不計入分潤）。
+                            </div>
+                            <div>
+                              建議填入：NT$ {suggestedBase.toLocaleString()}（訂單金額 − 加購項目）
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                setForm((f) => ({ ...f, team_commission_price: suggestedBase }))
+                              }
+                            >
+                              帶入建議值
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                   }

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
+import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +98,7 @@ serve(async (req) => {
     // 1) Orders in target month, not cancelled
     const { data: orders, error: ordersErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+      .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
       .neq("order_status", "cancelled")
       .gte("order_date", snapStartUtc)
       .lt("order_date", snapEndUtc);
@@ -181,9 +182,14 @@ serve(async (req) => {
         continue;
       }
 
-      const baseAmount = Number(
-        meta.team_commission_price != null ? meta.team_commission_price : (o.final_price ?? 0),
-      );
+      // team_commission_price 若未設定或等於 final_price（代表未人工調整），
+      // 則以 final_price − 加購項目 為基礎；已人工指定則沿用人工值，不再扣加購。
+      const tcp = meta.team_commission_price;
+      const finalPrice = Number(o.final_price ?? 0);
+      const baseAmount =
+        tcp == null || Number(tcp) === finalPrice
+          ? commissionBaseFromOrder(o as any)
+          : Number(tcp);
       const rates = rateFor(o.accommodation_id as string, o.order_date as string);
       const closerAmt = baseAmount * rates.closer;
       const videoAmt = meta.video_creator_id ? baseAmount * rates.video : 0;

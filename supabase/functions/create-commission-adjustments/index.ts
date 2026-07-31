@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
+import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +106,7 @@ serve(async (req) => {
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, order_status, final_price, currency_at_booking, accommodation_id, order_date, owner_direct, order_source")
+        .select("id, order_status, final_price, custom_addon_details, currency_at_booking, accommodation_id, order_date, owner_direct, order_source")
         .in("id", orderIds);
       if (ordersErr) throw ordersErr;
       const ordersMap = new Map<string, any>();
@@ -136,11 +137,12 @@ serve(async (req) => {
         if (isExemptA(ord)) continue;
 
         const meta = metaMap.get(orderId);
-        const currentBase = Number(
-          meta?.team_commission_price != null
-            ? meta.team_commission_price
-            : (ord.final_price ?? 0),
-        );
+        const tcp = meta?.team_commission_price;
+        const ordFinal = Number(ord.final_price ?? 0);
+        const currentBase =
+          tcp == null || Number(tcp) === ordFinal
+            ? commissionBaseFromOrder(ord)
+            : Number(tcp);
         const snapBase = Number(s.final_price_snapshot ?? 0);
         if (currentBase === snapBase) continue;
 
