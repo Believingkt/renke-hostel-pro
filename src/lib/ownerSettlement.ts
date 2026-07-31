@@ -461,9 +461,9 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   return rows;
 }
 
-/** guestcount 型的業績門檻基礎：未扣加購、排除非台幣 / exempt 訂單的當月營收 */
+/** guestcount 型的業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單） */
 export function getGuestCountThresholdBase(rows: GuestCountRow[]): number {
-  return rows.reduce((s, r) => s + (r.exempt ? 0 : r.finalPrice), 0);
+  return rows.reduce((s, r) => s + r.finalPrice, 0);
 }
 
 
