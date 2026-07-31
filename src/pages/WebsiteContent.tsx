@@ -924,7 +924,9 @@ const WebsiteContent = () => {
             description: item.description ?? undefined,
             detailed_description: item.detailed_description ?? undefined,
             icon_key: (item as any).icon_key ?? null,
-            show_icon: (item as any).show_icon !== false
+            show_icon: (item as any).show_icon !== false,
+            auto_include: (item as any).auto_include === true,
+            is_locked: (item as any).is_locked === true
           }));
           setAddonPlans(plans);
           setAddonPlansToDelete([]);
@@ -1148,7 +1150,9 @@ const WebsiteContent = () => {
                 description: item.description ?? undefined,
                 detailed_description: item.detailed_description ?? undefined,
                 icon_key: (item as any).icon_key ?? null,
-                show_icon: (item as any).show_icon !== false
+                show_icon: (item as any).show_icon !== false,
+                auto_include: (item as any).auto_include === true,
+                is_locked: (item as any).is_locked === true
               }));
               setAddonPlans(plans);
               setAddonPlansToDelete([]);
@@ -3013,6 +3017,8 @@ const WebsiteContent = () => {
           detailed_description: plan.detailed_description,
           icon_key: plan.icon_key ?? null,
           show_icon: plan.show_icon !== false,
+          auto_include: plan.auto_include === true,
+          is_locked: plan.auto_include === true && plan.is_locked === true,
           sort_order: i,
         };
 
@@ -3055,7 +3061,9 @@ const WebsiteContent = () => {
           description: item.description ?? undefined,
           detailed_description: item.detailed_description ?? undefined,
           icon_key: (item as any).icon_key ?? null,
-          show_icon: (item as any).show_icon !== false
+          show_icon: (item as any).show_icon !== false,
+          auto_include: (item as any).auto_include === true,
+          is_locked: (item as any).is_locked === true
         }));
         setAddonPlans(plans);
         setAddonPlansToDelete([]);

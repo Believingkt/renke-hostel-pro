@@ -586,6 +586,8 @@ const BookingFlow = () => {
     enabled: boolean;
     icon_key: string | null;
     show_icon: boolean;
+    auto_include: boolean;
+    is_locked: boolean;
   }
   const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
   const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
@@ -790,7 +792,19 @@ const BookingFlow = () => {
               enabled: a.enabled || false,
               icon_key: (a as any).icon_key ?? null,
               show_icon: (a as any).show_icon !== false,
+              auto_include: (a as any).auto_include === true,
+              is_locked: (a as any).is_locked === true,
             })));
+            // 自動帶入的加購（例如清潔費）：只影響新訂單，預設帶入下限數量
+            const autoDefaults: Record<string, number> = {};
+            for (const a of otherAddons) {
+              if ((a as any).auto_include === true) {
+                autoDefaults[a.addon_type] = Math.max(1, (a as any).min_quantity ?? 0);
+              }
+            }
+            if (Object.keys(autoDefaults).length > 0) {
+              setCustomAddonCounts(prev => ({ ...autoDefaults, ...prev }));
+            }
           }
         }
 
@@ -3801,7 +3815,7 @@ const BookingFlow = () => {
                           <CardContent className="space-y-4 px-3 sm:px-6">
                             {count === 0 ? (
                               <Button
-                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
+                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: addonStepUp(0, addon.min_quantity, addon.max_quantity) }))}
                                 variant="outline"
                                 size="lg"
                                 className="w-full h-12"
@@ -3832,6 +3846,7 @@ const BookingFlow = () => {
                                           setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: newCount }));
                                         }
                                       }}
+                                      disabled={addon.is_locked}
                                       variant="outline"
                                       size="icon"
                                       className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"

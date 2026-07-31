@@ -1109,12 +1109,14 @@ export type Database = {
         Row: {
           accommodation_id: string
           addon_type: string
+          auto_include: boolean
           created_at: string | null
           description: string | null
           detailed_description: string | null
           enabled: boolean | null
           icon_key: string | null
           id: string
+          is_locked: boolean
           max_quantity: number
           min_quantity: number | null
           price_per_unit: number
@@ -1129,12 +1131,14 @@ export type Database = {
         Insert: {
           accommodation_id: string
           addon_type: string
+          auto_include?: boolean
           created_at?: string | null
           description?: string | null
           detailed_description?: string | null
           enabled?: boolean | null
           icon_key?: string | null
           id?: string
+          is_locked?: boolean
           max_quantity: number
           min_quantity?: number | null
           price_per_unit: number
@@ -1149,12 +1153,14 @@ export type Database = {
         Update: {
           accommodation_id?: string
           addon_type?: string
+          auto_include?: boolean
           created_at?: string | null
           description?: string | null
           detailed_description?: string | null
           enabled?: boolean | null
           icon_key?: string | null
           id?: string
+          is_locked?: boolean
           max_quantity?: number
           min_quantity?: number | null
           price_per_unit?: number

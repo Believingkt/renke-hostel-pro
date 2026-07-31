@@ -87,6 +87,8 @@ export interface AddonPlan {
   detailed_description?: string;
   icon_key?: string | null;
   show_icon?: boolean;
+  auto_include?: boolean;
+  is_locked?: boolean;
 }
 
 interface AddonPlansSectionProps {
@@ -112,6 +114,8 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   detailed_description: "",
   icon_key: null,
   show_icon: true,
+  auto_include: false,
+  is_locked: false,
 };
 
 
@@ -368,6 +372,40 @@ const SortablePlanCard = ({
           <p className="text-xs text-muted-foreground -mt-3">
             數量下限為選填（0 = 不限）。設定後，客人或後台第一次加購時會直接帶入此數量，低於下限則自動歸零取消。
           </p>
+
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <Label className="text-sm">自動帶入新訂單</Label>
+                <p className="text-xs text-muted-foreground">
+                  開啟後，前台下訂與後台建立新訂單時會自動帶入此加購（數量取數量下限，未設定則為 1）。
+                </p>
+              </div>
+              <Switch
+                checked={plan.auto_include === true}
+                disabled={!plan.enabled}
+                onCheckedChange={(checked) =>
+                  onUpdate(index, { auto_include: checked, ...(checked ? {} : { is_locked: false }) })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <Label className="text-sm">客人不可取消</Label>
+                <p className="text-xs text-muted-foreground">
+                  開啟後，前台無法把此加購數量減到低於下限（例如清潔費為必收項目）。
+                </p>
+              </div>
+              <Switch
+                checked={plan.is_locked === true}
+                disabled={!plan.enabled || plan.auto_include !== true}
+                onCheckedChange={(checked) => onUpdate(index, { is_locked: checked })}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              為避免回溯改金額，「自動帶入」只對新訂單生效；後台編輯既有訂單不會自動追加。
+            </p>
+          </div>
 
 
           <div className="space-y-1.5">
