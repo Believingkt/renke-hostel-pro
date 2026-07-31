@@ -24,6 +24,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
+import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 
 interface Stats {
   name: string;
