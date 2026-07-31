@@ -4,6 +4,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import assistantAvatar from "@/assets/ai-butler-alpaca.png";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
+import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
