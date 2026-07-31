@@ -59,3 +59,24 @@ export function isVerboseUnit(raw?: string | null): boolean {
   if (!s) return false;
   return s.length > 3 || /[，,、。．/／（）()]/.test(s);
 }
+
+/** 起訂量（數量下限）：0 或未設定代表沒有下限 */
+export function addonMinQuantity(raw?: number | null): number {
+  const n = Number(raw ?? 0);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/** 按「＋」時的下一個數量：從 0 起算會直接帶入起訂量 */
+export function addonStepUp(current: number, min?: number | null, max?: number | null): number {
+  const lo = addonMinQuantity(min);
+  const hi = Number(max ?? 0) > 0 ? Number(max) : Number.POSITIVE_INFINITY;
+  const next = current <= 0 ? Math.max(1, lo) : current + 1;
+  return Math.min(next, hi);
+}
+
+/** 按「－」時的下一個數量：低於起訂量就直接歸零 */
+export function addonStepDown(current: number, min?: number | null): number {
+  const lo = addonMinQuantity(min);
+  const next = current - 1;
+  return next < Math.max(1, lo) ? 0 : next;
+}
