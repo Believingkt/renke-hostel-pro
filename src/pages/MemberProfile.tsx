@@ -162,6 +162,9 @@ const MemberProfile = () => {
         </Button>
       </div>
 
+      {/* ATM 繳費倒數提醒 */}
+      <AtmCountdownCard />
+
       {/* Membership card */}
       <Card className="relative overflow-hidden p-4 border-0 text-white shadow-lg bg-gradient-to-br from-[hsl(24,100%,52%)] via-[hsl(18,95%,55%)] to-[hsl(12,90%,58%)]">
         <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
