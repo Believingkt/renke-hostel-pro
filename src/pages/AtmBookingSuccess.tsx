@@ -537,6 +537,8 @@ export default function AtmBookingSuccess() {
               amount={amountDueNow || remainingAmount || order.final_price}
               amountLabel={`轉帳金額（訂金 ${depositInfo.percentage}%）`}
               expireInMinutes={20}
+              paid={orderPaid}
+              paidAmount={order.paid_amount || 0}
               cardholder={{
                 name: order.guest_name,
                 email: sanitizeEmailForTapPay(order.guest_email),
