@@ -189,6 +189,8 @@ export interface OwnerSettlementOrderInput {
   currency_at_booking?: string | null;
   /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
   exchange_rate_snapshot?: number | string | null;
+  /** 加購項目明細（jsonb array），抽成基礎需扣除 */
+  custom_addon_details?: unknown;
 }
 
 /** 館別現值（快照為 null 時的 fallback 來源） */
