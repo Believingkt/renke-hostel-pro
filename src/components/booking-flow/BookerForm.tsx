@@ -211,6 +211,14 @@ export default function BookerForm(props: Props) {
 
             <p className="text-xs text-muted-foreground mt-1">訂單確認函將寄送至此電子郵件</p>
 
+            {loggedInMember && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 mt-1">
+                <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                {loggedInMember.name} 會員，歡迎您回來！
+              </p>
+            )}
+
+
 
             {!loggedInMember && emailCheckStatus === "checking" && (
               <p className="text-xs text-muted-foreground mt-1">正在檢查會員狀態...</p>
