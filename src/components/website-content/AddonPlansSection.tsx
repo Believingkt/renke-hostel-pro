@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Pencil, Wand2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil, Wand2, EyeOff } from "lucide-react";
+import {
+  ADDON_ICON_OPTIONS,
+  DEFAULT_ADDON_ICON_LABEL,
+  addonIconSource,
+  resolveAddonIcon,
+} from "@/lib/addonIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
