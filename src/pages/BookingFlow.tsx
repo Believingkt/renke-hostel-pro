@@ -3412,19 +3412,20 @@ const BookingFlow = () => {
 
       // 發送訂購確認郵件（統一走 notify-booking-confirmation）
       // - 非 3DS 信用卡（paidOrderResult）：create-paid-order 已寄信，跳過避免重複
-      // - ATM 待匯款：webhook 入帳後由 tappay-notify 寄信
+      // - ATM 待匯款：建單當下即寄「訂房確認（待匯款）」，入帳後的收據信由 tappay-notify 另寄，不重複
       // - 其餘（信用卡已扣款、現場付款等未付款訂單）：按下「確認訂房」後即刻寄出
       let emailSent = false;
-      const shouldSendEmailNow = !paidOrderResult
-        && !!guestInfo.email
-        && orderPaymentType !== "atm";
+      const shouldSendEmailNow = !paidOrderResult && !!guestInfo.email;
 
       if (shouldSendEmailNow && orderData?.id) {
         try {
           const paymentMethodLabel =
             orderPaymentType === "credit_card"
               ? "信用卡"
-              : (paymentMethod || (paymentTransactionId ? "線上付款" : "現場付款"));
+              : orderPaymentType === "atm"
+                ? "ATM 虛擬帳號（待匯款）"
+                : (paymentMethod || (paymentTransactionId ? "線上付款" : "現場付款"));
+
 
           const { data: emailData, error: emailError } = await supabase.functions.invoke(
             "notify-booking-confirmation",
