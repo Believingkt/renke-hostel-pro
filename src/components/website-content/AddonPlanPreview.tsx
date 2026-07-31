@@ -19,16 +19,16 @@ interface AddonPlanPreviewProps {
  * 加購方案「結帳頁效果」即時預覽（純顯示層，不影響任何資料）
  */
 export const AddonPlanPreview = ({ plan, nights = 2, quantity = 1 }: AddonPlanPreviewProps) => {
-  const rawTitle = plan.description || plan.addon_type;
+  const rawTitle = plan.addon_type;
   const title = cleanAddonName(rawTitle);
   const unit = shortUnit(plan.unit_label);
   const priceLine = addonPriceLine(plan.price_per_unit || 0, plan.unit_label, plan.max_quantity);
   const subtotal = (plan.price_per_unit || 0) * quantity * nights;
 
   const warnings: string[] = [];
-  if (hasPricePrefix(rawTitle)) warnings.push("「前台顯示名稱」含價格文字，前台會自動移除；請把金額留在上方「價格」欄位。");
+  if (hasPricePrefix(rawTitle)) warnings.push("方案名稱含價格文字，前台會自動移除；請把金額留在上方「價格」欄位。");
   if (isVerboseUnit(plan.unit_label)) warnings.push(`單位「${plan.unit_label}」過長或含標點，前台會自動顯示為「份」。`);
-  if (title.length > 14) warnings.push("「前台顯示名稱」偏長（建議 14 字以內），手機版可能換行。");
+  if (title.length > 14) warnings.push("方案名稱偏長（建議 14 字以內），手機版可能換行。");
 
   return (
     <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
