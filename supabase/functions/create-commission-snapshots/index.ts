@@ -154,6 +154,9 @@ serve(async (req) => {
       };
     }
 
+    // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
+    const isExempt = await buildExemptResolver(supabase, accIds);
+
     // 5) Build snapshot rows
     const errors: Array<{ order_id: string; error: string }> = [];
     const toInsert: any[] = [];
@@ -169,6 +172,8 @@ serve(async (req) => {
       // 非台幣訂單不計入獎金（null 視為台幣）
       const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
       if (cur && cur !== "TWD") continue;
+      // 免抽成來源訂單不計入獎金
+      if (isExempt(o as any)) continue;
       processed++;
 
       if (existingSet.has(o.id as string)) {
