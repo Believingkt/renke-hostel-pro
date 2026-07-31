@@ -1098,7 +1098,7 @@ const MemberOrderDetail = () => {
       )}
 
       {/* Bottom actions */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-3 py-2.5 sm:static sm:bottom-auto sm:border-0 sm:bg-transparent sm:px-0">
+      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-3 py-2.5 sm:static sm:bottom-auto sm:border-0 sm:bg-transparent sm:px-0">
         <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
           <button
             disabled={cancelled || acting}
