@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -325,6 +326,12 @@ serve(async (req) => {
 
     const results: ScoutCalc[] = [];
     const calculatedAt = new Date().toISOString();
+
+    // 業主月結免抽成來源判斷（owner_direct 或館別 exempt_order_sources），一次建立、逐筆判斷
+    const isExempt = await buildExemptResolver(
+      supabase,
+      (accsRes.data ?? []).map((a) => a.id as string),
+    );
 
     for (const scout of profiles) {
       const scoutId = scout.user_id as string;
