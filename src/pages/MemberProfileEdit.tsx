@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, UserRound, Camera, Trash2 } from "lucide-react";
 import { isMemberPreview, mockProfile } from "@/lib/memberPreviewMock";
 import { isUsableEmail, SYNTHETIC_EMAIL_RE } from "@/components/member/MissingEmailNotice";
+import { resolveMemberAvatarUrl, uploadMemberAvatar } from "@/lib/memberAvatar";
+
+const MAX_AVATAR_MB = 5;
 
 const MemberProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -26,6 +29,11 @@ const MemberProfile = () => {
   const [gender, setGender] = useState("");
   const [nationality, setNationality] = useState("");
   const [memberId, setMemberId] = useState("");
+  const [userId, setUserId] = useState("");
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadProfile();
