@@ -920,6 +920,7 @@ const WebsiteContent = () => {
             weekday_min_quantity: item.weekday_min_quantity ?? undefined,
             weekend_min_quantity: item.weekend_min_quantity ?? undefined,
             unit_label: item.unit_label,
+            pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
             description: item.description ?? undefined,
             detailed_description: item.detailed_description ?? undefined
           }));
@@ -1141,6 +1142,7 @@ const WebsiteContent = () => {
                 weekday_min_quantity: item.weekday_min_quantity ?? undefined,
                 weekend_min_quantity: item.weekend_min_quantity ?? undefined,
                 unit_label: item.unit_label,
+                pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
                 description: item.description ?? undefined,
                 detailed_description: item.detailed_description ?? undefined
               }));
@@ -2988,12 +2990,8 @@ const WebsiteContent = () => {
       for (let i = 0; i < addonPlans.length; i++) {
         const plan = addonPlans[i];
         const getDescriptionText = (plan: AddonPlan) => {
-          if (plan.addon_type === 'pet') {
-            return `每隻 NT$ ${plan.price_per_unit} / 每晚`;
-          } else if (plan.addon_type === 'meal') {
-            return `每人 NT$ ${plan.price_per_unit} / 每日`;
-          }
-          return `NT$ ${plan.price_per_unit} / ${plan.unit_label}`;
+          const cycle = plan.pricing_mode === 'per_stay' ? '每筆訂單' : '每晚';
+          return `NT$ ${plan.price_per_unit} / ${plan.unit_label} / ${cycle}`;
         };
 
         const payload = {
@@ -3006,6 +3004,7 @@ const WebsiteContent = () => {
           weekday_min_quantity: plan.weekday_min_quantity,
           weekend_min_quantity: plan.weekend_min_quantity,
           unit_label: plan.unit_label,
+          pricing_mode: plan.pricing_mode || 'per_night',
           description: getDescriptionText(plan),
           detailed_description: plan.detailed_description,
           sort_order: i,
@@ -3046,6 +3045,7 @@ const WebsiteContent = () => {
           weekday_min_quantity: item.weekday_min_quantity ?? undefined,
           weekend_min_quantity: item.weekend_min_quantity ?? undefined,
           unit_label: item.unit_label,
+          pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
           description: item.description ?? undefined,
           detailed_description: item.detailed_description ?? undefined
         }));
