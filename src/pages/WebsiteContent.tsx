@@ -926,7 +926,8 @@ const WebsiteContent = () => {
             icon_key: (item as any).icon_key ?? null,
             show_icon: (item as any).show_icon !== false,
             auto_include: (item as any).auto_include === true,
-            is_locked: (item as any).is_locked === true
+            is_locked: (item as any).is_locked === true,
+            show_on_frontend: (item as any).show_on_frontend !== false
           }));
           setAddonPlans(plans);
           setAddonPlansToDelete([]);
@@ -1152,7 +1153,8 @@ const WebsiteContent = () => {
                 icon_key: (item as any).icon_key ?? null,
                 show_icon: (item as any).show_icon !== false,
                 auto_include: (item as any).auto_include === true,
-                is_locked: (item as any).is_locked === true
+                is_locked: (item as any).is_locked === true,
+                show_on_frontend: (item as any).show_on_frontend !== false
               }));
               setAddonPlans(plans);
               setAddonPlansToDelete([]);
@@ -3019,6 +3021,7 @@ const WebsiteContent = () => {
           show_icon: plan.show_icon !== false,
           auto_include: plan.auto_include === true,
           is_locked: plan.auto_include === true && plan.is_locked === true,
+          show_on_frontend: plan.show_on_frontend !== false,
           sort_order: i,
         };
 
@@ -3063,7 +3066,8 @@ const WebsiteContent = () => {
           icon_key: (item as any).icon_key ?? null,
           show_icon: (item as any).show_icon !== false,
           auto_include: (item as any).auto_include === true,
-          is_locked: (item as any).is_locked === true
+          is_locked: (item as any).is_locked === true,
+          show_on_frontend: (item as any).show_on_frontend !== false
         }));
         setAddonPlans(plans);
         setAddonPlansToDelete([]);
