@@ -579,6 +579,7 @@ const BookingFlow = () => {
     description: string | null;
     detailed_description: string | null;
     price_per_unit: number;
+    min_quantity: number;
     max_quantity: number;
     unit_label: string;
     pricing_mode: 'per_night' | 'per_stay';
@@ -782,6 +783,7 @@ const BookingFlow = () => {
               description: a.description,
               detailed_description: a.detailed_description,
               price_per_unit: a.price_per_unit,
+              min_quantity: (a as any).min_quantity ?? 0,
               max_quantity: a.max_quantity,
               unit_label: a.unit_label,
               pricing_mode: normalizeAddonPricingMode((a as any).pricing_mode),
@@ -3819,7 +3821,7 @@ const BookingFlow = () => {
                                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                     <Button
                                       onClick={() => {
-                                        const newCount = count - 1;
+                                        const newCount = addonStepDown(count, addon.min_quantity);
                                         if (newCount <= 0) {
                                           setCustomAddonCounts(prev => {
                                             const next = { ...prev };
@@ -3838,7 +3840,7 @@ const BookingFlow = () => {
                                     </Button>
                                     <span className="w-8 text-center text-lg font-bold">{count}</span>
                                     <Button
-                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: Math.min(addon.max_quantity, count + 1) }))}
+                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: addonStepUp(count, addon.min_quantity, addon.max_quantity) }))}
                                       disabled={count >= addon.max_quantity}
                                       variant="outline"
                                       size="icon"
