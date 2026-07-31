@@ -581,6 +581,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [markingSource, setMarkingSource] = useState<string | null>(null);
+  const [recalcOpen, setRecalcOpen] = useState(false);
+  const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
+  const [recalcRunning, setRecalcRunning] = useState(false);
+
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
       const next = new Set(prev);
