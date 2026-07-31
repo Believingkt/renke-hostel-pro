@@ -168,10 +168,8 @@ export default function AtmBookingSuccess() {
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paidDetected, setPaidDetected] = useState(false);
-  const [redirectIn, setRedirectIn] = useState(5);
-  const [dismissed, setDismissed] = useState(false);
   const [depositSettings, setDepositSettings] = useState<DepositSettingsLike | null>(null);
-  const redirectedRef = useRef(false);
+
 
   // 載入該民宿訂金比例設定（ATM 匯款僅收訂金，預設 30%）
   useEffect(() => {
