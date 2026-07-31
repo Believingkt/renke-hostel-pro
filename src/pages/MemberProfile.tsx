@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
+import MissingEmailNotice from "@/components/member/MissingEmailNotice";
+
 
 interface Stats {
   name: string;
