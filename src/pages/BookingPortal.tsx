@@ -923,6 +923,7 @@ const BookingPortal = () => {
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+        <AtmPaymentBanner />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
