@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
+import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -700,7 +701,7 @@ Deno.serve(async (req) => {
     })();
     const estimatedCommission = isNonTwdOrder || isExemptOrder
       ? 0
-      : Math.round(order.final_price * (commissionRate / 100));
+      : Math.round(commissionBaseFromOrder(order as any) * (commissionRate / 100));
 
     const payload: WebhookPayload = {
       event: "order.created",
