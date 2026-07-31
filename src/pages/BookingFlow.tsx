@@ -5160,7 +5160,7 @@ const BookingFlow = () => {
 
                     {/* 條款說明（送出訂單即視為同意） */}
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      送出訂單即表示我已閱讀並接受「Lakeze 人客多」之
+                      送出訂單即表示我已閱讀並接受 Lakeze 人客多 之
                       <a
                         href="/legal/terms"
                         target="_blank"
