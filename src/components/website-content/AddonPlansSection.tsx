@@ -114,6 +114,8 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   detailed_description: "",
   icon_key: null,
   show_icon: true,
+  auto_include: false,
+  is_locked: false,
 };
 
 
