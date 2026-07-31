@@ -2498,14 +2498,6 @@ const BookingFlow = () => {
       return;
     }
 
-    if (currentStep === "payment" && !agreedToTerms) {
-      toast({
-        title: "請先同意住宿規定",
-        description: "請勾選同意住宿規定及退訂政策後再繼續",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
