@@ -322,7 +322,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     });
   }
 
-  // 業績門檻基礎：未扣加購的當月營收，排除非台幣 / exempt 訂單
+  // 業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單）
   const thresholdBase = drafts.reduce((s, d) => s + d.row.monthFinal, 0);
   const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
   for (const d of drafts) {
