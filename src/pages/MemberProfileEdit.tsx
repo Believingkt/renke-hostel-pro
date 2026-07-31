@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 import { isMemberPreview, mockProfile } from "@/lib/memberPreviewMock";
+import { isUsableEmail, SYNTHETIC_EMAIL_RE } from "@/components/member/MissingEmailNotice";
 
 const MemberProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -56,7 +57,7 @@ const MemberProfile = () => {
       setName(data.name || "");
       setPhone(data.phone || "");
       const storedEmail = data.email || user.email || "";
-      const synthetic = /@(line|facebook)\.lakeze\.local$/i.test(storedEmail);
+      const synthetic = SYNTHETIC_EMAIL_RE.test(storedEmail);
       setIsSyntheticEmail(synthetic);
       setEmail(synthetic ? "" : storedEmail);
       setGender((data as any).gender || "");
@@ -68,6 +69,10 @@ const MemberProfile = () => {
   const handleSave = async () => {
     if (isMemberPreview()) {
       toast.info("預覽模式：資料不會實際儲存");
+      return;
+    }
+    if (!isUsableEmail(email)) {
+      toast.error("請填寫有效的 Email，才能收到訂房確認信與付款通知信");
       return;
     }
     setSaving(true);
@@ -133,6 +138,11 @@ const MemberProfile = () => {
         <div className="space-y-2">
           <Label>Email <span className="text-destructive">*</span></Label>
           <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder={isSyntheticEmail ? "請輸入您的 Email" : ""} />
+          {isSyntheticEmail && (
+            <p className="text-xs text-amber-700">
+              您使用 LINE／Facebook 登入，社群帳號未提供 Email。請填寫可收信的 Email，才能收到訂房確認信與付款通知信。
+            </p>
+          )}
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
