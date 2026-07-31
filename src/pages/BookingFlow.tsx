@@ -3865,6 +3865,11 @@ const BookingFlow = () => {
                                     </Button>
                                   </div>
                                 </div>
+                                {addon.is_locked && (
+                                  <p className="text-xs text-muted-foreground -mt-2">
+                                    此為必要加購項目，已自動帶入訂單，無法取消或減少數量。
+                                  </p>
+                                )}
                                 <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
                                   <p className="font-bold text-sm sm:text-base">
                                     小計：NT$ {(count * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights)).toLocaleString()}
