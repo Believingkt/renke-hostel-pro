@@ -45,6 +45,7 @@ import TeamBonusDistributionTab from "@/components/team/TeamBonusDistributionTab
 import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
+import { extractAddonTotal } from "@/lib/ownerSettlement";
 
 interface Member {
   user_id: string;
