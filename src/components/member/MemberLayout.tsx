@@ -18,6 +18,7 @@ import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
+import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 
 const navItems = [
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
