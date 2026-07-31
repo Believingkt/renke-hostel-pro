@@ -87,6 +87,8 @@ export interface AddonPlan {
   detailed_description?: string;
   icon_key?: string | null;
   show_icon?: boolean;
+  auto_include?: boolean;
+  is_locked?: boolean;
 }
 
 interface AddonPlansSectionProps {
