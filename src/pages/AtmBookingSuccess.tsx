@@ -361,23 +361,8 @@ export default function AtmBookingSuccess() {
   return (
     <div className="min-h-screen bg-muted/20 py-6 md:py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
-        {paidDetected && !dismissed && (
-          <Alert className="border-primary/50 bg-primary/5">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            <AlertTitle className="text-base font-semibold text-primary">
-              付款完成！訂單已確認
-            </AlertTitle>
-            <AlertDescription className="text-sm space-y-2">
-              <div>系統已收到您的匯款，將於 {redirectIn} 秒後自動為您前往「我的訂單」頁面。</div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={goViewOrder}>立即查看訂單</Button>
-                <Button size="sm" variant="outline" onClick={() => setDismissed(true)}>
-                  留在此頁
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+
+
 
         {/* 成功標題 */}
         <div className="text-center space-y-3">
