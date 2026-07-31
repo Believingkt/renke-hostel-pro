@@ -247,6 +247,8 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   /** 台幣金額（外幣訂單已換算） */
   monthFinal: number;
   monthDiscount: number;
+  /** 本月分攤後的加購項目金額（台幣），已從抽成基礎扣除 */
+  monthAddonTotal: number;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
