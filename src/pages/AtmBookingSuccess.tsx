@@ -333,8 +333,11 @@ export default function AtmBookingSuccess() {
   );
 
 
+  const orderPaid = isPaid(order) || paidDetected;
   const atmActive =
-    !!order?.atm_vacc_no && !!order?.atm_expire_at && new Date(order.atm_expire_at) > new Date();
+    !!order?.atm_vacc_no &&
+    !!order?.atm_expire_at &&
+    (orderPaid || new Date(order.atm_expire_at) > new Date());
 
   if (loading) {
     return (
