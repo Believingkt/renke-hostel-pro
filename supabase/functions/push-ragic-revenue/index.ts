@@ -213,37 +213,37 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const acc of accommodations || []) {
-      // 3. Fetch orders overlapping the month
-      const { data: orders, error: ordErr } = await supabase
+      // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
+      const { data: jpyMeta, error: jpyErr } = await supabase
+        .from("order_meta")
+        .select("order_id, orders!inner(accommodation_id)")
+        .eq("display_currency", "JPY")
+        .eq("orders.accommodation_id", acc.id);
+      if (jpyErr) throw jpyErr;
+      const jpyIds = (jpyMeta || []).map((m: any) => m.order_id).filter(Boolean);
+
+      // 3b. Fetch orders overlapping the month (排除日幣訂單)
+      let ordQuery = supabase
         .from("orders")
         .select(
-          "id, check_in_date, check_out_date, final_price, order_status, order_source, order_meta(display_currency)",
+          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source",
         )
         .eq("accommodation_id", acc.id)
         .lt("check_in_date", monthEndStr)
         .gt("check_out_date", monthStartStr);
+      if (jpyIds.length > 0) {
+        ordQuery = ordQuery.not("id", "in", `(${jpyIds.join(",")})`);
+      }
+      const { data: orders, error: ordErr } = await ordQuery;
       if (ordErr) throw ordErr;
 
-      // 4. Aggregate revenue (native currency) + convert to TWD
-      const isJpy =
-        (acc.secondary_currency || "").toUpperCase() === "JPY" &&
-        Number(acc.secondary_currency_rate) > 0;
-      const jpyRate = Number(acc.secondary_currency_rate) || 0; // JPY per TWD
-      const originalCurrency = isJpy ? "JPY" : "TWD";
-      const exchangeRate = isJpy ? jpyRate : 1;
-
+      // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
       for (const o of orders || []) {
-        const nightly = accruedInMonth(o, monthStart, monthEnd);
-        if (!nightly) continue;
-        const cur = orderCurrency(o);
-        if (cur === "JPY" && jpyRate > 0) {
-          revenueTwd += nightly / jpyRate; // JPY → TWD
-        } else {
-          revenueTwd += nightly;
-        }
+        revenueTwd += accruedInMonth(o, monthStart, monthEnd);
       }
       revenueTwd = Math.round(revenueTwd);
+
 
       const feeCfg = feeMap.get(acc.id) ?? null;
       const hasFee = !!feeCfg;
