@@ -1,0 +1,1 @@
+ALTER TABLE public.addon_settings ADD COLUMN IF NOT EXISTS show_on_frontend boolean NOT NULL DEFAULT true;

@@ -1122,6 +1122,7 @@ export type Database = {
           price_per_unit: number
           pricing_mode: string
           show_icon: boolean
+          show_on_frontend: boolean
           sort_order: number
           unit_label: string
           updated_at: string | null
@@ -1144,6 +1145,7 @@ export type Database = {
           price_per_unit: number
           pricing_mode?: string
           show_icon?: boolean
+          show_on_frontend?: boolean
           sort_order?: number
           unit_label: string
           updated_at?: string | null
@@ -1166,6 +1168,7 @@ export type Database = {
           price_per_unit?: number
           pricing_mode?: string
           show_icon?: boolean
+          show_on_frontend?: boolean
           sort_order?: number
           unit_label?: string
           updated_at?: string | null
