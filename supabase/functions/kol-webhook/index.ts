@@ -689,7 +689,16 @@ Deno.serve(async (req) => {
     // 非台幣訂單不計入分潤（currency_at_booking 為 null 視為台幣）
     const orderCurrency = (order as { currency_at_booking?: string | null }).currency_at_booking;
     const isNonTwdOrder = !!orderCurrency && orderCurrency !== "TWD";
-    const estimatedCommission = isNonTwdOrder
+    // 業主月結免抽成來源（owner_direct / exempt_order_sources）不計入分潤
+    const isExemptOrder = await (async () => {
+      try {
+        const resolver = await buildExemptResolver(supabase, [order.accommodation_id as string]);
+        return resolver(order as any);
+      } catch {
+        return false;
+      }
+    })();
+    const estimatedCommission = isNonTwdOrder || isExemptOrder
       ? 0
       : Math.round(order.final_price * (commissionRate / 100));
 
