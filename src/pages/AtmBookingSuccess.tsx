@@ -213,9 +213,9 @@ export default function AtmBookingSuccess() {
       o.order_status === "confirmed");
 
   const goViewOrder = () => {
-    redirectedRef.current = true;
     navigate(`/member/orders`);
   };
+
 
   useEffect(() => {
     let alive = true;
