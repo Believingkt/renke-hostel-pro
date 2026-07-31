@@ -290,32 +290,8 @@ const SortablePlanCard = ({
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <div className="flex md:justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5" disabled={!plan.enabled}>
-                    <Wand2 className="h-3.5 w-3.5" />
-                    一鍵套用文案範本
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
-                  <DropdownMenuLabel>選擇範本</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {ADDON_COPY_TEMPLATES.map((tpl) => (
-                    <DropdownMenuItem
-                      key={tpl.id}
-                      className="flex-col items-start gap-0.5"
-                      onSelect={() => onApplyTemplate(index, tpl)}
-                    >
-                      <span className="text-sm">{tpl.label}</span>
-                      <span className="text-xs text-muted-foreground">{tpl.hint}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+
+
 
           {/* 進階設定收合，避免卡片過長 */}
           <Accordion type="multiple" className="w-full border-t pt-1">
