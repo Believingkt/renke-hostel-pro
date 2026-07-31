@@ -9952,6 +9952,7 @@ export type Database = {
         Args: { _accommodation_id: string }
         Returns: boolean
       }
+      is_sales_role: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_team_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
