@@ -374,7 +374,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("name"),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include, is_locked")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
