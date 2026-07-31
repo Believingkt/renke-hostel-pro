@@ -535,7 +535,7 @@ export default function AtmBookingSuccess() {
               orderId={order.id}
               orderNumber={order.order_number}
               amount={amountDueNow || remainingAmount || order.final_price}
-              amountLabel={`轉帳金額（訂金 ${depositInfo.percentage}%）`}
+              amountLabel={orderPaid ? "已收款金額（訂金）" : `轉帳金額（訂金 ${depositInfo.percentage}%）`}
               expireInMinutes={20}
               paid={orderPaid}
               paidAmount={order.paid_amount || 0}
