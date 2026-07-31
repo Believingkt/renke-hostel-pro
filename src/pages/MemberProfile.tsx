@@ -112,7 +112,7 @@ const MemberProfile = () => {
 
       setStats({
         name: member.name || "會員",
-        avatarUrl: (member as any).avatar_url || null,
+        avatarUrl: await resolveMemberAvatarUrl((member as any).avatar_url),
         pointsBalance: points?.balance || 0,
         couponCount: couponCount || 0,
         upcomingCount: upcomingCount || 0,
