@@ -203,6 +203,8 @@ const MemberOrders = () => {
           accommodation_name: accMap.get(o.accommodation_id) || "",
           room_type_name: o.room_types?.name || null,
           room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
+          atm_vacc_no: o.atm_vacc_no ?? null,
+          atm_expire_at: o.atm_expire_at ?? null,
         }))
     );
 
