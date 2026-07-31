@@ -90,6 +90,7 @@ export interface AddonPlan {
   show_icon?: boolean;
   auto_include?: boolean;
   is_locked?: boolean;
+  show_on_frontend?: boolean;
 }
 
 interface AddonPlansSectionProps {
@@ -117,6 +118,7 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   show_icon: true,
   auto_include: false,
   is_locked: false,
+  show_on_frontend: true,
 };
 
 
@@ -198,6 +200,18 @@ const SortablePlanCard = ({
               )}
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor={`${plan.addon_type}-frontend`} className="text-sm font-normal">
+                  前台顯示
+                </Label>
+                <Switch
+                  id={`${plan.addon_type}-frontend`}
+                  checked={plan.show_on_frontend !== false}
+                  disabled={!plan.enabled}
+                  onCheckedChange={(checked) => onUpdate(index, { show_on_frontend: checked })}
+                  className="touch-manipulation"
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Label htmlFor={`${plan.addon_type}-enabled`} className="text-sm font-normal">
                   啟用

@@ -778,7 +778,7 @@ const BookingFlow = () => {
           }
 
           // 載入其他自訂加購方案（非 pet/meal）
-          const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled);
+          const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled && (a as any).show_on_frontend !== false);
           if (otherAddons.length > 0) {
             setCustomAddonSettings(otherAddons.map(a => ({
               addon_type: a.addon_type,
