@@ -45,6 +45,8 @@ interface MemberOrder {
   accommodation_name: string;
   room_type_name: string | null;
   room_photo_url: string | null;
+  atm_vacc_no: string | null;
+  atm_expire_at: string | null;
 }
 
 type TabKey = "all" | "upcoming" | "history" | "refunded";
