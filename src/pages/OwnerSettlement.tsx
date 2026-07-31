@@ -332,6 +332,12 @@ export default function OwnerSettlement() {
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
   }, [orders, month, config, accCurrency, effectiveRule]);
 
+  /** standard 型：本月已從抽成基礎扣除的加購項目總額（已依夜數比例分攤） */
+  const stdAddonDeducted = useMemo(
+    () => rows.reduce((s, r) => s + r.monthAddonTotal, 0),
+    [rows]
+  );
+
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.monthFinal, 0);
