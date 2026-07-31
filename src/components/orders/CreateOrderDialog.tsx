@@ -59,6 +59,7 @@ interface AddonSetting {
   min_quantity?: number | null;
   max_quantity: number;
   auto_include?: boolean | null;
+  is_locked?: boolean | null;
 }
 
 interface PricingTemplate {
