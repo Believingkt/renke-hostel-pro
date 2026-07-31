@@ -96,7 +96,7 @@ serve(async (req) => {
     // 1) Orders in target month, not cancelled
     const { data: orders, error: ordersErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status")
+      .select("id, accommodation_id, final_price, check_out_date, order_date, order_status, currency_at_booking")
       .neq("order_status", "cancelled")
       .gte("order_date", snapStartUtc)
       .lt("order_date", snapEndUtc);
@@ -165,6 +165,9 @@ serve(async (req) => {
       if (!meta) continue;
       if (meta.is_excluded === true) continue;
       if (!meta.closer_id) continue;
+      // 非台幣訂單不計入獎金（null 視為台幣）
+      const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
+      if (cur && cur !== "TWD") continue;
       processed++;
 
       if (existingSet.has(o.id as string)) {
