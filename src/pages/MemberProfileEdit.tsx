@@ -53,6 +53,7 @@ const MemberProfile = () => {
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setUserId(user.id);
 
     const { data } = await supabase
       .from("platform_members")
@@ -70,8 +71,66 @@ const MemberProfile = () => {
       setEmail(synthetic ? "" : storedEmail);
       setGender((data as any).gender || "");
       setNationality((data as any).nationality || "");
+      const storedAvatar = (data as any).avatar_url || null;
+      setAvatarPath(storedAvatar);
+      setAvatarPreview(await resolveMemberAvatarUrl(storedAvatar));
     }
     setLoading(false);
+  };
+
+  const handleAvatarPick = async (file?: File | null) => {
+    if (!file) return;
+    if (isMemberPreview()) {
+      toast.info("預覽模式：頭貼不會實際儲存");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("請選擇圖片檔（JPG / PNG / WebP）");
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      toast.error(`圖片請小於 ${MAX_AVATAR_MB} MB`);
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const path = await uploadMemberAvatar(userId, file);
+      const { error } = await supabase
+        .from("platform_members")
+        .update({ avatar_url: path } as any)
+        .eq("id", memberId);
+      if (error) throw error;
+      setAvatarPath(path);
+      setAvatarPreview(await resolveMemberAvatarUrl(path));
+      toast.success("頭貼已更新");
+    } catch (error: any) {
+      toast.error(error.message || "頭貼上傳失敗");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (isMemberPreview()) {
+      toast.info("預覽模式：頭貼不會實際儲存");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const { error } = await supabase
+        .from("platform_members")
+        .update({ avatar_url: null } as any)
+        .eq("id", memberId);
+      if (error) throw error;
+      setAvatarPath(null);
+      setAvatarPreview(null);
+      toast.success("已移除頭貼");
+    } catch (error: any) {
+      toast.error(error.message || "移除失敗");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleSave = async () => {
