@@ -85,7 +85,7 @@ import {
 } from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { addonIcon } from "@/lib/addonIcon";
+import { resolveAddonIcon } from "@/lib/addonIcon";
 import { cleanAddonName, shortUnit, addonPriceLine, addonNightsMultiplier, normalizeAddonPricingMode } from "@/lib/addonLabels";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
@@ -583,6 +583,8 @@ const BookingFlow = () => {
     unit_label: string;
     pricing_mode: 'per_night' | 'per_stay';
     enabled: boolean;
+    icon_key: string | null;
+    show_icon: boolean;
   }
   const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
   const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
@@ -784,6 +786,8 @@ const BookingFlow = () => {
               unit_label: a.unit_label,
               pricing_mode: normalizeAddonPricingMode((a as any).pricing_mode),
               enabled: a.enabled || false,
+              icon_key: (a as any).icon_key ?? null,
+              show_icon: (a as any).show_icon !== false,
             })));
           }
         }
@@ -3760,14 +3764,14 @@ const BookingFlow = () => {
                     {customAddonSettings.map((addon) => {
                       const count = customAddonCounts[addon.addon_type] || 0;
                       const nights = calculateNights();
-                      const AddonIcon = addonIcon(addon.addon_type);
+                      const AddonIcon = resolveAddonIcon(addon.icon_key, addon.addon_type);
                       return (
                         <Card key={addon.addon_type} className="border-2">
                           <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex items-start justify-between gap-2">
                               <CardTitle className="text-sm sm:text-base font-bold leading-snug break-words">
                                 <span className="inline-flex items-center gap-1.5">
-                                  <AddonIcon className="h-4 w-4 shrink-0 text-primary" />
+                                  {addon.show_icon !== false && <AddonIcon className="h-4 w-4 shrink-0 text-primary" />}
                                   {cleanAddonName(addon.addon_type)}
                                 </span>
                               </CardTitle>

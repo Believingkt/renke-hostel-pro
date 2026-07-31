@@ -922,7 +922,9 @@ const WebsiteContent = () => {
             unit_label: item.unit_label,
             pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
             description: item.description ?? undefined,
-            detailed_description: item.detailed_description ?? undefined
+            detailed_description: item.detailed_description ?? undefined,
+            icon_key: (item as any).icon_key ?? null,
+            show_icon: (item as any).show_icon !== false
           }));
           setAddonPlans(plans);
           setAddonPlansToDelete([]);
@@ -1144,7 +1146,9 @@ const WebsiteContent = () => {
                 unit_label: item.unit_label,
                 pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
                 description: item.description ?? undefined,
-                detailed_description: item.detailed_description ?? undefined
+                detailed_description: item.detailed_description ?? undefined,
+                icon_key: (item as any).icon_key ?? null,
+                show_icon: (item as any).show_icon !== false
               }));
               setAddonPlans(plans);
               setAddonPlansToDelete([]);
@@ -3007,6 +3011,8 @@ const WebsiteContent = () => {
           pricing_mode: plan.pricing_mode || 'per_night',
           description: getDescriptionText(plan),
           detailed_description: plan.detailed_description,
+          icon_key: plan.icon_key ?? null,
+          show_icon: plan.show_icon !== false,
           sort_order: i,
         };
 
@@ -3047,7 +3053,9 @@ const WebsiteContent = () => {
           unit_label: item.unit_label,
           pricing_mode: (item as any).pricing_mode === 'per_stay' ? 'per_stay' : 'per_night',
           description: item.description ?? undefined,
-          detailed_description: item.detailed_description ?? undefined
+          detailed_description: item.detailed_description ?? undefined,
+          icon_key: (item as any).icon_key ?? null,
+          show_icon: (item as any).show_icon !== false
         }));
         setAddonPlans(plans);
         setAddonPlansToDelete([]);
