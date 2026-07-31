@@ -550,7 +550,9 @@ export default function AtmBookingSuccess() {
                       vaccNo: order.atm_vacc_no!,
                       bankCode: order.atm_vacc_bank_code,
                       expireAt: order.atm_expire_at!,
-                      amount: amountDueNow || remainingAmount || order.final_price,
+                      amount: orderPaid
+                        ? order.paid_amount || amountDueNow
+                        : amountDueNow || remainingAmount || order.final_price,
                     }
                   : null
               }
