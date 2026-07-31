@@ -155,7 +155,7 @@ serve(async (req) => {
     }
 
     // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
-    const isExempt = await buildExemptResolver(supabase, accIds);
+    const isExempt = await buildExemptResolver(supabase, accIds as string[]);
 
     // 5) Build snapshot rows
     const errors: Array<{ order_id: string; error: string }> = [];
