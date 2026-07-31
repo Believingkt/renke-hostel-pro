@@ -2919,7 +2919,8 @@ const BookingFlow = () => {
                     addon_type: type,
                     count,
                     price_per_unit: setting?.price_per_unit || 0,
-                    total: count * (setting?.price_per_unit || 0) * nights,
+                    pricing_mode: setting?.pricing_mode || 'per_night',
+                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights),
                   };
                 }),
               childSelection,
@@ -3073,7 +3074,8 @@ const BookingFlow = () => {
                         addon_type: type,
                         count,
                         price_per_unit: setting?.price_per_unit || 0,
-                        total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                        pricing_mode: setting?.pricing_mode || 'per_night',
+                        total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
                         unit_label: setting?.unit_label || '',
                       };
                     })
