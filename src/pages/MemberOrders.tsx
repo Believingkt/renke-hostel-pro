@@ -371,9 +371,19 @@ const MemberOrders = () => {
               const cancelled = order.order_status === "cancelled";
               const paidAmount = Math.max(0, Number(order.paid_amount || 0));
 
-              const paymentLabel = paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
-              const paymentClass =
-                order.payment_status === "paid"
+              const atmExpired =
+                !cancelled &&
+                !isOrderPaid(order) &&
+                !!order.atm_vacc_no &&
+                !!order.atm_expire_at &&
+                new Date(order.atm_expire_at).getTime() < Date.now();
+
+              const paymentLabel = atmExpired
+                ? "已逾期"
+                : paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
+              const paymentClass = atmExpired
+                ? "bg-red-50 text-red-600"
+                : order.payment_status === "paid"
                   ? "bg-emerald-50 text-emerald-700"
                   : isOrderPaid(order)
                     ? "bg-sky-50 text-sky-700"
