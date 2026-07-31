@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { addonNightsMultiplier, addonPricingSuffix } from "@/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
@@ -53,6 +54,7 @@ interface AddonSetting {
   description: string | null;
   price_per_unit: number;
   unit_label: string;
+  pricing_mode?: string | null;
   enabled: boolean;
   max_quantity: number;
 }
@@ -369,7 +371,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("name"),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -1024,7 +1026,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const addonNights = Math.max(1, calculateNights());
     const addonTotal = selectedAddons.reduce((sum, a) => {
       const addon = addonSettings.find(ad => ad.id === a.addon_id);
-      return sum + (addon ? addon.price_per_unit * a.quantity * addonNights : 0);
+      return sum + (addon ? addon.price_per_unit * a.quantity * addonNightsMultiplier(addon.pricing_mode, addonNights) : 0);
     }, 0);
     // Use explicit selection prices to avoid stale roomPrice state during submit
     const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
@@ -1378,7 +1380,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 addon_type: addon?.addon_type || '',
                 count: a.quantity,
                 price_per_unit: addon?.price_per_unit || 0,
-                total: (addon?.price_per_unit || 0) * a.quantity * addonNights,
+                pricing_mode: addon?.pricing_mode || 'per_night',
+                total: (addon?.price_per_unit || 0) * a.quantity * addonNightsMultiplier(addon?.pricing_mode, addonNights),
                 unit_label: addon?.unit_label || '',
               };
             })
@@ -2492,7 +2495,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
                     <div className="text-sm text-primary">
-                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix(addon.pricing_mode)}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 ml-2">
