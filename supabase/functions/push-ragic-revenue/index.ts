@@ -18,15 +18,36 @@ const FIELD = {
   VENUE: "1001008",
   COMMISSION_RATE: "1001019",
   COMMISSION_FEE: "1001020",
-  EXCHANGE_RATE: "1001021",
   NOTE: "1001022",
-  ORIGINAL_CURRENCY: "1001023",
 } as const;
+
+// 排除的訂單來源（業主自帶 / OTA / 保留單）
+const EXCLUDED_SOURCES = new Set<string>([
+  // 保留單
+  "hold",
+  // 業主自帶
+  "official_use",
+  "owner_provided",
+  "業主代訂",
+  // OTA / 通路商
+  "owlting",
+  "booking",
+  "Booking.com",
+  "hotelnabe",
+]);
+
+function isExcludedSource(src: string | null | undefined): boolean {
+  const s = String(src ?? "").trim();
+  if (!s) return false;
+  if (s.startsWith("[CM]")) return true; // [CM] Booking.com / Agoda / AsiaYo / Trip.com...
+  return EXCLUDED_SOURCES.has(s);
+}
 
 // Only 森山寫照 is currently a franchise venue
 const FRANCHISE_IDS = new Set<string>([
   "5f764d55-ae11-4631-80fe-2e611853deae",
 ]);
+
 
 const NO_FEE_NOTE =
   "PMS尚未設定管顧費率，請查看 https://sensaninn.lakeze.com/team/commission";
@@ -54,6 +75,8 @@ function orderNights(o: any): number {
 function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
   if (o.order_status === "cancelled") return 0;
   if (o.order_source === "kol") return 0;
+  if (String(o.guest_name ?? "").trim() === "保留單") return 0;
+  if (isExcludedSource(o.order_source)) return 0;
   const nights = orderNights(o);
   if (!nights) return 0;
   const share = (Number(o.final_price) || 0) / nights;
@@ -70,14 +93,6 @@ function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
   return sum;
 }
 
-function orderCurrency(o: any): string {
-  const meta = o?.order_meta;
-  const raw =
-    (Array.isArray(meta) ? meta[0]?.display_currency : meta?.display_currency) ??
-    o?.currency ??
-    "TWD";
-  return String(raw || "TWD").toUpperCase();
-}
 
 function ragicAuthHeader() {
   const apiKey = Deno.env.get("RAGIC_API_KEY");
@@ -198,37 +213,37 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const acc of accommodations || []) {
-      // 3. Fetch orders overlapping the month
-      const { data: orders, error: ordErr } = await supabase
+      // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
+      const { data: jpyMeta, error: jpyErr } = await supabase
+        .from("order_meta")
+        .select("order_id, orders!inner(accommodation_id)")
+        .eq("display_currency", "JPY")
+        .eq("orders.accommodation_id", acc.id);
+      if (jpyErr) throw jpyErr;
+      const jpyIds = (jpyMeta || []).map((m: any) => m.order_id).filter(Boolean);
+
+      // 3b. Fetch orders overlapping the month (排除日幣訂單)
+      let ordQuery = supabase
         .from("orders")
         .select(
-          "id, check_in_date, check_out_date, final_price, order_status, order_source, order_meta(display_currency)",
+          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source",
         )
         .eq("accommodation_id", acc.id)
         .lt("check_in_date", monthEndStr)
         .gt("check_out_date", monthStartStr);
+      if (jpyIds.length > 0) {
+        ordQuery = ordQuery.not("id", "in", `(${jpyIds.join(",")})`);
+      }
+      const { data: orders, error: ordErr } = await ordQuery;
       if (ordErr) throw ordErr;
 
-      // 4. Aggregate revenue (native currency) + convert to TWD
-      const isJpy =
-        (acc.secondary_currency || "").toUpperCase() === "JPY" &&
-        Number(acc.secondary_currency_rate) > 0;
-      const jpyRate = Number(acc.secondary_currency_rate) || 0; // JPY per TWD
-      const originalCurrency = isJpy ? "JPY" : "TWD";
-      const exchangeRate = isJpy ? jpyRate : 1;
-
+      // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
       for (const o of orders || []) {
-        const nightly = accruedInMonth(o, monthStart, monthEnd);
-        if (!nightly) continue;
-        const cur = orderCurrency(o);
-        if (cur === "JPY" && jpyRate > 0) {
-          revenueTwd += nightly / jpyRate; // JPY → TWD
-        } else {
-          revenueTwd += nightly;
-        }
+        revenueTwd += accruedInMonth(o, monthStart, monthEnd);
       }
       revenueTwd = Math.round(revenueTwd);
+
 
       const feeCfg = feeMap.get(acc.id) ?? null;
       const hasFee = !!feeCfg;
@@ -250,8 +265,6 @@ Deno.serve(async (req) => {
           skipped: true,
           reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
           is_franchise: FRANCHISE_IDS.has(acc.id),
-          original_currency: originalCurrency,
-          exchange_rate: exchangeRate,
           revenue_twd: revenueTwd,
           management_fee_twd: 0,
         });
@@ -263,8 +276,6 @@ Deno.serve(async (req) => {
       // Ragic 抽成比例欄位為百分比型態，會自動 ×100 顯示；因此送出「小數」原值 (e.g. 0.25)
       const ratePercent = feeCfg ? Number(feeCfg.rate.toFixed(6)) : 0;
 
-      const exchangeRateStr = isJpy ? String(exchangeRate) : "";
-
       // 平台抽成 (always)
       rows.push({
         [FIELD.DATA_SOURCE]: "PMS",
@@ -275,9 +286,7 @@ Deno.serve(async (req) => {
         [FIELD.VENUE]: acc.name,
         [FIELD.COMMISSION_RATE]: String(ratePercent),
         [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
-        [FIELD.EXCHANGE_RATE]: exchangeRateStr,
         [FIELD.NOTE]: noteText,
-        [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
       });
 
       // 門市運營 (franchise only)
@@ -291,11 +300,10 @@ Deno.serve(async (req) => {
           [FIELD.VENUE]: acc.name,
           [FIELD.COMMISSION_RATE]: "",
           [FIELD.COMMISSION_FEE]: "",
-          [FIELD.EXCHANGE_RATE]: exchangeRateStr,
           [FIELD.NOTE]: noteText,
-          [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
         });
       }
+
 
       const posts: any[] = [];
       if (!dry_run) {
@@ -329,8 +337,6 @@ Deno.serve(async (req) => {
         accommodation_id: acc.id,
         accommodation_name: acc.name,
         is_franchise: isFranchise,
-        original_currency: originalCurrency,
-        exchange_rate: exchangeRate,
         revenue_twd: revenueTwd,
         management_fee_twd: managementFeeRounded,
         fee_config: feeCfg,
