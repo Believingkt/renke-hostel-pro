@@ -403,13 +403,20 @@ serve(async (req) => {
 
     // 加購計價方式（每晚 / 單次）一律以資料庫設定為準，不信任前端傳入值
     const addonPricingModes = new Map<string, string>();
-    if (customAddonDetails && Array.isArray(customAddonDetails) && customAddonDetails.length > 0) {
+    const mandatoryAddons: Array<{ addon_type: string; min: number }> = [];
+    {
       const { data: addonRows } = await supabase
         .from("addon_settings")
-        .select("addon_type, pricing_mode")
+        .select("addon_type, pricing_mode, enabled, auto_include, is_locked, min_quantity")
         .eq("accommodation_id", accommodationId);
       for (const row of addonRows ?? []) {
         addonPricingModes.set(row.addon_type, row.pricing_mode === "per_stay" ? "per_stay" : "per_night");
+        if (row.enabled !== false && row.auto_include === true && row.is_locked === true) {
+          mandatoryAddons.push({
+            addon_type: row.addon_type,
+            min: Math.max(1, Number(row.min_quantity) || 0),
+          });
+        }
       }
     }
     const addonMultiplier = (addonType: string) =>
