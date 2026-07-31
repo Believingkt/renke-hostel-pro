@@ -58,6 +58,7 @@ interface AddonSetting {
   enabled: boolean;
   min_quantity?: number | null;
   max_quantity: number;
+  auto_include?: boolean | null;
 }
 
 interface PricingTemplate {
@@ -372,7 +373,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("name"),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -405,6 +406,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!addonsResult.error && addonsResult.data) {
         setAddonSettings(addonsResult.data);
+        // 自動帶入的加購（僅新訂單建立時生效，不影響既有訂單編輯）
+        const autoAddons = addonsResult.data.filter((a: any) => a.auto_include === true);
+        if (autoAddons.length > 0) {
+          setSelectedAddons(prev => {
+            const next = [...prev];
+            for (const a of autoAddons) {
+              if (!next.some(x => x.addon_id === a.id)) {
+                next.push({ addon_id: a.id, quantity: Math.max(1, a.min_quantity ?? 0) });
+              }
+            }
+            return next;
+          });
+        }
       }
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
