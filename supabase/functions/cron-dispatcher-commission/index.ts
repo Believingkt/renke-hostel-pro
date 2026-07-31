@@ -114,22 +114,40 @@ Deno.serve(async (req) => {
   }
 
   const startedAt = new Date().toISOString();
-  const scout = resolveScoutPeriod();
-  console.log(`[${FUNCTION_NAME}] start`, { startedAt, scout });
+
+  // Optional manual backfill overrides (cron sends no body):
+  //   { year, month, period, snapshot_month: "YYYY-MM" }
+  const reqBody = await req.json().catch(() => ({} as Record<string, unknown>));
+  const auto = resolveScoutPeriod();
+  const scout = {
+    year: Number(reqBody?.year ?? auto.year),
+    month: Number(reqBody?.month ?? auto.month),
+    period: String(reqBody?.period ?? auto.period),
+  };
+  const snapshotMonth =
+    typeof reqBody?.snapshot_month === "string" && /^\d{4}-\d{2}$/.test(reqBody.snapshot_month)
+      ? reqBody.snapshot_month
+      : null;
+  const snapshotBody: Record<string, unknown> = snapshotMonth
+    ? { test_mode: true, test_month: snapshotMonth }
+    : {};
+
+  console.log(`[${FUNCTION_NAME}] start`, { startedAt, scout, snapshotMonth });
 
   const results: StepResult[] = [];
 
   // Sequential on purpose: snapshots/adjustments produce the commission records
   // that the scout payout aggregation reads.
-  results.push(await callFunction("create-commission-snapshots", {}));
-  results.push(await callFunction("create-commission-adjustments", {}));
+  results.push(await callFunction("create-commission-snapshots", snapshotBody));
+  results.push(await callFunction("create-commission-adjustments", snapshotBody));
   results.push(
     await callFunction("calculate-scout-payout", {
       year: scout.year,
       month: scout.month,
-      period: scout.period,
+      period: Number(scout.period),
     }),
   );
+
 
   const succeeded = results.filter((r) => r.ok).map((r) => r.fn);
   const failed = results.filter((r) => !r.ok).map((r) => r.fn);
