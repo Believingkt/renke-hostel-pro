@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -581,6 +581,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [markingSource, setMarkingSource] = useState<string | null>(null);
+  const [recalcOpen, setRecalcOpen] = useState(false);
+  const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
+  const [recalcRunning, setRecalcRunning] = useState(false);
+
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
       const next = new Set(prev);
@@ -1006,6 +1010,35 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     fetchData();
   }, [fetchData]);
 
+  // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
+  const runRecalc = async () => {
+    setRecalcRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cron-dispatcher-commission", {
+        body: {
+          year,
+          month,
+          period: recalcPeriod,
+          snapshot_month: prevMonthKey,
+        },
+      });
+      if (error) throw error;
+      const failed: string[] = (data as { failed?: string[] })?.failed ?? [];
+      if (failed.length > 0) {
+        toast.error(`部分步驟失敗：${failed.join("、")}`);
+      } else {
+        toast.success(`已重新試算 ${year}/${String(month).padStart(2, "0")} 期別 ${recalcPeriod}`);
+      }
+      setRecalcOpen(false);
+      await fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRecalcRunning(false);
+    }
+  };
+
+
   const markItem = async (item: SourceItem) => {
     const { data: auth } = await supabase.auth.getUser();
     if (item.source_table === "scout_monthly_payouts") {
@@ -1165,7 +1198,54 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
             </Button>
           )}
+          {!readOnly && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setRecalcOpen(true)}
+              disabled={recalcRunning || loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${recalcRunning ? "animate-spin" : ""}`} />
+              {recalcRunning ? "試算中…" : "手動重新試算"}
+            </Button>
+          )}
         </div>
+
+        <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>手動重新試算</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    將重新產生 <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月的成交組快照、
+                    金額調整，以及星探發放試算（結算月份 {prevMonthKey}）。已標記為「已發放」的紀錄不會被覆蓋。
+                  </p>
+                  <div>
+                    <Label className="text-xs">星探期別</Label>
+                    <Select
+                      value={recalcPeriod}
+                      onValueChange={(v) => setRecalcPeriod(v as "10" | "25")}
+                    >
+                      <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">期別 10（上月21日~本月5日）</SelectItem>
+                        <SelectItem value="25">期別 25（本月6日~20日）</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
+              <Button onClick={runRecalc} disabled={recalcRunning}>
+                {recalcRunning ? "試算中…" : "開始重新試算"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {!loading && groups.length > 0 && (
           <div className="flex gap-6 text-sm bg-muted/30 rounded p-3">
