@@ -168,10 +168,8 @@ export default function AtmBookingSuccess() {
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paidDetected, setPaidDetected] = useState(false);
-  const [redirectIn, setRedirectIn] = useState(5);
-  const [dismissed, setDismissed] = useState(false);
   const [depositSettings, setDepositSettings] = useState<DepositSettingsLike | null>(null);
-  const redirectedRef = useRef(false);
+
 
   // 載入該民宿訂金比例設定（ATM 匯款僅收訂金，預設 30%）
   useEffect(() => {
@@ -215,9 +213,9 @@ export default function AtmBookingSuccess() {
       o.order_status === "confirmed");
 
   const goViewOrder = () => {
-    redirectedRef.current = true;
     navigate(`/member/orders`);
   };
+
 
   useEffect(() => {
     let alive = true;
@@ -295,17 +293,8 @@ export default function AtmBookingSuccess() {
     };
   }, [order?.id, paidDetected]);
 
-  // Countdown then redirect once payment detected
-  useEffect(() => {
-    if (!paidDetected || dismissed) return;
-    if (redirectedRef.current) return;
-    if (redirectIn <= 0) {
-      goViewOrder();
-      return;
-    }
-    const id = setTimeout(() => setRedirectIn((s) => s - 1), 1000);
-    return () => clearTimeout(id);
-  }, [paidDetected, redirectIn, dismissed]);
+
+
 
 
   const nights = useMemo(() => {
@@ -370,23 +359,8 @@ export default function AtmBookingSuccess() {
   return (
     <div className="min-h-screen bg-muted/20 py-6 md:py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
-        {paidDetected && !dismissed && (
-          <Alert className="border-primary/50 bg-primary/5">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            <AlertTitle className="text-base font-semibold text-primary">
-              付款完成！訂單已確認
-            </AlertTitle>
-            <AlertDescription className="text-sm space-y-2">
-              <div>系統已收到您的匯款，將於 {redirectIn} 秒後自動為您前往「我的訂單」頁面。</div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={goViewOrder}>立即查看訂單</Button>
-                <Button size="sm" variant="outline" onClick={() => setDismissed(true)}>
-                  留在此頁
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+
+
 
         {/* 成功標題 */}
         <div className="text-center space-y-3">
