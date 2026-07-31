@@ -59,17 +59,8 @@ const MemberSessionBar = ({
     );
   }
 
-  if (loggedInMember) {
-    return (
-      <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 flex items-center gap-2 text-sm text-emerald-800">
-        <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
-        <span className="min-w-0 break-all">
-          目前登入會員：<span className="font-medium">{loggedInMember.email}</span>
-          {trimmedBookingEmail ? "，訂單將掛在此帳號" : "，訂房可累積紅利點數"}
-        </span>
-      </div>
-    );
-  }
+  // 已登入且無不一致時不重複提示（下方訂房資料區已有一則提示）
+  if (loggedInMember) return null;
 
   return (
     <div className="mb-3 rounded-lg border bg-muted/40 px-3 py-2 flex items-center gap-2 text-sm text-muted-foreground">

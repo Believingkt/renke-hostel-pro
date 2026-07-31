@@ -137,7 +137,8 @@ export default function BookerForm(props: Props) {
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
               <p className="text-sm font-medium text-green-800">
-                已登入會員：{loggedInMember.name}（{loggedInMember.email}），訂房可累積紅利點數
+                已登入會員：{loggedInMember.name}
+                {isUsableEmail(loggedInMember.email) ? `（${loggedInMember.email}）` : ""}，訂房可累積紅利點數
               </p>
             </div>
           </CardContent>
@@ -220,12 +221,6 @@ export default function BookerForm(props: Props) {
 
             <p className="text-xs text-muted-foreground mt-1">訂單確認函將寄送至此電子郵件</p>
 
-            {loggedInMember && !isMemberEmailMismatch && (
-              <div className="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-700">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-                <span className="break-all">會員歡迎您回來！訂單將掛在 {loggedInMember.email}</span>
-              </div>
-            )}
 
             {!loggedInMember && emailCheckStatus === "checking" && (
               <p className="text-xs text-muted-foreground mt-1">正在檢查會員狀態...</p>
