@@ -441,7 +441,7 @@ const SortablePlanCard = ({
                 />
 
                 <p className="text-xs text-muted-foreground">
-                  規則、注意事項、包含內容都放這裡，不要寫進方案名稱或單位欄位。
+                  規則、注意事項、包含內容都放這裡，不要寫進方案名稱或單位欄位。套用範本會一併覆寫「單位詞」。
                 </p>
               </AccordionContent>
             </AccordionItem>
