@@ -1010,6 +1010,35 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     fetchData();
   }, [fetchData]);
 
+  // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
+  const runRecalc = async () => {
+    setRecalcRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cron-dispatcher-commission", {
+        body: {
+          year,
+          month,
+          period: recalcPeriod,
+          snapshot_month: prevMonthKey,
+        },
+      });
+      if (error) throw error;
+      const failed: string[] = (data as { failed?: string[] })?.failed ?? [];
+      if (failed.length > 0) {
+        toast.error(`部分步驟失敗：${failed.join("、")}`);
+      } else {
+        toast.success(`已重新試算 ${year}/${String(month).padStart(2, "0")} 期別 ${recalcPeriod}`);
+      }
+      setRecalcOpen(false);
+      await fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRecalcRunning(false);
+    }
+  };
+
+
   const markItem = async (item: SourceItem) => {
     const { data: auth } = await supabase.auth.getUser();
     if (item.source_table === "scout_monthly_payouts") {
