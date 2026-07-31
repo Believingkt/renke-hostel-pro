@@ -20,7 +20,13 @@ const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNav
   const lastScrollY = useRef(0);
   const navRef = useRef<HTMLElement | null>(null);
 
+  const alwaysVisible = location.pathname.startsWith("/member/orders");
+
   useEffect(() => {
+    if (alwaysVisible) {
+      setVisible(true);
+      return;
+    }
     const onScroll = () => {
       const currentY = window.scrollY;
       if (currentY > lastScrollY.current && currentY > 60) {
@@ -32,7 +38,8 @@ const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNav
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [alwaysVisible]);
+
 
   useEffect(() => {
     onVisibilityChange?.(visible);
