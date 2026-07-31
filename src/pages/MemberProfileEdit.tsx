@@ -177,6 +177,58 @@ const MemberProfile = () => {
         <CardTitle>個人資料</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[hsl(24,100%,55%)] to-[hsl(14,90%,55%)] flex items-center justify-center ring-2 ring-white shadow-md">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="會員頭貼" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-9 w-9 text-white" />
+              )}
+            </div>
+            {uploadingAvatar && (
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingAvatar}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                {avatarPath ? "更換頭貼" : "上傳頭貼"}
+              </Button>
+              {avatarPath && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={uploadingAvatar}
+                  onClick={handleAvatarRemove}
+                  className="text-muted-foreground"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  移除
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">支援 JPG／PNG／WebP，檔案小於 {MAX_AVATAR_MB} MB</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleAvatarPick(e.target.files?.[0])}
+          />
+        </div>
+
         <div className="space-y-2">
           <Label>姓名 <span className="text-destructive">*</span></Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
