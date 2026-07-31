@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -568,6 +569,7 @@ Deno.serve(async (req) => {
         order_date,
         accommodation_id,
         order_source,
+        owner_direct,
         currency_at_booking,
         internal_email_sent,
         internal_email_sent_at,
