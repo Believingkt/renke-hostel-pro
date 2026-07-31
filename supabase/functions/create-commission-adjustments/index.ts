@@ -123,6 +123,8 @@ serve(async (req) => {
         const ord = ordersMap.get(orderId);
         if (!ord) continue;
         if (ord.order_status === "cancelled") continue; // handled in scenario B
+        // 非台幣訂單不計入獎金（null 視為台幣）
+        if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
 
         const meta = metaMap.get(orderId);
         const currentBase = Number(
