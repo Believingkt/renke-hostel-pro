@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { addonPricingSuffix } from "@/lib/addonLabels";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
@@ -25,6 +26,7 @@ interface AddonSetting {
   description: string | null;
   price_per_unit: number;
   unit_label: string;
+  pricing_mode?: string | null;
   max_quantity: number;
 }
 
@@ -111,7 +113,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (!currentAccommodationId) return;
     supabase
       .from("addon_settings")
-      .select("id, addon_type, description, price_per_unit, unit_label, max_quantity")
+      .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, max_quantity")
       .eq("accommodation_id", currentAccommodationId)
       .eq("enabled", true)
       .order("sort_order", { ascending: true })
@@ -450,7 +452,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{addon.addon_type}</p>
                         <p className="text-xs text-muted-foreground">
-                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix(addon.pricing_mode)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

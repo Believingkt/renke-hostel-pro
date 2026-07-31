@@ -85,7 +85,7 @@ import {
 } from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { cleanAddonName, shortUnit, addonPriceLine } from "@/lib/addonLabels";
+import { cleanAddonName, shortUnit, addonPriceLine, addonNightsMultiplier, normalizeAddonPricingMode } from "@/lib/addonLabels";
 import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
@@ -580,6 +580,7 @@ const BookingFlow = () => {
     price_per_unit: number;
     max_quantity: number;
     unit_label: string;
+    pricing_mode: 'per_night' | 'per_stay';
     enabled: boolean;
   }
   const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
@@ -780,6 +781,7 @@ const BookingFlow = () => {
               price_per_unit: a.price_per_unit,
               max_quantity: a.max_quantity,
               unit_label: a.unit_label,
+              pricing_mode: normalizeAddonPricingMode((a as any).pricing_mode),
               enabled: a.enabled || false,
             })));
           }
@@ -2120,7 +2122,7 @@ const BookingFlow = () => {
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
     const customTotal = Object.entries(customAddonCounts).reduce((sum, [type, count]) => {
       const setting = customAddonSettings.find(s => s.addon_type === type);
-      return sum + (count * (setting?.price_per_unit || 0) * nights);
+      return sum + (count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights));
     }, 0);
     return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + calculateChildExtraTotal();
   };
@@ -2917,7 +2919,8 @@ const BookingFlow = () => {
                     addon_type: type,
                     count,
                     price_per_unit: setting?.price_per_unit || 0,
-                    total: count * (setting?.price_per_unit || 0) * nights,
+                    pricing_mode: setting?.pricing_mode || 'per_night',
+                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights),
                   };
                 }),
               childSelection,
@@ -3071,7 +3074,8 @@ const BookingFlow = () => {
                         addon_type: type,
                         count,
                         price_per_unit: setting?.price_per_unit || 0,
-                        total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                        pricing_mode: setting?.pricing_mode || 'per_night',
+                        total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
                         unit_label: setting?.unit_label || '',
                       };
                     })
@@ -3322,7 +3326,8 @@ const BookingFlow = () => {
                     addon_type: type,
                     count,
                     price_per_unit: setting?.price_per_unit || 0,
-                    total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                    pricing_mode: setting?.pricing_mode || 'per_night',
+                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
                     unit_label: setting?.unit_label || '',
                   };
                 })
@@ -3769,7 +3774,7 @@ const BookingFlow = () => {
                                   onClick={() => {
                                     setCustomAddonDetail({
                                       title: cleanAddonName(addon.addon_type),
-                                      subtitle: addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity),
+                                      subtitle: addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity, addon.pricing_mode),
                                       html: addon.detailed_description || '',
                                     });
                                   }}
@@ -3779,7 +3784,7 @@ const BookingFlow = () => {
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1.5">
-                              {addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity)}
+                              {addonPriceLine(addon.price_per_unit, addon.unit_label, addon.max_quantity, addon.pricing_mode)}
                             </p>
                           </CardHeader>
                           <CardContent className="space-y-4 px-3 sm:px-6">
@@ -3799,7 +3804,7 @@ const BookingFlow = () => {
                                   <div className="min-w-0">
                                     <p className="font-semibold text-sm sm:text-base">數量</p>
                                     <p className="text-xs sm:text-sm text-muted-foreground break-words">
-                                      {count} {shortUnit(addon.unit_label)} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
+                                      {count} {shortUnit(addon.unit_label)} × NT$ {addon.price_per_unit.toLocaleString()}{addon.pricing_mode === 'per_stay' ? '（單次）' : ` × ${nights} 晚`}
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -3836,7 +3841,7 @@ const BookingFlow = () => {
                                 </div>
                                 <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
                                   <p className="font-bold text-sm sm:text-base">
-                                    小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
+                                    小計：NT$ {(count * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights)).toLocaleString()}
                                   </p>
                                 </div>
                               </div>
@@ -3873,9 +3878,9 @@ const BookingFlow = () => {
                               return (
                                 <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
                                   <span className="text-muted-foreground min-w-0 truncate">
-                                    🛏️ {cleanAddonName(type)} × {count} {shortUnit(setting?.unit_label)} × {calculateNights()} 晚
+                                    🛏️ {cleanAddonName(type)} × {count} {shortUnit(setting?.unit_label)}{setting?.pricing_mode === 'per_stay' ? '（單次）' : ` × ${calculateNights()} 晚`}
                                   </span>
-                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights())).toLocaleString()}</span>
                                 </div>
                               );
                             })}
@@ -4132,8 +4137,8 @@ const BookingFlow = () => {
                 if (!s) return;
                 addonLines.push({
                   label: cleanAddonName(s.addon_type),
-                  qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
-                  subtotal: count * s.price_per_unit * nights,
+                  qty: s.pricing_mode === 'per_stay' ? `${count} ${shortUnit(s.unit_label)}（單次）` : `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
+                  subtotal: count * s.price_per_unit * addonNightsMultiplier(s.pricing_mode, nights),
                 });
               });
               const childExtra = calculateChildExtraTotal();
@@ -5165,8 +5170,8 @@ const BookingFlow = () => {
                         if (!s) return;
                         addonLines.push({
                           label: cleanAddonName(s.addon_type),
-                          qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
-                          subtotal: count * s.price_per_unit * nights,
+                          qty: s.pricing_mode === 'per_stay' ? `${count} ${shortUnit(s.unit_label)}（單次）` : `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
+                          subtotal: count * s.price_per_unit * addonNightsMultiplier(s.pricing_mode, nights),
                         });
                       });
                       const childExtra = calculateChildExtraTotal();
@@ -5455,8 +5460,8 @@ const BookingFlow = () => {
                 if (!s) return;
                 addonLines.push({
                   label: cleanAddonName(s.addon_type),
-                  qty: `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
-                  subtotal: count * s.price_per_unit * nights,
+                  qty: s.pricing_mode === 'per_stay' ? `${count} ${shortUnit(s.unit_label)}（單次）` : `${count} ${shortUnit(s.unit_label)} × ${nights} 晚`,
+                  subtotal: count * s.price_per_unit * addonNightsMultiplier(s.pricing_mode, nights),
                 });
               });
               const childExtra = calculateChildExtraTotal();

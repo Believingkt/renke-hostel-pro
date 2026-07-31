@@ -21,10 +21,27 @@ export function shortUnit(raw?: string | null): string {
   return s;
 }
 
+/** 加購計價方式：per_night = 每晚計算；per_stay = 整筆訂單只計一次 */
+export type AddonPricingMode = "per_night" | "per_stay";
+
+export function normalizeAddonPricingMode(raw?: string | null): AddonPricingMode {
+  return raw === "per_stay" ? "per_stay" : "per_night";
+}
+
+/** 計價倍數：每晚計價 × 晚數；單次計價固定 1 */
+export function addonNightsMultiplier(pricingMode: string | null | undefined, nights: number): number {
+  return normalizeAddonPricingMode(pricingMode) === "per_stay" ? 1 : Math.max(0, nights);
+}
+
+/** 計價方式的後綴文字（／晚 或 ／整筆訂單） */
+export function addonPricingSuffix(pricingMode?: string | null): string {
+  return normalizeAddonPricingMode(pricingMode) === "per_stay" ? "／整筆訂單" : "／晚";
+}
+
 /** 卡片副標：每份 NT$ 800／晚・最多 5 份 */
-export function addonPriceLine(pricePerUnit: number, unitLabel?: string | null, maxQuantity?: number | null): string {
+export function addonPriceLine(pricePerUnit: number, unitLabel?: string | null, maxQuantity?: number | null, pricingMode?: string | null): string {
   const u = shortUnit(unitLabel);
-  const parts = [`每${u} NT$ ${pricePerUnit.toLocaleString()}／晚`];
+  const parts = [`每${u} NT$ ${pricePerUnit.toLocaleString()}${addonPricingSuffix(pricingMode)}`];
   if (maxQuantity && maxQuantity > 0) parts.push(`最多 ${maxQuantity} ${u}`);
   return parts.join("・");
 }

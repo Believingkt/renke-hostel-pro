@@ -14,6 +14,7 @@ import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
+import { addonPricingSuffix } from "@/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
@@ -154,7 +155,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("addon_settings")
-          .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
           .eq("enabled", true)
           .order("sort_order", { ascending: true })
@@ -992,7 +993,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                           <div className="text-sm sm:text-xs text-muted-foreground truncate">{addon.description}</div>
                         )}
                         <div className="text-sm sm:text-xs text-primary">
-                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix((addon as any).pricing_mode)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-3">

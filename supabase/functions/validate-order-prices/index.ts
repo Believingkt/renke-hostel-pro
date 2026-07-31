@@ -401,12 +401,26 @@ serve(async (req) => {
       }
     }
 
+    // 加購計價方式（每晚 / 單次）一律以資料庫設定為準，不信任前端傳入值
+    const addonPricingModes = new Map<string, string>();
+    if (customAddonDetails && Array.isArray(customAddonDetails) && customAddonDetails.length > 0) {
+      const { data: addonRows } = await supabase
+        .from("addon_settings")
+        .select("addon_type, pricing_mode")
+        .eq("accommodation_id", accommodationId);
+      for (const row of addonRows ?? []) {
+        addonPricingModes.set(row.addon_type, row.pricing_mode === "per_stay" ? "per_stay" : "per_night");
+      }
+    }
+    const addonMultiplier = (addonType: string) =>
+      addonPricingModes.get(addonType) === "per_stay" ? 1 : nights;
+
     // Calculate custom addon total
     let calculatedCustomAddonTotal = 0;
     if (customAddonDetails && Array.isArray(customAddonDetails)) {
       for (const addon of customAddonDetails) {
         if (typeof addon.count === 'number' && typeof addon.price_per_unit === 'number') {
-          calculatedCustomAddonTotal += addon.count * addon.price_per_unit * nights;
+          calculatedCustomAddonTotal += addon.count * addon.price_per_unit * addonMultiplier(addon.addon_type);
         }
       }
     }
@@ -531,7 +545,7 @@ serve(async (req) => {
           errors.push(`Invalid custom addon line: ${JSON.stringify(addon)}`);
           continue;
         }
-        const expected = addon.count * addon.price_per_unit * nights;
+        const expected = addon.count * addon.price_per_unit * addonMultiplier(addon.addon_type);
         if (Math.abs(addon.total - expected) > priceTolerance) {
           errors.push(
             `Custom addon total mismatch (${addon.addon_type}): client=${addon.total}, expected=${expected}`,

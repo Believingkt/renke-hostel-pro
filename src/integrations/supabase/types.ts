@@ -1117,6 +1117,7 @@ export type Database = {
           max_quantity: number
           min_quantity: number | null
           price_per_unit: number
+          pricing_mode: string
           sort_order: number
           unit_label: string
           updated_at: string | null
@@ -1134,6 +1135,7 @@ export type Database = {
           max_quantity: number
           min_quantity?: number | null
           price_per_unit: number
+          pricing_mode?: string
           sort_order?: number
           unit_label: string
           updated_at?: string | null
@@ -1151,6 +1153,7 @@ export type Database = {
           max_quantity?: number
           min_quantity?: number | null
           price_per_unit?: number
+          pricing_mode?: string
           sort_order?: number
           unit_label?: string
           updated_at?: string | null

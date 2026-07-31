@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AddonPlanPreview } from "./AddonPlanPreview";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 export interface AddonPlan {
@@ -75,6 +76,7 @@ export interface AddonPlan {
   weekday_min_quantity?: number;
   weekend_min_quantity?: number;
   unit_label: string;
+  pricing_mode?: 'per_night' | 'per_stay';
   description?: string;
   detailed_description?: string;
 }
@@ -96,7 +98,8 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   price_per_unit: 500,
   min_quantity: 0,
   max_quantity: 10,
-  unit_label: "每次",
+  unit_label: "份",
+  pricing_mode: "per_night",
   description: "",
   detailed_description: ""
 };
@@ -236,6 +239,26 @@ const SortablePlanCard = ({
 
 
 
+
+          <div className="space-y-1.5">
+            <Label>計價方式</Label>
+            <Select
+              value={plan.pricing_mode || "per_night"}
+              disabled={!plan.enabled}
+              onValueChange={(value) => onUpdate(index, { pricing_mode: value as 'per_night' | 'per_stay' })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="per_night">每晚計算（價格 × 數量 × 入住晚數）</SelectItem>
+                <SelectItem value="per_stay">單次計算（整筆訂單只收一次，不乘晚數）</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              加床、寵物這類每晚都要收的選「每晚計算」；接送、清潔、門票這類一筆訂單只收一次的選「單次計算」。
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-6">
             <ValidatedNumberInput
