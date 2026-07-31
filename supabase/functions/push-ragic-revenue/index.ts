@@ -265,8 +265,6 @@ Deno.serve(async (req) => {
           skipped: true,
           reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
           is_franchise: FRANCHISE_IDS.has(acc.id),
-          original_currency: originalCurrency,
-          exchange_rate: exchangeRate,
           revenue_twd: revenueTwd,
           management_fee_twd: 0,
         });
@@ -278,8 +276,6 @@ Deno.serve(async (req) => {
       // Ragic 抽成比例欄位為百分比型態，會自動 ×100 顯示；因此送出「小數」原值 (e.g. 0.25)
       const ratePercent = feeCfg ? Number(feeCfg.rate.toFixed(6)) : 0;
 
-      const exchangeRateStr = isJpy ? String(exchangeRate) : "";
-
       // 平台抽成 (always)
       rows.push({
         [FIELD.DATA_SOURCE]: "PMS",
@@ -290,9 +286,7 @@ Deno.serve(async (req) => {
         [FIELD.VENUE]: acc.name,
         [FIELD.COMMISSION_RATE]: String(ratePercent),
         [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
-        [FIELD.EXCHANGE_RATE]: exchangeRateStr,
         [FIELD.NOTE]: noteText,
-        [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
       });
 
       // 門市運營 (franchise only)
@@ -306,11 +300,10 @@ Deno.serve(async (req) => {
           [FIELD.VENUE]: acc.name,
           [FIELD.COMMISSION_RATE]: "",
           [FIELD.COMMISSION_FEE]: "",
-          [FIELD.EXCHANGE_RATE]: exchangeRateStr,
           [FIELD.NOTE]: noteText,
-          [FIELD.ORIGINAL_CURRENCY]: originalCurrency,
         });
       }
+
 
       const posts: any[] = [];
       if (!dry_run) {
