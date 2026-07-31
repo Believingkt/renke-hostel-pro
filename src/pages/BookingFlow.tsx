@@ -2454,18 +2454,36 @@ const BookingFlow = () => {
         setErrors({});
       } catch (error) {
         if (error instanceof z.ZodError) {
+          const fieldLabels: Record<string, string> = {
+            name: "姓名",
+            phone: "手機號碼",
+            email: "電子郵件",
+            address: "地址",
+            notes: "備註",
+          };
           const newErrors: Record<string, string> = {};
+          const messages: string[] = [];
           error.errors.forEach((err) => {
-            if (err.path[0]) {
-              newErrors[err.path[0].toString()] = err.message;
+            const key = err.path[0]?.toString();
+            if (key && !newErrors[key]) {
+              newErrors[key] = err.message;
+              messages.push(`${fieldLabels[key] ?? key}：${err.message}`);
             }
           });
           setErrors(newErrors);
           toast({
-            title: "表單驗證失敗",
-            description: "請檢查並修正表單中的錯誤",
+            title: "請完成必填欄位",
+            description: messages.join("\n"),
             variant: "destructive",
           });
+          const firstKey = Object.keys(newErrors)[0];
+          if (firstKey) {
+            setTimeout(() => {
+              const el = document.getElementById(firstKey);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              (el as HTMLInputElement | null)?.focus?.();
+            }, 50);
+          }
           return;
         }
       }
