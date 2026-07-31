@@ -46,6 +46,7 @@ import {
 } from "@/lib/schemas/booking";
 import { getOtpCooldown, markOtpSent } from "@/lib/otpThrottle";
 import { requestMemberOtp } from "@/lib/requestMemberOtp";
+import { SYNTHETIC_EMAIL_RE } from "@/components/member/MissingEmailNotice";
 
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
@@ -212,6 +213,9 @@ const BookingFlow = () => {
   
   // 會員登入狀態
   const [loggedInMember, setLoggedInMember] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
+  // LINE / Facebook 登入的會員：帳號本身沒有可收信的 Email（社群假信箱），
+  // 結帳頁輸入的 Email 只作為「寄送通知信」用途，不再觸發 OTP 會員驗證。
+  const [isSocialMember, setIsSocialMember] = useState(false);
 
   // Email 先行驗證狀態
   const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "exists" | "new" | "registered">("idle");
@@ -245,6 +249,12 @@ const BookingFlow = () => {
   // Debounce Email 檢查
   useEffect(() => {
     const email = (guestInfo.email || "").trim().toLowerCase();
+    // 社群登入會員：Email 僅用於接收通知信，不做會員驗證
+    if (loggedInMember && isSocialMember) {
+      setEmailCheckStatus("idle");
+      setOtpSent(false);
+      return;
+    }
     if (loggedInMember && email === (loggedInMember.email || "").trim().toLowerCase()) {
       setEmailCheckStatus("idle");
       return;
@@ -304,10 +314,11 @@ const BookingFlow = () => {
       }
     }, 800);
     return () => clearTimeout(t);
-  }, [guestInfo.email, loggedInMember, emailCheckedFor, toast]);
+  }, [guestInfo.email, loggedInMember, isSocialMember, emailCheckedFor, toast]);
 
   /** 已登入帳號與輸入 Email 不一致時，訂單不可掛在舊帳號上 */
   const isMemberEmailMismatch = !!loggedInMember
+    && !isSocialMember
     && !!guestInfo.email.trim()
     && guestInfo.email.trim().toLowerCase() !== (loggedInMember.email || "").trim().toLowerCase();
   const effectiveMemberId = loggedInMember && !isMemberEmailMismatch ? loggedInMember.id || null : null;
@@ -696,19 +707,22 @@ const BookingFlow = () => {
   useEffect(() => {
     const checkMember = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoggedInMember(null); return; }
+      if (!user) { setLoggedInMember(null); setIsSocialMember(false); return; }
       const { data: member } = await supabase
         .from("platform_members")
         .select("id, name, email, phone")
         .eq("user_id", user.id)
         .maybeSingle();
       if (member) {
-        setLoggedInMember(member);
-        // 自動填入會員資料
+        const memberEmail = member.email || user.email || "";
+        const social = SYNTHETIC_EMAIL_RE.test(memberEmail);
+        setIsSocialMember(social);
+        setLoggedInMember({ ...member, email: social ? "" : memberEmail });
+        // 自動填入會員資料（社群假信箱不帶入，讓客人自行填寫收信用 Email）
         setGuestInfo(prev => ({
           ...prev,
           name: prev.name || member.name || "",
-          email: prev.email || member.email || "",
+          email: prev.email || (social ? "" : memberEmail),
           phone: prev.phone || member.phone || "",
         }));
       }
