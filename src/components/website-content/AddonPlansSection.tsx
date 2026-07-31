@@ -233,22 +233,8 @@ const SortablePlanCard = ({
             </DropdownMenu>
           </div>
 
-          <div className="space-y-1.5">
-            <ValidatedInput
-              label="前台顯示名稱"
-              placeholder={`例如：${getDisplayName(plan.addon_type)}`}
-              value={plan.description || ""}
-              error={planErrors.description}
-              maxLength={100}
-              showCharCount
-              disabled={!plan.enabled}
-              onChange={(value) => onUpdate(index, { description: value })}
-              onValidate={(value) => onValidate(plan.addon_type, 'description', value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              前台卡片標題就是這一欄；留空則顯示方案名稱「{getDisplayName(plan.addon_type)}」。請勿在此寫價格文字（如「NT$ 800／」），前台會自動移除。
-            </p>
-          </div>
+
+
 
 
           <div className="grid grid-cols-2 gap-6">
