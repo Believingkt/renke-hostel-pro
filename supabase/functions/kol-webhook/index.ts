@@ -568,6 +568,7 @@ Deno.serve(async (req) => {
         order_date,
         accommodation_id,
         order_source,
+        currency_at_booking,
         internal_email_sent,
         internal_email_sent_at,
         room_types:room_type_id (name)
@@ -683,7 +684,12 @@ Deno.serve(async (req) => {
       : (order.room_types as { name: string } | null)?.name;
 
     const commissionRate = discountCode.commission_rate || 0;
-    const estimatedCommission = Math.round(order.final_price * (commissionRate / 100));
+    // 非台幣訂單不計入分潤（currency_at_booking 為 null 視為台幣）
+    const orderCurrency = (order as { currency_at_booking?: string | null }).currency_at_booking;
+    const isNonTwdOrder = !!orderCurrency && orderCurrency !== "TWD";
+    const estimatedCommission = isNonTwdOrder
+      ? 0
+      : Math.round(order.final_price * (commissionRate / 100));
 
     const payload: WebhookPayload = {
       event: "order.created",
