@@ -202,7 +202,6 @@ const BookingFlow = () => {
   // 加購方案是否展開（預設收合）
   const [isAddonsExpanded, setIsAddonsExpanded] = useState(false);
   // 附屬細則同意
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("");
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
