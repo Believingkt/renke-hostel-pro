@@ -561,6 +561,20 @@ serve(async (req) => {
       }
     }
 
+    // 必含加購（自動帶入且客人不可取消）：不得被移除或低於數量下限
+    if (mandatoryAddons.length > 0) {
+      const lines = Array.isArray(customAddonDetails) ? customAddonDetails : [];
+      for (const required of mandatoryAddons) {
+        const line = lines.find((a: any) => a?.addon_type === required.addon_type);
+        const count = typeof line?.count === "number" ? line.count : 0;
+        if (count < required.min) {
+          errors.push(
+            `Mandatory addon missing or below minimum (${required.addon_type}): client=${count}, required>=${required.min}`,
+          );
+        }
+      }
+    }
+
     // Log validation for auditing
     console.log("Order price validation:", {
       accommodationId,
