@@ -450,7 +450,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     });
   }
 
-  // 業績門檻基礎：未扣加購的當月營收（final_price 全額），排除非台幣 / exempt 訂單
+  // 業績門檻基礎：未扣加購的當月毛營收（final_price 全額，含 exempt 訂單）
   const thresholdBase = getGuestCountThresholdBase(rows);
   const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
   for (const r of rows) {
