@@ -70,11 +70,15 @@ interface Props {
   expireInMinutes?: number;
   /** 繳費期限（天），預設 3 */
   expireInDays?: number;
+  /** 款項已入帳（訂金或全額），顯示已付款狀態 */
+  paid?: boolean;
+  /** 已入帳金額（顯示用） */
+  paidAmount?: number;
   onCreated?: (info: AtmInfo) => void;
 }
 
 export function AtmPaymentPanel({
-  orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, expireInMinutes, expireInDays = 3, onCreated,
+  orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, expireInMinutes, expireInDays = 3, paid = false, paidAmount, onCreated,
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
