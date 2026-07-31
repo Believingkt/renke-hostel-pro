@@ -18,15 +18,36 @@ const FIELD = {
   VENUE: "1001008",
   COMMISSION_RATE: "1001019",
   COMMISSION_FEE: "1001020",
-  EXCHANGE_RATE: "1001021",
   NOTE: "1001022",
-  ORIGINAL_CURRENCY: "1001023",
 } as const;
+
+// 排除的訂單來源（業主自帶 / OTA / 保留單）
+const EXCLUDED_SOURCES = new Set<string>([
+  // 保留單
+  "hold",
+  // 業主自帶
+  "official_use",
+  "owner_provided",
+  "業主代訂",
+  // OTA / 通路商
+  "owlting",
+  "booking",
+  "Booking.com",
+  "hotelnabe",
+]);
+
+function isExcludedSource(src: string | null | undefined): boolean {
+  const s = String(src ?? "").trim();
+  if (!s) return false;
+  if (s.startsWith("[CM]")) return true; // [CM] Booking.com / Agoda / AsiaYo / Trip.com...
+  return EXCLUDED_SOURCES.has(s);
+}
 
 // Only 森山寫照 is currently a franchise venue
 const FRANCHISE_IDS = new Set<string>([
   "5f764d55-ae11-4631-80fe-2e611853deae",
 ]);
+
 
 const NO_FEE_NOTE =
   "PMS尚未設定管顧費率，請查看 https://sensaninn.lakeze.com/team/commission";
