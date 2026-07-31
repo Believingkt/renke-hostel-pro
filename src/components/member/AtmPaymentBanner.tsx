@@ -32,19 +32,19 @@ const AtmPaymentBanner = () => {
   const extra = active.length - 1;
 
   return (
-    <div className="w-full bg-[hsl(215,32%,17%)] text-[hsl(0,0%,100%)]">
+    <div className="w-full bg-[hsl(0,84%,45%)] text-[hsl(0,0%,100%)] shadow-md">
       <div className="max-w-4xl mx-auto flex items-center gap-2 px-3 py-2 sm:px-4">
-        <AlertTriangle className="h-4 w-4 shrink-0 text-[hsl(45,100%,60%)]" />
+        <AlertTriangle className="h-4 w-4 shrink-0 text-[hsl(0,0%,100%)]" />
         <button
           type="button"
           onClick={() => navigate(`/member/orders/${first.order_number}`)}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <span className="truncate text-sm">
+          <span className="truncate text-sm font-semibold">
             訂單 {first.order_number} 尚未完成 ATM 付款
             {extra > 0 ? `（另有 ${extra} 筆）` : ""}
           </span>
-          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-[hsl(45,100%,60%)] px-2 py-0.5 text-sm font-semibold tabular-nums text-[hsl(215,32%,17%)]">
+          <span className="ml-auto flex shrink-0 items-center gap-1 animate-pulse rounded-full bg-[hsl(45,100%,55%)] px-2.5 py-1 text-sm font-bold tabular-nums text-[hsl(0,70%,25%)] ring-2 ring-white/70">
             <Clock className="h-3.5 w-3.5" />
             {formatCountdown(first.expireAt!, now)}
           </span>
