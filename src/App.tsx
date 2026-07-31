@@ -73,6 +73,8 @@ const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const LegalDocument = lazy(() => import("./pages/LegalDocument"));
+
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
 // 後台管理頁面 - lazy load
