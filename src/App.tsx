@@ -315,6 +315,10 @@ function App() {
                     <Route path="data-deletion" element={
                       <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
                     } />
+                    <Route path="legal/:slug" element={
+                      <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
+                    } />
+
 
 
                     {/* Auth 頁面 */}
