@@ -664,7 +664,7 @@ const MemberOrderDetail = () => {
                   : order.atm_vacc_no
                     ? order.atm_expire_at
                       ? atmExpired
-                        ? `繳費期限（${format(new Date(order.atm_expire_at), "yyyy 年 M 月 d 日 HH:mm", { locale: zhTW })}）已過，虛擬帳號已失效，請聯絡客服或重新訂房。`
+                        ? `繳費期限（${format(new Date(order.atm_expire_at), "yyyy 年 M 月 d 日 HH:mm", { locale: zhTW })}）已過，虛擬帳號已失效，系統將於數分鐘內自動取消此訂單，如已完成匯款請聯絡客服。`
                         : `請於 ${format(new Date(order.atm_expire_at), "yyyy 年 M 月 d 日 HH:mm", { locale: zhTW })} 前完成 ATM 轉帳，逾期訂單將自動取消。`
                       : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
                     : `系統將於 ${format(new Date(order.check_in_date), "M 月 d 日", { locale: zhTW })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`}
