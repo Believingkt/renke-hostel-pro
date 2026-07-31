@@ -35,6 +35,8 @@ import { AccommodationApiKeysManagement } from "@/components/headquarters/Accomm
 import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
+import { LegalDocumentsManagement } from "@/components/headquarters/LegalDocumentsManagement";
+
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
@@ -916,6 +918,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           <AccommodationOwnersManagement />
           <OwlTingAliasesEditor />
         </TabsContent>
+
+        <TabsContent value="legal" className="space-y-4">
+          <LegalDocumentsManagement />
+        </TabsContent>
+
       </Tabs>
     </div>
   );

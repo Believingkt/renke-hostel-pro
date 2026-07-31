@@ -71,6 +71,8 @@ const menuItems = [
       { title: "旭海房型驗證", url: "/hq?tab=system&section=hotelnabe-verify", icon: Activity },
       { title: "旭海收訂單記錄", url: "/hq?tab=system&section=hotelnabe-inbound", icon: Inbox },
       { title: "業主聯絡人", url: "/hq?tab=system&section=owners", icon: UserCheck },
+      { title: "法律條款", url: "/hq?tab=system&section=legal", icon: FileText },
+
     ]
   },
 ];

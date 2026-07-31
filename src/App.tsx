@@ -73,6 +73,8 @@ const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const LegalDocument = lazy(() => import("./pages/LegalDocument"));
+
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
 // 後台管理頁面 - lazy load
@@ -315,6 +317,10 @@ function App() {
                     <Route path="data-deletion" element={
                       <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
                     } />
+                    <Route path="legal/:slug" element={
+                      <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
+                    } />
+
 
 
                     {/* Auth 頁面 */}
