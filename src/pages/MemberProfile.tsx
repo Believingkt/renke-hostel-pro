@@ -26,6 +26,7 @@ import {
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
+import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
 
 
 interface Stats {
@@ -112,7 +113,7 @@ const MemberProfile = () => {
 
       setStats({
         name: member.name || "會員",
-        avatarUrl: (member as any).avatar_url || null,
+        avatarUrl: await resolveMemberAvatarUrl((member as any).avatar_url),
         pointsBalance: points?.balance || 0,
         couponCount: couponCount || 0,
         upcomingCount: upcomingCount || 0,
