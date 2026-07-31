@@ -301,7 +301,10 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     const monthFinalOriginal = Number(o.final_price || 0) * ratio;
     const monthFinal = convertToTwd(monthFinalOriginal, resolved);
     const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
-    const monthCommissionable = monthFinal;
+    // 加購項目（清潔費、接機車資等）全額歸業主，不列入抽成基礎；
+    // 金額比照夜數比例分攤，避免跨月訂單重複扣除。
+    const monthAddonTotal = convertToTwd(extractAddonTotal(o.custom_addon_details) * ratio, resolved);
+    const monthCommissionable = monthFinal - monthAddonTotal;
     const exempt =
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
@@ -315,6 +318,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
         monthRatio: ratio,
         monthFinal,
         monthDiscount,
+        monthAddonTotal,
         monthCommissionable,
         commission: 0,
         exempt,
