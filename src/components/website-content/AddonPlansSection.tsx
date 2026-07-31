@@ -103,8 +103,11 @@ const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
   unit_label: "份",
   pricing_mode: "per_night",
   description: "",
-  detailed_description: ""
+  detailed_description: "",
+  icon_key: null,
+  show_icon: true,
 };
+
 
 const getDisplayName = (addonType: string) => addonType;
 
