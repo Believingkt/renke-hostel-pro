@@ -132,19 +132,8 @@ export default function BookerForm(props: Props) {
             </div>
           </CardContent>
         </Card>
-      ) : loggedInMember ? (
-        <Card className="border-2 border-green-200 bg-green-50/50">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
-              <p className="text-sm font-medium text-green-800">
-                {loggedInMember.name} 會員，歡迎您回來！
-              </p>
+      ) : loggedInMember ? null : (
 
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
         <Card className="border border-orange-200 bg-orange-50/40">
           <CardContent className="py-3">
             <p className="text-sm text-orange-800">
