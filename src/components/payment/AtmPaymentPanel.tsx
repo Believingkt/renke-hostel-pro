@@ -270,13 +270,23 @@ export function AtmPaymentPanel({
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="text-xs text-amber-800">繳費期限</div>
-              <div className="font-semibold text-amber-900">{expStr}</div>
-              <div className="text-xs text-amber-700 mt-1">逾期未繳款訂單將自動取消。</div>
-            </div>
+            {paid ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <div className="text-xs text-emerald-800">繳費狀態</div>
+                <div className="font-semibold text-emerald-900">已完成匯款</div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="text-xs text-amber-800">繳費期限</div>
+                <div className="font-semibold text-amber-900">{expStr}</div>
+                <div className="text-xs text-amber-700 mt-1">逾期未繳款訂單將自動取消。</div>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p>
+          {!paid && (
+            <p className="text-xs text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p>
+          )}
+
         </CardContent>
       </Card>
     );
