@@ -75,6 +75,8 @@ function orderNights(o: any): number {
 function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
   if (o.order_status === "cancelled") return 0;
   if (o.order_source === "kol") return 0;
+  if (String(o.guest_name ?? "").trim() === "保留單") return 0;
+  if (isExcludedSource(o.order_source)) return 0;
   const nights = orderNights(o);
   if (!nights) return 0;
   const share = (Number(o.final_price) || 0) / nights;
@@ -91,13 +93,6 @@ function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
   return sum;
 }
 
-function orderCurrency(o: any): string {
-  const meta = o?.order_meta;
-  const raw =
-    (Array.isArray(meta) ? meta[0]?.display_currency : meta?.display_currency) ??
-    o?.currency ??
-    "TWD";
-  return String(raw || "TWD").toUpperCase();
 }
 
 function ragicAuthHeader() {
