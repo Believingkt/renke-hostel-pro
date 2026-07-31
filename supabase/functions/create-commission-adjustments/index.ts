@@ -258,11 +258,19 @@ serve(async (req) => {
 
       const { data: cOrders, error: cOrdErr } = await supabase
         .from("orders")
-        .select("id, order_status")
+        .select("id, order_status, accommodation_id, order_date, owner_direct, order_source")
         .in("id", cIds);
       if (cOrdErr) throw cOrdErr;
       const statusMap = new Map<string, string>();
-      for (const o of cOrders ?? []) statusMap.set(o.id as string, o.order_status as string);
+      const cOrderMap = new Map<string, any>();
+      for (const o of cOrders ?? []) {
+        statusMap.set(o.id as string, o.order_status as string);
+        cOrderMap.set(o.id as string, o);
+      }
+      const isExemptC = await buildExemptResolver(
+        supabase,
+        (cOrders ?? []).map((o) => o.accommodation_id as string),
+      );
 
       const { data: existReact, error: existRErr } = await supabase
         .from("closer_commission_adjustments")
@@ -286,6 +294,9 @@ serve(async (req) => {
         const status = statusMap.get(orderId);
         if (!status || status === "cancelled") continue;
         if (existingReact.has(orderId)) continue;
+        // 免抽成來源訂單不補回分潤
+        const ordC = cOrderMap.get(orderId);
+        if (ordC && isExemptC(ordC)) continue;
         const snap = snapByOrder.get(orderId);
         if (!snap) continue;
 
