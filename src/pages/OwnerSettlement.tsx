@@ -588,7 +588,7 @@ export default function OwnerSettlement() {
 
         ` : `
         <tr><td>入住營收</td><td class="r">NT$ ${fmt(totals.totalRevenue)}</td></tr>
-        <tr><td>平台服務費 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
+        <tr><td>平台服務費 ${config.commission_rate}%${effectiveRule.commission_threshold > 0 ? `（超過 NT$ ${fmt(effectiveRule.commission_threshold)} 部分）` : ""}（抽成基礎已扣除加購項目 NT$ ${fmt(stdAddonDeducted)}）</td><td class="r">−NT$ ${fmt(totals.totalCommission)}</td></tr>
         <tr><td>行銷推廣費${effectiveRule.marketing_fee_threshold > 0 ? "" : `（${propertyCount} 棟）`}</td><td class="r">−NT$ ${fmt(totals.marketingFee)}</td></tr>
 
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(totals.totalCommission + totals.marketingFee)}</td></tr>
