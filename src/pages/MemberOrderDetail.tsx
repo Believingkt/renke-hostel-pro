@@ -532,9 +532,30 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase.functions.invoke("member-order-manage", {
         body: { orderNumber: order.order_number, ...payload },
       });
-      const res = (data || {}) as { success?: boolean; message?: string };
+      let res = (data || {}) as {
+        success?: boolean;
+        message?: string;
+        code?: string;
+        reviewTaskCreated?: boolean;
+      };
+      // 非 2xx 時 data 為 null，需自 Response 取回後端訊息（例如 409 客服待辦）
+      if (error && !data) {
+        const ctx = (error as { context?: unknown }).context;
+        if (typeof Response !== "undefined" && ctx instanceof Response) {
+          res = await ctx
+            .clone()
+            .json()
+            .catch(() => ({}));
+        }
+      }
       if (error || !res.success) {
-        toast.error(res.message || error?.message || "操作失敗，請稍後再試");
+        if (res.reviewTaskCreated) {
+          toast.success(res.message || "已為您送出申請，客服將盡快與您聯繫");
+          onDone?.();
+          setReloadKey((k) => k + 1);
+          return;
+        }
+        toast.error(res.message || (error as Error | null)?.message || "操作失敗，請稍後再試");
         return;
       }
       toast.success(res.message || "已完成");
@@ -544,6 +565,7 @@ const MemberOrderDetail = () => {
       setActing(false);
     }
   };
+
 
   const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
 
