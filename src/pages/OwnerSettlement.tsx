@@ -544,6 +544,7 @@ export default function OwnerSettlement() {
           ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
           <td class="r">${isGuestCount && r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}` : fmt(r.revenue)}</td>
           ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
+          <td class="r">${r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}` : fmt(r.addonTotal)}</td>
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
       )
