@@ -353,6 +353,11 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/manual-review" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><ManualReviewTasks /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/orders" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<TableSkeleton rows={10} columns={8} />}><Orders /></Suspense>
