@@ -567,7 +567,7 @@ export default function OwnerSettlementSettings() {
           {!currentAccommodationId && (
             <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿不抽成的增值服務。</p>
           )}
-          {currentAccommodationId && addonTypes.length === 0 && (
+          {currentAccommodationId && addonOptions.length === 0 && (
             <p className="text-sm text-muted-foreground">
               此民宿尚未設定任何增值服務項目，請通知管理員進行設定。{" "}
               <a
@@ -580,20 +580,20 @@ export default function OwnerSettlementSettings() {
               </a>
             </p>
           )}
-          {addonTypes.length > 0 && (
+          {addonOptions.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {addonTypes.map((t) => {
-                const excluded = excludedAddonTypes.includes(t);
+              {addonOptions.map((o) => {
+                const excluded = excludedAddonIds.includes(o.id);
                 return (
                   <label
-                    key={t}
+                    key={o.id}
                     className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
                   >
                     <Checkbox
                       checked={excluded}
-                      onCheckedChange={(v) => toggleAddonCommission(t, v !== true)}
+                      onCheckedChange={(v) => toggleAddonCommission(o.id, v !== true)}
                     />
-                    <span className="text-sm">{t}</span>
+                    <span className="text-sm">{o.addon_type}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
                       {excluded ? "不抽成" : "列入抽成"}
                     </span>
@@ -602,9 +602,13 @@ export default function OwnerSettlementSettings() {
               })}
             </div>
           )}
-          {excludedAddonTypes.length > 0 && (
+          {excludedAddonIds.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              不抽成：{excludedAddonTypes.join("、")}
+              不抽成：
+              {excludedAddonIds
+                .map((id) => addonOptions.find((o) => o.id === id)?.addon_type)
+                .filter(Boolean)
+                .join("、")}
             </p>
           )}
 
