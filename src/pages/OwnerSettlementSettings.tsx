@@ -375,7 +375,16 @@ export default function OwnerSettlementSettings() {
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
-          commission_excluded_addon_types: excludedAddonTypes,
+          commission_excluded_addon_ids: excludedAddonIds,
+          // 文字清單維持寫入，供舊訂單（快照無 addon_id）fallback 比對
+          commission_excluded_addon_types: Array.from(
+            new Set([
+              ...excludedAddonIds
+                .map((id) => addonOptions.find((o) => o.id === id)?.addon_type)
+                .filter((t): t is string => !!t),
+              ...legacyOnlyExcludedTypes,
+            ]),
+          ),
           created_by: user?.id ?? null,
         });
       if (ruleError) {
