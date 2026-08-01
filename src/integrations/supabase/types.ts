@@ -5379,6 +5379,77 @@ export type Database = {
         }
         Relationships: []
       }
+      order_manual_review_tasks: {
+        Row: {
+          accommodation_id: string
+          assignee_id: string | null
+          created_at: string
+          id: string
+          order_id: string
+          quote_snapshot: Json
+          reason_code: string
+          requested_check_in: string | null
+          requested_check_out: string | null
+          requested_guest_count: number | null
+          requester_note: string | null
+          resolution_note: string | null
+          resolved_amount: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          task_type: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          assignee_id?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          quote_snapshot?: Json
+          reason_code?: string
+          requested_check_in?: string | null
+          requested_check_out?: string | null
+          requested_guest_count?: number | null
+          requester_note?: string | null
+          resolution_note?: string | null
+          resolved_amount?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          assignee_id?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          quote_snapshot?: Json
+          reason_code?: string
+          requested_check_in?: string | null
+          requested_check_out?: string | null
+          requested_guest_count?: number | null
+          requester_note?: string | null
+          resolution_note?: string | null
+          resolved_amount?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_manual_review_tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_meta: {
         Row: {
           accommodation_id: string | null
