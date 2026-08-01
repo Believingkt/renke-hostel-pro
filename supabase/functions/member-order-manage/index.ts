@@ -295,21 +295,116 @@ serve(async (req) => {
     }
 
 
-    if (body.action === "change_guests") {
+    if (body.action === "change_guests" || body.action === "change_guests_quote") {
       const n = Number(body.guestCount);
       if (!Number.isInteger(n) || n < 1 || n > 30) {
         return json({ success: false, message: "入住人數不正確" }, 400, corsHeaders);
       }
-      const note = appendNote(
+
+      const priceQuote = await quoteGuestCountChange(supabase, order as any, n);
+      const changed = n !== Number(order.guest_count);
+      const hasPaidAny =
+        Number(order.paid_amount || 0) > 0 ||
+        ["paid", "deposit_paid", "partial", "fully_paid"].includes(String(order.payment_status));
+      const fullyPaid = ["paid", "fully_paid"].includes(String(order.payment_status));
+
+      // 只試算，不異動資料
+      if (body.action === "change_guests_quote") {
+        return json({ success: true, priceQuote }, 200, corsHeaders);
+      }
+
+      if (!changed) {
+        return json({ success: false, message: "入住人數沒有變更" }, 400, corsHeaders);
+      }
+
+      // 無法自動重算價格（非方案型／查無對應人數方案）→ 已付款訂單一律轉客服
+      if (priceQuote.needsManualReview && hasPaidAny) {
+        return json(
+          {
+            success: false,
+            code: "NEEDS_MANUAL_REVIEW",
+            message: priceQuote.reason || "變更人數後的金額需由客服重新確認，請聯繫客服協助。",
+            priceQuote,
+          },
+          409,
+          corsHeaders,
+        );
+      }
+
+      const priceChanged = priceQuote.canAutoPrice && priceQuote.diff !== 0;
+
+      // 已全額付款且金額會變動 → 不可線上自行變更
+      if (priceChanged && fullyPaid) {
+        return json(
+          {
+            success: false,
+            code: "PRICE_LOCKED",
+            message: "此訂單已付清，變更人數會影響金額，請聯繫客服或民宿協助處理。",
+            priceQuote,
+          },
+          409,
+          corsHeaders,
+        );
+      }
+
+      // 金額會變動 → 需前台明確確認補差／退差後才套用
+      if (priceChanged && !body.confirmPriceChange) {
+        return json(
+          {
+            success: false,
+            code: "PRICE_CHANGE_CONFIRM_REQUIRED",
+            message:
+              priceQuote.diff > 0
+                ? `變更為 ${n} 人後房費將增加 NT$${priceQuote.diff.toLocaleString()}，需確認後才能送出。`
+                : `變更為 ${n} 人後房費將減少 NT$${Math.abs(priceQuote.diff).toLocaleString()}，需確認後才能送出。`,
+            priceQuote,
+          },
+          409,
+          corsHeaders,
+        );
+      }
+
+      const noteLines = [
         `🔒 ${stamp} 會員自行調整入住人數：${order.guest_count} → ${n}（${email}）`,
-      );
-      const { error } = await supabase
-        .from("orders")
-        .update({ guest_count: n, notes: note })
-        .eq("id", order.id);
+      ];
+      if (priceChanged) {
+        noteLines.push(
+          `🔒 ${stamp} 人數變更重算房費：NT$${priceQuote.currentRoomTotal.toLocaleString()} → NT$${priceQuote.newRoomTotal.toLocaleString()}（${
+            priceQuote.diff > 0 ? "需補差額" : "需退差額"
+          } NT$${Math.abs(priceQuote.diff).toLocaleString()}）｜方案：${priceQuote.currentPackageName ?? "-"} → ${priceQuote.newPackageName ?? "-"}｜已付 NT$${priceQuote.paidAmount.toLocaleString()}，尚需支付 NT$${priceQuote.newOutstanding.toLocaleString()}`,
+        );
+      } else if (priceQuote.needsManualReview) {
+        noteLines.push(`🔒 ${stamp} 人數變更未自動重算金額：${priceQuote.reason ?? "非方案型訂單"}`);
+      }
+
+      const update: Record<string, unknown> = {
+        guest_count: n,
+        notes: appendNote(noteLines.join("\n")),
+      };
+      if (priceChanged) {
+        update.total_price = priceQuote.newRoomTotal;
+        update.final_price = priceQuote.newFinalPrice;
+        if (priceQuote.newPackageId) update.package_id = priceQuote.newPackageId;
+      }
+
+      const { error } = await supabase.from("orders").update(update).eq("id", order.id);
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
-      return json({ success: true, message: "入住人數已更新" }, 200, corsHeaders);
+
+      return json(
+        {
+          success: true,
+          priceQuote,
+          message: priceChanged
+            ? priceQuote.diff > 0
+              ? `入住人數已更新，房費調整為 NT$${priceQuote.newFinalPrice.toLocaleString()}，尚需支付 NT$${priceQuote.newOutstanding.toLocaleString()}，我們將與您聯繫確認補款方式。`
+              : `入住人數已更新，房費調整為 NT$${priceQuote.newFinalPrice.toLocaleString()}，多付的差額將由客服協助辦理退款。`
+            : "入住人數已更新",
+        },
+        200,
+        corsHeaders,
+      );
     }
+
 
     // change_dates
     const { newCheckIn, newCheckOut } = body;
