@@ -781,7 +781,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                       </div>
 
                       {/* 列表 */}
-                      <div className="rounded-md border max-h-[420px] overflow-auto">
+                      <div className="rounded-md border max-h-[70vh] min-h-[520px] overflow-auto">
                         {loadingHolidays ? (
                           <div className="p-6 text-center text-sm text-muted-foreground">載入中…</div>
                         ) : syncedHolidays.length === 0 ? (
