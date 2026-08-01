@@ -42,6 +42,12 @@ export interface OwnerPricingRule {
   revenue_breakdown_type: RevenueBreakdownType;
   /** 舊制的「每多一棟加收」，僅在 marketing_fee_threshold = 0 時沿用 */
   marketing_fee_per_extra_property: number;
+  /**
+   * 設定為「不列入平台服務費抽成」的 addon_type 清單。
+   * 不在清單內的增值服務一律列入抽成基礎（不扣除）。
+   * 僅影響業主月結，不影響團隊佣金（那條路徑一律排除全部增值服務）。
+   */
+  commission_excluded_addon_types: string[];
   /** true = 來自 owner_settlement_pricing_rules（新制） */
   fromTable: boolean;
   effective_from?: string | null;
@@ -59,6 +65,7 @@ export function pricingRuleFromLegacyConfig(config: OwnerSettlementConfig): Owne
     exempt_order_sources: config.exempt_order_sources ?? [],
     revenue_breakdown_type: getRevenueBreakdownType(config),
     marketing_fee_per_extra_property: Number(config.marketing_fee_per_extra_property) || 0,
+    commission_excluded_addon_types: [],
     fromTable: false,
   };
 }
@@ -86,6 +93,9 @@ export function pricingRuleFromRow(
           ? "standard"
           : getRevenueBreakdownType(legacyConfig),
     marketing_fee_per_extra_property: Number(legacyConfig.marketing_fee_per_extra_property) || 0,
+    commission_excluded_addon_types: Array.isArray(row.commission_excluded_addon_types)
+      ? (row.commission_excluded_addon_types as string[])
+      : [],
     fromTable: true,
     effective_from: row.effective_from ?? null,
   };
@@ -172,6 +182,28 @@ export function extractAddonTotal(customAddonDetails: unknown): number {
   for (const item of customAddonDetails) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
+    sum += Number(rec.total ?? 0) || 0;
+  }
+  return sum;
+}
+
+/**
+ * 只加總「被館別設定為不列入抽成」的增值服務金額（依 addon_type 比對）。
+ * excludedTypes 為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
+ */
+export function extractExcludedAddonTotal(
+  customAddonDetails: unknown,
+  excludedTypes: string[] | null | undefined,
+): number {
+  if (!Array.isArray(customAddonDetails)) return 0;
+  if (!excludedTypes || excludedTypes.length === 0) return 0;
+  const excluded = new Set(excludedTypes);
+  let sum = 0;
+  for (const item of customAddonDetails) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const type = String(rec.addon_type ?? "");
+    if (!excluded.has(type)) continue;
     sum += Number(rec.total ?? 0) || 0;
   }
   return sum;
@@ -301,9 +333,12 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     const monthFinalOriginal = Number(o.final_price || 0) * ratio;
     const monthFinal = convertToTwd(monthFinalOriginal, resolved);
     const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
-    // 增值服務（清潔費、接機車資等）全額歸業主，不列入抽成基礎；
-    // 金額比照夜數比例分攤，避免跨月訂單重複扣除。
-    const monthAddonTotal = convertToTwd(extractAddonTotal(o.custom_addon_details) * ratio, resolved);
+    // 依館別設定的排除清單（commission_excluded_addon_types）扣除增值服務；
+    // 不在清單內的項目維持列入抽成基礎。金額比照夜數比例分攤，避免跨月訂單重複扣除。
+    const monthAddonTotal = convertToTwd(
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio,
+      resolved,
+    );
     const monthCommissionable = monthFinal - monthAddonTotal;
     const exempt =
       !!o.owner_direct ||
@@ -399,7 +434,7 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
 
 /**
  * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price - 增值服務總額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
+ * 抽成基礎 = final_price − 排除清單內的增值服務金額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
  * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
  *
  * rule 省略時等同舊制（threshold = 0），結果與修改前完全一致。
@@ -429,7 +464,11 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
 
     const resolved = resolveOrderCurrency(o, currencyFallback);
     const finalPriceOriginal = Number(o.final_price || 0);
-    const addonTotalOriginal = extractAddonTotal(o.custom_addon_details);
+    // 只扣除館別設定為「不列入抽成」的增值服務（全額計入入住月份，不分攤）
+    const addonTotalOriginal = extractExcludedAddonTotal(
+      o.custom_addon_details,
+      effectiveRule.commission_excluded_addon_types,
+    );
     const finalPrice = convertToTwd(finalPriceOriginal, resolved);
     const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
