@@ -1413,6 +1413,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               const addon = addonSettings.find(ad => ad.id === a.addon_id);
               const addonNights = Math.max(1, calculateNights());
               return {
+                addon_id: addon?.id || a.addon_id,
                 addon_type: addon?.addon_type || '',
                 count: a.quantity,
                 price_per_unit: addon?.price_per_unit || 0,
