@@ -589,6 +589,7 @@ const BookingFlow = () => {
 
   // 自訂加購方案（非 pet/meal 類型）
   interface CustomAddonSetting {
+    id: string;
     addon_type: string;
     description: string | null;
     detailed_description: string | null;
