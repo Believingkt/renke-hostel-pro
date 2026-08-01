@@ -3819,8 +3819,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         />
       )}
 
+      {/* 客服待辦（人工重新計價／改期審核） */}
+      {order && (
+        <OrderManualReviewCard
+          orderId={order.id}
+          orderNumber={order.order_number}
+          onResolved={fetchOrder}
+        />
+      )}
+
       {/* 變更紀錄 */}
       {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
+
 
 
       {/* 線上付款對話框 */}
