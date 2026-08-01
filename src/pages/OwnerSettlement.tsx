@@ -545,10 +545,10 @@ export default function OwnerSettlement() {
           <td>${esc(r.order.order_number)}</td>
           <td>${esc(r.order.guest_name)}</td>
           <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
-          ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
+          <td class="r">${isGuestCount ? `${r.gc.nightsInMonth}/${r.gc.totalNights}` : `${r.std!.nightsInMonth}/${r.std!.totalNights}`}</td>
           <td class="r">${isGuestCount && r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}` : fmt(r.revenue)}</td>
-          ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
           <td class="r">${r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}` : fmt(r.addonTotal)}</td>
+          <td class="r">${r.order.guest_count ?? "—"}</td>
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
       )
@@ -595,6 +595,7 @@ export default function OwnerSettlement() {
         <tr><td>溢價分潤</td><td class="r">−NT$ ${fmt(gcTotals.totalPremiumShare)}</td></tr>
         ${gcMarketingFee > 0 ? `<tr><td>行銷推廣費</td><td class="r">−NT$ ${fmt(gcMarketingFee)}</td></tr>` : ""}
         <tr class="sum"><td>平台費用合計</td><td class="r">−NT$ ${fmt(gcTotals.totalPlatformFee + gcMarketingFee)}</td></tr>
+        <tr><td>購物商品收入（非訂房收入，不列入平台抽成，全額歸業主）</td><td class="r">NT$ ${fmt(totals.addonTotal)}</td></tr>
         <tr class="sum"><td class="final">業主淨收益</td><td class="r final">NT$ ${fmt(gcTotals.ownerNet - gcMarketingFee)}</td></tr>
 
         ` : `
@@ -610,8 +611,8 @@ export default function OwnerSettlement() {
 
       <h2>訂單明細（依入住日攤分至本月）</h2>
       <table>
-        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "每月營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">訂單金額</th>` : ""}<th class="r">增值服務</th><th class="r">抽成</th></tr></thead>
-        <tbody>${orderRowsHtml || `<tr><td colspan="7">本月無入住訂單</td></tr>`}</tbody>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th><th class="r">本月夜數</th><th class="r">本月營收</th><th class="r">增值服務</th><th class="r">入住人數</th><th class="r">抽成</th></tr></thead>
+        <tbody>${orderRowsHtml || `<tr><td colspan="8">本月無入住訂單</td></tr>`}</tbody>
       </table>
 
 
@@ -991,10 +992,10 @@ export default function OwnerSettlement() {
                   <TableHead>訂單編號</TableHead>
                   <TableHead>訂購人</TableHead>
                   <TableHead>入住 / 退房</TableHead>
-                  {!isGuestCount && <TableHead className="text-right">本月夜數</TableHead>}
-                  <TableHead className="text-right tabular-nums">{isGuestCount ? "每月營收" : "本月營收"}</TableHead>
-                  <TableHead className="text-right tabular-nums">{isGuestCount ? "訂單金額" : "訂單金額"}</TableHead>
+                  <TableHead className="text-right">本月夜數</TableHead>
+                  <TableHead className="text-right tabular-nums">本月營收</TableHead>
                   <TableHead className="text-right tabular-nums">增值服務</TableHead>
+                  <TableHead className="text-right tabular-nums">入住人數</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
@@ -1026,11 +1027,11 @@ export default function OwnerSettlement() {
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.order.check_in_date} → {r.order.check_out_date}
                         </TableCell>
-                        {!isGuestCount && (
-                          <TableCell className="text-right tabular-nums">
-                            {r.std!.nightsInMonth} / {r.std!.totalNights}
-                          </TableCell>
-                        )}
+                        <TableCell className="text-right tabular-nums">
+                          {isGuestCount
+                            ? `${r.gc.nightsInMonth} / ${r.gc.totalNights}`
+                            : `${r.std!.nightsInMonth} / ${r.std!.totalNights}`}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {isGuestCount ? (
                             r.isForeign
@@ -1048,12 +1049,12 @@ export default function OwnerSettlement() {
                           )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {fmt(r.orderAmount)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
                           {r.isForeign
                             ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
                             : fmt(r.addonTotal)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.order.guest_count ?? "—"}
                         </TableCell>
 
 
@@ -1081,7 +1082,7 @@ export default function OwnerSettlement() {
                         const std = r.std;
                         return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={isGuestCount ? 9 : 10} className="p-0">
+                          <TableCell colSpan={10} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
