@@ -32,6 +32,7 @@ interface AddonSetting {
 }
 
 interface AddonDetail {
+  addon_id?: string;
   addon_type: string;
   count: number;
   price_per_unit: number;
@@ -255,6 +256,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .map(s => {
           const qty = addonQuantities[s.addon_type] || 0;
           return {
+            addon_id: s.id,
             addon_type: s.addon_type,
             count: qty,
             price_per_unit: s.price_per_unit,

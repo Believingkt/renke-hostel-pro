@@ -708,6 +708,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         .map(sa => {
           const addon = addonSettings.find(a => a.id === sa.addon_id);
           return addon ? {
+            addon_id: sa.addon_id,
             addon_type: addon.addon_type,
             count: sa.quantity,
             price_per_unit: addon.price_per_unit,

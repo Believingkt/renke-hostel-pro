@@ -589,6 +589,7 @@ const BookingFlow = () => {
 
   // 自訂加購方案（非 pet/meal 類型）
   interface CustomAddonSetting {
+    id: string;
     addon_type: string;
     description: string | null;
     detailed_description: string | null;
@@ -798,6 +799,7 @@ const BookingFlow = () => {
           const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled && (a as any).show_on_frontend !== false);
           if (otherAddons.length > 0) {
             setCustomAddonSettings(otherAddons.map(a => ({
+              id: a.id,
               addon_type: a.addon_type,
               description: a.description,
               detailed_description: a.detailed_description,
@@ -3007,6 +3009,7 @@ const BookingFlow = () => {
                 .map(([type, count]) => {
                   const setting = customAddonSettings.find(s => s.addon_type === type);
                   return {
+                    addon_id: setting?.id,
                     addon_type: type,
                     count,
                     price_per_unit: setting?.price_per_unit || 0,
@@ -3162,6 +3165,7 @@ const BookingFlow = () => {
                   ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
                       const setting = customAddonSettings.find(s => s.addon_type === type);
                       return {
+                        addon_id: setting?.id,
                         addon_type: type,
                         count,
                         price_per_unit: setting?.price_per_unit || 0,
@@ -3414,6 +3418,7 @@ const BookingFlow = () => {
               ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
                   const setting = customAddonSettings.find(s => s.addon_type === type);
                   return {
+                    addon_id: setting?.id,
                     addon_type: type,
                     count,
                     price_per_unit: setting?.price_per_unit || 0,
