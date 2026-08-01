@@ -78,9 +78,9 @@ export function resolvePackagePriceForDate(
 }
 
 export const PACKAGE_PRICE_SOURCE_LABEL: Record<PackagePriceSource, string> = {
-  override: "覆寫價",
-  tier: "時段價",
-  default: "預設價",
+  override: "單日指定價",
+  tier: "平日假日價",
+  default: "方案預設價",
 };
 
 /** 載入某館別某日期區間的所有方案覆寫價 */
