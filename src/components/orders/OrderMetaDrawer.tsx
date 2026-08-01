@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
+import { extractAddonTotal } from "@/lib/ownerSettlement";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
 import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
@@ -117,6 +118,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   }, [orderId, secondaryCurrencyConfig?.code]);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
+  /** true = 分潤基準金額已被人工覆蓋，系統不再自動重算 */
+  const [tcpIsManual, setTcpIsManual] = useState(false);
+  /** 系統自動計算值：訂單金額 − 全部增值服務金額（團隊佣金一律排除全部增值服務） */
+  const [autoTeamCommissionPrice, setAutoTeamCommissionPrice] = useState<number | null>(null);
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
   const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
   const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
@@ -255,7 +260,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date, payment_status, accommodation_id")
+          .select("order_date, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -313,6 +318,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setDisplayCurrency((existingMeta as any)?.display_currency ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
+      const autoTcp =
+        fp === null
+          ? null
+          : Math.max(0, Number(fp) - extractAddonTotal((orderRow as any)?.custom_addon_details));
+      setAutoTeamCommissionPrice(autoTcp);
 
       // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)
       if (uid) {
@@ -351,9 +361,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setInitialDepositConfirmDate(dcd);
         setDepositConfirmDateVerified(Boolean((m as any).deposit_confirm_date_verified));
 
+        setTcpIsManual(Boolean((m as any).team_commission_price_is_manual));
         const tcp =
           m.team_commission_price === null || m.team_commission_price === undefined
-            ? fp
+            ? autoTcp
             : Number(m.team_commission_price);
         setTeamCommissionPrice(tcp);
         setInitialTeamCommissionPrice(tcp);
@@ -385,8 +396,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           setCommissionConfirmerName(null);
         }
       } else {
-        setTeamCommissionPrice(fp);
-        setInitialTeamCommissionPrice(fp);
+        setTcpIsManual(false);
+        setTeamCommissionPrice(autoTcp);
+        setInitialTeamCommissionPrice(autoTcp);
         setCommissionConfirmedBy(null);
         setCommissionConfirmedAt(null);
         setCommissionConfirmerName(null);
@@ -401,7 +413,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       // 記錄編輯前快照
       initialMetaRef.current = buildMetaSnapshot(
         (existingMeta as Record<string, any>) ?? {
-          team_commission_price: fp,
+          team_commission_price: autoTcp,
         },
       );
 
@@ -563,6 +575,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           teamCommissionPrice === null || teamCommissionPrice === undefined
             ? null
             : Number(teamCommissionPrice),
+        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
+        team_commission_price_is_manual: tcpChanged ? true : tcpIsManual,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
@@ -733,8 +747,32 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                   onChange={(v) => setTeamCommissionPrice(v === 0 ? null : v)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                  系統自動計算：訂單金額 − 增值服務
+                  {autoTeamCommissionPrice !== null
+                    ? `＝ NT$ ${Number(autoTeamCommissionPrice).toLocaleString()}`
+                    : ""}
                 </p>
+                {tcpIsManual ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-orange-600">此金額為人工覆蓋，系統不會自動更新</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setTcpIsManual(false);
+                        setTeamCommissionPrice(autoTeamCommissionPrice);
+                      }}
+                    >
+                      重設為系統自動計算
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    目前由系統自動維護；手動修改後會標記為人工覆蓋。
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-1">
