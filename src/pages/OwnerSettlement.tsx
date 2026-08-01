@@ -1054,6 +1054,12 @@ export default function OwnerSettlement() {
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.orderAmount)}
                         </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.isForeign
+                            ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
+                            : fmt(r.addonTotal)}
+                        </TableCell>
+
 
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
