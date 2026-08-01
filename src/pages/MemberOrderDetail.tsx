@@ -312,6 +312,11 @@ const MemberOrderDetail = () => {
   const [newCheckIn, setNewCheckIn] = useState("");
   const [newCheckOut, setNewCheckOut] = useState("");
   const [newGuests, setNewGuests] = useState(1);
+  const [guestQuote, setGuestQuote] = useState<GuestPriceQuote | null>(null);
+  const [guestQuoteLoading, setGuestQuoteLoading] = useState(false);
+  const [priceChangeAck, setPriceChangeAck] = useState(false);
+
+
 
 
   useEffect(() => {
