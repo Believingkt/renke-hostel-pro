@@ -393,14 +393,23 @@ export default function PackagePriceCalendar() {
                   </thead>
                   <tbody>
                     {packages.map((pkg) => (
-                      <tr key={pkg.id}>
-                        <td className="sticky left-0 z-10 bg-background border px-3 py-2">
+                      <tr
+                        key={pkg.id}
+                        className={cn(!pkg.enabled && "opacity-50 bg-muted/60 grayscale")}
+                      >
+                        <td
+                          className={cn(
+                            "sticky left-0 z-10 border px-3 py-2",
+                            pkg.enabled ? "bg-background" : "bg-muted",
+                          )}
+                        >
                           <div className="font-medium">{pkg.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {pkg.guest_count} 人・預設 NT$ {fmt(pkg.sale_price)}
                             {!pkg.enabled && "・已停用"}
                           </div>
                         </td>
+
                         {monthDays.map((d) => {
                           const ds = toDateStr(d);
                           const tier = detectTierByDate(d, isHolidayDate(d));
