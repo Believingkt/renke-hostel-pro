@@ -33,6 +33,7 @@ import {
   PACKAGE_PRICE_SOURCE_LABEL,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
+import { PackagePriceChangeLog } from "@/components/pricing/PackagePriceChangeLog";
 
 const weekDayNames = ["日", "一", "二", "三", "四", "五", "六"];
 const TIER_LABEL: Record<PackageTier, string> = {
