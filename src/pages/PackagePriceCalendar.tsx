@@ -281,15 +281,19 @@ export default function PackagePriceCalendar() {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary" />覆寫價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary" />單日指定價
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-500" />時段價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-500" />平日假日價
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />預設價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />方案預設價
                 </span>
               </div>
+              <PackagePriceChangeLog
+                accommodationId={currentAccommodationId}
+                packageNames={packageNames}
+              />
               <Button
                 size="sm"
                 onClick={() => {
@@ -302,6 +306,7 @@ export default function PackagePriceCalendar() {
                 整列批次改
               </Button>
             </div>
+
           </div>
 
           {loading ? (
