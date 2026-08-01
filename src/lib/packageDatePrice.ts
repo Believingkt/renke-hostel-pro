@@ -15,9 +15,12 @@ export type PackagePriceSource = "override" | "tier" | "default";
 export interface PackageDatePriceRow {
   package_id: string;
   date: string; // YYYY-MM-DD
-  sale_price: number;
+  /** 可為 null：只設定「單日適用狀態」而不改價 */
+  sale_price: number | null;
   original_price: number | null;
   note?: string | null;
+  /** null = 沿用方案的平日／假日適用設定；true = 該日適用；false = 該日不適用 */
+  is_available?: boolean | null;
 }
 
 /** key = `${packageId}_${date}` */
@@ -93,7 +96,7 @@ export async function fetchPackageDatePrices(
   if (!accommodationId) return map;
   const { data, error } = await supabase
     .from("package_date_prices")
-    .select("package_id, date, sale_price, original_price, note")
+    .select("package_id, date, sale_price, original_price, note, is_available")
     .eq("accommodation_id", accommodationId)
     .gte("date", from)
     .lte("date", to);
@@ -105,9 +108,10 @@ export async function fetchPackageDatePrices(
     map.set(overrideKey(r.package_id, r.date), {
       package_id: r.package_id,
       date: r.date,
-      sale_price: Number(r.sale_price),
+      sale_price: r.sale_price != null ? Number(r.sale_price) : null,
       original_price: r.original_price != null ? Number(r.original_price) : null,
       note: r.note ?? null,
+      is_available: r.is_available ?? null,
     });
   }
   return map;
@@ -122,7 +126,7 @@ export async function fetchPackageDatePricesForPackage(
   if (!packageId || dates.length === 0) return map;
   const { data, error } = await supabase
     .from("package_date_prices")
-    .select("package_id, date, sale_price, original_price, note")
+    .select("package_id, date, sale_price, original_price, note, is_available")
     .eq("package_id", packageId)
     .in("date", dates);
   if (error) {
@@ -133,10 +137,30 @@ export async function fetchPackageDatePricesForPackage(
     map.set(overrideKey(r.package_id, r.date), {
       package_id: r.package_id,
       date: r.date,
-      sale_price: Number(r.sale_price),
+      sale_price: r.sale_price != null ? Number(r.sale_price) : null,
       original_price: r.original_price != null ? Number(r.original_price) : null,
       note: r.note ?? null,
+      is_available: r.is_available ?? null,
     });
   }
   return map;
+}
+
+
+/**
+ * 解析某方案在某一天是否「適用」。
+ * 優先序：package_date_prices.is_available（單日指定）> accommodation_packages.applicable_tiers
+ */
+export function resolvePackageAvailabilityForDate(
+  pkg: { id: string; applicable_tiers?: PackageTier[] | null },
+  date: string,
+  tier: PackageTier,
+  overrides?: PackageDatePriceMap | null,
+): { available: boolean; source: "override" | "tier" } {
+  const ov = overrides?.get(overrideKey(pkg.id, date));
+  if (ov && ov.is_available != null) {
+    return { available: !!ov.is_available, source: "override" };
+  }
+  const tiers = pkg.applicable_tiers || [];
+  return { available: tiers.length === 0 || tiers.includes(tier), source: "tier" };
 }

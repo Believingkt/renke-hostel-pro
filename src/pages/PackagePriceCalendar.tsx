@@ -33,6 +33,7 @@ import {
   resolvePackagePriceForDate,
   toDateStr,
   PACKAGE_PRICE_SOURCE_LABEL,
+  resolvePackageAvailabilityForDate,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
 import { PackagePriceChangeLog } from "@/components/pricing/PackagePriceChangeLog";
@@ -61,6 +62,7 @@ export default function PackagePriceCalendar() {
   const [cell, setCell] = useState<{ pkg: AccommodationPackage; date: string } | null>(null);
   const [cellSale, setCellSale] = useState("");
   const [cellOriginal, setCellOriginal] = useState("");
+  const [cellAvail, setCellAvail] = useState<"inherit" | "yes" | "no">("inherit");
   const [saving, setSaving] = useState(false);
 
   // 批次改價
@@ -72,7 +74,8 @@ export default function PackagePriceCalendar() {
   const [bulkDows, setBulkDows] = useState<number[]>([]);
   const [bulkSale, setBulkSale] = useState("");
   const [bulkOriginal, setBulkOriginal] = useState("");
-  const [bulkMode, setBulkMode] = useState<"set" | "clear">("set");
+  const [bulkMode, setBulkMode] = useState<"set" | "clear" | "avail">("set");
+  const [bulkAvail, setBulkAvail] = useState<"yes" | "no">("no");
 
   const monthDays = useMemo(
     () =>
@@ -147,14 +150,20 @@ export default function PackagePriceCalendar() {
     const ov = overrides.get(overrideKey(pkg.id, date));
     setCellSale(ov ? String(ov.sale_price) : "");
     setCellOriginal(ov?.original_price != null ? String(ov.original_price) : "");
+    setCellAvail(ov?.is_available == null ? "inherit" : ov.is_available ? "yes" : "no");
     setCell({ pkg, date });
   };
 
   const saveCell = async () => {
     if (!cell || !currentAccommodationId) return;
-    const sale = Number(cellSale);
-    if (!cellSale || !Number.isFinite(sale) || sale <= 0) {
+    const sale = cellSale ? Number(cellSale) : null;
+    if (cellSale && (!Number.isFinite(sale!) || sale! <= 0)) {
       toast.error("請輸入有效的售價");
+      return;
+    }
+    const availValue = cellAvail === "inherit" ? null : cellAvail === "yes";
+    if (sale == null && availValue == null) {
+      toast.error("請輸入售價，或設定當日適用狀態");
       return;
     }
     setSaving(true);
@@ -165,6 +174,7 @@ export default function PackagePriceCalendar() {
         date: cell.date,
         sale_price: sale,
         original_price: cellOriginal ? Number(cellOriginal) : null,
+        is_available: availValue,
       },
       { onConflict: "package_id,date" },
     );
@@ -173,7 +183,7 @@ export default function PackagePriceCalendar() {
       toast.error(`儲存失敗：${error.message}`);
       return;
     }
-    toast.success("已更新該日價格");
+    toast.success("已更新該日設定");
     setCell(null);
     loadData();
   };
@@ -234,6 +244,30 @@ export default function PackagePriceCalendar() {
         return;
       }
       toast.success(`已清除 ${bulkPkgIds.length} 個方案 × ${bulkDates.length} 天的單日指定價`);
+    } else if (bulkMode === "avail") {
+      const wanted = bulkAvail === "yes";
+      const rows = bulkPkgIds.flatMap((pid) =>
+        bulkDates.map((d) => {
+          const ov = overrides.get(overrideKey(pid, d));
+          return {
+            accommodation_id: currentAccommodationId,
+            package_id: pid,
+            date: d,
+            sale_price: ov?.sale_price ?? null,
+            original_price: ov?.original_price ?? null,
+            is_available: wanted,
+          };
+        }),
+      );
+      const { error } = await supabase
+        .from("package_date_prices")
+        .upsert(rows, { onConflict: "package_id,date" });
+      setSaving(false);
+      if (error) {
+        toast.error(`批次設定失敗：${error.message}`);
+        return;
+      }
+      toast.success(`已將 ${rows.length} 筆設為「${wanted ? "適用" : "不適用"}」`);
     } else {
       const sale = Number(bulkSale);
       if (!bulkSale || !Number.isFinite(sale) || sale <= 0) {
@@ -413,7 +447,8 @@ export default function PackagePriceCalendar() {
                         {monthDays.map((d) => {
                           const ds = toDateStr(d);
                           const tier = detectTierByDate(d, isHolidayDate(d));
-                          const applicable = (pkg.applicable_tiers || []).includes(tier);
+                          const avail = resolvePackageAvailabilityForDate(pkg, ds, tier, overrides);
+                          const applicable = avail.available;
                           const eff = resolvePackagePriceForDate(
                             {
                               id: pkg.id,
@@ -430,16 +465,17 @@ export default function PackagePriceCalendar() {
                               <button
                                 type="button"
                                 onClick={() => openCell(pkg, ds)}
-                                title={`${pkg.name}｜${ds}（${TIER_LABEL[tier]}）\n有效價格 NT$ ${fmt(eff.sale)}\n來源：${PACKAGE_PRICE_SOURCE_LABEL[eff.source]}${applicable ? "" : "\n⚠ 此方案不適用該時段"}`}
+                                title={`${pkg.name}｜${ds}（${TIER_LABEL[tier]}）\n有效價格 NT$ ${fmt(eff.sale)}\n來源：${PACKAGE_PRICE_SOURCE_LABEL[eff.source]}\n適用狀態：${applicable ? "適用" : "不適用（前台不顯示）"}${avail.source === "override" ? "（單日指定）" : ""}`}
                                 className={cn(
                                   "w-full h-[52px] px-1 flex flex-col items-center justify-center gap-0.5 hover:bg-muted/60 transition-colors",
-                                  !applicable && "opacity-40",
+                                  !applicable && "opacity-40 bg-muted/60",
                                 )}
                               >
                                 <span
                                   className={cn(
                                     "text-xs leading-none",
                                     eff.source === "override" ? "font-semibold text-primary" : "",
+                                    !applicable && "line-through",
                                   )}
                                 >
                                   {fmt(eff.sale)}
@@ -447,12 +483,17 @@ export default function PackagePriceCalendar() {
                                 <span
                                   className={cn(
                                     "text-[10px] leading-none px-1 rounded",
-                                    eff.source === "override" && "bg-primary/15 text-primary",
-                                    eff.source === "tier" && "bg-sky-500/15 text-sky-600",
-                                    eff.source === "default" && "text-muted-foreground",
+                                    !applicable && "bg-muted text-muted-foreground",
+                                    applicable && eff.source === "override" && "bg-primary/15 text-primary",
+                                    applicable && eff.source === "tier" && "bg-sky-500/15 text-sky-600",
+                                    applicable && eff.source === "default" && "text-muted-foreground",
                                   )}
                                 >
-                                  {PACKAGE_PRICE_SOURCE_LABEL[eff.source]}
+                                  {applicable
+                                    ? PACKAGE_PRICE_SOURCE_LABEL[eff.source]
+                                    : avail.source === "override"
+                                      ? "不適用・單日"
+                                      : "不適用"}
                                 </span>
                               </button>
                             </td>
@@ -529,7 +570,27 @@ export default function PackagePriceCalendar() {
           <div className="space-y-3">
 
             <div className="space-y-1.5">
-              <Label>當日售價（NT$）</Label>
+              <Label>當日適用狀態</Label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  ["inherit", "沿用方案設定"],
+                  ["yes", "適用（前台顯示）"],
+                  ["no", "不適用（前台隱藏）"],
+                ] as ["inherit" | "yes" | "no", string][]).map(([v, label]) => (
+                  <Button
+                    key={v}
+                    type="button"
+                    size="sm"
+                    variant={cellAvail === v ? (v === "no" ? "destructive" : "default") : "outline"}
+                    onClick={() => setCellAvail(v)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>當日售價（NT$，可留空只改適用狀態）</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -562,9 +623,9 @@ export default function PackagePriceCalendar() {
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>整列批次改價</DialogTitle>
+            <DialogTitle>整列批次改</DialogTitle>
             <DialogDescription>
-              選擇方案與日期條件，一次套用同一價格（例：8 月所有週六的 6 人方案）。
+              選擇方案與日期條件，一次套用同一價格或適用狀態（例：8 月所有週六的 6 人方案）。
             </DialogDescription>
           </DialogHeader>
 
@@ -675,6 +736,13 @@ export default function PackagePriceCalendar() {
               </Button>
               <Button
                 size="sm"
+                variant={bulkMode === "avail" ? "default" : "outline"}
+                onClick={() => setBulkMode("avail")}
+              >
+                設定適用狀態
+              </Button>
+              <Button
+                size="sm"
                 variant={bulkMode === "clear" ? "destructive" : "outline"}
                 onClick={() => setBulkMode("clear")}
               >
@@ -701,6 +769,28 @@ export default function PackagePriceCalendar() {
                     value={bulkOriginal}
                     onChange={(e) => setBulkOriginal(e.target.value)}
                   />
+                </div>
+              </div>
+            )}
+
+            {bulkMode === "avail" && (
+              <div className="space-y-2">
+                <Label>套用狀態</Label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={bulkAvail === "yes" ? "default" : "outline"}
+                    onClick={() => setBulkAvail("yes")}
+                  >
+                    適用（前台顯示）
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={bulkAvail === "no" ? "destructive" : "outline"}
+                    onClick={() => setBulkAvail("no")}
+                  >
+                    不適用（前台隱藏）
+                  </Button>
                 </div>
               </div>
             )}

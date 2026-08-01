@@ -212,7 +212,15 @@ import type {
 } from "@/lib/sensan-pricing";
 
 export function buildPricingTableFromPackages(
-  packages: AccommodationPackage[]
+  packages: AccommodationPackage[],
+  /**
+   * 可選：套用某一天的「單日適用狀態」覆寫（package_date_prices.is_available）。
+   * available=false 的方案該日不出現；available=true 則即使不在 applicable_tiers 也會出現。
+   */
+  dayOverride?: {
+    tier: SensanPricingTier;
+    isAvailable: (pkgId: string) => boolean | null;
+  } | null
 ): Record<SensanPricingTier, SensanTierPrice[]> {
   const table: Record<SensanPricingTier, SensanTierPrice[]> = {
     weekday: [],
@@ -228,7 +236,16 @@ export function buildPricingTableFromPackages(
 
   for (const pkg of sorted) {
     if (!pkg.enabled) continue;
-    for (const tier of pkg.applicable_tiers) {
+    let tiers: PackageTier[] = pkg.applicable_tiers || [];
+    if (dayOverride) {
+      const ov = dayOverride.isAvailable(pkg.id);
+      if (ov === false) {
+        tiers = tiers.filter((t) => t !== dayOverride.tier);
+      } else if (ov === true && !tiers.includes(dayOverride.tier)) {
+        tiers = [...tiers, dayOverride.tier];
+      }
+    }
+    for (const tier of tiers) {
       const { original, sale } = getPackagePriceForTier(pkg, tier);
       // Fallback：若沒設定結構化房型分配，則用 primary_room_type_id / room_type_ids 自動帶入縮圖
       let allocation = pkg.room_type_allocation || [];

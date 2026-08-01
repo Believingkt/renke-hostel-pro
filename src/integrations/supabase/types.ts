@@ -7135,10 +7135,11 @@ export type Database = {
           created_by: string | null
           date: string
           id: string
+          is_available: boolean | null
           note: string | null
           original_price: number | null
           package_id: string
-          sale_price: number
+          sale_price: number | null
           updated_at: string
         }
         Insert: {
@@ -7147,10 +7148,11 @@ export type Database = {
           created_by?: string | null
           date: string
           id?: string
+          is_available?: boolean | null
           note?: string | null
           original_price?: number | null
           package_id: string
-          sale_price: number
+          sale_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -7159,10 +7161,11 @@ export type Database = {
           created_by?: string | null
           date?: string
           id?: string
+          is_available?: boolean | null
           note?: string | null
           original_price?: number | null
           package_id?: string
-          sale_price?: number
+          sale_price?: number | null
           updated_at?: string
         }
         Relationships: [
