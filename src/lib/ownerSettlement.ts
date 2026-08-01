@@ -42,6 +42,12 @@ export interface OwnerPricingRule {
   revenue_breakdown_type: RevenueBreakdownType;
   /** 舊制的「每多一棟加收」，僅在 marketing_fee_threshold = 0 時沿用 */
   marketing_fee_per_extra_property: number;
+  /**
+   * 設定為「不列入平台服務費抽成」的 addon_type 清單。
+   * 不在清單內的增值服務一律列入抽成基礎（不扣除）。
+   * 僅影響業主月結，不影響團隊佣金（那條路徑一律排除全部增值服務）。
+   */
+  commission_excluded_addon_types: string[];
   /** true = 來自 owner_settlement_pricing_rules（新制） */
   fromTable: boolean;
   effective_from?: string | null;
