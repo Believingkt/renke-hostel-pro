@@ -630,22 +630,17 @@ const MemberOrderDetail = () => {
       toast.error("沒有任何變更");
       return;
     }
-    if (datesChanged && dateChangeLocked) {
-      toast.error("已付訂金的訂單無法線上改期，請聯繫客服或民宿協助");
-      return;
-    }
-    if (guestsChanged && guestChangeBlocked) {
-      toast.error(
-        guestQuote?.reason || "變更人數會影響金額，請聯繫客服或民宿協助處理",
-      );
-      return;
-    }
     if (guestsChanged && guestPriceChanged && !priceChangeAck) {
       toast.error("請先確認人數變更後的金額調整");
       return;
     }
     if (datesChanged) {
-      await runAction({ action: "change_dates", newCheckIn, newCheckOut });
+      // 已付訂金／已付款 → 送出客服改期申請（人工確認空房與價差）
+      await runAction({
+        action: dateChangeLocked ? "request_date_change" : "change_dates",
+        newCheckIn,
+        newCheckOut,
+      });
     }
     if (guestsChanged) {
       await runAction({
@@ -654,6 +649,7 @@ const MemberOrderDetail = () => {
         confirmPriceChange: priceChangeAck || !guestPriceChanged,
       });
     }
+
     setGuestQuote(null);
     setPriceChangeAck(false);
     setChangeOpen(false);
