@@ -1312,7 +1312,8 @@ const GuestTabsScroller = ({
               type="button"
               onClick={() => onSelect(t.guestCount)}
               className={cn(
-                "inline-flex items-center justify-center flex-none min-w-[72px] px-4 h-9 my-1 text-[15px] leading-none whitespace-nowrap rounded-full transition-colors duration-300 ease-out text-center box-border",
+                "dynamic-type-safe flex-none min-w-[72px] px-4 py-1.5 my-1 text-[15px] whitespace-nowrap rounded-full transition-colors duration-300 ease-out text-center box-border",
+
 
                 isActive
                   ? "font-bold text-white shadow-sm"
