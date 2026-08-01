@@ -1158,6 +1158,33 @@ const BookingFlow = () => {
     };
   }, [selectedPackageId]);
 
+  // 方案「單日價格覆寫」：庫存日曆上針對該方案某日直接改的價，優先於 tier 價
+  const [packageDateOverrides, setPackageDateOverrides] = useState<PackageDatePriceMap>(new Map());
+  const stayDateStrs = useMemo(() => {
+    if (!checkInDate || !checkOutDate) return [] as string[];
+    const out: string[] = [];
+    const cur = new Date(checkInDate);
+    while (cur < checkOutDate) {
+      out.push(format(cur, "yyyy-MM-dd"));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [checkInDate, checkOutDate]);
+  const stayDatesKey = stayDateStrs.join(",");
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedPackageId || stayDateStrs.length === 0) {
+      setPackageDateOverrides(new Map());
+      return;
+    }
+    (async () => {
+      const map = await fetchPackageDatePricesForPackage(selectedPackageId, stayDateStrs);
+      if (!cancelled) setPackageDateOverrides(map);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPackageId, stayDatesKey]);
+
   // 依日期取包區方案「每晚 sale」
   // 優先序：package_date_prices 單日覆寫 → tier_prices（平日／週五日／假日） → sale_price
   const getPackageNightlySale = (d: Date): number | null => {
