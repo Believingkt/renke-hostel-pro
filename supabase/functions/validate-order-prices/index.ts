@@ -340,8 +340,6 @@ serve(async (req) => {
           discountBaseTotal += nightlyOriginal;
 
         }
-
-        }
       }
     }
 
