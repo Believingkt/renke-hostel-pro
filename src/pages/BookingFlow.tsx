@@ -1203,6 +1203,12 @@ const BookingFlow = () => {
   // 依日期取包區方案「每晚原價（劃掉價）」：未設定時回退「房價價格設定」（逐晚庫存價），再回退 sale
   const getPackageNightlyOriginal = (d: Date): number | null => {
     if (!selectedPackage) return null;
+    const dateStr = format(d, "yyyy-MM-dd");
+    if (selectedPackageId) {
+      const ov = packageDateOverrides.get(overrideKey(selectedPackageId, dateStr));
+      if (ov && ov.original_price != null && ov.original_price > 0) return ov.original_price;
+      if (ov) return ov.sale_price;
+    }
     const tier = detectTierByDate(d, isPackageHolidayDate(d));
     const override = selectedPackage.tier_prices?.[tier];
     if (override && override.original != null && Number(override.original) > 0) {
