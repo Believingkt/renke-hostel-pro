@@ -1085,7 +1085,7 @@ export default function OwnerSettlement() {
                         const std = r.std;
                         return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={isGuestCount ? 8 : 9} className="p-0">
+                          <TableCell colSpan={isGuestCount ? 9 : 10} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
