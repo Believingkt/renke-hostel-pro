@@ -90,6 +90,7 @@ const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
+const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
 
 const Accounts = lazy(() => import("./pages/Accounts"));
 const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
@@ -401,6 +402,12 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/package-price-calendar" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><PackagePriceCalendar /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/search-card" element={
                       <RequireModule module="room_price">
                         <Suspense fallback={<FormSkeleton fields={6} />}><AdminSearchCard /></Suspense>

@@ -74,6 +74,12 @@ import {
   getPackagePriceForTier,
   isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
+import {
+  fetchPackageDatePrices,
+  overrideKey,
+  toDateStr,
+  type PackageDatePriceMap,
+} from "@/lib/packageDatePrice";
 import { resolveChildRules, evaluateChildSelection } from "@/lib/child-rules";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
@@ -495,10 +501,42 @@ const BookingVilla = () => {
   const childExtraBreakdown = childCtx?.evalResult.breakdown ?? [];
   const childRuleLines = childCtx?.ruleLines ?? [];
 
+  // 方案單日價格覆寫（庫存日曆上針對某方案某日改的價）：僅需所選入住日
+  const [packageDateOverrides, setPackageDateOverrides] = useState<PackageDatePriceMap>(new Map());
+  const checkInDateStr = checkIn ? toDateStr(checkIn) : null;
+  useEffect(() => {
+    let cancelled = false;
+    if (!accId || !checkInDateStr) {
+      setPackageDateOverrides(new Map());
+      return;
+    }
+    (async () => {
+      const map = await fetchPackageDatePrices(accId, checkInDateStr, checkInDateStr);
+      if (!cancelled) setPackageDateOverrides(map);
+    })();
+    return () => { cancelled = true; };
+  }, [accId, checkInDateStr]);
+
   const customPricingTable = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
-    return buildPricingTableFromPackages(visiblePackages);
-  }, [visiblePackages]);
+    const table = buildPricingTableFromPackages(visiblePackages);
+    // 套用「該入住日」的方案覆寫價，讓價格階梯與實際結帳價一致
+    if (checkInDateStr && packageDateOverrides.size > 0) {
+      const tier = detectTierByDate(checkIn!, isHolidayDate(checkIn!));
+      table[tier] = table[tier].map((entry) => {
+        const ov = entry.packageId
+          ? packageDateOverrides.get(overrideKey(entry.packageId, checkInDateStr))
+          : undefined;
+        if (!ov) return entry;
+        return {
+          ...entry,
+          sale: ov.sale_price,
+          original: ov.original_price ?? entry.original,
+        };
+      });
+    }
+    return table;
+  }, [visiblePackages, checkInDateStr, packageDateOverrides, checkIn, isHolidayDate]);
   const customIncludes = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
     return aggregateIncludesFromPackages(visiblePackages);
