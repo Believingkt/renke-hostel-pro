@@ -1337,10 +1337,77 @@ const MemberOrderDetail = () => {
                 min={1}
                 max={30}
                 value={newGuests}
-                onChange={(e) => setNewGuests(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setNewGuests(n);
+                  void fetchGuestQuote(n);
+                }}
                 className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
               />
             </div>
+
+            {guestQuoteLoading && (
+              <p className="text-xs text-muted-foreground">正在確認人數變更後的金額…</p>
+            )}
+
+            {!guestQuoteLoading && guestQuote?.needsManualReview && newGuests !== order.guest_count && (
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                {guestQuote.reason || "變更人數後的金額需由客服重新確認。"}
+                {Number(order.paid_amount || 0) > 0 && "（此訂單已付款，請直接聯繫客服協助調整）"}
+              </p>
+            )}
+
+            {!guestQuoteLoading && guestPriceChanged && guestQuote && (
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs space-y-1.5">
+                <p className="font-medium text-foreground">人數變更將重新計算房費</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">方案</span>
+                  <span>
+                    {guestQuote.currentPackageName || "-"} → {guestQuote.newPackageName || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">房費（{guestQuote.nights} 晚）</span>
+                  <span>
+                    NT${guestQuote.currentRoomTotal.toLocaleString()} → NT$
+                    {guestQuote.newRoomTotal.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">已付金額</span>
+                  <span>NT${guestQuote.paidAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-semibold" style={{ color: ORANGE }}>
+                  <span>{guestQuote.diff > 0 ? "需補差額" : "可退差額"}</span>
+                  <span>NT${Math.abs(guestQuote.diff).toLocaleString()}</span>
+                </div>
+                <p className="text-muted-foreground">
+                  變更後訂單總額 NT${guestQuote.newFinalPrice.toLocaleString()}，
+                  {guestQuote.newOutstanding > 0
+                    ? `尚需支付 NT$${guestQuote.newOutstanding.toLocaleString()}，客服將與您聯繫確認付款方式。`
+                    : "已無應付款項，多付差額將由客服協助辦理退款。"}
+                </p>
+                {fullyPaid ? (
+                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-destructive">
+                    此訂單已付清，變更人數會影響金額，請聯繫客服或民宿協助處理。
+                  </p>
+                ) : (
+                  <label className="flex items-start gap-2 pt-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={priceChangeAck}
+                      onChange={(e) => setPriceChangeAck(e.target.checked)}
+                      className="mt-0.5 h-4 w-4"
+                    />
+                    <span>
+                      我了解並同意上述金額調整
+                      {guestQuote.diff > 0 ? "，並於客服通知後補繳差額" : "，退款將由客服另行處理"}。
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
+
             {dateChangeLocked ? (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 此訂單已付訂金／已付款，無法線上改期。如需更改入住日期，請聯繫客服或直接與民宿聯絡協助處理。
