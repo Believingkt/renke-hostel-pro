@@ -410,6 +410,9 @@ export default function OwnerSettlement() {
           revenueOriginal: g.finalPriceOriginal as number,
           // 訂單金額 = final_price 換算台幣後總額（非台幣訂單為 ÷ 匯率快照後金額）
           orderAmount: g.finalPrice as number,
+          // 被設定為「不抽成」的增值服務金額（已由計算層過濾 commission_excluded_addon_types）
+          addonTotal: (g.addonTotal as number) || 0,
+          addonTotalOriginal: (g.addonTotalOriginal as number) || 0,
           commission: (g.commission + g.premiumShare) as number,
           exempt: g.exempt as boolean,
           currency: g.currency as string,
@@ -426,12 +429,15 @@ export default function OwnerSettlement() {
       revenue: r.monthFinal,
       revenueOriginal: r.monthFinalOriginal,
       orderAmount: r.monthCommissionable,
+      addonTotal: r.monthAddonTotal || 0,
+      addonTotalOriginal: (r.monthAddonTotal || 0) * (r.isForeign ? r.exchangeRate : 1),
       commission: r.commission,
       exempt: r.exempt,
       currency: r.currency,
       exchangeRate: r.exchangeRate,
       isForeign: r.isForeign,
     }));
+
   }, [isGuestCount, gcRows, rows]);
 
   /** 頁面總計：guestcount 型改吃 gcTotals */
