@@ -89,12 +89,8 @@ interface SettlementConfig {
   revenue_breakdown_type: RevenueBreakdownType;
 }
 
-interface RoomTypePricing {
-  id: string;
-  base_price: number;
-  price_2_meals: number | null;
-  price_3_meals: number | null;
-}
+
+
 
 interface OrderRow {
   order: Order;
@@ -137,9 +133,9 @@ export default function OwnerSettlement() {
   const [monthStr, setMonthStr] = useState<string>(format(new Date(), "yyyy-MM"));
   const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
   // room_type_id → room_types.capacity（溢價分潤的房型基礎人數來源）
   const [roomCapacityMap, setRoomCapacityMap] = useState<Record<string, number>>({});
+
   const [addonTotal, setAddonTotal] = useState(0);
   const [addonCount, setAddonCount] = useState(0);
   const [addonFeePct, setAddonFeePct] = useState(0);
@@ -188,7 +184,7 @@ export default function OwnerSettlement() {
           .gt("check_out_date", monthStart),
         supabase
           .from("room_types")
-          .select("id, price, price_2_meals, price_3_meals, capacity")
+          .select("id, capacity")
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("system_settings")
@@ -223,14 +219,6 @@ export default function OwnerSettlement() {
       if (cancelled) return;
 
       setOrders((ordersRes.data || []) as Order[]);
-      setRoomTypes(
-        (roomTypesRes.data || []).map((r: any) => ({
-          id: r.id,
-          base_price: r.price ?? 0,
-          price_2_meals: r.price_2_meals,
-          price_3_meals: r.price_3_meals,
-        }))
-      );
       setRoomCapacityMap(
         Object.fromEntries(
           (roomTypesRes.data || [])
