@@ -325,13 +325,33 @@ serve(async (req) => {
         return json({ success: false, message: "入住人數沒有變更" }, 400, corsHeaders);
       }
 
-      // 無法自動重算價格（非方案型／查無對應人數方案）→ 已付款訂單一律轉客服
+      // 無法自動重算價格（非方案型／查無對應人數方案）→ 已付款訂單一律轉客服待辦
       if (priceQuote.needsManualReview && hasPaidAny) {
+        await createManualReviewTask(supabase, {
+          orderId: order.id,
+          accommodationId: order.accommodation_id,
+          orderNumber: order.order_number,
+          taskType: "guest_count_repricing",
+          reasonCode: "guest_count_repricing",
+          requestedGuestCount: n,
+          quoteSnapshot: { priceQuote, currentGuestCount: order.guest_count },
+          requesterNote: body.reason ?? null,
+        });
+        await supabase
+          .from("orders")
+          .update({
+            notes: appendNote(
+              `🔒 ${stamp} 會員申請將入住人數改為 ${n} 人（${email}），系統無法自動重算金額，已建立客服待辦`,
+            ),
+          })
+          .eq("id", order.id);
         return json(
           {
             success: false,
             code: "NEEDS_MANUAL_REVIEW",
-            message: priceQuote.reason || "變更人數後的金額需由客服重新確認，請聯繫客服協助。",
+            reviewTaskCreated: true,
+            message:
+              "已為您送出人數變更申請，金額需由客服重新確認，客服將盡快與您聯繫。",
             priceQuote,
           },
           409,
@@ -341,19 +361,40 @@ serve(async (req) => {
 
       const priceChanged = priceQuote.canAutoPrice && priceQuote.diff !== 0;
 
-      // 已全額付款且金額會變動 → 不可線上自行變更
+      // 已全額付款且金額會變動 → 不可線上自行變更，轉客服待辦
       if (priceChanged && fullyPaid) {
+        await createManualReviewTask(supabase, {
+          orderId: order.id,
+          accommodationId: order.accommodation_id,
+          orderNumber: order.order_number,
+          taskType: "guest_count_repricing",
+          reasonCode: "guest_count_repricing_paid",
+          requestedGuestCount: n,
+          quoteSnapshot: { priceQuote, currentGuestCount: order.guest_count },
+          requesterNote: body.reason ?? null,
+        });
+        await supabase
+          .from("orders")
+          .update({
+            notes: appendNote(
+              `🔒 ${stamp} 會員申請將入住人數改為 ${n} 人（${email}），訂單已付清且金額有變動，已建立客服待辦`,
+            ),
+          })
+          .eq("id", order.id);
         return json(
           {
             success: false,
             code: "PRICE_LOCKED",
-            message: "此訂單已付清，變更人數會影響金額，請聯繫客服或民宿協助處理。",
+            reviewTaskCreated: true,
+            message:
+              "此訂單已付清，變更人數會影響金額。已為您送出申請，客服將協助處理。",
             priceQuote,
           },
           409,
           corsHeaders,
         );
       }
+
 
       // 金額會變動 → 需前台明確確認補差／退差後才套用
       if (priceChanged && !body.confirmPriceChange) {
