@@ -7,10 +7,17 @@ import { buildCorsHeaders } from "../_shared/cors.ts";
 import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { payByCardToken, refundTapPay } from "../_shared/tappay.ts";
 import { quoteGuestCountChange } from "../_shared/guestCountPricing.ts";
+import { createManualReviewTask } from "../_shared/manualReviewTask.ts";
 
 interface Body {
   orderNumber: string;
-  action: "cancel" | "cancel_quote" | "change_dates" | "change_guests" | "change_guests_quote";
+  action:
+    | "cancel"
+    | "cancel_quote"
+    | "change_dates"
+    | "change_guests"
+    | "change_guests_quote"
+    | "request_date_change";
   newCheckIn?: string;
   newCheckOut?: string;
   guestCount?: number;
@@ -18,6 +25,7 @@ interface Body {
   /** 客人已於前台確認金額變動（補差／退差）後才允許實際套用 */
   confirmPriceChange?: boolean;
 }
+
 
 
 
