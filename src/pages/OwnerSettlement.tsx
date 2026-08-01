@@ -1036,7 +1036,7 @@ export default function OwnerSettlement() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">
                           {r.order.order_number}
-                          {useGc && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
+                          {isGuestCount && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
                             <span
                               className="ml-1 text-amber-600"
                               title="找不到房型基礎人數，溢價分潤改以入住人數計算，需人工確認"
