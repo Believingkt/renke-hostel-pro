@@ -743,7 +743,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                       </div>
 
                       {/* 新增自訂假日 */}
-                      <div className="grid grid-cols-1 md:grid-cols-[160px_1fr_140px_auto] gap-2 items-end p-3 rounded-md bg-muted/30">
+                      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr_160px_auto] gap-2 items-end p-3 rounded-md bg-muted/30">
                         <div className="space-y-1">
                           <Label className="text-xs">日期</Label>
                           <Input
@@ -781,7 +781,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                       </div>
 
                       {/* 列表 */}
-                      <div className="rounded-md border max-h-[360px] overflow-auto">
+                      <div className="rounded-md border max-h-[420px] overflow-auto">
                         {loadingHolidays ? (
                           <div className="p-6 text-center text-sm text-muted-foreground">載入中…</div>
                         ) : syncedHolidays.length === 0 ? (
