@@ -78,10 +78,12 @@ export default function OwnerSettlementSettings() {
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  /** 該館別實際設定過的增值服務項目（addon_settings.addon_type，去重） */
-  const [addonTypes, setAddonTypes] = useState<string[]>([]);
-  /** 不列入平台服務費抽成的增值服務項目 */
-  const [excludedAddonTypes, setExcludedAddonTypes] = useState<string[]>([]);
+  /** 該館別實際設定過的增值服務項目（addon_settings 的 id + addon_type，依名稱去重） */
+  const [addonOptions, setAddonOptions] = useState<Array<{ id: string; addon_type: string }>>([]);
+  /** 不列入平台服務費抽成的增值服務項目（以 addon_settings.id 為主） */
+  const [excludedAddonIds, setExcludedAddonIds] = useState<string[]>([]);
+  /** 舊版只存了文字、但目前 addon_settings 找不到對應項目的名稱（保留以維持向下相容） */
+  const [legacyOnlyExcludedTypes, setLegacyOnlyExcludedTypes] = useState<string[]>([]);
 
   const loadHistory = async () => {
     if (!currentAccommodationId) {
