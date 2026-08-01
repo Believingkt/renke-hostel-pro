@@ -409,12 +409,13 @@ export function computeOwnerSettlementTotals(
 
 export interface GuestCountOrderInput extends OwnerSettlementOrderInput {
   guest_count?: number | null;
+  room_type_id?: string | null;
   custom_addon_details?: unknown;
 }
 
 export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderInput> {
   order: T;
-  /** 以下金額皆為台幣（外幣訂單已依匯率換算） */
+  /** 以下金額皆為台幣（外幣訂單已依匯率換算），且已依當月夜數比例分攤 */
   finalPrice: number;
   addonTotal: number;
   commissionBase: number;
@@ -427,17 +428,27 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
   currency: string;
   exchangeRate: number;
   isForeign: boolean;
-  /** 原幣別實付金額 */
+  /** 原幣別金額（已分攤） */
   finalPriceOriginal: number;
   addonTotalOriginal: number;
+  /** 分攤資訊 */
+  nightsInMonth: number;
+  totalNights: number;
+  monthRatio: number;
+  /** 溢價分潤計算用的基礎人數（房型 capacity，缺資料時 fallback guest_count） */
+  premiumBase: number;
+  /** 整筆訂單的溢價分潤總額（未分攤） */
+  premiumShareTotal: number;
+  /** true = 找不到房型基礎人數，已 fallback 用 guest_count，需人工確認 */
+  premiumBaseFallback: boolean;
 }
 
 /**
- * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price − 排除清單內的增值服務金額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
- * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
- *
- * rule 省略時等同舊制（threshold = 0），結果與修改前完全一致。
+ * guestcount 型：比照 standard 型，依 ratio = nightsInMonth / totalNights 做跨月分攤。
+ * 篩選條件為 nightsInMonth > 0。
+ * 溢價分潤總額 = 房型基礎人數（room_types.capacity）× 300 ÷ 2，再乘 ratio 分攤到當月；
+ * 加床造成的人數增加不影響溢價金額。
+ * 抽成基礎 = 分攤後 final_price − 分攤後「排除清單內」的增值服務金額。
  */
 export function computeGuestCountRows<T extends GuestCountOrderInput>(
   orders: T[],
@@ -445,6 +456,8 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   month: Date,
   currencyFallback?: AccommodationCurrencyFallback | null,
   rule?: OwnerPricingRule | null,
+  /** room_type_id → 房型基礎人數（room_types.capacity） */
+  roomCapacityMap?: Record<string, number> | null,
 ): GuestCountRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -455,20 +468,24 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   const rows: GuestCountRow<T>[] = [];
   for (const o of orders) {
     const ci = parseISO(o.check_in_date);
-    // 只在入住月份計算一次
-    if (ci < monthStart || ci > monthEnd) continue;
-
     const co = parseISO(o.check_out_date);
+    const totalNights = Math.max(1, differenceInDays(co, ci));
+    let nightsInMonth = 0;
+    for (let i = 0; i < totalNights; i++) {
+      const d = addDays(ci, i);
+      if (d >= monthStart && d <= monthEnd) nightsInMonth++;
+    }
+    if (nightsInMonth === 0) continue;
+
+    const ratio = nightsInMonth / totalNights;
     const isCrossMonth =
       ci.getFullYear() !== co.getFullYear() || ci.getMonth() !== co.getMonth();
 
     const resolved = resolveOrderCurrency(o, currencyFallback);
-    const finalPriceOriginal = Number(o.final_price || 0);
-    // 只扣除館別設定為「不列入抽成」的增值服務（全額計入入住月份，不分攤）
-    const addonTotalOriginal = extractExcludedAddonTotal(
-      o.custom_addon_details,
-      effectiveRule.commission_excluded_addon_types,
-    );
+    const finalPriceOriginal = Number(o.final_price || 0) * ratio;
+    // 只扣除館別設定為「不列入抽成」的增值服務，並依夜數比例分攤
+    const addonTotalOriginal =
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio;
     const finalPrice = convertToTwd(finalPriceOriginal, resolved);
     const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
@@ -476,7 +493,13 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
       resolved.isForeign;
-    const premiumShare = exempt ? 0 : (Number(o.guest_count || 0) * PREMIUM_SHARE_PER_GUEST) / 2;
+
+    // 溢價分潤基礎：房型基礎人數（capacity），無資料時 fallback guest_count 並標記需人工確認
+    const capacity = o.room_type_id ? Number(roomCapacityMap?.[o.room_type_id]) : NaN;
+    const hasCapacity = Number.isFinite(capacity) && capacity > 0;
+    const premiumBase = hasCapacity ? capacity : Number(o.guest_count || 0);
+    const premiumShareTotal = exempt ? 0 : (premiumBase * PREMIUM_SHARE_PER_GUEST) / 2;
+    const premiumShare = premiumShareTotal * ratio;
 
     rows.push({
       order: o,
@@ -494,10 +517,16 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       isForeign: resolved.currency !== "TWD",
       finalPriceOriginal,
       addonTotalOriginal,
+      nightsInMonth,
+      totalNights,
+      monthRatio: ratio,
+      premiumBase,
+      premiumShareTotal,
+      premiumBaseFallback: !hasCapacity,
     });
   }
 
-  // 業績門檻基礎：未扣加購的當月毛營收（final_price 全額，含 exempt 訂單）
+  // 業績門檻基礎：未扣加購的當月毛營收（分攤後 final_price，含 exempt 訂單）
   const thresholdBase = getGuestCountThresholdBase(rows);
   const factor = commissionThresholdFactor(thresholdBase, effectiveRule.commission_threshold);
   for (const r of rows) {
@@ -507,6 +536,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   }
   return rows;
 }
+
 
 /** guestcount 型的業績門檻基礎：未扣加購的當月毛營收（含 exempt 訂單） */
 export function getGuestCountThresholdBase(rows: GuestCountRow[]): number {
