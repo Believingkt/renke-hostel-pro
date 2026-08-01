@@ -6,15 +6,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { payByCardToken, refundTapPay } from "../_shared/tappay.ts";
+import { quoteGuestCountChange } from "../_shared/guestCountPricing.ts";
 
 interface Body {
   orderNumber: string;
-  action: "cancel" | "cancel_quote" | "change_dates" | "change_guests";
+  action: "cancel" | "cancel_quote" | "change_dates" | "change_guests" | "change_guests_quote";
   newCheckIn?: string;
   newCheckOut?: string;
   guestCount?: number;
   reason?: string;
+  /** 客人已於前台確認金額變動（補差／退差）後才允許實際套用 */
+  confirmPriceChange?: boolean;
 }
+
 
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
