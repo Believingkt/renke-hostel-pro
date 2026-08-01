@@ -1410,8 +1410,8 @@ const MemberOrderDetail = () => {
                     : "已無應付款項，多付差額將由客服協助辦理退款。"}
                 </p>
                 {fullyPaid ? (
-                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-destructive">
-                    此訂單已付清，變更人數會影響金額，請聯繫客服或民宿協助處理。
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-400">
+                    此訂單已付清，變更人數會影響金額，送出後將轉為客服申請，由客服確認後與您聯繫。
                   </p>
                 ) : (
                   <label className="flex items-start gap-2 pt-1 cursor-pointer">
@@ -1431,12 +1431,12 @@ const MemberOrderDetail = () => {
             )}
 
             {dateChangeLocked ? (
-              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                此訂單已付訂金／已付款，無法線上改期。如需更改入住日期，請聯繫客服或直接與民宿聯絡協助處理。
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                此訂單已付訂金／已付款，改期需由客服確認空房與價差。送出後會建立改期申請，客服將盡快與您聯繫。
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                已付訂金或已付款的訂單無法線上改期，請聯繫客服或民宿協助處理。
+                更改日期將重新確認空房；若訂單已付款，改期會轉由客服人工處理。
               </p>
             )}
           </div>
@@ -1446,16 +1446,23 @@ const MemberOrderDetail = () => {
                 acting ||
                 guestQuoteLoading ||
                 (newGuests !== order.guest_count &&
-                  (guestChangeBlocked || (guestPriceChanged && !priceChangeAck)))
+                  !guestChangeBlocked &&
+                  guestPriceChanged &&
+                  !priceChangeAck)
               }
               onClick={handleChange}
-
               className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: ORANGE }}
             >
-              {acting ? "送出中…" : "確認更改"}
+              {acting
+                ? "送出中…"
+                : dateChangeLocked &&
+                    (newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date)
+                  ? "送出改期申請"
+                  : "確認更改"}
             </button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
