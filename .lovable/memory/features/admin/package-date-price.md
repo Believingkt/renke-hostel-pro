@@ -21,7 +21,7 @@ type: feature
 
 ## 管理介面
 `/admin/package-price-calendar`（側欄：房價庫存 → 方案日期價格）
-- 列＝方案、欄＝當月日期；每格顯示有效價格 + 來源徽章（覆寫價／時段價／預設價）
+- 列＝方案、欄＝當月日期；每格顯示有效價格 + 來源徽章（單日指定價／平日假日價／方案預設價）
 - 單格點擊可改價或清除覆寫
 - 「整列批次改」：多選方案 × 日期區間 × 日期條件（全部／平日／週五日／週六假日／自訂星期），可套用或清除
 
@@ -30,3 +30,10 @@ type: feature
 - 房型 base 價與 room_inventory_pricing 保留不動（散客訂房、搜尋最低價、OTA 推送仍讀它）。
 - 覆寫價優先權高於 tier 價（週六也吃覆寫價）。
 - 同人數方案跨包棟同價：批次改價一次套用多方案即可。
+
+## 用語（UI 顯示）
+- override → 單日指定價、tier → 平日假日價、default → 方案預設價（不再用「覆寫價／時段價／預設價」）。
+
+## 變更紀錄
+`package_date_price_logs`（append-only，DB trigger 自動寫入 create/update/delete + 改前改後金額 + auth.uid()）。
+UI：`/admin/package-price-calendar` 右上「變更紀錄」按鈕（`src/components/pricing/PackagePriceChangeLog.tsx`）。

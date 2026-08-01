@@ -33,6 +33,7 @@ import {
   PACKAGE_PRICE_SOURCE_LABEL,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
+import { PackagePriceChangeLog } from "@/components/pricing/PackagePriceChangeLog";
 
 const weekDayNames = ["日", "一", "二", "三", "四", "五", "六"];
 const TIER_LABEL: Record<PackageTier, string> = {
@@ -79,6 +80,13 @@ export default function PackagePriceCalendar() {
       }),
     [currentMonth],
   );
+
+  const packageNames = useMemo(
+    () => Object.fromEntries(packages.map((p) => [p.id, p.name])) as Record<string, string>,
+    [packages],
+  );
+
+
 
   const isHolidayDate = useCallback(
     (d: Date) => holidaySet.has(toDateStr(d)),
@@ -181,7 +189,7 @@ export default function PackagePriceCalendar() {
       toast.error(`清除失敗：${error.message}`);
       return;
     }
-    toast.success("已清除覆寫，回退時段價");
+    toast.success("已清除單日指定價，回復平日假日價");
     setCell(null);
     loadData();
   };
@@ -223,7 +231,7 @@ export default function PackagePriceCalendar() {
         toast.error(`清除失敗：${error.message}`);
         return;
       }
-      toast.success(`已清除 ${bulkPkgIds.length} 個方案 × ${bulkDates.length} 天的覆寫價`);
+      toast.success(`已清除 ${bulkPkgIds.length} 個方案 × ${bulkDates.length} 天的單日指定價`);
     } else {
       const sale = Number(bulkSale);
       if (!bulkSale || !Number.isFinite(sale) || sale <= 0) {
@@ -281,15 +289,19 @@ export default function PackagePriceCalendar() {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary" />覆寫價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary" />單日指定價
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-500" />時段價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-500" />平日假日價
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />預設價
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />方案預設價
                 </span>
               </div>
+              <PackagePriceChangeLog
+                accommodationId={currentAccommodationId}
+                packageNames={packageNames}
+              />
               <Button
                 size="sm"
                 onClick={() => {
@@ -302,6 +314,7 @@ export default function PackagePriceCalendar() {
                 整列批次改
               </Button>
             </div>
+
           </div>
 
           {loading ? (
@@ -414,7 +427,7 @@ export default function PackagePriceCalendar() {
           <DialogHeader>
             <DialogTitle>{cell?.pkg.name}｜{cell?.date}</DialogTitle>
             <DialogDescription>
-              留空並清除覆寫後，該日將回退至時段價／預設售價。
+              清除後，該日將回復「平日假日價／方案預設價」。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -441,7 +454,7 @@ export default function PackagePriceCalendar() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={clearCell} disabled={saving}>
               <Trash2 className="h-4 w-4 mr-2" />
-              清除覆寫
+              清除指定價
             </Button>
             <Button onClick={saveCell} disabled={saving}>儲存</Button>
           </DialogFooter>
@@ -550,7 +563,7 @@ export default function PackagePriceCalendar() {
                 variant={bulkMode === "clear" ? "destructive" : "outline"}
                 onClick={() => setBulkMode("clear")}
               >
-                清除覆寫
+                清除指定價
               </Button>
             </div>
 

@@ -7012,6 +7012,51 @@ export type Database = {
           },
         ]
       }
+      package_date_price_logs: {
+        Row: {
+          accommodation_id: string
+          action: string
+          changed_by: string | null
+          created_at: string
+          date: string
+          id: string
+          new_original_price: number | null
+          new_sale_price: number | null
+          note: string | null
+          old_original_price: number | null
+          old_sale_price: number | null
+          package_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          new_original_price?: number | null
+          new_sale_price?: number | null
+          note?: string | null
+          old_original_price?: number | null
+          old_sale_price?: number | null
+          package_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          new_original_price?: number | null
+          new_sale_price?: number | null
+          note?: string | null
+          old_original_price?: number | null
+          old_sale_price?: number | null
+          package_id?: string
+        }
+        Relationships: []
+      }
       package_date_prices: {
         Row: {
           accommodation_id: string
