@@ -165,7 +165,7 @@ export function getRevenueBreakdownType(config: Partial<OwnerSettlementConfig> |
 /** 溢價分潤：每人 300 元的一半 */
 export const PREMIUM_SHARE_PER_GUEST = 300;
 
-/** 從 orders.custom_addon_details（jsonb array）加總「全部」加購項目 total（含清潔費、接機車資等） */
+/** 從 orders.custom_addon_details（jsonb array）加總「全部」增值服務 total（含清潔費、接機車資等） */
 export function extractAddonTotal(customAddonDetails: unknown): number {
   if (!Array.isArray(customAddonDetails)) return 0;
   let sum = 0;
@@ -189,7 +189,7 @@ export interface OwnerSettlementOrderInput {
   currency_at_booking?: string | null;
   /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
   exchange_rate_snapshot?: number | string | null;
-  /** 加購項目明細（jsonb array），抽成基礎需扣除 */
+  /** 增值服務明細（jsonb array），抽成基礎需扣除 */
   custom_addon_details?: unknown;
 }
 
@@ -247,7 +247,7 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   /** 台幣金額（外幣訂單已換算） */
   monthFinal: number;
   monthDiscount: number;
-  /** 本月分攤後的加購項目金額（台幣），已從抽成基礎扣除 */
+  /** 本月分攤後的增值服務金額（台幣），已從抽成基礎扣除 */
   monthAddonTotal: number;
   monthCommissionable: number;
   commission: number;
@@ -301,7 +301,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     const monthFinalOriginal = Number(o.final_price || 0) * ratio;
     const monthFinal = convertToTwd(monthFinalOriginal, resolved);
     const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
-    // 加購項目（清潔費、接機車資等）全額歸業主，不列入抽成基礎；
+    // 增值服務（清潔費、接機車資等）全額歸業主，不列入抽成基礎；
     // 金額比照夜數比例分攤，避免跨月訂單重複扣除。
     const monthAddonTotal = convertToTwd(extractAddonTotal(o.custom_addon_details) * ratio, resolved);
     const monthCommissionable = monthFinal - monthAddonTotal;
@@ -399,7 +399,7 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
 
 /**
  * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price - 加購項目總額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
+ * 抽成基礎 = final_price - 增值服務總額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
  * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
  *
  * rule 省略時等同舊制（threshold = 0），結果與修改前完全一致。
