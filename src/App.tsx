@@ -88,6 +88,7 @@ const AdminPackages = lazy(() => import("./pages/AdminPackages"));
 const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
+const ManualReviewTasks = lazy(() => import("./pages/ManualReviewTasks"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
@@ -350,6 +351,11 @@ function App() {
                     <Route path="admin/faq" element={
                       <RequireModule module="website_content">
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/manual-review" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><ManualReviewTasks /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/orders" element={
