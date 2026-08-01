@@ -529,6 +529,55 @@ export default function OwnerSettlementSettings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>增值服務抽成設定</CardTitle>
+          <CardDescription>
+            逐項決定此民宿的增值服務（加床、清潔費、接送車資等）是否列入平台服務費的抽成基礎。
+            <strong>勾選＝列入抽成</strong>，取消勾選＝不列入抽成。未特別設定的項目一律預設列入抽成。
+            <br />
+            此設定僅影響業主月結的平台服務費計算，不影響團隊佣金（星探／成交組／KOL 分潤一律排除所有增值服務，不受此設定影響）。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!currentAccommodationId && (
+            <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿的增值服務抽成規則。</p>
+          )}
+          {currentAccommodationId && addonTypes.length === 0 && (
+            <p className="text-sm text-muted-foreground">此民宿尚未設定任何增值服務項目。</p>
+          )}
+          {addonTypes.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {addonTypes.map((t) => {
+                const included = !excludedAddonTypes.includes(t);
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={included}
+                      onCheckedChange={(v) => toggleAddonCommission(t, v === true)}
+                    />
+                    <span className="text-sm">{t}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {included ? "列入抽成" : "不列入抽成"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {excludedAddonTypes.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              不列入抽成：{excludedAddonTypes.join("、")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+
+
+      <Card>
+        <CardHeader>
           <CardTitle>行銷費</CardTitle>
           <CardDescription>
             公式：<code>基本服務費 + 每多一棟加收 × (棟數 - 1)</code>。棟數取自 <code>accommodation_info.building_count</code>。
