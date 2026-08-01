@@ -78,6 +78,10 @@ export default function OwnerSettlementSettings() {
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
+  /** 該館別實際設定過的增值服務項目（addon_settings.addon_type，去重） */
+  const [addonTypes, setAddonTypes] = useState<string[]>([]);
+  /** 不列入平台服務費抽成的增值服務項目 */
+  const [excludedAddonTypes, setExcludedAddonTypes] = useState<string[]>([]);
 
   const loadHistory = async () => {
     if (!currentAccommodationId) {
@@ -212,6 +216,32 @@ export default function OwnerSettlementSettings() {
         setConfig(baseConfig);
       }
 
+      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的 addon_type
+      if (currentAccommodationId) {
+        const { data: addonRows } = await supabase
+          .from("addon_settings")
+          .select("addon_type")
+          .eq("accommodation_id", currentAccommodationId);
+        const types = Array.from(
+          new Set(
+            ((addonRows ?? []) as Array<{ addon_type: string | null }>)
+              .map((r) => (r.addon_type ?? "").trim())
+              .filter(Boolean),
+          ),
+        ).sort();
+        setAddonTypes(types);
+        setExcludedAddonTypes(
+          Array.isArray(ruleRow?.commission_excluded_addon_types)
+            ? (ruleRow!.commission_excluded_addon_types as string[])
+            : [],
+        );
+      } else {
+        setAddonTypes([]);
+        setExcludedAddonTypes([]);
+      }
+
+
+
 
       const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
       if (currentAccommodationId) {
@@ -256,6 +286,18 @@ export default function OwnerSettlementSettings() {
       return { ...prev, exempt_order_sources: Array.from(set) };
     });
   };
+
+  /** 勾選 = 列入抽成（從排除清單移除）；取消勾選 = 不列入抽成（加入排除清單） */
+  const toggleAddonCommission = (addonType: string, included: boolean) => {
+    setExcludedAddonTypes((prev) => {
+      const set = new Set(prev);
+      if (included) set.delete(addonType);
+      else set.add(addonType);
+      return Array.from(set);
+    });
+  };
+
+
 
   const handleSave = async () => {
     if (config.commission_rate < 0 || config.commission_rate > 100) {
@@ -316,6 +358,7 @@ export default function OwnerSettlementSettings() {
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
+          commission_excluded_addon_types: excludedAddonTypes,
           created_by: user?.id ?? null,
         });
       if (ruleError) {
@@ -483,6 +526,55 @@ export default function OwnerSettlementSettings() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>增值服務抽成設定</CardTitle>
+          <CardDescription>
+            逐項決定此民宿的增值服務（加床、清潔費、接送車資等）是否列入平台服務費的抽成基礎。
+            <strong>勾選＝列入抽成</strong>，取消勾選＝不列入抽成。未特別設定的項目一律預設列入抽成。
+            <br />
+            此設定僅影響業主月結的平台服務費計算，不影響團隊佣金（星探／成交組／KOL 分潤一律排除所有增值服務，不受此設定影響）。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!currentAccommodationId && (
+            <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿的增值服務抽成規則。</p>
+          )}
+          {currentAccommodationId && addonTypes.length === 0 && (
+            <p className="text-sm text-muted-foreground">此民宿尚未設定任何增值服務項目。</p>
+          )}
+          {addonTypes.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {addonTypes.map((t) => {
+                const included = !excludedAddonTypes.includes(t);
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
+                  >
+                    <Checkbox
+                      checked={included}
+                      onCheckedChange={(v) => toggleAddonCommission(t, v === true)}
+                    />
+                    <span className="text-sm">{t}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {included ? "列入抽成" : "不列入抽成"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {excludedAddonTypes.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              不列入抽成：{excludedAddonTypes.join("、")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       <Card>
         <CardHeader>
