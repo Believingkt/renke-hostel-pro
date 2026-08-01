@@ -286,6 +286,20 @@ serve(async (req) => {
           .in("holiday_type", ["holiday", "compensatory_day_off"]);
         const holidaySet = new Set((holidayRows || []).map((h: any) => h.holiday_date));
 
+        // 方案「單日價格覆寫」：優先於 tier 價（與前台 src/lib/packageDatePrice.ts 同一順序）
+        const { data: dateOverrideRows } = await supabase
+          .from("package_date_prices")
+          .select("date, sale_price, original_price")
+          .eq("package_id", packageId)
+          .in("date", dates);
+        const dateOverrideMap = new Map<string, { sale: number; original: number | null }>();
+        for (const r of (dateOverrideRows || []) as any[]) {
+          dateOverrideMap.set(r.date, {
+            sale: Number(r.sale_price),
+            original: r.original_price != null ? Number(r.original_price) : null,
+          });
+        }
+
         for (const date of dates) {
           const pricing = pricingMap.get(date);
           if (pricing) {
@@ -300,21 +314,32 @@ serve(async (req) => {
             : (day === 5 || day === 0)
               ? "friday_sunday"
               : "weekday";
+          const dateOv = dateOverrideMap.get(date);
           const tierSale = tierPrices?.[tier]?.sale;
-          const nightlySale = tierSale != null ? Number(tierSale) : salePrice;
+          const nightlySale = dateOv
+            ? dateOv.sale
+            : tierSale != null
+              ? Number(tierSale)
+              : salePrice;
           calculatedRoomTotal += nightlySale;
 
           const tierOriginal = tierPrices?.[tier]?.original;
           const invPrice = pricing?.price != null ? Number(pricing.price) : null;
           const nightlyOriginal =
-            tierOriginal != null && Number(tierOriginal) > 0
-              ? Number(tierOriginal)
-              : pkgOriginal != null && pkgOriginal > 0
-                ? pkgOriginal
-                : invPrice != null && invPrice > 0
-                  ? invPrice
-                  : nightlySale;
+            dateOv && dateOv.original != null && dateOv.original > 0
+              ? dateOv.original
+              : dateOv
+                ? dateOv.sale
+                : tierOriginal != null && Number(tierOriginal) > 0
+                  ? Number(tierOriginal)
+                  : pkgOriginal != null && pkgOriginal > 0
+                    ? pkgOriginal
+                    : invPrice != null && invPrice > 0
+                      ? invPrice
+                      : nightlySale;
           discountBaseTotal += nightlyOriginal;
+
+        }
 
         }
       }
