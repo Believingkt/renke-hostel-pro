@@ -550,12 +550,30 @@ export default function PackagePriceCalendar() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>起始日</Label>
-                <Input type="date" value={bulkStart} onChange={(e) => setBulkStart(e.target.value)} />
+                <Input
+                  type="date"
+                  value={bulkStart}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBulkStart(v);
+                    if (v && (!bulkEnd || bulkEnd < v)) setBulkEnd(v);
+                  }}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>結束日</Label>
-                <Input type="date" value={bulkEnd} onChange={(e) => setBulkEnd(e.target.value)} />
+                <Input
+                  type="date"
+                  value={bulkEnd}
+                  min={bulkStart || undefined}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBulkEnd(v);
+                    if (v && bulkStart && v < bulkStart) setBulkStart(v);
+                  }}
+                />
               </div>
+
             </div>
 
             <div className="space-y-2">
