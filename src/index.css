@@ -1470,6 +1470,32 @@ All colors MUST be HSL.
   }
 }
 
+/* iOS Dynamic Type / 使用者放大字級相容性
+   - 不阻擋系統字級放大（保留 100% text-size-adjust）
+   - 放大時元件以內容撐開高度，避免文字被裁切或垂直偏移 */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@supports (-webkit-touch-callout: none) {
+  button,
+  a,
+  [role="tab"],
+  [role="button"] {
+    /* 固定高度改為最小高度，字級放大時可自然增高 */
+    height: auto;
+    min-height: 2.25rem;
+  }
+
+  /* 允許長文字換行，避免溢出截斷 */
+  button,
+  [role="tab"] {
+    overflow-wrap: anywhere;
+  }
+}
+
+
 /* 響應式表格優化 */
 @media (max-width: 768px) {
   .responsive-table {
