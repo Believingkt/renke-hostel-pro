@@ -1423,8 +1423,14 @@ const MemberOrderDetail = () => {
           </div>
           <DialogFooter>
             <button
-              disabled={acting}
+              disabled={
+                acting ||
+                guestQuoteLoading ||
+                (newGuests !== order.guest_count &&
+                  (guestChangeBlocked || (guestPriceChanged && !priceChangeAck)))
+              }
               onClick={handleChange}
+
               className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: ORANGE }}
             >
