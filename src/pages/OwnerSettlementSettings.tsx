@@ -304,12 +304,12 @@ export default function OwnerSettlementSettings() {
     });
   };
 
-  /** 勾選 = 列入抽成（從排除清單移除）；取消勾選 = 不列入抽成（加入排除清單） */
-  const toggleAddonCommission = (addonType: string, included: boolean) => {
-    setExcludedAddonTypes((prev) => {
+  /** 勾選 = 不列入抽成（加入排除清單）；取消勾選 = 列入抽成（從排除清單移除） */
+  const toggleAddonCommission = (addonId: string, included: boolean) => {
+    setExcludedAddonIds((prev) => {
       const set = new Set(prev);
-      if (included) set.delete(addonType);
-      else set.add(addonType);
+      if (included) set.delete(addonId);
+      else set.add(addonId);
       return Array.from(set);
     });
   };
