@@ -89,12 +89,8 @@ interface SettlementConfig {
   revenue_breakdown_type: RevenueBreakdownType;
 }
 
-interface RoomTypePricing {
-  id: string;
-  base_price: number;
-  price_2_meals: number | null;
-  price_3_meals: number | null;
-}
+
+
 
 interface OrderRow {
   order: Order;
