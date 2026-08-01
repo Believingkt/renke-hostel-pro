@@ -160,6 +160,11 @@ import {
   detectTierByDate,
   useAccommodationHolidays,
 } from "@/hooks/use-accommodation-packages";
+import {
+  fetchPackageDatePricesForPackage,
+  overrideKey,
+  type PackageDatePriceMap,
+} from "@/lib/packageDatePrice";
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
