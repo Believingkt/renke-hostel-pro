@@ -39,6 +39,7 @@ import {
   Plug,
   FileText,
   Mail,
+  Headset,
   LayoutPanelTop
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
