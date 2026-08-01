@@ -293,6 +293,51 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     }
   };
 
+  const saveEditedHoliday = async () => {
+    if (!editingHoliday) return;
+    const { originalDate, date, name, type } = editingHoliday;
+    if (!date || !name.trim()) {
+      toast.error("請填寫日期與名稱");
+      return;
+    }
+    setSavingHoliday(true);
+    try {
+      const accIds = accommodations.map(a => a.id);
+      if (date !== originalDate) {
+        const { error: delError } = await supabase
+          .from("public_holidays")
+          .delete()
+          .eq("holiday_date", originalDate)
+          .in("accommodation_id", accIds);
+        if (delError) throw delError;
+      }
+      const rows = accommodations.map(a => ({
+        accommodation_id: a.id,
+        holiday_date: date,
+        holiday_name: name.trim(),
+        holiday_type: type,
+        is_custom: true,
+      }));
+      const { error } = await supabase
+        .from("public_holidays")
+        .upsert(rows, { onConflict: "accommodation_id,holiday_date" });
+      if (error) throw error;
+      await logAction("update", "system", "holidays", "custom", name.trim(), {
+        from: originalDate,
+        to: date,
+        type,
+      });
+      toast.success("已更新假日設定");
+      setEditingHoliday(null);
+      await loadSyncedHolidays();
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "更新失敗");
+    } finally {
+      setSavingHoliday(false);
+    }
+  };
+
   const deleteHolidayByDate = async (date: string, name: string) => {
     if (!confirm(`確定刪除 ${date} ${name}？將同步從所有民宿移除。`)) return;
     try {
