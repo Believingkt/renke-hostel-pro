@@ -787,23 +787,54 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                         ) : syncedHolidays.length === 0 ? (
                           <div className="p-6 text-center text-sm text-muted-foreground">{previewYear} 年尚無假日資料</div>
                         ) : (
-                          <Table>
+                          <Table className="min-w-[720px]">
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-[120px]">日期</TableHead>
+                                <TableHead className="w-[170px]">日期</TableHead>
                                 <TableHead>名稱</TableHead>
-                                <TableHead className="w-[110px]">類型</TableHead>
-                                <TableHead className="w-[80px]">來源</TableHead>
-                                <TableHead className="w-[60px]"></TableHead>
+                                <TableHead className="w-[150px]">類型</TableHead>
+                                <TableHead className="w-[90px]">來源</TableHead>
+                                <TableHead className="w-[110px] text-right">操作</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {syncedHolidays.map(h => (
+                              {syncedHolidays.map(h => {
+                                const isEditing = editingHoliday?.originalDate === h.date;
+                                return (
                                 <TableRow key={h.date + h.name}>
-                                  <TableCell className="tabular-nums">{h.date}</TableCell>
-                                  <TableCell>{h.name}</TableCell>
+                                  <TableCell className="tabular-nums whitespace-nowrap">
+                                    {isEditing ? (
+                                      <Input
+                                        type="date"
+                                        className="h-9 w-[150px]"
+                                        value={editingHoliday.date}
+                                        onChange={(e) => setEditingHoliday(p => p && ({ ...p, date: e.target.value }))}
+                                      />
+                                    ) : h.date}
+                                  </TableCell>
                                   <TableCell>
-                                    {h.type === "work_on_weekend" || h.type === "workday" ? (
+                                    {isEditing ? (
+                                      <Input
+                                        className="h-9"
+                                        value={editingHoliday.name}
+                                        onChange={(e) => setEditingHoliday(p => p && ({ ...p, name: e.target.value }))}
+                                      />
+                                    ) : h.name}
+                                  </TableCell>
+                                  <TableCell>
+                                    {isEditing ? (
+                                      <Select
+                                        value={editingHoliday.type}
+                                        onValueChange={(v) => setEditingHoliday(p => p && ({ ...p, type: v }))}
+                                      >
+                                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="holiday">假日</SelectItem>
+                                          <SelectItem value="compensatory_day_off">補假</SelectItem>
+                                          <SelectItem value="work_on_weekend">補班</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : h.type === "work_on_weekend" || h.type === "workday" ? (
                                       <Badge variant="secondary">補班</Badge>
                                     ) : h.type === "compensatory_day_off" ? (
                                       <Badge>補假</Badge>
@@ -818,19 +849,41 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                                       <Badge variant="outline">政府</Badge>
                                     )}
                                   </TableCell>
-                                  <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => deleteHolidayByDate(h.date, h.name)}
-                                    >
-                                      <XCircle className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                  <TableCell className="text-right whitespace-nowrap">
+                                    {isEditing ? (
+                                      <div className="flex justify-end gap-1">
+                                        <Button size="sm" onClick={saveEditedHoliday} disabled={savingHoliday}>
+                                          {savingHoliday ? <Loader2 className="h-4 w-4 animate-spin" /> : "儲存"}
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => setEditingHoliday(null)} disabled={savingHoliday}>
+                                          取消
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex justify-end gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setEditingHoliday({ originalDate: h.date, date: h.date, name: h.name, type: h.type === "workday" ? "work_on_weekend" : h.type })}
+                                        >
+                                          編輯
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => deleteHolidayByDate(h.date, h.name)}
+                                        >
+                                          <XCircle className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    )}
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                                );
+                              })}
                             </TableBody>
                           </Table>
+
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
