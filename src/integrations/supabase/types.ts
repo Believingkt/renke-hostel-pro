@@ -5483,6 +5483,7 @@ export type Database = {
           scout_commission_rate: number | null
           scout_id: string | null
           team_commission_price: number | null
+          team_commission_price_is_manual: boolean
           traffic_source: string | null
           updated_at: string | null
           video_creator_id: string | null
@@ -5521,6 +5522,7 @@ export type Database = {
           scout_commission_rate?: number | null
           scout_id?: string | null
           team_commission_price?: number | null
+          team_commission_price_is_manual?: boolean
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
@@ -5559,6 +5561,7 @@ export type Database = {
           scout_commission_rate?: number | null
           scout_id?: string | null
           team_commission_price?: number | null
+          team_commission_price_is_manual?: boolean
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
@@ -9919,6 +9922,10 @@ export type Database = {
       bulk_upsert_room_inventory_pricing:
         | { Args: { p_rows: Json }; Returns: undefined }
         | { Args: { p_rows: Json; p_source?: string }; Returns: undefined }
+      calc_team_commission_price: {
+        Args: { _order_id: string }
+        Returns: number
+      }
       calculate_room_remaining: {
         Args: {
           _accommodation_id: string
