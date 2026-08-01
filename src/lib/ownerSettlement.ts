@@ -71,6 +71,7 @@ export function pricingRuleFromLegacyConfig(config: OwnerSettlementConfig): Owne
     revenue_breakdown_type: getRevenueBreakdownType(config),
     marketing_fee_per_extra_property: Number(config.marketing_fee_per_extra_property) || 0,
     commission_excluded_addon_types: [],
+    commission_excluded_addon_ids: [],
     fromTable: false,
   };
 }
