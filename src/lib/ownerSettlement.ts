@@ -102,6 +102,9 @@ export function pricingRuleFromRow(
     commission_excluded_addon_types: Array.isArray(row.commission_excluded_addon_types)
       ? (row.commission_excluded_addon_types as string[])
       : [],
+    commission_excluded_addon_ids: Array.isArray(row.commission_excluded_addon_ids)
+      ? (row.commission_excluded_addon_ids as string[])
+      : [],
     fromTable: true,
     effective_from: row.effective_from ?? null,
   };
