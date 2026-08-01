@@ -197,22 +197,30 @@ export function extractAddonTotal(customAddonDetails: unknown): number {
 }
 
 /**
- * 只加總「被館別設定為不列入抽成」的增值服務金額（依 addon_type 比對）。
- * excludedTypes 為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
+ * 只加總「被館別設定為不列入抽成」的增值服務金額。
+ * 比對優先序：
+ *  1. 訂單項目有 addon_id → 用 excludedIds 比對（不受改名影響）
+ *  2. 訂單項目沒有 addon_id（舊訂單快照） → fallback 用 addon_type 文字比對 excludedTypes
+ * 兩份清單皆為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
  */
 export function extractExcludedAddonTotal(
   customAddonDetails: unknown,
+  excludedIds: string[] | null | undefined,
   excludedTypes: string[] | null | undefined,
 ): number {
   if (!Array.isArray(customAddonDetails)) return 0;
-  if (!excludedTypes || excludedTypes.length === 0) return 0;
-  const excluded = new Set(excludedTypes);
+  const idSet = new Set((excludedIds ?? []).filter(Boolean));
+  const typeSet = new Set((excludedTypes ?? []).filter(Boolean));
+  if (idSet.size === 0 && typeSet.size === 0) return 0;
   let sum = 0;
   for (const item of customAddonDetails) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
-    const type = String(rec.addon_type ?? "");
-    if (!excluded.has(type)) continue;
+    const addonId = rec.addon_id ? String(rec.addon_id) : "";
+    const matched = addonId
+      ? idSet.has(addonId)
+      : typeSet.has(String(rec.addon_type ?? ""));
+    if (!matched) continue;
     sum += Number(rec.total ?? 0) || 0;
   }
   return sum;
