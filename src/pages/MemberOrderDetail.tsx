@@ -1373,9 +1373,11 @@ const MemberOrderDetail = () => {
             {!guestQuoteLoading && guestQuote?.needsManualReview && newGuests !== order.guest_count && (
               <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 {guestQuote.reason || "變更人數後的金額需由客服重新確認。"}
-                {Number(order.paid_amount || 0) > 0 && "（此訂單已付款，請直接聯繫客服協助調整）"}
+                {Number(order.paid_amount || 0) > 0 &&
+                  "（此訂單已付款，送出後將轉為客服申請，由客服確認金額後與您聯繫）"}
               </p>
             )}
+
 
             {!guestQuoteLoading && guestPriceChanged && guestQuote && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs space-y-1.5">
