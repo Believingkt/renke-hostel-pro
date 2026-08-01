@@ -3165,6 +3165,7 @@ const BookingFlow = () => {
                   ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
                       const setting = customAddonSettings.find(s => s.addon_type === type);
                       return {
+                        addon_id: setting?.id,
                         addon_type: type,
                         count,
                         price_per_unit: setting?.price_per_unit || 0,
