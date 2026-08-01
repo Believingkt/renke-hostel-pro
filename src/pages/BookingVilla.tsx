@@ -74,6 +74,12 @@ import {
   getPackagePriceForTier,
   isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
+import {
+  fetchPackageDatePrices,
+  overrideKey,
+  toDateStr,
+  type PackageDatePriceMap,
+} from "@/lib/packageDatePrice";
 import { resolveChildRules, evaluateChildSelection } from "@/lib/child-rules";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
