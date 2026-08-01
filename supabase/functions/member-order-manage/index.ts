@@ -455,7 +455,7 @@ serve(async (req) => {
     }
 
 
-    // change_dates
+    // change_dates / request_date_change
     const { newCheckIn, newCheckOut } = body;
     if (!newCheckIn || !newCheckOut || !DATE_RE.test(newCheckIn) || !DATE_RE.test(newCheckOut)) {
       return json({ success: false, message: "日期格式必須為 yyyy-MM-dd" }, 400, corsHeaders);
@@ -466,18 +466,59 @@ serve(async (req) => {
     if (newCheckIn <= today) {
       return json({ success: false, message: "入住日必須是未來日期" }, 400, corsHeaders);
     }
+    if (order.check_in_date === newCheckIn && order.check_out_date === newCheckOut) {
+      return json({ success: false, message: "新舊日期與原訂單相同" }, 400, corsHeaders);
+    }
     const hasPaid = Number(order.paid_amount || 0) > 0 ||
       ["paid", "deposit_paid", "partial"].includes(String(order.payment_status));
-    if (hasPaid) {
+
+    // 已付款訂單的改期一律走客服待辦（人工審核 + 可能的價差處理）
+    if (body.action === "request_date_change" || hasPaid) {
+      if (!hasPaid) {
+        return json(
+          { success: false, message: "此訂單可直接線上改期，無需送出申請" },
+          400,
+          corsHeaders,
+        );
+      }
+      await createManualReviewTask(supabase, {
+        orderId: order.id,
+        accommodationId: order.accommodation_id,
+        orderNumber: order.order_number,
+        taskType: "date_change_request",
+        reasonCode: "date_change_paid_order",
+        requestedCheckIn: newCheckIn,
+        requestedCheckOut: newCheckOut,
+        quoteSnapshot: {
+          currentCheckIn: order.check_in_date,
+          currentCheckOut: order.check_out_date,
+          paidAmount: Number(order.paid_amount || 0),
+          finalPrice: Number(order.final_price || 0),
+          paymentStatus: order.payment_status,
+        },
+        requesterNote: body.reason ?? null,
+      });
+      await supabase
+        .from("orders")
+        .update({
+          notes: appendNote(
+            `🔒 ${stamp} 會員申請改期：${order.check_in_date}~${order.check_out_date} → ${newCheckIn}~${newCheckOut}（${email}）｜訂單已付款，已建立客服待辦待人工確認空房與價差`,
+          ),
+        })
+        .eq("id", order.id);
       return json(
         {
           success: false,
-          message: "已付訂金或已付款的訂單無法線上改期，請聯繫客服或住宿業者協助處理",
+          code: "NEEDS_MANUAL_REVIEW",
+          reviewTaskCreated: true,
+          message:
+            "已為您送出改期申請，因訂單已付款需由客服確認空房與價差，客服將盡快與您聯繫。",
         },
-        400,
+        409,
         corsHeaders,
       );
     }
+
     if (order.check_in_date === newCheckIn && order.check_out_date === newCheckOut) {
       return json({ success: false, message: "新舊日期相同" }, 400, corsHeaders);
     }
