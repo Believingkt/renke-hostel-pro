@@ -72,7 +72,11 @@ export async function computePackageRoomTotal(
 
   const holidaySet = new Set(((holidayRows || []) as any[]).map((h) => h.holiday_date));
   const overrideMap = new Map<string, number>();
-  for (const r of (overrideRows || []) as any[]) overrideMap.set(r.date, Number(r.sale_price));
+  for (const r of (overrideRows || []) as any[]) {
+    // 只設「單日適用狀態」而未填價的列（sale_price 為 null）不影響計價
+    if (r.sale_price != null) overrideMap.set(r.date, Number(r.sale_price));
+  }
+
 
   let total = 0;
   for (const date of dates) {
