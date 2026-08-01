@@ -78,10 +78,12 @@ export default function OwnerSettlementSettings() {
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  /** 該館別實際設定過的增值服務項目（addon_settings.addon_type，去重） */
-  const [addonTypes, setAddonTypes] = useState<string[]>([]);
-  /** 不列入平台服務費抽成的增值服務項目 */
-  const [excludedAddonTypes, setExcludedAddonTypes] = useState<string[]>([]);
+  /** 該館別實際設定過的增值服務項目（addon_settings 的 id + addon_type，依名稱去重） */
+  const [addonOptions, setAddonOptions] = useState<Array<{ id: string; addon_type: string }>>([]);
+  /** 不列入平台服務費抽成的增值服務項目（以 addon_settings.id 為主） */
+  const [excludedAddonIds, setExcludedAddonIds] = useState<string[]>([]);
+  /** 舊版只存了文字、但目前 addon_settings 找不到對應項目的名稱（保留以維持向下相容） */
+  const [legacyOnlyExcludedTypes, setLegacyOnlyExcludedTypes] = useState<string[]>([]);
 
   const loadHistory = async () => {
     if (!currentAccommodationId) {
@@ -216,28 +218,43 @@ export default function OwnerSettlementSettings() {
         setConfig(baseConfig);
       }
 
-      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的 addon_type
+      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的項目（id + 名稱）
       if (currentAccommodationId) {
         const { data: addonRows } = await supabase
           .from("addon_settings")
-          .select("addon_type")
+          .select("id, addon_type")
           .eq("accommodation_id", currentAccommodationId);
-        const types = Array.from(
-          new Set(
-            ((addonRows ?? []) as Array<{ addon_type: string | null }>)
-              .map((r) => (r.addon_type ?? "").trim())
-              .filter(Boolean),
-          ),
-        ).sort();
-        setAddonTypes(types);
-        setExcludedAddonTypes(
-          Array.isArray(ruleRow?.commission_excluded_addon_types)
-            ? (ruleRow!.commission_excluded_addon_types as string[])
-            : [],
-        );
+        const seen = new Set<string>();
+        const options: Array<{ id: string; addon_type: string }> = [];
+        for (const r of (addonRows ?? []) as Array<{ id: string; addon_type: string | null }>) {
+          const name = (r.addon_type ?? "").trim();
+          if (!name || seen.has(name)) continue;
+          seen.add(name);
+          options.push({ id: r.id, addon_type: name });
+        }
+        options.sort((a, b) => a.addon_type.localeCompare(b.addon_type));
+        setAddonOptions(options);
+
+        // 已儲存的排除清單：以 id 為主，舊資料只有文字時對映回 id
+        const savedIds = Array.isArray(ruleRow?.commission_excluded_addon_ids)
+          ? (ruleRow!.commission_excluded_addon_ids as string[]).filter(Boolean)
+          : [];
+        const savedTypes = Array.isArray(ruleRow?.commission_excluded_addon_types)
+          ? (ruleRow!.commission_excluded_addon_types as string[]).filter(Boolean)
+          : [];
+        const idSet = new Set(savedIds);
+        const unmatchedTypes: string[] = [];
+        for (const t of savedTypes) {
+          const opt = options.find((o) => o.addon_type === t);
+          if (opt) idSet.add(opt.id);
+          else unmatchedTypes.push(t);
+        }
+        setExcludedAddonIds(Array.from(idSet));
+        setLegacyOnlyExcludedTypes(unmatchedTypes);
       } else {
-        setAddonTypes([]);
-        setExcludedAddonTypes([]);
+        setAddonOptions([]);
+        setExcludedAddonIds([]);
+        setLegacyOnlyExcludedTypes([]);
       }
 
 
@@ -287,12 +304,12 @@ export default function OwnerSettlementSettings() {
     });
   };
 
-  /** 勾選 = 列入抽成（從排除清單移除）；取消勾選 = 不列入抽成（加入排除清單） */
-  const toggleAddonCommission = (addonType: string, included: boolean) => {
-    setExcludedAddonTypes((prev) => {
+  /** 勾選 = 不列入抽成（加入排除清單）；取消勾選 = 列入抽成（從排除清單移除） */
+  const toggleAddonCommission = (addonId: string, included: boolean) => {
+    setExcludedAddonIds((prev) => {
       const set = new Set(prev);
-      if (included) set.delete(addonType);
-      else set.add(addonType);
+      if (included) set.delete(addonId);
+      else set.add(addonId);
       return Array.from(set);
     });
   };
@@ -358,7 +375,16 @@ export default function OwnerSettlementSettings() {
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
-          commission_excluded_addon_types: excludedAddonTypes,
+          commission_excluded_addon_ids: excludedAddonIds,
+          // 文字清單維持寫入，供舊訂單（快照無 addon_id）fallback 比對
+          commission_excluded_addon_types: Array.from(
+            new Set([
+              ...excludedAddonIds
+                .map((id) => addonOptions.find((o) => o.id === id)?.addon_type)
+                .filter((t): t is string => !!t),
+              ...legacyOnlyExcludedTypes,
+            ]),
+          ),
           created_by: user?.id ?? null,
         });
       if (ruleError) {
@@ -541,7 +567,7 @@ export default function OwnerSettlementSettings() {
           {!currentAccommodationId && (
             <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿不抽成的增值服務。</p>
           )}
-          {currentAccommodationId && addonTypes.length === 0 && (
+          {currentAccommodationId && addonOptions.length === 0 && (
             <p className="text-sm text-muted-foreground">
               此民宿尚未設定任何增值服務項目，請通知管理員進行設定。{" "}
               <a
@@ -554,20 +580,20 @@ export default function OwnerSettlementSettings() {
               </a>
             </p>
           )}
-          {addonTypes.length > 0 && (
+          {addonOptions.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {addonTypes.map((t) => {
-                const excluded = excludedAddonTypes.includes(t);
+              {addonOptions.map((o) => {
+                const excluded = excludedAddonIds.includes(o.id);
                 return (
                   <label
-                    key={t}
+                    key={o.id}
                     className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40"
                   >
                     <Checkbox
                       checked={excluded}
-                      onCheckedChange={(v) => toggleAddonCommission(t, v !== true)}
+                      onCheckedChange={(v) => toggleAddonCommission(o.id, v !== true)}
                     />
-                    <span className="text-sm">{t}</span>
+                    <span className="text-sm">{o.addon_type}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
                       {excluded ? "不抽成" : "列入抽成"}
                     </span>
@@ -576,9 +602,13 @@ export default function OwnerSettlementSettings() {
               })}
             </div>
           )}
-          {excludedAddonTypes.length > 0 && (
+          {excludedAddonIds.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              不抽成：{excludedAddonTypes.join("、")}
+              不抽成：
+              {excludedAddonIds
+                .map((id) => addonOptions.find((o) => o.id === id)?.addon_type)
+                .filter(Boolean)
+                .join("、")}
             </p>
           )}
 

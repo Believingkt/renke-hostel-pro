@@ -7030,6 +7030,7 @@ export type Database = {
       owner_settlement_pricing_rules: {
         Row: {
           accommodation_id: string
+          commission_excluded_addon_ids: string[]
           commission_excluded_addon_types: string[]
           commission_rate: number
           commission_threshold: number
@@ -7047,6 +7048,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
           commission_rate: number
           commission_threshold?: number
@@ -7064,6 +7066,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
           commission_rate?: number
           commission_threshold?: number

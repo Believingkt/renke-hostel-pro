@@ -48,6 +48,11 @@ export interface OwnerPricingRule {
    * 僅影響業主月結，不影響團隊佣金（那條路徑一律排除全部增值服務）。
    */
   commission_excluded_addon_types: string[];
+  /**
+   * 設定為「不列入平台服務費抽成」的 addon_settings.id 清單（新制，不受改名影響）。
+   * 訂單快照有 addon_id 時優先用此清單比對；無 addon_id 才 fallback 文字比對。
+   */
+  commission_excluded_addon_ids: string[];
   /** true = 來自 owner_settlement_pricing_rules（新制） */
   fromTable: boolean;
   effective_from?: string | null;
@@ -66,6 +71,7 @@ export function pricingRuleFromLegacyConfig(config: OwnerSettlementConfig): Owne
     revenue_breakdown_type: getRevenueBreakdownType(config),
     marketing_fee_per_extra_property: Number(config.marketing_fee_per_extra_property) || 0,
     commission_excluded_addon_types: [],
+    commission_excluded_addon_ids: [],
     fromTable: false,
   };
 }
@@ -95,6 +101,9 @@ export function pricingRuleFromRow(
     marketing_fee_per_extra_property: Number(legacyConfig.marketing_fee_per_extra_property) || 0,
     commission_excluded_addon_types: Array.isArray(row.commission_excluded_addon_types)
       ? (row.commission_excluded_addon_types as string[])
+      : [],
+    commission_excluded_addon_ids: Array.isArray(row.commission_excluded_addon_ids)
+      ? (row.commission_excluded_addon_ids as string[])
       : [],
     fromTable: true,
     effective_from: row.effective_from ?? null,
@@ -188,22 +197,30 @@ export function extractAddonTotal(customAddonDetails: unknown): number {
 }
 
 /**
- * 只加總「被館別設定為不列入抽成」的增值服務金額（依 addon_type 比對）。
- * excludedTypes 為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
+ * 只加總「被館別設定為不列入抽成」的增值服務金額。
+ * 比對優先序：
+ *  1. 訂單項目有 addon_id → 用 excludedIds 比對（不受改名影響）
+ *  2. 訂單項目沒有 addon_id（舊訂單快照） → fallback 用 addon_type 文字比對 excludedTypes
+ * 兩份清單皆為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
  */
 export function extractExcludedAddonTotal(
   customAddonDetails: unknown,
+  excludedIds: string[] | null | undefined,
   excludedTypes: string[] | null | undefined,
 ): number {
   if (!Array.isArray(customAddonDetails)) return 0;
-  if (!excludedTypes || excludedTypes.length === 0) return 0;
-  const excluded = new Set(excludedTypes);
+  const idSet = new Set((excludedIds ?? []).filter(Boolean));
+  const typeSet = new Set((excludedTypes ?? []).filter(Boolean));
+  if (idSet.size === 0 && typeSet.size === 0) return 0;
   let sum = 0;
   for (const item of customAddonDetails) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
-    const type = String(rec.addon_type ?? "");
-    if (!excluded.has(type)) continue;
+    const addonId = rec.addon_id ? String(rec.addon_id) : "";
+    const matched = addonId
+      ? idSet.has(addonId)
+      : typeSet.has(String(rec.addon_type ?? ""));
+    if (!matched) continue;
     sum += Number(rec.total ?? 0) || 0;
   }
   return sum;
@@ -336,7 +353,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     // 依館別設定的排除清單（commission_excluded_addon_types）扣除增值服務；
     // 不在清單內的項目維持列入抽成基礎。金額比照夜數比例分攤，避免跨月訂單重複扣除。
     const monthAddonTotal = convertToTwd(
-      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio,
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_ids, effectiveRule.commission_excluded_addon_types) * ratio,
       resolved,
     );
     const monthCommissionable = monthFinal - monthAddonTotal;
@@ -481,7 +498,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const finalPriceOriginal = Number(o.final_price || 0) * ratio;
     // 只扣除館別設定為「不列入抽成」的增值服務，並依夜數比例分攤
     const addonTotalOriginal =
-      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio;
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_ids, effectiveRule.commission_excluded_addon_types) * ratio;
     const finalPrice = convertToTwd(finalPriceOriginal, resolved);
     const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
