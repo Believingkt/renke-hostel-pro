@@ -219,14 +219,6 @@ export default function OwnerSettlement() {
       if (cancelled) return;
 
       setOrders((ordersRes.data || []) as Order[]);
-      setRoomTypes(
-        (roomTypesRes.data || []).map((r: any) => ({
-          id: r.id,
-          base_price: r.price ?? 0,
-          price_2_meals: r.price_2_meals,
-          price_3_meals: r.price_3_meals,
-        }))
-      );
       setRoomCapacityMap(
         Object.fromEntries(
           (roomTypesRes.data || [])
