@@ -434,7 +434,7 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
 
 /**
  * guestcount 型：以「入住月份」為單位全額計算一次，不做跨月 ratio 分攤。
- * 抽成基礎 = final_price - 增值服務總額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
+ * 抽成基礎 = final_price − 排除清單內的增值服務金額；人客多抽成 = 抽成基礎 × rate × 門檻超額係數；
  * 溢價分潤 = guest_count × 300 ÷ 2；業主淨收益 = final_price - 平台費用合計。
  *
  * rule 省略時等同舊制（threshold = 0），結果與修改前完全一致。
