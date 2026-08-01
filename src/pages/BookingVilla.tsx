@@ -519,15 +519,24 @@ const BookingVilla = () => {
 
   const customPricingTable = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
-    const table = buildPricingTableFromPackages(visiblePackages);
+    const dayTier = checkInDateStr && checkIn ? detectTierByDate(checkIn, isHolidayDate(checkIn)) : null;
+    const table = buildPricingTableFromPackages(
+      visiblePackages,
+      dayTier && checkInDateStr
+        ? {
+            tier: dayTier,
+            isAvailable: (pkgId: string) =>
+              packageDateOverrides.get(overrideKey(pkgId, checkInDateStr))?.is_available ?? null,
+          }
+        : null,
+    );
     // 套用「該入住日」的方案覆寫價，讓價格階梯與實際結帳價一致
-    if (checkInDateStr && packageDateOverrides.size > 0) {
-      const tier = detectTierByDate(checkIn!, isHolidayDate(checkIn!));
-      table[tier] = table[tier].map((entry) => {
+    if (checkInDateStr && packageDateOverrides.size > 0 && dayTier) {
+      table[dayTier] = table[dayTier].map((entry) => {
         const ov = entry.packageId
           ? packageDateOverrides.get(overrideKey(entry.packageId, checkInDateStr))
           : undefined;
-        if (!ov) return entry;
+        if (!ov || ov.sale_price == null) return entry;
         return {
           ...entry,
           sale: ov.sale_price,
@@ -537,6 +546,7 @@ const BookingVilla = () => {
     }
     return table;
   }, [visiblePackages, checkInDateStr, packageDateOverrides, checkIn, isHolidayDate]);
+
   const customIncludes = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
     return aggregateIncludesFromPackages(visiblePackages);
