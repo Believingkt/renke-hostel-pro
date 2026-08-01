@@ -218,28 +218,43 @@ export default function OwnerSettlementSettings() {
         setConfig(baseConfig);
       }
 
-      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的 addon_type
+      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的項目（id + 名稱）
       if (currentAccommodationId) {
         const { data: addonRows } = await supabase
           .from("addon_settings")
-          .select("addon_type")
+          .select("id, addon_type")
           .eq("accommodation_id", currentAccommodationId);
-        const types = Array.from(
-          new Set(
-            ((addonRows ?? []) as Array<{ addon_type: string | null }>)
-              .map((r) => (r.addon_type ?? "").trim())
-              .filter(Boolean),
-          ),
-        ).sort();
-        setAddonTypes(types);
-        setExcludedAddonTypes(
-          Array.isArray(ruleRow?.commission_excluded_addon_types)
-            ? (ruleRow!.commission_excluded_addon_types as string[])
-            : [],
-        );
+        const seen = new Set<string>();
+        const options: Array<{ id: string; addon_type: string }> = [];
+        for (const r of (addonRows ?? []) as Array<{ id: string; addon_type: string | null }>) {
+          const name = (r.addon_type ?? "").trim();
+          if (!name || seen.has(name)) continue;
+          seen.add(name);
+          options.push({ id: r.id, addon_type: name });
+        }
+        options.sort((a, b) => a.addon_type.localeCompare(b.addon_type));
+        setAddonOptions(options);
+
+        // 已儲存的排除清單：以 id 為主，舊資料只有文字時對映回 id
+        const savedIds = Array.isArray(ruleRow?.commission_excluded_addon_ids)
+          ? (ruleRow!.commission_excluded_addon_ids as string[]).filter(Boolean)
+          : [];
+        const savedTypes = Array.isArray(ruleRow?.commission_excluded_addon_types)
+          ? (ruleRow!.commission_excluded_addon_types as string[]).filter(Boolean)
+          : [];
+        const idSet = new Set(savedIds);
+        const unmatchedTypes: string[] = [];
+        for (const t of savedTypes) {
+          const opt = options.find((o) => o.addon_type === t);
+          if (opt) idSet.add(opt.id);
+          else unmatchedTypes.push(t);
+        }
+        setExcludedAddonIds(Array.from(idSet));
+        setLegacyOnlyExcludedTypes(unmatchedTypes);
       } else {
-        setAddonTypes([]);
-        setExcludedAddonTypes([]);
+        setAddonOptions([]);
+        setExcludedAddonIds([]);
+        setLegacyOnlyExcludedTypes([]);
       }
 
 
