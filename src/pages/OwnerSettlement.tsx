@@ -1008,6 +1008,7 @@ export default function OwnerSettlement() {
                   {!isGuestCount && <TableHead className="text-right">本月夜數</TableHead>}
                   <TableHead className="text-right tabular-nums">{isGuestCount ? "每月營收" : "本月營收"}</TableHead>
                   <TableHead className="text-right tabular-nums">{isGuestCount ? "訂單金額" : "訂單金額"}</TableHead>
+                  <TableHead className="text-right tabular-nums">增值服務</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
