@@ -1334,7 +1334,8 @@ const MemberOrderDetail = () => {
                   type="date"
                   value={newCheckIn}
                   min={format(new Date(), "yyyy-MM-dd")}
-                  disabled={dateChangeLocked}
+                  onChange={(e) => setNewCheckIn(e.target.value)}
+
                   onChange={(e) => setNewCheckIn(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
                 />
