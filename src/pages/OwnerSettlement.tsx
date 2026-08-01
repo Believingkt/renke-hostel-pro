@@ -410,6 +410,9 @@ export default function OwnerSettlement() {
           revenueOriginal: g.finalPriceOriginal as number,
           // 訂單金額 = final_price 換算台幣後總額（非台幣訂單為 ÷ 匯率快照後金額）
           orderAmount: g.finalPrice as number,
+          // 被設定為「不抽成」的增值服務金額（已由計算層過濾 commission_excluded_addon_types）
+          addonTotal: (g.addonTotal as number) || 0,
+          addonTotalOriginal: (g.addonTotalOriginal as number) || 0,
           commission: (g.commission + g.premiumShare) as number,
           exempt: g.exempt as boolean,
           currency: g.currency as string,
@@ -426,12 +429,15 @@ export default function OwnerSettlement() {
       revenue: r.monthFinal,
       revenueOriginal: r.monthFinalOriginal,
       orderAmount: r.monthCommissionable,
+      addonTotal: r.monthAddonTotal || 0,
+      addonTotalOriginal: (r.monthAddonTotal || 0) * (r.isForeign ? r.exchangeRate : 1),
       commission: r.commission,
       exempt: r.exempt,
       currency: r.currency,
       exchangeRate: r.exchangeRate,
       isForeign: r.isForeign,
     }));
+
   }, [isGuestCount, gcRows, rows]);
 
   /** 頁面總計：guestcount 型改吃 gcTotals */
@@ -538,6 +544,7 @@ export default function OwnerSettlement() {
           ${isGuestCount ? "" : `<td class="r">${r.std!.nightsInMonth}/${r.std!.totalNights}</td>`}
           <td class="r">${isGuestCount && r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}` : fmt(r.revenue)}</td>
           ${isGuestCount ? `<td class="r">${fmt(r.orderAmount)}</td>` : ""}
+          <td class="r">${r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}` : fmt(r.addonTotal)}</td>
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
       )
@@ -599,8 +606,8 @@ export default function OwnerSettlement() {
 
       <h2>${isGuestCount ? "訂單明細（依入住月份全額計算）" : "訂單明細（依入住日攤分至本月）"}</h2>
       <table>
-        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "每月營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">訂單金額</th>` : ""}<th class="r">抽成</th></tr></thead>
-        <tbody>${orderRowsHtml || `<tr><td colspan="6">本月無入住訂單</td></tr>`}</tbody>
+        <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "每月營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">訂單金額</th>` : ""}<th class="r">增值服務</th><th class="r">抽成</th></tr></thead>
+        <tbody>${orderRowsHtml || `<tr><td colspan="7">本月無入住訂單</td></tr>`}</tbody>
       </table>
 
 
@@ -1001,6 +1008,7 @@ export default function OwnerSettlement() {
                   {!isGuestCount && <TableHead className="text-right">本月夜數</TableHead>}
                   <TableHead className="text-right tabular-nums">{isGuestCount ? "每月營收" : "本月營收"}</TableHead>
                   <TableHead className="text-right tabular-nums">{isGuestCount ? "訂單金額" : "訂單金額"}</TableHead>
+                  <TableHead className="text-right tabular-nums">增值服務</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
@@ -1046,6 +1054,12 @@ export default function OwnerSettlement() {
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.orderAmount)}
                         </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.isForeign
+                            ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
+                            : fmt(r.addonTotal)}
+                        </TableCell>
+
 
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
@@ -1071,7 +1085,7 @@ export default function OwnerSettlement() {
                         const std = r.std;
                         return (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={isGuestCount ? 8 : 9} className="p-0">
+                          <TableCell colSpan={isGuestCount ? 9 : 10} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`${cur}${fmt(Number(r.order.total_price || 0))}`} />
