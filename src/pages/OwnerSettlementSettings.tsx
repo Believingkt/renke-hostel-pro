@@ -216,6 +216,32 @@ export default function OwnerSettlementSettings() {
         setConfig(baseConfig);
       }
 
+      // 增值服務抽成設定：清單來源為該館別 addon_settings 實際設定過的 addon_type
+      if (currentAccommodationId) {
+        const { data: addonRows } = await supabase
+          .from("addon_settings")
+          .select("addon_type")
+          .eq("accommodation_id", currentAccommodationId);
+        const types = Array.from(
+          new Set(
+            ((addonRows ?? []) as Array<{ addon_type: string | null }>)
+              .map((r) => (r.addon_type ?? "").trim())
+              .filter(Boolean),
+          ),
+        ).sort();
+        setAddonTypes(types);
+        setExcludedAddonTypes(
+          Array.isArray(ruleRow?.commission_excluded_addon_types)
+            ? (ruleRow!.commission_excluded_addon_types as string[])
+            : [],
+        );
+      } else {
+        setAddonTypes([]);
+        setExcludedAddonTypes([]);
+      }
+
+
+
 
       const accList = (accRes.data ?? []) as Array<{ id: string; name: string }>;
       if (currentAccommodationId) {
