@@ -391,11 +391,6 @@ export default function OwnerSettlement() {
     );
   }, [isGuestCount, effectiveRule, gcRows, propertyCount]);
 
-  const gcCrossMonthOrders = useMemo(
-    () => gcRows.filter((r: any) => r.isCrossMonth).map((r: any) => r.order.order_number as string),
-    [gcRows]
-  );
-
   const gcRowByOrderId = useMemo(() => {
     const m: Record<string, any> = {};
     for (const r of gcRows as any[]) m[r.order.id] = r;
@@ -613,7 +608,7 @@ export default function OwnerSettlement() {
         `}
       </table>
 
-      <h2>${isGuestCount ? "訂單明細（依入住月份全額計算）" : "訂單明細（依入住日攤分至本月）"}</h2>
+      <h2>訂單明細（依入住日攤分至本月）</h2>
       <table>
         <thead><tr><th>訂單編號</th><th>訂購人</th><th>入住 / 退房</th>${isGuestCount ? "" : `<th class="r">本月夜數</th>`}<th class="r">${isGuestCount ? "每月營收" : "本月營收"}</th>${isGuestCount ? `<th class="r">訂單金額</th>` : ""}<th class="r">增值服務</th><th class="r">抽成</th></tr></thead>
         <tbody>${orderRowsHtml || `<tr><td colspan="7">本月無入住訂單</td></tr>`}</tbody>
@@ -779,24 +774,8 @@ export default function OwnerSettlement() {
                   已套用門檻式收費規則
                 </span>
               )}
-              {gcTotals.crossMonthCount > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900">
-                      <Info className="h-3 w-3" />
-                      本月包含 {gcTotals.crossMonthCount} 筆跨月訂單
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <div className="text-xs">溢價分潤與增值服務已全額計入入住月份。</div>
-                    <div className="mt-1 text-xs font-mono break-all">
-                      {gcCrossMonthOrders.join("、")}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </div>
-            <CardDescription>依入住月份全額計算（不跨月分攤），增值服務全額歸業主</CardDescription>
+            <CardDescription>依入住日逐日攤分至本月，增值服務全額歸業主</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
             <BreakdownRow
@@ -993,12 +972,10 @@ export default function OwnerSettlement() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {monthLabel}訂單明細{isGuestCount ? "（依入住月份全額計算）" : "（依入住日逐日攤分至本月）"}
+            {monthLabel}訂單明細（依入住日逐日攤分至本月）
           </CardTitle>
           <CardDescription>
-            {isGuestCount
-              ? `入住日落在 ${monthLabel} 的訂單；跨月訂單全額計入入住月份，不做夜數分攤。已取消訂單不列入。`
-              : `含 ${monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。`}
+            {`含 ${monthLabel} 入住的訂單；僅計入本月住宿夜數的比例。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -1116,7 +1093,7 @@ export default function OwnerSettlement() {
                                 {useGc ? (
                                   <DetailItem
                                     label="入住 / 退房"
-                                    value={`${r.order.check_in_date} → ${r.order.check_out_date}${gc.isCrossMonth ? "（跨月，全額計入入住月）" : ""}`}
+                                    value={`${r.order.check_in_date} → ${r.order.check_out_date}`}
                                   />
                                 ) : (
                                   <DetailItem label="本月攤分比例" value={`${((std?.monthRatio ?? 0) * 100).toFixed(1)}%`} />

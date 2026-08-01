@@ -423,7 +423,6 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
   premiumShare: number;
   platformFeeTotal: number;
   ownerNet: number;
-  isCrossMonth: boolean;
   exempt: boolean;
   currency: string;
   exchangeRate: number;
@@ -478,9 +477,6 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     if (nightsInMonth === 0) continue;
 
     const ratio = nightsInMonth / totalNights;
-    const isCrossMonth =
-      ci.getFullYear() !== co.getFullYear() || ci.getMonth() !== co.getMonth();
-
     const resolved = resolveOrderCurrency(o, currencyFallback);
     const finalPriceOriginal = Number(o.final_price || 0) * ratio;
     // 只扣除館別設定為「不列入抽成」的增值服務，並依夜數比例分攤
@@ -510,7 +506,6 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       premiumShare,
       platformFeeTotal: premiumShare,
       ownerNet: finalPrice - premiumShare,
-      isCrossMonth,
       exempt,
       currency: resolved.currency,
       exchangeRate: resolved.rate,
@@ -553,7 +548,6 @@ export interface GuestCountTotals {
   totalPremiumShare: number;
   totalPlatformFee: number;
   ownerNet: number;
-  crossMonthCount: number;
 }
 
 export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals {
@@ -566,6 +560,5 @@ export function computeGuestCountTotals(rows: GuestCountRow[]): GuestCountTotals
     totalPremiumShare: sum((r) => r.premiumShare),
     totalPlatformFee: sum((r) => r.platformFeeTotal),
     ownerNet: sum((r) => r.ownerNet),
-    crossMonthCount: rows.filter((r) => r.isCrossMonth).length,
   };
 }
