@@ -137,6 +137,8 @@ export default function OwnerSettlement() {
   const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
+  // room_type_id → room_types.capacity（溢價分潤的房型基礎人數來源）
+  const [roomCapacityMap, setRoomCapacityMap] = useState<Record<string, number>>({});
   const [addonTotal, setAddonTotal] = useState(0);
   const [addonCount, setAddonCount] = useState(0);
   const [addonFeePct, setAddonFeePct] = useState(0);
@@ -185,7 +187,7 @@ export default function OwnerSettlement() {
           .gt("check_out_date", monthStart),
         supabase
           .from("room_types")
-          .select("id, price, price_2_meals, price_3_meals")
+          .select("id, price, price_2_meals, price_3_meals, capacity")
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("system_settings")
@@ -227,6 +229,13 @@ export default function OwnerSettlement() {
           price_2_meals: r.price_2_meals,
           price_3_meals: r.price_3_meals,
         }))
+      );
+      setRoomCapacityMap(
+        Object.fromEntries(
+          (roomTypesRes.data || [])
+            .filter((r: any) => Number(r.capacity) > 0)
+            .map((r: any) => [r.id as string, Number(r.capacity)])
+        )
       );
       const cfgRows = (configRes.data ?? []) as Array<{ setting_key: string; setting_value: any }>;
       const perAccCfg = cfgRows.find((r) => r.setting_key === `owner_settlement_config:${currentAccommodationId}`);
@@ -362,8 +371,8 @@ export default function OwnerSettlement() {
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule) : []),
-    [isGuestCount, orders, config, month, accCurrency, effectiveRule]
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap) : []),
+    [isGuestCount, orders, config, month, accCurrency, effectiveRule, roomCapacityMap]
 
   );
 
@@ -1025,7 +1034,17 @@ export default function OwnerSettlement() {
                         <TableCell className="text-muted-foreground">
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{r.order.order_number}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {r.order.order_number}
+                          {isGuestCount && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
+                            <span
+                              className="ml-1 text-amber-600"
+                              title="找不到房型基礎人數，溢價分潤改以入住人數計算，需人工確認"
+                            >
+                              ⚠
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{r.order.guest_name}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.order.check_in_date} → {r.order.check_out_date}
@@ -1168,8 +1187,11 @@ export default function OwnerSettlement() {
 
                                     </div>
                                     <div>
-                                      入住人數 {Number(r.order.guest_count || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
+                                      房型基礎人數 {Number(gc.premiumBase || 0)} × {PREMIUM_SHARE_PER_GUEST} ÷ 2 = 溢價分潤 NT$ {fmt(gc.premiumShare)}
                                       {gc.exempt && "（不分潤）"}
+                                      {gc.premiumBaseFallback && (
+                                        <span className="text-amber-700"> ⚠ 找不到房型基礎人數，暫以入住人數 {Number(r.order.guest_count || 0)} 計算，需人工確認</span>
+                                      )}
                                     </div>
                                     <div className="font-medium text-foreground">
                                       平台費用合計 = 人客多抽成 NT$ {fmt(gc.commission)} + 溢價分潤 NT$ {fmt(gc.premiumShare)} = NT$ {fmt(gc.platformFeeTotal)}
