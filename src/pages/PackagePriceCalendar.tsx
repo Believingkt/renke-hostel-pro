@@ -81,6 +81,13 @@ export default function PackagePriceCalendar() {
     [currentMonth],
   );
 
+  const packageNames = useMemo(
+    () => Object.fromEntries(packages.map((p) => [p.id, p.name])) as Record<string, string>,
+    [packages],
+  );
+
+
+
   const isHolidayDate = useCallback(
     (d: Date) => holidaySet.has(toDateStr(d)),
     [holidaySet],
