@@ -102,6 +102,7 @@ interface MetaRow {
   deposit_confirm_date?: string | null;
   deposit_confirm_date_verified?: boolean | null;
   team_commission_price?: number | null;
+  team_commission_price_is_manual?: boolean | null;
   commission_price_confirmed_by?: string | null;
   commission_price_confirmed_at?: string | null;
   last_confirmed_commission_price?: number | null;
@@ -623,7 +624,7 @@ export default function TeamOrders() {
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
                  nickname, deposit_confirm_date, deposit_confirm_date_verified,
-                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price, display_currency`
+                 team_commission_price, team_commission_price_is_manual, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price, display_currency`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -783,7 +784,9 @@ export default function TeamOrders() {
       nickname: o.meta?.nickname ?? null,
       deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
       team_commission_price:
-        o.meta?.team_commission_price ?? o.final_price ?? null,
+        o.meta?.team_commission_price ??
+        Math.max(0, (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details)),
+      team_commission_price_is_manual: o.meta?.team_commission_price_is_manual ?? false,
       commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
       commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
       last_confirmed_commission_price: o.meta?.last_confirmed_commission_price ?? null,
@@ -808,7 +811,8 @@ export default function TeamOrders() {
     try {
       // Decide whether 分潤基準金額 changed → bump confirmed_by / confirmed_at
       const prevTcp =
-        editOrder.meta?.team_commission_price ?? editOrder.final_price ?? null;
+        editOrder.meta?.team_commission_price ??
+        Math.max(0, (editOrder.final_price ?? 0) - extractAddonTotal((editOrder as any).custom_addon_details));
       const newTcpRaw = form.team_commission_price;
       const newTcp =
         newTcpRaw === null || newTcpRaw === undefined || (newTcpRaw as any) === ""
@@ -843,6 +847,10 @@ export default function TeamOrders() {
         nickname: form.nickname ?? null,
         deposit_confirm_date: form.deposit_confirm_date ?? null,
         team_commission_price: newTcp,
+        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
+        team_commission_price_is_manual: tcpChanged
+          ? true
+          : !!form.team_commission_price_is_manual,
       };
       if (tcpChanged) {
         payload.commission_price_confirmed_by = currentUserId;
@@ -1181,7 +1189,8 @@ export default function TeamOrders() {
                           const status = getCommissionStatus({
                             checkOutDate: o.check_out_date,
                             teamCommissionPrice:
-                              o.meta?.team_commission_price ?? o.final_price ?? null,
+                              o.meta?.team_commission_price ??
+                              Math.max(0, (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details)),
                             finalPrice: o.final_price,
                             confirmedBy: o.meta?.commission_price_confirmed_by,
                             lastConfirmedCommissionPrice: o.meta?.last_confirmed_commission_price ?? null,
@@ -1475,7 +1484,8 @@ export default function TeamOrders() {
                   const addonTotal = extractAddonTotal(
                     (editOrder as any).custom_addon_details,
                   );
-                  const suggestedBase = Math.max(0, fp - addonTotal);
+                  const autoBase = Math.max(0, fp - addonTotal);
+                  const isManual = !!form.team_commission_price_is_manual;
 
                   if (isEditing && canEdit) {
                     return (
@@ -1496,31 +1506,36 @@ export default function TeamOrders() {
                           }
                         />
                         <p className="text-xs text-muted-foreground">
-                          請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                          系統自動計算：訂單金額 − 增值服務 ＝ NT$ {autoBase.toLocaleString()}
+                          {addonTotal > 0
+                            ? `（增值服務 NT$ ${addonTotal.toLocaleString()} 不計入分潤）`
+                            : ""}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          此欄位若手動填寫，系統不會自動扣除加購項目。
-                        </p>
-                        {addonTotal > 0 && (
-                          <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 space-y-1">
-                            <div>
-                              此訂單有加購項目 NT$ {addonTotal.toLocaleString()}（全額歸業主，不計入分潤）。
-                            </div>
-                            <div>
-                              建議填入：NT$ {suggestedBase.toLocaleString()}（訂單金額 − 加購項目）
-                            </div>
+                        {isManual ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-orange-600">
+                              此金額為人工覆蓋，系統不會自動更新
+                            </span>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               className="h-7 text-xs"
                               onClick={() =>
-                                setForm((f) => ({ ...f, team_commission_price: suggestedBase }))
+                                setForm((f) => ({
+                                  ...f,
+                                  team_commission_price: autoBase,
+                                  team_commission_price_is_manual: false,
+                                }))
                               }
                             >
-                              帶入建議值
+                              重設為系統自動計算
                             </Button>
                           </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            目前由系統自動維護；手動修改後會標記為人工覆蓋。
+                          </p>
                         )}
                       </div>
                     );
