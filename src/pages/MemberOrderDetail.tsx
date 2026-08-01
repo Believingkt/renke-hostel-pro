@@ -284,6 +284,25 @@ interface DetailData {
   facilities: string[];
 }
 
+/** 變更入住人數的價格試算結果（來自 member-order-manage） */
+interface GuestPriceQuote {
+  canAutoPrice: boolean;
+  needsManualReview: boolean;
+  reason?: string;
+  nights: number;
+  currentGuestCount: number;
+  newGuestCount: number;
+  currentPackageName: string | null;
+  newPackageName: string | null;
+  currentRoomTotal: number;
+  newRoomTotal: number;
+  diff: number;
+  currentFinalPrice: number;
+  newFinalPrice: number;
+  paidAmount: number;
+  newOutstanding: number;
+}
+
 
 const Section = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-card rounded-2xl border border-border px-4 py-4">{children}</div>
