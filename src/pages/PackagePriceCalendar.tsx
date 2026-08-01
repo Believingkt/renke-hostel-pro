@@ -430,7 +430,56 @@ export default function PackagePriceCalendar() {
               清除後，該日將回復「平日假日價／方案預設價」。
             </DialogDescription>
           </DialogHeader>
+          {cell && (() => {
+            const d = new Date(cell.date + "T00:00:00");
+            const tier = detectTierByDate(d, isHolidayDate(d));
+            const pkgInput = {
+              id: cell.pkg.id,
+              sale_price: cell.pkg.sale_price,
+              original_price: cell.pkg.original_price,
+              tier_prices: cell.pkg.tier_prices,
+            };
+            const eff = resolvePackagePriceForDate(pkgInput, cell.date, tier, overrides);
+            const base = resolvePackagePriceForDate(pkgInput, cell.date, tier, null);
+            const tp = cell.pkg.tier_prices?.[tier];
+            const ov = overrides.get(overrideKey(cell.pkg.id, cell.date));
+            const Row = ({ k, v }: { k: string; v: string }) => (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">{k}</span>
+                <span className="tabular-nums font-medium">{v}</span>
+              </div>
+            );
+            return (
+              <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm">目前設定</span>
+                  <Badge variant="secondary">{TIER_LABEL[tier]}</Badge>
+                </div>
+                <Row
+                  k="目前有效價格"
+                  v={`NT$ ${fmt(eff.sale)}（${PACKAGE_PRICE_SOURCE_LABEL[eff.source]}）`}
+                />
+                <Row
+                  k="已設單日指定價"
+                  v={ov ? `NT$ ${fmt(ov.sale_price)}${ov.original_price != null ? `／原價 NT$ ${fmt(ov.original_price)}` : ""}` : "未設定"}
+                />
+                <Row
+                  k={`平日假日價（${TIER_LABEL[tier]}）`}
+                  v={tp?.sale != null ? `NT$ ${fmt(Number(tp.sale))}${tp.original != null ? `／原價 NT$ ${fmt(Number(tp.original))}` : ""}` : "未設定"}
+                />
+                <Row
+                  k="方案預設價"
+                  v={`NT$ ${fmt(cell.pkg.sale_price)}${cell.pkg.original_price != null ? `／原價 NT$ ${fmt(Number(cell.pkg.original_price))}` : ""}`}
+                />
+                <Row
+                  k="清除指定價後將回復"
+                  v={`NT$ ${fmt(base.sale)}（${PACKAGE_PRICE_SOURCE_LABEL[base.source]}）`}
+                />
+              </div>
+            );
+          })()}
           <div className="space-y-3">
+
             <div className="space-y-1.5">
               <Label>當日售價（NT$）</Label>
               <Input
