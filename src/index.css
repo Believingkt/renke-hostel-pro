@@ -1478,22 +1478,18 @@ html {
   text-size-adjust: 100%;
 }
 
-@supports (-webkit-touch-callout: none) {
-  button,
-  a,
-  [role="tab"],
-  [role="button"] {
-    /* 固定高度改為最小高度，字級放大時可自然增高 */
-    height: auto;
-    min-height: 2.25rem;
-  }
-
-  /* 允許長文字換行，避免溢出截斷 */
-  button,
-  [role="tab"] {
-    overflow-wrap: anywhere;
-  }
+/* 需要隨字級放大的元件加上 .dynamic-type-safe：
+   固定高度改為最小高度、內容置中、不裁切 */
+.dynamic-type-safe {
+  height: auto !important;
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  line-height: 1.2;
 }
+
 
 
 /* 響應式表格優化 */
