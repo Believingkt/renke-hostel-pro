@@ -353,7 +353,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     // 依館別設定的排除清單（commission_excluded_addon_types）扣除增值服務；
     // 不在清單內的項目維持列入抽成基礎。金額比照夜數比例分攤，避免跨月訂單重複扣除。
     const monthAddonTotal = convertToTwd(
-      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio,
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_ids, effectiveRule.commission_excluded_addon_types) * ratio,
       resolved,
     );
     const monthCommissionable = monthFinal - monthAddonTotal;
@@ -498,7 +498,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const finalPriceOriginal = Number(o.final_price || 0) * ratio;
     // 只扣除館別設定為「不列入抽成」的增值服務，並依夜數比例分攤
     const addonTotalOriginal =
-      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_types) * ratio;
+      extractExcludedAddonTotal(o.custom_addon_details, effectiveRule.commission_excluded_addon_ids, effectiveRule.commission_excluded_addon_types) * ratio;
     const finalPrice = convertToTwd(finalPriceOriginal, resolved);
     const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
