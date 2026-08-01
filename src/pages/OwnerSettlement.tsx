@@ -1034,7 +1034,17 @@ export default function OwnerSettlement() {
                         <TableCell className="text-muted-foreground">
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{r.order.order_number}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {r.order.order_number}
+                          {useGc && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
+                            <span
+                              className="ml-1 text-amber-600"
+                              title="找不到房型基礎人數，溢價分潤改以入住人數計算，需人工確認"
+                            >
+                              ⚠
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{r.order.guest_name}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.order.check_in_date} → {r.order.check_out_date}
