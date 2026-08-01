@@ -48,6 +48,11 @@ export interface OwnerPricingRule {
    * 僅影響業主月結，不影響團隊佣金（那條路徑一律排除全部增值服務）。
    */
   commission_excluded_addon_types: string[];
+  /**
+   * 設定為「不列入平台服務費抽成」的 addon_settings.id 清單（新制，不受改名影響）。
+   * 訂單快照有 addon_id 時優先用此清單比對；無 addon_id 才 fallback 文字比對。
+   */
+  commission_excluded_addon_ids: string[];
   /** true = 來自 owner_settlement_pricing_rules（新制） */
   fromTable: boolean;
   effective_from?: string | null;
