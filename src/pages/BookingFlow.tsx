@@ -799,6 +799,7 @@ const BookingFlow = () => {
           const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled && (a as any).show_on_frontend !== false);
           if (otherAddons.length > 0) {
             setCustomAddonSettings(otherAddons.map(a => ({
+              id: a.id,
               addon_type: a.addon_type,
               description: a.description,
               detailed_description: a.detailed_description,
