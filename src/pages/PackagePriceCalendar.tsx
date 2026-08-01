@@ -189,7 +189,7 @@ export default function PackagePriceCalendar() {
       toast.error(`清除失敗：${error.message}`);
       return;
     }
-    toast.success("已清除覆寫，回退時段價");
+    toast.success("已清除單日指定價，回復平日假日價");
     setCell(null);
     loadData();
   };
@@ -231,7 +231,7 @@ export default function PackagePriceCalendar() {
         toast.error(`清除失敗：${error.message}`);
         return;
       }
-      toast.success(`已清除 ${bulkPkgIds.length} 個方案 × ${bulkDates.length} 天的覆寫價`);
+      toast.success(`已清除 ${bulkPkgIds.length} 個方案 × ${bulkDates.length} 天的單日指定價`);
     } else {
       const sale = Number(bulkSale);
       if (!bulkSale || !Number.isFinite(sale) || sale <= 0) {
@@ -427,7 +427,7 @@ export default function PackagePriceCalendar() {
           <DialogHeader>
             <DialogTitle>{cell?.pkg.name}｜{cell?.date}</DialogTitle>
             <DialogDescription>
-              留空並清除覆寫後，該日將回退至時段價／預設售價。
+              清除後，該日將回復「平日假日價／方案預設價」。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -454,7 +454,7 @@ export default function PackagePriceCalendar() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={clearCell} disabled={saving}>
               <Trash2 className="h-4 w-4 mr-2" />
-              清除覆寫
+              清除指定價
             </Button>
             <Button onClick={saveCell} disabled={saving}>儲存</Button>
           </DialogFooter>
@@ -563,7 +563,7 @@ export default function PackagePriceCalendar() {
                 variant={bulkMode === "clear" ? "destructive" : "outline"}
                 onClick={() => setBulkMode("clear")}
               >
-                清除覆寫
+                清除指定價
               </Button>
             </div>
 
