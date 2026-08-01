@@ -287,6 +287,18 @@ export default function OwnerSettlementSettings() {
     });
   };
 
+  /** 勾選 = 列入抽成（從排除清單移除）；取消勾選 = 不列入抽成（加入排除清單） */
+  const toggleAddonCommission = (addonType: string, included: boolean) => {
+    setExcludedAddonTypes((prev) => {
+      const set = new Set(prev);
+      if (included) set.delete(addonType);
+      else set.add(addonType);
+      return Array.from(set);
+    });
+  };
+
+
+
   const handleSave = async () => {
     if (config.commission_rate < 0 || config.commission_rate > 100) {
       toast.error("服務費率需介於 0-100 之間");
