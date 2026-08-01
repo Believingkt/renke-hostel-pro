@@ -7012,6 +7012,60 @@ export type Database = {
           },
         ]
       }
+      package_date_prices: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          note: string | null
+          original_price: number | null
+          package_id: string
+          sale_price: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          note?: string | null
+          original_price?: number | null
+          package_id: string
+          sale_price: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          note?: string | null
+          original_price?: number | null
+          package_id?: string
+          sale_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_date_prices_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_date_prices_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_analytics: {
         Row: {
           accommodation_id: string
