@@ -32,6 +32,7 @@ interface AddonSetting {
 }
 
 interface AddonDetail {
+  addon_id?: string;
   addon_type: string;
   count: number;
   price_per_unit: number;
