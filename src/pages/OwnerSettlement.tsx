@@ -184,7 +184,7 @@ export default function OwnerSettlement() {
           .gt("check_out_date", monthStart),
         supabase
           .from("room_types")
-          .select("id, price, price_2_meals, price_3_meals, capacity")
+          .select("id, capacity")
           .eq("accommodation_id", currentAccommodationId),
         supabase
           .from("system_settings")
