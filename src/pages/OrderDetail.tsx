@@ -39,6 +39,8 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import OrderManualReviewCard from "@/components/orders/OrderManualReviewCard";
+
 import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
 import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
 
@@ -3819,8 +3821,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         />
       )}
 
+      {/* 客服待辦（人工重新計價／改期審核） */}
+      {order && (
+        <OrderManualReviewCard
+          orderId={order.id}
+          orderNumber={order.order_number}
+          onResolved={fetchOrder}
+        />
+      )}
+
       {/* 變更紀錄 */}
       {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
+
 
 
       {/* 線上付款對話框 */}

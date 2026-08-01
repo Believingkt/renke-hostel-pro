@@ -532,9 +532,30 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase.functions.invoke("member-order-manage", {
         body: { orderNumber: order.order_number, ...payload },
       });
-      const res = (data || {}) as { success?: boolean; message?: string };
+      let res = (data || {}) as {
+        success?: boolean;
+        message?: string;
+        code?: string;
+        reviewTaskCreated?: boolean;
+      };
+      // 非 2xx 時 data 為 null，需自 Response 取回後端訊息（例如 409 客服待辦）
+      if (error && !data) {
+        const ctx = (error as { context?: unknown }).context;
+        if (typeof Response !== "undefined" && ctx instanceof Response) {
+          res = await ctx
+            .clone()
+            .json()
+            .catch(() => ({}));
+        }
+      }
       if (error || !res.success) {
-        toast.error(res.message || error?.message || "操作失敗，請稍後再試");
+        if (res.reviewTaskCreated) {
+          toast.success(res.message || "已為您送出申請，客服將盡快與您聯繫");
+          onDone?.();
+          setReloadKey((k) => k + 1);
+          return;
+        }
+        toast.error(res.message || (error as Error | null)?.message || "操作失敗，請稍後再試");
         return;
       }
       toast.success(res.message || "已完成");
@@ -544,6 +565,7 @@ const MemberOrderDetail = () => {
       setActing(false);
     }
   };
+
 
   const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
 
@@ -608,22 +630,17 @@ const MemberOrderDetail = () => {
       toast.error("沒有任何變更");
       return;
     }
-    if (datesChanged && dateChangeLocked) {
-      toast.error("已付訂金的訂單無法線上改期，請聯繫客服或民宿協助");
-      return;
-    }
-    if (guestsChanged && guestChangeBlocked) {
-      toast.error(
-        guestQuote?.reason || "變更人數會影響金額，請聯繫客服或民宿協助處理",
-      );
-      return;
-    }
     if (guestsChanged && guestPriceChanged && !priceChangeAck) {
       toast.error("請先確認人數變更後的金額調整");
       return;
     }
     if (datesChanged) {
-      await runAction({ action: "change_dates", newCheckIn, newCheckOut });
+      // 已付訂金／已付款 → 送出客服改期申請（人工確認空房與價差）
+      await runAction({
+        action: dateChangeLocked ? "request_date_change" : "change_dates",
+        newCheckIn,
+        newCheckOut,
+      });
     }
     if (guestsChanged) {
       await runAction({
@@ -632,6 +649,7 @@ const MemberOrderDetail = () => {
         confirmPriceChange: priceChangeAck || !guestPriceChanged,
       });
     }
+
     setGuestQuote(null);
     setPriceChangeAck(false);
     setChangeOpen(false);
@@ -1316,7 +1334,6 @@ const MemberOrderDetail = () => {
                   type="date"
                   value={newCheckIn}
                   min={format(new Date(), "yyyy-MM-dd")}
-                  disabled={dateChangeLocked}
                   onChange={(e) => setNewCheckIn(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
                 />
@@ -1327,7 +1344,7 @@ const MemberOrderDetail = () => {
                   type="date"
                   value={newCheckOut}
                   min={newCheckIn}
-                  disabled={dateChangeLocked}
+
                   onChange={(e) => setNewCheckOut(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
                 />
@@ -1356,9 +1373,11 @@ const MemberOrderDetail = () => {
             {!guestQuoteLoading && guestQuote?.needsManualReview && newGuests !== order.guest_count && (
               <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 {guestQuote.reason || "變更人數後的金額需由客服重新確認。"}
-                {Number(order.paid_amount || 0) > 0 && "（此訂單已付款，請直接聯繫客服協助調整）"}
+                {Number(order.paid_amount || 0) > 0 &&
+                  "（此訂單已付款，送出後將轉為客服申請，由客服確認金額後與您聯繫）"}
               </p>
             )}
+
 
             {!guestQuoteLoading && guestPriceChanged && guestQuote && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs space-y-1.5">
@@ -1391,8 +1410,8 @@ const MemberOrderDetail = () => {
                     : "已無應付款項，多付差額將由客服協助辦理退款。"}
                 </p>
                 {fullyPaid ? (
-                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-destructive">
-                    此訂單已付清，變更人數會影響金額，請聯繫客服或民宿協助處理。
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-400">
+                    此訂單已付清，變更人數會影響金額，送出後將轉為客服申請，由客服確認後與您聯繫。
                   </p>
                 ) : (
                   <label className="flex items-start gap-2 pt-1 cursor-pointer">
@@ -1412,12 +1431,12 @@ const MemberOrderDetail = () => {
             )}
 
             {dateChangeLocked ? (
-              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                此訂單已付訂金／已付款，無法線上改期。如需更改入住日期，請聯繫客服或直接與民宿聯絡協助處理。
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                此訂單已付訂金／已付款，改期需由客服確認空房與價差。送出後會建立改期申請，客服將盡快與您聯繫。
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                已付訂金或已付款的訂單無法線上改期，請聯繫客服或民宿協助處理。
+                更改日期將重新確認空房；若訂單已付款，改期會轉由客服人工處理。
               </p>
             )}
           </div>
@@ -1427,16 +1446,23 @@ const MemberOrderDetail = () => {
                 acting ||
                 guestQuoteLoading ||
                 (newGuests !== order.guest_count &&
-                  (guestChangeBlocked || (guestPriceChanged && !priceChangeAck)))
+                  !guestChangeBlocked &&
+                  guestPriceChanged &&
+                  !priceChangeAck)
               }
               onClick={handleChange}
-
               className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: ORANGE }}
             >
-              {acting ? "送出中…" : "確認更改"}
+              {acting
+                ? "送出中…"
+                : dateChangeLocked &&
+                    (newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date)
+                  ? "送出改期申請"
+                  : "確認更改"}
             </button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
