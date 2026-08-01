@@ -62,10 +62,11 @@ serve(async (req) => {
     const { data: order } = await supabase
       .from("orders")
       .select(
-        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, final_price, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id",
+        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, final_price, total_price, discount_amount, package_id, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id",
       )
       .eq("order_number", body.orderNumber)
       .maybeSingle();
+
     if (!order) return json({ success: false, message: "找不到訂單" }, 404, corsHeaders);
 
     const email = (user.email || member?.email || "").toLowerCase();
