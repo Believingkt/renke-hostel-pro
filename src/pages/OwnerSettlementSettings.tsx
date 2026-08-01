@@ -531,11 +531,11 @@ export default function OwnerSettlementSettings() {
         <CardHeader>
           <CardTitle>不抽成的增值服務</CardTitle>
           <CardDescription>
-            勾選此民宿的增值服務（加床、清潔費、接送車資等）中<strong>不列入</strong>平台服務費抽成基礎的項目。
-            <strong>勾選＝不抽成</strong>，未勾選＝列入抽成。未特別設定的項目一律預設列入抽成。
+            勾選＝不抽成，未勾選＝列入抽成。
             <br />
-            此設定僅影響業主月結的平台服務費計算，不影響團隊佣金（星探／成交組／KOL 分潤一律排除所有增值服務，不受此設定影響）。
+            此設定僅影響「業主月結」的「平台服務費」計算，不影響「團隊佣金」（星探／成交組／KOL 分潤一律排除所有增值服務，不受此設定影響）。
           </CardDescription>
+
         </CardHeader>
         <CardContent className="space-y-4">
           {!currentAccommodationId && (
