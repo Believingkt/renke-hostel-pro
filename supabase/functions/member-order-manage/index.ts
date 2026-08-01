@@ -519,9 +519,8 @@ serve(async (req) => {
       );
     }
 
-    if (order.check_in_date === newCheckIn && order.check_out_date === newCheckOut) {
-      return json({ success: false, message: "新舊日期相同" }, 400, corsHeaders);
-    }
+
+
 
     const { error: rpcErr } = await supabase.rpc("change_order_dates", {
       _order_id: order.id,
