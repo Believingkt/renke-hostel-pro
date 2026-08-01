@@ -358,6 +358,7 @@ export default function OwnerSettlementSettings() {
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
+          commission_excluded_addon_types: excludedAddonTypes,
           created_by: user?.id ?? null,
         });
       if (ruleError) {
