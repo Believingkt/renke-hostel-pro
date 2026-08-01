@@ -1186,8 +1186,11 @@ const MemberOrderDetail = () => {
               setNewCheckIn(order.check_in_date);
               setNewCheckOut(order.check_out_date);
               setNewGuests(order.guest_count);
+              setGuestQuote(null);
+              setPriceChangeAck(false);
               setChangeOpen(true);
             }}
+
             className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: ORANGE }}
           >
