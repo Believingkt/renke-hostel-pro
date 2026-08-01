@@ -401,6 +401,12 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/package-price-calendar" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><PackagePriceCalendar /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/search-card" element={
                       <RequireModule module="room_price">
                         <Suspense fallback={<FormSkeleton fields={6} />}><AdminSearchCard /></Suspense>
