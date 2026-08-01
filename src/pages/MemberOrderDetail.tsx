@@ -568,6 +568,38 @@ const MemberOrderDetail = () => {
     Number(order.paid_amount || 0) > 0 ||
     ["paid", "deposit_paid", "partial"].includes(String(order.payment_status));
 
+  const fullyPaid = ["paid", "fully_paid"].includes(String(order.payment_status));
+
+  /** 變更人數 → 即時向後端試算是否需補差／退差 */
+  const fetchGuestQuote = async (n: number) => {
+    setPriceChangeAck(false);
+    if (!Number.isInteger(n) || n < 1 || n > 30 || n === order.guest_count) {
+      setGuestQuote(null);
+      return;
+    }
+    setGuestQuoteLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("member-order-manage", {
+        body: {
+          orderNumber: order.order_number,
+          action: "change_guests_quote",
+          guestCount: n,
+        },
+      });
+      const res = (data || {}) as { success?: boolean; priceQuote?: GuestPriceQuote };
+      setGuestQuote(res.success && res.priceQuote ? res.priceQuote : null);
+    } catch {
+      setGuestQuote(null);
+    } finally {
+      setGuestQuoteLoading(false);
+    }
+  };
+
+  const guestPriceChanged = !!guestQuote?.canAutoPrice && guestQuote.diff !== 0;
+  const guestChangeBlocked =
+    (guestPriceChanged && fullyPaid) ||
+    (!!guestQuote?.needsManualReview && Number(order.paid_amount || 0) > 0);
+
   const handleChange = async () => {
     const datesChanged =
       newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date;
@@ -580,14 +612,31 @@ const MemberOrderDetail = () => {
       toast.error("已付訂金的訂單無法線上改期，請聯繫客服或民宿協助");
       return;
     }
+    if (guestsChanged && guestChangeBlocked) {
+      toast.error(
+        guestQuote?.reason || "變更人數會影響金額，請聯繫客服或民宿協助處理",
+      );
+      return;
+    }
+    if (guestsChanged && guestPriceChanged && !priceChangeAck) {
+      toast.error("請先確認人數變更後的金額調整");
+      return;
+    }
     if (datesChanged) {
       await runAction({ action: "change_dates", newCheckIn, newCheckOut });
     }
     if (guestsChanged) {
-      await runAction({ action: "change_guests", guestCount: newGuests });
+      await runAction({
+        action: "change_guests",
+        guestCount: newGuests,
+        confirmPriceChange: priceChangeAck || !guestPriceChanged,
+      });
     }
+    setGuestQuote(null);
+    setPriceChangeAck(false);
     setChangeOpen(false);
   };
+
 
   // ATM 轉帳金額與逾期狀態（與虛擬帳號卡片一致）
   const atmTransferAmount = getAtmTransferAmount(order as any);
