@@ -496,7 +496,7 @@ const WebsiteContent = () => {
       'basic-info': '首頁與 SEO 設定',
       'villa-header': '訂房頁標頭',
       'facilities': '設施服務',
-      'addon-plans': '加購方案',
+      'addon-plans': '增值服務',
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
@@ -2979,7 +2979,7 @@ const WebsiteContent = () => {
 
     if (hasErrors) {
       setAddonPlanErrors(newErrors);
-      toast.error('請檢查加購方案表單欄位');
+      toast.error('請檢查增值服務表單欄位');
       return;
     }
 
@@ -3073,7 +3073,7 @@ const WebsiteContent = () => {
         setAddonPlansToDelete([]);
       }
 
-      toast.success('加購方案設定已儲存');
+      toast.success('增值服務設定已儲存');
       setAddonPlanErrors({});
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -3608,7 +3608,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="addon-plans" className="space-y-6">
           <PageHeader 
-            title="加購方案" 
+            title="增值服務" 
             icon={Package}
             action={
               <Button
@@ -3617,7 +3617,7 @@ const WebsiteContent = () => {
                 className="gap-2 h-11 sm:h-10 touch-manipulation"
               >
                 <Plus className="h-4 w-4" />
-                新增加購方案
+                新增增值服務
               </Button>
             }
           />

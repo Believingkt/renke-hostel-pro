@@ -591,8 +591,8 @@ export const AddonPlansSection = ({
     <Drawer open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>新增加購方案</DrawerTitle>
-          <DrawerDescription>請輸入新加購方案的名稱</DrawerDescription>
+          <DrawerTitle>新增增值服務</DrawerTitle>
+          <DrawerDescription>請輸入新增值服務的名稱</DrawerDescription>
         </DrawerHeader>
         <div className="px-4 py-2">
           <ValidatedInput
@@ -617,8 +617,8 @@ export const AddonPlansSection = ({
     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>新增加購方案</DialogTitle>
-          <DialogDescription>請輸入新加購方案的名稱</DialogDescription>
+          <DialogTitle>新增增值服務</DialogTitle>
+          <DialogDescription>請輸入新增值服務的名稱</DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <ValidatedInput
@@ -647,7 +647,7 @@ export const AddonPlansSection = ({
         <div className="flex justify-end">
           <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
-            新增加購方案
+            新增增值服務
           </Button>
         </div>
       )}
@@ -655,7 +655,7 @@ export const AddonPlansSection = ({
       {addonPlans.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10">
-            <p className="text-muted-foreground mb-4">尚無加購方案</p>
+            <p className="text-muted-foreground mb-4">尚無增值服務</p>
             <Button onClick={() => setIsAddDialogOpen(true)} variant="outline" className="gap-2">
               <Plus className="h-4 w-4" />
               新增第一個方案
@@ -692,7 +692,7 @@ export const AddonPlansSection = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>編輯方案名稱</DialogTitle>
-            <DialogDescription>修改加購方案的顯示名稱</DialogDescription>
+            <DialogDescription>修改增值服務的顯示名稱</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <ValidatedInput
