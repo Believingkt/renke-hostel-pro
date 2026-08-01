@@ -133,7 +133,7 @@ export default function OwnerSettlement() {
   const [monthStr, setMonthStr] = useState<string>(format(new Date(), "yyyy-MM"));
   const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
+  // room_type_id → room_types.capacity（溢價分潤的房型基礎人數來源）
   // room_type_id → room_types.capacity（溢價分潤的房型基礎人數來源）
   const [roomCapacityMap, setRoomCapacityMap] = useState<Record<string, number>>({});
   const [addonTotal, setAddonTotal] = useState(0);
