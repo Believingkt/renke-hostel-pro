@@ -144,6 +144,8 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     type: "holiday",
   });
   const [addingCustom, setAddingCustom] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState<{ originalDate: string; date: string; name: string; type: string } | null>(null);
+  const [savingHoliday, setSavingHoliday] = useState(false);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: "system", section: value });
