@@ -105,6 +105,7 @@ interface OrderRow {
   monthFood: number;
   monthDiscount: number;
   monthAddonTotal: number;
+  hasUnexcludedAddon: boolean;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
@@ -330,6 +331,7 @@ export default function OwnerSettlement() {
         monthFood: 0,
         monthDiscount: r.monthDiscount,
         monthAddonTotal: r.monthAddonTotal,
+        hasUnexcludedAddon: r.hasUnexcludedAddon,
         monthCommissionable: r.monthCommissionable,
         commission: r.commission,
         exempt: r.exempt,
@@ -417,6 +419,7 @@ export default function OwnerSettlement() {
           // 被設定為「不抽成」的增值服務金額（已由計算層過濾 commission_excluded_addon_types）
           addonTotal: (g.addonTotal as number) || 0,
           addonTotalOriginal: (g.addonTotalOriginal as number) || 0,
+          hasUnexcludedAddon: !!g.hasUnexcludedAddon,
           commission: (g.commission + g.premiumShare) as number,
           exempt: g.exempt as boolean,
           currency: g.currency as string,
@@ -435,6 +438,7 @@ export default function OwnerSettlement() {
       orderAmount: r.monthCommissionable,
       addonTotal: r.monthAddonTotal || 0,
       addonTotalOriginal: (r.monthAddonTotal || 0) * (r.isForeign ? r.exchangeRate : 1),
+      hasUnexcludedAddon: r.hasUnexcludedAddon,
       commission: r.commission,
       exempt: r.exempt,
       currency: r.currency,
@@ -547,7 +551,13 @@ export default function OwnerSettlement() {
           <td>${esc(r.order.check_in_date)} → ${esc(r.order.check_out_date)}</td>
           <td class="r">${isGuestCount ? `${r.gc.nightsInMonth}/${r.gc.totalNights}` : `${r.std!.nightsInMonth}/${r.std!.totalNights}`}</td>
           <td class="r">${isGuestCount && r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}` : fmt(r.revenue)}</td>
-          <td class="r">${r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}` : fmt(r.addonTotal)}</td>
+          <td class="r">${
+            r.addonTotal > 0
+              ? (r.isForeign ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}` : fmt(r.addonTotal))
+              : r.hasUnexcludedAddon
+                ? "0（全部列入抽成）"
+                : "—"
+          }</td>
           <td class="r">${r.order.guest_count ?? "—"}</td>
           <td class="r">${r.exempt ? "不抽成" : "-" + fmt(r.commission)}</td>
         </tr>`
@@ -976,7 +986,7 @@ export default function OwnerSettlement() {
             {monthLabel}訂單明細（依入住日逐日攤分至本月）
           </CardTitle>
           <CardDescription>
-            {`含 ${monthLabel} 入住的訂單；僅計入本月住宿夜數的比例。已取消訂單不列入。`}
+            {`含 ${monthLabel} 入住的訂單；僅計入本月住宿夜數的比例；僅顯示不抽成的增值服務金額。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -1049,9 +1059,17 @@ export default function OwnerSettlement() {
                           )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {r.isForeign
-                            ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
-                            : fmt(r.addonTotal)}
+                          {r.addonTotal > 0 ? (
+                            r.isForeign
+                              ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
+                              : fmt(r.addonTotal)
+                          ) : r.hasUnexcludedAddon ? (
+                            <span className="text-muted-foreground">
+                              0<span className="ml-1 text-[11px]">（全部列入抽成）</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.order.guest_count ?? "—"}
