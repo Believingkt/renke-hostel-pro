@@ -1158,9 +1158,15 @@ const BookingFlow = () => {
     };
   }, [selectedPackageId]);
 
-  // 依日期取包區方案「每晚 sale」：依 tier（平日／週五日／假日，含國定假日）取方案設定價
+  // 依日期取包區方案「每晚 sale」
+  // 優先序：package_date_prices 單日覆寫 → tier_prices（平日／週五日／假日） → sale_price
   const getPackageNightlySale = (d: Date): number | null => {
     if (!selectedPackage) return null;
+    const dateStr = format(d, "yyyy-MM-dd");
+    if (selectedPackageId) {
+      const ov = packageDateOverrides.get(overrideKey(selectedPackageId, dateStr));
+      if (ov) return ov.sale_price;
+    }
     const tier = detectTierByDate(d, isPackageHolidayDate(d));
     const override = selectedPackage.tier_prices?.[tier];
     if (override && override.sale != null) return Number(override.sale);
