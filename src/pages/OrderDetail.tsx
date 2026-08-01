@@ -39,6 +39,8 @@ import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import OrderManualReviewCard from "@/components/orders/OrderManualReviewCard";
+
 import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
 import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
 
