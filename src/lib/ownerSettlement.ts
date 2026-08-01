@@ -203,6 +203,14 @@ export function extractAddonTotal(customAddonDetails: unknown): number {
  *  2. 訂單項目沒有 addon_id（舊訂單快照） → fallback 用 addon_type 文字比對 excludedTypes
  * 兩份清單皆為空 → 回傳 0（全部增值服務列入抽成，不扣除任何金額）。
  */
+/** 該訂單是否有任何增值服務項目（金額 > 0） */
+export function hasAnyAddonItem(customAddonDetails: unknown): boolean {
+  if (!Array.isArray(customAddonDetails)) return false;
+  return customAddonDetails.some(
+    (item) => item && typeof item === "object" && (Number((item as Record<string, unknown>).total ?? 0) || 0) > 0,
+  );
+}
+
 export function extractExcludedAddonTotal(
   customAddonDetails: unknown,
   excludedIds: string[] | null | undefined,
@@ -298,6 +306,8 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
   monthDiscount: number;
   /** 本月分攤後的增值服務金額（台幣），已從抽成基礎扣除 */
   monthAddonTotal: number;
+  /** true = 該訂單有增值服務項目，但沒有任何一項被排除清單命中（全部列入抽成） */
+  hasUnexcludedAddon: boolean;
   monthCommissionable: number;
   commission: number;
   exempt: boolean;
@@ -357,6 +367,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
       resolved,
     );
     const monthCommissionable = monthFinal - monthAddonTotal;
+    const hasUnexcludedAddon = hasAnyAddonItem(o.custom_addon_details) && monthAddonTotal <= 0;
     const exempt =
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
@@ -371,6 +382,7 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
         monthFinal,
         monthDiscount,
         monthAddonTotal,
+        hasUnexcludedAddon,
         monthCommissionable,
         commission: 0,
         exempt,
@@ -435,6 +447,8 @@ export interface GuestCountRow<T extends GuestCountOrderInput = GuestCountOrderI
   /** 以下金額皆為台幣（外幣訂單已依匯率換算），且已依當月夜數比例分攤 */
   finalPrice: number;
   addonTotal: number;
+  /** true = 該訂單有增值服務項目，但沒有任何一項被排除清單命中（全部列入抽成） */
+  hasUnexcludedAddon: boolean;
   commissionBase: number;
   commission: number;
   premiumShare: number;
@@ -502,6 +516,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const finalPrice = convertToTwd(finalPriceOriginal, resolved);
     const addonTotal = convertToTwd(addonTotalOriginal, resolved);
     const commissionBase = finalPrice - addonTotal;
+    const hasUnexcludedAddon = hasAnyAddonItem(o.custom_addon_details) && addonTotal <= 0;
     const exempt =
       !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
@@ -518,6 +533,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
       order: o,
       finalPrice,
       addonTotal,
+      hasUnexcludedAddon,
       commissionBase,
       commission: 0,
       premiumShare,
