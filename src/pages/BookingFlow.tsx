@@ -1197,7 +1197,8 @@ const BookingFlow = () => {
     const dateStr = format(d, "yyyy-MM-dd");
     if (selectedPackageId) {
       const ov = packageDateOverrides.get(overrideKey(selectedPackageId, dateStr));
-      if (ov) return ov.sale_price;
+      // 只設「單日適用狀態」未填價的列不影響計價
+      if (ov && ov.sale_price != null) return ov.sale_price;
     }
     const tier = detectTierByDate(d, isPackageHolidayDate(d));
     const override = selectedPackage.tier_prices?.[tier];
@@ -1211,9 +1212,12 @@ const BookingFlow = () => {
     const dateStr = format(d, "yyyy-MM-dd");
     if (selectedPackageId) {
       const ov = packageDateOverrides.get(overrideKey(selectedPackageId, dateStr));
-      if (ov && ov.original_price != null && ov.original_price > 0) return ov.original_price;
-      if (ov) return ov.sale_price;
+      if (ov && ov.sale_price != null) {
+        if (ov.original_price != null && ov.original_price > 0) return ov.original_price;
+        return ov.sale_price;
+      }
     }
+
     const tier = detectTierByDate(d, isPackageHolidayDate(d));
     const override = selectedPackage.tier_prices?.[tier];
     if (override && override.original != null && Number(override.original) > 0) {

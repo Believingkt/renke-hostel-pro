@@ -286,17 +286,21 @@ serve(async (req) => {
           .in("holiday_type", ["holiday", "compensatory_day_off"]);
         const holidaySet = new Set((holidayRows || []).map((h: any) => h.holiday_date));
 
-        // 方案「單日價格覆寫」：優先於 tier 價（與前台 src/lib/packageDatePrice.ts 同一順序）
+        // 方案「單日指定價／單日適用狀態」：優先於 tier 價（與前台 src/lib/packageDatePrice.ts 同一順序）
         const { data: dateOverrideRows } = await supabase
           .from("package_date_prices")
-          .select("date, sale_price, original_price")
+          .select("date, sale_price, original_price, is_available")
           .eq("package_id", packageId)
           .in("date", dates);
-        const dateOverrideMap = new Map<string, { sale: number; original: number | null }>();
+        const dateOverrideMap = new Map<
+          string,
+          { sale: number | null; original: number | null; isAvailable: boolean | null }
+        >();
         for (const r of (dateOverrideRows || []) as any[]) {
           dateOverrideMap.set(r.date, {
-            sale: Number(r.sale_price),
+            sale: r.sale_price != null ? Number(r.sale_price) : null,
             original: r.original_price != null ? Number(r.original_price) : null,
+            isAvailable: r.is_available ?? null,
           });
         }
 
@@ -315,9 +319,14 @@ serve(async (req) => {
               ? "friday_sunday"
               : "weekday";
           const dateOv = dateOverrideMap.get(date);
+          if (dateOv?.isAvailable === false) {
+            errors.push(`Package is not available on ${date}`);
+          }
+          // 只有真的有填單日售價才算「單日指定價」；只設適用狀態的列不影響計價
+          const ovSale = dateOv?.sale ?? null;
           const tierSale = tierPrices?.[tier]?.sale;
-          const nightlySale = dateOv
-            ? dateOv.sale
+          const nightlySale = ovSale != null
+            ? ovSale
             : tierSale != null
               ? Number(tierSale)
               : salePrice;
@@ -326,10 +335,10 @@ serve(async (req) => {
           const tierOriginal = tierPrices?.[tier]?.original;
           const invPrice = pricing?.price != null ? Number(pricing.price) : null;
           const nightlyOriginal =
-            dateOv && dateOv.original != null && dateOv.original > 0
+            ovSale != null && dateOv?.original != null && dateOv.original > 0
               ? dateOv.original
-              : dateOv
-                ? dateOv.sale
+              : ovSale != null
+                ? ovSale
                 : tierOriginal != null && Number(tierOriginal) > 0
                   ? Number(tierOriginal)
                   : pkgOriginal != null && pkgOriginal > 0
@@ -337,6 +346,7 @@ serve(async (req) => {
                     : invPrice != null && invPrice > 0
                       ? invPrice
                       : nightlySale;
+
           discountBaseTotal += nightlyOriginal;
 
         }
