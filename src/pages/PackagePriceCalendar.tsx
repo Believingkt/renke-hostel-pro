@@ -280,9 +280,46 @@ export default function PackagePriceCalendar() {
               <Button variant="outline" size="icon" onClick={() => setCurrentMonth((m) => addMonths(m, -1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="min-w-[110px] text-center font-medium">
-                {format(currentMonth, "yyyy 年 M 月")}
-              </span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="min-w-[110px] text-center font-medium hover:bg-accent rounded-md px-2 py-1 transition-colors">
+                    {format(currentMonth, "yyyy 年 M 月")}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3" align="center">
+                  <div className="flex items-center justify-between mb-3">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear() - 1, currentMonth.getMonth(), 1))}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="font-medium">{currentMonth.getFullYear()}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 1))}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Array.from({ length: 12 }, (_, i) => i).map((m) => {
+                      const isActive = m === currentMonth.getMonth();
+                      const now = new Date();
+                      const isCurrent = m === now.getMonth() && currentMonth.getFullYear() === now.getFullYear();
+                      return (
+                        <Button
+                          key={m}
+                          variant={isActive ? "default" : "outline"}
+                          size="sm"
+                          className={cn("h-9", !isActive && isCurrent && "border-primary text-primary")}
+                          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), m, 1))}
+                        >
+                          {m + 1}月
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full mt-3" onClick={() => setCurrentMonth(new Date())}>
+                    回到本月
+                  </Button>
+                </PopoverContent>
+              </Popover>
+
               <Button variant="outline" size="icon" onClick={() => setCurrentMonth((m) => addMonths(m, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
