@@ -90,6 +90,7 @@ const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
+const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
 
 const Accounts = lazy(() => import("./pages/Accounts"));
 const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
