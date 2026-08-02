@@ -52,11 +52,20 @@ function orderNights(o: any): number {
 }
 
 /** Accrue an order's final_price nightly onto [monthStart, monthEnd] (inclusive-exclusive). */
-function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
+function accruedInMonth(
+  o: any,
+  monthStart: Date,
+  monthEnd: Date,
+  isExempt: (order: any) => boolean,
+): number {
   if (o.order_status === "cancelled") return 0;
-  if (o.order_source === "kol") return 0;
+  // 保留單：靠姓名字串判斷，維持既有行為（不在 exempt 規則涵蓋範圍內）
   if (String(o.guest_name ?? "").trim() === "保留單") return 0;
-  if (isExcludedSource(o.order_source)) return 0;
+  // 排除來源一律以 owner_settlement_pricing_rules.exempt_order_sources（DB 驅動）＋ owner_direct 判斷
+  if (isExempt(o)) return 0;
+  // 註：kol 已包含在除「天送幸福和苑」外所有館別的 DB 清單中；天送的清單目前未含 kol，
+  // 若日後天送需要排除 kol，請由 AM 在後台勾選，不在此硬寫。
+
   const nights = orderNights(o);
   if (!nights) return 0;
   const share = (Number(o.final_price) || 0) / nights;
