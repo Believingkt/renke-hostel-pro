@@ -479,7 +479,10 @@ export default function TeamFranchise() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">特許加盟</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-2xl font-bold">特許加盟</h2>
+        {(canManage || isFinance) && <FranchiseCommissionAuditDialog />}
+      </div>
       <Tabs defaultValue={defaultTab}>
         <div className="overflow-x-auto">
           <TabsList>
