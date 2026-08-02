@@ -13,6 +13,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 import { AliasResolver } from "@/components/AliasResolver";
+import { PmsDomainGuard } from "@/components/PmsDomainGuard";
 import { RequireModule } from "@/components/RequireModule";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 
@@ -26,6 +27,7 @@ import Auth from "./pages/Auth";
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 import HQAuth from "./pages/HQAuth";
 import TeamAuth from "./pages/TeamAuth";
+const PmsLogin = lazy(() => import("./pages/PmsLogin"));
 
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
@@ -164,6 +166,7 @@ function App() {
       <AccommodationProvider>
         <HQDomainRedirect>
         <BookingDomainRedirect>
+        <PmsDomainGuard>
           <NetworkIndicator />
           <PageTransition>
             <ChunkErrorBoundary>
@@ -559,6 +562,11 @@ function App() {
                       {/* 根層路由（向下相容） */}
                       {sharedRoutes}
 
+                      {/* PMS 民宿後台登入頁（pms.lakeze.com） */}
+                      <Route path="/login" element={
+                        <Suspense fallback={null}><PmsLogin /></Suspense>
+                      } />
+
                       {/* MCP / Agent 整合的 OAuth 同意頁 */}
                       <Route path="/.lovable/oauth/consent" element={
                         <Suspense fallback={null}><OAuthConsent /></Suspense>
@@ -659,6 +667,7 @@ function App() {
               })()}
             </ChunkErrorBoundary>
           </PageTransition>
+        </PmsDomainGuard>
         </BookingDomainRedirect>
         </HQDomainRedirect>
       </AccommodationProvider>

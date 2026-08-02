@@ -24,6 +24,7 @@ export function useAliasPrefix() {
     const reserved = new Set([
       "admin",
       "auth",
+      "login",
       "hq",
       "hq-auth",
       "headquarters",

@@ -21,7 +21,7 @@ export function ConditionalLayout() {
 
   // 將 /:alias/<rest> 視同 /<rest>，以支援 booking.lakeze.com/{alias}/admin 等路徑
   const RESERVED = new Set([
-    "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+    "admin", "auth", "login", "hq", "hq-auth", "headquarters", "booking", "book",
     "member", "ai-booking", "order-search", "profile", "payment-test",
     "kol-api-docs", "points-api-docs", "pay", "payment-result",
     "reset-password", "change-password", "og-preview", "__cb",

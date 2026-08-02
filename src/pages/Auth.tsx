@@ -32,7 +32,7 @@ export default function Auth() {
     if (nextPath) return nextPath;
     const segments = window.location.pathname.split("/").filter(Boolean);
     const RESERVED = new Set([
-      "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+      "admin", "auth", "login", "hq", "hq-auth", "headquarters", "booking", "book",
       "member", "ai-booking", "order-search", "profile", "payment-test",
       "kol-api-docs", "points-api-docs", "pay", "payment-result",
       "reset-password", "change-password", "og-preview", "__cb",
