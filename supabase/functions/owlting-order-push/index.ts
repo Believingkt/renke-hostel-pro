@@ -284,7 +284,7 @@ async function processRow(
   // correct rate plan per room type instead of reusing the order-level package.
   const { data: pkgs } = await admin
     .from("accommodation_packages")
-    .select("id, name, numeric_code, room_type_ids, primary_room_type_id")
+    .select("id, name, numeric_code, room_type_ids, primary_room_type_id, guest_count, guest_count_max, enabled")
     .eq("accommodation_id", order.accommodation_id);
   const pkgList = (pkgs ?? []) as any[];
   const rp = resolveRatePlan(order.package_id, pkgList);
@@ -305,11 +305,38 @@ async function processRow(
     return ids.includes(roomTypeId);
   };
 
+  // 依「訂單入住人數」挑選最貼近的方案（例如 12 人 → 12人包棟，而不是預設的 6人包棟）。
+  // 規則：候選 = 啟用中、有 numeric_code、且涵蓋該房型的方案；
+  //      取「容納人數 >= 入住人數」中最小的一個；若都容納不下，取容納人數最大的一個。
+  // 只在整張訂單只有一個 stay 時套用（多房訂單無法得知每間房各住幾人，改走預設對應）。
+  const orderGuests = Number(order.guest_count ?? 0);
+  const singleStay = filteredStayInputs.length === 1;
+  const packageByGuestCount = (roomTypeId: string): any | undefined => {
+    if (!singleStay || !orderGuests || orderGuests <= 0) return undefined;
+    const candidates = pkgList.filter(
+      (p) =>
+        p.enabled !== false &&
+        p.numeric_code != null &&
+        pkgCoversRoomType(p, roomTypeId),
+    );
+    if (candidates.length === 0) return undefined;
+    const capOf = (p: any) => Number(p.guest_count_max ?? p.guest_count ?? 0);
+    const fits = candidates
+      .filter((p) => capOf(p) >= orderGuests)
+      .sort((a, b) => capOf(a) - capOf(b));
+    if (fits.length > 0) return fits[0];
+    return candidates.slice().sort((a, b) => capOf(b) - capOf(a))[0];
+  };
+
   const ratePlanForRoomType = (
     roomTypeId: string,
   ): { code: number | null; name: string | undefined } => {
     if (rp.ok && pkgCoversRoomType(orderPkg, roomTypeId)) {
       return { code: rp.code, name: rp.name };
+    }
+    const guestPkg = packageByGuestCount(roomTypeId);
+    if (guestPkg) {
+      return { code: guestPkg.numeric_code as number, name: guestPkg.name as string };
     }
     const defPkgId = defaultPkgByRoomType.get(roomTypeId);
     const defPkg = defPkgId ? pkgList.find((p) => p.id === defPkgId) : undefined;
@@ -320,6 +347,7 @@ async function processRow(
     if (rp.ok) return { code: rp.code, name: rp.name };
     return { code: null, name: undefined };
   };
+
 
 
   // Load owlting room-type group config (canonical + members) for this property.
