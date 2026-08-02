@@ -215,17 +215,8 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     return hit ? Number(hit.bonus_rate) : 0;
   }
 
-  function pickCloserRateFor(
-    commissionByAcc: Map<string, CommissionRow[]>,
-    accId: string,
-    orderDateIso: string | null,
-  ): number {
-    const list = commissionByAcc.get(accId) ?? [];
-    if (!list.length || !orderDateIso) return 0;
-    const day = orderDateIso.slice(0, 10);
-    const hit = list.find((s) => s.effective_from <= day);
-    return Number(hit?.closer_rate ?? 0);
-  }
+
+
 
   async function computePeriod() {
     setLoading(true);
