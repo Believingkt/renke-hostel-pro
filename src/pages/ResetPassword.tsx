@@ -25,6 +25,8 @@ export default function ResetPassword() {
   const [tokenData, setTokenData] = useState<{ user_id: string; email: string } | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   const [isRecoverySession, setIsRecoverySession] = useState(false);
 
@@ -81,6 +83,32 @@ export default function ResetPassword() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resendEmail.trim()) {
+      toast.error("請輸入電子郵件");
+      return;
+    }
+    setIsResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+        body: { email: resendEmail.trim() },
+      });
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        throw new Error(parsed.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      toast.success("重設密碼郵件已重新寄出，請檢查您的信箱");
+      setResendEmail("");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "發送失敗，請稍後再試";
+      toast.error(message);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,11 +201,29 @@ export default function ResetPassword() {
               </CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 text-center">
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              此重設密碼連結已失效。請返回登入頁面重新申請。
+              此重設密碼連結已失效，請輸入電子郵件重新取得連結。
             </p>
-            <Button onClick={() => navigate(isPmsMode() ? "/login" : "/auth")} className="w-full bg-auth-primary hover:bg-auth-primary-hover">
+            <form onSubmit={handleResend} className="space-y-3">
+              <div className="space-y-2 text-left">
+                <Label htmlFor="resend-email">電子郵件</Label>
+                <Input
+                  id="resend-email"
+                  type="email"
+                  autoComplete="email"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isResending}>
+                {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                重新寄送重設信
+              </Button>
+            </form>
+            <Button variant="ghost" onClick={() => navigate(isPmsMode() ? "/login" : "/auth")} className="w-full">
               返回登入頁面
             </Button>
           </CardContent>

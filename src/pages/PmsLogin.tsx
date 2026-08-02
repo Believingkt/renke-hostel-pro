@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
+import { pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { SEOHead } from "@/components/SEOHead";
 
 // 與 index.html 同一張社群分享縮圖（絕對網址，跨網域共用）
@@ -189,12 +190,16 @@ export default function PmsLogin() {
 
     setIsLoading(true);
     try {
-      const { error } = await withTimeout(
-        supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-          redirectTo: PMS_RESET_PASSWORD_URL,
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("send-password-reset", {
+          body: { email: forgotEmail.trim() },
         })
       );
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        throw new Error(parsed.message);
+      }
+      if (data?.error) throw new Error(data.error);
       toast.success("重設密碼郵件已發送，請檢查您的信箱");
       setIsForgotMode(false);
       setForgotEmail("");
