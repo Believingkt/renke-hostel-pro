@@ -1178,7 +1178,7 @@ function OrdersTab({
               <div className="text-xs text-muted-foreground rounded-md border p-2 space-y-0.5">
                 <p>系統試算分潤比例（依目前小隊設定）：</p>
                 {(() => {
-                  const r = computeRates(form.sold_by);
+                  const r = computeRates(form.sold_by, form.sold_at);
                   return (
                     <p>
                       個人 {fmtRate(r.commission_rate)} ／ 隊長獎金 {fmtRate(r.leader_rate)}
