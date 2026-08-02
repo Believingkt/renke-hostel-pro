@@ -1,6 +1,7 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useSearchParams } from "react-router-dom";
+import { isPmsHost, extractAliasFromPath } from "@/lib/appMode";
 
 const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
