@@ -47,6 +47,7 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   closer: "成交組獎金",
   video: "影音組分潤",
   scout_kol: "KOL訂單星探分潤",
+  scout_discount_code: "星探折扣碼獎金",
   scout_rarity: "星探稀有度獎金",
   scout_base: "星探底薪",
   scout_team: "星探團隊獎金",
@@ -525,8 +526,7 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "franchise_orders") return "franchise_internal";
   if (source_table === "franchise_external_orders") return "franchise_external";
   if (source_table === "starlink_orders") return "starlink";
-  if (source_table === "scout_discount_codes_kol") return "scout_kol";
-  if (source_table === "scout_discount_codes_closer") return "closer";
+  if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
   return null;
 }
@@ -551,8 +551,9 @@ const SOURCE_LABEL: Record<string, string> = {
   scout_rarity: "星探稀有度獎金",
   scout_kol: "KOL訂單星探分潤",
   scout_team: "星探團隊獎金",
-  scout_closer: "星探成交獎金",
-  scout_discount_kol: "星探折扣碼分潤",
+  scout_discount_scout: "星探折扣碼獎金（星探）",
+  scout_discount_closer: "星探折扣碼獎金（協助成交）",
+
   closer_team_bonus: "成交組團隊獎金",
 };
 
@@ -659,8 +660,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: starlinks },
         { data: teamSettings },
         { data: scoutPayouts },
-        { data: scoutCloserCodes },
-        { data: scoutKolCodes },
+        { data: discountPayoutRows },
         { data: teamBonusDist },
       ] = await Promise.all([
         supabase
@@ -691,16 +691,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("year", year)
           .eq("month", month),
         supabase
-          .from("scout_discount_codes")
-          .select("discount_code, closer_rate")
-          .eq("commission_type", "partner")
-          .gt("closer_rate", 0)
-          .eq("is_active", true),
-        supabase
-          .from("scout_discount_codes")
-          .select("discount_code, scout_id, scout_rate, commission_type")
-          .gt("scout_rate", 0)
-          .eq("is_active", true),
+          .from("scout_discount_code_payouts")
+          .select("id, order_id, discount_code, commission_type, recipient_role, recipient_id, rate, base_amount, commission_amount, year, month, period, orders(order_number)")
+          .eq("year", year)
+          .eq("month", month),
         supabase
           .from("closer_team_bonus_distribution")
           .select("id, closer_id, year, month, bonus_amount, is_finalized")
@@ -709,37 +703,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", range.prevMonth),
       ]);
 
-      // 星探成交獎金：折扣碼 → closer_rate（成交人來自 order_meta.closer_id）
-      const scoutCloserMap = new Map<string, number>();
-      (scoutCloserCodes ?? []).forEach((c: any) => {
-        if (c.discount_code && Number(c.closer_rate) > 0) {
-          scoutCloserMap.set(String(c.discount_code).trim().toUpperCase(), Number(c.closer_rate));
-        }
-      });
-      let scoutCloserOrders: any[] = [];
-      const closerByOrderId = new Map<string, string>();
-      const excludedOrderIds = new Set<string>();
-      if (scoutCloserMap.size > 0) {
-        const { data: ords } = await supabase
-          .from("orders")
-          .select("id, discount_code, final_price, order_date")
-          .neq("order_status", "cancelled")
-          .not("discount_code", "is", null)
-          .gte("order_date", start)
-          .lt("order_date", nextMonthStart);
-        scoutCloserOrders = ords ?? [];
-        const orderIds = scoutCloserOrders.map((o: any) => o.id);
-        if (orderIds.length > 0) {
-          const { data: metas } = await supabase
-            .from("order_meta")
-            .select("order_id, closer_id, is_excluded")
-            .in("order_id", orderIds);
-          (metas ?? []).forEach((m: any) => {
-            if (m.is_excluded) excludedOrderIds.add(m.order_id);
-            if (m.closer_id) closerByOrderId.set(m.order_id, m.closer_id);
-          });
-        }
-      }
+
+      // （星探折扣碼獎金已改為後端試算，見下方 discountPayoutRows）
+
 
 
 
