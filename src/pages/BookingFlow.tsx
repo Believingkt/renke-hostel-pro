@@ -3425,7 +3425,7 @@ const BookingFlow = () => {
             pet_plan_price: petPlanPrice,
             meal_plan_details: mealPlanDetailsData,
             meal_plan_total: mealPlanTotalPrice,
-            custom_addon_details: buildCustomAddonLines().length > 0 ? (buildCustomAddonLines() as unknown as Json[]) : null,
+            custom_addon_details: buildCustomAddonLines().length > 0 ? (buildCustomAddonLines() as unknown as never) : null,
           }])
           .select()
           .single();
