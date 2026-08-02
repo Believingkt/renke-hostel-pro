@@ -1181,7 +1181,7 @@ function OrdersTab({
             </div>
             {form.sold_by && (
               <div className="text-xs text-muted-foreground rounded-md border p-2 space-y-0.5">
-                <p>系統試算分潤比例（依目前小隊設定）：</p>
+                <p>系統試算分潤比例（依成交日期生效費率 + 目前小隊設定）：</p>
                 {(() => {
                   const r = computeRates(form.sold_by, form.sold_at);
                   return (
@@ -1190,6 +1190,9 @@ function OrdersTab({
                     </p>
                   );
                 })()}
+                <p className="text-[11px]">
+                  ※ 分潤金額由系統依費率自動計算並於存檔時重算，無法手動覆蓋。
+                </p>
               </div>
             )}
           </div>
@@ -2315,6 +2318,8 @@ interface ExternalOrder {
   co_sales_member_id2: string | null;
   notes: string | null;
   early_payout_month: string | null;
+  /** 由 DB trigger 標記：獎金金額與預設費率建議值不同 */
+  is_manual_adjusted?: boolean | null;
 }
 
 const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
@@ -2645,6 +2650,11 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     }
     setSaving(false);
     if (error) {
+      // DB trigger 擋下超過上限的獎金總額時，轉換為可讀訊息
+      if ((error.message ?? "").includes("FRANCHISE_BONUS_OVER_CAP")) {
+        toast.error("協銷分潤總額超過上限（訂單總額的 20%），請調整銷售／協銷獎金後再儲存");
+        return;
+      }
       toast.error("儲存失敗：" + error.message);
       return;
     }
@@ -2756,7 +2766,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     onClick={() => { setDetail(r); setEditing(false); }}
                   >
                     <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.customer_name}
+                      {r.is_manual_adjusted && (
+                        <Badge variant="outline" className="ml-1.5 align-middle">人工調整</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{r.sales_name ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap">{r.project_name ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
@@ -2831,6 +2846,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                   label="協同業務2"
                   value={detail.co_sales_name2 ? `${detail.co_sales_name2}${detail.co_sales_bonus2 != null ? ` / ${fmtMoney(detail.co_sales_bonus2)}` : ""}` : null}
                 />
+                {detail.is_manual_adjusted && (
+                  <div className="md:col-span-3 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="mr-1.5">人工調整</Badge>
+                    此筆獎金金額與預設費率建議值不同（獎金總額未超過 20% 上限，僅供複核提示）。
+                  </div>
+                )}
               </div>
 
               {/* 備註 */}

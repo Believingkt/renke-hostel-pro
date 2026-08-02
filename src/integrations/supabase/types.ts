@@ -3143,6 +3143,7 @@ export type Database = {
           invoice_carrier: boolean | null
           invoice_number: string | null
           invoice_progress: string | null
+          is_manual_adjusted: boolean
           member_number: string | null
           notes: string | null
           payment_at: string | null
@@ -3189,6 +3190,7 @@ export type Database = {
           invoice_carrier?: boolean | null
           invoice_number?: string | null
           invoice_progress?: string | null
+          is_manual_adjusted?: boolean
           member_number?: string | null
           notes?: string | null
           payment_at?: string | null
@@ -3235,6 +3237,7 @@ export type Database = {
           invoice_carrier?: boolean | null
           invoice_number?: string | null
           invoice_progress?: string | null
+          is_manual_adjusted?: boolean
           member_number?: string | null
           notes?: string | null
           payment_at?: string | null
