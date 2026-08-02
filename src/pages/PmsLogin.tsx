@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2, ChevronRight } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
 
@@ -35,7 +35,6 @@ export default function PmsLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
-  const [properties, setProperties] = useState<PropertyOption[] | null>(null);
 
   useEffect(() => {
     document.title = "人客多 PMS 民宿後台";
@@ -117,8 +116,8 @@ export default function PmsLogin() {
 
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, short_url_alias, display_order")
-        .order("display_order", { ascending: true, nullsFirst: false })
+        .select("id, name, short_url_alias, created_at")
+        .order("created_at", { ascending: true, nullsFirst: true })
         .order("name", { ascending: true });
       if (!isGlobalSuperAdmin) query = query.in("id", allowedIds);
 
@@ -145,12 +144,9 @@ export default function PmsLogin() {
 
       toast.success("登入成功！");
 
-      if (options.length === 1) {
-        enterProperty(options[0].short_url_alias);
-        return;
-      }
-
-      setProperties(options);
+      // 預設進入系統最早上線的民宿，之後可從後台右上方切換
+      enterProperty(options[0].short_url_alias);
+      return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PmsLogin] login failed:", error);
@@ -207,12 +203,7 @@ export default function PmsLogin() {
             <p className="text-lg font-medium text-muted-foreground">人客多 PMS 民宿後台</p>
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            {properties ? (
-              <>
-                <Building2 className="h-5 w-5 text-auth-primary" />
-                <CardDescription className="text-center">請選擇要進入的民宿</CardDescription>
-              </>
-            ) : isForgotMode ? (
+            {isForgotMode ? (
               <>
                 <Mail className="h-5 w-5 text-auth-primary" />
                 <CardDescription className="text-center">重設您的密碼</CardDescription>
@@ -226,26 +217,7 @@ export default function PmsLogin() {
           </div>
         </CardHeader>
         <CardContent>
-          {properties ? (
-            <div className="space-y-2">
-              {properties.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => enterProperty(p.short_url_alias)}
-                  className="w-full flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-base font-medium">{p.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {p.short_url_alias}
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          ) : isForgotMode ? (
+          {isForgotMode ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="forgot-email">電子郵件</Label>
