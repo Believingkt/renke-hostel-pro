@@ -291,6 +291,18 @@ Deno.serve(async (req) => {
 
     console.log("[complete-3ds-booking] Order created:", orderData.order_number);
 
+    // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
+    try {
+      await finalizeTripOrder(supabaseUrl, supabaseServiceKey, {
+        orderId: orderData.id,
+        tripId: (body as any).tripId ?? null,
+        customAddonDetails: (body as any).customAddonDetails ?? null,
+      });
+    } catch (e) {
+      console.error("[complete-3ds-booking] finalizeTripOrder failed (non-fatal):", e);
+    }
+
+
     // Trigger KOL Webhook if discount code was used
     if (body.discountCode && orderData?.id) {
       try {
