@@ -26,12 +26,31 @@ export default function ResetPassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
+
   useEffect(() => {
     validateToken();
   }, [token]);
 
   const validateToken = async () => {
     if (!token) {
+      // Supabase 原生 recovery 連結：token 在 URL hash / query，SDK 會自動建立 session
+      const blob = `${window.location.hash || ""}${window.location.search || ""}`;
+      if (blob.includes("type=recovery") || blob.includes("access_token") || blob.includes("code=")) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.user) {
+            setIsRecoverySession(true);
+            setIsValidToken(true);
+            setTokenData({
+              user_id: data.session.user.id,
+              email: data.session.user.email || "",
+            });
+          }
+        } catch (e) {
+          console.error("[ResetPassword] recovery session error:", e);
+        }
+      }
       setIsValidating(false);
       return;
     }
@@ -58,6 +77,7 @@ export default function ResetPassword() {
       setIsValidating(false);
     }
   };
+
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
