@@ -597,6 +597,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
+  // 僅影響「資料區間」說明文字顯示，不影響任何金額計算或查詢
+  const [viewPeriod, setViewPeriod] = useState<"10" | "25">("10");
+
 
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
