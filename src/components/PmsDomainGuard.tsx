@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, MoveRight } from "lucide-react";
 import {
   bookingHref,
-  extractAliasFromPath,
   isAdminPath,
   isPmsAllowedPath,
   normalizePmsPath,
