@@ -2648,6 +2648,11 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     }
     setSaving(false);
     if (error) {
+      // DB trigger 擋下超過上限的獎金總額時，轉換為可讀訊息
+      if ((error.message ?? "").includes("FRANCHISE_BONUS_OVER_CAP")) {
+        toast.error("協銷分潤總額超過上限（訂單總額的 20%），請調整銷售／協銷獎金後再儲存");
+        return;
+      }
       toast.error("儲存失敗：" + error.message);
       return;
     }
