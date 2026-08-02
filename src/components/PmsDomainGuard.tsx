@@ -58,8 +58,7 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
     }
     // 舊的 /{alias}/auth 或 /auth 一律導向統一登入頁
     if (normalizePmsPath(location.pathname) === "/auth") {
-      const alias = extractAliasFromPath(location.pathname);
-      navigate(`/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`, { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
     if (!isPmsAllowedPath(location.pathname)) {
@@ -71,9 +70,9 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!legacyAdminOnFrontend) return;
     if (hasSession !== false) return;
-    const alias = extractAliasFromPath(location.pathname);
-    window.location.replace(pmsHref(`/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`));
-  }, [legacyAdminOnFrontend, hasSession, location.pathname]);
+    window.location.replace(pmsHref("/login"));
+  }, [legacyAdminOnFrontend, hasSession]);
+
 
   if (mode === "pms" && location.pathname !== "/" && !isPmsAllowedPath(location.pathname)) {
     return null;
