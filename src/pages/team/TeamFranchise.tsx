@@ -2846,6 +2846,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                   label="協同業務2"
                   value={detail.co_sales_name2 ? `${detail.co_sales_name2}${detail.co_sales_bonus2 != null ? ` / ${fmtMoney(detail.co_sales_bonus2)}` : ""}` : null}
                 />
+                {detail.is_manual_adjusted && (
+                  <div className="md:col-span-3 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="mr-1.5">人工調整</Badge>
+                    此筆獎金金額與預設費率建議值不同（獎金總額未超過 20% 上限，僅供複核提示）。
+                  </div>
+                )}
               </div>
 
               {/* 備註 */}
