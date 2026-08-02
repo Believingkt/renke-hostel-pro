@@ -6,7 +6,7 @@ import { openFrontendBooking } from "@/lib/frontendUrl";
 import { isPmsMode, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
 
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +38,8 @@ export function AccommodationSelector() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [aliasMissingOnly, setAliasMissingOnly] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+
 
   const navigate = useNavigate();
 
@@ -144,12 +146,15 @@ export function AccommodationSelector() {
   }
 
   const currentAcc = accommodations.find(a => a.id === currentAccommodationId);
+  const switchingAcc = accommodations.find(a => a.id === switchingId);
 
   const handleSwitch = (id: string) => {
+    if (id === currentAccommodationId) return;
     if (isPmsMode()) {
       const target = accommodations.find((a) => a.id === id);
       const alias = target?.short_url_alias?.trim().toLowerCase();
       if (alias) {
+        setSwitchingId(id);
         try {
           localStorage.setItem("lastSelectedAccommodation", id);
           localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, alias);
@@ -164,7 +169,17 @@ export function AccommodationSelector() {
   };
 
   return (
+
     <div className="flex items-center gap-1.5">
+      {switchingId && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            正在切換至{switchingAcc?.name ?? "民宿"}…
+          </p>
+        </div>
+      )}
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
