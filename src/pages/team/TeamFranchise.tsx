@@ -782,8 +782,13 @@ function OrdersTab({
 
   // soldAt：訂單成交日（Asia/Taipei YYYY-MM-DD），用來選取當時生效的費率版本
   const computeRates = (soldBy: string, soldAt?: string | null) => {
-    const setting = teamSettings[soldBy];
-    const directLeader = setting?.direct_leader_id ?? null;
+    // sold_by 是 auth user_id，但 franchise_team_settings.member_id 存的是 team_member_profiles.id，
+    // 必須先轉換再查小隊設定（與 DB trigger fn_franchise_orders_recalc 的 join 邏輯一致）
+    const settingKey = profileIdByUserId[soldBy];
+    const setting = settingKey ? teamSettings[settingKey] : undefined;
+    // direct_leader_id 存的是 user_id；自己不能當自己的隊長
+    const rawLeader = setting?.direct_leader_id ?? null;
+    const directLeader = rawLeader && rawLeader !== soldBy ? rawLeader : null;
     const downlineCount = Object.values(teamSettings).filter(
       (t) => t.direct_leader_id === soldBy,
     ).length;
