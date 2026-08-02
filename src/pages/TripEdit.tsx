@@ -125,7 +125,7 @@ export default function TripEdit() {
           .from("trip_products")
           .select("id, type, name, description, price, duration_min, cover_url")
           .eq("is_active", true),
-        supabase.from("room_types").select("id, name, base_price, accommodation_id").eq("is_active", true),
+        supabase.from("room_types").select("id, name, base_price, accommodation_id"),
       ]);
       if (cancelled) return;
       const pMap: Record<string, ProductRow> = {};
