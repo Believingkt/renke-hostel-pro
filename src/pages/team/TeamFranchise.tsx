@@ -717,6 +717,23 @@ function OrdersTab({
     const map: Record<string, TeamSetting> = {};
     ftsRows.forEach((row) => (map[row.member_id] = row));
     setTeamSettings(map);
+
+    // member_id 存的是 team_member_profiles.id，需建立 user_id -> profile.id 對照，
+    // 才能用訂單的 sold_by（auth user_id）查到正確的小隊設定與直屬隊長
+    const settingMemberIds = ftsRows.map((r) => r.member_id).filter(Boolean) as string[];
+    if (settingMemberIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("team_member_profiles")
+        .select("id, user_id")
+        .in("id", settingMemberIds);
+      const pMap: Record<string, string> = {};
+      for (const p of ((profileRows ?? []) as { id: string; user_id: string | null }[])) {
+        if (p.user_id) pMap[p.user_id] = p.id;
+      }
+      setProfileIdByUserId(pMap);
+    } else {
+      setProfileIdByUserId({});
+    }
   };
 
   const memberName = (id: string | null, name?: string | null) =>
