@@ -569,6 +569,19 @@ function previousMonthRange(year: number, month: number) {
   return { start, end, payoutMonthKey, prevYear, prevMonth };
 }
 
+/** 稀有度獎金／KOL 分潤的實際結算區間（Asia/Taipei）。
+ *  X月10日期 = 上月21日 ~ 當月05日；X月25日期 = 當月06日 ~ 當月20日 */
+function commissionPeriodRange(year: number, month: number, period: "10" | "25") {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (period === "10") {
+    const pm = month === 1 ? 12 : month - 1;
+    const py = month === 1 ? year - 1 : year;
+    return { start: `${py}-${pad(pm)}-21`, end: `${year}-${pad(month)}-05` };
+  }
+  return { start: `${year}-${pad(month)}-06`, end: `${year}-${pad(month)}-20` };
+}
+
+
 function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
   const [year, setYear] = useState(now.getFullYear());
@@ -584,6 +597,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
+  // 僅影響「資料區間」說明文字顯示，不影響任何金額計算或查詢
+  const [viewPeriod, setViewPeriod] = useState<"10" | "25">("10");
+
 
   const toggleMember = useCallback((id: string) => {
     setExpandedMembers((prev) => {
@@ -1190,9 +1206,17 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               </SelectContent>
             </Select>
           </div>
-          <div className="text-xs text-muted-foreground self-center ml-2">
-            資料區間：{range.start} ~ {range.end}
+          <div>
+            <Label className="text-xs">發放期別</Label>
+            <Select value={viewPeriod} onValueChange={(v) => setViewPeriod(v as "10" | "25")}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">{month} 月 10 日期</SelectItem>
+                <SelectItem value="25">{month} 月 25 日期</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
           {!readOnly && (
             <Button size="sm" onClick={bulkMarkAll} disabled={bulkMarking || loading}>
               {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
@@ -1210,6 +1234,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </Button>
           )}
         </div>
+
+        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
+          <div className="text-xs text-foreground">
+            稀有度獎金／KOL 分潤結算區間：
+            <span className="tabular-nums">
+              {commissionPeriodRange(year, month, viewPeriod).start} ~ {commissionPeriodRange(year, month, viewPeriod).end}
+            </span>
+          </div>
+          <div className="text-xs text-foreground">
+            底薪／團隊獎金結算區間：
+            {viewPeriod === "10" ? (
+              <span className="tabular-nums">{range.start} ~ {range.end}（{range.prevMonth} 月整月）</span>
+            ) : (
+              <span>本期不發放底薪／團隊獎金（僅 {month} 月 10 日期發放）</span>
+            )}
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground pt-1">
+            資料由系統自動寫入：稀有度獎金／KOL 分潤／星探 KOL 分潤由 calculate-scout-payout 試算，
+            每日台北時間 23:59 由排程觸發，但只有每月 <span className="font-medium">10 日與 25 日</span>會真正產生該期別資料；
+            底薪／團隊獎金同樣於每月 10 日自動判定上月整月是否達標並寫入，皆不需人工操作。
+            <br />
+            <span className="font-medium">還沒到自動寫入日</span>（尚未到當月 10 日或 25 日）時，本期資料顯示空白或未更新屬正常，請等系統跑完。
+            <br />
+            <span className="font-medium">已過自動寫入日仍看不到資料</span>時，才需要使用「手動重新試算」或聯繫技術人員協助，請勿自行推算金額。
+          </p>
+        </div>
+
 
         <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
           <AlertDialogContent>
