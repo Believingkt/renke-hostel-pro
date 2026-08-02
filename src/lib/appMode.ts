@@ -63,23 +63,29 @@ export function isPmsMode(hostname = window.location.hostname): boolean {
   return resolveAppMode(hostname) === "pms";
 }
 
+function devModeHref(path: string, mode: "pms" | "frontend"): string {
+  const url = new URL(path, window.location.origin);
+  url.searchParams.delete("mode");
+  url.searchParams.set("mode", mode);
+  try {
+    sessionStorage.setItem(MODE_STORAGE_KEY, mode);
+  } catch {
+    /* ignore */
+  }
+  return url.toString();
+}
+
 /** 以 PMS 網域開啟指定路徑；開發/預覽環境改為同站切換模式 */
 export function pmsHref(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (isDevOrPreviewHost(window.location.hostname)) {
-    const sep = p.includes("?") ? "&" : "?";
-    return `${window.location.origin}${p}${sep}mode=pms`;
-  }
+  if (isDevOrPreviewHost(window.location.hostname)) return devModeHref(p, "pms");
   return `${PMS_ORIGIN}${p}`;
 }
 
 /** 以訂房前台網域開啟指定路徑；開發/預覽環境改為同站切換模式 */
 export function bookingHref(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (isDevOrPreviewHost(window.location.hostname)) {
-    const sep = p.includes("?") ? "&" : "?";
-    return `${window.location.origin}${p}${sep}mode=frontend`;
-  }
+  if (isDevOrPreviewHost(window.location.hostname)) return devModeHref(p, "frontend");
   return `${BOOKING_ORIGIN}${p}`;
 }
 
