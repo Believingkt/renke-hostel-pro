@@ -184,13 +184,27 @@ async function processRow(
   // Load order with rooms
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status, order_source")
     .eq("id", row.order_id)
     .maybeSingle();
 
   if (!order) {
     await finalizeFail(admin, row, baseLog, "order not found", true);
     return { id: row.id, outcome: "failed", reason: "order not found" };
+  }
+
+  // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
+  // 即使後續在 PMS 修改內容或取消也不重推。
+  if (["owlting", "hotelnabe"].includes(String(order.order_source ?? ""))) {
+    await admin.from("owlting_order_push_queue").update({
+      status: "skipped",
+      last_error: "inbound-sourced order: push-back disabled",
+    }).eq("id", row.id);
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog, success: false,
+      error_message: "skipped: inbound-sourced order (補單) push-back disabled",
+    });
+    return { id: row.id, outcome: "skipped", reason: "inbound-sourced order" };
   }
 
   // Build room stays from order_rooms; fall back to single (room_type_id, qty=1)
