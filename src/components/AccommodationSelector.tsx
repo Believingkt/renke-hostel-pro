@@ -135,6 +135,7 @@ export function AccommodationSelector() {
       if (alias) {
         try {
           localStorage.setItem("lastSelectedAccommodation", id);
+          localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, alias);
         } catch {
           /* ignore */
         }
