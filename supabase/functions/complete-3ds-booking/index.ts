@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
         pet_plan_price: body.petPlanPrice || 0,
         meal_plan_details: body.mealPlanDetails || [],
         meal_plan_total: body.mealPlanTotal || 0,
+        custom_addon_details: (body as any).customAddonDetails ?? null,
         order_source: "website",
       }])
       .select()
