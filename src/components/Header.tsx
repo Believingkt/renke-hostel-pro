@@ -21,6 +21,7 @@ import { openFrontendBooking } from "@/lib/frontendUrl";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
+import { extractAliasFromPath, isPmsMode, pmsHref } from "@/lib/appMode";
 
 export function Header() {
   const navigate = useNavigate();
