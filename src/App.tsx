@@ -78,6 +78,8 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
 const Trips = lazy(() => import("./pages/Trips"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
+const TripEdit = lazy(() => import("./pages/TripEdit"));
+const Cart = lazy(() => import("./pages/Cart"));
 
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
