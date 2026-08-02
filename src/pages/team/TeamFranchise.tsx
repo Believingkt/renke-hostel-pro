@@ -755,16 +755,20 @@ function OrdersTab({
     [filtered, page],
   );
 
-  const computeRates = (soldBy: string) => {
+  // soldAt：訂單成交日（Asia/Taipei YYYY-MM-DD），用來選取當時生效的費率版本
+  const computeRates = (soldBy: string, soldAt?: string | null) => {
     const setting = teamSettings[soldBy];
     const directLeader = setting?.direct_leader_id ?? null;
     const downlineCount = Object.values(teamSettings).filter(
       (t) => t.direct_leader_id === soldBy,
     ).length;
-    const base = internalRates?.base_rate ?? 0.1;
-    const tier1 = internalRates?.tier1_rate ?? 0.11;
-    const tier2 = internalRates?.tier2_rate ?? 0.13;
-    const leaderOverride = internalRates?.leader_override_rate ?? 0.035;
+    const version = pickRateVersion(internalRateVersions as any, soldAt ?? todayTaipei());
+    const base = Number(version?.base_rate ?? internalRates?.base_rate ?? 0.1);
+    const tier1 = Number(version?.tier1_rate ?? internalRates?.tier1_rate ?? 0.11);
+    const tier2 = Number(version?.tier2_rate ?? internalRates?.tier2_rate ?? 0.13);
+    const leaderOverride = Number(
+      version?.leader_override_rate ?? internalRates?.leader_override_rate ?? 0.035,
+    );
     let commission_rate = base;
     if (downlineCount === 1) commission_rate = tier1;
     else if (downlineCount >= 2) commission_rate = tier2;
