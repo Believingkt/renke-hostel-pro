@@ -79,8 +79,13 @@ export function AccommodationSelector() {
         (acc) => !isPmsMode() || !!acc.short_url_alias?.trim()
       );
 
+      setAliasMissingOnly(
+        isPmsMode() && (data?.length ?? 0) > 0 && list.length === 0
+      );
+
       console.log('[AccommodationSelector] Loaded accommodation info:', list);
       setAccommodations(list);
+
 
     } catch (error) {
       console.error('[AccommodationSelector] Error loading accommodations:', error);
