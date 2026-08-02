@@ -2200,6 +2200,39 @@ const BookingFlow = () => {
 
   const calculateChildExtraTotal = () => evaluateChildren().extraFeeTotal;
 
+  /** 行程購物車帶入的加購列（僅在購物車結帳且館別相符時生效，不影響既有 /booking 行為） */
+  const tripCheckoutLines = useMemo(() => {
+    const staged = readTripCheckout();
+    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return [];
+    return staged.lines || [];
+  }, [accommodationId]);
+  const tripCheckoutTripId = useMemo(() => {
+    const staged = readTripCheckout();
+    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return null;
+    return staged.tripId;
+  }, [accommodationId]);
+  const tripAddonTotal = tripCheckoutLines.reduce((sum, l) => sum + (Number(l.total) || 0), 0);
+
+  /** 組出送往既有金流／訂單的 custom_addon_details（既有加購 + 行程加購） */
+  const buildCustomAddonLines = () => {
+    const nights = calculateNights();
+    const existing = Object.entries(customAddonCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([type, count]) => {
+        const setting = customAddonSettings.find(s => s.addon_type === type);
+        return {
+          addon_id: setting?.id,
+          addon_type: type,
+          count,
+          price_per_unit: setting?.price_per_unit || 0,
+          pricing_mode: setting?.pricing_mode || 'per_night',
+          total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights),
+          unit_label: setting?.unit_label || '',
+        };
+      });
+    return [...existing, ...tripCheckoutLines];
+  };
+
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
@@ -2207,7 +2240,7 @@ const BookingFlow = () => {
       const setting = customAddonSettings.find(s => s.addon_type === type);
       return sum + (count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights));
     }, 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + calculateChildExtraTotal();
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + tripAddonTotal + calculateChildExtraTotal();
   };
 
   const calculateFinalTotal = () => {
