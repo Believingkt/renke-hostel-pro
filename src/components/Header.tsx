@@ -21,7 +21,7 @@ import { openFrontendBooking } from "@/lib/frontendUrl";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
-import { extractAliasFromPath, isPmsMode, pmsHref } from "@/lib/appMode";
+import { isPmsMode, pmsHref } from "@/lib/appMode";
 
 export function Header() {
   const navigate = useNavigate();
@@ -102,9 +102,8 @@ export function Header() {
   }, [accommodationId]);
 
   const handleLogout = async () => {
-    const alias = extractAliasFromPath(window.location.pathname);
     const target = isPmsMode()
-      ? pmsHref(`/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`)
+      ? pmsHref("/login")
       : `${window.location.origin}/auth`;
     try {
       Object.keys(localStorage).forEach(key => {

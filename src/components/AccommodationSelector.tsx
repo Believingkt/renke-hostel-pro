@@ -3,6 +3,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import { isPmsMode, pmsHref } from "@/lib/appMode";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import {
@@ -72,8 +73,13 @@ export function AccommodationSelector() {
 
       if (error) throw error;
 
-      console.log('[AccommodationSelector] Loaded accommodation info:', data);
-      setAccommodations(data || []);
+      // PMS 網域：後台 context 由網址代號決定，沒有代號的民宿無法進入 → 排除
+      const list = (data || []).filter(
+        (acc) => !isPmsMode() || !!acc.short_url_alias?.trim()
+      );
+
+      console.log('[AccommodationSelector] Loaded accommodation info:', list);
+      setAccommodations(list);
 
     } catch (error) {
       console.error('[AccommodationSelector] Error loading accommodations:', error);
@@ -122,6 +128,23 @@ export function AccommodationSelector() {
 
   const currentAcc = accommodations.find(a => a.id === currentAccommodationId);
 
+  const handleSwitch = (id: string) => {
+    if (isPmsMode()) {
+      const target = accommodations.find((a) => a.id === id);
+      const alias = target?.short_url_alias?.trim().toLowerCase();
+      if (alias) {
+        try {
+          localStorage.setItem("lastSelectedAccommodation", id);
+        } catch {
+          /* ignore */
+        }
+        window.location.assign(pmsHref(`/${alias}/admin`));
+        return;
+      }
+    }
+    setCurrentAccommodationId(id);
+  };
+
   return (
     <div className="flex items-center gap-1.5">
       <TooltipProvider>
@@ -146,7 +169,7 @@ export function AccommodationSelector() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
+      <Select value={currentAccommodationId || undefined} onValueChange={handleSwitch}>
         <SelectTrigger className="w-auto min-w-0 max-w-[45vw] sm:max-w-none sm:min-w-[180px] gap-1 overflow-hidden [&>svg]:flex-shrink-0 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:overflow-hidden [&>span]:whitespace-nowrap [&>span]:text-ellipsis">
           <SelectValue placeholder="切換民宿" />
         </SelectTrigger>
