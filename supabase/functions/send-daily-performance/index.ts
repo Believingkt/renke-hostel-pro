@@ -288,7 +288,7 @@ Deno.serve(async (req) => {
         };
 
         // ── General booking metrics ────────────────────────
-        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 COALESCE(confirmed_at, order_date) 為準，
+        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 order_date 為準，
         //          並排除「保留單」與 final_price <= 0 的訂單；
         // 天送：維持既有 order_date 區間 + 團媽/票卷訂房排除（獨立邏輯，不修改）。
         const applyBookingFilters = <T extends any>(qb: T): T => {
@@ -308,16 +308,14 @@ Deno.serve(async (req) => {
             const endUtc = new Date(Date.UTC(ey, em - 1, ed + 1, -8, 0, 0)).toISOString();
             q = q.gte("order_date", startUtc).lt("order_date", endUtc);
           } else {
-            // COALESCE(confirmed_at, order_date) 落在 [startDay, endDay]
+            // 期間基準統一為 order_date（與正式分潤試算一致）
             // 修正:date 字串在 PostgREST 比較 timestamptz 時會被當成 00:00,
             //      需展開為 UTC timestamptz 區間(台北 [start 00:00, endDay+1 00:00))才能涵蓋整天。
             const startUtc = new Date(`${startDay}T00:00:00+08:00`).toISOString();
             const [ey, em, ed] = endDay.split("-").map(Number);
             const endUtc = new Date(Date.UTC(ey, em - 1, ed + 1, -8, 0, 0)).toISOString();
-            q = q.or(
-              `and(confirmed_at.gte.${startUtc},confirmed_at.lt.${endUtc}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startUtc},order_date.lt.${endUtc})`,
-            );
+            q = q.gte("order_date", startUtc).lt("order_date", endUtc);
+
           }
           return q as T;
         };
