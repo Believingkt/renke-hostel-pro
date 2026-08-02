@@ -173,81 +173,24 @@ export default function TeamHome() {
         }
 
         // ===== Closer / Video =====
+        // 分潤預估一律改由 preview-closer-commission Edge Function 試算，
+        // 公式與正式快照 closer_commission_snapshots 完全一致（order_date 分月、
+        // 扣加購、排除非台幣 / isExempt / is_excluded）。
         const needMeta = showCloser || showVideo;
         let closerSum = 0;
         let videoSum = 0;
 
         if (needMeta) {
-          const orFilter = [
-            showCloser ? `closer_id.eq.${userId}` : null,
-            showVideo ? `video_creator_id.eq.${userId}` : null,
-          ]
-            .filter(Boolean)
-            .join(",");
-
-          const { data: metas } = await supabase
-            .from("order_meta")
-            .select(
-              "order_id, closer_id, video_creator_id, team_commission_price, is_excluded",
-            )
-            .or(orFilter)
-            .or("is_excluded.is.null,is_excluded.eq.false");
-
-          const metaList = (metas ?? []).filter((m: any) => m.is_excluded !== true);
-          const orderIds = metaList.map((m: any) => m.order_id as string);
-
-          if (orderIds.length > 0) {
-            const { data: orders } = await supabase
-              .from("orders")
-              .select(
-                "id, accommodation_id, final_price, order_date, confirmed_at, order_status, guest_name",
-              )
-              .in("id", orderIds)
-              .neq("order_status", "cancelled")
-              .neq("guest_name", "保留單")
-              .gt("final_price", 0)
-              .or(
-                `and(confirmed_at.gte.${monthStartIso},confirmed_at.lt.${monthEndIso}),and(confirmed_at.is.null,order_date.gte.${monthStartIso},order_date.lt.${monthEndIso})`,
-              );
-
-            const orderList = orders ?? [];
-            const accIds = Array.from(
-              new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)),
-            );
-
-            let rates: RateRow[] = [];
-            if (accIds.length > 0) {
-              const { data: r } = await supabase
-                .from("accommodation_commission_settings")
-                .select("accommodation_id, effective_from, closer_rate, video_rate")
-                .in("accommodation_id", accIds);
-              rates = (r ?? []) as RateRow[];
-            }
-
-            const metaByOrder = new Map<string, any>();
-            metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
-
-            for (const o of orderList) {
-              const meta = metaByOrder.get(o.id as string);
-              if (!meta) continue;
-              const base = Number(
-                meta.team_commission_price != null
-                  ? meta.team_commission_price
-                  : o.final_price ?? 0,
-              );
-              const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
-
-              if (showCloser && meta.closer_id === userId) {
-                const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
-                closerSum += base * rate;
-              }
-              if (showVideo && meta.video_creator_id === userId) {
-                const rate = pickRate(rates, o.accommodation_id, orderDateIso, "video_rate");
-                videoSum += base * rate;
-              }
-            }
+          const { data: preview } = await supabase.functions.invoke(
+            "preview-closer-commission",
+            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self" } },
+          );
+          if (preview?.success) {
+            if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
+            if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
           }
         }
+
 
 
 
