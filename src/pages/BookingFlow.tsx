@@ -3184,20 +3184,8 @@ const BookingFlow = () => {
                 totalGuests,
                 customerId,
                 memberId: effectiveMemberId,
-                customAddonDetails: Object.entries(customAddonCounts).filter(([_, c]) => c > 0).length > 0
-                  ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
-                      const setting = customAddonSettings.find(s => s.addon_type === type);
-                      return {
-                        addon_id: setting?.id,
-                        addon_type: type,
-                        count,
-                        price_per_unit: setting?.price_per_unit || 0,
-                        pricing_mode: setting?.pricing_mode || 'per_night',
-                        total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
-                        unit_label: setting?.unit_label || '',
-                      };
-                    })
-                  : null,
+                customAddonDetails: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
+                tripId: tripCheckoutTripId,
                 nights,
               },
             }
@@ -3437,20 +3425,7 @@ const BookingFlow = () => {
             pet_plan_price: petPlanPrice,
             meal_plan_details: mealPlanDetailsData,
             meal_plan_total: mealPlanTotalPrice,
-            custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
-              ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                  const setting = customAddonSettings.find(s => s.addon_type === type);
-                  return {
-                    addon_id: setting?.id,
-                    addon_type: type,
-                    count,
-                    price_per_unit: setting?.price_per_unit || 0,
-                    pricing_mode: setting?.pricing_mode || 'per_night',
-                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
-                    unit_label: setting?.unit_label || '',
-                  };
-                })
-              : null,
+            custom_addon_details: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
           }])
           .select()
           .single();
