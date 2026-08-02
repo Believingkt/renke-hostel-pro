@@ -19,7 +19,7 @@ import {
  * - PMS 模式（pms.lakeze.com）：僅服務 /login、/{slug}/admin/* 等後台路徑；
  *   其餘前台路徑（訂房頁、/member/*、/pay）→ 導向 booking.lakeze.com 對應路徑。
  * - 前台模式（booking.lakeze.com）：訪問 /{slug}/admin 及子路由時，
- *   未登入 → 轉址 pms.lakeze.com/login?code={slug}；
+ *   未登入 → 轉址 pms.lakeze.com/login；
  *   已登入 → 顯示「後台已搬家」卡片。
  * - neutral（開發／預覽網域未指定 ?mode=）：完全不介入。
  */
