@@ -137,6 +137,8 @@ export default function PmsLogin() {
       // ④ 通過
       try {
         localStorage.setItem(LAST_CODE_KEY, normalizedCode);
+        // 覆寫上次選擇的民宿，避免登入後仍沿用前一家的後台 context
+        localStorage.setItem("lastSelectedAccommodation", accommodation.id);
       } catch {
         /* ignore */
       }
