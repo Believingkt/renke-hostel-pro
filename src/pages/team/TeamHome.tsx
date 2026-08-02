@@ -278,49 +278,16 @@ export default function TeamHome() {
               closerTeamBonusSum = Math.round(Number((ownDist as any).bonus_amount ?? 0));
               closerTeamBonusNoSet = false;
             } else {
-              // 未定案：計算全隊當月累積預估池
-              const { data: allMetas } = await supabase
-                .from("order_meta")
-                .select("order_id, closer_id, team_commission_price, is_excluded")
-                .not("closer_id", "is", null)
-                .or("is_excluded.is.null,is_excluded.eq.false");
-              const metaList = (allMetas ?? []).filter((m: any) => m.is_excluded !== true && m.closer_id);
-              const orderIds = metaList.map((m: any) => m.order_id as string);
-
-              if (orderIds.length > 0) {
-                const { data: orders } = await supabase
-                  .from("orders")
-                  .select("id, accommodation_id, final_price, order_date, confirmed_at, order_status, guest_name")
-                  .in("id", orderIds)
-                  .neq("order_status", "cancelled")
-                  .neq("guest_name", "保留單")
-                  .gt("final_price", 0)
-                  .or(
-                    `and(confirmed_at.gte.${monthStartIso},confirmed_at.lt.${monthEndIso}),and(confirmed_at.is.null,order_date.gte.${monthStartIso},order_date.lt.${monthEndIso})`,
-                  );
-                const orderList = orders ?? [];
-                const accIds = Array.from(new Set(orderList.map((o: any) => o.accommodation_id).filter(Boolean)));
-                let rates: RateRow[] = [];
-                if (accIds.length > 0) {
-                  const { data: r } = await supabase
-                    .from("accommodation_commission_settings")
-                    .select("accommodation_id, effective_from, closer_rate, video_rate")
-                    .in("accommodation_id", accIds);
-                  rates = (r ?? []) as RateRow[];
-                }
-                const metaByOrder = new Map<string, any>();
-                metaList.forEach((m: any) => metaByOrder.set(m.order_id, m));
-                let totalCloserCommission = 0;
-                for (const o of orderList as any[]) {
-                  const meta = metaByOrder.get(o.id);
-                  if (!meta) continue;
-                  const base = Number(meta.team_commission_price != null ? meta.team_commission_price : o.final_price ?? 0);
-                  const orderDateIso = (o.confirmed_at ?? o.order_date) as string;
-                  const rate = pickRate(rates, o.accommodation_id, orderDateIso, "closer_rate");
-                  totalCloserCommission += base * rate;
-                }
+              // 未定案：全隊當月累積預估池（同樣改由 Edge Function 試算）
+              const { data: teamPreview } = await supabase.functions.invoke(
+                "preview-closer-commission",
+                { body: { year: monthInfo.y, month: monthInfo.m, scope: "team" } },
+              );
+              if (teamPreview?.success) {
+                const totalCloserCommission = Number(teamPreview.team?.closer_commission ?? 0);
                 closerTeamBonusSum = Math.round(totalCloserCommission * bonusRate);
               }
+
 
               // 檢查全隊是否已有分配資料（任何 finalized 記錄）
               const { data: dist } = await supabase
