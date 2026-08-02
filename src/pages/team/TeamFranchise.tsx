@@ -545,7 +545,10 @@ function OrdersTab({
 }) {
   const [orders, setOrders] = useState<FranchiseOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  // key = franchise_team_settings.member_id（= team_member_profiles.id）
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
+  // auth user_id -> team_member_profiles.id，用來把 sold_by 轉成小隊設定的 member_id
+  const [profileIdByUserId, setProfileIdByUserId] = useState<Record<string, string>>({});
   const [internalRates, setInternalRates] = useState<InternalRates | null>(null);
   // 內部單費率所有版本（依訂單日期選取當時生效版本用）
   const [internalRateVersions, setInternalRateVersions] = useState<any[]>([]);
