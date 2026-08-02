@@ -172,7 +172,16 @@ export default function TripDetail() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <LangSwitch value={lang} onChange={setLang} />
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/trips/${tripId}/edit?lang=${lang}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/85 backdrop-blur"
+              aria-label="edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+            <LangSwitch value={lang} onChange={setLang} />
+          </div>
         </div>
       </div>
 
