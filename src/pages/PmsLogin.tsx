@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
 
 const LAST_CODE_KEY = "pms_last_property_code";
 const REQUEST_TIMEOUT_MS = 15000;
