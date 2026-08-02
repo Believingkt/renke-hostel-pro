@@ -78,6 +78,8 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
 const Trips = lazy(() => import("./pages/Trips"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
+const TripEdit = lazy(() => import("./pages/TripEdit"));
+const Cart = lazy(() => import("./pages/Cart"));
 
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
@@ -329,6 +331,12 @@ function App() {
                     } />
                     <Route path="trips/:tripId" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
+                    } />
+                    <Route path="trips/:tripId/edit" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripEdit /></Suspense>
+                    } />
+                    <Route path="cart" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Cart /></Suspense>
                     } />
                     <Route path="legal/:slug" element={
                       <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>

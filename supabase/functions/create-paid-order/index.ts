@@ -14,6 +14,7 @@ import {
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
+import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
@@ -142,6 +143,18 @@ Deno.serve(async (req) => {
           { success: false, message: "價格驗證失敗，請重新預訂", errors: priceCheck.errors },
           400,
         );
+      }
+    }
+
+    // 行程商品防超賣（收款前檢查）
+    if (!isPostCharge) {
+      const stockCheck = await checkTripProductStock(
+        supabaseUrl,
+        supabaseServiceKey,
+        body.customAddonDetails,
+      );
+      if (!stockCheck.ok) {
+        return jsonResponse({ success: false, message: stockCheck.message }, 409);
       }
     }
 
@@ -284,6 +297,18 @@ Deno.serve(async (req) => {
     }
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
+
+    // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
+    try {
+      await finalizeTripOrder(supabaseUrl, supabaseServiceKey, {
+        orderId: orderData.id,
+        tripId: (body as any).tripId ?? null,
+        customAddonDetails: body.customAddonDetails ?? null,
+      });
+    } catch (e) {
+      console.error("[create-paid-order] finalizeTripOrder failed (non-fatal):", e);
+    }
+
 
     // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
     const roomQuantity = Math.max(1, Math.floor(Number((body as any).roomQuantity) || 1));

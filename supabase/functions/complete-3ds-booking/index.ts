@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
+import { finalizeTripOrder } from "../_shared/tripOrder.ts";
 
 interface BookingData {
   accommodationId: string;
@@ -188,6 +189,7 @@ Deno.serve(async (req) => {
         mealPlanTotal: body.mealPlanTotal || 0,
         petCount: body.petCount || 0,
         petPlanPrice: body.petPlanPrice || 0,
+        customAddonDetails: (body as any).customAddonDetails ?? null,
       };
 
       const validateResponse = await fetch(
@@ -269,6 +271,7 @@ Deno.serve(async (req) => {
         pet_plan_price: body.petPlanPrice || 0,
         meal_plan_details: body.mealPlanDetails || [],
         meal_plan_total: body.mealPlanTotal || 0,
+        custom_addon_details: (body as any).customAddonDetails ?? null,
         order_source: "website",
       }])
       .select()
@@ -287,6 +290,18 @@ Deno.serve(async (req) => {
     }
 
     console.log("[complete-3ds-booking] Order created:", orderData.order_number);
+
+    // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
+    try {
+      await finalizeTripOrder(supabaseUrl, supabaseServiceKey, {
+        orderId: orderData.id,
+        tripId: (body as any).tripId ?? null,
+        customAddonDetails: (body as any).customAddonDetails ?? null,
+      });
+    } catch (e) {
+      console.error("[complete-3ds-booking] finalizeTripOrder failed (non-fatal):", e);
+    }
+
 
     // Trigger KOL Webhook if discount code was used
     if (body.discountCode && orderData?.id) {

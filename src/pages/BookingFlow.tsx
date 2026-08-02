@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
+import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { getDepositBreakdown } from "@/lib/bookingDeposit";
@@ -2200,6 +2201,39 @@ const BookingFlow = () => {
 
   const calculateChildExtraTotal = () => evaluateChildren().extraFeeTotal;
 
+  /** 行程購物車帶入的加購列（僅在購物車結帳且館別相符時生效，不影響既有 /booking 行為） */
+  const tripCheckoutLines = useMemo(() => {
+    const staged = readTripCheckout();
+    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return [];
+    return staged.lines || [];
+  }, [accommodationId]);
+  const tripCheckoutTripId = useMemo(() => {
+    const staged = readTripCheckout();
+    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return null;
+    return staged.tripId;
+  }, [accommodationId]);
+  const tripAddonTotal = tripCheckoutLines.reduce((sum, l) => sum + (Number(l.total) || 0), 0);
+
+  /** 組出送往既有金流／訂單的 custom_addon_details（既有加購 + 行程加購） */
+  const buildCustomAddonLines = () => {
+    const nights = calculateNights();
+    const existing = Object.entries(customAddonCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([type, count]) => {
+        const setting = customAddonSettings.find(s => s.addon_type === type);
+        return {
+          addon_id: setting?.id,
+          addon_type: type,
+          count,
+          price_per_unit: setting?.price_per_unit || 0,
+          pricing_mode: setting?.pricing_mode || 'per_night',
+          total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights),
+          unit_label: setting?.unit_label || '',
+        };
+      });
+    return [...existing, ...tripCheckoutLines];
+  };
+
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
@@ -2207,7 +2241,7 @@ const BookingFlow = () => {
       const setting = customAddonSettings.find(s => s.addon_type === type);
       return sum + (count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights));
     }, 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + calculateChildExtraTotal();
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + tripAddonTotal + calculateChildExtraTotal();
   };
 
   const calculateFinalTotal = () => {
@@ -3004,19 +3038,8 @@ const BookingFlow = () => {
               mealPlanTotal: mealPlanTotalPrice,
               petCount,
               petPlanPrice,
-              customAddonDetails: Object.entries(customAddonCounts)
-                .filter(([_, count]) => count > 0)
-                .map(([type, count]) => {
-                  const setting = customAddonSettings.find(s => s.addon_type === type);
-                  return {
-                    addon_id: setting?.id,
-                    addon_type: type,
-                    count,
-                    price_per_unit: setting?.price_per_unit || 0,
-                    pricing_mode: setting?.pricing_mode || 'per_night',
-                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, nights),
-                  };
-                }),
+              customAddonDetails: buildCustomAddonLines(),
+              tripId: tripCheckoutTripId,
               childSelection,
               childExtraTotal: childEval.extraFeeTotal,
               guestEmail: guestInfo.email || null,
@@ -3161,20 +3184,8 @@ const BookingFlow = () => {
                 totalGuests,
                 customerId,
                 memberId: effectiveMemberId,
-                customAddonDetails: Object.entries(customAddonCounts).filter(([_, c]) => c > 0).length > 0
-                  ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
-                      const setting = customAddonSettings.find(s => s.addon_type === type);
-                      return {
-                        addon_id: setting?.id,
-                        addon_type: type,
-                        count,
-                        price_per_unit: setting?.price_per_unit || 0,
-                        pricing_mode: setting?.pricing_mode || 'per_night',
-                        total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
-                        unit_label: setting?.unit_label || '',
-                      };
-                    })
-                  : null,
+                customAddonDetails: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
+                tripId: tripCheckoutTripId,
                 nights,
               },
             }
@@ -3414,20 +3425,7 @@ const BookingFlow = () => {
             pet_plan_price: petPlanPrice,
             meal_plan_details: mealPlanDetailsData,
             meal_plan_total: mealPlanTotalPrice,
-            custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
-              ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                  const setting = customAddonSettings.find(s => s.addon_type === type);
-                  return {
-                    addon_id: setting?.id,
-                    addon_type: type,
-                    count,
-                    price_per_unit: setting?.price_per_unit || 0,
-                    pricing_mode: setting?.pricing_mode || 'per_night',
-                    total: count * (setting?.price_per_unit || 0) * addonNightsMultiplier(setting?.pricing_mode, calculateNights()),
-                    unit_label: setting?.unit_label || '',
-                  };
-                })
-              : null,
+            custom_addon_details: buildCustomAddonLines().length > 0 ? (buildCustomAddonLines() as unknown as never) : null,
           }])
           .select()
           .single();
@@ -3517,6 +3515,8 @@ const BookingFlow = () => {
         emailSent,
         nights: calculateNights(),
       });
+      clearTripCheckout();
+      try { localStorage.removeItem("trip_cart_v1"); } catch { /* noop */ }
       setBookingSuccess(true);
     } catch (error: any) {
       console.error("Error creating order:", error);

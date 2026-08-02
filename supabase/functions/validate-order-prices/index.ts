@@ -455,10 +455,38 @@ serve(async (req) => {
     const addonMultiplier = (addonType: string) =>
       addonPricingModes.get(addonType) === "per_stay" ? 1 : nights;
 
+    // 行程模組加購（景點／票券／餐券）：以 trip_products 定價驗證，一次性計價（不乘住宿晚數）
+    const tripProductPrices = new Map<string, number>();
+    {
+      const tripLines = (Array.isArray(customAddonDetails) ? customAddonDetails : []).filter(
+        (a: any) => a?.source === "trip_product" && a?.product_id,
+      );
+      if (tripLines.length > 0) {
+        const { data: tripRows } = await supabase
+          .from("trip_products")
+          .select("id, price, is_active")
+          .in("id", [...new Set(tripLines.map((a: any) => a.product_id as string))]);
+        for (const row of tripRows ?? []) {
+          if ((row as any).is_active === false) continue;
+          tripProductPrices.set((row as any).id, Number((row as any).price) || 0);
+        }
+      }
+    }
+    const isTripLine = (addon: any) => addon?.source === "trip_product" && !!addon?.product_id;
+    const tripLineExpected = (addon: any): number | null => {
+      const unit = tripProductPrices.get(addon.product_id);
+      if (unit === undefined) return null;
+      return unit * Number(addon.count || 0);
+    };
+
     // Calculate custom addon total
     let calculatedCustomAddonTotal = 0;
     if (customAddonDetails && Array.isArray(customAddonDetails)) {
       for (const addon of customAddonDetails) {
+        if (isTripLine(addon)) {
+          calculatedCustomAddonTotal += tripLineExpected(addon) ?? 0;
+          continue;
+        }
         if (typeof addon.count === 'number' && typeof addon.price_per_unit === 'number') {
           calculatedCustomAddonTotal += addon.count * addon.price_per_unit * addonMultiplier(addon.addon_type);
         }
@@ -583,6 +611,17 @@ serve(async (req) => {
           typeof addon.total !== "number"
         ) {
           errors.push(`Invalid custom addon line: ${JSON.stringify(addon)}`);
+          continue;
+        }
+        if (isTripLine(addon)) {
+          const tripExpected = tripLineExpected(addon);
+          if (tripExpected === null) {
+            errors.push(`Unknown or inactive trip product: ${addon.product_id}`);
+          } else if (Math.abs(addon.total - tripExpected) > priceTolerance) {
+            errors.push(
+              `Trip product total mismatch (${addon.product_id}): client=${addon.total}, expected=${tripExpected}`,
+            );
+          }
           continue;
         }
         const expected = addon.count * addon.price_per_unit * addonMultiplier(addon.addon_type);
