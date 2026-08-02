@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw, Bell } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
