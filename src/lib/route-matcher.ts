@@ -81,6 +81,7 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "public-payment",
   "ai-booking",
   "auth",
+  "login",
   "hq",
   "hq-auth",
   "headquarters",

@@ -57,7 +57,7 @@ export function useSubdomain() {
           const reservedFirst = new Set([
             'booking', 'book', 'member', 'order-search', 'order-payment',
             'payment', 'payment-result', 'linepay', 'public-payment',
-            'ai-booking', 'auth', 'hq', 'hq-auth', 'headquarters', 'admin',
+            'ai-booking', 'auth', 'login', 'hq', 'hq-auth', 'headquarters', 'admin',
             'pay', 'profile', 'reset-password', 'change-password',
             'kol-api-docs', 'points-api-docs', 'og-preview', 'payment-test', '__cb',
             'owlting-fillup',
