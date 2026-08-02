@@ -2,8 +2,9 @@
  * /trips/:tripId — 行程詳情（含三語切換、時間軸、住宿即時房況、底部總價列）
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { writeCart, type CartItem } from "@/lib/tripCart";
 import { supabase } from "@/integrations/supabase/client";
 import { LangSwitch } from "@/components/trips/LangSwitch";
 import { MatchBadge } from "@/components/trips/MatchBadge";
@@ -255,7 +256,44 @@ export default function TripDetail() {
         amount={Number(trip.total_price || 0)}
         ctaLabel={t.cta}
         onCta={() => {
-          /* Phase 2 接購物車／既有金流 */
+          const stayDate = defaultStayDate();
+          const nextDay = new Date(stayDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const checkOut = nextDay.toISOString().split("T")[0];
+          const cartItems: CartItem[] = [];
+          for (const item of items) {
+            if (item.ref_type === "room") {
+              const room = rooms[item.ref_id];
+              if (!room) continue;
+              cartItems.push({
+                kind: "stay",
+                key: `s-${room.roomTypeId}-${stayDate}`,
+                roomTypeId: room.roomTypeId,
+                accommodationId: room.accommodationId,
+                roomName: room.roomTypeName,
+                accommodationName: room.accommodationName,
+                checkIn: stayDate,
+                checkOut,
+                nights: 1,
+                unitPrice: 0,
+                qty: item.qty || 1,
+              });
+            } else {
+              const p = products[item.ref_id];
+              if (!p) continue;
+              cartItems.push({
+                kind: "product",
+                key: `p-${p.id}`,
+                productId: p.id,
+                name: pickLang(p.name, lang),
+                type: p.type,
+                unitPrice: Number(p.price || 0),
+                qty: item.qty || 1,
+              });
+            }
+          }
+          writeCart({ tripId: trip.id, items: cartItems });
+          navigate(`/cart?lang=${lang}`);
         }}
       />
     </div>
