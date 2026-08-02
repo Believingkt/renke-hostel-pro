@@ -208,6 +208,14 @@ export default function PmsLogin() {
   };
 
   return (
+    <>
+    <SEOHead
+      title="人客多 PMS 民宿後台"
+      description="人客多民宿管理系統後台登入。"
+      url={`${PMS_ORIGIN}/login`}
+      image={OG_IMAGE_URL}
+      keywords={["民宿後台", "PMS", "訂房管理"]}
+    />
     <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3">
