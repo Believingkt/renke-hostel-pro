@@ -3515,6 +3515,8 @@ const BookingFlow = () => {
         emailSent,
         nights: calculateNights(),
       });
+      clearTripCheckout();
+      try { localStorage.removeItem("trip_cart_v1"); } catch { /* noop */ }
       setBookingSuccess(true);
     } catch (error: any) {
       console.error("Error creating order:", error);
