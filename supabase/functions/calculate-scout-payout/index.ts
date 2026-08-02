@@ -596,6 +596,98 @@ serve(async (req) => {
       });
     }
 
+    // ===== 九、星探折扣碼獎金（scout_discount_codes → scout_discount_code_payouts）=====
+    // 獨立於 KOL 分潤（kol_profiles.cid_code）與成交組抽成（closer_commission_snapshots），
+    // 三者疊加共存，不做互斥或擇高判斷。
+    // 基準金額與排除規則沿用 commissionBaseFromOrder() + isExempt() + 非台幣排除 + cancelled 排除。
+    const discountPayouts: Array<Record<string, unknown>> = [];
+    {
+      const { data: codes, error: codesErr } = await supabase
+        .from("scout_discount_codes")
+        .select("discount_code, commission_type, scout_id, closer_id, scout_rate, closer_rate")
+        .eq("is_active", true);
+      if (codesErr) throw codesErr;
+
+      const codeMap = new Map<string, any>();
+      for (const c of codes ?? []) {
+        const key = String(c.discount_code ?? "").trim().toUpperCase();
+        if (key) codeMap.set(key, c);
+      }
+
+      if (codeMap.size > 0) {
+        const { data: dcOrders, error: dcErr } = await supabase
+          .from("orders")
+          .select(
+            "id, final_price, custom_addon_details, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source",
+          )
+          .not("discount_code", "is", null)
+          .gte("order_date", `${periodStart}T00:00:00+08:00`)
+          .lt("order_date", `${periodEnd}T00:00:00+08:00`)
+          .neq("order_status", "cancelled");
+        if (dcErr) throw dcErr;
+
+        for (const o of dcOrders ?? []) {
+          const code = String(o.discount_code ?? "").trim().toUpperCase();
+          const c = codeMap.get(code);
+          if (!c) continue;
+          const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
+          if (cur && cur !== "TWD") continue;
+          if (isExempt(o as any)) continue;
+          const base = commissionBaseFromOrder(o as any);
+
+          const legs: Array<{ role: "scout" | "closer"; recipient: string | null; rate: number }> =
+            c.commission_type === "partner"
+              ? [
+                { role: "scout", recipient: c.scout_id ?? null, rate: Number(c.scout_rate ?? 0) },
+                { role: "closer", recipient: c.closer_id ?? null, rate: Number(c.closer_rate ?? 0) },
+              ]
+              : [{ role: "scout", recipient: c.scout_id ?? null, rate: Number(c.scout_rate ?? 0) }];
+
+          for (const leg of legs) {
+            if (!leg.recipient || !(leg.rate > 0)) continue;
+            discountPayouts.push({
+              order_id: o.id,
+              discount_code: code,
+              commission_type: c.commission_type,
+              recipient_role: leg.role,
+              recipient_id: leg.recipient,
+              rate: leg.rate,
+              base_amount: Math.round(base),
+              commission_amount: Math.round(base * leg.rate),
+              year,
+              month,
+              period,
+              calculated_at: calculatedAt,
+            });
+          }
+        }
+      }
+
+      for (const row of discountPayouts) {
+        const { data: exRow, error: exFindErr } = await supabase
+          .from("scout_discount_code_payouts")
+          .select("id, payout_status")
+          .eq("order_id", row.order_id as string)
+          .eq("recipient_role", row.recipient_role as string)
+          .maybeSingle();
+        if (exFindErr) throw exFindErr;
+
+        if (exRow) {
+          if (exRow.payout_status === "paid") continue;
+          const { error: updErr } = await supabase
+            .from("scout_discount_code_payouts")
+            .update(row)
+            .eq("id", exRow.id);
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from("scout_discount_code_payouts")
+            .insert(row);
+          if (insErr) throw insErr;
+        }
+      }
+    }
+
     return jsonResponse({
       success: true,
       year,
@@ -603,8 +695,10 @@ serve(async (req) => {
       period,
       team_achieved: teamAchieved,
       scouts_calculated: results.length,
+      discount_code_payouts: discountPayouts.length,
       results,
     });
+
   } catch (e) {
     console.error("[calculate-scout-payout] error:", e);
     return jsonResponse({ success: false, error: (e as Error).message }, 500);

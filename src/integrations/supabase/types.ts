@@ -8646,6 +8646,78 @@ export type Database = {
           },
         ]
       }
+      scout_discount_code_payouts: {
+        Row: {
+          base_amount: number
+          calculated_at: string
+          commission_amount: number
+          commission_type: string
+          created_at: string
+          discount_code: string
+          id: string
+          month: number
+          order_id: string
+          payout_status: string
+          period: number
+          rate: number
+          recipient_id: string
+          recipient_role: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          base_amount?: number
+          calculated_at?: string
+          commission_amount?: number
+          commission_type: string
+          created_at?: string
+          discount_code: string
+          id?: string
+          month: number
+          order_id: string
+          payout_status?: string
+          period: number
+          rate?: number
+          recipient_id: string
+          recipient_role: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          base_amount?: number
+          calculated_at?: string
+          commission_amount?: number
+          commission_type?: string
+          created_at?: string
+          discount_code?: string
+          id?: string
+          month?: number
+          order_id?: string
+          payout_status?: string
+          period?: number
+          rate?: number
+          recipient_id?: string
+          recipient_role?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_discount_code_payouts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_discount_code_payouts_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scout_discount_codes: {
         Row: {
           accommodation_id: string | null
