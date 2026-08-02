@@ -171,6 +171,15 @@ export function AccommodationSelector() {
   return (
 
     <div className="flex items-center gap-1.5">
+      {switchingId && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            正在切換至{switchingAcc?.name ?? "民宿"}…
+          </p>
+        </div>
+      )}
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
