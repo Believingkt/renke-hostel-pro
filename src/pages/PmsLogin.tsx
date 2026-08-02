@@ -145,12 +145,9 @@ export default function PmsLogin() {
 
       toast.success("登入成功！");
 
-      if (options.length === 1) {
-        enterProperty(options[0].short_url_alias);
-        return;
-      }
-
-      setProperties(options);
+      // 預設進入系統最早上線的民宿，之後可從後台右上方切換
+      enterProperty(options[0].short_url_alias);
+      return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PmsLogin] login failed:", error);
