@@ -46,7 +46,31 @@ export function useSubdomain() {
     try {
       const hostname = window.location.hostname.toLowerCase();
       const parts = hostname.split('.');
-      
+
+      // ========== PMS 後台網域：以路徑首段 alias 判斷 ==========
+      const isPmsDomain = hostname === 'pms.lakeze.com' || hostname === 'www.pms.lakeze.com';
+      if (isPmsDomain) {
+        const segs = window.location.pathname.split('/').filter(Boolean);
+        const reserved = new Set([
+          'admin', 'auth', 'login', 'reset-password', 'change-password',
+          'hq', 'hq-auth', 'headquarters', 'team', 'team-auth',
+        ]);
+        const pmsAlias = segs[0] && !reserved.has(segs[0]) ? segs[0] : null;
+        if (pmsAlias) {
+          const { data: aliasData } = await supabase
+            .from('accommodation_info')
+            .select('id, short_url_alias, theme_preset')
+            .eq('short_url_alias', pmsAlias)
+            .maybeSingle();
+          if (aliasData) {
+            finishSuccess(aliasData);
+            return;
+          }
+        }
+        setIsLoading(false);
+        return;
+      }
+
       // ========== HQ / Booking Portal 專屬網域檢測 ==========
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
       const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com';
