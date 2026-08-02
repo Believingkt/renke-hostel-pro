@@ -76,6 +76,8 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
+const Trips = lazy(() => import("./pages/Trips"));
+const TripDetail = lazy(() => import("./pages/TripDetail"));
 
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
