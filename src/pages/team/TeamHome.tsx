@@ -34,25 +34,9 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(Math.round(n || 0));
 
-interface RateRow {
-  accommodation_id: string;
-  effective_from: string;
-  closer_rate: number | null;
-  video_rate: number | null;
-}
+// 成交組分潤費率由 preview-closer-commission Edge Function 統一計算，
+// 此處不再保留前端費率挑選邏輯。
 
-function pickRate(
-  rates: RateRow[],
-  accId: string,
-  orderDateIso: string,
-  key: "closer_rate" | "video_rate",
-): number {
-  const dateKey = (orderDateIso ?? "").slice(0, 10);
-  const cands = rates
-    .filter((r) => r.accommodation_id === accId && r.effective_from <= dateKey)
-    .sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
-  return Number(cands[0]?.[key] ?? 0);
-}
 
 export default function TeamHome() {
   const { userId, displayName, roles } = useTeam();
