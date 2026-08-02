@@ -13,6 +13,8 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 const ADMIN_ROLES = ["hotel_admin", "super_admin", "staff"];
 
+export const LAST_PROPERTY_ALIAS_KEY = "pms_last_property_alias";
+
 interface PropertyOption {
   id: string;
   name: string;
