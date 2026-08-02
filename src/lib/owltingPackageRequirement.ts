@@ -106,9 +106,17 @@ export async function checkOwltingPackageRequirement(
     .in("room_type_id", uniqueIds);
   const groupedIds = new Set((groupRows || []).map((r: any) => r.room_type_id));
 
+  // (d) 已設定「房型預設對應方案」→ 推送時會自動帶入，不必填
+  const { data: defaultRpRows } = await supabase
+    .from("owlting_room_type_rate_plans")
+    .select("room_type_id")
+    .in("room_type_id", uniqueIds);
+  const hasDefaultIds = new Set((defaultRpRows || []).map((r: any) => r.room_type_id));
+
   const requiredRoomTypeIds = uniqueIds.filter(
-    (id) => !excludedIds.has(id) && !groupedIds.has(id),
+    (id) => !excludedIds.has(id) && !groupedIds.has(id) && !hasDefaultIds.has(id),
   );
+
 
   return {
     required: requiredRoomTypeIds.length > 0,

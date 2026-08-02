@@ -276,16 +276,51 @@ async function processRow(
     (rts ?? []).map((r: any) => [r.id, { name: r.name, numeric_code: r.numeric_code }]),
   );
 
-  // Resolve fallback RatePlanCode from orders.package_id. May be null when
-  // every stay is a group member (mapping below provides the correct
-  // per-headcount rate plan from owlting_room_type_group_members).
+  // Resolve RatePlanCode per stay. Priority:
+  //   1) group member mapping (handled in mapOutboundStay)
+  //   2) orders.package_id — only when that package actually covers this room type
+  //   3) owlting_room_type_rate_plans default mapping for the room type
+  // This makes multi-room orders (e.g. 包棟房 + 散客房 in one order) push the
+  // correct rate plan per room type instead of reusing the order-level package.
   const { data: pkgs } = await admin
     .from("accommodation_packages")
-    .select("id, name, numeric_code")
+    .select("id, name, numeric_code, room_type_ids, primary_room_type_id")
     .eq("accommodation_id", order.accommodation_id);
-  const rp = resolveRatePlan(order.package_id, pkgs ?? []);
-  const fallbackRpCode = rp.ok ? rp.code : null;
-  const fallbackRpName = rp.ok ? rp.name : undefined;
+  const pkgList = (pkgs ?? []) as any[];
+  const rp = resolveRatePlan(order.package_id, pkgList);
+  const orderPkg = pkgList.find((p) => p.id === order.package_id);
+
+  const { data: rtRatePlanRows } = await admin
+    .from("owlting_room_type_rate_plans")
+    .select("room_type_id, package_id")
+    .eq("accommodation_id", order.accommodation_id);
+  const defaultPkgByRoomType = new Map<string, string>(
+    (rtRatePlanRows ?? []).map((r: any) => [r.room_type_id, r.package_id]),
+  );
+
+  const pkgCoversRoomType = (pkg: any, roomTypeId: string): boolean => {
+    if (!pkg) return false;
+    if (pkg.primary_room_type_id === roomTypeId) return true;
+    const ids = Array.isArray(pkg.room_type_ids) ? pkg.room_type_ids : [];
+    return ids.includes(roomTypeId);
+  };
+
+  const ratePlanForRoomType = (
+    roomTypeId: string,
+  ): { code: number | null; name: string | undefined } => {
+    if (rp.ok && pkgCoversRoomType(orderPkg, roomTypeId)) {
+      return { code: rp.code, name: rp.name };
+    }
+    const defPkgId = defaultPkgByRoomType.get(roomTypeId);
+    const defPkg = defPkgId ? pkgList.find((p) => p.id === defPkgId) : undefined;
+    if (defPkg && defPkg.numeric_code != null) {
+      return { code: defPkg.numeric_code as number, name: defPkg.name as string };
+    }
+    // Last resort: order-level package even if it doesn't list this room type.
+    if (rp.ok) return { code: rp.code, name: rp.name };
+    return { code: null, name: undefined };
+  };
+
 
   // Load owlting room-type group config (canonical + members) for this property.
   const { data: groupsRows } = await admin
@@ -320,12 +355,13 @@ async function processRow(
   const mappingAudit: any[] = [];
   for (const s of filteredStayInputs) {
     const rt = s.room_type_id ? rtMap.get(s.room_type_id) : undefined;
+    const perStayRp = ratePlanForRoomType(s.room_type_id);
     const mapped = mapOutboundStay(
       {
         room_type_id: s.room_type_id,
         original_room_type_code: rt?.numeric_code ?? null,
-        fallback_rate_plan_code: fallbackRpCode,
-        fallback_rate_plan_name: fallbackRpName,
+        fallback_rate_plan_code: perStayRp.code,
+        fallback_rate_plan_name: perStayRp.name,
         fallback_room_type_name: rt?.name,
       },
       mappingTables,
@@ -334,6 +370,7 @@ async function processRow(
       await finalizeFail(admin, row, baseLog, mapped.error, true);
       return { id: row.id, outcome: "failed", reason: mapped.error };
     }
+
     stays.push({
       roomTypeCode: mapped.roomTypeCode,
       ratePlanCode: mapped.ratePlanCode,
