@@ -40,14 +40,15 @@ export default function PmsLogin() {
     document.title = "人客多 PMS 民宿後台";
   }, []);
 
-  const enterProperty = (alias: string) => {
+  const enterProperty = (option: PropertyOption) => {
     try {
-      localStorage.removeItem("lastSelectedAccommodation");
+      localStorage.setItem("lastSelectedAccommodation", option.id);
+      localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, option.short_url_alias);
     } catch {
       /* ignore */
     }
     // 用整頁導向，確保後台版面在載入時就讀得到最新 session
-    window.location.assign(pmsHref(`/${alias}/admin`));
+    window.location.assign(pmsHref(`/${option.short_url_alias}/admin`));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
