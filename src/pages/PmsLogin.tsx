@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
 
 const REQUEST_TIMEOUT_MS = 15000;
 
 const ADMIN_ROLES = ["hotel_admin", "super_admin", "staff"];
+
+
 
 interface PropertyOption {
   id: string;
@@ -40,14 +42,15 @@ export default function PmsLogin() {
     document.title = "人客多 PMS 民宿後台";
   }, []);
 
-  const enterProperty = (alias: string) => {
+  const enterProperty = (option: PropertyOption) => {
     try {
-      localStorage.removeItem("lastSelectedAccommodation");
+      localStorage.setItem("lastSelectedAccommodation", option.id);
+      localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, option.short_url_alias);
     } catch {
       /* ignore */
     }
     // 用整頁導向，確保後台版面在載入時就讀得到最新 session
-    window.location.assign(pmsHref(`/${alias}/admin`));
+    window.location.assign(pmsHref(`/${option.short_url_alias}/admin`));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -144,8 +147,16 @@ export default function PmsLogin() {
 
       toast.success("登入成功！");
 
-      // 預設進入系統最早上線的民宿，之後可從後台右上方切換
-      enterProperty(options[0].short_url_alias);
+      // 優先恢復上次切換的館別，否則進入系統最早上線的民宿
+      let lastAlias: string | null = null;
+      try {
+        lastAlias = localStorage.getItem(LAST_PROPERTY_ALIAS_KEY);
+      } catch {
+        /* ignore */
+      }
+      const target =
+        options.find((o) => o.short_url_alias === lastAlias) ?? options[0];
+      enterProperty(target);
       return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

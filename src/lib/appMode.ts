@@ -143,3 +143,6 @@ export function extractAliasFromPath(pathname: string): string | null {
   if (PMS_RESERVED_FIRST.has(segments[0])) return null;
   return segments[0];
 }
+
+/** PMS 後台：記住使用者最後切換的民宿代號，重新登入時自動恢復 */
+export const LAST_PROPERTY_ALIAS_KEY = "pms_last_property_alias";

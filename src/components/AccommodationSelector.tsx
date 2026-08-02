@@ -3,7 +3,8 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { openFrontendBooking } from "@/lib/frontendUrl";
-import { isPmsMode, pmsHref } from "@/lib/appMode";
+import { isPmsMode, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import {
@@ -135,6 +136,7 @@ export function AccommodationSelector() {
       if (alias) {
         try {
           localStorage.setItem("lastSelectedAccommodation", id);
+          localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, alias);
         } catch {
           /* ignore */
         }
