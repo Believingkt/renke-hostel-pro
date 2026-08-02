@@ -38,6 +38,8 @@ export function AccommodationSelector() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [aliasMissingOnly, setAliasMissingOnly] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+
 
   const navigate = useNavigate();
 
