@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
+import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
@@ -201,9 +202,11 @@ export default function Auth() {
       const { data, error } = await supabase.functions.invoke("send-password-reset", {
         body: { 
           email: forgotPasswordEmail,
-          redirectUrl: `${window.location.origin}/reset-password`
+          // 後台密碼重設一律回到 PMS 網域（勿用 window.location.origin）
+          redirectUrl: PMS_RESET_PASSWORD_URL
         },
       });
+
 
       if (error) {
         throw error;

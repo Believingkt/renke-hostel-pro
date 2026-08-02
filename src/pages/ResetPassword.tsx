@@ -26,12 +26,31 @@ export default function ResetPassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
+
   useEffect(() => {
     validateToken();
   }, [token]);
 
   const validateToken = async () => {
     if (!token) {
+      // Supabase 原生 recovery 連結：token 在 URL hash / query，SDK 會自動建立 session
+      const blob = `${window.location.hash || ""}${window.location.search || ""}`;
+      if (blob.includes("type=recovery") || blob.includes("access_token") || blob.includes("code=")) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.user) {
+            setIsRecoverySession(true);
+            setIsValidToken(true);
+            setTokenData({
+              user_id: data.session.user.id,
+              email: data.session.user.email || "",
+            });
+          }
+        } catch (e) {
+          console.error("[ResetPassword] recovery session error:", e);
+        }
+      }
       setIsValidating(false);
       return;
     }
@@ -58,6 +77,7 @@ export default function ResetPassword() {
       setIsValidating(false);
     }
   };
+
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -93,25 +113,32 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      console.log("[ResetPassword] Calling update-password...");
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ token, newPassword }),
+      if (isRecoverySession) {
+        console.log("[ResetPassword] Updating password via recovery session...");
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw new Error(error.message || "重設密碼失敗");
+      } else {
+        console.log("[ResetPassword] Calling update-password...");
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ token, newPassword }),
+          }
+        );
+
+        const data = await response.json();
+        console.log("[ResetPassword] Response:", { status: response.status, data });
+
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || "重設密碼失敗");
         }
-      );
-
-      const data = await response.json();
-      console.log("[ResetPassword] Response:", { status: response.status, data });
-
-      if (!response.ok || data?.error) {
-        throw new Error(data?.error || "重設密碼失敗");
       }
+
 
       setErrorMessage("");
       setSuccessMessage("密碼已重設成功");
@@ -131,7 +158,7 @@ export default function ResetPassword() {
     return null;
   }
 
-  if (!token || !isValidToken) {
+  if ((!token && !isRecoverySession) || !isValidToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
         <Card className="w-full max-w-md shadow-xl border-0">
