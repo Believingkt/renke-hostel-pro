@@ -1235,6 +1235,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           )}
         </div>
 
+        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
+          <div className="text-xs text-foreground">
+            稀有度獎金／KOL 分潤結算區間：
+            <span className="tabular-nums">
+              {commissionPeriodRange(year, month, viewPeriod).start} ~ {commissionPeriodRange(year, month, viewPeriod).end}
+            </span>
+          </div>
+          <div className="text-xs text-foreground">
+            底薪／團隊獎金結算區間：
+            {viewPeriod === "10" ? (
+              <span className="tabular-nums">{range.start} ~ {range.end}（{range.prevMonth} 月整月）</span>
+            ) : (
+              <span>本期不發放底薪／團隊獎金（僅 {month} 月 10 日期發放）</span>
+            )}
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground pt-1">
+            資料由系統自動寫入：稀有度獎金／KOL 分潤／星探 KOL 分潤由 calculate-scout-payout 試算，
+            每日台北時間 23:59 由排程觸發，但只有每月 <span className="font-medium">10 日與 25 日</span>會真正產生該期別資料；
+            底薪／團隊獎金同樣於每月 10 日自動判定上月整月是否達標並寫入，皆不需人工操作。
+            <br />
+            <span className="font-medium">還沒到自動寫入日</span>（尚未到當月 10 日或 25 日）時，本期資料顯示空白或未更新屬正常，請等系統跑完。
+            <br />
+            <span className="font-medium">已過自動寫入日仍看不到資料</span>時，才需要使用「手動重新試算」或聯繫技術人員協助，請勿自行推算金額。
+          </p>
+        </div>
+
+
         <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
