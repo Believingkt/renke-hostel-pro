@@ -146,6 +146,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 行程商品防超賣（收款前檢查）
+    if (!isPostCharge) {
+      const stockCheck = await checkTripProductStock(
+        supabaseUrl,
+        supabaseServiceKey,
+        body.customAddonDetails,
+      );
+      if (!stockCheck.ok) {
+        return jsonResponse({ success: false, message: stockCheck.message }, 409);
+      }
+    }
+
     const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
     const merchantId = Deno.env.get("TAPPAY_MERCHANT_ID");
     if (!partnerKey || !merchantId) {
