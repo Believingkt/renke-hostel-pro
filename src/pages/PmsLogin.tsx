@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
+import { SEOHead } from "@/components/SEOHead";
+
+// 與 index.html 同一張社群分享縮圖（絕對網址，跨網域共用）
+const OG_IMAGE_URL = `${BOOKING_ORIGIN}/og-image.png`;
 
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -208,6 +212,14 @@ export default function PmsLogin() {
   };
 
   return (
+    <>
+    <SEOHead
+      title="人客多 PMS 民宿後台"
+      description="人客多民宿管理系統後台登入。"
+      url={`${PMS_ORIGIN}/login`}
+      image={OG_IMAGE_URL}
+      keywords={["民宿後台", "PMS", "訂房管理"]}
+    />
     <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3">
@@ -335,5 +347,7 @@ export default function PmsLogin() {
         </CardContent>
       </Card>
     </div>
+    </>
+
   );
 }
