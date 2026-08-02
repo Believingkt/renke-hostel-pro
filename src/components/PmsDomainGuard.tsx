@@ -31,8 +31,8 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const onAdminPath = isAdminPath(location.pathname);
-  const legacyAdminOnFrontend =
-    mode === "frontend" && onAdminPath && (isBookingHost() || !isBookingHost());
+  const legacyAdminOnFrontend = mode === "frontend" && onAdminPath;
+
 
   // 只有需要判斷「舊網域後台」時才查 session
   useEffect(() => {
