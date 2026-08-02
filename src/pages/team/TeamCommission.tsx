@@ -569,6 +569,19 @@ function previousMonthRange(year: number, month: number) {
   return { start, end, payoutMonthKey, prevYear, prevMonth };
 }
 
+/** 稀有度獎金／KOL 分潤的實際結算區間（Asia/Taipei）。
+ *  X月10日期 = 上月21日 ~ 當月05日；X月25日期 = 當月06日 ~ 當月20日 */
+function commissionPeriodRange(year: number, month: number, period: "10" | "25") {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (period === "10") {
+    const pm = month === 1 ? 12 : month - 1;
+    const py = month === 1 ? year - 1 : year;
+    return { start: `${py}-${pad(pm)}-21`, end: `${year}-${pad(month)}-05` };
+  }
+  return { start: `${year}-${pad(month)}-06`, end: `${year}-${pad(month)}-20` };
+}
+
+
 function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
   const [year, setYear] = useState(now.getFullYear());
