@@ -228,7 +228,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const run_id = payload?.run_id
   const token = payload?.data?.token
   const rawUrl = payload?.data?.url
-  const confirmationUrl = rewriteUrl(rawUrl)
+  const confirmationUrl = rewriteUrl(rawUrl, emailType)
 
   console.log('Auth event received', { emailType, recipient, run_id, hasToken: !!token, hasUrl: !!rawUrl })
 
