@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail, Building2, ChevronRight } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
 
-const LAST_CODE_KEY = "pms_last_property_code";
 const REQUEST_TIMEOUT_MS = 15000;
+
+const ADMIN_ROLES = ["hotel_admin", "super_admin", "staff"];
+
+interface PropertyOption {
+  id: string;
+  name: string;
+  short_url_alias: string;
+}
 
 function withTimeout<T>(promise: PromiseLike<T>, ms = REQUEST_TIMEOUT_MS): Promise<T> {
   return Promise.race([
@@ -23,44 +29,32 @@ function withTimeout<T>(promise: PromiseLike<T>, ms = REQUEST_TIMEOUT_MS): Promi
 }
 
 export default function PmsLogin() {
-  const [searchParams] = useSearchParams();
-
-  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [properties, setProperties] = useState<PropertyOption[] | null>(null);
 
   useEffect(() => {
     document.title = "人客多 PMS 民宿後台";
   }, []);
 
-  // 預填代號：?code= 優先，其次 localStorage
-  useEffect(() => {
-    const fromQuery = searchParams.get("code");
-    if (fromQuery) {
-      setCode(fromQuery.trim().toLowerCase());
-      return;
-    }
+  const enterProperty = (alias: string) => {
     try {
-      const saved = localStorage.getItem(LAST_CODE_KEY);
-      if (saved) setCode(saved);
+      localStorage.removeItem("lastSelectedAccommodation");
     } catch {
       /* ignore */
     }
-  }, [searchParams]);
+    // 用整頁導向，確保後台版面在載入時就讀得到最新 session
+    window.location.assign(pmsHref(`/${alias}/admin`));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
 
-    const normalizedCode = code.trim().toLowerCase();
-    if (!normalizedCode) {
-      toast.error("請輸入民宿代號");
-      return;
-    }
     if (!email.trim() || !password) {
       toast.error("請輸入 Email 與密碼");
       return;
@@ -68,22 +62,6 @@ export default function PmsLogin() {
 
     setIsLoading(true);
     try {
-      // ① 民宿代號存在性
-      const { data: accommodation, error: accError } = await withTimeout(
-        supabase
-          .from("accommodation_info")
-          .select("id, name, short_url_alias")
-          .eq("short_url_alias", normalizedCode)
-          .maybeSingle()
-      );
-
-      if (accError) throw accError;
-      if (!accommodation) {
-        toast.error("查無此民宿代號");
-        return;
-      }
-
-      // ② 帳號密碼
       const { data: signInData, error: signInError } = await withTimeout(
         supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -106,7 +84,7 @@ export default function PmsLogin() {
         return;
       }
 
-      // ③ 該帳號對這一館的後台權限（沿用 /{slug}/admin 的判斷邏輯）
+      // 沿用 /{slug}/admin 的權限判斷：user_roles
       const { data: roleRows, error: roleError } = await withTimeout(
         supabase
           .from("user_roles")
@@ -114,38 +92,65 @@ export default function PmsLogin() {
           .eq("user_id", userId)
           .limit(1000)
       );
-
       if (roleError) throw roleError;
 
       const rows = roleRows ?? [];
-      const isGlobalSuperAdmin = rows.some((r) => r.role === "super_admin");
-      const rolesForAccommodation = rows
-        .filter((r) => r.accommodation_id === accommodation.id)
-        .map((r) => r.role);
-      const hasAccess =
-        isGlobalSuperAdmin ||
-        rolesForAccommodation.some((role) =>
-          ["hotel_admin", "super_admin", "staff"].includes(role as string)
-        );
+      const isGlobalSuperAdmin = rows.some(
+        (r) => r.role === "super_admin" && !r.accommodation_id
+      );
+      const allowedIds = Array.from(
+        new Set(
+          rows
+            .filter(
+              (r) =>
+                !!r.accommodation_id && ADMIN_ROLES.includes(r.role as string)
+            )
+            .map((r) => r.accommodation_id as string)
+        )
+      );
 
-      if (!hasAccess) {
+      if (!isGlobalSuperAdmin && allowedIds.length === 0) {
         await supabase.auth.signOut();
-        toast.error(`此帳號沒有 ${accommodation.name} 的後台權限`);
+        toast.error("此帳號尚未設定任何民宿權限，請聯絡總部");
         return;
       }
 
-      // ④ 通過
-      try {
-        localStorage.setItem(LAST_CODE_KEY, normalizedCode);
-        // 覆寫上次選擇的民宿，避免登入後仍沿用前一家的後台 context
-        localStorage.setItem("lastSelectedAccommodation", accommodation.id);
-      } catch {
-        /* ignore */
+      let query = supabase
+        .from("accommodation_info")
+        .select("id, name, short_url_alias, display_order")
+        .order("display_order", { ascending: true, nullsFirst: false })
+        .order("name", { ascending: true });
+      if (!isGlobalSuperAdmin) query = query.in("id", allowedIds);
+
+      const { data: accData, error: accError } = await withTimeout(query);
+      if (accError) throw accError;
+
+      const options: PropertyOption[] = (accData ?? [])
+        .filter((a) => !!a.short_url_alias?.trim())
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          short_url_alias: (a.short_url_alias as string).trim().toLowerCase(),
+        }));
+
+      if (options.length === 0) {
+        await supabase.auth.signOut();
+        toast.error(
+          (accData?.length ?? 0) > 0
+            ? "此帳號的民宿尚未設定代號，請聯絡總部"
+            : "此帳號尚未設定任何民宿權限，請聯絡總部"
+        );
+        return;
       }
+
       toast.success("登入成功！");
-      // 用整頁導向，確保後台版面在載入時就讀得到最新 session（避免 SPA 內部競態被踢回登入頁）
-      window.location.assign(pmsHref(`/${normalizedCode}/admin`));
-      return;
+
+      if (options.length === 1) {
+        enterProperty(options[0].short_url_alias);
+        return;
+      }
+
+      setProperties(options);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PmsLogin] login failed:", error);
@@ -202,7 +207,12 @@ export default function PmsLogin() {
             <p className="text-lg font-medium text-muted-foreground">人客多 PMS 民宿後台</p>
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            {isForgotMode ? (
+            {properties ? (
+              <>
+                <Building2 className="h-5 w-5 text-auth-primary" />
+                <CardDescription className="text-center">請選擇要進入的民宿</CardDescription>
+              </>
+            ) : isForgotMode ? (
               <>
                 <Mail className="h-5 w-5 text-auth-primary" />
                 <CardDescription className="text-center">重設您的密碼</CardDescription>
@@ -216,7 +226,26 @@ export default function PmsLogin() {
           </div>
         </CardHeader>
         <CardContent>
-          {isForgotMode ? (
+          {properties ? (
+            <div className="space-y-2">
+              {properties.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => enterProperty(p.short_url_alias)}
+                  className="w-full flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-medium">{p.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {p.short_url_alias}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          ) : isForgotMode ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="forgot-email">電子郵件</Label>
@@ -255,19 +284,6 @@ export default function PmsLogin() {
             </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="property-code">民宿代號</Label>
-                <Input
-                  id="property-code"
-                  type="text"
-                  placeholder="例如：traveldays"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
                 <Input
