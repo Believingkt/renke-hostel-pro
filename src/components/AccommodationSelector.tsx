@@ -6,7 +6,7 @@ import { openFrontendBooking } from "@/lib/frontendUrl";
 import { isPmsMode, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
 
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
