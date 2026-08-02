@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { openFrontendBooking } from "@/lib/frontendUrl";
 import { isPmsMode, pmsHref } from "@/lib/appMode";
+import { LAST_PROPERTY_ALIAS_KEY } from "@/pages/PmsLogin";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import {
