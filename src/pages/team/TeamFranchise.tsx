@@ -1210,9 +1210,12 @@ function OrdersTab({
                 {(() => {
                   const r = computeRates(form.sold_by, form.sold_at);
                   return (
-                    <p>
-                      個人 {fmtRate(r.commission_rate)} ／ 隊長獎金 {fmtRate(r.leader_rate)}
-                    </p>
+                    <>
+                      <p>
+                        個人 {fmtRate(r.commission_rate)} ／ 隊長獎金 {fmtRate(r.leader_rate)}
+                      </p>
+                      <p>直屬隊長：{r.directLeader ? memberName(r.directLeader) : "無"}</p>
+                    </>
                   );
                 })()}
                 <p className="text-[11px]">
