@@ -142,7 +142,9 @@ export default function PmsLogin() {
         /* ignore */
       }
       toast.success("登入成功！");
-      navigate(`/${normalizedCode}/admin`, { replace: true });
+      // 用整頁導向，確保後台版面在載入時就讀得到最新 session（避免 SPA 內部競態被踢回登入頁）
+      window.location.assign(pmsHref(`/${normalizedCode}/admin`));
+      return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PmsLogin] login failed:", error);
