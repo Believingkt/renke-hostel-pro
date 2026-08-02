@@ -145,8 +145,16 @@ export default function PmsLogin() {
 
       toast.success("登入成功！");
 
-      // 預設進入系統最早上線的民宿，之後可從後台右上方切換
-      enterProperty(options[0].short_url_alias);
+      // 優先恢復上次切換的館別，否則進入系統最早上線的民宿
+      let lastAlias: string | null = null;
+      try {
+        lastAlias = localStorage.getItem(LAST_PROPERTY_ALIAS_KEY);
+      } catch {
+        /* ignore */
+      }
+      const target =
+        options.find((o) => o.short_url_alias === lastAlias) ?? options[0];
+      enterProperty(target);
       return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
