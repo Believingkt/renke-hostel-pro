@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw, Bell } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -598,6 +598,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
+  const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
+
 
 
   const toggleMember = useCallback((id: string) => {
@@ -864,6 +866,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           Math.round(Number(r.bonus_amount)),
         );
       });
+
+      // 提醒：上月有成交組分潤快照（代表本來就該有團隊獎金池），但分配尚未定案
+      setTeamBonusNotFinalized(
+        (teamBonusDist ?? []).length === 0 && (closers ?? []).length > 0,
+      );
+
 
 
 
@@ -1161,6 +1169,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             資料由系統於每月 10、25 日自動寫入；未到日期顯示空白屬正常，已過日期仍無資料再用「手動重新試算」或聯繫技術人員。
           </p>
         </div>
+
+        {teamBonusNotFinalized && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+            <Bell className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+            <div className="text-xs leading-relaxed text-foreground">
+              <span className="font-medium">
+                {range.prevYear} 年 {range.prevMonth} 月成交組團隊獎金尚未定案
+              </span>
+              <p className="text-muted-foreground mt-0.5">
+                該月已有成交組分潤資料，但團隊獎金分配尚未定案，發放管理不會列出此筆獎金。請至「團隊獎金分配」頁完成定案。
+              </p>
+            </div>
+          </div>
+        )}
+
+
 
 
 
