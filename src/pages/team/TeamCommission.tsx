@@ -865,6 +865,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         );
       });
 
+      // 提醒：上月有成交組分潤快照（代表本來就該有團隊獎金池），但分配尚未定案
+      setTeamBonusNotFinalized(
+        (teamBonusDist ?? []).length === 0 && (closers ?? []).length > 0,
+      );
+
+
 
 
 
