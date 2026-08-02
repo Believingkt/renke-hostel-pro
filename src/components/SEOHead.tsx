@@ -56,6 +56,11 @@ export const SEOHead = ({
     setMetaTag('og:url', url, true);
     if (image) {
       setMetaTag('og:image', image, true);
+      setMetaTag('og:image:secure_url', image, true);
+      setMetaTag('og:image:type', image.endsWith('.jpg') || image.endsWith('.jpeg') ? 'image/jpeg' : 'image/png', true);
+      setMetaTag('og:image:width', '1200', true);
+      setMetaTag('og:image:height', '630', true);
+      setMetaTag('og:image:alt', title, true);
     }
     setMetaTag('og:type', type, true);
     setMetaTag('og:locale', 'zh_TW', true);
@@ -67,7 +72,9 @@ export const SEOHead = ({
     setMetaTag('twitter:description', description);
     if (image) {
       setMetaTag('twitter:image', image);
+      setMetaTag('twitter:image:alt', title);
     }
+
 
     // 設置 canonical URL
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
