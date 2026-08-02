@@ -120,7 +120,7 @@ export function mapOutboundStay(
     return { error: `room_type ${input.room_type_id} has no numeric_code` };
   }
   if (input.fallback_rate_plan_code == null) {
-    return { error: "no rate plan: order.package_id missing and room_type is not in a group" };
+    return { error: "no rate plan: 訂單未選方案、房型不在群組內、且該房型未設定預設對應方案（owlting_room_type_rate_plans）" };
   }
   return {
     roomTypeCode: input.original_room_type_code,
