@@ -2766,7 +2766,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     onClick={() => { setDetail(r); setEditing(false); }}
                   >
                     <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.customer_name}
+                      {r.is_manual_adjusted && (
+                        <Badge variant="outline" className="ml-1.5 align-middle">人工調整</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{r.sales_name ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap">{r.project_name ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
