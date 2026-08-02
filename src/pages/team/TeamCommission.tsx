@@ -598,6 +598,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
+  const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
+
 
 
   const toggleMember = useCallback((id: string) => {
