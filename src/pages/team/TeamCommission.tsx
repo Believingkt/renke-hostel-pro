@@ -1203,9 +1203,17 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               </SelectContent>
             </Select>
           </div>
-          <div className="text-xs text-muted-foreground self-center ml-2">
-            資料區間：{range.start} ~ {range.end}
+          <div>
+            <Label className="text-xs">發放期別</Label>
+            <Select value={viewPeriod} onValueChange={(v) => setViewPeriod(v as "10" | "25")}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">{month} 月 10 日期</SelectItem>
+                <SelectItem value="25">{month} 月 25 日期</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
           {!readOnly && (
             <Button size="sm" onClick={bulkMarkAll} disabled={bulkMarking || loading}>
               {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
