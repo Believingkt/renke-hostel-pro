@@ -158,7 +158,7 @@ export default function ResetPassword() {
     return null;
   }
 
-  if (!token || !isValidToken) {
+  if ((!token && !isRecoverySession) || !isValidToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
         <Card className="w-full max-w-md shadow-xl border-0">
