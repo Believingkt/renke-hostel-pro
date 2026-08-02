@@ -5,6 +5,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const RAGIC_URL =
   "https://ap15.ragic.com/lakeze/income-source/2?api&naming=EID";
@@ -21,27 +22,6 @@ const FIELD = {
   NOTE: "1001022",
 } as const;
 
-// 排除的訂單來源（業主自帶 / OTA / 保留單）
-const EXCLUDED_SOURCES = new Set<string>([
-  // 保留單
-  "hold",
-  // 業主自帶
-  "official_use",
-  "owner_provided",
-  "業主代訂",
-  // OTA / 通路商
-  "owlting",
-  "booking",
-  "Booking.com",
-  "hotelnabe",
-]);
-
-function isExcludedSource(src: string | null | undefined): boolean {
-  const s = String(src ?? "").trim();
-  if (!s) return false;
-  if (s.startsWith("[CM]")) return true; // [CM] Booking.com / Agoda / AsiaYo / Trip.com...
-  return EXCLUDED_SOURCES.has(s);
-}
 
 // Only 森山寫照 is currently a franchise venue
 const FRANCHISE_IDS = new Set<string>([
@@ -72,11 +52,20 @@ function orderNights(o: any): number {
 }
 
 /** Accrue an order's final_price nightly onto [monthStart, monthEnd] (inclusive-exclusive). */
-function accruedInMonth(o: any, monthStart: Date, monthEnd: Date): number {
+function accruedInMonth(
+  o: any,
+  monthStart: Date,
+  monthEnd: Date,
+  isExempt: (order: any) => boolean,
+): number {
   if (o.order_status === "cancelled") return 0;
-  if (o.order_source === "kol") return 0;
+  // 保留單：靠姓名字串判斷，維持既有行為（不在 exempt 規則涵蓋範圍內）
   if (String(o.guest_name ?? "").trim() === "保留單") return 0;
-  if (isExcludedSource(o.order_source)) return 0;
+  // 排除來源一律以 owner_settlement_pricing_rules.exempt_order_sources（DB 驅動）＋ owner_direct 判斷
+  if (isExempt(o)) return 0;
+  // 註：kol 已包含在除「天送幸福和苑」外所有館別的 DB 清單中；天送的清單目前未含 kol，
+  // 若日後天送需要排除 kol，請由 AM 在後台勾選，不在此硬寫。
+
   const nights = orderNights(o);
   if (!nights) return 0;
   const share = (Number(o.final_price) || 0) / nights;
@@ -210,6 +199,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 2b. 排除規則：沿用正式試算共用邏輯（DB 驅動 owner_settlement_pricing_rules + legacy fallback）
+    const isExempt = await buildExemptResolver(supabase, accIds);
+
     const results: any[] = [];
 
     for (const acc of accommodations || []) {
@@ -226,7 +218,7 @@ Deno.serve(async (req) => {
       let ordQuery = supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source",
+          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, owner_direct, accommodation_id",
         )
         .eq("accommodation_id", acc.id)
         .lt("check_in_date", monthEndStr)
@@ -240,8 +232,9 @@ Deno.serve(async (req) => {
       // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
       for (const o of orders || []) {
-        revenueTwd += accruedInMonth(o, monthStart, monthEnd);
+        revenueTwd += accruedInMonth(o, monthStart, monthEnd, isExempt);
       }
+
       revenueTwd = Math.round(revenueTwd);
 
 
