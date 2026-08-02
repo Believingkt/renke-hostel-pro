@@ -2318,6 +2318,8 @@ interface ExternalOrder {
   co_sales_member_id2: string | null;
   notes: string | null;
   early_payout_month: string | null;
+  /** 由 DB trigger 標記：獎金金額與預設費率建議值不同 */
+  is_manual_adjusted?: boolean | null;
 }
 
 const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
