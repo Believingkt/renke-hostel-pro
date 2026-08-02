@@ -1170,6 +1170,22 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           </p>
         </div>
 
+        {teamBonusNotFinalized && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+            <Bell className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+            <div className="text-xs leading-relaxed text-foreground">
+              <span className="font-medium">
+                {range.prevYear} 年 {range.prevMonth} 月成交組團隊獎金尚未定案
+              </span>
+              <p className="text-muted-foreground mt-0.5">
+                該月已有成交組分潤資料，但團隊獎金分配尚未定案，發放管理不會列出此筆獎金。請至「團隊獎金分配」頁完成定案。
+              </p>
+            </div>
+          </div>
+        )}
+
+
+
 
 
         <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
