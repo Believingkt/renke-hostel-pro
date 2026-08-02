@@ -829,75 +829,25 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
-      scoutCloserOrders.forEach((o: any) => {
-        if (!o.discount_code || !o.final_price) return;
-        if (excludedOrderIds.has(o.id)) return;
-        const rate = scoutCloserMap.get(String(o.discount_code).trim().toUpperCase());
-        if (!rate) return;
-        const closerUserId = closerByOrderId.get(o.id);
-        if (!closerUserId) return;
-        const amount = Math.round(Number(o.final_price) * rate);
+      // 星探折扣碼獎金：由後端 calculate-scout-payout 試算並寫入 scout_discount_code_payouts
+      // scout_self → 只有 scout 一筆；partner → scout / closer 各一筆（疊加，不與成交組抽成互斥）
+      (discountPayoutRows ?? []).forEach((r: any) => {
+        const amount = Math.round(Number(r.commission_amount ?? 0));
         if (!amount) return;
+        const periodLabel = r.period === 10 ? "10日期" : "25日期";
         pushItem(
-          "scout_discount_codes_closer",
-          o.id,
-          "closer",
-          profileByUserId.get(closerUserId),
-          SOURCE_LABEL.scout_closer,
-          `訂單 ${String(o.id).slice(0, 8)}・${o.discount_code}`,
+          "scout_discount_code_payouts",
+          r.id,
+          r.recipient_role,
+          profileById.get(r.recipient_id),
+          r.recipient_role === "closer"
+            ? SOURCE_LABEL.scout_discount_closer
+            : SOURCE_LABEL.scout_discount_scout,
+          `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}・${r.discount_code}・${r.year}/${String(r.month).padStart(2, "0")} ${periodLabel}`,
           amount,
         );
       });
 
-      // 星探折扣碼分潤：折扣碼命中訂單的 scout_rate 部分歸給 scout 本人（scout_self + partner 皆納入）
-      const scoutKolMap = new Map<string, { scout_id: string; scout_rate: number; commission_type: string }>();
-      (scoutKolCodes ?? []).forEach((c: any) => {
-        if (c.discount_code && c.scout_id && Number(c.scout_rate) > 0) {
-          scoutKolMap.set(String(c.discount_code).trim().toUpperCase(), {
-            scout_id: c.scout_id,
-            scout_rate: Number(c.scout_rate),
-            commission_type: c.commission_type,
-          });
-        }
-      });
-      if (scoutKolMap.size > 0) {
-        const { data: kolOrds } = await supabase
-          .from("orders")
-          .select("id, discount_code, final_price, order_date")
-          .neq("order_status", "cancelled")
-          .not("discount_code", "is", null)
-          .gte("order_date", start)
-          .lt("order_date", nextMonthStart);
-        const kolOrders = kolOrds ?? [];
-        const kolOrderIds = kolOrders.map((o: any) => o.id);
-        const kolExcluded = new Set<string>();
-        if (kolOrderIds.length > 0) {
-          const { data: kolMetas } = await supabase
-            .from("order_meta")
-            .select("order_id, is_excluded")
-            .in("order_id", kolOrderIds);
-          (kolMetas ?? []).forEach((m: any) => {
-            if (m.is_excluded) kolExcluded.add(m.order_id);
-          });
-        }
-        kolOrders.forEach((o: any) => {
-          if (!o.discount_code || !o.final_price) return;
-          if (kolExcluded.has(o.id)) return;
-          const hit = scoutKolMap.get(String(o.discount_code).trim().toUpperCase());
-          if (!hit) return;
-          const amount = Math.round(Number(o.final_price) * hit.scout_rate);
-          if (!amount) return;
-          pushItem(
-            "scout_discount_codes_kol",
-            o.id,
-            "scout",
-            profileById.get(hit.scout_id),
-            SOURCE_LABEL.scout_discount_kol,
-            `訂單 ${String(o.id).slice(0, 8)}・${o.discount_code}`,
-            amount,
-          );
-        });
-      }
 
 
 
