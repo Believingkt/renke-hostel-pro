@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
+import { isPmsMode } from "@/lib/appMode";
 import { Loader2, KeyRound, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
@@ -115,7 +116,7 @@ export default function ResetPassword() {
       setErrorMessage("");
       setSuccessMessage("密碼已重設成功");
       toast.success("密碼已重設成功");
-      setTimeout(() => navigate("/auth"), 2500);
+      setTimeout(() => navigate(isPmsMode() ? "/login" : "/auth"), 2500);
     } catch (error: any) {
       console.error("[ResetPassword] Error:", error);
       const msg = error.message || "重設密碼失敗，請稍後再試";
@@ -149,7 +150,7 @@ export default function ResetPassword() {
             <p className="text-sm text-muted-foreground">
               此重設密碼連結已失效。請返回登入頁面重新申請。
             </p>
-            <Button onClick={() => navigate("/auth")} className="w-full bg-auth-primary hover:bg-auth-primary-hover">
+            <Button onClick={() => navigate(isPmsMode() ? "/login" : "/auth")} className="w-full bg-auth-primary hover:bg-auth-primary-hover">
               返回登入頁面
             </Button>
           </CardContent>
