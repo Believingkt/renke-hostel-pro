@@ -113,25 +113,32 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      console.log("[ResetPassword] Calling update-password...");
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ token, newPassword }),
+      if (isRecoverySession) {
+        console.log("[ResetPassword] Updating password via recovery session...");
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw new Error(error.message || "重設密碼失敗");
+      } else {
+        console.log("[ResetPassword] Calling update-password...");
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ token, newPassword }),
+          }
+        );
+
+        const data = await response.json();
+        console.log("[ResetPassword] Response:", { status: response.status, data });
+
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || "重設密碼失敗");
         }
-      );
-
-      const data = await response.json();
-      console.log("[ResetPassword] Response:", { status: response.status, data });
-
-      if (!response.ok || data?.error) {
-        throw new Error(data?.error || "重設密碼失敗");
       }
+
 
       setErrorMessage("");
       setSuccessMessage("密碼已重設成功");
