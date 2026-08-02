@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
 
 const REQUEST_TIMEOUT_MS = 15000;
 
 const ADMIN_ROLES = ["hotel_admin", "super_admin", "staff"];
 
-export const LAST_PROPERTY_ALIAS_KEY = "pms_last_property_alias";
+
 
 interface PropertyOption {
   id: string;
