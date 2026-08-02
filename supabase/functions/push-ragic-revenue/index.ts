@@ -5,6 +5,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 
 const RAGIC_URL =
   "https://ap15.ragic.com/lakeze/income-source/2?api&naming=EID";
@@ -21,27 +22,6 @@ const FIELD = {
   NOTE: "1001022",
 } as const;
 
-// 排除的訂單來源（業主自帶 / OTA / 保留單）
-const EXCLUDED_SOURCES = new Set<string>([
-  // 保留單
-  "hold",
-  // 業主自帶
-  "official_use",
-  "owner_provided",
-  "業主代訂",
-  // OTA / 通路商
-  "owlting",
-  "booking",
-  "Booking.com",
-  "hotelnabe",
-]);
-
-function isExcludedSource(src: string | null | undefined): boolean {
-  const s = String(src ?? "").trim();
-  if (!s) return false;
-  if (s.startsWith("[CM]")) return true; // [CM] Booking.com / Agoda / AsiaYo / Trip.com...
-  return EXCLUDED_SOURCES.has(s);
-}
 
 // Only 森山寫照 is currently a franchise venue
 const FRANCHISE_IDS = new Set<string>([
