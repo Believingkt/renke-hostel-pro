@@ -5488,6 +5488,7 @@ export type Database = {
           team_commission_price: number | null
           team_commission_price_is_manual: boolean
           traffic_source: string | null
+          trip_id: string | null
           updated_at: string | null
           video_creator_id: string | null
           voucher_count: number | null
@@ -5527,6 +5528,7 @@ export type Database = {
           team_commission_price?: number | null
           team_commission_price_is_manual?: boolean
           traffic_source?: string | null
+          trip_id?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
           voucher_count?: number | null
@@ -5566,6 +5568,7 @@ export type Database = {
           team_commission_price?: number | null
           team_commission_price_is_manual?: boolean
           traffic_source?: string | null
+          trip_id?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
           voucher_count?: number | null
@@ -5606,6 +5609,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_member_profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "order_meta_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_meta_video_creator_id_fkey"
@@ -10231,6 +10241,7 @@ export type Database = {
       }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
+      consume_trip_product_stock: { Args: { p_items: Json }; Returns: Json }
       count_kol_reciprocal_orders: {
         Args: {
           _accommodation_id: string
