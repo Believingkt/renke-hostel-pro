@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2 } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
 
@@ -254,20 +254,16 @@ export default function PmsLogin() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="property-code">民宿代號</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="property-code"
-                    type="text"
-                    placeholder="例如：traveldays"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    required
-                    className="pl-9"
-                  />
-                </div>
+                <Input
+                  id="property-code"
+                  type="text"
+                  placeholder="例如：traveldays"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
