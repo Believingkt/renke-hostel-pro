@@ -1181,7 +1181,7 @@ function OrdersTab({
             </div>
             {form.sold_by && (
               <div className="text-xs text-muted-foreground rounded-md border p-2 space-y-0.5">
-                <p>系統試算分潤比例（依目前小隊設定）：</p>
+                <p>系統試算分潤比例（依成交日期生效費率 + 目前小隊設定）：</p>
                 {(() => {
                   const r = computeRates(form.sold_by, form.sold_at);
                   return (
@@ -1190,6 +1190,9 @@ function OrdersTab({
                     </p>
                   );
                 })()}
+                <p className="text-[11px]">
+                  ※ 分潤金額由系統依費率自動計算並於存檔時重算，無法手動覆蓋。
+                </p>
               </div>
             )}
           </div>
