@@ -204,12 +204,7 @@ export default function PmsLogin() {
             <p className="text-lg font-medium text-muted-foreground">人客多 PMS 民宿後台</p>
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            {properties ? (
-              <>
-                <Building2 className="h-5 w-5 text-auth-primary" />
-                <CardDescription className="text-center">請選擇要進入的民宿</CardDescription>
-              </>
-            ) : isForgotMode ? (
+            {isForgotMode ? (
               <>
                 <Mail className="h-5 w-5 text-auth-primary" />
                 <CardDescription className="text-center">重設您的密碼</CardDescription>
@@ -223,26 +218,7 @@ export default function PmsLogin() {
           </div>
         </CardHeader>
         <CardContent>
-          {properties ? (
-            <div className="space-y-2">
-              {properties.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => enterProperty(p.short_url_alias)}
-                  className="w-full flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-base font-medium">{p.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {p.short_url_alias}
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          ) : isForgotMode ? (
+          {isForgotMode ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="forgot-email">電子郵件</Label>
