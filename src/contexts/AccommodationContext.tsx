@@ -260,8 +260,12 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       if (data && data.length > 0 && forceAutoSelect) {
         const domainAccommodationId = await resolveDomainAccommodationId(data);
 
-        // 0. PMS 網域：登入時輸入的民宿代號（路徑 alias）具有最高優先權
-        if (domainAccommodationId && isPmsHost()) {
+        // 0. PMS 網域：無 accId 時，以登入時輸入的民宿代號（路徑 alias）為準
+        if (
+          domainAccommodationId &&
+          isPmsHost() &&
+          !searchParams.get(ACCOMMODATION_ID_PARAM)
+        ) {
           setCurrentAccommodationId(domainAccommodationId);
           setIsLoading(false);
           return;
