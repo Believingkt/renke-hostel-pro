@@ -288,7 +288,7 @@ Deno.serve(async (req) => {
         };
 
         // ── General booking metrics ────────────────────────
-        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 COALESCE(confirmed_at, order_date) 為準，
+        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 order_date 為準，
         //          並排除「保留單」與 final_price <= 0 的訂單；
         // 天送：維持既有 order_date 區間 + 團媽/票卷訂房排除（獨立邏輯，不修改）。
         const applyBookingFilters = <T extends any>(qb: T): T => {
