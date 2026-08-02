@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2, ChevronRight } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
 
@@ -35,7 +35,6 @@ export default function PmsLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
-  const [properties, setProperties] = useState<PropertyOption[] | null>(null);
 
   useEffect(() => {
     document.title = "人客多 PMS 民宿後台";
