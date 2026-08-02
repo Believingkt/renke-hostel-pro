@@ -9850,6 +9850,116 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_products: {
+        Row: {
+          accommodation_id: string | null
+          available_slots: Json | null
+          cover_url: string | null
+          created_at: string
+          description: Json
+          duration_min: number | null
+          id: string
+          is_active: boolean
+          lat: number | null
+          lng: number | null
+          name: Json
+          open_hours: Json | null
+          price: number
+          stock: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          available_slots?: Json | null
+          cover_url?: string | null
+          created_at?: string
+          description?: Json
+          duration_min?: number | null
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          name?: Json
+          open_hours?: Json | null
+          price?: number
+          stock?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          available_slots?: Json | null
+          cover_url?: string | null
+          created_at?: string
+          description?: Json
+          duration_min?: number | null
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          name?: Json
+          open_hours?: Json | null
+          price?: number
+          stock?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_products_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          id: string
+          items: Json
+          match_score: number | null
+          owner_id: string | null
+          scenario: string | null
+          share_slug: string | null
+          status: string
+          title: Json
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          match_score?: number | null
+          owner_id?: string | null
+          scenario?: string | null
+          share_slug?: string | null
+          status?: string
+          title?: Json
+          total_price?: number
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          match_score?: number | null
+          owner_id?: string | null
+          scenario?: string | null
+          share_slug?: string | null
+          status?: string
+          title?: Json
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           accommodation_id: string | null

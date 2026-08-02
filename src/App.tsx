@@ -76,6 +76,8 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
+const Trips = lazy(() => import("./pages/Trips"));
+const TripDetail = lazy(() => import("./pages/TripDetail"));
 
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
@@ -321,6 +323,12 @@ function App() {
                     } />
                     <Route path="data-deletion" element={
                       <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
+                    } />
+                    <Route path="trips" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Trips /></Suspense>
+                    } />
+                    <Route path="trips/:tripId" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
                     } />
                     <Route path="legal/:slug" element={
                       <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
