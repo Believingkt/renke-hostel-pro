@@ -298,6 +298,18 @@ Deno.serve(async (req) => {
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
 
+    // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
+    try {
+      await finalizeTripOrder(supabaseUrl, supabaseServiceKey, {
+        orderId: orderData.id,
+        tripId: (body as any).tripId ?? null,
+        customAddonDetails: body.customAddonDetails ?? null,
+      });
+    } catch (e) {
+      console.error("[create-paid-order] finalizeTripOrder failed (non-fatal):", e);
+    }
+
+
     // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
     const roomQuantity = Math.max(1, Math.floor(Number((body as any).roomQuantity) || 1));
     if (roomQuantity > 1) {
