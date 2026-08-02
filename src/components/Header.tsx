@@ -21,6 +21,7 @@ import { openFrontendBooking } from "@/lib/frontendUrl";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
+import { extractAliasFromPath, isPmsMode, pmsHref } from "@/lib/appMode";
 
 export function Header() {
   const navigate = useNavigate();
@@ -101,6 +102,10 @@ export function Header() {
   }, [accommodationId]);
 
   const handleLogout = async () => {
+    const alias = extractAliasFromPath(window.location.pathname);
+    const target = isPmsMode()
+      ? pmsHref(`/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`)
+      : `${window.location.origin}/auth`;
     try {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') || key.includes('supabase')) {
@@ -112,12 +117,12 @@ export function Header() {
       await supabase.auth.signOut({ scope: 'global' });
       toast.success("已登出");
       await new Promise(resolve => setTimeout(resolve, 100));
-      window.location.replace(`${window.location.origin}/auth`);
+      window.location.replace(target);
     } catch (error) {
       localStorage.clear();
       sessionStorage.clear();
       toast.success("已登出");
-      window.location.replace(`${window.location.origin}/auth`);
+      window.location.replace(target);
     }
   };
 
