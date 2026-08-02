@@ -1321,42 +1321,43 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                           const unpaidCount = src.items.filter((i) => !i.paid).length;
                           return (
                             <div key={src.label}>
-                              <div className="flex items-center justify-between px-4 py-2 bg-background hover:bg-muted/30 transition-colors">
+                              <div className="flex flex-col gap-2 px-4 py-2 bg-background hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between">
                                 <button
                                   type="button"
                                   onClick={() => toggleSource(g.member_id, src.label)}
-                                  className="flex items-center gap-2 flex-1 text-left"
+                                  className="flex flex-wrap items-center gap-x-2 gap-y-1 flex-1 min-w-0 text-left"
                                   aria-expanded={srcOpen}
                                 >
                                   {srcOpen ? (
-                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                                   ) : (
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                                   )}
-                                  <span className="text-sm font-medium">{src.label}</span>
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  <span className="text-sm font-medium whitespace-nowrap">{src.label}</span>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
                                     {src.items.length} 筆
                                   </Badge>
                                   {src.allPaid ? (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">已發放</Badge>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">已發放</Badge>
                                   ) : unpaidCount < src.items.length ? (
-                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0 whitespace-nowrap">
                                       待發放 {unpaidCount} 筆
                                     </Badge>
                                   ) : (
-                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0 whitespace-nowrap">
                                       待發放
                                     </Badge>
                                   )}
                                 </button>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-sm font-medium tabular-nums">
+                                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                  <span className="text-sm font-medium tabular-nums whitespace-nowrap">
                                     小計 {formatMoney(src.subtotal)}
                                   </span>
                                   {!readOnly && !src.allPaid && (
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      className="whitespace-nowrap"
                                       disabled={markingSource === srcKey}
                                       onClick={() => markSourceAll(g.member_id, src.label, src.items)}
                                     >
@@ -1365,6 +1366,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                   )}
                                 </div>
                               </div>
+
                               {srcOpen && (
                                 <div className="overflow-x-auto bg-muted/10">
                                   <Table>
