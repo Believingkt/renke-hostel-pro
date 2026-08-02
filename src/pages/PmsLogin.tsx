@@ -117,9 +117,11 @@ export default function PmsLogin() {
         return;
       }
 
+      // 只取「該帳號有後台權限 + 已啟用 + 有代號」的民宿，依上線時間由舊到新
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, short_url_alias, created_at")
+        .select("id, name, short_url_alias, created_at, is_active")
+        .eq("is_active", true)
         .order("created_at", { ascending: true, nullsFirst: true })
         .order("name", { ascending: true });
       if (!isGlobalSuperAdmin) query = query.in("id", allowedIds);
