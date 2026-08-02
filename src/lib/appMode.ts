@@ -108,8 +108,12 @@ const PMS_RESERVED_FIRST = new Set([
 
 export function normalizePmsPath(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
-  // 僅在 /{alias}/admin... 這種形式時剝除 alias 前綴，避免誤判前台路徑
-  if (segments.length >= 2 && !PMS_RESERVED_FIRST.has(segments[0]) && segments[1] === "admin") {
+  // 僅在 /{alias}/admin... 或 /{alias}/auth 這種形式時剝除 alias 前綴，避免誤判前台路徑
+  if (
+    segments.length >= 2 &&
+    !PMS_RESERVED_FIRST.has(segments[0]) &&
+    (segments[1] === "admin" || segments[1] === "auth")
+  ) {
     return "/" + segments.slice(1).join("/");
   }
   return pathname;
