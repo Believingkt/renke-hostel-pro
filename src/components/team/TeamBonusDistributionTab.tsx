@@ -60,11 +60,6 @@ interface Member {
   display_name: string;
 }
 
-interface CommissionRow {
-  accommodation_id: string;
-  closer_rate: number | null;
-  effective_from: string;
-}
 
 interface DistributionRow {
   id: string;
