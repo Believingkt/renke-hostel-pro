@@ -36,6 +36,7 @@ interface QueueRow {
   echo_token: string;
   status: string;
   attempt_count: number;
+  order_snapshot: any;
 }
 
 // --- Single fetch wrapper: only place that talks to OwlTing externally.
@@ -119,7 +120,7 @@ Deno.serve(async (req) => {
   const nowIso = new Date().toISOString();
   const { data: queue, error: qErr } = await admin
     .from("owlting_order_push_queue")
-    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count")
+    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count, order_snapshot")
     .eq("status", "pending")
     .lte("next_retry_at", nowIso)
     .order("created_at", { ascending: true })
@@ -195,7 +196,9 @@ async function processRow(
 
   // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
   // 即使後續在 PMS 修改內容或取消也不重推。
-  if (["owlting", "hotelnabe"].includes(String(order.order_source ?? ""))) {
+  // 例外：queue.order_snapshot.force_push=true 為人工補推（例如取消誤推的重複單）。
+  const forcePush = row.order_snapshot?.force_push === true;
+  if (!forcePush && ["owlting", "hotelnabe"].includes(String(order.order_source ?? ""))) {
     await admin.from("owlting_order_push_queue").update({
       status: "skipped",
       last_error: "inbound-sourced order: push-back disabled",
