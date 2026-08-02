@@ -56,6 +56,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { pickRateVersion, groupRatesByProject, todayTaipei } from "@/lib/franchiseRates";
+import FranchiseCommissionAuditDialog from "@/components/team/FranchiseCommissionAuditDialog";
 
 interface InternalRates {
   base_rate: number;
@@ -477,7 +479,10 @@ export default function TeamFranchise() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">特許加盟</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-2xl font-bold">特許加盟</h2>
+        {(canManage || isFinance) && <FranchiseCommissionAuditDialog />}
+      </div>
       <Tabs defaultValue={defaultTab}>
         <div className="overflow-x-auto">
           <TabsList>
@@ -542,6 +547,8 @@ function OrdersTab({
   const [members, setMembers] = useState<Member[]>([]);
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
   const [internalRates, setInternalRates] = useState<InternalRates | null>(null);
+  // 內部單費率所有版本（依訂單日期選取當時生效版本用）
+  const [internalRateVersions, setInternalRateVersions] = useState<any[]>([]);
   const projectOrderMap = useProjectOrderMap();
 
   
@@ -656,10 +663,11 @@ function OrdersTab({
         .from("franchise_commission_settings")
         .select("*")
         .eq("type", "internal")
-        .order("effective_from", { ascending: false })
-        .limit(1),
+        .order("effective_from", { ascending: false }),
     ]);
-    const r = (ratesRes.data ?? [])[0];
+    const versions = (ratesRes.data ?? []) as any[];
+    setInternalRateVersions(versions);
+    const r = versions[0];
     if (r) {
       setInternalRates({
         base_rate: Number(r.base_rate ?? 0.1),
@@ -752,16 +760,20 @@ function OrdersTab({
     [filtered, page],
   );
 
-  const computeRates = (soldBy: string) => {
+  // soldAt：訂單成交日（Asia/Taipei YYYY-MM-DD），用來選取當時生效的費率版本
+  const computeRates = (soldBy: string, soldAt?: string | null) => {
     const setting = teamSettings[soldBy];
     const directLeader = setting?.direct_leader_id ?? null;
     const downlineCount = Object.values(teamSettings).filter(
       (t) => t.direct_leader_id === soldBy,
     ).length;
-    const base = internalRates?.base_rate ?? 0.1;
-    const tier1 = internalRates?.tier1_rate ?? 0.11;
-    const tier2 = internalRates?.tier2_rate ?? 0.13;
-    const leaderOverride = internalRates?.leader_override_rate ?? 0.035;
+    const version = pickRateVersion(internalRateVersions as any, soldAt ?? todayTaipei());
+    const base = Number(version?.base_rate ?? internalRates?.base_rate ?? 0.1);
+    const tier1 = Number(version?.tier1_rate ?? internalRates?.tier1_rate ?? 0.11);
+    const tier2 = Number(version?.tier2_rate ?? internalRates?.tier2_rate ?? 0.13);
+    const leaderOverride = Number(
+      version?.leader_override_rate ?? internalRates?.leader_override_rate ?? 0.035,
+    );
     let commission_rate = base;
     if (downlineCount === 1) commission_rate = tier1;
     else if (downlineCount >= 2) commission_rate = tier2;
@@ -808,7 +820,7 @@ function OrdersTab({
     const planPrice = form.unit_price * form.unit_qty;
     setSaving(true);
     const { commission_rate, leader_rate, company_rate, directLeader } =
-      computeRates(form.sold_by);
+      computeRates(form.sold_by, form.sold_at);
     const payload = {
       member_number: form.member_number.trim() || null,
       customer_name: form.customer_name.trim(),
@@ -1171,7 +1183,7 @@ function OrdersTab({
               <div className="text-xs text-muted-foreground rounded-md border p-2 space-y-0.5">
                 <p>系統試算分潤比例（依目前小隊設定）：</p>
                 {(() => {
-                  const r = computeRates(form.sold_by);
+                  const r = computeRates(form.sold_by, form.sold_at);
                   return (
                     <p>
                       個人 {fmtRate(r.commission_rate)} ／ 隊長獎金 {fmtRate(r.leader_rate)}
@@ -1519,7 +1531,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
   const saveInternal = async () => {
     const payload = {
       type: "internal",
-      project_name: "森山第一期",
+      project_name: "森山寫照第一期",
       base_rate: internalForm.base_rate / 100,
       tier1_rate: internalForm.tier1_rate / 100,
       tier2_rate: internalForm.tier2_rate / 100,
@@ -2309,7 +2321,7 @@ const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
 const INVOICE_PROGRESS_OPTIONS = ["尚未", "已完成"];
 
 const emptyExternalForm = (): Partial<ExternalOrder> => ({
-  project_name: "森山第一期",
+  project_name: "森山寫照第一期",
   signed_at: new Date().toISOString().slice(0, 10),
   sales_name: "",
   sales_email: "",
@@ -2354,7 +2366,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [form, setForm] = useState<Partial<ExternalOrder>>(emptyExternalForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [externalRates, setExternalRates] = useState<Record<string, ExternalRates>>({});
+  const [externalRateVersions, setExternalRateVersions] = useState<Record<string, any[]>>({});
   const [memberOptions, setMemberOptions] = useState<Array<{ id: string; display_name: string }>>([]);
 
   useEffect(() => {
@@ -2391,18 +2403,23 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     }
     setRows((ordersRes.data ?? []) as ExternalOrder[]);
 
-    const rateMap: Record<string, ExternalRates> = {};
-    ((ratesRes.data ?? []) as any[]).forEach((r) => {
-      if (!rateMap[r.project_name]) {
-        rateMap[r.project_name] = {
-          sales_rate: Number(r.sales_rate ?? 0.2),
-          co_sales1_rate: Number(r.co_sales1_rate ?? 0.1),
-          co_sales2_rate: Number(r.co_sales2_rate ?? 0.15),
-          payout_day: r.payout_day ?? null,
-        };
-      }
-    });
-    setExternalRates(rateMap);
+    // 依專案名稱分組保留所有版本，實際使用時再依訂單簽約日選取當時生效版本
+    setExternalRateVersions(groupRatesByProject((ratesRes.data ?? []) as any[]));
+  };
+
+  // 依專案 + 訂單日期（signed_at）解析當時生效的外部單費率
+  const resolveExternalRates = (
+    project: string,
+    signedAt?: string | null,
+  ): ExternalRates | null => {
+    const r: any = pickRateVersion(externalRateVersions[project.trim()], signedAt ?? todayTaipei());
+    if (!r) return null;
+    return {
+      sales_rate: Number(r.sales_rate ?? 0.2),
+      co_sales1_rate: Number(r.co_sales1_rate ?? 0.1),
+      co_sales2_rate: Number(r.co_sales2_rate ?? 0.15),
+      payout_day: r.payout_day ?? null,
+    };
   };
 
   useEffect(() => {
@@ -2414,7 +2431,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     if (editingId) return;
     const project = (form.project_name ?? "").trim();
     if (!project) return;
-    const r = externalRates[project];
+    const r = resolveExternalRates(project, form.signed_at);
     if (!r) return;
     const total = (Number(form.unit_count) || 0) * (Number(form.plan_price) || 0);
     setForm((prev) => ({
@@ -2424,9 +2441,9 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       co_sales_bonus2: (prev.co_sales_name2 ?? "").trim() ? Math.round(total * r.co_sales2_rate) : null,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.project_name, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRates, editingId, sheetOpen]);
+  }, [form.project_name, form.signed_at, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRateVersions, editingId, sheetOpen]);
 
-  const currentRates = externalRates[(form.project_name ?? "").trim()] ?? null;
+  const currentRates = resolveExternalRates((form.project_name ?? "").trim(), form.signed_at);
   const pct = (n: number | null | undefined) => n == null ? "" : `${parseFloat((n * 100).toFixed(2))}%`;
 
   const projects = useMemo(() => {
@@ -2590,7 +2607,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
     }
     const payload = {
-      project_name: form.project_name?.trim() || "森山第一期",
+      project_name: form.project_name?.trim() || "森山寫照第一期",
       signed_at: form.signed_at || null,
       sales_name: form.sales_name?.trim() || null,
       sales_email: form.sales_email?.trim() || null,
