@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
+import { SEOHead } from "@/components/SEOHead";
+
+// 與 index.html 同一張社群分享縮圖（絕對網址，跨網域共用）
+const OG_IMAGE_URL = `${BOOKING_ORIGIN}/og-image.png`;
 
 const REQUEST_TIMEOUT_MS = 15000;
 
