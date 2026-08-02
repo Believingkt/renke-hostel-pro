@@ -82,19 +82,59 @@ const SAMPLE_DATA: Record<string, object> = {
   reauthentication: { token: '123456' },
 }
 
-// Rewrite confirmation URLs to booking.lakeze.com regardless of Supabase Site URL.
-function rewriteUrl(url?: string): string | undefined {
+// 需要被導正的「預設 Site URL」網域（Supabase 專案預設值）
+const DEFAULT_HOSTS = ['lovable.app', 'lovableproject.com']
+const PMS_HOST = 'pms.lakeze.com'
+const BOOKING_HOST = 'booking.lakeze.com'
+
+function isDefaultHost(host: string) {
+  return DEFAULT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
+}
+
+/**
+ * 修正認證信中的連結。
+ * 重點：Supabase 的 /auth/v1/verify 連結「主機名稱不可改寫」，
+ * 只能修正其中的 redirect_to 參數，否則會導向 booking.lakeze.com/auth/v1/verify → 404。
+ */
+function rewriteUrl(url?: string, emailType?: string): string | undefined {
   if (!url) return url
+  const targetHost = emailType === 'recovery' ? PMS_HOST : BOOKING_HOST
   try {
     const u = new URL(url)
     u.protocol = 'https:'
-    u.host = 'booking.lakeze.com'
     u.port = ''
+
+    if (u.hostname.endsWith('supabase.co') || u.pathname.startsWith('/auth/v1/')) {
+      const redirectTo = u.searchParams.get('redirect_to')
+      if (redirectTo) {
+        try {
+          const r = new URL(redirectTo)
+          if (isDefaultHost(r.hostname)) {
+            r.protocol = 'https:'
+            r.port = ''
+            r.host = targetHost
+            if (emailType === 'recovery' && (r.pathname === '/' || r.pathname === '')) {
+              r.pathname = '/reset-password'
+            }
+            u.searchParams.set('redirect_to', r.toString())
+          }
+        } catch {
+          // 忽略無法解析的 redirect_to
+        }
+      }
+      return u.toString()
+    }
+
+    // 一般 app 連結：導正到正確網域
+    if (isDefaultHost(u.hostname)) {
+      u.host = targetHost
+    }
     return u.toString()
   } catch {
     return url
   }
 }
+
 
 async function handlePreview(req: Request): Promise<Response> {
   const previewCorsHeaders = {
@@ -188,7 +228,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const run_id = payload?.run_id
   const token = payload?.data?.token
   const rawUrl = payload?.data?.url
-  const confirmationUrl = rewriteUrl(rawUrl)
+  const confirmationUrl = rewriteUrl(rawUrl, emailType)
 
   console.log('Auth event received', { emailType, recipient, run_id, hasToken: !!token, hasUrl: !!rawUrl })
 
