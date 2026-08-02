@@ -658,10 +658,11 @@ function OrdersTab({
         .from("franchise_commission_settings")
         .select("*")
         .eq("type", "internal")
-        .order("effective_from", { ascending: false })
-        .limit(1),
+        .order("effective_from", { ascending: false }),
     ]);
-    const r = (ratesRes.data ?? [])[0];
+    const versions = (ratesRes.data ?? []) as any[];
+    setInternalRateVersions(versions);
+    const r = versions[0];
     if (r) {
       setInternalRates({
         base_rate: Number(r.base_rate ?? 0.1),
