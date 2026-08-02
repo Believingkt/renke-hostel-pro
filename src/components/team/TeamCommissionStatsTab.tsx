@@ -214,6 +214,11 @@ export default function TeamCommissionStatsTab() {
   const [trafficSources, setTrafficSources] = useState<{ id: string; name: string }[]>([]);
   const [bookingMethods, setBookingMethods] = useState<{ id: string; name: string }[]>([]);
   const [bonusRate, setBonusRate] = useState<number>(0);
+  // 成交組分潤即時預估：由 preview-closer-commission Edge Function 提供，
+  // 公式與正式快照 closer_commission_snapshots 一致（扣加購、排非台幣 / isExempt）。
+  const [previewMap, setPreviewMap] = useState<
+    Map<string, { base: number; closer_rate: number; video_rate: number }>
+  >(new Map());
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -323,8 +328,7 @@ export default function TeamCommissionStatsTab() {
         return all;
       }
 
-      // 有效訂單：期間以 COALESCE(confirmed_at, order_date) 為準
-      // → confirmed_at 落在期間，或 confirmed_at 為 null 且 order_date 落在期間
+      // 有效訂單：期間基準統一為 order_date（與 closer_commission_snapshots 正式試算一致）
       const validRows = await fetchAllPaged((from, to) => {
         let q = supabase
           .from("orders")
@@ -333,10 +337,7 @@ export default function TeamCommissionStatsTab() {
           .order("order_date", { ascending: true })
           .range(from, to);
         if (period.startIso && period.nextIso) {
-          q = q.or(
-            `and(confirmed_at.gte.${period.startIso},confirmed_at.lt.${period.nextIso}),` +
-              `and(confirmed_at.is.null,order_date.gte.${period.startIso},order_date.lt.${period.nextIso})`,
-          );
+          q = q.gte("order_date", period.startIso).lt("order_date", period.nextIso);
         }
         return q;
       });
@@ -418,6 +419,35 @@ export default function TeamCommissionStatsTab() {
         csMap.set(r.accommodation_id, arr);
       });
       setCommissionByAcc(csMap);
+
+      // 成交組分潤預估（Edge Function 試算，只計算不寫入）
+      const pMap = new Map<string, { base: number; closer_rate: number; video_rate: number }>();
+      try {
+        const { data: preview } = await supabase.functions.invoke(
+          "preview-closer-commission",
+          {
+            body: {
+              scope: "team",
+              year: Number(year),
+              month: Number(month),
+              start_iso: period.startIso,
+              end_iso: period.nextIso,
+            },
+          },
+        );
+        if (preview?.success) {
+          (preview.orders ?? []).forEach((d: any) => {
+            pMap.set(d.order_id as string, {
+              base: Number(d.base ?? 0),
+              closer_rate: Number(d.closer_rate ?? 0),
+              video_rate: Number(d.video_rate ?? 0),
+            });
+          });
+        }
+      } catch {
+        /* 預估失敗時退回空 map，畫面顯示 0，不中斷其他統計 */
+      }
+      setPreviewMap(pMap);
 
       // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
       try {
@@ -554,10 +584,11 @@ export default function TeamCommissionStatsTab() {
       // 對齊 TeamHome：排除保留單與 final_price <= 0
       if (o.guest_name === "保留單") return;
       if ((o.final_price || 0) <= 0) return;
-      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
-      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
-      // 金額基礎：team_commission_price ?? final_price
-      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
+      // 金額基礎與費率一律採用 Edge Function 的試算結果（扣加購、排非台幣 / isExempt）
+      const pv = previewMap.get(o.id);
+      if (!pv) return; // 不在預估名單 = 免抽成 / 非台幣 / 已排除
+      const rate = rateKey === "closer_rate" ? pv.closer_rate : pv.video_rate;
+      const amount = pv.base;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
       b.validAmount += amount;
@@ -570,7 +601,7 @@ export default function TeamCommissionStatsTab() {
       if (!uid) return;
       if (o.guest_name === "保留單") return;
       if ((o.final_price || 0) <= 0) return;
-      const rateDate = (o.confirmed_at ?? o.order_date)?.slice(0, 10) ?? null;
+      const rateDate = o.order_date?.slice(0, 10) ?? null;
       const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
       const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
       const b = getBucket(uid, o.accommodation_id, rate);
@@ -609,12 +640,12 @@ export default function TeamCommissionStatsTab() {
   const closerStats = useMemo(
     () => buildMemberStats("closer_id", "closer_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
   );
   const videoStats = useMemo(
     () => buildMemberStats("video_creator_id", "video_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
   );
 
   const scoutStats = useMemo(() => {
