@@ -11,7 +11,7 @@ import { PMS_RESET_PASSWORD_URL, pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, B
 import { SEOHead } from "@/components/SEOHead";
 
 // 與 index.html 同一張社群分享縮圖（絕對網址，跨網域共用）
-const OG_IMAGE_URL = `${BOOKING_ORIGIN}/og-image.png`;
+const OG_IMAGE_URL = `${BOOKING_ORIGIN}/og-image-1200x630.png`;
 
 const REQUEST_TIMEOUT_MS = 15000;
 
