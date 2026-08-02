@@ -199,6 +199,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 2b. 排除規則：沿用正式試算共用邏輯（DB 驅動 owner_settlement_pricing_rules + legacy fallback）
+    const isExempt = await buildExemptResolver(supabase, accIds);
+
     const results: any[] = [];
 
     for (const acc of accommodations || []) {
@@ -215,7 +218,7 @@ Deno.serve(async (req) => {
       let ordQuery = supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source",
+          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, owner_direct, accommodation_id",
         )
         .eq("accommodation_id", acc.id)
         .lt("check_in_date", monthEndStr)
@@ -229,8 +232,9 @@ Deno.serve(async (req) => {
       // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
       for (const o of orders || []) {
-        revenueTwd += accruedInMonth(o, monthStart, monthEnd);
+        revenueTwd += accruedInMonth(o, monthStart, monthEnd, isExempt);
       }
+
       revenueTwd = Math.round(revenueTwd);
 
 
