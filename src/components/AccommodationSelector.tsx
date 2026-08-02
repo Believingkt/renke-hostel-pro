@@ -37,6 +37,8 @@ export function AccommodationSelector() {
   const { currentAccommodationId, setCurrentAccommodationId, userAccommodations, isLoading: contextIsLoading } = useAccommodation();
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [aliasMissingOnly, setAliasMissingOnly] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,8 +81,13 @@ export function AccommodationSelector() {
         (acc) => !isPmsMode() || !!acc.short_url_alias?.trim()
       );
 
+      setAliasMissingOnly(
+        isPmsMode() && (data?.length ?? 0) > 0 && list.length === 0
+      );
+
       console.log('[AccommodationSelector] Loaded accommodation info:', list);
       setAccommodations(list);
+
 
     } catch (error) {
       console.error('[AccommodationSelector] Error loading accommodations:', error);
@@ -96,8 +103,17 @@ export function AccommodationSelector() {
 
   // If no accommodations available, don't render
   if (accommodations.length === 0) {
+    if (aliasMissingOnly) {
+      return (
+        <span className="text-sm text-muted-foreground">
+          此帳號的民宿尚未設定代號，請聯絡總部
+        </span>
+      );
+    }
     return null;
   }
+
+
 
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
