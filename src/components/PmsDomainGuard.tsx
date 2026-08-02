@@ -80,7 +80,6 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
 
   if (legacyAdminOnFrontend) {
     if (hasSession === null || hasSession === false) return null;
-    const alias = extractAliasFromPath(location.pathname);
     return (
       <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md shadow-lg">
@@ -97,11 +96,10 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
             <Button
               className="w-full"
               onClick={() => {
-                window.location.href = pmsHref(
-                  `/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`
-                );
+                window.location.href = pmsHref("/login");
               }}
             >
+
               <ExternalLink className="mr-2 h-4 w-4" />
               前往 pms.lakeze.com 登入
             </Button>
