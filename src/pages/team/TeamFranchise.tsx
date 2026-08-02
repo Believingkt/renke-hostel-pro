@@ -815,7 +815,7 @@ function OrdersTab({
     const planPrice = form.unit_price * form.unit_qty;
     setSaving(true);
     const { commission_rate, leader_rate, company_rate, directLeader } =
-      computeRates(form.sold_by);
+      computeRates(form.sold_by, form.sold_at);
     const payload = {
       member_number: form.member_number.trim() || null,
       customer_name: form.customer_name.trim(),
