@@ -2400,18 +2400,23 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     }
     setRows((ordersRes.data ?? []) as ExternalOrder[]);
 
-    const rateMap: Record<string, ExternalRates> = {};
-    ((ratesRes.data ?? []) as any[]).forEach((r) => {
-      if (!rateMap[r.project_name]) {
-        rateMap[r.project_name] = {
-          sales_rate: Number(r.sales_rate ?? 0.2),
-          co_sales1_rate: Number(r.co_sales1_rate ?? 0.1),
-          co_sales2_rate: Number(r.co_sales2_rate ?? 0.15),
-          payout_day: r.payout_day ?? null,
-        };
-      }
-    });
-    setExternalRates(rateMap);
+    // 依專案名稱分組保留所有版本，實際使用時再依訂單簽約日選取當時生效版本
+    setExternalRateVersions(groupRatesByProject((ratesRes.data ?? []) as any[]));
+  };
+
+  // 依專案 + 訂單日期（signed_at）解析當時生效的外部單費率
+  const resolveExternalRates = (
+    project: string,
+    signedAt?: string | null,
+  ): ExternalRates | null => {
+    const r: any = pickRateVersion(externalRateVersions[project.trim()], signedAt ?? todayTaipei());
+    if (!r) return null;
+    return {
+      sales_rate: Number(r.sales_rate ?? 0.2),
+      co_sales1_rate: Number(r.co_sales1_rate ?? 0.1),
+      co_sales2_rate: Number(r.co_sales2_rate ?? 0.15),
+      payout_day: r.payout_day ?? null,
+    };
   };
 
   useEffect(() => {
@@ -2423,7 +2428,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     if (editingId) return;
     const project = (form.project_name ?? "").trim();
     if (!project) return;
-    const r = externalRates[project];
+    const r = resolveExternalRates(project, form.signed_at);
     if (!r) return;
     const total = (Number(form.unit_count) || 0) * (Number(form.plan_price) || 0);
     setForm((prev) => ({
@@ -2433,9 +2438,9 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       co_sales_bonus2: (prev.co_sales_name2 ?? "").trim() ? Math.round(total * r.co_sales2_rate) : null,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.project_name, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRates, editingId, sheetOpen]);
+  }, [form.project_name, form.signed_at, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRateVersions, editingId, sheetOpen]);
 
-  const currentRates = externalRates[(form.project_name ?? "").trim()] ?? null;
+  const currentRates = resolveExternalRates((form.project_name ?? "").trim(), form.signed_at);
   const pct = (n: number | null | undefined) => n == null ? "" : `${parseFloat((n * 100).toFixed(2))}%`;
 
   const projects = useMemo(() => {
