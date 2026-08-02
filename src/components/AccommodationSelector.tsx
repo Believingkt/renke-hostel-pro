@@ -144,12 +144,15 @@ export function AccommodationSelector() {
   }
 
   const currentAcc = accommodations.find(a => a.id === currentAccommodationId);
+  const switchingAcc = accommodations.find(a => a.id === switchingId);
 
   const handleSwitch = (id: string) => {
+    if (id === currentAccommodationId) return;
     if (isPmsMode()) {
       const target = accommodations.find((a) => a.id === id);
       const alias = target?.short_url_alias?.trim().toLowerCase();
       if (alias) {
+        setSwitchingId(id);
         try {
           localStorage.setItem("lastSelectedAccommodation", id);
           localStorage.setItem(LAST_PROPERTY_ALIAS_KEY, alias);
@@ -164,6 +167,7 @@ export function AccommodationSelector() {
   };
 
   return (
+
     <div className="flex items-center gap-1.5">
       <TooltipProvider>
         <Tooltip>
