@@ -9,6 +9,7 @@ import {
   extractAliasFromPath,
   isAdminPath,
   isPmsAllowedPath,
+  normalizePmsPath,
   pmsHref,
   resolveAppMode,
 } from "@/lib/appMode";
