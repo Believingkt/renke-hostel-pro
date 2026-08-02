@@ -324,6 +324,12 @@ function App() {
                     <Route path="data-deletion" element={
                       <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
                     } />
+                    <Route path="trips" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Trips /></Suspense>
+                    } />
+                    <Route path="trips/:tripId" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
+                    } />
                     <Route path="legal/:slug" element={
                       <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
                     } />
