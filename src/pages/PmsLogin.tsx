@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
-import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, pmsHref } from "@/lib/appMode";
 
 const LAST_CODE_KEY = "pms_last_property_code";
 const REQUEST_TIMEOUT_MS = 15000;
@@ -23,7 +23,6 @@ function withTimeout<T>(promise: PromiseLike<T>, ms = REQUEST_TIMEOUT_MS): Promi
 }
 
 export default function PmsLogin() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [code, setCode] = useState("");
@@ -142,7 +141,9 @@ export default function PmsLogin() {
         /* ignore */
       }
       toast.success("登入成功！");
-      navigate(`/${normalizedCode}/admin`, { replace: true });
+      // 用整頁導向，確保後台版面在載入時就讀得到最新 session（避免 SPA 內部競態被踢回登入頁）
+      window.location.assign(pmsHref(`/${normalizedCode}/admin`));
+      return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PmsLogin] login failed:", error);

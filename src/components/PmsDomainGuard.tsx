@@ -9,6 +9,7 @@ import {
   extractAliasFromPath,
   isAdminPath,
   isPmsAllowedPath,
+  normalizePmsPath,
   pmsHref,
   resolveAppMode,
 } from "@/lib/appMode";
@@ -53,6 +54,12 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
     if (mode !== "pms") return;
     if (location.pathname === "/" || location.pathname === "") {
       navigate("/login", { replace: true });
+      return;
+    }
+    // 舊的 /{alias}/auth 或 /auth 一律導向統一登入頁
+    if (normalizePmsPath(location.pathname) === "/auth") {
+      const alias = extractAliasFromPath(location.pathname);
+      navigate(`/login${alias ? `?code=${encodeURIComponent(alias)}` : ""}`, { replace: true });
       return;
     }
     if (!isPmsAllowedPath(location.pathname)) {
