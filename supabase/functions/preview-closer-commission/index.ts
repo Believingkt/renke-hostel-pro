@@ -62,7 +62,12 @@ serve(async (req) => {
       ? body.accommodation_id
       : null;
 
-    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    // 可選：直接指定 UTC 區間（供自訂期間查詢），未指定時以 year/month 的台北月界為準
+    const startIsoOverride = typeof body?.start_iso === "string" ? body.start_iso : null;
+    const endIsoOverride = typeof body?.end_iso === "string" ? body.end_iso : null;
+    const hasRange = !!(startIsoOverride && endIsoOverride);
+
+    if (!hasRange && (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12)) {
       return json({ success: false, error: "year / month 參數不正確" }, 400);
     }
 
@@ -76,8 +81,8 @@ serve(async (req) => {
       return json({ success: false, error: "Unauthorized" }, 401);
     }
 
-    const startUtc = taipeiMidnightUtcISO(year, month, 1);
-    const endUtc = taipeiMidnightUtcISO(year, month + 1, 1);
+    const startUtc = hasRange ? startIsoOverride! : taipeiMidnightUtcISO(year, month, 1);
+    const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
     // 1) 該月 order_date 落在區間內、未取消的訂單
     let ordersQuery = supabase
