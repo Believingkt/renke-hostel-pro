@@ -55,6 +55,7 @@ export default function TripDetail() {
   const [params, setParams] = useSearchParams();
   const lang = normalizeLang(params.get("lang")) as TripLang;
   const t = tripText(lang);
+  const navigate = useNavigate();
 
   const [trip, setTrip] = useState<TripRow | null>(null);
   const [products, setProducts] = useState<Record<string, ProductRow>>({});
