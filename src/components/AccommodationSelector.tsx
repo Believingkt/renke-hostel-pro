@@ -103,8 +103,17 @@ export function AccommodationSelector() {
 
   // If no accommodations available, don't render
   if (accommodations.length === 0) {
+    if (aliasMissingOnly) {
+      return (
+        <span className="text-sm text-muted-foreground">
+          此帳號的民宿尚未設定代號，請聯絡總部
+        </span>
+      );
+    }
     return null;
   }
+
+
 
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
