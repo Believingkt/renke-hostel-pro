@@ -37,6 +37,8 @@ export function AccommodationSelector() {
   const { currentAccommodationId, setCurrentAccommodationId, userAccommodations, isLoading: contextIsLoading } = useAccommodation();
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [aliasMissingOnly, setAliasMissingOnly] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
