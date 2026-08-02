@@ -1528,7 +1528,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
   const saveInternal = async () => {
     const payload = {
       type: "internal",
-      project_name: "森山第一期",
+      project_name: "森山寫照第一期",
       base_rate: internalForm.base_rate / 100,
       tier1_rate: internalForm.tier1_rate / 100,
       tier2_rate: internalForm.tier2_rate / 100,
@@ -2318,7 +2318,7 @@ const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
 const INVOICE_PROGRESS_OPTIONS = ["尚未", "已完成"];
 
 const emptyExternalForm = (): Partial<ExternalOrder> => ({
-  project_name: "森山第一期",
+  project_name: "森山寫照第一期",
   signed_at: new Date().toISOString().slice(0, 10),
   sales_name: "",
   sales_email: "",
@@ -2604,7 +2604,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
     }
     const payload = {
-      project_name: form.project_name?.trim() || "森山第一期",
+      project_name: form.project_name?.trim() || "森山寫照第一期",
       signed_at: form.signed_at || null,
       sales_name: form.sales_name?.trim() || null,
       sales_email: form.sales_email?.trim() || null,
