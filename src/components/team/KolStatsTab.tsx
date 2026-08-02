@@ -739,9 +739,9 @@ export function KolStatsTab() {
                   <TableHead className="text-right whitespace-nowrap">全部累積邀約</TableHead>
                   <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
                   <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
+                  <TableHead className="text-right whitespace-nowrap" title="KOL訂單星探分潤：訂單筆數">KOL訂單星探分潤筆數</TableHead>
                   <TableHead className="text-right whitespace-nowrap">分潤%</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">KOL分潤金額</TableHead>
+                  <TableHead className="text-right whitespace-nowrap" title="KOL訂單星探分潤：金額">KOL訂單星探分潤金額</TableHead>
                   <TableHead className="text-right whitespace-nowrap">底薪</TableHead>
                   <TableHead className="text-right whitespace-nowrap">團隊獎金</TableHead>
                   <TableHead className="text-right whitespace-nowrap">合計</TableHead>
@@ -804,15 +804,15 @@ export function KolStatsTab() {
           */}
           <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
             <div className="font-medium">期別結算區間說明：</div>
-            <div>・稀有度獎金／KOL分潤：</div>
+            <div>・稀有度獎金／KOL訂單星探分潤：</div>
             <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
             <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
             <div>・底薪／團隊獎金：僅於X月10日期發放，以上月（X-1月）整月達標為準</div>
             <div className="pt-2 font-medium">欄位計算方式：</div>
             <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
             <div>・「KOL稀有度獎金」以「KOL入住日」為發放條件</div>
-            <div>・「KOL分潤訂單清單」：依 CID 匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
-            <div>・「KOL分潤訂單清單」是以「訂單日期」為發放條件（目的是先發獎金給星探）</div>
+            <div>・「KOL訂單星探分潤清單」：依 CID 匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
+            <div>・「KOL訂單星探分潤清單」是以「訂單日期」為發放條件（目的是先發獎金給星探）</div>
           </div>
         </CardContent>
 
@@ -873,7 +873,7 @@ export function KolStatsTab() {
                   </section>
 
                   <section>
-                    <h3 className="text-sm font-semibold mb-2">KOL分潤訂單清單</h3>
+                    <h3 className="text-sm font-semibold mb-2">KOL訂單星探分潤清單</h3>
                     <div className="overflow-x-auto border rounded-md">
                       <Table>
                         <TableHeader>

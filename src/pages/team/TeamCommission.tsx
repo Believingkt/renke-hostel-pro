@@ -46,7 +46,7 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
   closer: "成交組獎金",
   video: "影音組分潤",
-  scout_kol: "星探KOL分潤",
+  scout_kol: "KOL訂單星探分潤",
   scout_rarity: "星探稀有度獎金",
   scout_base: "星探底薪",
   scout_team: "星探團隊獎金",
@@ -173,7 +173,7 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
           <li><span className="font-medium">成交組訂房佣金：</span>每月 10 日發放，結算上個月整月訂單。</li>
           <li><span className="font-medium">影音組分潤：</span>每月 10 日發放，結算上個月整月訂單。</li>
           <li>
-            <div><span className="font-medium">星探KOL分潤：</span>每月 10 日與 25 日各發放一次。</div>
+            <div><span className="font-medium">KOL訂單星探分潤：</span>每月 10 日與 25 日各發放一次。</div>
             <ul className="pl-6 mt-1 space-y-1 text-muted-foreground list-disc">
               <li>10 日期：結算上月 21 日 ～ 當月 5 日的入住訂單</li>
               <li>25 日期：結算當月 6 日 ～ 當月 20 日的入住訂單</li>
@@ -181,7 +181,7 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
           </li>
           <li><span className="font-medium">星探底薪：</span>每月 10 日發放，以上月整月邀約達標為計算基準。</li>
           <li><span className="font-medium">星探團隊獎金：</span>每月 10 日發放，以上月整月全隊達標為計算基準。</li>
-          <li><span className="font-medium">星探稀有度獎金：</span>10 日與 25 日各發放一次，計算區間同 KOL 分潤。</li>
+          <li><span className="font-medium">星探稀有度獎金：</span>10 日與 25 日各發放一次，計算區間同 KOL訂單星探分潤。</li>
           <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
           <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
           <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
@@ -549,7 +549,7 @@ const SOURCE_LABEL: Record<string, string> = {
   starlink: "星鏈分潤",
   scout_base: "星探底薪",
   scout_rarity: "星探稀有度獎金",
-  scout_kol: "星探KOL分潤",
+  scout_kol: "KOL訂單星探分潤",
   scout_team: "星探團隊獎金",
   scout_closer: "星探成交獎金",
   scout_discount_kol: "星探折扣碼分潤",
@@ -1227,7 +1227,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <div className="text-xs text-foreground">
-            <span className="font-medium">{month} 月 10 日期</span>：稀有度／KOL 分潤{" "}
+            <span className="font-medium">{month} 月 10 日期</span>：稀有度／KOL訂單星探分潤{" "}
             <span className="tabular-nums">
               {commissionPeriodRange(year, month, "10").start} ~ {commissionPeriodRange(year, month, "10").end}
             </span>
@@ -1235,7 +1235,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             <span className="tabular-nums">{range.start} ~ {range.end}（{range.prevMonth} 月整月）</span>
           </div>
           <div className="text-xs text-foreground">
-            <span className="font-medium">{month} 月 25 日期</span>：稀有度／KOL 分潤{" "}
+            <span className="font-medium">{month} 月 25 日期</span>：稀有度／KOL訂單星探分潤{" "}
             <span className="tabular-nums">
               {commissionPeriodRange(year, month, "25").start} ~ {commissionPeriodRange(year, month, "25").end}
             </span>
