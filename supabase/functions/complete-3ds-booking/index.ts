@@ -188,6 +188,7 @@ Deno.serve(async (req) => {
         mealPlanTotal: body.mealPlanTotal || 0,
         petCount: body.petCount || 0,
         petPlanPrice: body.petPlanPrice || 0,
+        customAddonDetails: (body as any).customAddonDetails ?? null,
       };
 
       const validateResponse = await fetch(
