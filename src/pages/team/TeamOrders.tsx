@@ -521,6 +521,7 @@ export default function TeamOrders() {
         if (year !== "ALL") {
           const y = Number(year);
           const pad = (n: number) => String(n).padStart(2, "0");
+          // 期間基準統一為 order_date（與 closer_commission_snapshots 正式試算一致）
           if (month !== "ALL") {
             const m = Number(month);
             const startDay = `${y}-${pad(m)}-01`;
@@ -528,19 +529,12 @@ export default function TeamOrders() {
             const nextY = m === 12 ? y + 1 : y;
             const nextM = m === 12 ? 1 : m + 1;
             const endExclusive = `${nextY}-${pad(nextM)}-01`;
-            q = q.or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`
-            );
+            q = q.gte("order_date", startDay).lt("order_date", endExclusive);
           } else {
-            const startDay = `${y}-01-01`;
-            const endExclusive = `${y + 1}-01-01`;
-            q = q.or(
-              `and(confirmed_at.gte.${startDay},confirmed_at.lt.${endExclusive}),` +
-                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lt.${endExclusive})`
-            );
+            q = q.gte("order_date", `${y}-01-01`).lt("order_date", `${y + 1}-01-01`);
           }
         }
+
 
 
         const s = search.trim();
