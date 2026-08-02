@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
+import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
