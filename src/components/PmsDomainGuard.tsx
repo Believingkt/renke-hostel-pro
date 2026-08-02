@@ -8,7 +8,6 @@ import {
   bookingHref,
   extractAliasFromPath,
   isAdminPath,
-  isBookingHost,
   isPmsAllowedPath,
   pmsHref,
   resolveAppMode,
