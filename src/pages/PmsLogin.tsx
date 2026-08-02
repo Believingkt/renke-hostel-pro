@@ -117,8 +117,8 @@ export default function PmsLogin() {
 
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, short_url_alias, display_order")
-        .order("display_order", { ascending: true, nullsFirst: false })
+        .select("id, name, short_url_alias, created_at")
+        .order("created_at", { ascending: true, nullsFirst: true })
         .order("name", { ascending: true });
       if (!isGlobalSuperAdmin) query = query.in("id", allowedIds);
 
