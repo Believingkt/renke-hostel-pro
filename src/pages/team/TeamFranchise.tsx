@@ -542,6 +542,8 @@ function OrdersTab({
   const [members, setMembers] = useState<Member[]>([]);
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
   const [internalRates, setInternalRates] = useState<InternalRates | null>(null);
+  // 內部單費率所有版本（依訂單日期選取當時生效版本用）
+  const [internalRateVersions, setInternalRateVersions] = useState<any[]>([]);
   const projectOrderMap = useProjectOrderMap();
 
   
