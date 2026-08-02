@@ -236,76 +236,36 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
       const rate = sData && sData.length > 0 ? Number(sData[0].bonus_rate) : 0;
       setAppliedRate(rate);
 
-      // Commission settings history
-      const { data: cData } = await supabase
-        .from("accommodation_commission_settings")
-        .select("accommodation_id, closer_rate, effective_from")
-        .order("effective_from", { ascending: false });
-      const commissionByAcc = new Map<string, CommissionRow[]>();
-      (cData ?? []).forEach((r: any) => {
-        const arr = commissionByAcc.get(r.accommodation_id) ?? [];
-        arr.push(r);
-        commissionByAcc.set(r.accommodation_id, arr);
-      });
-
-      // Orders within Taipei month [monthFirst, nextFirst) on COALESCE(confirmed_at, order_date)
+      // 成交組分潤基礎金額：改由 preview-closer-commission Edge Function 計算，
+      // 與正式快照 closer_commission_snapshots 完全同一套公式
+      // （commissionBaseFromOrder 扣加購、isExempt 排除、排非台幣、排 cancelled，分月基準 order_date）。
       const startIso = `${monthFirst}T00:00:00+08:00`;
       const endIso = `${nextFirst}T00:00:00+08:00`;
 
-      // Fetch orders + meta separately, join in JS. Paginate.
-      const PAGE = 1000;
-      const allOrders: any[] = [];
-      for (let from = 0; from < 50000; from += PAGE) {
-        const { data, error } = await supabase
-          .from("orders")
-          .select(
-            "id, accommodation_id, final_price, order_status, order_date, confirmed_at",
-          )
-          .neq("order_status", "cancelled")
-          .or(
-            `and(confirmed_at.gte.${startIso},confirmed_at.lt.${endIso}),and(confirmed_at.is.null,order_date.gte.${startIso},order_date.lt.${endIso})`,
-          )
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        const rows = data ?? [];
-        allOrders.push(...rows);
-        if (rows.length < PAGE) break;
-      }
+      const { data: previewRes, error: previewErr } = await supabase.functions.invoke(
+        "preview-closer-commission",
+        {
+          body: {
+            scope: "team",
+            year,
+            month,
+            start_iso: new Date(startIso).toISOString(),
+            end_iso: new Date(endIso).toISOString(),
+          },
+        },
+      );
+      if (previewErr) throw previewErr;
+      if (!previewRes?.success) throw new Error(previewRes?.error || "試算失敗");
 
-      const orderIds = allOrders.map((o) => o.id);
-      const metaMap = new Map<string, { closer_id: string | null; is_excluded: boolean }>();
-      // batch meta lookups
-      for (let i = 0; i < orderIds.length; i += 500) {
-        const chunk = orderIds.slice(i, i + 500);
-        if (!chunk.length) break;
-        const { data: metas } = await supabase
-          .from("order_meta")
-          .select("order_id, closer_id, is_excluded")
-          .in("order_id", chunk);
-        (metas ?? []).forEach((m: any) => {
-          metaMap.set(m.order_id, {
-            closer_id: m.closer_id,
-            is_excluded: !!m.is_excluded,
-          });
-        });
-      }
-
-      let poolAcc = 0;
       let commissionAcc = 0;
-      allOrders.forEach((o) => {
-        const m = metaMap.get(o.id);
-        if (!m || !m.closer_id || m.is_excluded) return;
-        const closerRate = pickCloserRateFor(
-          commissionByAcc,
-          o.accommodation_id,
-          o.order_date,
-        );
-        const commission = (Number(o.final_price) || 0) * closerRate;
-        commissionAcc += commission;
-        poolAcc += commission * rate;
-      });
+      for (const row of (previewRes.orders ?? []) as Array<{ closer_id: string | null; closer_commission: number }>) {
+        if (!row.closer_id) continue;
+        commissionAcc += Number(row.closer_commission) || 0;
+      }
+      const poolAcc = commissionAcc * rate;
       setPool(poolAcc);
       setTotalCommission(commissionAcc);
+
 
       // Load existing distributions
       const { data: dData } = await supabase
