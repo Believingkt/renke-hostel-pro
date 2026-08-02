@@ -1,6 +1,7 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useSearchParams } from "react-router-dom";
+import { isPmsHost, extractAliasFromPath } from "@/lib/appMode";
 
 const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
@@ -85,6 +86,21 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       hostname === "127.0.0.1" ||
       hostname.includes("lovableproject.com") ||
       hostname.includes("lovable.app");
+
+    // ===== PMS 網域：一律以路徑首段 alias 為準（登入時輸入的民宿代號） =====
+    if (isPmsHost(hostname)) {
+      const pmsAlias = extractAliasFromPath(window.location.pathname);
+      if (!pmsAlias) return null;
+      const allowedIds = availableAccommodations.map((acc) => acc.accommodation_id);
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("id, short_url_alias")
+        .in("id", allowedIds)
+        .eq("short_url_alias", pmsAlias)
+        .maybeSingle();
+      if (error || !data) return null;
+      return data.id;
+    }
 
     // ===== Booking 網域：解析路徑首段為 alias =====
     if (isBookingDomain) {
@@ -243,6 +259,17 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
 
       if (data && data.length > 0 && forceAutoSelect) {
         const domainAccommodationId = await resolveDomainAccommodationId(data);
+
+        // 0. PMS 網域：無 accId 時，以登入時輸入的民宿代號（路徑 alias）為準
+        if (
+          domainAccommodationId &&
+          isPmsHost() &&
+          !searchParams.get(ACCOMMODATION_ID_PARAM)
+        ) {
+          setCurrentAccommodationId(domainAccommodationId);
+          setIsLoading(false);
+          return;
+        }
 
         // 1. 優先從 URL query 讀取
         const urlAccommodationId = searchParams.get(ACCOMMODATION_ID_PARAM);
