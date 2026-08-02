@@ -2363,7 +2363,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [form, setForm] = useState<Partial<ExternalOrder>>(emptyExternalForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [externalRates, setExternalRates] = useState<Record<string, ExternalRates>>({});
+  const [externalRateVersions, setExternalRateVersions] = useState<Record<string, any[]>>({});
   const [memberOptions, setMemberOptions] = useState<Array<{ id: string; display_name: string }>>([]);
 
   useEffect(() => {
