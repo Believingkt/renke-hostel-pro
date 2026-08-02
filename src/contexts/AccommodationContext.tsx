@@ -87,6 +87,21 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       hostname.includes("lovableproject.com") ||
       hostname.includes("lovable.app");
 
+    // ===== PMS 網域：一律以路徑首段 alias 為準（登入時輸入的民宿代號） =====
+    if (isPmsHost(hostname)) {
+      const pmsAlias = extractAliasFromPath(window.location.pathname);
+      if (!pmsAlias) return null;
+      const allowedIds = availableAccommodations.map((acc) => acc.accommodation_id);
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("id, short_url_alias")
+        .in("id", allowedIds)
+        .eq("short_url_alias", pmsAlias)
+        .maybeSingle();
+      if (error || !data) return null;
+      return data.id;
+    }
+
     // ===== Booking 網域：解析路徑首段為 alias =====
     if (isBookingDomain) {
       const pathSegments = window.location.pathname.split("/").filter(Boolean);

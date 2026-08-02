@@ -51,6 +51,11 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://tiansong-villa.lakeze.com/booking/villa/4ee31aca-5641-4d05-80e2-1c67626be83d</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://booking.lakeze.com/booking/villa/5f764d55-ae11-4631-80fe-2e611853deae</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
