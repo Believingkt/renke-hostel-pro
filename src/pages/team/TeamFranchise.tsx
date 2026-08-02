@@ -56,6 +56,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { pickRateVersion, groupRatesByProject, todayTaipei } from "@/lib/franchiseRates";
+import FranchiseCommissionAuditDialog from "@/components/team/FranchiseCommissionAuditDialog";
 
 interface InternalRates {
   base_rate: number;
