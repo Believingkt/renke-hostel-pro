@@ -193,7 +193,16 @@ const TripGuide = () => {
             );
           })}
         </div>
+        {saved && (
+          <a
+            href="/trips/templates"
+            className="mt-2 flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            挑選情境，生成推薦行程
+          </a>
+        )}
       </div>
+
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((m, i) =>
