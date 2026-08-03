@@ -884,16 +884,17 @@ export function KolStatsTab() {
                   <section>
                     <h3 className="text-sm font-semibold mb-2">本期邀約與稀有度獎金明細</h3>
                     <div className="overflow-x-auto border rounded-md">
-                      <Table>
+                      <Table className="min-w-[720px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead>KOL名稱</TableHead>
                             <TableHead>稀有度</TableHead>
                             <TableHead>入住日期</TableHead>
                             <TableHead className="whitespace-nowrap">計獎狀態</TableHead>
-                            <TableHead>說明</TableHead>
+                            <TableHead className="min-w-[220px] w-[240px]">說明</TableHead>
                             <TableHead className="text-right">單筆獎金</TableHead>
                           </TableRow>
+                        </TableHeader>
                         </TableHeader>
                         <TableBody>
                           {selectedScout.qualifiedKols.length === 0 ? (
