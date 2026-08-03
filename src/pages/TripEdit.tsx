@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/sheet";
 import { normalizeLang, pickLang, tripText, type TripLang } from "@/lib/tripI18n";
 import { readCart, writeCart, type CartItem } from "@/lib/tripCart";
+import { ShareTripDialog } from "@/components/trips/ShareTripDialog";
+import { ProductAvailability, parseSlots } from "@/components/trips/ProductAvailability";
 import { toast } from "sonner";
 
 interface TripItem {
@@ -52,6 +54,9 @@ interface ProductRow {
   price: number | null;
   duration_min: number | null;
   cover_url?: string | null;
+  stock: number | null;
+  available_slots: unknown;
+  updated_at: string | null;
 }
 
 interface RoomRow {
@@ -123,7 +128,7 @@ export default function TripEdit() {
       const [{ data: prods }, { data: roomRows }] = await Promise.all([
         supabase
           .from("trip_products")
-          .select("id, type, name, description, price, duration_min, cover_url")
+          .select("id, type, name, description, price, duration_min, cover_url, stock, available_slots, updated_at")
           .eq("is_active", true),
         supabase.from("room_types").select("id, name, base_price, accommodation_id"),
       ]);
@@ -195,10 +200,16 @@ export default function TripEdit() {
   const addAllToCart = () => {
     const cart = readCart();
     const next: CartItem[] = [...cart.items];
+    let blocked = 0;
     for (const it of items) {
       if (it.ref_type === "product") {
         const p = products[it.ref_id];
         if (!p) continue;
+        // 已售完的品項不得加入購物車
+        if (p.stock !== null && p.stock <= 0) {
+          blocked += 1;
+          continue;
+        }
         next.push({
           kind: "product",
           key: `p-${p.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -211,6 +222,8 @@ export default function TripEdit() {
         });
       }
     }
+    if (blocked > 0) toast.error(t.soldOutBlocked);
+    if (next.length === cart.items.length) return;
     writeCart({ tripId: tripId ?? null, items: next });
     toast.success(lang === "ja" ? "カートに追加しました" : lang === "en" ? "Added to cart" : "已加入購物車");
     navigate(`/cart?lang=${lang}`);
@@ -241,6 +254,7 @@ export default function TripEdit() {
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-base font-bold text-foreground">{title}</h1>
         {saving && <span className="text-xs text-muted-foreground">…</span>}
+        {tripId && <ShareTripDialog tripId={tripId} lang={lang} />}
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-4">
@@ -291,6 +305,17 @@ export default function TripEdit() {
                               NT$ {(unitPrice(item) * (item.qty || 1)).toLocaleString()}
                             </span>
                           </div>
+                          {!isRoom && products[item.ref_id] && (
+                            <ProductAvailability
+                              lang={lang}
+                              compact
+                              info={{
+                                stock: products[item.ref_id].stock,
+                                availableSlots: parseSlots(products[item.ref_id].available_slots),
+                                updatedAt: products[item.ref_id].updated_at,
+                              }}
+                            />
+                          )}
                         </div>
                         <button
                           aria-label="delete"
