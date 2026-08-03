@@ -82,7 +82,7 @@ function AnomalyBadge({ reason }: { reason?: string | null }) {
               >
                 <Badge
                   variant="outline"
-                  className="bg-orange-100 text-orange-700 border-orange-300 border-dashed cursor-pointer gap-1 pl-1.5 pr-2 hover:bg-orange-200 hover:border-solid transition-colors animate-pulse-none"
+                  className="bg-orange-100 text-orange-700 border-orange-300 border-dashed cursor-pointer gap-1 pl-1.5 pr-2 hover:bg-orange-200 hover:border-solid transition-colors"
                 >
                   <AlertTriangle className="h-3 w-3" />
                   異常
