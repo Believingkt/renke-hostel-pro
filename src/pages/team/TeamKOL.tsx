@@ -70,18 +70,30 @@ function AnomalyBadge({ reason }: { reason?: string | null }) {
   if (!info) return null;
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0"
-          aria-label="查看異常原因"
-        >
-          <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 cursor-pointer">
-            異常
-          </Badge>
-        </button>
-      </PopoverTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                aria-label="點擊查看異常原因"
+              >
+                <Badge
+                  variant="outline"
+                  className="bg-orange-100 text-orange-700 border-orange-300 border-dashed cursor-pointer gap-1 pl-1.5 pr-2 hover:bg-orange-200 hover:border-solid transition-colors animate-pulse-none"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  異常
+                  <HelpCircle className="h-3 w-3 opacity-70" />
+                </Badge>
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">點擊查看異常原因</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent
         align="start"
         className="w-72 text-sm"
@@ -93,6 +105,7 @@ function AnomalyBadge({ reason }: { reason?: string | null }) {
       </PopoverContent>
     </Popover>
   );
+
 }
 
 
