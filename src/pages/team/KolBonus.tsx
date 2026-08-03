@@ -144,7 +144,7 @@ export default function KolBonus() {
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [drawerSettlement, setDrawerSettlement] = useState(false);
-  const [filterYear, setFilterYear] = useState<number>(0);
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   const [tab1Search, setTab1Search] = useState<string>("");
   const [tab1SearchInput, setTab1SearchInput] = useState<string>("");
