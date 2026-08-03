@@ -422,6 +422,21 @@ export default function TeamMembers() {
   const handleSave = async () => {
     if (!editTarget) return;
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
+
+    // 一致性檢查：避免因表單預設值意外覆寫「正職起始月份」
+    const nextFulltimeYM =
+      editRoles.includes("scout") && editFulltime
+        ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+        : null;
+    const prevFulltimeYM = editTarget.fulltime_start_yearmonth ?? null;
+    if (prevFulltimeYM && nextFulltimeYM !== prevFulltimeYM) {
+      const target = nextFulltimeYM ?? "（清除，改為兼職）";
+      const ok = window.confirm(
+        `「正職起始月份」將由 ${prevFulltimeYM} 變更為 ${target}。\n此設定會影響稀有度獎金與底薪試算，確定要變更嗎？`,
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     try {
       if (!canEditAll && isScoutManager) {
