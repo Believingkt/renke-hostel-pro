@@ -964,6 +964,12 @@ ${accListStr}
                   // Send tool results
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_calls_complete', results: toolResults })}\n\n`));
 
+                  // B1: 記錄房型查詢結果供推薦卡使用
+                  for (const tr of toolResults) {
+                    if ((tr.result as any)?.rooms) lastRoomsResult = tr.result;
+                  }
+
+
                   // Template response for room queries
                   const canTemplate = completedToolCalls.length === 1 && completedToolCalls[0].function.name === 'get_available_rooms';
 
