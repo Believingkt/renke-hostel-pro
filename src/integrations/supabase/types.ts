@@ -1261,6 +1261,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_eval_samples: {
+        Row: {
+          ai_output: string
+          conversation_id: string | null
+          created_at: string
+          has_lang_error: boolean
+          id: string
+          lang: string
+          needs_human_fix: boolean
+          note: string | null
+          reviewer: string | null
+          semantic_label: string | null
+          test_input: string
+          updated_at: string
+        }
+        Insert: {
+          ai_output?: string
+          conversation_id?: string | null
+          created_at?: string
+          has_lang_error?: boolean
+          id?: string
+          lang?: string
+          needs_human_fix?: boolean
+          note?: string | null
+          reviewer?: string | null
+          semantic_label?: string | null
+          test_input?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_output?: string
+          conversation_id?: string | null
+          created_at?: string
+          has_lang_error?: boolean
+          id?: string
+          lang?: string
+          needs_human_fix?: boolean
+          note?: string | null
+          reviewer?: string | null
+          semantic_label?: string | null
+          test_input?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_samples_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversation_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_examples: {
         Row: {
           accommodation_id: string | null

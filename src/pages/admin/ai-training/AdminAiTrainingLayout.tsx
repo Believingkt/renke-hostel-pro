@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FileText, BookOpen, MessagesSquare,
-  History, FlaskConical, KeyRound, Code,
+  History, FlaskConical, KeyRound, Code, Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ const NAV = [
   { to: "/admin/ai-training/knowledge", label: "知識庫", icon: BookOpen },
   { to: "/admin/ai-training/examples", label: "對話範例", icon: MessagesSquare },
   { to: "/admin/reply-templates", label: "回覆樣板", icon: MessagesSquare },
+  { to: "/admin/model-training", label: "模型訓練", icon: Brain },
+
 
   { to: "/admin/ai-training/conversations", label: "對話紀錄", icon: History },
   { to: "/admin/ai-training/playground", label: "即時測試", icon: FlaskConical },

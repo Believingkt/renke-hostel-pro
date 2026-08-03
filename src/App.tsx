@@ -169,6 +169,8 @@ const AdminAiTrainingApiKeys = lazy(() => import("./pages/admin/ai-training/Admi
 const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiDocs"));
 const KnowledgeIndexPage = lazy(() => import("./pages/admin/knowledge/KnowledgeIndex"));
 const AdminAiReplyTemplatesPage = lazy(() => import("./pages/admin/ai-training/AdminAiReplyTemplates"));
+const AdminAiModelTrainingPage = lazy(() => import("./pages/admin/ai-training/AdminAiModelTraining"));
+
 
 const KnowledgeSearchPage = lazy(() => import("./pages/admin/knowledge/KnowledgeSearch"));
 
@@ -419,6 +421,12 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><AdminAiReplyTemplatesPage /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/model-training" element={
+                      <RequireModule module="ai_training">
+                        <Suspense fallback={<DashboardSkeleton />}><AdminAiModelTrainingPage /></Suspense>
+                      </RequireModule>
+                    } />
+
 
 
                     <Route path="admin/manual-review" element={
