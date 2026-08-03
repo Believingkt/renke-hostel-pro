@@ -1216,7 +1216,8 @@ function KolDetailDrawer({
                     <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                     <TableHead className="whitespace-nowrap">訂單日期</TableHead>
                     <TableHead className="whitespace-nowrap">退房日期</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">訂單金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤基準</TableHead>
                     <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
                     <TableHead className="whitespace-nowrap text-right">分潤金額</TableHead>
                     <TableHead className="whitespace-nowrap">預計發放日</TableHead>
@@ -1225,15 +1226,16 @@ function KolDetailDrawer({
                 <TableBody>
                   {completedList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
                         此月份無資料
                       </TableCell>
                     </TableRow>
                   ) : (
                     completedList.map((o) => {
                       const rate = getRate(o.accommodation_id, o.check_out_date);
-                      const revenue = Number(o.final_price ?? o.total_price ?? 0);
-                      const amount = Math.round(revenue * (rate / 100));
+                      const revenue = grossOf(o);
+                      const base = baseOf(o);
+                      const amount = Math.round(base * (rate / 100));
                       return (
                         <TableRow key={o.id}>
                           <TableCell className="whitespace-nowrap">{kol?.accommodation_name || "—"}</TableCell>
@@ -1242,6 +1244,7 @@ function KolDetailDrawer({
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{(() => {
