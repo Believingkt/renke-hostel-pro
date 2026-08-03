@@ -9898,6 +9898,48 @@ export type Database = {
         }
         Relationships: []
       }
+      traveler_attributes: {
+        Row: {
+          budget: number | null
+          companion_type: string | null
+          created_at: string
+          festival: string | null
+          highlights: string[] | null
+          id: string
+          party_size: number | null
+          purpose: string | null
+          session_id: string | null
+          trip_duration: string | null
+          user_id: string | null
+        }
+        Insert: {
+          budget?: number | null
+          companion_type?: string | null
+          created_at?: string
+          festival?: string | null
+          highlights?: string[] | null
+          id?: string
+          party_size?: number | null
+          purpose?: string | null
+          session_id?: string | null
+          trip_duration?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          budget?: number | null
+          companion_type?: string | null
+          created_at?: string
+          festival?: string | null
+          highlights?: string[] | null
+          id?: string
+          party_size?: number | null
+          purpose?: string | null
+          session_id?: string | null
+          trip_duration?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trip_products: {
         Row: {
           accommodation_id: string | null

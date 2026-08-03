@@ -77,6 +77,9 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
 const Trips = lazy(() => import("./pages/Trips"));
+const TripGuide = lazy(() => import("./pages/TripGuide"));
+const TravelerAttributes = lazy(() => import("./pages/admin/TravelerAttributes"));
+const DeployStatus = lazy(() => import("./pages/admin/DeployStatus"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
 const TripEdit = lazy(() => import("./pages/TripEdit"));
 const TripShare = lazy(() => import("./pages/TripShare"));
@@ -330,6 +333,10 @@ function App() {
                     <Route path="trips" element={
                       <Suspense fallback={<FrontendSkeleton />}><Trips /></Suspense>
                     } />
+                    <Route path="trips/guide" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripGuide /></Suspense>
+                    } />
+
                     <Route path="trips/:tripId" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
                     } />
@@ -376,6 +383,12 @@ function App() {
                       <RequireModule module="website_content">
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
+                    } />
+                    <Route path="admin/traveler-attributes" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                    } />
+                    <Route path="admin/deploy-status" element={
+                      <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
                     } />
                     <Route path="admin/manual-review" element={
                       <RequireModule module="orders">
