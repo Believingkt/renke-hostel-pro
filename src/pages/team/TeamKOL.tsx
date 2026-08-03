@@ -1824,15 +1824,6 @@ function InvitationsTab({
             </Select>
           </div>
 
-          <Select value={filterQualified} onValueChange={setFilterQualified}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="累積資格" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">累積資格</SelectItem>
-              <SelectItem value="yes">符合資格</SelectItem>
-              <SelectItem value="no">未符合資格</SelectItem>
-            </SelectContent>
           <div className="grid grid-cols-2 gap-2">
             <Select value={filterQualified} onValueChange={setFilterQualified}>
               <SelectTrigger className="w-full">
