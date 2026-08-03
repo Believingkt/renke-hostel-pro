@@ -141,7 +141,10 @@ interface ScoutStats {
     rarity: string;
     check_in_date: string | null;
     bonus: number;
+    counted: boolean;
+    reason: string;
   }>;
+
   orderItems: Array<{
     venue_name: string;
     order_number: string;
