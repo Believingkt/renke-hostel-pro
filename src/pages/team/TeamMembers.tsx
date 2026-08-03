@@ -422,6 +422,21 @@ export default function TeamMembers() {
   const handleSave = async () => {
     if (!editTarget) return;
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
+
+    // 一致性檢查：避免因表單預設值意外覆寫「正職起始月份」
+    const nextFulltimeYM =
+      editRoles.includes("scout") && editFulltime
+        ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+        : null;
+    const prevFulltimeYM = editTarget.fulltime_start_yearmonth ?? null;
+    if (prevFulltimeYM && nextFulltimeYM !== prevFulltimeYM) {
+      const target = nextFulltimeYM ?? "（清除，改為兼職）";
+      const ok = window.confirm(
+        `「正職起始月份」將由 ${prevFulltimeYM} 變更為 ${target}。\n此設定會影響稀有度獎金與底薪試算，確定要變更嗎？`,
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     try {
       if (!canEditAll && isScoutManager) {
@@ -433,9 +448,7 @@ export default function TeamMembers() {
             display_name: editName.trim(),
             is_scout_team_member: nextHasScout ? editScoutTeam : false,
             employment_type: nextHasScout && editFulltime ? "fulltime" : "parttime",
-            fulltime_start_yearmonth: nextHasScout && editFulltime
-              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
-              : null,
+            fulltime_start_yearmonth: nextHasScout ? nextFulltimeYM : null,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
@@ -471,9 +484,7 @@ export default function TeamMembers() {
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
-            fulltime_start_yearmonth: editRoles.includes("scout") && editFulltime
-              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
-              : null,
+            fulltime_start_yearmonth: nextFulltimeYM,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
