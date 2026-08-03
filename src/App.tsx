@@ -412,6 +412,12 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/reply-templates" element={
+                      <RequireModule module="ai_training">
+                        <Suspense fallback={<DashboardSkeleton />}><AdminAiReplyTemplatesPage /></Suspense>
+                      </RequireModule>
+                    } />
+
 
                     <Route path="admin/manual-review" element={
                       <RequireModule module="orders">
