@@ -56,11 +56,13 @@ export function ProductAvailability({
           {info.availableSlots.join("、")}
         </span>
       )}
-      <StockTag
-        available={info.stock}
-        loading={info.stock === null}
-        texts={{ remain: t.remainStock, soldOut: t.soldOutProduct, checking: t.checking }}
-      />
+      {/* 未設定庫存（null）代表不控管，不顯示標籤避免誤導 */}
+      {info.stock !== null && (
+        <StockTag
+          available={info.stock}
+          texts={{ remain: t.remainStock, soldOut: t.soldOutProduct, checking: t.checking }}
+        />
+      )}
       {!compact && synced && (
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <RefreshCw className="h-3 w-3" />
