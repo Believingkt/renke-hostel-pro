@@ -78,6 +78,8 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
 const Trips = lazy(() => import("./pages/Trips"));
 const TripGuide = lazy(() => import("./pages/TripGuide"));
+const TripTemplates = lazy(() => import("./pages/TripTemplates"));
+const TripGenerate = lazy(() => import("./pages/TripGenerate"));
 const TravelerAttributes = lazy(() => import("./pages/admin/TravelerAttributes"));
 const DeployStatus = lazy(() => import("./pages/admin/DeployStatus"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
