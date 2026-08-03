@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const recipientName = profile?.name || targetUser.user.user_metadata?.name || '使用者';
     const accommodationName = accommodation?.name || '民宿';
-    const siteUrl = 'https://sensaninn.lakeze.com';
+    const siteUrl = 'https://pms.lakeze.com';
 
     // Generate custom password reset token (same flow as create-user)
     const token = crypto.randomUUID() + crypto.randomUUID();

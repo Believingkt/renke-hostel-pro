@@ -8,6 +8,8 @@ import {
   bookingHref,
   isAdminPath,
   isPmsAllowedPath,
+  isTeamPath,
+  PMS_ORIGIN,
   normalizePmsPath,
   pmsHref,
   resolveAppMode,
@@ -30,6 +32,16 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const onAdminPath = isAdminPath(location.pathname);
+  const legacyTeamOnFrontend = mode === "frontend" && isTeamPath(location.pathname);
+
+  // 舊網域（sensaninn 等前台網域）的 /team、/team-auth → 轉址到 pms.lakeze.com 同路徑
+  useEffect(() => {
+    if (!legacyTeamOnFrontend) return;
+    window.location.replace(
+      `${PMS_ORIGIN}${location.pathname}${location.search}${location.hash}`
+    );
+  }, [legacyTeamOnFrontend, location.pathname, location.search, location.hash]);
+
   const legacyAdminOnFrontend = mode === "frontend" && onAdminPath;
 
 
@@ -72,6 +84,8 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
     window.location.replace(pmsHref("/login"));
   }, [legacyAdminOnFrontend, hasSession]);
 
+
+  if (legacyTeamOnFrontend) return null;
 
   if (mode === "pms" && location.pathname !== "/" && !isPmsAllowedPath(location.pathname)) {
     return null;
