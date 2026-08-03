@@ -1261,8 +1261,14 @@ export default function AIBooking() {
                       </div>
                     )}
                   </div>
-                  
+
+                  {/* B1: 動態推薦商品卡 */}
+                  {message.recommendedItems && message.recommendedItems.length > 0 && (
+                    <RecommendedItemCards items={message.recommendedItems} />
+                  )}
+
                   {/* 顯示工具調用結果 */}
+
                   {message.toolCalls && message.toolCalls.length > 0 && (
                     <div className="mt-3 space-y-3">
                       {message.toolCalls.map((tool, toolIdx) => (
