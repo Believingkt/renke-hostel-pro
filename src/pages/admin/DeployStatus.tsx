@@ -45,7 +45,28 @@ const INFO_CARDS = [
       ["資料保留", "append-only，不覆寫歷史紀錄"],
     ],
   },
+  {
+    icon: Cloud,
+    title: "C3 部署主機（IBM 雲端）",
+    items: [
+      ["主機類型", "IBM Cloud 雲端主機"],
+      ["模組", "C3 智能多情境行程生成與推薦引擎"],
+      ["前台路由", "/trips/templates、/trips/generate"],
+      ["情境模板", "家庭親子／情侶約會／好友出遊／包棟聚會／戶外探索"],
+    ],
+  },
+  {
+    icon: Cloud,
+    title: "C3 服務端函式",
+    items: [
+      ["行程推薦", "trip-recommend"],
+      ["排序演算法", "時段 → 營業時間窗 → 最短路徑（貪婪）"],
+      ["三語導引", "title／guide 以 jsonb {zh,ja,en} 儲存"],
+      ["流量限制", "每 IP 每分鐘 20 次"],
+    ],
+  },
 ];
+
 
 const DeployStatus = () => {
   return (
