@@ -882,7 +882,7 @@ export function KolStatsTab() {
 
                 <div className="mt-6 space-y-6">
                   <section>
-                    <h3 className="text-sm font-semibold mb-2">本期符合資格 KOL 清單</h3>
+                    <h3 className="text-sm font-semibold mb-2">本期邀約與稀有度獎金明細</h3>
                     <div className="overflow-x-auto border rounded-md">
                       <Table>
                         <TableHeader>
@@ -890,19 +890,21 @@ export function KolStatsTab() {
                             <TableHead>KOL名稱</TableHead>
                             <TableHead>稀有度</TableHead>
                             <TableHead>入住日期</TableHead>
+                            <TableHead className="whitespace-nowrap">計獎狀態</TableHead>
+                            <TableHead>說明</TableHead>
                             <TableHead className="text-right">單筆獎金</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {selectedScout.qualifiedKols.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
                                 無資料
                               </TableCell>
                             </TableRow>
                           ) : (
                             selectedScout.qualifiedKols.map((k, i) => (
-                              <TableRow key={i}>
+                              <TableRow key={i} className={k.counted ? undefined : "opacity-70"}>
                                 <TableCell className="whitespace-nowrap">{k.name}</TableCell>
                                 <TableCell>
                                   {DETAIL_RARITIES.includes(k.rarity as (typeof DETAIL_RARITIES)[number])
@@ -910,6 +912,18 @@ export function KolStatsTab() {
                                     : "—"}
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">{k.check_in_date ?? "—"}</TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <span
+                                    className={
+                                      k.counted
+                                        ? "text-xs rounded px-2 py-0.5 bg-primary/10 text-primary"
+                                        : "text-xs rounded px-2 py-0.5 bg-muted text-muted-foreground"
+                                    }
+                                  >
+                                    {k.counted ? "計獎" : "不計獎"}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{k.reason}</TableCell>
                                 <TableCell className="text-right tabular-nums">{k.bonus.toLocaleString()}</TableCell>
                               </TableRow>
                             ))
@@ -917,6 +931,7 @@ export function KolStatsTab() {
                         </TableBody>
                       </Table>
                     </div>
+
                     <div className="mt-2 text-right text-sm">
                       小計：
                       <span className="font-semibold tabular-nums ml-1">
