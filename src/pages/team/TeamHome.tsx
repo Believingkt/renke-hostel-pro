@@ -380,6 +380,11 @@ export default function TeamHome() {
           //   check_in_date 年月 >= fulltime_start_yearmonth → 正職規則：N/R 不計獎，
           //     SR/SSR/UR 依 created_at 升序超過 30 位後第 31 筆起才計獎
           //   其餘（起始月之前的跨月區段、兼職）→ 每筆全額計獎
+          // 底薪／團隊獎金用：以結算年月判定
+          const isFullTime =
+            myEmploymentType === "fulltime" &&
+            !!myFulltimeStart &&
+            myFulltimeStart <= currentMonthKey;
           const startYMDigits =
             myEmploymentType === "fulltime" && myFulltimeStart
               ? String(myFulltimeStart).replace(/[^0-9]/g, "").slice(0, 6)
