@@ -720,6 +720,16 @@ serve(async (req) => {
       .eq('is_active', true)
       .limit(40);
 
+    // B1: 回覆樣板（啟用中）— 作為回覆風格提示，不強制逐字套用
+    const { data: dbReplyTemplates } = await supabase
+      .from('ai_reply_templates')
+      .select('name, scenario, template')
+      .eq('is_active', true)
+      .order('sort', { ascending: true })
+      .limit(20);
+
+
+
     const todayStr = new Date().toISOString().split('T')[0];
     const locationStr = Array.from(new Set(accommodationList.map(a => [a.region_1, a.region_2].filter(Boolean).join(' ')).filter(Boolean))).join('、');
 
