@@ -373,7 +373,20 @@ export default function AIBooking() {
           try {
             const parsed = JSON.parse(jsonStr);
 
+            if (parsed.type === 'recommended_items' && Array.isArray(parsed.items)) {
+              const recItems: RecommendedItem[] = parsed.items;
+              setMessages(prev => {
+                const updated = [...prev];
+                const lastMsg = updated[updated.length - 1];
+                if (!lastMsg || lastMsg.role !== 'assistant') return prev;
+                updated[updated.length - 1] = { ...lastMsg, recommendedItems: recItems };
+                return updated;
+              });
+              continue;
+            }
+
             if (parsed.type === 'tool_calls_complete') {
+
               // Check if rooms were already shown in previous messages
               const roomsAlreadyShown = newMessages.some(
                 m => m.role === 'assistant' && m.toolCalls?.some(tc => tc.type === 'rooms')
