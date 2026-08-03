@@ -511,12 +511,21 @@ export function KolStatsTab() {
             UR: 0,
             ck: 0,
           };
-          // 【修改三】正職：期別內 SR/SSR/UR 依 created_at 升序，> 30 位才發，
-          // 只取第 31 筆起依稀有度費率加總。N/R 不受影響（仍照 rarity_bonus 加總）。
+          // 【修改三】正職稀有度規則改為「逐筆依 check_in_date 判定」：
+          // 只有入住日所屬年月 >= 正職起始月的邀約才套用正職規則
+          //（SR/SSR/UR 依 created_at 升序，超過 30 位後第 31 筆起才計獎；N/R 照常計獎）。
+          // 起始月之前的邀約仍照兼職規則全額計獎。
+          const scoutStartYM = isExternal ? null : fulltimeStartYM(s);
+          const isFulltimeRow = (r: (typeof periodQualified)[number]) =>
+            isFulltimeForDate(scoutStartYM, r.check_in_date);
           const fulltimeExcludedIds = new Set<string>();
-          if (isFulltime) {
+          if (scoutStartYM) {
             const highRarity = periodQualified
-              .filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
+              .filter(
+                (r) =>
+                  isFulltimeRow(r) &&
+                  (r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR"),
+              )
               .slice()
               .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
             const excluded = highRarity.length > 30 ? highRarity.slice(0, 30) : highRarity;
@@ -533,9 +542,10 @@ export function KolStatsTab() {
             const bonusFull = rarityMap.get(rar) ?? 0;
             const key = `${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`;
             const suppress =
-              isFulltime &&
+              isFulltimeRow(r) &&
               (rar === "SR" || rar === "SSR" || rar === "UR") &&
               fulltimeExcludedIds.has(key);
+
             const bonus = suppress ? 0 : bonusFull;
             if (RARITIES.includes(rar)) {
               rarityCounts[rar] += 1;
