@@ -384,6 +384,12 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/traveler-attributes" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                    } />
+                    <Route path="admin/deploy-status" element={
+                      <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                    } />
                     <Route path="admin/manual-review" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><ManualReviewTasks /></Suspense>
