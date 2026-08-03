@@ -5118,6 +5118,7 @@ function RagicUnitMappingCard({ canManage }: { canManage: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ project_name: "", ragic_unit_name: "" });
   const [saving, setSaving] = useState(false);
+  const projects = useFranchiseProjects(true);
 
   const load = async () => {
     setLoading(true);
