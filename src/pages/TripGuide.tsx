@@ -134,13 +134,19 @@ const TripGuide = () => {
         ...value,
       });
       if (error) throw error;
+      try {
+        localStorage.setItem("traveler_attributes", JSON.stringify(value));
+      } catch {
+        /* 無痕模式等情境忽略 */
+      }
       setSaved(true);
-      toast({ title: "旅遊屬性已歸檔", description: "之後推薦行程會參考這些偏好" });
+      toast({ title: "旅遊屬性已歸檔", description: "接著可以挑選情境生成推薦行程" });
     } catch (e) {
       console.error("save traveler attributes failed", e);
       toast({ title: "屬性儲存失敗", description: "請稍後再試一次", variant: "destructive" });
     }
   };
+
 
   useEffect(() => {
     if (startedRef.current) return;
