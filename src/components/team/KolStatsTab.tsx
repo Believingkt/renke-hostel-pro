@@ -451,20 +451,32 @@ export function KolStatsTab() {
         // ⚠️ 底薪／團隊獎金：僅於 period=10 發放
         // 個人達標與團隊達標皆以 kpi_month = prevMonthStart（上月 YYYY-MM-01）為準
         let prevMonthStart: string | null = null;
-        let selectedYM: string | null = null; // YYYYMM 字串，判定正職是否在職
         if (showSalary && month) {
           const targetYear = month === 1 ? effYear - 1 : effYear;
           const targetMonth = month === 1 ? 12 : month - 1;
           prevMonthStart = `${targetYear}-${pad(targetMonth)}-01`;
-          selectedYM = `${targetYear}${pad(targetMonth)}`;
         }
-        const isFulltimeAt = (p: ScoutProfile): boolean => {
-          if (!selectedYM) return false;
-          if (p.employment_type !== "fulltime") return false;
+        // 結算年月（YYYYMM），與後端 calculate-scout-payout 的 currentYM 對齊；
+        // 不再受 showSalary 限制，期別 25 也會正確判定正職。
+        const settlementYM = month ? `${effYear}${pad(month)}` : null;
+        const fulltimeStartYM = (p: ScoutProfile): string | null => {
+          if (p.employment_type !== "fulltime") return null;
           const start = (p.fulltime_start_yearmonth ?? "").toString().replace(/[^0-9]/g, "").slice(0, 6);
-          if (start.length !== 6) return false;
-          return start <= selectedYM;
+          return start.length === 6 ? start : null;
         };
+        // 底薪／團隊貢獻用：以結算年月判定
+        const isFulltimeAt = (p: ScoutProfile): boolean => {
+          const start = fulltimeStartYM(p);
+          if (!start || !settlementYM) return false;
+          return start <= settlementYM;
+        };
+        // 稀有度獎金用：以「該筆邀約的 check_in_date 所屬年月」逐筆判定，
+        // 跨月期別（例：8/10 期 = 7/21–8/5）內正職起始月之前的邀約仍照兼職規則計獎。
+        const isFulltimeForDate = (start: string | null, checkIn: string | null): boolean => {
+          if (!start || !checkIn) return false;
+          return start <= checkIn.slice(0, 7).replace("-", "");
+        };
+
 
         // 供團隊獎金計算用：per scout per venue 的實際貢獻數
         // - 兼職：kpi_qualified=true 的全部邀約
