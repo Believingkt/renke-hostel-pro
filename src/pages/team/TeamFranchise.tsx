@@ -5150,7 +5150,7 @@ function RagicUnitMappingCard({ canManage }: { canManage: boolean }) {
   const save = async () => {
     const project_name = form.project_name.trim();
     const ragic_unit_name = form.ragic_unit_name.trim();
-    if (!project_name) return toast.error("請填寫專案名稱");
+    if (!project_name) return toast.error("請選擇專案名稱");
     if (!ragic_unit_name) return toast.error("請填寫 Ragic 事業單位名稱");
     setSaving(true);
     const { error } = editingId
