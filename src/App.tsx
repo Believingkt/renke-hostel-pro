@@ -168,6 +168,8 @@ const AdminAiTrainingPlayground = lazy(() => import("./pages/admin/ai-training/A
 const AdminAiTrainingApiKeys = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiKeys"));
 const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiDocs"));
 const KnowledgeIndexPage = lazy(() => import("./pages/admin/knowledge/KnowledgeIndex"));
+const AdminAiReplyTemplatesPage = lazy(() => import("./pages/admin/ai-training/AdminAiReplyTemplates"));
+
 const KnowledgeSearchPage = lazy(() => import("./pages/admin/knowledge/KnowledgeSearch"));
 
 
