@@ -110,7 +110,7 @@ const TripGuide = () => {
       (Object.keys(EMPTY) as (keyof Attrs)[]).forEach((k) => {
         const v = data.extracted?.[k];
         if (v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0)) {
-          (merged as Record<string, unknown>)[k] = v;
+          (merged as unknown as Record<string, unknown>)[k] = v;
         }
       });
       setAttrs(merged);
