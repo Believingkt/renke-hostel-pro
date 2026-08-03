@@ -306,7 +306,11 @@ export default function AIBooking() {
                 if (r.result?.is_valid !== undefined) fbToolCalls.push({ type: 'discount', data: r.result });
               });
             }
+            if (parsed.type === 'recommended_items' && Array.isArray(parsed.items)) {
+              fbRecommended = parsed.items;
+            }
             const ct = parsed.choices?.[0]?.delta?.content;
+
             if (ct) fbContent += ct;
           } catch (_) {}
         }
