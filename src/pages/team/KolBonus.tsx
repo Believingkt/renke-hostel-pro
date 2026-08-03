@@ -503,7 +503,7 @@ export default function KolBonus() {
   const tab1DrawerInitialMonth =
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
-      : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+      : `${filterYear === 0 ? currentYear : filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
   const tab2DrawerInitialMonth =
     payoutPeriod === "all"
       ? `${payoutYear}-${String(currentMonthNum).padStart(2, "0")}`
