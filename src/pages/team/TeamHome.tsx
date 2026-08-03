@@ -376,11 +376,21 @@ export default function TeamHome() {
             scoutSum = sumPrice * commissionRate;
           }
 
-          // 稀有度獎金：期別內 check_in_date（正職前 30 筆歸零，31 筆起才發）
-          const isFullTime =
-            myEmploymentType === "fulltime" &&
-            !!myFulltimeStart &&
-            myFulltimeStart <= currentMonthKey;
+          // 稀有度獎金：逐筆依「邀約 check_in_date 所屬年月」判定正職（與後端 calculate-scout-payout 一致）
+          //   check_in_date 年月 >= fulltime_start_yearmonth → 正職規則：N/R 不計獎，
+          //     SR/SSR/UR 依 created_at 升序超過 30 位後第 31 筆起才計獎
+          //   其餘（起始月之前的跨月區段、兼職）→ 每筆全額計獎
+          const startYMDigits =
+            myEmploymentType === "fulltime" && myFulltimeStart
+              ? String(myFulltimeStart).replace(/[^0-9]/g, "").slice(0, 6)
+              : null;
+          const ymOf = (d: any) =>
+            d ? String(d).slice(0, 7).replace("-", "") : null;
+          const rowIsFulltime = (r: any) => {
+            if (!startYMDigits || startYMDigits.length !== 6) return false;
+            const ym = ymOf(r.check_in_date);
+            return !!ym && startYMDigits <= ym;
+          };
 
           const [{ data: rarityRows }, { data: periodKols }] = await Promise.all([
             supabase
@@ -408,11 +418,18 @@ export default function TeamHome() {
             const rar = String(r.rarity ?? "");
             return rar && rar !== "ck";
           });
-          const rarityStartIdx = isFullTime ? 30 : 0;
-          for (let i = rarityStartIdx; i < rows.length; i++) {
-            const rar = String(rows[i].rarity ?? "");
-            raritySum += rarityMap.get(rar) ?? 0;
+          const ftRows = rows.filter(rowIsFulltime);
+          const ptRows = rows.filter((r) => !rowIsFulltime(r));
+          const ftRare = ftRows
+            .filter((r) => ["SR", "SSR", "UR"].includes(String(r.rarity ?? "")))
+            .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+          for (const r of ftRare.slice(30)) {
+            raritySum += rarityMap.get(String(r.rarity ?? "")) ?? 0;
           }
+          for (const r of ptRows) {
+            raritySum += rarityMap.get(String(r.rarity ?? "")) ?? 0;
+          }
+
 
           // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
           if (scoutTeamMember) {
