@@ -49,6 +49,7 @@ interface Message {
     type: string;
     data: any;
   }[];
+  recommendedItems?: RecommendedItem[];
   quickReplies?: string[];
   showDatePicker?: "check-in" | "check-out" | "range";
   selectedDates?: {
@@ -56,6 +57,7 @@ interface Message {
     checkOut?: Date;
   };
 }
+
 
 export default function AIBooking() {
   const navigate = useNavigate();
