@@ -290,6 +290,8 @@ export default function AIBooking() {
         const lines = fullText.split('\n');
         let fbContent = '';
         let fbToolCalls: any[] = [];
+        let fbRecommended: RecommendedItem[] = [];
+
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
