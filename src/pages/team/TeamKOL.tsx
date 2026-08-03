@@ -766,7 +766,8 @@ function InvitationsTab({
       return;
     }
     // 取 scout 姓名
-    const scoutIds = Array.from(new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]));
+    const rowsData = ((data ?? []) as any[]);
+    const scoutIds = Array.from(new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]));
     let scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
@@ -780,7 +781,7 @@ function InvitationsTab({
     // 依 order_number 批次查 orders.order_status，自動連動「狀態」欄位
     const orderNumbers = Array.from(
       new Set(
-        (data ?? [])
+        rowsData
           .map((r: any) => (r.order_number ?? "").trim())
           .filter((s: string) => s.length > 0)
       )
@@ -816,7 +817,7 @@ function InvitationsTab({
       }
       return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
     };
-    const enriched = (data ?? []).map((r: any) => ({
+    const enriched = rowsData.map((r: any) => ({
       ...r,
       _accommodation_name: resolveVenueDisplay(r),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
