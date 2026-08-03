@@ -895,7 +895,6 @@ export function KolStatsTab() {
                             <TableHead className="text-right">單筆獎金</TableHead>
                           </TableRow>
                         </TableHeader>
-                        </TableHeader>
                         <TableBody>
                           {selectedScout.qualifiedKols.length === 0 ? (
                             <TableRow>
