@@ -1833,7 +1833,30 @@ function InvitationsTab({
               <SelectItem value="yes">符合資格</SelectItem>
               <SelectItem value="no">未符合資格</SelectItem>
             </SelectContent>
-          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={filterQualified} onValueChange={setFilterQualified}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="累積資格" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">累積資格</SelectItem>
+                <SelectItem value="yes">符合資格</SelectItem>
+                <SelectItem value="no">未符合資格</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterProgress} onValueChange={setFilterProgress}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="合作進度" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">合作進度</SelectItem>
+                <SelectItem value="not_checked_in">未入住</SelectItem>
+                <SelectItem value="checked_in_no_post">入住未上片</SelectItem>
+                <SelectItem value="posted">已上片</SelectItem>
+                <SelectItem value="abnormal">異常需檢查</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end">
             <Button onClick={openCreate}>
