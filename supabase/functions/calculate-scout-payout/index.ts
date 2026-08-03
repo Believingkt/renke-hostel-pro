@@ -417,23 +417,38 @@ serve(async (req) => {
         !isFulltime && period === 10 && individualAchieved ? baseSalaryAmount : 0;
 
       // ===== 五、稀有度獎金 =====
-      // 正職：期別內 SR/SSR/UR 累計超過 30 位後，第 31 筆起才計獎（依 created_at 升序）
-      // 兼職：期別內每筆 rarity 都計獎
+      // 逐筆依「邀約 check_in_date 所屬年月」判定正職：
+      //   check_in_date 年月 >= fulltime_start_yearmonth → 正職規則
+      //     （期別內該子集合 SR/SSR/UR 依 created_at 升序，超過 30 位後第 31 筆起才計獎）
+      //   其餘（含起始月之前的跨月期別區段、兼職、外部星探）→ 每筆 rarity 都計獎
+      const ymOf = (d: string | null | undefined) =>
+        d ? String(d).slice(0, 7).replace("-", "") : null;
+      const startYMDigits =
+        !isExternal && scout.employment_type === "fulltime" && startYM
+          ? String(startYM).replace(/[^0-9]/g, "").slice(0, 6)
+          : null;
+      const rowIsFulltime = (inv: any) => {
+        if (!startYMDigits || startYMDigits.length !== 6) return false;
+        const ym = ymOf(inv.check_in_date);
+        return !!ym && startYMDigits <= ym;
+      };
+
       let rarityBonus = 0;
-      if (isFulltime) {
-        const myPeriodRare = myPeriodInvites
-          .filter((i) => ["SR", "SSR", "UR"].includes(i.rarity ?? ""))
-          .sort((a, b) => ((a as any).created_at || "").localeCompare((b as any).created_at || ""));
-        if (myPeriodRare.length > 30) {
-          for (const inv of myPeriodRare.slice(30)) {
-            if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
-          }
-        }
-      } else {
-        for (const inv of myPeriodInvites) {
+      const fulltimeInvites = myPeriodInvites.filter(rowIsFulltime);
+      const parttimeInvites = myPeriodInvites.filter((i) => !rowIsFulltime(i));
+
+      const fulltimeRare = fulltimeInvites
+        .filter((i) => ["SR", "SSR", "UR"].includes(i.rarity ?? ""))
+        .sort((a, b) => ((a as any).created_at || "").localeCompare((b as any).created_at || ""));
+      if (fulltimeRare.length > 30) {
+        for (const inv of fulltimeRare.slice(30)) {
           if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
         }
       }
+      for (const inv of parttimeInvites) {
+        if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
+      }
+
 
       // ===== 六、KOL 分潤（依 scout_tier_settings 等級階梯） =====
       // 1) 取該星探所有歷史 kpi_qualified=true 的 cid_code（不限期別，給訂單比對用）
