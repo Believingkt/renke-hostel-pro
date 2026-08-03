@@ -4748,6 +4748,8 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       });
       const stats: FulltimeSrStat[] = [];
       for (const [scoutId, name] of fulltimeScoutMap.entries()) {
+        // 僅列出「該月份已達正職起始月」的星探，與後端正職判定一致
+        if (!eligibleFulltimeIds.includes(scoutId)) continue;
         const arr = grouped.get(scoutId) ?? [];
         arr.sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
         const total = arr.length;
