@@ -898,6 +898,8 @@ ${accListStr}
         let assistantText = '';
         const toolCallsByIndex = new Map<number, { id: string; name: string; inputJson: string; inputObject: any }>();
         let shouldExecuteToolCalls = false;
+        let lastRoomsResult: any = null;
+
 
         const parseToolArgs = (rawArgs: string, fallback: any = {}) => {
           if (!rawArgs?.trim()) return fallback || {};
