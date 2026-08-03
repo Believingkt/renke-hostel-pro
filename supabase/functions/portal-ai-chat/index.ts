@@ -1113,7 +1113,18 @@ ${accListStr}
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
+          // B1: 附加動態推薦商品（失敗不影響對話）
+          try {
+            assistantTextRef.value = assistantText;
+            const recommendedItems = await buildRecommendedItems(lastRoomsResult);
+            if (recommendedItems.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'recommended_items', items: recommendedItems })}\n\n`));
+            }
+          } catch (recErr) {
+            console.error('Recommended items failed:', recErr);
+          }
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
+
           controller.close();
           // Log conversation (Phase 2/3)
           try {
