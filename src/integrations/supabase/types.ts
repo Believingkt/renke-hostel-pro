@@ -10632,6 +10632,10 @@ export type Database = {
               min_order_amount: number
             }[]
           }
+      get_sales_service_analytics: {
+        Args: { p_accommodation_id: string; p_end: string; p_start: string }
+        Returns: Json
+      }
       get_staff_module_permission: {
         Args: {
           _accommodation_id: string
