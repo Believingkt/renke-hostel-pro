@@ -119,9 +119,20 @@ export function normalizePmsPath(pathname: string): string {
   return pathname;
 }
 
+/** /team、/team-auth（含子路徑）已搬到 PMS 網域 */
+export function isTeamPath(pathname: string): boolean {
+  return (
+    pathname === "/team" ||
+    pathname.startsWith("/team/") ||
+    pathname === "/team-auth" ||
+    pathname.startsWith("/team-auth/")
+  );
+}
+
 export function isPmsAllowedPath(pathname: string): boolean {
   const normalized = normalizePmsPath(pathname) || "/";
   if (normalized === "/admin" || normalized.startsWith("/admin/")) return true;
+  if (isTeamPath(normalized)) return true;
   return (
     normalized === "/login" ||
     normalized === "/auth" ||

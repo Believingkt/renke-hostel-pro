@@ -16,7 +16,7 @@ const FRANCHISE_IDS = new Set<string>([
 
 
 const NO_FEE_NOTE =
-  "PMS尚未設定管顧費率，請查看 https://sensaninn.lakeze.com/team/commission";
+  "PMS尚未設定管顧費率，請查看 https://pms.lakeze.com/team/commission";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
