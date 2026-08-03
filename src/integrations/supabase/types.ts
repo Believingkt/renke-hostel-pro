@@ -4046,6 +4046,13 @@ export type Database = {
             referencedRelation: "kol_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "kol_commission_settings_kol_id_fkey"
+            columns: ["kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
         ]
       }
       kol_profiles: {
@@ -4239,6 +4246,13 @@ export type Database = {
             columns: ["primary_profile_id"]
             isOneToOne: false
             referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
             referencedColumns: ["id"]
           },
           {
@@ -10123,6 +10137,119 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kol_profiles_with_progress: {
+        Row: {
+          accommodation_id: string | null
+          booking_status: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          cid_code: string | null
+          cid_configured: boolean | null
+          cid_notified: boolean | null
+          collab_progress: string | null
+          companion_cid: string | null
+          contract_file_url: string | null
+          contract_progress: string | null
+          corrected_at: string | null
+          corrected_by: string | null
+          created_at: string | null
+          created_by: string | null
+          day_of_week: string | null
+          error_note: string | null
+          follower_count: number | null
+          follower_count_updated_at: string | null
+          id: string | null
+          ig_handle: string | null
+          ig_url: string | null
+          inventory_count: number | null
+          inventory_status: string | null
+          invited_at: string | null
+          is_error: boolean | null
+          kol_direct_ticket_link: string | null
+          kol_tags: string[] | null
+          kpi_eligible: boolean | null
+          kpi_month: string | null
+          kpi_qualified: boolean | null
+          lihi_url: string | null
+          name: string | null
+          notes: string | null
+          order_id: string | null
+          order_number: string | null
+          primary_profile_id: string | null
+          public_token: string | null
+          publish_date: string | null
+          publish_url: string | null
+          rarity: string | null
+          scout_id: string | null
+          scout_name: string | null
+          short_url: string | null
+          task_ig_collab: boolean | null
+          task_post_story: boolean | null
+          task_pre_stay: boolean | null
+          token_expires_at: string | null
+          updated_at: string | null
+          venue_id: string | null
+          venue_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_profiles_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_corrected_by_fkey"
+            columns: ["corrected_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "kol_venues"
             referencedColumns: ["id"]
           },
         ]
