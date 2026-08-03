@@ -368,14 +368,25 @@ export default function KolBonus() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
 
-  // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當月）
-  const tab1FilteredRows = useMemo(() => {
-    const prefix =
-      filterYear === 0
-        ? null
-        : filterMonth === "all"
+  // 期間比對：年可為「全部年份」，此時仍需套用月份條件（跨年度同月）
+  const matchPeriod = useCallback(
+    (date?: string | null) => {
+      if (!date) return false;
+      if (filterYear === 0) {
+        if (filterMonth === "all") return true;
+        return date.slice(5, 7) === String(filterMonth).padStart(2, "0");
+      }
+      const prefix =
+        filterMonth === "all"
           ? `${filterYear}-`
           : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      return date.startsWith(prefix);
+    },
+    [filterYear, filterMonth],
+  );
+
+  // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當期）
+  const tab1FilteredRows = useMemo(() => {
     const q = tab1SearchInput.trim().toLowerCase();
     return rows.filter((k) => {
       if (q) {
@@ -384,24 +395,17 @@ export default function KolBonus() {
         if (!name.includes(q) && !code.includes(q)) return false;
       }
       const list = ordersByKey.get(k.rowKey) ?? [];
-      if (prefix === null) return list.length > 0;
-      const periodMatch = list.some(
+      if (filterYear === 0 && filterMonth === "all") return list.length > 0;
+      return list.some(
         (o) =>
-          o.order_date?.startsWith(prefix) ||
-          (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
+          matchPeriod(o.order_date) ||
+          (o.order_status !== "cancelled" && matchPeriod(o.check_out_date)),
       );
-      return periodMatch;
     });
-  }, [rows, ordersByKey, filterYear, filterMonth, tab1SearchInput]);
+  }, [rows, ordersByKey, filterYear, filterMonth, matchPeriod, tab1SearchInput]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
-    const prefix =
-      filterYear === 0
-        ? null
-        : filterMonth === "all"
-          ? `${filterYear}-`
-          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
@@ -423,8 +427,8 @@ export default function KolBonus() {
         const r = grossOf(o);
         const base = baseOf(o);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = prefix === null ? !!o.order_date : o.order_date?.startsWith(prefix);
-        const completedMatch = prefix === null ? !!o.check_out_date : o.check_out_date?.startsWith(prefix);
+        const orderMatch = matchPeriod(o.order_date);
+        const completedMatch = matchPeriod(o.check_out_date);
         if (orderMatch) {
           orderCount += 1;
           orderRevenue += r;
@@ -444,7 +448,8 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
+  }, [rows, ordersByKey, getRate, matchPeriod]);
+
 
   // Tab2 退房月份 prefix：發放期別 P 對應退房月 = P-1（P=1 → 上一年12月）
   const tab2TargetPrefix = useMemo(() => {
