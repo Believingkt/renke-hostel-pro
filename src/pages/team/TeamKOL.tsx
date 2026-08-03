@@ -841,12 +841,29 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
 
 
-  // 伺服器端已套用篩選，直接使用 rows
-  const filtered = rows;
+  // 伺服器端已套用篩選；合作進度為前端判斷
+  const filtered = useMemo(() => {
+    if (filterProgress === "all") return rows;
+    const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
+    const progressOf = (r: KolRow): string | null => {
+      const st = (r as any)._effective_booking_status as string | null;
+      if (st === "已取消" || !st) return null;
+      if (st === "訂房確認中") return "not_checked_in";
+      if (st !== "成功訂房") return null;
+      const ci = (r.check_in_date ?? "").trim();
+      if (!ci) return null;
+      const hasPost = !!(r.publish_url ?? "").trim();
+      const arrived = todayStr >= ci;
+      if (hasPost) return arrived ? "posted" : "abnormal";
+      return arrived ? "checked_in_no_post" : "not_checked_in";
+    };
+    return rows.filter((r) => progressOf(r) === filterProgress);
+  }, [rows, filterProgress]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
 
   // 前端排序（三段循環：none → asc → desc → none）
   type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "invited_at";
