@@ -338,6 +338,14 @@ function App() {
                     <Route path="trips/guide" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripGuide /></Suspense>
                     } />
+                    <Route path="trips/templates" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripTemplates /></Suspense>
+                    } />
+                    <Route path="trips/generate" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripGenerate /></Suspense>
+                    } />
+
+
 
                     <Route path="trips/:tripId" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
