@@ -18,6 +18,8 @@ import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
+import { RecommendedItemCards, type RecommendedItem } from "@/components/ai/RecommendedItemCards";
+
 
 // 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
 const BOOKING_LINK_REGEX = /(?:https?:\/\/[^\s)]+)?\/book\?[^\s)\]，。、]+/g;
