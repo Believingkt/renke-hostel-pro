@@ -565,6 +565,8 @@ function InvitationsTab({
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
+  // 合作進度篩選（前端判斷）："all" | "not_checked_in" | "checked_in_no_post" | "posted" | "abnormal"
+  const [filterProgress, setFilterProgress] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -693,7 +695,11 @@ function InvitationsTab({
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
+    let q = supabase
+      .from("kol_profiles")
+      .select("*", { count: "exact" })
+      .eq("is_error", false)
+      .is("primary_profile_id", null);
 
     // 館別多選篩選：若全選（或未載入完成）→ 不加篩選
     const allOptionValues = filterAccOptions.map((o) => o.value);
@@ -835,12 +841,29 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
 
 
-  // 伺服器端已套用篩選，直接使用 rows
-  const filtered = rows;
+  // 伺服器端已套用篩選；合作進度為前端判斷
+  const filtered = useMemo(() => {
+    if (filterProgress === "all") return rows;
+    const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
+    const progressOf = (r: KolRow): string | null => {
+      const st = (r as any)._effective_booking_status as string | null;
+      if (st === "已取消" || !st) return null;
+      if (st === "訂房確認中") return "not_checked_in";
+      if (st !== "成功訂房") return null;
+      const ci = (r.check_in_date ?? "").trim();
+      if (!ci) return null;
+      const hasPost = !!(r.publish_url ?? "").trim();
+      const arrived = todayStr >= ci;
+      if (hasPost) return arrived ? "posted" : "abnormal";
+      return arrived ? "checked_in_no_post" : "not_checked_in";
+    };
+    return rows.filter((r) => progressOf(r) === filterProgress);
+  }, [rows, filterProgress]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
 
   // 前端排序（三段循環：none → asc → desc → none）
   type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "invited_at";
@@ -1620,6 +1643,19 @@ function InvitationsTab({
                 <SelectItem value="no">未符合資格</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={filterProgress} onValueChange={setFilterProgress}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="合作進度" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">合作進度</SelectItem>
+                <SelectItem value="not_checked_in">未入住</SelectItem>
+                <SelectItem value="checked_in_no_post">入住未上片</SelectItem>
+                <SelectItem value="posted">已上片</SelectItem>
+                <SelectItem value="abnormal">異常需檢查</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -1801,16 +1837,30 @@ function InvitationsTab({
             </Select>
           </div>
 
-          <Select value={filterQualified} onValueChange={setFilterQualified}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="累積資格" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">累積資格</SelectItem>
-              <SelectItem value="yes">符合資格</SelectItem>
-              <SelectItem value="no">未符合資格</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={filterQualified} onValueChange={setFilterQualified}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="累積資格" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">累積資格</SelectItem>
+                <SelectItem value="yes">符合資格</SelectItem>
+                <SelectItem value="no">未符合資格</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterProgress} onValueChange={setFilterProgress}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="合作進度" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">合作進度</SelectItem>
+                <SelectItem value="not_checked_in">未入住</SelectItem>
+                <SelectItem value="checked_in_no_post">入住未上片</SelectItem>
+                <SelectItem value="posted">已上片</SelectItem>
+                <SelectItem value="abnormal">異常需檢查</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end">
             <Button onClick={openCreate}>
