@@ -778,6 +778,75 @@ ${accListStr}
 - check_discount_code：驗折扣碼
 - create_booking：建訂單`;
 
+    // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
+    const lastUserText = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === 'user');
+      return typeof m?.content === 'string' ? m.content : '';
+    })();
+
+    const pickLocalized = (v: any) => {
+      if (!v) return '';
+      if (typeof v === 'string') return v;
+      return v.zh || v.ja || v.en || '';
+    };
+
+    const buildRecommendedItems = async (roomsResult: any) => {
+      const items: any[] = [];
+      const text = `${lastUserText}\n${assistantTextRef.value}`;
+
+      // 1) 房型：走既有 get_available_rooms 結果
+      const rooms: any[] = Array.isArray(roomsResult?.rooms) ? roomsResult.rooms : [];
+      if (rooms.length > 0) {
+        const sorted = [...rooms].sort((a, b) =>
+          Number(Boolean(b.is_available_for_range)) - Number(Boolean(a.is_available_for_range)));
+        for (const r of sorted.slice(0, 3)) {
+          items.push({
+            kind: 'room',
+            id: r.id,
+            title: `${r.accommodation_name ? r.accommodation_name + ' · ' : ''}${r.name}`,
+            subtitle: r.capacity ? `可住 ${r.capacity} 人` : '',
+            price: r.range_total_price ?? r.min_price ?? (r.base_price > 0 ? r.base_price : null),
+            image: Array.isArray(r.photos) && r.photos.length ? r.photos[0] : null,
+            badge: roomsResult?.check_in_date
+              ? (r.is_available_for_range ? '有空房' : '已額滿')
+              : '可查詢',
+            available: roomsResult?.check_in_date ? Boolean(r.is_available_for_range) : true,
+            url: r.booking_url || null,
+          });
+        }
+      }
+
+      // 2) 票券／活動、餐飲：走 trip_products
+      const wantTicket = /票券|門票|活動|體驗|行程|景點/.test(text);
+      const wantFood = /餐飲|美食|餐廳|吃|晚餐|午餐|早餐|下午茶/.test(text);
+      if (wantTicket || wantFood) {
+        const types: string[] = [];
+        if (wantTicket) types.push('activity', 'ticket', 'experience', 'attraction');
+        if (wantFood) types.push('food', 'dining', 'restaurant', 'meal');
+        const { data: products } = await supabase
+          .from('trip_products')
+          .select('id, name, description, type, price, stock, cover_url, accommodation_id')
+          .eq('is_active', true)
+          .in('type', types)
+          .limit(3);
+        for (const p of products || []) {
+          items.push({
+            kind: p.type,
+            id: p.id,
+            title: pickLocalized(p.name),
+            subtitle: pickLocalized(p.description).slice(0, 40),
+            price: p.price ?? null,
+            image: p.cover_url || null,
+            badge: p.stock === null ? '可預訂' : (p.stock > 0 ? `剩餘 ${p.stock}` : '已售完'),
+            available: p.stock === null || p.stock > 0,
+            url: `/trips?product=${p.id}`,
+          });
+        }
+      }
+
+      return items.slice(0, 3);
+    };
+
 
     const toAnthropicMessages = (msgs: any[]) =>
       msgs.filter(m => m.role !== 'system').map(m => ({
