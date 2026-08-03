@@ -484,9 +484,7 @@ export default function TeamMembers() {
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
-            fulltime_start_yearmonth: editRoles.includes("scout") && editFulltime
-              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
-              : null,
+            fulltime_start_yearmonth: nextFulltimeYM,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
