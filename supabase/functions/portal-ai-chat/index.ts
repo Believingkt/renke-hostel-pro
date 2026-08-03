@@ -743,7 +743,9 @@ serve(async (req) => {
       dbPrompt.forbidden_topics ? `\n## 禁止主題：\n${dbPrompt.forbidden_topics.split('|').map((s: string) => `- ${s.trim()}`).join('\n')}` : '',
       dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${k.content}`).join('\n---\n')}` : '',
       dbExamples && dbExamples.length ? `\n【參考對話】\n${dbExamples.map(e => `[${e.scenario}]\n使用者：${e.user_message}\n小安：${e.ideal_response}`).join('\n---\n')}` : '',
+      dbReplyTemplates && dbReplyTemplates.length ? `\n【回覆樣板（依情境選用，作為風格參考，不需逐字照抄）】\n${dbReplyTemplates.map(t => `[${t.scenario}｜${t.name}]\n${replaceVars(t.template)}`).join('\n---\n')}` : '',
     ].filter(Boolean).join('\n') : '';
+
 
     const systemPrompt = `${dbPromptBlock}
 ${userContextBlock}
