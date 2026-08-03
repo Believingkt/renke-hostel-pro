@@ -323,6 +323,8 @@ export default function AIBooking() {
           content: dc,
           timestamp: new Date(),
           toolCalls: fbToolCalls.length > 0 ? fbToolCalls : undefined,
+          recommendedItems: fbRecommended.length > 0 ? fbRecommended : undefined,
+
           quickReplies: qr.length > 0 ? qr : undefined,
         }]);
         setIsLoading(false);
