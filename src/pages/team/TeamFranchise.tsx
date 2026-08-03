@@ -5222,11 +5222,27 @@ function RagicUnitMappingCard({ canManage }: { canManage: boolean }) {
           <div className="space-y-3">
             <div>
               <Label>專案名稱</Label>
-              <Input
-                value={form.project_name}
-                onChange={(e) => setForm((f) => ({ ...f, project_name: e.target.value }))}
-                placeholder="例：森山寫照第一期"
-              />
+              <Select
+                value={form.project_name || undefined}
+                onValueChange={(v) => setForm((f) => ({ ...f, project_name: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇專案" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(
+                    new Set([
+                      ...projects.map((p) => p.name),
+                      ...(form.project_name ? [form.project_name] : []),
+                    ]),
+                  ).map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">來源：專案管理，如需新增請先到專案管理建立。</p>
             </div>
             <div>
               <Label>Ragic 事業單位名稱</Label>
