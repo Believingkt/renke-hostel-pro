@@ -551,7 +551,7 @@ export function KolStatsTab() {
             let reason = "";
 
             if (!isQualifiedRow) {
-              if (r.kpi_qualified !== true) reason = "未達 KPI 資格（kpi_qualified＝否）";
+              if (r.kpi_qualified !== true) reason = "未達 正職邀約 30 位 KPI";
               else if (r.is_error) reason = "標記為異常邀約，不計獎";
               else reason = "無邀約時間（invited_at 為空），不計獎";
             } else if (isFulltimeRow(r)) {
