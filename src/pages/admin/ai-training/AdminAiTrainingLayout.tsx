@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FileText, BookOpen, MessagesSquare,
-  History, FlaskConical, KeyRound, Code,
+  History, FlaskConical, KeyRound, Code, Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
