@@ -78,6 +78,8 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument"));
 const Trips = lazy(() => import("./pages/Trips"));
 const TripGuide = lazy(() => import("./pages/TripGuide"));
+const TripTemplates = lazy(() => import("./pages/TripTemplates"));
+const TripGenerate = lazy(() => import("./pages/TripGenerate"));
 const TravelerAttributes = lazy(() => import("./pages/admin/TravelerAttributes"));
 const DeployStatus = lazy(() => import("./pages/admin/DeployStatus"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
@@ -336,6 +338,14 @@ function App() {
                     <Route path="trips/guide" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripGuide /></Suspense>
                     } />
+                    <Route path="trips/templates" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripTemplates /></Suspense>
+                    } />
+                    <Route path="trips/generate" element={
+                      <Suspense fallback={<FrontendSkeleton />}><TripGenerate /></Suspense>
+                    } />
+
+
 
                     <Route path="trips/:tripId" element={
                       <Suspense fallback={<FrontendSkeleton />}><TripDetail /></Suspense>
