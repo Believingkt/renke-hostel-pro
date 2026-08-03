@@ -10262,6 +10262,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      ensure_trip_share_slug: { Args: { p_trip_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {

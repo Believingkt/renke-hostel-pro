@@ -24,6 +24,7 @@ interface TimelineItemProps {
   isLast?: boolean;
   draggable?: boolean;
   className?: string;
+  children?: ReactNode;
 }
 
 export function TimelineItem({
@@ -37,6 +38,7 @@ export function TimelineItem({
   isLast,
   draggable,
   className,
+  children,
 }: TimelineItemProps) {
   const Icon = ICONS[type] ?? Camera;
 
@@ -78,6 +80,8 @@ export function TimelineItem({
             ) : null}
           </div>
         )}
+
+        {children}
       </div>
     </div>
   );
