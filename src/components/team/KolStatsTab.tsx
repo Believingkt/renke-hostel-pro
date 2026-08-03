@@ -451,20 +451,32 @@ export function KolStatsTab() {
         // ⚠️ 底薪／團隊獎金：僅於 period=10 發放
         // 個人達標與團隊達標皆以 kpi_month = prevMonthStart（上月 YYYY-MM-01）為準
         let prevMonthStart: string | null = null;
-        let selectedYM: string | null = null; // YYYYMM 字串，判定正職是否在職
         if (showSalary && month) {
           const targetYear = month === 1 ? effYear - 1 : effYear;
           const targetMonth = month === 1 ? 12 : month - 1;
           prevMonthStart = `${targetYear}-${pad(targetMonth)}-01`;
-          selectedYM = `${targetYear}${pad(targetMonth)}`;
         }
-        const isFulltimeAt = (p: ScoutProfile): boolean => {
-          if (!selectedYM) return false;
-          if (p.employment_type !== "fulltime") return false;
+        // 結算年月（YYYYMM），與後端 calculate-scout-payout 的 currentYM 對齊；
+        // 不再受 showSalary 限制，期別 25 也會正確判定正職。
+        const settlementYM = month ? `${effYear}${pad(month)}` : null;
+        const fulltimeStartYM = (p: ScoutProfile): string | null => {
+          if (p.employment_type !== "fulltime") return null;
           const start = (p.fulltime_start_yearmonth ?? "").toString().replace(/[^0-9]/g, "").slice(0, 6);
-          if (start.length !== 6) return false;
-          return start <= selectedYM;
+          return start.length === 6 ? start : null;
         };
+        // 底薪／團隊貢獻用：以結算年月判定
+        const isFulltimeAt = (p: ScoutProfile): boolean => {
+          const start = fulltimeStartYM(p);
+          if (!start || !settlementYM) return false;
+          return start <= settlementYM;
+        };
+        // 稀有度獎金用：以「該筆邀約的 check_in_date 所屬年月」逐筆判定，
+        // 跨月期別（例：8/10 期 = 7/21–8/5）內正職起始月之前的邀約仍照兼職規則計獎。
+        const isFulltimeForDate = (start: string | null, checkIn: string | null): boolean => {
+          if (!start || !checkIn) return false;
+          return start <= checkIn.slice(0, 7).replace("-", "");
+        };
+
 
         // 供團隊獎金計算用：per scout per venue 的實際貢獻數
         // - 兼職：kpi_qualified=true 的全部邀約
@@ -499,12 +511,21 @@ export function KolStatsTab() {
             UR: 0,
             ck: 0,
           };
-          // 【修改三】正職：期別內 SR/SSR/UR 依 created_at 升序，> 30 位才發，
-          // 只取第 31 筆起依稀有度費率加總。N/R 不受影響（仍照 rarity_bonus 加總）。
+          // 【修改三】正職稀有度規則改為「逐筆依 check_in_date 判定」：
+          // 只有入住日所屬年月 >= 正職起始月的邀約才套用正職規則
+          //（SR/SSR/UR 依 created_at 升序，超過 30 位後第 31 筆起才計獎；N/R 照常計獎）。
+          // 起始月之前的邀約仍照兼職規則全額計獎。
+          const scoutStartYM = isExternal ? null : fulltimeStartYM(s);
+          const isFulltimeRow = (r: (typeof periodQualified)[number]) =>
+            isFulltimeForDate(scoutStartYM, r.check_in_date);
           const fulltimeExcludedIds = new Set<string>();
-          if (isFulltime) {
+          if (scoutStartYM) {
             const highRarity = periodQualified
-              .filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
+              .filter(
+                (r) =>
+                  isFulltimeRow(r) &&
+                  (r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR"),
+              )
               .slice()
               .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
             const excluded = highRarity.length > 30 ? highRarity.slice(0, 30) : highRarity;
@@ -521,9 +542,10 @@ export function KolStatsTab() {
             const bonusFull = rarityMap.get(rar) ?? 0;
             const key = `${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`;
             const suppress =
-              isFulltime &&
+              isFulltimeRow(r) &&
               (rar === "SR" || rar === "SSR" || rar === "UR") &&
               fulltimeExcludedIds.has(key);
+
             const bonus = suppress ? 0 : bonusFull;
             if (RARITIES.includes(rar)) {
               rarityCounts[rar] += 1;
