@@ -565,6 +565,8 @@ function InvitationsTab({
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
+  // 合作進度篩選（前端判斷）："all" | "not_checked_in" | "checked_in_no_post" | "posted" | "abnormal"
+  const [filterProgress, setFilterProgress] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -693,7 +695,11 @@ function InvitationsTab({
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
+    let q = supabase
+      .from("kol_profiles")
+      .select("*", { count: "exact" })
+      .eq("is_error", false)
+      .is("primary_profile_id", null);
 
     // 館別多選篩選：若全選（或未載入完成）→ 不加篩選
     const allOptionValues = filterAccOptions.map((o) => o.value);
