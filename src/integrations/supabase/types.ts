@@ -1384,6 +1384,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_reply_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          scenario: string
+          sort: number
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          scenario: string
+          sort?: number
+          template: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          scenario?: string
+          sort?: number
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alert_recipients: {
         Row: {
           created_at: string
