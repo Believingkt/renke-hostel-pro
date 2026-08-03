@@ -720,6 +720,16 @@ serve(async (req) => {
       .eq('is_active', true)
       .limit(40);
 
+    // B1: 回覆樣板（啟用中）— 作為回覆風格提示，不強制逐字套用
+    const { data: dbReplyTemplates } = await supabase
+      .from('ai_reply_templates')
+      .select('name, scenario, template')
+      .eq('is_active', true)
+      .order('sort', { ascending: true })
+      .limit(20);
+
+
+
     const todayStr = new Date().toISOString().split('T')[0];
     const locationStr = Array.from(new Set(accommodationList.map(a => [a.region_1, a.region_2].filter(Boolean).join(' ')).filter(Boolean))).join('、');
 
@@ -735,7 +745,13 @@ serve(async (req) => {
       dbExamples && dbExamples.length ? `\n【參考對話】\n${dbExamples.map(e => `[${e.scenario}]\n使用者：${e.user_message}\n小安：${e.ideal_response}`).join('\n---\n')}` : '',
     ].filter(Boolean).join('\n') : '';
 
+    const replyTemplateBlock = (dbReplyTemplates && dbReplyTemplates.length)
+      ? `\n【回覆樣板（依情境選用，作為風格參考，不需逐字照抄；{{房型}} {{價格}} {{日期}} 請以實際工具結果代入）】\n${dbReplyTemplates.map((t: any) => `[${t.scenario}｜${t.name}]\n${replaceVars(t.template)}`).join('\n---\n')}\n`
+      : '';
+
     const systemPrompt = `${dbPromptBlock}
+${replyTemplateBlock}
+
 ${userContextBlock}
 
 ## 搜尋優先原則（最高優先，不可違反）：
@@ -761,6 +777,77 @@ ${accListStr}
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
 - create_booking：建訂單`;
+
+    // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
+    const assistantTextRef = { value: '' };
+
+    const lastUserText = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === 'user');
+      return typeof m?.content === 'string' ? m.content : '';
+    })();
+
+    const pickLocalized = (v: any) => {
+      if (!v) return '';
+      if (typeof v === 'string') return v;
+      return v.zh || v.ja || v.en || '';
+    };
+
+    const buildRecommendedItems = async (roomsResult: any) => {
+      const items: any[] = [];
+      const text = `${lastUserText}\n${assistantTextRef.value}`;
+
+      // 1) 房型：走既有 get_available_rooms 結果
+      const rooms: any[] = Array.isArray(roomsResult?.rooms) ? roomsResult.rooms : [];
+      if (rooms.length > 0) {
+        const sorted = [...rooms].sort((a, b) =>
+          Number(Boolean(b.is_available_for_range)) - Number(Boolean(a.is_available_for_range)));
+        for (const r of sorted.slice(0, 3)) {
+          items.push({
+            kind: 'room',
+            id: r.id,
+            title: `${r.accommodation_name ? r.accommodation_name + ' · ' : ''}${r.name}`,
+            subtitle: r.capacity ? `可住 ${r.capacity} 人` : '',
+            price: r.range_total_price ?? r.min_price ?? (r.base_price > 0 ? r.base_price : null),
+            image: Array.isArray(r.photos) && r.photos.length ? r.photos[0] : null,
+            badge: roomsResult?.check_in_date
+              ? (r.is_available_for_range ? '有空房' : '已額滿')
+              : '可查詢',
+            available: roomsResult?.check_in_date ? Boolean(r.is_available_for_range) : true,
+            url: r.booking_url || null,
+          });
+        }
+      }
+
+      // 2) 票券／活動、餐飲：走 trip_products
+      const wantTicket = /票券|門票|活動|體驗|行程|景點/.test(text);
+      const wantFood = /餐飲|美食|餐廳|吃|晚餐|午餐|早餐|下午茶/.test(text);
+      if (wantTicket || wantFood) {
+        const types: string[] = [];
+        if (wantTicket) types.push('activity', 'ticket', 'experience', 'attraction');
+        if (wantFood) types.push('food', 'dining', 'restaurant', 'meal');
+        const { data: products } = await supabase
+          .from('trip_products')
+          .select('id, name, description, type, price, stock, cover_url, accommodation_id')
+          .eq('is_active', true)
+          .in('type', types)
+          .limit(3);
+        for (const p of products || []) {
+          items.push({
+            kind: p.type,
+            id: p.id,
+            title: pickLocalized(p.name),
+            subtitle: pickLocalized(p.description).slice(0, 40),
+            price: p.price ?? null,
+            image: p.cover_url || null,
+            badge: p.stock === null ? '可預訂' : (p.stock > 0 ? `剩餘 ${p.stock}` : '已售完'),
+            available: p.stock === null || p.stock > 0,
+            url: `/trips?product=${p.id}`,
+          });
+        }
+      }
+
+      return items.slice(0, 3);
+    };
 
 
     const toAnthropicMessages = (msgs: any[]) =>
@@ -811,6 +898,8 @@ ${accListStr}
         let assistantText = '';
         const toolCallsByIndex = new Map<number, { id: string; name: string; inputJson: string; inputObject: any }>();
         let shouldExecuteToolCalls = false;
+        let lastRoomsResult: any = null;
+
 
         const parseToolArgs = (rawArgs: string, fallback: any = {}) => {
           if (!rawArgs?.trim()) return fallback || {};
@@ -874,6 +963,12 @@ ${accListStr}
 
                   // Send tool results
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_calls_complete', results: toolResults })}\n\n`));
+
+                  // B1: 記錄房型查詢結果供推薦卡使用
+                  for (const tr of toolResults) {
+                    if ((tr.result as any)?.rooms) lastRoomsResult = tr.result;
+                  }
+
 
                   // Template response for room queries
                   const canTemplate = completedToolCalls.length === 1 && completedToolCalls[0].function.name === 'get_available_rooms';
@@ -1018,7 +1113,18 @@ ${accListStr}
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
+          // B1: 附加動態推薦商品（失敗不影響對話）
+          try {
+            assistantTextRef.value = assistantText;
+            const recommendedItems = await buildRecommendedItems(lastRoomsResult);
+            if (recommendedItems.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'recommended_items', items: recommendedItems })}\n\n`));
+            }
+          } catch (recErr) {
+            console.error('Recommended items failed:', recErr);
+          }
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
+
           controller.close();
           // Log conversation (Phase 2/3)
           try {

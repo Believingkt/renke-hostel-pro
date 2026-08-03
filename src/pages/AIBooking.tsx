@@ -18,6 +18,8 @@ import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
+import { RecommendedItemCards, type RecommendedItem } from "@/components/ai/RecommendedItemCards";
+
 
 // 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
 const BOOKING_LINK_REGEX = /(?:https?:\/\/[^\s)]+)?\/book\?[^\s)\]，。、]+/g;
@@ -49,6 +51,7 @@ interface Message {
     type: string;
     data: any;
   }[];
+  recommendedItems?: RecommendedItem[];
   quickReplies?: string[];
   showDatePicker?: "check-in" | "check-out" | "range";
   selectedDates?: {
@@ -56,6 +59,7 @@ interface Message {
     checkOut?: Date;
   };
 }
+
 
 export default function AIBooking() {
   const navigate = useNavigate();
@@ -286,6 +290,8 @@ export default function AIBooking() {
         const lines = fullText.split('\n');
         let fbContent = '';
         let fbToolCalls: any[] = [];
+        let fbRecommended: RecommendedItem[] = [];
+
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
@@ -300,7 +306,11 @@ export default function AIBooking() {
                 if (r.result?.is_valid !== undefined) fbToolCalls.push({ type: 'discount', data: r.result });
               });
             }
+            if (parsed.type === 'recommended_items' && Array.isArray(parsed.items)) {
+              fbRecommended = parsed.items;
+            }
             const ct = parsed.choices?.[0]?.delta?.content;
+
             if (ct) fbContent += ct;
           } catch (_) {}
         }
@@ -313,6 +323,8 @@ export default function AIBooking() {
           content: dc,
           timestamp: new Date(),
           toolCalls: fbToolCalls.length > 0 ? fbToolCalls : undefined,
+          recommendedItems: fbRecommended.length > 0 ? fbRecommended : undefined,
+
           quickReplies: qr.length > 0 ? qr : undefined,
         }]);
         setIsLoading(false);
@@ -361,7 +373,20 @@ export default function AIBooking() {
           try {
             const parsed = JSON.parse(jsonStr);
 
+            if (parsed.type === 'recommended_items' && Array.isArray(parsed.items)) {
+              const recItems: RecommendedItem[] = parsed.items;
+              setMessages(prev => {
+                const updated = [...prev];
+                const lastMsg = updated[updated.length - 1];
+                if (!lastMsg || lastMsg.role !== 'assistant') return prev;
+                updated[updated.length - 1] = { ...lastMsg, recommendedItems: recItems };
+                return updated;
+              });
+              continue;
+            }
+
             if (parsed.type === 'tool_calls_complete') {
+
               // Check if rooms were already shown in previous messages
               const roomsAlreadyShown = newMessages.some(
                 m => m.role === 'assistant' && m.toolCalls?.some(tc => tc.type === 'rooms')
@@ -1236,8 +1261,14 @@ export default function AIBooking() {
                       </div>
                     )}
                   </div>
-                  
+
+                  {/* B1: 動態推薦商品卡 */}
+                  {message.recommendedItems && message.recommendedItems.length > 0 && (
+                    <RecommendedItemCards items={message.recommendedItems} />
+                  )}
+
                   {/* 顯示工具調用結果 */}
+
                   {message.toolCalls && message.toolCalls.length > 0 && (
                     <div className="mt-3 space-y-3">
                       {message.toolCalls.map((tool, toolIdx) => (

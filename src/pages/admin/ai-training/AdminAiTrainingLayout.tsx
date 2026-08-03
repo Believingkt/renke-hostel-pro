@@ -14,6 +14,8 @@ const NAV = [
   { to: "/admin/ai-training/prompt", label: "系統提示詞", icon: FileText },
   { to: "/admin/ai-training/knowledge", label: "知識庫", icon: BookOpen },
   { to: "/admin/ai-training/examples", label: "對話範例", icon: MessagesSquare },
+  { to: "/admin/reply-templates", label: "回覆樣板", icon: MessagesSquare },
+
   { to: "/admin/ai-training/conversations", label: "對話紀錄", icon: History },
   { to: "/admin/ai-training/playground", label: "即時測試", icon: FlaskConical },
   { to: "/admin/ai-training/api-keys", label: "API 金鑰", icon: KeyRound },
