@@ -497,13 +497,11 @@ export function KolStatsTab() {
           // External scout：稀有度獎金無 30 位門檻，強制 fulltime 抑制邏輯不生效
           const isFulltime = isExternal ? false : isFulltimeAt(s);
 
+          // 本期所有邀約（依 check_in_date 落在期別），含不計獎者，供明細解釋使用
+          const periodAll = rows.filter((r) => inPeriod(r.check_in_date));
           // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
-          const periodQualified = rows.filter(
-            (r) =>
-              r.kpi_qualified === true &&
-              !r.is_error &&
-              !!r.invited_at &&
-              inPeriod(r.check_in_date),
+          const periodQualified = periodAll.filter(
+            (r) => r.kpi_qualified === true && !r.is_error && !!r.invited_at,
           );
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
@@ -514,14 +512,18 @@ export function KolStatsTab() {
             UR: 0,
             ck: 0,
           };
-          // 【修改三】正職稀有度規則改為「逐筆依 check_in_date 判定」：
-          // 只有入住日所屬年月 >= 正職起始月的邀約才套用正職規則
-          //（SR/SSR/UR 依 created_at 升序，超過 30 位後第 31 筆起才計獎；N/R 照常計獎）。
-          // 起始月之前的邀約仍照兼職規則全額計獎。
+          // 正職稀有度規則（與 calculate-scout-payout 後端一致）：
+          // 逐筆依 check_in_date 所屬年月判定，>= 正職起始月者套正職規則：
+          //   - N/R：一律不計獎
+          //   - SR/SSR/UR：依 created_at 升序，前 30 位不計獎，第 31 位起依等級發放
+          // 其餘（起始月之前的跨月區段、兼職、外部星探）→ 每筆全額計獎。
           const scoutStartYM = isExternal ? null : fulltimeStartYM(s);
           const isFulltimeRow = (r: (typeof periodQualified)[number]) =>
             isFulltimeForDate(scoutStartYM, r.check_in_date);
-          const fulltimeExcludedIds = new Set<string>();
+          const rowKey = (r: (typeof periodQualified)[number]) =>
+            `${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`;
+          // 正職 SR/SSR/UR 在期別內的排序序位（1-based）
+          const fulltimeRareRank = new Map<string, number>();
           if (scoutStartYM) {
             const highRarity = periodQualified
               .filter(
@@ -531,26 +533,49 @@ export function KolStatsTab() {
               )
               .slice()
               .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
-            const excluded = highRarity.length > 30 ? highRarity.slice(0, 30) : highRarity;
-            for (const r of excluded) {
+            highRarity.forEach((r, idx) => {
               // 使用 name + created_at + rarity 組合鍵，避免 kol_profiles 無 id 欄位
-              fulltimeExcludedIds.add(`${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`);
-            }
+              if (!fulltimeRareRank.has(rowKey(r))) fulltimeRareRank.set(rowKey(r), idx + 1);
+            });
           }
 
           let rarityBonus = 0;
           const qualifiedKols: ScoutStats["qualifiedKols"] = [];
-          for (const r of periodQualified) {
+          for (const r of periodAll) {
             const rar = (r.rarity ?? "") as Rarity;
             const bonusFull = rarityMap.get(rar) ?? 0;
-            const key = `${r.name ?? ""}|${r.created_at ?? ""}|${r.rarity ?? ""}`;
-            const suppress =
-              isFulltimeRow(r) &&
-              (rar === "SR" || rar === "SSR" || rar === "UR") &&
-              fulltimeExcludedIds.has(key);
+            const isQualifiedRow =
+              r.kpi_qualified === true && !r.is_error && !!r.invited_at;
 
-            const bonus = suppress ? 0 : bonusFull;
-            if (RARITIES.includes(rar)) {
+            let bonus = 0;
+            let reason = "";
+
+            if (!isQualifiedRow) {
+              if (r.kpi_qualified !== true) reason = "未達 KPI 資格（kpi_qualified＝否）";
+              else if (r.is_error) reason = "標記為異常邀約，不計獎";
+              else reason = "無邀約時間（invited_at 為空），不計獎";
+            } else if (isFulltimeRow(r)) {
+              if (rar === "SR" || rar === "SSR" || rar === "UR") {
+                const rank = fulltimeRareRank.get(rowKey(r)) ?? 0;
+                if (rank > 30) {
+                  bonus = bonusFull;
+                  reason = `正職規則：期別內第 ${rank} 位 SR/SSR/UR（超過 30 位），依等級發放`;
+                } else {
+                  reason = `正職規則：期別內第 ${rank} 位 SR/SSR/UR，未超過 30 位門檻，不計獎`;
+                }
+              } else {
+                reason = "正職規則：N／R 等級不計獎";
+              }
+            } else {
+              bonus = bonusFull;
+              reason = scoutStartYM
+                ? "入住月早於正職起始月，適用兼職規則，全額計獎"
+                : isExternal
+                  ? "外部星探，適用兼職規則，全額計獎"
+                  : "兼職規則：全額計獎";
+            }
+
+            if (isQualifiedRow && RARITIES.includes(rar)) {
               rarityCounts[rar] += 1;
               rarityBonus += bonus;
             }
@@ -560,10 +585,13 @@ export function KolStatsTab() {
                 rarity: rar,
                 check_in_date: r.check_in_date,
                 bonus,
+                counted: bonus > 0,
+                reason,
               });
             }
           }
           qualifiedKols.sort((a, b) => (a.check_in_date ?? "").localeCompare(b.check_in_date ?? ""));
+
 
           const cidCodes = cidByScout.get(s.user_id) ?? [];
           let pmsOrderCount = 0;
