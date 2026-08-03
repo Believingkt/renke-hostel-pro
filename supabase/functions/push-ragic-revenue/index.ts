@@ -6,22 +6,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
-
-const RAGIC_URL =
-  "https://ap15.ragic.com/lakeze/income-source/2?api&naming=EID";
-
-const FIELD = {
-  DATA_SOURCE: "1001007",
-  YEAR_MONTH: "1001009",
-  BUSINESS_UNIT: "1001017",
-  INCOME_TYPE: "1001018",
-  AMOUNT: "1001010",
-  VENUE: "1001008",
-  COMMISSION_RATE: "1001019",
-  COMMISSION_FEE: "1001020",
-  NOTE: "1001022",
-} as const;
-
+import { RAGIC_FIELD as FIELD, pushRows } from "../_shared/ragic.ts";
+import { buildMarketingFeeResolver, resolveMarketingFee } from "../_shared/marketingFee.ts";
 
 // Only 森山寫照 is currently a franchise venue
 const FRANCHISE_IDS = new Set<string>([
@@ -51,18 +37,19 @@ function orderNights(o: any): number {
   return n > 0 ? n : 0;
 }
 
-/** Accrue an order's final_price nightly onto [monthStart, monthEnd] (inclusive-exclusive). */
+/** Accrue an order's final_price nightly onto [monthStart, monthEnd) (inclusive-exclusive). */
 function accruedInMonth(
   o: any,
   monthStart: Date,
   monthEnd: Date,
   isExempt: (order: any) => boolean,
+  ignoreExempt = false,
 ): number {
   if (o.order_status === "cancelled") return 0;
   // 保留單：靠姓名字串判斷，維持既有行為（不在 exempt 規則涵蓋範圍內）
   if (String(o.guest_name ?? "").trim() === "保留單") return 0;
   // 排除來源一律以 owner_settlement_pricing_rules.exempt_order_sources（DB 驅動）＋ owner_direct 判斷
-  if (isExempt(o)) return 0;
+  if (!ignoreExempt && isExempt(o)) return 0;
   // 註：kol 已包含在除「天送幸福和苑」外所有館別的 DB 清單中；天送的清單目前未含 kol，
   // 若日後天送需要排除 kol，請由 AM 在後台勾選，不在此硬寫。
 
@@ -80,59 +67,6 @@ function accruedInMonth(
     if (day >= monthStart && day < monthEnd) sum += share;
   }
   return sum;
-}
-
-
-function ragicAuthHeader() {
-  const apiKey = Deno.env.get("RAGIC_API_KEY");
-  if (!apiKey) throw new Error("RAGIC_API_KEY not configured");
-  return `Basic ${apiKey.trim()}`;
-}
-
-async function postToRagic(payload: Record<string, string>, recordId?: string | number | null) {
-  const url = recordId != null && recordId !== "" ? `${RAGIC_URL.replace("?api&naming=EID", `/${recordId}?api&naming=EID`)}` : RAGIC_URL;
-  const body = new URLSearchParams(payload).toString();
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: ragicAuthHeader(),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-  const text = await resp.text();
-  let json: any = null;
-  try { json = JSON.parse(text); } catch {}
-  return { ok: resp.ok, status: resp.status, body: json ?? text };
-}
-
-/** Find existing Ragic record matching year_month + venue + income_type. Returns Ragic record id or null. */
-async function findExistingRagicRecord(
-  yyyyMm: string,
-  venueName: string,
-  incomeType: string,
-): Promise<string | null> {
-  // Ragic date field stores yyyy/MM/dd; use first day of month
-  const [y, m] = yyyyMm.split("/");
-  const dateVal = `${y}/${m}/01`;
-  const params = new URLSearchParams();
-  params.set("api", "");
-  // Ragic where syntax: where=<fieldId>,eq,<value>
-  params.append("where", `${FIELD.YEAR_MONTH},eq,${dateVal}`);
-  params.append("where", `${FIELD.VENUE},eq,${venueName}`);
-  params.append("where", `${FIELD.INCOME_TYPE},eq,${incomeType}`);
-  const url = `https://ap15.ragic.com/lakeze/income-source/2?${params.toString()}`;
-  const resp = await fetch(url, { headers: { Authorization: ragicAuthHeader() } });
-  if (!resp.ok) return null;
-  const text = await resp.text();
-  let json: any = null;
-  try { json = JSON.parse(text); } catch { return null; }
-  if (!json || typeof json !== "object") return null;
-  // Ragic returns an object keyed by internal ragicId. Pick the first.
-  const keys = Object.keys(json).filter((k) => !k.startsWith("_") && typeof json[k] === "object");
-  if (keys.length === 0) return null;
-  const first = json[keys[0]];
-  return String(first?._ragicId ?? keys[0]);
 }
 
 Deno.serve(async (req) => {
@@ -164,13 +98,13 @@ Deno.serve(async (req) => {
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd = new Date(year, month, 1);
     const yyyyMm = `${year}/${String(month).padStart(2, "0")}`;
-    const monthStartStr = monthStart.toISOString().slice(0, 10);
-    const monthEndStr = monthEnd.toISOString().slice(0, 10);
+    const monthStartStr = `${year}-${String(month).padStart(2, "0")}-01`;
+    const monthEndStr = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, "0")}-01`;
 
     // 1. Fetch accommodations
     let accQuery = supabase
       .from("accommodation_info")
-      .select("id, name, secondary_currency, secondary_currency_rate")
+      .select("id, name, building_count, secondary_currency, secondary_currency_rate")
       .eq("is_active", true);
     if (accommodation_id) accQuery = accQuery.eq("id", accommodation_id);
     const { data: accommodations, error: accErr } = await accQuery;
@@ -201,6 +135,8 @@ Deno.serve(async (req) => {
 
     // 2b. 排除規則：沿用正式試算共用邏輯（DB 驅動 owner_settlement_pricing_rules + legacy fallback）
     const isExempt = await buildExemptResolver(supabase, accIds);
+    // 2c. 行銷推廣費規則（與前端 resolveMarketingFee 同一套邏輯）
+    const marketingRuleFor = await buildMarketingFeeResolver(supabase, accIds, monthStartStr);
 
     const results: any[] = [];
 
@@ -231,11 +167,15 @@ Deno.serve(async (req) => {
 
       // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
+      // 行銷費門檻基礎：毛營收（含 exempt 訂單），與前端 getStandardThresholdBase 一致
+      let grossRevenueTwd = 0;
       for (const o of orders || []) {
         revenueTwd += accruedInMonth(o, monthStart, monthEnd, isExempt);
+        grossRevenueTwd += accruedInMonth(o, monthStart, monthEnd, isExempt, true);
       }
 
       revenueTwd = Math.round(revenueTwd);
+      grossRevenueTwd = Math.round(grossRevenueTwd);
 
 
       const feeCfg = feeMap.get(acc.id) ?? null;
@@ -248,91 +188,85 @@ Deno.serve(async (req) => {
       const isFranchise = FRANCHISE_IDS.has(acc.id);
       const noteText = hasFee ? "" : NO_FEE_NOTE;
 
+      // 行銷推廣費：每館每月一筆，0 元館別也照推
+      const mRule = marketingRuleFor(acc.id);
+      const marketingFee = Math.round(
+        resolveMarketingFee(mRule, grossRevenueTwd, Number(acc.building_count) || 1),
+      );
+      const marketingRow: Record<string, string> = {
+        [FIELD.DATA_SOURCE]: "PMS",
+        [FIELD.YEAR_MONTH]: yyyyMm,
+        [FIELD.BUSINESS_UNIT]: "人客多總部",
+        [FIELD.INCOME_TYPE]: "行銷推廣費",
+        [FIELD.AMOUNT]: String(marketingFee),
+        [FIELD.VENUE]: acc.name,
+        [FIELD.COMMISSION_RATE]: "",
+        [FIELD.COMMISSION_FEE]: "",
+        [FIELD.NOTE]: "",
+      };
+
       // Skip venues with no revenue AND no management fee for the month,
       // OR venues that have a fee config but revenue is below threshold (fee = 0).
+      // 註：此 skip 僅適用於「平台抽成／門市運營」，行銷推廣費仍照推。
       const skipUnderThreshold = hasFee && managementFeeRounded === 0;
-      if ((revenueTwd === 0 && managementFeeRounded === 0) || skipUnderThreshold) {
-        results.push({
-          accommodation_id: acc.id,
-          accommodation_name: acc.name,
-          skipped: true,
-          reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
-          is_franchise: FRANCHISE_IDS.has(acc.id),
-          revenue_twd: revenueTwd,
-          management_fee_twd: 0,
-        });
-        continue;
-      }
+      const skipCommissionRows =
+        (revenueTwd === 0 && managementFeeRounded === 0) || skipUnderThreshold;
 
       const rows: Record<string, string>[] = [];
 
       // Ragic 抽成比例欄位為百分比型態，會自動 ×100 顯示；因此送出「小數」原值 (e.g. 0.25)
       const ratePercent = feeCfg ? Number(feeCfg.rate.toFixed(6)) : 0;
 
-      // 平台抽成 (always)
-      rows.push({
-        [FIELD.DATA_SOURCE]: "PMS",
-        [FIELD.YEAR_MONTH]: yyyyMm,
-        [FIELD.BUSINESS_UNIT]: "人客多總部",
-        [FIELD.INCOME_TYPE]: "平台抽成",
-        [FIELD.AMOUNT]: String(managementFeeRounded),
-        [FIELD.VENUE]: acc.name,
-        [FIELD.COMMISSION_RATE]: String(ratePercent),
-        [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
-        [FIELD.NOTE]: noteText,
-      });
-
-      // 門市運營 (franchise only)
-      if (isFranchise) {
-        rows.unshift({
+      if (!skipCommissionRows) {
+        // 平台抽成 (always)
+        rows.push({
           [FIELD.DATA_SOURCE]: "PMS",
           [FIELD.YEAR_MONTH]: yyyyMm,
-          [FIELD.BUSINESS_UNIT]: `營運門市_${acc.name}`,
-          [FIELD.INCOME_TYPE]: "門市運營",
-          [FIELD.AMOUNT]: String(revenueTwd),
+          [FIELD.BUSINESS_UNIT]: "人客多總部",
+          [FIELD.INCOME_TYPE]: "平台抽成",
+          [FIELD.AMOUNT]: String(managementFeeRounded),
           [FIELD.VENUE]: acc.name,
-          [FIELD.COMMISSION_RATE]: "",
-          [FIELD.COMMISSION_FEE]: "",
+          [FIELD.COMMISSION_RATE]: String(ratePercent),
+          [FIELD.COMMISSION_FEE]: String(managementFeeRounded),
           [FIELD.NOTE]: noteText,
         });
-      }
 
-
-      const posts: any[] = [];
-      if (!dry_run) {
-        for (const row of rows) {
-          let existingId: string | null = null;
-          if (mode === "upsert") {
-            try {
-              existingId = await findExistingRagicRecord(
-                yyyyMm,
-                row[FIELD.VENUE],
-                row[FIELD.INCOME_TYPE],
-              );
-            } catch (err) {
-              console.error("[push-ragic-revenue] lookup failed", err);
-            }
-          }
-          const r = await postToRagic(row, existingId);
-          const respRid = (r.body && (r.body._ragicId ?? r.body.ragicId)) ?? null;
-          posts.push({
-            ok: r.ok && (r.body?.status ?? "SUCCESS") === "SUCCESS",
-            status: r.status,
-            action: existingId ? "update" : "insert",
-            existing_record_id: existingId,
-            record_id: respRid ?? existingId,
-            body: r.body,
+        // 門市運營 (franchise only)
+        if (isFranchise) {
+          rows.unshift({
+            [FIELD.DATA_SOURCE]: "PMS",
+            [FIELD.YEAR_MONTH]: yyyyMm,
+            [FIELD.BUSINESS_UNIT]: `營運門市_${acc.name}`,
+            [FIELD.INCOME_TYPE]: "門市運營",
+            [FIELD.AMOUNT]: String(revenueTwd),
+            [FIELD.VENUE]: acc.name,
+            [FIELD.COMMISSION_RATE]: "",
+            [FIELD.COMMISSION_FEE]: "",
+            [FIELD.NOTE]: noteText,
           });
         }
       }
+
+      rows.push(marketingRow);
+
+      const posts = dry_run ? [] : await pushRows(rows, yyyyMm, mode);
 
       results.push({
         accommodation_id: acc.id,
         accommodation_name: acc.name,
         is_franchise: isFranchise,
         revenue_twd: revenueTwd,
-        management_fee_twd: managementFeeRounded,
+        gross_revenue_twd: grossRevenueTwd,
+        management_fee_twd: skipCommissionRows ? 0 : managementFeeRounded,
+        marketing_fee_twd: marketingFee,
+        marketing_rule: mRule,
         fee_config: feeCfg,
+        ...(skipCommissionRows
+          ? {
+              commission_rows_skipped: true,
+              skip_reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
+            }
+          : {}),
         payloads: rows,
         ...(dry_run ? {} : { ragic_responses: posts }),
       });
