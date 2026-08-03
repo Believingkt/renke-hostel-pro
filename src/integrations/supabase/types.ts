@@ -10144,6 +10144,7 @@ export type Database = {
       kol_profiles_with_progress: {
         Row: {
           accommodation_id: string | null
+          anomaly_reason: string | null
           booking_status: string | null
           check_in_date: string | null
           check_out_date: string | null

@@ -52,6 +52,51 @@ function renderBookingStatusBadge(value: string | null | undefined) {
   );
 }
 
+const ANOMALY_INFO: Record<string, { title: string; desc: string; rule: string }> = {
+  order_deleted: {
+    title: "訂單被刪除",
+    desc: "此邀約填了訂單編號，系統也留有該訂單的建立紀錄，但訂單目前已不存在（被刪除）。",
+    rule: "觸發條件：order_number 有值 + audit_logs 有該單建立紀錄 + orders 查無此單",
+  },
+  published_before_checkin: {
+    title: "未入住卻已上片",
+    desc: "此邀約已填寫上片連結，但入住日還沒到，時序不合理（可能入住日填錯或提前發文）。",
+    rule: "觸發條件：publish_url 有值 + 今日（台北時間）< check_in_date",
+  },
+};
+
+function AnomalyBadge({ reason }: { reason?: string | null }) {
+  const info = reason ? ANOMALY_INFO[reason] : undefined;
+  if (!info) return null;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0"
+          aria-label="查看異常原因"
+        >
+          <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 cursor-pointer">
+            異常
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-72 text-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="font-medium mb-1">{info.title}</div>
+        <p className="text-muted-foreground text-xs leading-relaxed">{info.desc}</p>
+        <p className="mt-2 text-[11px] text-muted-foreground/80 leading-relaxed">{info.rule}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
+
 const RARITY_OPTIONS = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
 type Rarity = (typeof RARITY_OPTIONS)[number];
 
@@ -1941,6 +1986,8 @@ function InvitationsTab({
                                 填錯
                               </Badge>
                             )}
+                            <AnomalyBadge reason={(r as any).anomaly_reason} />
+
                             {opts.isOrphan && (
                               <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 shrink-0">
                                 孤兒附屬
@@ -2286,6 +2333,22 @@ function InvitationsTab({
                       (r.name ?? "-")
                     )}
                   </Row>
+                  {(r as any).collab_progress === "異常需檢查" && (
+                    <Row label="異常原因">
+                      <div className="rounded-md border border-orange-200 bg-orange-50 p-2">
+                        <div className="font-medium text-orange-800 text-sm">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.title ?? "未知異常"}
+                        </div>
+                        <p className="text-xs text-orange-700 mt-1 leading-relaxed">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.desc ?? "—"}
+                        </p>
+                        <p className="text-[11px] text-orange-600/80 mt-1 leading-relaxed">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.rule ?? ""}
+                        </p>
+                      </div>
+                    </Row>
+                  )}
+
                   <Row label="網紅帳號連結">
                     {igUrl ? (
                       <a
