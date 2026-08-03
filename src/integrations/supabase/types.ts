@@ -1303,6 +1303,7 @@ export type Database = {
           id: string
           is_active: boolean
           priority: number
+          search_tsv: unknown
           tags: string[]
           title: string
           updated_at: string
@@ -1315,6 +1316,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           priority?: number
+          search_tsv?: unknown
           tags?: string[]
           title: string
           updated_at?: string
@@ -1327,6 +1329,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           priority?: number
+          search_tsv?: unknown
           tags?: string[]
           title?: string
           updated_at?: string
@@ -10615,6 +10618,24 @@ export type Database = {
           base_price: number
           id: string
           name: string
+        }[]
+      }
+      search_ai_knowledge: {
+        Args: {
+          p_accommodation_id?: string
+          p_category?: Database["public"]["Enums"]["ai_knowledge_category"]
+          p_limit?: number
+          p_query: string
+        }
+        Returns: {
+          category: Database["public"]["Enums"]["ai_knowledge_category"]
+          content: string
+          id: string
+          is_active: boolean
+          rank: number
+          snippet: string
+          title: string
+          updated_at: string
         }[]
       }
       staff_can_edit_module: {
