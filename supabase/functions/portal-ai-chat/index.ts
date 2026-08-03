@@ -779,6 +779,8 @@ ${accListStr}
 - create_booking：建訂單`;
 
     // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
+    const assistantTextRef = { value: '' };
+
     const lastUserText = (() => {
       const m = [...messages].reverse().find((x: any) => x.role === 'user');
       return typeof m?.content === 'string' ? m.content : '';
