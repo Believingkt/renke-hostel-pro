@@ -2333,6 +2333,22 @@ function InvitationsTab({
                       (r.name ?? "-")
                     )}
                   </Row>
+                  {(r as any).collab_progress === "異常需檢查" && (
+                    <Row label="異常原因">
+                      <div className="rounded-md border border-orange-200 bg-orange-50 p-2">
+                        <div className="font-medium text-orange-800 text-sm">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.title ?? "未知異常"}
+                        </div>
+                        <p className="text-xs text-orange-700 mt-1 leading-relaxed">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.desc ?? "—"}
+                        </p>
+                        <p className="text-[11px] text-orange-600/80 mt-1 leading-relaxed">
+                          {ANOMALY_INFO[(r as any).anomaly_reason]?.rule ?? ""}
+                        </p>
+                      </div>
+                    </Row>
+                  )}
+
                   <Row label="網紅帳號連結">
                     {igUrl ? (
                       <a
