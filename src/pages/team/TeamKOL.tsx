@@ -696,10 +696,11 @@ function InvitationsTab({
     const to = from + PAGE_SIZE - 1;
 
     let q = supabase
-      .from("kol_profiles")
+      .from("kol_profiles_with_progress" as any)
       .select("*", { count: "exact" })
       .eq("is_error", false)
       .is("primary_profile_id", null);
+    if (filterProgress !== "all") q = q.eq("collab_progress", filterProgress);
 
     // 館別多選篩選：若全選（或未載入完成）→ 不加篩選
     const allOptionValues = filterAccOptions.map((o) => o.value);
@@ -765,7 +766,8 @@ function InvitationsTab({
       return;
     }
     // 取 scout 姓名
-    const scoutIds = Array.from(new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]));
+    const rowsData = ((data ?? []) as any[]);
+    const scoutIds = Array.from(new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]));
     let scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
@@ -779,7 +781,7 @@ function InvitationsTab({
     // 依 order_number 批次查 orders.order_status，自動連動「狀態」欄位
     const orderNumbers = Array.from(
       new Set(
-        (data ?? [])
+        rowsData
           .map((r: any) => (r.order_number ?? "").trim())
           .filter((s: string) => s.length > 0)
       )
@@ -815,7 +817,7 @@ function InvitationsTab({
       }
       return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
     };
-    const enriched = (data ?? []).map((r: any) => ({
+    const enriched = rowsData.map((r: any) => ({
       ...r,
       _accommodation_name: resolveVenueDisplay(r),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
@@ -832,7 +834,7 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
+  }, [accommodations, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -844,24 +846,8 @@ function InvitationsTab({
   }, [search, filterAccs, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
 
 
-  // 伺服器端已套用篩選；合作進度為前端判斷
-  const filtered = useMemo(() => {
-    if (filterProgress === "all") return rows;
-    const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
-    const progressOf = (r: KolRow): string | null => {
-      const st = (r as any)._effective_booking_status as string | null;
-      if (st === "已取消" || !st) return null;
-      if (st === "訂房確認中") return "not_checked_in";
-      if (st !== "成功訂房") return null;
-      const ci = (r.check_in_date ?? "").trim();
-      if (!ci) return null;
-      const hasPost = !!(r.publish_url ?? "").trim();
-      const arrived = todayStr >= ci;
-      if (hasPost) return arrived ? "posted" : "abnormal";
-      return arrived ? "checked_in_no_post" : "not_checked_in";
-    };
-    return rows.filter((r) => progressOf(r) === filterProgress);
-  }, [rows, filterProgress]);
+  // 伺服器端已套用所有篩選（含合作進度 collab_progress）
+  const filtered = rows;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
 
@@ -1650,10 +1636,10 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">合作進度</SelectItem>
-                <SelectItem value="not_checked_in">未入住</SelectItem>
-                <SelectItem value="checked_in_no_post">入住未上片</SelectItem>
-                <SelectItem value="posted">已上片</SelectItem>
-                <SelectItem value="abnormal">異常需檢查</SelectItem>
+                <SelectItem value="未入住">未入住</SelectItem>
+                <SelectItem value="入住未上片">入住未上片</SelectItem>
+                <SelectItem value="已上片">已上片</SelectItem>
+                <SelectItem value="異常需檢查">異常需檢查</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1854,10 +1840,10 @@ function InvitationsTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">合作進度</SelectItem>
-                <SelectItem value="not_checked_in">未入住</SelectItem>
-                <SelectItem value="checked_in_no_post">入住未上片</SelectItem>
-                <SelectItem value="posted">已上片</SelectItem>
-                <SelectItem value="abnormal">異常需檢查</SelectItem>
+                <SelectItem value="未入住">未入住</SelectItem>
+                <SelectItem value="入住未上片">入住未上片</SelectItem>
+                <SelectItem value="已上片">已上片</SelectItem>
+                <SelectItem value="異常需檢查">異常需檢查</SelectItem>
               </SelectContent>
             </Select>
           </div>
