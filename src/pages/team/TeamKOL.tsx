@@ -4708,7 +4708,10 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       setPersonalRows(pRows);
     }
 
-    // 4. SR 累積統計（正職星探當月 SR/SSR）
+    // 4. SR 累積統計（正職星探當月 SR/SSR/UR）
+    // 有效邀約條件與 calculate-scout-payout 後端一致：
+    //   is_error=false、kpi_qualified=true、invited_at 非空
+    // 註：此區為「kpi_month 當月」參考統計，非發放期別（期別以 check_in_date 為準）
     if (fulltimeScoutMap.size === 0) {
       setSrStats([]);
     } else {
@@ -4716,10 +4719,13 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .from("kol_profiles")
         .select("scout_id, rarity, created_at")
         .eq("is_error", false)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
         .eq("kpi_month", kpiMonthStr)
-        .in("scout_id", Array.from(fulltimeScoutMap.keys()))
+        .in("scout_id", eligibleFulltimeIds.length > 0 ? eligibleFulltimeIds : ["00000000-0000-0000-0000-000000000000"])
         .in("rarity", ["SR", "SSR", "UR"]);
       const rarityRows = ((rarityRowsRaw as any[]) ?? []).filter((r) => r.scout_id);
+
 
       // 取最近一筆生效的稀有度設定 bonus_amount
       const { data: raritySettings } = await supabase
@@ -4742,6 +4748,8 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       });
       const stats: FulltimeSrStat[] = [];
       for (const [scoutId, name] of fulltimeScoutMap.entries()) {
+        // 僅列出「該月份已達正職起始月」的星探，與後端正職判定一致
+        if (!eligibleFulltimeIds.includes(scoutId)) continue;
         const arr = grouped.get(scoutId) ?? [];
         arr.sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
         const total = arr.length;
