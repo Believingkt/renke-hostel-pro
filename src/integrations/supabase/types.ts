@@ -3561,6 +3561,30 @@ export type Database = {
           },
         ]
       }
+      franchise_ragic_unit_mapping: {
+        Row: {
+          created_at: string
+          id: string
+          project_name: string
+          ragic_unit_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_name: string
+          ragic_unit_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_name?: string
+          ragic_unit_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       franchise_team_settings: {
         Row: {
           direct_leader_id: string | null

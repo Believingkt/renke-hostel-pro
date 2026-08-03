@@ -1641,6 +1641,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
   return (
     <div className="space-y-4">
       {visibleCards.projects && <ProjectsManagementCard />}
+      <RagicUnitMappingCard canManage={canManage} />
       {visibleCards.internal && (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -5099,5 +5100,152 @@ function FranchisePayoutsTab() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+/* ===================== Ragic 事業單位對照（特許會員費推送用） ===================== */
+
+interface RagicUnitMappingRow {
+  id: string;
+  project_name: string;
+  ragic_unit_name: string;
+}
+
+function RagicUnitMappingCard({ canManage }: { canManage: boolean }) {
+  const [rows, setRows] = useState<RagicUnitMappingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ project_name: "", ragic_unit_name: "" });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("franchise_ragic_unit_mapping")
+      .select("id, project_name, ragic_unit_name")
+      .order("project_name");
+    setLoading(false);
+    if (error) {
+      toast.error("讀取失敗：" + error.message);
+      return;
+    }
+    setRows((data ?? []) as RagicUnitMappingRow[]);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const openDialog = (row?: RagicUnitMappingRow) => {
+    setEditingId(row?.id ?? null);
+    setForm({
+      project_name: row?.project_name ?? "",
+      ragic_unit_name: row?.ragic_unit_name ?? "",
+    });
+    setDialogOpen(true);
+  };
+
+  const save = async () => {
+    const project_name = form.project_name.trim();
+    const ragic_unit_name = form.ragic_unit_name.trim();
+    if (!project_name) return toast.error("請填寫專案名稱");
+    if (!ragic_unit_name) return toast.error("請填寫 Ragic 事業單位名稱");
+    setSaving(true);
+    const { error } = editingId
+      ? await (supabase as any)
+          .from("franchise_ragic_unit_mapping")
+          .update({ project_name, ragic_unit_name })
+          .eq("id", editingId)
+      : await (supabase as any)
+          .from("franchise_ragic_unit_mapping")
+          .insert({ project_name, ragic_unit_name });
+    setSaving(false);
+    if (error) return toast.error("儲存失敗：" + error.message);
+    toast.success("已儲存");
+    setDialogOpen(false);
+    void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">Ragic 事業單位對照</CardTitle>
+        {canManage && (
+          <Button size="sm" onClick={() => openDialog()}>
+            <Plus className="h-4 w-4 mr-1" /> 新增對照
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="text-xs text-muted-foreground mb-3">
+          推送「特許會員費」到 Ragic 時，依訂單專案名稱換成 Ragic 的事業單位名稱。
+          Ragic 新增事業單位後，請回這裡手動登記一筆（兩系統不自動同步）。
+        </div>
+        {loading ? null : rows.length === 0 ? (
+          <div className="text-center text-muted-foreground py-6">尚無對照設定</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>專案名稱</TableHead>
+                <TableHead>Ragic 事業單位</TableHead>
+                {canManage && <TableHead className="w-16" />}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="whitespace-nowrap">{r.project_name}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.ragic_unit_name}</TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      <Button size="icon" variant="ghost" onClick={() => openDialog(r)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "編輯" : "新增"}對照</DialogTitle>
+            <DialogDescription>對照表僅供 PMS 內部使用，不會與 Ragic 自動同步。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>專案名稱</Label>
+              <Input
+                value={form.project_name}
+                onChange={(e) => setForm((f) => ({ ...f, project_name: e.target.value }))}
+                placeholder="例：森山寫照第一期"
+              />
+            </div>
+            <div>
+              <Label>Ragic 事業單位名稱</Label>
+              <Input
+                value={form.ragic_unit_name}
+                onChange={(e) => setForm((f) => ({ ...f, ragic_unit_name: e.target.value }))}
+                placeholder="例：特許加盟_森山寫照"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={save} disabled={saving}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
