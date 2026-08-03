@@ -1,5 +1,5 @@
 /**
- * /trips/:tripId — 行程詳情（含三語切換、時間軸、住宿即時房況、底部總價列）
+ * /trips/:tripId — 行程詳情（含三語切換、時間軸、住宿即時房況、分享、旅圖有房卡、底部總價列）
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -11,8 +11,13 @@ import { MatchBadge } from "@/components/trips/MatchBadge";
 import { StockTag } from "@/components/trips/StockTag";
 import { TimelineItem, type TimelineItemType } from "@/components/trips/TimelineItem";
 import { PriceBar } from "@/components/trips/PriceBar";
+import { ShareTripDialog } from "@/components/trips/ShareTripDialog";
+import { LvtuBookingCard } from "@/components/trips/LvtuBookingCard";
+import { ProductAvailability, parseSlots } from "@/components/trips/ProductAvailability";
 import { normalizeLang, pickLang, tripText, type TripLang } from "@/lib/tripI18n";
 import { fetchRoomAvailability, type RoomAvailability } from "@/lib/tripAvailability";
+import { SEOHead } from "@/components/SEOHead";
+import { toast } from "sonner";
 
 interface TripItem {
   ref_type: "product" | "room";
@@ -32,6 +37,7 @@ interface TripRow {
   match_score: number | null;
   items: unknown;
   total_price: number | null;
+  share_slug: string | null;
 }
 
 interface ProductRow {
@@ -41,6 +47,10 @@ interface ProductRow {
   description: unknown;
   price: number | null;
   duration_min: number | null;
+  cover_url?: string | null;
+  stock: number | null;
+  available_slots: unknown;
+  updated_at: string | null;
 }
 
 /** 房況查詢基準日：預設查一週後（Phase 2 接購物車後改用使用者選擇的入住日） */
@@ -76,7 +86,7 @@ export default function TripDetail() {
     (async () => {
       const { data } = await supabase
         .from("trips")
-        .select("id, title, cover_url, scenario, match_score, items, total_price")
+        .select("id, title, cover_url, scenario, match_score, items, total_price, share_slug")
         .eq("id", tripId)
         .maybeSingle();
       if (cancelled) return;
@@ -90,7 +100,9 @@ export default function TripDetail() {
       if (productIds.length) {
         const { data: prods } = await supabase
           .from("trip_products")
-          .select("id, type, name, description, price, duration_min")
+          .select(
+            "id, type, name, description, price, duration_min, cover_url, stock, available_slots, updated_at",
+          )
           .in("id", productIds);
         if (cancelled) return;
         const map: Record<string, ProductRow> = {};
@@ -152,9 +164,77 @@ export default function TripDetail() {
   }
 
   const groupedDays = [...new Set(items.map((i) => i.day ?? 1))].sort((a, b) => a - b);
+  const stayDate = defaultStayDate();
+  const stayRooms = items
+    .filter((i) => i.ref_type === "room")
+    .map((i) => rooms[i.ref_id])
+    .filter((r): r is RoomAvailability => !!r);
+
+  const addToCart = () => {
+    const nextDay = new Date(stayDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const checkOut = nextDay.toISOString().split("T")[0];
+    const cartItems: CartItem[] = [];
+    let blockedCount = 0;
+
+    for (const item of items) {
+      if (item.ref_type === "room") {
+        const room = rooms[item.ref_id];
+        if (!room) continue;
+        // 已滿／整天關閉的住宿不得加入購物車
+        if (room.blocked || room.available <= 0) {
+          blockedCount += 1;
+          continue;
+        }
+        cartItems.push({
+          kind: "stay",
+          key: `s-${room.roomTypeId}-${stayDate}`,
+          roomTypeId: room.roomTypeId,
+          accommodationId: room.accommodationId,
+          roomName: room.roomTypeName,
+          accommodationName: room.accommodationName,
+          checkIn: stayDate,
+          checkOut,
+          nights: 1,
+          unitPrice: 0,
+          qty: item.qty || 1,
+        });
+      } else {
+        const p = products[item.ref_id];
+        if (!p) continue;
+        // 已售完的品項不得加入購物車
+        if (p.stock !== null && p.stock <= 0) {
+          blockedCount += 1;
+          continue;
+        }
+        cartItems.push({
+          kind: "product",
+          key: `p-${p.id}`,
+          productId: p.id,
+          name: pickLang(p.name, lang),
+          type: p.type,
+          unitPrice: Number(p.price || 0),
+          qty: item.qty || 1,
+          coverUrl: p.cover_url ?? null,
+        });
+      }
+    }
+
+    if (blockedCount > 0) toast.error(t.soldOutBlocked);
+    if (cartItems.length === 0) return;
+
+    writeCart({ tripId: trip.id, items: cartItems });
+    navigate(`/cart?lang=${lang}`);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      <SEOHead
+        title={`${pickLang(trip.title, lang)}｜${t.tripsTitle}`}
+        description={t.tripsSubtitle}
+        image={trip.cover_url || undefined}
+        type="article"
+      />
       {/* 頂部封面 */}
       <div className="relative">
         {trip.cover_url && (
@@ -173,6 +253,7 @@ export default function TripDetail() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="flex items-center gap-2">
+            <ShareTripDialog tripId={trip.id} fallbackSlug={trip.share_slug} lang={lang} />
             <Link
               to={`/trips/${tripId}/edit?lang=${lang}`}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/85 backdrop-blur"
@@ -251,7 +332,16 @@ export default function TripDetail() {
                         price={Number(p.price || 0) * (item.qty || 1)}
                         isLast={isLast}
                         draggable
-                      />
+                      >
+                        <ProductAvailability
+                          lang={lang}
+                          info={{
+                            stock: p.stock,
+                            availableSlots: parseSlots(p.available_slots),
+                            updatedAt: p.updated_at,
+                          }}
+                        />
+                      </TimelineItem>
                     );
                   })}
                 </div>
@@ -259,52 +349,31 @@ export default function TripDetail() {
             );
           })}
         </div>
+
+        {/* 旅館情境：帶出台灣旅圖可預約卡（參數化佔位連結） */}
+        {stayRooms.length > 0 && (
+          <div className="mt-6 space-y-2">
+            {stayRooms.map((room) => (
+              <LvtuBookingCard
+                key={room.roomTypeId}
+                lang={lang}
+                accommodationId={room.accommodationId}
+                accommodationName={room.accommodationName}
+                roomTypeName={room.roomTypeName}
+                checkinDate={stayDate}
+                available={room.available}
+                blocked={room.blocked}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <PriceBar
         label={t.total}
         amount={Number(trip.total_price || 0)}
         ctaLabel={t.cta}
-        onCta={() => {
-          const stayDate = defaultStayDate();
-          const nextDay = new Date(stayDate);
-          nextDay.setDate(nextDay.getDate() + 1);
-          const checkOut = nextDay.toISOString().split("T")[0];
-          const cartItems: CartItem[] = [];
-          for (const item of items) {
-            if (item.ref_type === "room") {
-              const room = rooms[item.ref_id];
-              if (!room) continue;
-              cartItems.push({
-                kind: "stay",
-                key: `s-${room.roomTypeId}-${stayDate}`,
-                roomTypeId: room.roomTypeId,
-                accommodationId: room.accommodationId,
-                roomName: room.roomTypeName,
-                accommodationName: room.accommodationName,
-                checkIn: stayDate,
-                checkOut,
-                nights: 1,
-                unitPrice: 0,
-                qty: item.qty || 1,
-              });
-            } else {
-              const p = products[item.ref_id];
-              if (!p) continue;
-              cartItems.push({
-                kind: "product",
-                key: `p-${p.id}`,
-                productId: p.id,
-                name: pickLang(p.name, lang),
-                type: p.type,
-                unitPrice: Number(p.price || 0),
-                qty: item.qty || 1,
-              });
-            }
-          }
-          writeCart({ tripId: trip.id, items: cartItems });
-          navigate(`/cart?lang=${lang}`);
-        }}
+        onCta={addToCart}
       />
     </div>
   );
