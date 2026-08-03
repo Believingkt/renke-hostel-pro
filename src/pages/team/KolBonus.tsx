@@ -81,6 +81,10 @@ interface OrderRow {
   final_price: number | null;
   order_status: string;
   accommodation_id: string | null;
+  gross_revenue?: number | null;
+  commission_base?: number | null;
+  addon_total?: number | null;
+  is_manual_base?: boolean;
 }
 
 interface CommissionSetting {
@@ -95,6 +99,14 @@ type RateResolver = (accommodationId: string | null, refDate?: string | null) =>
 const TOKEN_VALID_DAYS = 90;
 
 const fmtMoney = (n: number) => `NT$ ${Number(n || 0).toLocaleString()}`;
+
+/** 分潤基準金額：一律採用 kol-bonus-public Edge Function 已算好的 commission_base
+ *  （order_meta.team_commission_price 人工覆蓋值優先，否則 final_price − 加購項目） */
+const baseOf = (o: OrderRow) =>
+  Number(o.commission_base ?? o.final_price ?? o.total_price ?? 0);
+/** 訂單原始總額（未扣加購） */
+const grossOf = (o: OrderRow) =>
+  Number(o.gross_revenue ?? o.final_price ?? o.total_price ?? 0);
 
 const isTokenValid = (row: KolRow) =>
   !!row.public_token &&
@@ -154,22 +166,10 @@ export default function KolBonus() {
       )
       .not("cid_code", "is", null)
       .neq("cid_code", "");
-    const [kolRes, orderRes, commRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
+    const [kolRes, calcRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
       kolQuery,
-      supabase
-        .from("orders")
-        .select(
-          "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id",
-        )
-        .not("discount_code", "is", null)
-        .neq("discount_code", "")
-        .neq("order_status", "cancelled"),
-      supabase
-        .from("kol_commission_settings")
-        .select("accommodation_id, effective_from, rate, kol_id, created_at")
-        .is("kol_id", null)
-        .order("effective_from", { ascending: false })
-        .order("created_at", { ascending: false }),
+      // 分潤計算唯一真相：交由 kol-bonus-public（internal 模式）回傳已算好基準金額的訂單
+      supabase.functions.invoke("kol-bonus-public", { body: { mode: "internal" } }),
       supabase.from("accommodation_info").select("id, name"),
       supabase.from("team_member_profiles").select("id, user_id, display_name"),
       supabase
@@ -178,11 +178,15 @@ export default function KolBonus() {
         .eq("is_active", true),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
-    if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
-    if (commRes.error) toast.error("載入分潤設定失敗：" + commRes.error.message);
+    if (calcRes.error) toast.error("載入訂單分潤失敗：" + calcRes.error.message);
+    if ((calcRes.data as any)?.error) toast.error("載入訂單分潤失敗：" + (calcRes.data as any).error);
     if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
 
-    const allOrders = (orderRes.data ?? []) as OrderRow[];
+    const calcData = (calcRes.data ?? {}) as {
+      orders?: OrderRow[];
+      commissions?: CommissionSetting[];
+    };
+    const allOrders = (calcData.orders ?? []) as OrderRow[];
     const allKols = (kolRes.data ?? []) as Array<{
       id: string;
       name: string | null;
@@ -289,7 +293,7 @@ export default function KolBonus() {
 
     setRows(built);
     setOrders(allOrders);
-    setCommissions(((commRes.data ?? []) as any[]).map((c) => ({
+    setCommissions(((calcData.commissions ?? []) as any[]).map((c) => ({
       accommodation_id: c.accommodation_id,
       effective_from: c.effective_from,
       rate: c.rate,
@@ -416,7 +420,8 @@ export default function KolBonus() {
       let completedRevenue = 0;
       let commission = 0;
       for (const o of list) {
-        const r = Number(o.final_price ?? o.total_price ?? 0);
+        const r = grossOf(o);
+        const base = baseOf(o);
         const rate = getRate(o.accommodation_id, o.check_out_date);
         const orderMatch = prefix === null ? !!o.order_date : o.order_date?.startsWith(prefix);
         const completedMatch = prefix === null ? !!o.check_out_date : o.check_out_date?.startsWith(prefix);
@@ -427,7 +432,7 @@ export default function KolBonus() {
         if (completedMatch) {
           completedCount += 1;
           completedRevenue += r;
-          commission += r * (rate / 100);
+          commission += base * (rate / 100);
         }
       }
       map.set(k.rowKey, {
@@ -476,11 +481,10 @@ export default function KolBonus() {
       for (const o of list) {
         if (o.order_status === "cancelled") continue;
         if (!o.check_out_date?.startsWith(prefix)) continue;
-        const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
         completedCount += 1;
-        completedRevenue += r;
-        commission += r * (rate / 100);
+        completedRevenue += grossOf(o);
+        commission += baseOf(o) * (rate / 100);
       }
       map.set(k.rowKey, {
         completedCount,
@@ -1024,7 +1028,7 @@ function KolDetailDrawer({
     let revenue = 0;
     for (const o of orderList) {
       count += 1;
-      revenue += Number(o.final_price ?? o.total_price ?? 0);
+      revenue += grossOf(o);
     }
     return { count, revenue };
   }, [orderList]);
@@ -1034,11 +1038,10 @@ function KolDetailDrawer({
     let revenue = 0;
     let commission = 0;
     for (const o of completedList) {
-      const r = Number(o.final_price ?? o.total_price ?? 0);
       const rate = getRate(o.accommodation_id, o.check_out_date);
       count += 1;
-      revenue += r;
-      commission += r * (rate / 100);
+      revenue += grossOf(o);
+      commission += baseOf(o) * (rate / 100);
     }
     return { count, revenue, commission: Math.round(commission) };
   }, [completedList, getRate]);
@@ -1169,7 +1172,7 @@ function KolDetailDrawer({
                             <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                             <TableCell className="text-right tabular-nums">
-                              {fmtMoney(Number(o.final_price ?? o.total_price ?? 0))}
+                              {fmtMoney(grossOf(o))}
                             </TableCell>
                           </TableRow>
                         ))
@@ -1213,7 +1216,8 @@ function KolDetailDrawer({
                     <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                     <TableHead className="whitespace-nowrap">訂單日期</TableHead>
                     <TableHead className="whitespace-nowrap">退房日期</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">訂單金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤基準</TableHead>
                     <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
                     <TableHead className="whitespace-nowrap text-right">分潤金額</TableHead>
                     <TableHead className="whitespace-nowrap">預計發放日</TableHead>
@@ -1222,15 +1226,16 @@ function KolDetailDrawer({
                 <TableBody>
                   {completedList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
                         此月份無資料
                       </TableCell>
                     </TableRow>
                   ) : (
                     completedList.map((o) => {
                       const rate = getRate(o.accommodation_id, o.check_out_date);
-                      const revenue = Number(o.final_price ?? o.total_price ?? 0);
-                      const amount = Math.round(revenue * (rate / 100));
+                      const revenue = grossOf(o);
+                      const base = baseOf(o);
+                      const amount = Math.round(base * (rate / 100));
                       return (
                         <TableRow key={o.id}>
                           <TableCell className="whitespace-nowrap">{kol?.accommodation_name || "—"}</TableCell>
@@ -1239,6 +1244,7 @@ function KolDetailDrawer({
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{(() => {

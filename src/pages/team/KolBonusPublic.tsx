@@ -42,6 +42,15 @@ interface OrderRow {
   final_price: number | null;
   order_status: string;
   accommodation_id: string | null;
+  gross_revenue?: number | null;
+  commission_base?: number | null;
+  addon_total?: number | null;
+  is_manual_base?: boolean;
+}
+
+interface Totals {
+  addonExcludedTotal: number;
+  nonTwdCount: number;
 }
 
 interface CommissionSetting {
@@ -51,6 +60,13 @@ interface CommissionSetting {
 }
 
 const fmtMoney = (n: number) => `NT$ ${Number(n || 0).toLocaleString()}`;
+
+/** 分潤基準金額：一律採用 Edge Function 已算好的 commission_base（人工覆蓋值優先、否則 final_price − 加購） */
+const baseOf = (o: OrderRow) =>
+  Number(o.commission_base ?? o.final_price ?? o.total_price ?? 0);
+/** 訂單原始總額（未扣加購） */
+const grossOf = (o: OrderRow) =>
+  Number(o.gross_revenue ?? o.final_price ?? o.total_price ?? 0);
 
 export default function KolBonusPublic() {
   const { token } = useParams<{ token: string }>();
@@ -69,6 +85,7 @@ export default function KolBonusPublic() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
   const [accNames, setAccNames] = useState<Record<string, string>>({});
+  const [totals, setTotals] = useState<Totals>({ addonExcludedTotal: 0, nonTwdCount: 0 });
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
 
@@ -96,6 +113,10 @@ export default function KolBonusPublic() {
       setKol((data as any).kol);
       setOrders((data as any).orders ?? []);
       setCommissions((data as any).commissions ?? []);
+      setTotals({
+        addonExcludedTotal: Number((data as any).addon_excluded_total ?? 0),
+        nonTwdCount: Number((data as any).non_twd_orders_count ?? 0),
+      });
 
       // Fetch accommodation names (public table)
       const accIds = Array.from(
@@ -173,7 +194,7 @@ export default function KolBonusPublic() {
     let revenue = 0;
     for (const o of orderList) {
       count += 1;
-      revenue += Number(o.final_price ?? o.total_price ?? 0);
+      revenue += grossOf(o);
     }
     return { count, revenue };
   }, [orderList]);
@@ -182,14 +203,16 @@ export default function KolBonusPublic() {
     let count = 0;
     let revenue = 0;
     let commission = 0;
+    let base = 0;
     for (const o of completedList) {
-      const r = Number(o.final_price ?? o.total_price ?? 0);
       const rate = getRate(o.accommodation_id, o.check_out_date);
+      const b = baseOf(o);
       count += 1;
-      revenue += r;
-      commission += r * (rate / 100);
+      revenue += grossOf(o);
+      base += b;
+      commission += b * (rate / 100);
     }
-    return { count, revenue, commission: Math.round(commission) };
+    return { count, revenue, base, commission: Math.round(commission) };
   }, [completedList, getRate]);
 
   const computePayoutDate = (checkOut: string | null | undefined): string => {
@@ -279,7 +302,7 @@ export default function KolBonusPublic() {
               </Select>
             </div>
             <p className="text-xs text-muted-foreground">
-              訂單筆數依訂單日期統計，完成業績依退房日期統計
+              訂單筆數依訂單日期統計，完成業績依退房日期統計；分潤以「分潤基準金額」計算
             </p>
 
             <Separator />
@@ -316,7 +339,7 @@ export default function KolBonusPublic() {
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">
-                            {fmtMoney(Number(o.final_price ?? o.total_price ?? 0))}
+                            {fmtMoney(grossOf(o))}
                           </TableCell>
                         </TableRow>
                       ))
@@ -342,7 +365,8 @@ export default function KolBonusPublic() {
                       <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                       <TableHead className="whitespace-nowrap">訂單日期</TableHead>
                       <TableHead className="whitespace-nowrap">退房日期</TableHead>
-                      <TableHead className="whitespace-nowrap text-right">金額</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">訂單金額</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">分潤基準</TableHead>
                       <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
                       <TableHead className="whitespace-nowrap text-right">分潤金額</TableHead>
                       <TableHead className="whitespace-nowrap">預計發放日</TableHead>
@@ -351,15 +375,16 @@ export default function KolBonusPublic() {
                   <TableBody>
                     {completedList.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
                           此月份無資料
                         </TableCell>
                       </TableRow>
                     ) : (
                       completedList.map((o) => {
                         const rate = getRate(o.accommodation_id, o.check_out_date);
-                        const revenue = Number(o.final_price ?? o.total_price ?? 0);
-                        const amount = Math.round(revenue * (rate / 100));
+                        const revenue = grossOf(o);
+                        const base = baseOf(o);
+                        const amount = Math.round(base * (rate / 100));
                         return (
                           <TableRow key={o.id}>
                             <TableCell className="whitespace-nowrap">
@@ -370,6 +395,7 @@ export default function KolBonusPublic() {
                             <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                            <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">{computePayoutDate(o.check_out_date)}</TableCell>
@@ -381,8 +407,17 @@ export default function KolBonusPublic() {
                 </Table>
               </div>
               <div className="text-xs text-muted-foreground text-right">
-                小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 {fmtMoney(completedTotals.commission)}
+                小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜分潤基準合計 {fmtMoney(completedTotals.base)}｜總分潤 {fmtMoney(completedTotals.commission)}
               </div>
+              <p className="text-xs text-muted-foreground">
+                分潤基準＝訂單金額扣除加購項目（如另有議定之基準金額則以該金額為準）。
+                {totals.addonExcludedTotal > 0
+                  ? `　本帳號累計已扣除加購項目 ${fmtMoney(totals.addonExcludedTotal)}。`
+                  : ""}
+                {totals.nonTwdCount > 0
+                  ? `　另有 ${totals.nonTwdCount} 筆非台幣訂單未列入分潤計算。`
+                  : ""}
+              </p>
             </div>
           </CardContent>
         </Card>
