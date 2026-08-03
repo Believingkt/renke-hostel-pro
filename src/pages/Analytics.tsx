@@ -1,6 +1,8 @@
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
+import SalesServiceAnalyticsTab from "@/components/analytics/SalesServiceAnalyticsTab";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3 } from "lucide-react";
 
 const Analytics = () => {
@@ -16,7 +18,18 @@ const Analytics = () => {
 
   return (
     <AdminPageHeader title="網站流量分析" icon={BarChart3}>
-      <AnalyticsDashboard accommodationId={accommodationId} />
+      <Tabs defaultValue="traffic">
+        <TabsList>
+          <TabsTrigger value="traffic">流量總覽</TabsTrigger>
+          <TabsTrigger value="performance">成效監控</TabsTrigger>
+        </TabsList>
+        <TabsContent value="traffic" className="mt-4">
+          <AnalyticsDashboard accommodationId={accommodationId} />
+        </TabsContent>
+        <TabsContent value="performance" className="mt-4">
+          <SalesServiceAnalyticsTab accommodationId={accommodationId} />
+        </TabsContent>
+      </Tabs>
     </AdminPageHeader>
   );
 };
