@@ -1986,6 +1986,8 @@ function InvitationsTab({
                                 填錯
                               </Badge>
                             )}
+                            <AnomalyBadge reason={(r as any).anomaly_reason} />
+
                             {opts.isOrphan && (
                               <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 shrink-0">
                                 孤兒附屬
