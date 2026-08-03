@@ -1641,6 +1641,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
   return (
     <div className="space-y-4">
       {visibleCards.projects && <ProjectsManagementCard />}
+      <RagicUnitMappingCard canManage={canManage} />
       {visibleCards.internal && (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
