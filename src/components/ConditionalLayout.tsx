@@ -11,6 +11,7 @@ import { HQHeader } from "@/components/HQHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
 
@@ -46,6 +47,8 @@ export function ConditionalLayout() {
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
 
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
+  // 手機背景久放回前景時主動驗一次 session，網路錯誤只重試不登出
+  useSessionKeepAlive(isAdminPage || isHQPage);
 
   useEffect(() => {
     if (isAdminPage) {
