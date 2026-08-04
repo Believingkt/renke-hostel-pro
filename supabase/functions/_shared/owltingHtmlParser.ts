@@ -30,8 +30,11 @@ export interface OwlTingParsedFields {
   remaining_amount: number | null;
   currency: string | null;
   payment_status: string | null;
-  // 以下永遠 null — trigger-only 不抽 PII
-  guest_name: null;
+  // 2026-08-04：姓名信中未遮蔽，可自動帶入（仍保留待補資料標記）
+  guest_name: string | null;
+  // 特殊需求原文（房間配置/住客備註等），寫入訂單備註
+  special_requests: string | null;
+  // 電話/信箱在信中被遮蔽（0916****51），永遠不抽
   guest_phone: null;
   guest_email: null;
   pii_masked: false;
@@ -249,6 +252,30 @@ export function parseOwlNestForwardEmail(input: {
     if (m) paymentStatus = m[1].trim() || null;
   }
 
+  // 旅客姓名：OwlTing 信件未遮蔽姓名（電話/信箱才有遮蔽）
+  let guestName: string | null = null;
+  {
+    const src = flatFromHtml + " " + flat;
+    const m = src.match(/旅客姓名\s+(.+?)\s+(?:旅客電話|旅客信箱|特殊需求|備註)/)
+      ?? src.match(/旅客姓名\s+([^\s]{1,40})/);
+    const candidate = m?.[1]?.trim() ?? "";
+    // 遮蔽或過長者視為不可用
+    if (candidate && !candidate.includes("*") && candidate.length <= 40) {
+      guestName = candidate;
+    } else if (candidate) {
+      warnings.push("guest_name: masked or invalid, skipped");
+    }
+  }
+
+  // 特殊需求（含 guest: 住客姓名、房間配置備註等）
+  let specialRequests: string | null = null;
+  {
+    const src = flatFromHtml + " " + flat;
+    const m = src.match(/特殊需求\s+([\s\S]{1,800}?)(?:\s+(?:訂單編號|訂購內容|付款狀態|旅客資訊|此信件|OwlTing|奧丁丁)|$)/);
+    const v = m?.[1]?.trim() ?? "";
+    if (v) specialRequests = v.slice(0, 800);
+  }
+
   return {
     message_type: messageType,
     obe_number: obe,
@@ -267,7 +294,8 @@ export function parseOwlNestForwardEmail(input: {
     remaining_amount: remainingAmount,
     currency,
     payment_status: paymentStatus,
-    guest_name: null,
+    guest_name: guestName,
+    special_requests: specialRequests,
     guest_phone: null,
     guest_email: null,
     pii_masked: false,
@@ -290,6 +318,8 @@ export function parseOwlNestForwardEmail(input: {
       remaining_amount: remainingAmount,
       currency,
       payment_status: paymentStatus,
+      guest_name: guestName,
+      special_requests: specialRequests,
     },
   };
 }
