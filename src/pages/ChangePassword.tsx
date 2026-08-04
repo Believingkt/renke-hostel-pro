@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Check, X, HelpCircle } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
+
 
 // 密碼強度檢測
 interface PasswordStrength {
