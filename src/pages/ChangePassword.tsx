@@ -43,14 +43,14 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
   const score = Object.values(checks).filter(Boolean).length;
   
   let label = "很弱";
-  let color = "bg-red-500";
+  let color = "bg-destructive";
   
   if (score >= 5) {
     label = "很強";
-    color = "bg-success";
+    color = "bg-primary";
   } else if (score >= 4) {
     label = "強";
-    color = "bg-blue-500";
+    color = "bg-primary/70";
   } else if (score >= 3) {
     label = "中等";
     color = "bg-yellow-500";
@@ -267,10 +267,10 @@ export default function ChangePassword() {
                   <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-muted-foreground">密碼強度：</span>
                     <span className={`font-medium transition-colors duration-300 ${
-                      passwordStrength.score >= 4 ? 'text-success' :
-                      passwordStrength.score >= 3 ? 'text-blue-600' :
+                      passwordStrength.score >= 4 ? 'text-primary' :
+                      passwordStrength.score >= 3 ? 'text-primary/80' :
                       passwordStrength.score >= 2 ? 'text-yellow-600' :
-                      'text-red-600'
+                      'text-destructive'
                     }`}>
                       {passwordStrength.label}
                     </span>
@@ -282,10 +282,10 @@ export default function ChangePassword() {
                     />
                     <div 
                       className={`absolute top-0 left-0 h-1.5 sm:h-2 rounded-full transition-all duration-500 ${
-                        passwordStrength.score >= 4 ? 'bg-success' :
-                        passwordStrength.score >= 3 ? 'bg-blue-500' :
+                        passwordStrength.score >= 4 ? 'bg-primary' :
+                        passwordStrength.score >= 3 ? 'bg-primary/70' :
                         passwordStrength.score >= 2 ? 'bg-yellow-500' :
-                        'bg-red-500'
+                        'bg-destructive'
                       }`}
                       style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
                     />
@@ -295,51 +295,51 @@ export default function ChangePassword() {
                   <div className="space-y-1 pt-1.5 sm:pt-2">
                     <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.length ? (
-                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-success animate-scale-in flex-shrink-0" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive flex-shrink-0" />
                       )}
-                      <span className={`transition-colors duration-300 ${passwordStrength.checks.length ? 'text-success font-medium' : 'text-muted-foreground'}`}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.length ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                         至少 8 個字元
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.uppercase ? (
-                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-success animate-scale-in flex-shrink-0" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive flex-shrink-0" />
                       )}
-                      <span className={`transition-colors duration-300 ${passwordStrength.checks.uppercase ? 'text-success font-medium' : 'text-muted-foreground'}`}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.uppercase ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                         包含大寫字母 (A-Z)
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.lowercase ? (
-                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-success animate-scale-in flex-shrink-0" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive flex-shrink-0" />
                       )}
-                      <span className={`transition-colors duration-300 ${passwordStrength.checks.lowercase ? 'text-success font-medium' : 'text-muted-foreground'}`}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.lowercase ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                         包含小寫字母 (a-z)
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.number ? (
-                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-success animate-scale-in flex-shrink-0" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive flex-shrink-0" />
                       )}
-                      <span className={`transition-colors duration-300 ${passwordStrength.checks.number ? 'text-success font-medium' : 'text-muted-foreground'}`}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.number ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                         包含數字 (0-9)
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.special ? (
-                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-success animate-scale-in flex-shrink-0" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive flex-shrink-0" />
                       )}
-                      <span className={`transition-colors duration-300 ${passwordStrength.checks.special ? 'text-success font-medium' : 'text-muted-foreground'}`}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.special ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                         包含特殊字元 (!@#$%^&*...)
                       </span>
                     </div>
@@ -378,7 +378,7 @@ export default function ChangePassword() {
                 type="submit" 
                 className={`w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation ${
                   (isAdminRoute || isHQRoute || isBackendUser)
-                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    ? '' 
                     : ''
                 }`}
                 disabled={isLoading}
