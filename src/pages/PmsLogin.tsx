@@ -138,20 +138,12 @@ export default function PmsLogin() {
           return;
         }
 
-        if (options.length === 1) {
-          enterProperty(options[0]);
-          return;
-        }
-
         const lastAlias = readLocal(LAST_PROPERTY_ALIAS_KEY);
         const remembered = options.find((o) => o.short_url_alias === lastAlias);
-        if (remembered) {
-          enterProperty(remembered);
-          return;
-        }
+        // 一律自動進入：優先上次使用館別，否則進第一間（之後可於後台頂部切換）
+        enterProperty(remembered ?? options[0]);
+        return;
 
-        setPropertyChoices(options);
-        setBootstrapping(false);
       } catch (error) {
         // 網路/暫時性錯誤：不登出，顯示登入頁讓使用者自行重試
         console.error("[PmsLogin] resolve properties failed:", error);
