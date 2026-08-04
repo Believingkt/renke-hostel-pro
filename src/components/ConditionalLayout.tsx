@@ -11,6 +11,7 @@ import { HQHeader } from "@/components/HQHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
 
