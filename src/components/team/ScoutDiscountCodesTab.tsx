@@ -130,7 +130,7 @@ export default function ScoutDiscountCodesTab() {
         supabase.from("discount_codes").select("code, is_active"),
         supabase
           .from("accommodation_info")
-          .select("id, name")
+          .select("id, name, short_url_alias")
           .eq("is_active", true)
           .order("name"),
       ]);
