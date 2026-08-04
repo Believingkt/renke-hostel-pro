@@ -109,6 +109,11 @@ export default function ScoutDiscountCodesTab() {
     () => new Map(accommodations.map((a) => [a.id, a.name])),
     [accommodations]
   );
+  const accSlugMap = useMemo(
+    () => new Map(accommodations.map((a) => [a.id, a.short_url_alias ?? null])),
+    [accommodations]
+  );
+
 
   const loadAll = async () => {
     setLoading(true);
