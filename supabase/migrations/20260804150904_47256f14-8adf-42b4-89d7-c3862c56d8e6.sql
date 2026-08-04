@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_all_order_sources() FROM anon;
