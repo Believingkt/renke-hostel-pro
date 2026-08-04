@@ -38,7 +38,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, ExternalLink } from "lucide-react";
+import { pmsHref } from "@/lib/appMode";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type CommissionType = "scout_self" | "partner";
 
@@ -57,7 +59,9 @@ interface ScoutCode {
 interface AccommodationOpt {
   id: string;
   name: string;
+  short_url_alias?: string | null;
 }
+
 
 interface MemberOpt {
   id: string;          // team_member_profiles.id
@@ -78,6 +82,7 @@ const fmtPct = (n: number | null | undefined) =>
 export default function ScoutDiscountCodesTab() {
   const { roles } = useTeam();
   const canManage = ["scout_manager", "closer", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
+  const isAdmin = ["hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
@@ -105,6 +110,11 @@ export default function ScoutDiscountCodesTab() {
     () => new Map(accommodations.map((a) => [a.id, a.name])),
     [accommodations]
   );
+  const accSlugMap = useMemo(
+    () => new Map(accommodations.map((a) => [a.id, a.short_url_alias ?? null])),
+    [accommodations]
+  );
+
 
   const loadAll = async () => {
     setLoading(true);
@@ -121,7 +131,7 @@ export default function ScoutDiscountCodesTab() {
         supabase.from("discount_codes").select("code, is_active"),
         supabase
           .from("accommodation_info")
-          .select("id, name")
+          .select("id, name, short_url_alias")
           .eq("is_active", true)
           .order("name"),
       ]);
@@ -237,16 +247,40 @@ export default function ScoutDiscountCodesTab() {
     loadAll();
   };
 
-  const renderPmsBadge = (code: string) => {
+  const renderPmsBadge = (code: string, accommodationId: string | null) => {
     const hit = pmsCodes.get(code.trim().toUpperCase());
-    if (!hit) {
-      return <span className="text-destructive">✗ 未建立</span>;
-    }
-    if (hit.is_active) {
-      return <span className="text-green-600">✓ 已建立</span>;
-    }
-    return <span className="text-orange-500">已停用</span>;
+    const label = !hit ? (
+      <span className="text-destructive">✗ 未建立</span>
+    ) : hit.is_active ? (
+      <span className="text-green-600">✓ 已建立</span>
+    ) : (
+      <span className="text-orange-500">已停用</span>
+    );
+
+    const slug = accommodationId ? accSlugMap.get(accommodationId) : null;
+    return (
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {isAdmin && slug && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={pmsHref(`/${slug}/admin/discount-codes`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+                aria-label="前往 PMS 折扣碼設定"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>前往 PMS 折扣碼設定</TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+    );
   };
+
 
   return (
     <div className="space-y-3">
@@ -309,7 +343,7 @@ export default function ScoutDiscountCodesTab() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code, r.accommodation_id)}</TableCell>
                       <TableCell>
                         {canManage && (
                           <div className="flex gap-1">
