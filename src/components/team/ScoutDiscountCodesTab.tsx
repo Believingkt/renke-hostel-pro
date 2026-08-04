@@ -343,7 +343,7 @@ export default function ScoutDiscountCodesTab() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code, r.accommodation_id)}</TableCell>
                       <TableCell>
                         {canManage && (
                           <div className="flex gap-1">
