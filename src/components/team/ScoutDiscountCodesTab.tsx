@@ -82,6 +82,7 @@ const fmtPct = (n: number | null | undefined) =>
 export default function ScoutDiscountCodesTab() {
   const { roles } = useTeam();
   const canManage = ["scout_manager", "closer", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
+  const isAdmin = ["hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
