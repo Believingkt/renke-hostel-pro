@@ -47,6 +47,8 @@ export function ConditionalLayout() {
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
 
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
+  // 手機背景久放回前景時主動驗一次 session，網路錯誤只重試不登出
+  useSessionKeepAlive(isAdminPage || isHQPage);
 
   useEffect(() => {
     if (isAdminPage) {
