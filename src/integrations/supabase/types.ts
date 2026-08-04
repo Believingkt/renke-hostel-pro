@@ -10706,6 +10706,7 @@ export type Database = {
           is_blocked: boolean
         }[]
       }
+      get_all_order_sources: { Args: never; Returns: string[] }
       get_analytics_summary: {
         Args: {
           p_accommodation_id: string
