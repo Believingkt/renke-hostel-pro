@@ -132,7 +132,6 @@ export default function PmsLogin() {
           // 0 權限帳號防呆（允許的兩處 signOut 之一）
           await supabase.auth.signOut();
           toast.error("此帳號尚未設定任何民宿權限，請聯絡總部");
-          setPropertyChoices(null);
           setBootstrapping(false);
           return;
         }
