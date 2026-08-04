@@ -7219,6 +7219,7 @@ export type Database = {
       owner_settlement_pricing_rules: {
         Row: {
           accommodation_id: string
+          charges_marketing_fee: boolean
           commission_excluded_addon_ids: string[]
           commission_excluded_addon_types: string[]
           commission_rate: number
@@ -7237,6 +7238,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          charges_marketing_fee?: boolean
           commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
           commission_rate: number
@@ -7255,6 +7257,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          charges_marketing_fee?: boolean
           commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
           commission_rate?: number
@@ -9960,6 +9963,137 @@ export type Database = {
         }
         Relationships: []
       }
+      teamcommission_bonus_rate_settings: {
+        Row: {
+          bonus_type: string
+          created_at: string
+          created_by: string
+          effective_from: string
+          fixed_amount: number | null
+          id: string
+          rate: number | null
+        }
+        Insert: {
+          bonus_type: string
+          created_at?: string
+          created_by: string
+          effective_from: string
+          fixed_amount?: number | null
+          id?: string
+          rate?: number | null
+        }
+        Update: {
+          bonus_type?: string
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          fixed_amount?: number | null
+          id?: string
+          rate?: number | null
+        }
+        Relationships: []
+      }
+      teamcommission_kol_bonus_editor_whitelist: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teamcommission_kol_revenue_source_whitelist: {
+        Row: {
+          created_at: string
+          created_by: string
+          effective_from: string
+          id: string
+          included_order_sources: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          effective_from: string
+          id?: string
+          included_order_sources?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          id?: string
+          included_order_sources?: string[]
+        }
+        Relationships: []
+      }
+      teamcommission_role_bindings: {
+        Row: {
+          created_at: string
+          created_by: string
+          effective_from: string
+          id: string
+          member_id: string
+          role_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          effective_from: string
+          id?: string
+          member_id: string
+          role_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          id?: string
+          member_id?: string
+          role_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamcommission_role_bindings_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teamcommission_shared_revenue_source_whitelist: {
+        Row: {
+          created_at: string
+          created_by: string
+          effective_from: string
+          id: string
+          included_order_sources: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          effective_from: string
+          id?: string
+          included_order_sources?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          id?: string
+          included_order_sources?: string[]
+        }
+        Relationships: []
+      }
       traffic_sources: {
         Row: {
           created_at: string | null
@@ -10671,6 +10805,7 @@ export type Database = {
         Args: { _accommodation_id: string }
         Returns: boolean
       }
+      is_kol_bonus_editor: { Args: { check_user_id: string }; Returns: boolean }
       is_sales_role: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_team_admin: { Args: { _user_id: string }; Returns: boolean }
