@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2 } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
@@ -54,7 +54,6 @@ export default function PmsLogin() {
   /** session 恢復中：不顯示登入表單，避免已登入者看到閃一下的登入頁 */
   const [bootstrapping, setBootstrapping] = useState(true);
   /** 多館且沒有記住上次館別時，顯示選館畫面 */
-  const [propertyChoices, setPropertyChoices] = useState<PropertyOption[] | null>(null);
   const resolvingRef = useRef(false);
 
   useEffect(() => {
@@ -133,25 +132,16 @@ export default function PmsLogin() {
           // 0 權限帳號防呆（允許的兩處 signOut 之一）
           await supabase.auth.signOut();
           toast.error("此帳號尚未設定任何民宿權限，請聯絡總部");
-          setPropertyChoices(null);
           setBootstrapping(false);
-          return;
-        }
-
-        if (options.length === 1) {
-          enterProperty(options[0]);
           return;
         }
 
         const lastAlias = readLocal(LAST_PROPERTY_ALIAS_KEY);
         const remembered = options.find((o) => o.short_url_alias === lastAlias);
-        if (remembered) {
-          enterProperty(remembered);
-          return;
-        }
+        // 一律自動進入：優先上次使用館別，否則進第一間（之後可於後台頂部切換）
+        enterProperty(remembered ?? options[0]);
+        return;
 
-        setPropertyChoices(options);
-        setBootstrapping(false);
       } catch (error) {
         // 網路/暫時性錯誤：不登出，顯示登入頁讓使用者自行重試
         console.error("[PmsLogin] resolve properties failed:", error);
@@ -308,42 +298,8 @@ export default function PmsLogin() {
     );
   }
 
-  // 多館且沒有記住上次館別 → 選館畫面
-  if (propertyChoices) {
-    return (
-      <>
-        {seo}
-        <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-col items-center space-y-2">
-                <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
-                <p className="text-lg font-medium text-muted-foreground">請選擇要進入的民宿</p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {propertyChoices.map((option) => (
-                <Button
-                  key={option.id}
-                  variant="outline"
-                  className="w-full justify-start h-12 text-base"
-                  onClick={() => enterProperty(option)}
-                >
-                  <Building2 className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="truncate">{option.name || option.short_url_alias}</span>
-                </Button>
-              ))}
-              <p className="pt-2 text-xs text-muted-foreground text-center">
-                之後可於後台頂部隨時切換館別
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
-
   return (
+
     <>
     {seo}
     <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
