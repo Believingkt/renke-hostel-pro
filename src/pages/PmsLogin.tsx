@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2 } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { pmsHref, LAST_PROPERTY_ALIAS_KEY, PMS_ORIGIN, BOOKING_ORIGIN } from "@/lib/appMode";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
@@ -54,7 +54,6 @@ export default function PmsLogin() {
   /** session 恢復中：不顯示登入表單，避免已登入者看到閃一下的登入頁 */
   const [bootstrapping, setBootstrapping] = useState(true);
   /** 多館且沒有記住上次館別時，顯示選館畫面 */
-  const [propertyChoices, setPropertyChoices] = useState<PropertyOption[] | null>(null);
   const resolvingRef = useRef(false);
 
   useEffect(() => {
