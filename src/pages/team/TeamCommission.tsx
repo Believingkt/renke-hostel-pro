@@ -117,6 +117,7 @@ export default function TeamCommission() {
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="ragic-sync">Ragic匯入</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="bonus-settings">獎金設定</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
