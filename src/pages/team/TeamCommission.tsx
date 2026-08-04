@@ -143,6 +143,11 @@ export default function TeamCommission() {
             <RagicSyncTab />
           </TabsContent>
         )}
+        {showAdminTabs && (
+          <TabsContent value="bonus-settings">
+            <BonusSettingsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
