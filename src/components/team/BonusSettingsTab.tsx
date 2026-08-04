@@ -149,7 +149,7 @@ export default function BonusSettingsTab() {
           .from("team_member_profiles")
           .select("id, user_id, display_name, is_active")
           .order("display_name", { ascending: true }),
-        supabase.from("orders").select("order_source").not("order_source", "is", null).limit(5000),
+        (supabase as any).rpc("get_all_order_sources"),
       ]);
 
       setRates(ratesRes.data ?? []);
@@ -159,9 +159,13 @@ export default function BonusSettingsTab() {
       setMembers((memberRes.data ?? []) as MemberOption[]);
 
       const set = new Set<string>(Object.keys(ORDER_SOURCE_DISPLAY_NAMES));
-      for (const r of (ordersRes.data ?? []) as { order_source: string | null }[]) {
-        const v = (r.order_source ?? "").trim();
-        if (v) set.add(v);
+      if (ordersRes.error || !Array.isArray(ordersRes.data)) {
+        toast.warning("來源清單載入不完整，僅顯示預設來源");
+      } else {
+        for (const v of ordersRes.data as string[]) {
+          const s = (v ?? "").trim();
+          if (s) set.add(s);
+        }
       }
       setSourceOptions(Array.from(set));
     } catch (e: any) {
