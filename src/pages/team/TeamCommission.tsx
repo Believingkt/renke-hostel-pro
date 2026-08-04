@@ -40,6 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
+import BonusSettingsTab from "@/components/team/BonusSettingsTab";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
@@ -117,6 +118,7 @@ export default function TeamCommission() {
             {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
             {showAdminTabs && <TabsTrigger value="ragic-sync">Ragic匯入</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="bonus-settings">獎金設定</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="payouts">
@@ -140,6 +142,11 @@ export default function TeamCommission() {
         {showAdminTabs && (
           <TabsContent value="ragic-sync">
             <RagicSyncTab />
+          </TabsContent>
+        )}
+        {showAdminTabs && (
+          <TabsContent value="bonus-settings">
+            <BonusSettingsTab />
           </TabsContent>
         )}
       </Tabs>
