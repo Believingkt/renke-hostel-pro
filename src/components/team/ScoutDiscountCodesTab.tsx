@@ -246,16 +246,40 @@ export default function ScoutDiscountCodesTab() {
     loadAll();
   };
 
-  const renderPmsBadge = (code: string) => {
+  const renderPmsBadge = (code: string, accommodationId: string | null) => {
     const hit = pmsCodes.get(code.trim().toUpperCase());
-    if (!hit) {
-      return <span className="text-destructive">✗ 未建立</span>;
-    }
-    if (hit.is_active) {
-      return <span className="text-green-600">✓ 已建立</span>;
-    }
-    return <span className="text-orange-500">已停用</span>;
+    const label = !hit ? (
+      <span className="text-destructive">✗ 未建立</span>
+    ) : hit.is_active ? (
+      <span className="text-green-600">✓ 已建立</span>
+    ) : (
+      <span className="text-orange-500">已停用</span>
+    );
+
+    const slug = accommodationId ? accSlugMap.get(accommodationId) : null;
+    return (
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {isAdmin && slug && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={pmsHref(`/${slug}/admin/discount-codes`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+                aria-label="前往 PMS 折扣碼設定"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>前往 PMS 折扣碼設定</TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+    );
   };
+
 
   return (
     <div className="space-y-3">
