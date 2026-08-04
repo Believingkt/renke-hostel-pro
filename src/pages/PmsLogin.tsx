@@ -300,42 +300,8 @@ export default function PmsLogin() {
     );
   }
 
-  // 多館且沒有記住上次館別 → 選館畫面
-  if (propertyChoices) {
-    return (
-      <>
-        {seo}
-        <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-col items-center space-y-2">
-                <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
-                <p className="text-lg font-medium text-muted-foreground">請選擇要進入的民宿</p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {propertyChoices.map((option) => (
-                <Button
-                  key={option.id}
-                  variant="outline"
-                  className="w-full justify-start h-12 text-base"
-                  onClick={() => enterProperty(option)}
-                >
-                  <Building2 className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="truncate">{option.name || option.short_url_alias}</span>
-                </Button>
-              ))}
-              <p className="pt-2 text-xs text-muted-foreground text-center">
-                之後可於後台頂部隨時切換館別
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
-
   return (
+
     <>
     {seo}
     <div className="admin-theme min-h-screen flex items-center justify-center bg-background p-4">
