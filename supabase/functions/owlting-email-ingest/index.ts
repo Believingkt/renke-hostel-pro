@@ -294,6 +294,7 @@ Deno.serve(async (req) => {
           project_name: fields.project_name,
           room_quantity: fields.room_quantity,
           guest_count: fields.guest_count,
+          guest_name: fields.guest_name,
           adult_count: fields.adult_count,
           child_count: fields.child_count,
           nights: fields.nights,
@@ -380,6 +381,8 @@ Deno.serve(async (req) => {
           guest_count: fields.guest_count,
           total_amount: fields.total_amount,
           is_payment_pending: isPaymentPending,
+          guest_name: fields.guest_name,
+          special_requests: fields.special_requests,
         });
         if (!autoRes.ok) {
           console.warn("[owlting-email-ingest] auto-create pending skipped:", autoRes);

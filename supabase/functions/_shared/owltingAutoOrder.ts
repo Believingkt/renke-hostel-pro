@@ -70,6 +70,10 @@ interface AutoCreateInput {
   guest_count: number | null;
   total_amount: number | null;
   is_payment_pending?: boolean;
+  /** 信件中未遮蔽的旅客姓名（可為 null） */
+  guest_name?: string | null;
+  /** 信件「特殊需求」原文，寫入備註 */
+  special_requests?: string | null;
 }
 
 export interface AutoCreateResult {
@@ -120,7 +124,11 @@ export async function autoCreatePendingOrder(
     const paidAmount = paymentStatus === "paid" ? total : 0;
     const nowIso = new Date().toISOString();
 
-    const placeholderName = `待補資料 (OBE ${input.obe_number})`;
+    // 姓名信中未遮蔽 → 直接帶入，並標記電話仍待補；抓不到才用純待補佔位。
+    const parsedName = (input.guest_name ?? "").trim();
+    const placeholderName = parsedName
+      ? `${parsedName}（待補電話）`
+      : `待補資料 (OBE ${input.obe_number})`;
 
     const { data: inserted, error: insErr } = await admin
       .from("orders")
@@ -147,7 +155,7 @@ export async function autoCreatePendingOrder(
         deposit_required_amount: 0,
         is_pii_pending: true,
         auto_created_from_email_id: input.raw_email_id,
-        notes: `${input.is_payment_pending ? "[等待付款鎖房] " : ""}[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"}${input.is_payment_pending ? "，來源: 等待付款通知（48h 內未成立將自動釋放）" : ""})，待業主補齊住客資料。`,
+        notes: `${input.special_requests ? `[特殊需求] ${input.special_requests}\n` : ""}${input.is_payment_pending ? "[等待付款鎖房] " : ""}[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"}${input.is_payment_pending ? "，來源: 等待付款通知（48h 內未成立將自動釋放）" : ""})，待業主補齊${parsedName ? "電話等" : "住客"}資料。`,
       })
       .select("id, order_number")
       .single();
