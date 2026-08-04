@@ -146,8 +146,12 @@ export default function ChangePassword() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        throw new Error(parsed.backendError || parsed.message || "修改密碼失敗");
+      }
       if (data?.error) throw new Error(data.error);
+
 
       if (isAdminRoute) {
         // 從後台主動修改密碼：不登出，直接返回後台
