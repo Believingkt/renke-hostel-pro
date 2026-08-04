@@ -59,7 +59,9 @@ interface ScoutCode {
 interface AccommodationOpt {
   id: string;
   name: string;
+  short_url_alias?: string | null;
 }
+
 
 interface MemberOpt {
   id: string;          // team_member_profiles.id
