@@ -773,6 +773,7 @@ export default function OwnerSettlementSettings() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <div>抽成費率：{((Number(r.commission_rate) || 0) * 100).toFixed(2)}%</div>
                       <div>抽成門檻：NT$ {(Number(r.commission_threshold) || 0).toLocaleString()}</div>
+                      <div>收取行銷推廣費：{r.charges_marketing_fee === true ? "是" : "否"}</div>
                       <div>行銷推廣費門檻：NT$ {(Number(r.marketing_fee_threshold) || 0).toLocaleString()}</div>
                       <div>行銷推廣費（未達門檻）：NT$ {(Number(r.marketing_fee_low) || 0).toLocaleString()}</div>
                       <div>行銷推廣費（超過門檻）：NT$ {(Number(r.marketing_fee_high) || 0).toLocaleString()}</div>
