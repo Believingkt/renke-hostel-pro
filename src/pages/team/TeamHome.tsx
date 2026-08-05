@@ -979,6 +979,83 @@ export default function TeamHome() {
     cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
   }
 
+  // ===== 七種團隊獎金卡片 =====
+  const rateNote = (key: string) => (missingRates[key] ? "尚未設定費率" : undefined);
+
+  if (showAM) {
+    const m = multOf("am_performance");
+    cards.push({
+      key: "am_performance",
+      title: "AM績效獎金",
+      amount: Math.round(amPerformanceAmt * m),
+      multiplier: m,
+      note: rateNote("am_performance"),
+    });
+  }
+  if (showCloser) {
+    const m = multOf("closer_performance");
+    cards.push({
+      key: "closer_performance",
+      title: "成交組績效獎金",
+      amount: Math.round(closerPerformanceAmt * m),
+      multiplier: m,
+      note: rateNote("closer_performance"),
+    });
+  }
+  if (isAmManager) {
+    const m = multOf("am_manager");
+    cards.push({
+      key: "am_manager",
+      title: "AM總管獎金",
+      amount: Math.round(amManagerAmt * m),
+      multiplier: m,
+      note: rateNote("am_manager"),
+    });
+  }
+  if (isCloserManager) {
+    const m = multOf("closer_manager");
+    cards.push({
+      key: "closer_manager",
+      title: "成交大師管理獎金",
+      amount: Math.round(closerManagerAmt * m),
+      multiplier: m,
+      note: rateNote("closer_manager"),
+    });
+  }
+  if (isKolBonusRecipient) {
+    const mc = multOf("kol_commission");
+    cards.push({
+      key: "kol_commission",
+      title: "網紅營銷專利獎金",
+      amount: Math.round(kolCommissionAmt * mc),
+      multiplier: mc,
+      note: rateNote("kol_commission"),
+    });
+    const mm = multOf("kol_monthly");
+    cards.push({
+      key: "kol_monthly",
+      title: "網紅營銷月獎金",
+      amount: Math.round(kolMonthlyAmt * mm),
+      multiplier: mm,
+      note: rateNote("kol_monthly"),
+    });
+  }
+  if (showAM && venueClosingDetail.length > 0) {
+    const m = multOf("venue_closing");
+    cards.push({
+      key: "venue_closing",
+      title: "場域成交獎金",
+      amount: Math.round(venueClosingAmt * m),
+      multiplier: m,
+      note: rateNote("venue_closing"),
+      lines: venueClosingDetail.map((d) => ({
+        label: d.name,
+        amount: Math.round(d.amount * m),
+        multiplier: m,
+      })),
+    });
+  }
+
   const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
   return (
@@ -990,7 +1067,7 @@ export default function TeamHome() {
         </p>
       </div>
 
-      {!anyCard ? (
+      {!loading && cards.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
             暫無獎金項目
