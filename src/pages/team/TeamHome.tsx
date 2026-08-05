@@ -78,6 +78,22 @@ export default function TeamHome() {
   const [starlinkAmt, setStarlinkAmt] = useState(0);
   const [multipliers, setMultipliers] = useState<Record<string, number>>({});
 
+  // ===== 七種團隊獎金 =====
+  const [isAmManager, setIsAmManager] = useState(false);
+  const [isCloserManager, setIsCloserManager] = useState(false);
+  const [isKolBonusRecipient, setIsKolBonusRecipient] = useState(false);
+  const [amPerformanceAmt, setAmPerformanceAmt] = useState(0);
+  const [closerPerformanceAmt, setCloserPerformanceAmt] = useState(0);
+  const [amManagerAmt, setAmManagerAmt] = useState(0);
+  const [closerManagerAmt, setCloserManagerAmt] = useState(0);
+  const [kolCommissionAmt, setKolCommissionAmt] = useState(0);
+  const [kolMonthlyAmt, setKolMonthlyAmt] = useState(0);
+  const [venueClosingAmt, setVenueClosingAmt] = useState(0);
+  const [venueClosingDetail, setVenueClosingDetail] = useState<
+    Array<{ name: string; amount: number }>
+  >([]);
+  const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
+
   const monthInfo = useMemo(() => {
     const now = taipeiParts();
     const nextY = now.m === 12 ? now.y + 1 : now.y;
