@@ -312,7 +312,7 @@ export default function TeamOrders() {
         setIsScout(scout && !admin);
         setIsCloser(closer);
         setIsVideo(video);
-        if (scout && !admin) setTab("scout-codes");
+        if (scout && !admin && initialTab === "orders") setTab("scout-codes");
       }
       loadOptions();
     })();
