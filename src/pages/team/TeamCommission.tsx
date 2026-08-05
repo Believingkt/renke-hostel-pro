@@ -1085,6 +1085,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             skipped?: number;
             created_backfill_total?: number;
             created_backfill?: Array<{ month: string; count: number }>;
+            resynced?: number;
           }
         | undefined;
       const createdCurrent = Number(snapBody?.created ?? 0);
@@ -1093,7 +1094,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           (snapBody?.created_backfill ?? []).reduce((s, b) => s + Number(b.count ?? 0), 0),
       );
       const skippedCount = Number(snapBody?.skipped ?? 0);
-      const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在）`;
+      const resyncedCount = Number(snapBody?.resynced ?? 0);
+      const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在），金額重算 ${resyncedCount} 筆（未發放）`;
+
       if (failed.length > 0) {
         toast.error(`部分步驟失敗：${failed.join("、")}`);
       } else {
