@@ -32,7 +32,9 @@ const corsHeaders = {
 const ADMIN_INVITABLE = new Set([
   "admin",
   "am",
+  "am_manager",
   "closer",
+  "closer_manager",
   "scout",
   "scout_manager",
   "video",
@@ -46,6 +48,8 @@ const ADMIN_INVITABLE = new Set([
   "venue_manager",
 ]);
 const SCOUT_MANAGER_INVITABLE = new Set(["scout"]);
+const CLOSER_MANAGER_INVITABLE = new Set(["closer"]);
+const AM_MANAGER_INVITABLE = new Set(["am"]);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
