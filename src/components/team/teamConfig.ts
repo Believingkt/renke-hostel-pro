@@ -125,12 +125,13 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: MessageCircle,
     allowedRoles: ["super_admin", "admin", "am"],
   },
-  {
-    title: "外部導購連結",
-    url: "/team/kol/venue-confirm",
-    icon: Tag,
-    allowedRoles: ["super_admin", "admin", "venue_manager"],
-  },
+  // 暫時隱藏「外部導購連結」選單項（路由與頁面仍保留，之後取消註解即可復原）
+  // {
+  //   title: "外部導購連結",
+  //   url: "/team/kol/venue-confirm",
+  //   icon: Tag,
+  //   allowedRoles: ["super_admin", "admin", "venue_manager"],
+  // },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
