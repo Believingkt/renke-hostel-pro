@@ -422,6 +422,7 @@ export default function TeamMembers() {
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
+  const wantsAM = editRoles.includes("am" as TeamRole);
 
   const toggleEditRole = (role: TeamRole) => {
     setEditRoles((prev) => {
