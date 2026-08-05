@@ -1881,6 +1881,33 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     return () => { cancelled = true; };
   }, [order?.accommodation_id]);
 
+  // 刪除訂單（僅 super_admin，透過後端 RPC 二次驗證權限）
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    setIsDeletingOrder(true);
+    try {
+      const { error } = await supabase.rpc("admin_delete_order", {
+        _order_id: order.id,
+        _reason: deleteReason.trim() || null,
+      });
+      if (error) throw error;
+      toast({
+        title: "訂單已刪除",
+        description: `訂單 ${order.order_number} 已永久刪除，並已寫入稽核紀錄。`,
+      });
+      setShowDeleteDialog(false);
+      navigate(-1);
+    } catch (e: any) {
+      toast({
+        title: "刪除失敗",
+        description: e?.message || "無法刪除訂單，請稍後再試。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingOrder(false);
+    }
+  };
+
   const handleRepushOwlting = async () => {
     if (!order) return;
     // 由確認彈窗觸發，這裡不再使用 window.confirm
