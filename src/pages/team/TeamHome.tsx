@@ -162,24 +162,35 @@ export default function TeamHome() {
           currentMonthKey,
         } = monthInfo;
 
-        // profile id (for scout / franchise external)
+        // profile id (for scout / franchise external / 團隊獎金角色綁定)
         let profileId: string | null = null;
+        let myManagedAccIds: string[] = [];
         let scoutTeamMember = false;
         let myEmploymentType: string | null = null;
         let myFulltimeStart: string | null = null;
-        if (showScout || showFranchise) {
+        {
           const { data } = await supabase
             .from("team_member_profiles")
-            .select("id, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+            .select(
+              "id, is_scout_team_member, employment_type, fulltime_start_yearmonth, am_managed_accommodation_ids",
+            )
             .eq("user_id", userId)
             .maybeSingle();
           profileId = (data?.id as string | undefined) ?? null;
           const d = data as
-            | { is_scout_team_member?: boolean; employment_type?: string; fulltime_start_yearmonth?: string }
+            | {
+                is_scout_team_member?: boolean;
+                employment_type?: string;
+                fulltime_start_yearmonth?: string;
+                am_managed_accommodation_ids?: string[] | null;
+              }
             | null;
           scoutTeamMember = !!d?.is_scout_team_member;
           myEmploymentType = d?.employment_type ?? null;
           myFulltimeStart = d?.fulltime_start_yearmonth ?? null;
+          myManagedAccIds = Array.isArray(d?.am_managed_accommodation_ids)
+            ? (d!.am_managed_accommodation_ids as string[]).filter(Boolean)
+            : [];
         }
 
         // ===== Closer / Video =====
