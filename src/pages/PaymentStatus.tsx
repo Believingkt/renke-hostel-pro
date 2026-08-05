@@ -5,12 +5,24 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, CreditCard, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, FileText, Loader2, RefreshCw, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 const POLL_INTERVAL_MS = 8000;
 
@@ -97,6 +109,11 @@ export default function PaymentStatus() {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const timerRef = useRef<number | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelEmail, setCancelEmail] = useState("");
+  const [cancelPhone, setCancelPhone] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchOrder = useCallback(
     async (silent = false) => {
