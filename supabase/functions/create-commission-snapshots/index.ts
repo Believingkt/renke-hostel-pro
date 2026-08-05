@@ -256,6 +256,7 @@ serve(async (req) => {
         checked: 0,
         updated: 0,
         skipped_paid: 0,
+        cancelled_adjustments: 0,
         details: [] as Array<{
           order_id: string; before: number; after: number;
           closer_amount_before: number; closer_amount_after: number;
@@ -265,8 +266,9 @@ serve(async (req) => {
 
       const { data: snaps, error: snapErr } = await supabase
         .from("closer_commission_snapshots")
-        .select("id, order_id, accommodation_id, video_creator_id, final_price_snapshot, closer_rate, video_rate, closer_commission_amount, video_commission_amount");
+        .select("id, order_id, accommodation_id, closer_id, video_creator_id, final_price_snapshot, closer_rate, video_rate, closer_commission_amount, video_commission_amount");
       if (snapErr) throw snapErr;
+
       const snapList = snaps ?? [];
       if (snapList.length === 0) return out;
 
