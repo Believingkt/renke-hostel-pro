@@ -201,6 +201,7 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
           <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
           <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
           <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
+          <li><span className="font-medium">團隊獎金（AM績效、AM場域、成交組績效、AM總管、成交組主管管理、網紅營銷抽成/月費、場域成交）：</span>每月 10 日結算並鎖定上月金額。</li>
         </ul>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
