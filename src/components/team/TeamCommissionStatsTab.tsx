@@ -718,7 +718,7 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
       b.cancelAmount += amount;
-      b.cancelCommission += amount * rate;
+      b.cancelCommission += Math.round(amount * rate);
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
