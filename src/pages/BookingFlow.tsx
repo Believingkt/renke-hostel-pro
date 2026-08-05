@@ -3409,6 +3409,8 @@ const BookingFlow = () => {
             check_in_date: checkInDateStr,
             check_out_date: checkOutDateStr,
             guest_count: totalGuests,
+            room_quantity: roomQuantity,
+
             meal_plan: selectedMealPlan,
             package_id: selectedPackageId,
             total_price: totalPrice,
