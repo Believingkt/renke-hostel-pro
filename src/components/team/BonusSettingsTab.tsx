@@ -380,7 +380,16 @@ function RateSection({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {BONUS_TYPES.map((b) => {
+              {BONUS_GROUPS.flatMap((g) => [
+                <TableRow key={`g-${g.title}`} className="bg-muted/50 hover:bg-muted/50">
+                  <TableCell colSpan={5} className="py-1 text-xs font-medium text-muted-foreground">
+                    {g.title}
+                  </TableCell>
+                </TableRow>,
+                ...g.types.map((t) => BONUS_TYPES.find((b) => b.type === t)!).filter(Boolean),
+              ]).map((b: any) => {
+                if (b?.type == null) return b;
+
                 const history = byType.get(b.type) ?? [];
                 const cur = pickCurrent(history);
                 const isOpen = expanded.has(b.type);
