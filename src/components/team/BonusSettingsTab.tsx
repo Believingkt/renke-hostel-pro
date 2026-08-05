@@ -1202,11 +1202,7 @@ function AmVenueOverviewSection() {
             .is("accommodation_id", null),
         ]);
 
-        setAccs(
-          ((accRes.data ?? []) as AccOption[]).filter(
-            (a) => !String(a.name ?? "").startsWith("旅行日"),
-          ),
-        );
+        setAccs((accRes.data ?? []) as AccOption[]);
 
         const userIds = Array.from(
           new Set(((roleRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean)),
