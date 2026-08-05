@@ -1647,6 +1647,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         </SheetContent>
       </Sheet>
 
+      {!readOnly && (
+        <div className="mt-6 pt-4 border-t border-border flex justify-end">
+          <Button size="sm" onClick={bulkMarkAll} disabled={bulkMarking || loading}>
+            {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
+          </Button>
+        </div>
+      )}
 
 
       <AlertDialog open={!!confirmMember} onOpenChange={(open) => !open && setConfirmMember(null)}>
