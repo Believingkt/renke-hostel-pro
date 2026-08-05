@@ -983,6 +983,7 @@ export default function TeamMembers() {
                       </div>
                     </div>
                   </Wrapper>
+                  </div>
                 );
               })}
             </div>
