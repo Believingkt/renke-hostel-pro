@@ -207,6 +207,7 @@ export default function OwnerSettlementSettings() {
           marketing_fee_low: Number(ruleRow.marketing_fee_low) || 0,
           marketing_fee_high: Number(ruleRow.marketing_fee_high) || 0,
           marketing_fee_threshold: Number(ruleRow.marketing_fee_threshold) || 0,
+          charges_marketing_fee: ruleRow.charges_marketing_fee === true,
           exempt_order_sources: Array.isArray(ruleRow.exempt_order_sources)
             ? ruleRow.exempt_order_sources
             : baseConfig.exempt_order_sources,
