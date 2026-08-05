@@ -40,6 +40,25 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
 /** 同時只能有一人在任的全域獨佔角色 */
 const EXCLUSIVE_ROLES: TeamRole[] = ["am_manager", "closer_manager"];
 
+/** 成員清單分組排序優先序（super_admin 置頂，其餘沿用可指派角色順序） */
+const ROLE_SORT_ORDER: TeamRole[] = Array.from(
+  new Set<TeamRole>(["super_admin" as TeamRole, ...ALL_INVITABLE_ROLES]),
+);
+
+/** 取得成員的分組角色（優先序 index 最小者）；無角色回傳 null */
+const groupRoleOf = (roles: TeamRole[]): TeamRole | null => {
+  let best: TeamRole | null = null;
+  let bestIdx = Number.MAX_SAFE_INTEGER;
+  for (const r of roles) {
+    const i = ROLE_SORT_ORDER.indexOf(r);
+    if (i >= 0 && i < bestIdx) {
+      bestIdx = i;
+      best = r;
+    }
+  }
+  return best;
+};
+
 
 const ROLE_LABEL = {
   super_admin: "超級管理員",
@@ -713,6 +732,16 @@ export default function TeamMembers() {
     ? visibleMembers
     : visibleMembers.filter((m) => displayRoles(m).includes(filterRole));
 
+  // 依角色分組排序（同組內維持 display_name 排序）
+  const sortedMembers = [...filteredMembers].sort((a, b) => {
+    const ra = groupRoleOf(displayRoles(a));
+    const rb = groupRoleOf(displayRoles(b));
+    const ia = ra ? ROLE_SORT_ORDER.indexOf(ra) : Number.MAX_SAFE_INTEGER;
+    const ib = rb ? ROLE_SORT_ORDER.indexOf(rb) : Number.MAX_SAFE_INTEGER;
+    if (ia !== ib) return ia - ib;
+    return (a.display_name ?? "").localeCompare(b.display_name ?? "", "zh-Hant");
+  });
+
   return (
     <div className="space-y-6 max-w-5xl">
       <h2 className="text-2xl font-bold">成員管理</h2>
@@ -882,12 +911,21 @@ export default function TeamMembers() {
             <p className="text-sm text-muted-foreground py-6 text-center">尚無成員</p>
           ) : (
             <div className="space-y-2">
-              {filteredMembers.map((m) => {
+              {sortedMembers.map((m, idx) => {
                 const editable = canEditMember(m);
+                const gRole = groupRoleOf(displayRoles(m));
+                const prevGRole = idx > 0 ? groupRoleOf(displayRoles(sortedMembers[idx - 1])) : undefined;
+                const showGroupHeader = filterRole === "all" && (idx === 0 || gRole !== prevGRole);
+                const groupLabel = gRole ? ROLE_LABEL[gRole] : "未設定角色";
                 const Wrapper = editable ? "button" : "div";
                 return (
+                  <div key={m.id}>
+                  {showGroupHeader && (
+                    <div className="pt-3 pb-1 text-xs font-semibold text-muted-foreground">
+                      {groupLabel}
+                    </div>
+                  )}
                   <Wrapper
-                    key={m.id}
                     type={editable ? "button" : undefined}
                     onClick={editable ? () => openEdit(m) : undefined}
                     className={`w-full text-left border rounded-lg p-3 transition-colors ${
