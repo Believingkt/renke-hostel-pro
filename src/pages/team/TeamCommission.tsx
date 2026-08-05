@@ -1269,11 +1269,6 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
 
           {!readOnly && (
-            <Button size="sm" onClick={bulkMarkAll} disabled={bulkMarking || loading}>
-              {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
-            </Button>
-          )}
-          {!readOnly && (
             <Button
               size="sm"
               variant="outline"
