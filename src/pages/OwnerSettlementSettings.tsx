@@ -638,6 +638,18 @@ export default function OwnerSettlementSettings() {
 
         </CardHeader>
         <CardContent className="space-y-4">
+          <label className="flex items-start gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40 max-w-xl">
+            <Checkbox
+              checked={config.charges_marketing_fee}
+              onCheckedChange={(v) => setConfig({ ...config, charges_marketing_fee: v === true })}
+            />
+            <span className="text-sm">
+              本館合約有約定收取行銷推廣費（月費）
+              <span className="block text-xs text-muted-foreground">
+                獨立於下方金額設定，僅記錄合約是否約定收取。
+              </span>
+            </span>
+          </label>
           <div className="space-y-2 max-w-sm">
             <Label htmlFor="marketing_fee_base">基本服務費（NT$）</Label>
             <Input
