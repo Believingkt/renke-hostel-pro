@@ -848,9 +848,14 @@ export default function TeamCommissionStatsTab() {
     setExpanded: (s: Set<string>) => void,
     memberLabel: string,
     applyBonus: boolean = false,
+    role: "closer" | "video" = "closer",
   ) => {
     const showBonus = applyBonus && bonusRate > 0;
     const netFactor = 1 - bonusRate;
+    const showAdj = mode === "period";
+    const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
+    const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
+    const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
     const renderCommissionCell = (amount: number) => {
       if (!showBonus) return <>{fmtMoney(amount)}</>;
       return (
@@ -864,6 +869,21 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
+    const renderAdjCell = (amount: number) => (
+      <span
+        className={cn(
+          "tabular-nums",
+          amount === 0
+            ? "text-muted-foreground"
+            : amount < 0
+              ? "text-destructive"
+              : "text-emerald-600",
+        )}
+      >
+        {amount === 0 ? "—" : fmtMoney(amount)}
+      </span>
+    );
+
     return (
     <Card>
       <CardContent className="p-4 space-y-3">
