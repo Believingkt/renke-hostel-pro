@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
