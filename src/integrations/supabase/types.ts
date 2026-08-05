@@ -10752,6 +10752,13 @@ export type Database = {
           profile_id: string
         }[]
       }
+      get_order_source_owners: {
+        Args: never
+        Returns: {
+          accommodation_names: string[]
+          source: string
+        }[]
+      }
       get_public_discount_code_info:
         | {
             Args: { p_accommodation_id: string; p_code: string }
