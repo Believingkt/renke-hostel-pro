@@ -550,8 +550,18 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
   if (source_table === "teamcommission_bonus_snapshots") return role_key;
+  if (source_table === "closer_commission_adjustments") return null; // 補差不套加倍倍率
   return null;
 }
+
+// 分潤補差類型中文對照
+function adjustmentTypeLabel(t: string): string {
+  if (t === "amount_change") return "金額調整";
+  if (t === "cancellation") return "訂單取消扣回";
+  if (t === "reactivation") return "取消復原補回";
+  return t;
+}
+
 
 interface MemberGroup {
   member_id: string;
@@ -696,6 +706,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: discountPayoutRows },
         { data: teamBonusDist },
         { data: teamBonusSnapshots },
+        { data: closerAdjustments },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -739,6 +750,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .from("teamcommission_bonus_snapshots")
           .select("id, bonus_type, member_id, amount, snapshot_month")
           .eq("payout_month", payoutMonthKey),
+        supabase
+          .from("closer_commission_adjustments")
+          .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month")
+          .eq("adjustment_month", payoutMonthKey),
       ]);
 
 
