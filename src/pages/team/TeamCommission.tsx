@@ -792,6 +792,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         source_label: string,
         detail: string,
         amount: number,
+        extra?: { venue_name?: string | null; order_number?: string | null },
       ) => {
         if (!amount || amount === 0) return;
         items.push({
@@ -807,29 +808,36 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           multiplied_amount: Number(amount),
           paid: false,
           payout_date: null,
+          venue_name: extra?.venue_name ?? null,
+          order_number: extra?.order_number ?? null,
         });
       };
 
       (closers ?? []).forEach((r: any) => {
+        const orderNo = r.orders?.order_number ?? String(r.order_id).slice(0, 8);
+        const meta = { venue_name: venueOf(r.accommodation_id), order_number: orderNo };
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, r.closer_commission_amount, meta);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${orderNo}`, r.video_commission_amount, meta);
         }
       });
 
       // 分潤補差（closer_commission_adjustments）：獨立項目，金額可為負，不套倍率
       (closerAdjustments ?? []).forEach((r: any) => {
-        const orderRef = String(r.order_id ?? "").slice(0, 8);
-        const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) 訂單${orderRef}${r.reason ? ` ${r.reason}` : ""}`;
+        const orderNo = r.orders?.order_number ?? String(r.order_id ?? "").slice(0, 8);
+        const venue = venueOf(r.orders?.accommodation_id);
+        const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) ${venue ? `${venue} ` : ""}訂單 ${orderNo}${r.reason ? ` ${r.reason}` : ""}`;
+        const meta = { venue_name: venue, order_number: orderNo };
         if (r.closer_id && Number(r.closer_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount));
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount), meta);
         }
         if (r.video_creator_id && Number(r.video_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount));
+          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount), meta);
         }
       });
+
 
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
       // - 有 early_payout_month → 該值 === prevMonthKey（期別月，即發放月-1）
