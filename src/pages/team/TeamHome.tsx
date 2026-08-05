@@ -4,6 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
+import {
+  getBonusRateSettings,
+  getRoleBinding,
+  getRevenueSourceWhitelist,
+  getAccommodationRevenue,
+  getMarketingFeeFlags,
+} from "@/lib/teamBonusRevenue";
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
