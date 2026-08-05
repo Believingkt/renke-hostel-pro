@@ -22,10 +22,12 @@ const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
   "am",
+  "am_manager",
   "scout_manager",
   "franchise_manager" as TeamRole,
   "scout",
   "closer",
+  "closer_manager",
   "video",
   "franchise_internal",
   "franchise_external",
@@ -35,15 +37,20 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "venue_manager",
 ];
 
+/** 同時只能有一人在任的全域獨佔角色 */
+const EXCLUSIVE_ROLES: TeamRole[] = ["am_manager", "closer_manager"];
+
 
 const ROLE_LABEL = {
   super_admin: "超級管理員",
   admin: "管理員",
   am: "AM",
+  am_manager: "AM總管",
   scout_manager: "星探主管",
   franchise_manager: "特許加盟主管",
   scout: "星探",
   closer: "成交組",
+  closer_manager: "成交大師管理",
   video: "影音組",
   franchise: "特許加盟內部",
   franchise_internal: "特許加盟內部",
@@ -59,10 +66,12 @@ const ROLE_BADGE_CLASS = {
   super_admin: "bg-purple-100 text-purple-700 border-purple-200",
   admin: "bg-blue-100 text-blue-700 border-blue-200",
   am: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  am_manager: "bg-sky-100 text-sky-700 border-sky-200",
   scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
   franchise_manager: "bg-amber-100 text-amber-700 border-amber-200",
   scout: "bg-orange-100 text-orange-700 border-orange-200",
   closer: "bg-green-100 text-green-700 border-green-200",
+  closer_manager: "bg-emerald-100 text-emerald-700 border-emerald-200",
   video: "bg-cyan-100 text-cyan-700 border-cyan-200",
   franchise: "bg-amber-100 text-amber-700 border-amber-200",
   franchise_internal: "bg-amber-100 text-amber-700 border-amber-200",
