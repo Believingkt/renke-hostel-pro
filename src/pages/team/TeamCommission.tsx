@@ -1492,42 +1492,70 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead>訂單編號</TableHead>
-                                        <TableHead className="text-right w-[120px]">金額</TableHead>
+                                        <TableHead>館別</TableHead>
+                                        <TableHead className="w-[90px] text-right">筆數</TableHead>
+                                        <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
                                         <TableHead className="w-[140px] text-right"></TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {src.items.map((it) => (
-                                        <TableRow key={it.key}>
-                                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                                          <TableCell className="text-right tabular-nums">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                              {it.multiplier > 1 && (
-                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
-                                                  × {Number(it.multiplier).toFixed(2)} 倍
-                                                </Badge>
-                                              )}
-                                              <span>{formatMoney(it.multiplied_amount)}</span>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell>
-                                            {it.paid ? (
-                                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
-                                            ) : (
-                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
-                                            )}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {!it.paid && !readOnly && it.member_id && (
-                                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
-                                                標記已發放
-                                              </Button>
-                                            )}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
+                                      {(() => {
+                                        const byVenue = new Map<string, SourceItem[]>();
+                                        for (const it of src.items) {
+                                          const v = it.venue_name || "其他";
+                                          const arr = byVenue.get(v) ?? [];
+                                          arr.push(it);
+                                          byVenue.set(v, arr);
+                                        }
+                                        return Array.from(byVenue.entries()).map(([venue, vItems]) => {
+                                          const subtotal = vItems.reduce((s, i) => s + i.multiplied_amount, 0);
+                                          const unpaid = vItems.filter((i) => !i.paid);
+                                          const vKey = `${g.member_id}:${src.label}:${venue}`;
+                                          return (
+                                            <TableRow
+                                              key={vKey}
+                                              className="cursor-pointer"
+                                              onClick={() =>
+                                                setVenueDetail({
+                                                  member: g.display_name,
+                                                  sourceLabel: src.label,
+                                                  venue,
+                                                  items: vItems,
+                                                })
+                                              }
+                                            >
+                                              <TableCell className="text-sm">{venue}</TableCell>
+                                              <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
+                                              <TableCell className="text-right tabular-nums">{formatMoney(subtotal)}</TableCell>
+                                              <TableCell>
+                                                {unpaid.length === 0 ? (
+                                                  <Badge variant="outline" className="text-xs">已發放</Badge>
+                                                ) : (
+                                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                                                    待發放 {unpaid.length} 筆
+                                                  </Badge>
+                                                )}
+                                              </TableCell>
+                                              <TableCell className="text-right">
+                                                {unpaid.length > 0 && !readOnly && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={markingSource === vKey}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      markSourceAll(g.member_id, `${src.label}・${venue}`, vItems);
+                                                    }}
+                                                  >
+                                                    標記已發放
+                                                  </Button>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                          );
+                                        });
+                                      })()}
                                     </TableBody>
                                   </Table>
                                 </div>
