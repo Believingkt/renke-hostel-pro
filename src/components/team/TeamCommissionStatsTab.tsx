@@ -928,17 +928,35 @@ export default function TeamCommissionStatsTab() {
                       </TableRow>
                       {isOpen &&
                         r.byAcc.map((b, bi) => {
-                          const openSheet = () =>
-                            setAccSheet({
-                              title: `${r.name} ・ ${b.accName}`,
-                              breakdown: b,
-                            });
                           // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
                           const firstOfAcc =
                             r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
                           const accAdj = firstOfAcc
                             ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
+                          const adjList =
+                            showAdj && firstOfAcc
+                              ? adjustments
+                                  .filter((a) =>
+                                    role === "closer"
+                                      ? a.closer_id === r.uid && a.closer_amount !== 0
+                                      : a.video_creator_id === r.uid && a.video_amount !== 0,
+                                  )
+                                  .filter((a) => a.accommodation_id === b.accId)
+                                  .map((a) => ({
+                                    id: a.id,
+                                    adjustment_type: a.adjustment_type,
+                                    order_number: a.order_number,
+                                    reason: a.reason,
+                                    amount: role === "closer" ? a.closer_amount : a.video_amount,
+                                  }))
+                              : [];
+                          const openSheet = () =>
+                            setAccSheet({
+                              title: `${r.name} ・ ${b.accName}`,
+                              breakdown: b,
+                              adjList,
+                            });
                           return (
                             <TableRow
                               key={`${r.uid}-${b.accId}-${b.rate}`}
