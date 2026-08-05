@@ -2140,6 +2140,48 @@ const BookingFlow = () => {
   }, [selectedRoom, searchParams]);
   const isMultiRoom = roomQuantity > 1;
 
+  /** 可選間數上限（房型總間數） */
+  const maxRoomUnits = useMemo(() => {
+    const units = selectedRoom?.room_count ?? 1;
+    if (!selectedRoom || selectedRoom.is_exclusive_package === true) return 1;
+    return Math.max(1, units);
+  }, [selectedRoom]);
+  const canSelectRoomQuantity = maxRoomUnits > 1;
+
+  const updateRoomQuantity = (n: number) => {
+    const next = Math.max(1, Math.min(n, maxRoomUnits));
+    const params = new URLSearchParams(searchParams);
+    params.set("rooms", String(next));
+    setSearchParams(params, { replace: true });
+  };
+
+  /** 即時校驗：人數上限 / 可訂間數（送單前就顯示） */
+  const liveValidation = useMemo(() => {
+    if (!selectedRoom) return null;
+    const perRoomCapacity =
+      (selectedRoom as any)?.capacity ?? (selectedRoom as any)?.max_guests ?? 0;
+    const maxGuests = perRoomCapacity * roomQuantity;
+    const availability = roomAvailability[selectedRoom.id];
+    const minAvailable =
+      typeof availability?.minAvailable === "number" ? availability.minAvailable : null;
+    const guests = (contextGuests?.adults || 2) + (contextGuests?.children || 0);
+    const overCapacity = perRoomCapacity > 0 && guests > maxGuests;
+    const notEnoughRooms = minAvailable !== null && roomQuantity > minAvailable;
+    const suggestedRooms =
+      perRoomCapacity > 0 ? Math.ceil(guests / perRoomCapacity) : roomQuantity;
+    return {
+      perRoomCapacity,
+      maxGuests,
+      minAvailable,
+      guests,
+      overCapacity,
+      notEnoughRooms,
+      suggestedRooms,
+      canSuggest: suggestedRooms <= maxRoomUnits,
+      ok: !overCapacity && !notEnoughRooms,
+    };
+  }, [selectedRoom, roomQuantity, roomAvailability, contextGuests, maxRoomUnits]);
+
   const calculateTotal = () => {
     if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
 
