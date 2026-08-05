@@ -1041,11 +1041,32 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         },
       });
       if (error) throw error;
-      const failed: string[] = (data as { failed?: string[] })?.failed ?? [];
+      const res = data as {
+        failed?: string[];
+        results?: Array<{ fn: string; body?: unknown }>;
+      };
+      const failed: string[] = res?.failed ?? [];
+      const snapBody = res?.results?.find((r) => r.fn === "create-commission-snapshots")?.body as
+        | {
+            created?: number;
+            skipped?: number;
+            created_backfill_total?: number;
+            created_backfill?: Array<{ month: string; count: number }>;
+          }
+        | undefined;
+      const createdCurrent = Number(snapBody?.created ?? 0);
+      const createdBackfill = Number(
+        snapBody?.created_backfill_total ??
+          (snapBody?.created_backfill ?? []).reduce((s, b) => s + Number(b.count ?? 0), 0),
+      );
+      const skippedCount = Number(snapBody?.skipped ?? 0);
+      const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在）`;
       if (failed.length > 0) {
         toast.error(`部分步驟失敗：${failed.join("、")}`);
       } else {
-        toast.success(`已重新試算 ${year}/${String(month).padStart(2, "0")} 期別 ${recalcPeriod}`);
+        toast.success(`已重新試算 ${year}/${String(month).padStart(2, "0")} 期別 ${recalcPeriod}`, {
+          description: detail,
+        });
       }
       setRecalcOpen(false);
       await fetchData();
