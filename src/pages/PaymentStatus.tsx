@@ -175,7 +175,7 @@ export default function PaymentStatus() {
           reason: cancelReason.trim() || undefined,
         },
       });
-      if (fnError) throw new Error(await parseFunctionInvokeError(fnError));
+      if (fnError) throw new Error((await parseFunctionInvokeError(fnError)).message);
       if (!data?.success) throw new Error(data?.message || "取消失敗");
       toast.success(data.message || "訂單已取消");
       setCancelOpen(false);
