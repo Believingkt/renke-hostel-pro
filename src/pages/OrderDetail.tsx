@@ -2215,6 +2215,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <XCircle className="h-4 w-4 mr-2" />取消訂單
                   </Button>
                 )}
+                {isSuperAdmin && (
+                  <Button
+                    variant="destructive"
+                    className="text-sm"
+                    disabled={isDeletingOrder}
+                    onClick={() => { setDeleteConfirmText(""); setDeleteReason(""); setShowDeleteDialog(true); }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />刪除訂單
+                  </Button>
+                )}
               </div>
               {/* 手機：主 CTA + 更多 */}
               <div className="flex sm:hidden gap-2 w-full">
