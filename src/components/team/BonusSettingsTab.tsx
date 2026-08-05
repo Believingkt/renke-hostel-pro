@@ -902,3 +902,255 @@ function BindingSection({
     </Card>
   );
 }
+
+/* --------------------------- (e) 場域簽約人 --------------------------- */
+
+interface AccOption {
+  id: string;
+  name: string;
+}
+
+interface VenueAssignmentRow {
+  id: string;
+  accommodation_id: string;
+  member_id: string;
+  effective_from: string;
+  created_at: string;
+}
+
+function VenueClosingAssignmentSection({
+  members,
+  memberName,
+  uid,
+}: {
+  members: MemberOption[];
+  memberName: (id: string) => string;
+  uid: string | null;
+}) {
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [dialogAcc, setDialogAcc] = useState<string | null>(null);
+  const [memberId, setMemberId] = useState<string>("none");
+  const [effectiveFrom, setEffectiveFrom] = useState(taipeiToday());
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [accRes, rowRes] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+        (supabase as any)
+          .from("teamcommission_venue_closing_assignments")
+          .select("id, accommodation_id, member_id, effective_from, created_at")
+          .order("effective_from", { ascending: false }),
+      ]);
+      setAccs(
+        ((accRes.data ?? []) as AccOption[]).filter(
+          (a) => !String(a.name ?? "").startsWith("旅行日"),
+        ),
+      );
+      setRows((rowRes.data ?? []) as VenueAssignmentRow[]);
+    } catch (e: any) {
+      toast.error("讀取場域簽約人失敗：" + (e?.message ?? ""));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const byAcc = useMemo(() => {
+    const m = new Map<string, VenueAssignmentRow[]>();
+    for (const r of rows) {
+      const arr = m.get(r.accommodation_id) ?? [];
+      arr.push(r);
+      m.set(r.accommodation_id, arr);
+    }
+    for (const [, arr] of m) arr.sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
+    return m;
+  }, [rows]);
+
+  function toggle(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function openDialog(accId: string) {
+    const cur = pickCurrent(byAcc.get(accId) ?? []);
+    setMemberId(cur?.member_id ?? "none");
+    setEffectiveFrom(taipeiToday());
+    setDialogAcc(accId);
+  }
+
+  async function submit() {
+    if (!uid || !dialogAcc) return;
+    if (memberId === "none") return toast.error("請選擇人員");
+    setSaving(true);
+    const { error } = await (supabase as any)
+      .from("teamcommission_venue_closing_assignments")
+      .insert({
+        accommodation_id: dialogAcc,
+        member_id: memberId,
+        effective_from: effectiveFrom,
+        created_by: uid,
+      });
+    setSaving(false);
+    if (error) return toast.error("新增版本失敗：" + error.message);
+    toast.success("已新增版本");
+    setDialogAcc(null);
+    load();
+  }
+
+  const accName = (id: string) => accs.find((a) => a.id === id)?.name ?? id.slice(0, 8);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">場域簽約人</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷費」為開啟）
+        </p>
+      </CardHeader>
+      <CardContent>
+        {loading ? null : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10" />
+                <TableHead>館別</TableHead>
+                <TableHead>目前簽約人</TableHead>
+                <TableHead>生效日</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accs.map((a) => {
+                const history = byAcc.get(a.id) ?? [];
+                const cur = pickCurrent(history);
+                const isOpen = expanded.has(a.id);
+                return (
+                  <Fragment key={a.id}>
+                    <TableRow>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => toggle(a.id)}>
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{a.name}</TableCell>
+                      <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {cur?.effective_from ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
+                          <Plus className="mr-1 h-4 w-4" />
+                          新增版本
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="bg-muted/30">
+                          {history.length === 0 ? (
+                            <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>生效日</TableHead>
+                                  <TableHead>簽約人</TableHead>
+                                  <TableHead>狀態</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {history.map((r) => (
+                                  <TableRow key={r.id}>
+                                    <TableCell className="whitespace-nowrap">
+                                      {r.effective_from}
+                                    </TableCell>
+                                    <TableCell>{memberName(r.member_id)}</TableCell>
+                                    <TableCell>
+                                      {cur?.id === r.id ? (
+                                        <Badge>目前生效</Badge>
+                                      ) : r.effective_from > taipeiToday() ? (
+                                        <Badge variant="outline">未來生效</Badge>
+                                      ) : (
+                                        <Badge variant="secondary">歷史</Badge>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={!!dialogAcc} onOpenChange={(o) => !o && setDialogAcc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增版本：{dialogAcc ? accName(dialogAcc) : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>簽約人</Label>
+              <Select value={memberId} onValueChange={setMemberId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇人員" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">未指定</SelectItem>
+                  {members.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.display_name ?? m.id.slice(0, 8)}
+                      {m.is_active === false ? "（停用）" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>生效日</Label>
+              <Input
+                type="date"
+                value={effectiveFrom}
+                onChange={(e) => setEffectiveFrom(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogAcc(null)}>
+              取消
+            </Button>
+            <Button onClick={submit} disabled={saving}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
