@@ -1261,7 +1261,14 @@ function AmVenueOverviewSection() {
                 const names = amByAcc[a.id] ?? [];
                 return (
                   <TableRow key={a.id}>
-                    <TableCell className="whitespace-nowrap">{a.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {a.name}
+                      {String(a.name ?? "").startsWith("旅行日") && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          （不列入本次 AM績效獎金計算）
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {names.length === 0 ? (
                         <span className="text-muted-foreground">尚無</span>
