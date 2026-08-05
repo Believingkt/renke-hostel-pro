@@ -248,7 +248,6 @@ export default function TeamCommissionStatsTab() {
       accommodation_id: string | null;
     }[]
   >([]);
-  const [adjOpen, setAdjOpen] = useState(false);
 
 
 
@@ -328,57 +327,30 @@ export default function TeamCommissionStatsTab() {
     };
   }, [mode, payoutMonthKey]);
 
-  const adjRows = useMemo(() => {
-    const label = (t: string) =>
-      t === "amount_change"
-        ? "金額調整"
-        : t === "cancellation"
-          ? "訂單取消扣回"
-          : t === "reactivation"
-            ? "取消復原補回"
-            : t;
-    const rows: {
-      key: string;
-      member: string;
-      role: string;
-      type: string;
-      venue: string;
-      order_number: string;
-      amount: number;
-      reason: string;
-    }[] = [];
+  // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
+  const adjMaps = useMemo(() => {
+    const closerByUid = new Map<string, number>();
+    const closerByUidAcc = new Map<string, number>();
+    const videoByUid = new Map<string, number>();
+    const videoByUidAcc = new Map<string, number>();
+    const add = (m: Map<string, number>, k: string, v: number) =>
+      m.set(k, (m.get(k) ?? 0) + v);
     for (const a of adjustments) {
-      const venue = a.accommodation_id ? (accNameMap.get(a.accommodation_id) ?? "－") : "－";
-      const order_number = a.order_number ?? "－";
       if (a.closer_id && a.closer_amount !== 0) {
-        rows.push({
-          key: `${a.id}:closer`,
-          member: nameMapByUserId.get(a.closer_id) ?? "未知成員",
-          role: "成交組",
-          type: label(a.adjustment_type),
-          venue,
-          order_number,
-          amount: a.closer_amount,
-          reason: a.reason ?? "",
-        });
+        add(closerByUid, a.closer_id, a.closer_amount);
+        if (a.accommodation_id)
+          add(closerByUidAcc, `${a.closer_id}|${a.accommodation_id}`, a.closer_amount);
       }
       if (a.video_creator_id && a.video_amount !== 0) {
-        rows.push({
-          key: `${a.id}:video`,
-          member: nameMapByUserId.get(a.video_creator_id) ?? "未知成員",
-          role: "影音組",
-          type: label(a.adjustment_type),
-          venue,
-          order_number,
-          amount: a.video_amount,
-          reason: a.reason ?? "",
-        });
+        add(videoByUid, a.video_creator_id, a.video_amount);
+        if (a.accommodation_id)
+          add(videoByUidAcc, `${a.video_creator_id}|${a.accommodation_id}`, a.video_amount);
       }
     }
-    return rows.sort((x, y) => x.member.localeCompare(y.member, "zh-Hant"));
-  }, [adjustments, accNameMap, nameMapByUserId]);
+    return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
+  }, [adjustments]);
 
-  const adjTotal = useMemo(() => adjRows.reduce((s, r) => s + r.amount, 0), [adjRows]);
+
 
 
 
@@ -823,9 +795,14 @@ export default function TeamCommissionStatsTab() {
     setExpanded: (s: Set<string>) => void,
     memberLabel: string,
     applyBonus: boolean = false,
+    role: "closer" | "video" = "closer",
   ) => {
     const showBonus = applyBonus && bonusRate > 0;
     const netFactor = 1 - bonusRate;
+    const showAdj = mode === "period";
+    const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
+    const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
+    const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
     const renderCommissionCell = (amount: number) => {
       if (!showBonus) return <>{fmtMoney(amount)}</>;
       return (
@@ -839,6 +816,21 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
+    const renderAdjCell = (amount: number) => (
+      <span
+        className={cn(
+          "tabular-nums",
+          amount === 0
+            ? "text-muted-foreground"
+            : amount < 0
+              ? "text-destructive"
+              : "text-emerald-600",
+        )}
+      >
+        {amount === 0 ? "—" : fmtMoney(amount)}
+      </span>
+    );
+
     return (
     <Card>
       <CardContent className="p-4 space-y-3">
@@ -862,6 +854,17 @@ export default function TeamCommissionStatsTab() {
                     </span>
                   )}
                 </TableHead>
+                {showAdj && (
+                  <>
+                    <TableHead className="whitespace-nowrap tabular-nums">
+                      分潤補差
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        （{payoutMonthKey} 發放月）
+                      </span>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap tabular-nums">發放總計</TableHead>
+                  </>
+                )}
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
@@ -871,13 +874,16 @@ export default function TeamCommissionStatsTab() {
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={showAdj ? 11 : 9} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
               ) : (
+
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
+                  const memberAdj = byUid.get(r.uid) ?? 0;
+                  const memberTotal = netCommission(r.commission) + memberAdj;
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -895,7 +901,16 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
                         <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        {showAdj && (
+                          <>
+                            <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
+                            <TableCell className="tabular-nums font-semibold">
+                              {fmtMoney(memberTotal)}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="tabular-nums">{r.cancelCount}</TableCell>
+
                         <TableCell className="tabular-nums text-muted-foreground">
                           {fmtMoney(r.cancelAmount)}
                         </TableCell>
@@ -905,12 +920,18 @@ export default function TeamCommissionStatsTab() {
                         <TableCell />
                       </TableRow>
                       {isOpen &&
-                        r.byAcc.map((b) => {
+                        r.byAcc.map((b, bi) => {
                           const openSheet = () =>
                             setAccSheet({
                               title: `${r.name} ・ ${b.accName}`,
                               breakdown: b,
                             });
+                          // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
+                          const firstOfAcc =
+                            r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
+                          const accAdj = firstOfAcc
+                            ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
+                            : 0;
                           return (
                             <TableRow
                               key={`${r.uid}-${b.accId}-${b.rate}`}
@@ -924,7 +945,16 @@ export default function TeamCommissionStatsTab() {
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
                               <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              {showAdj && (
+                                <>
+                                  <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
+                                  <TableCell className="tabular-nums font-medium">
+                                    {fmtMoney(netCommission(b.commission) + accAdj)}
+                                  </TableCell>
+                                </>
+                              )}
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
+
                               <TableCell className="tabular-nums text-muted-foreground">
                                 {fmtMoney(b.cancelAmount)}
                               </TableCell>
@@ -1069,80 +1099,8 @@ export default function TeamCommissionStatsTab() {
         </CardContent>
       </Card>
 
-      {/* 分潤補差（訂單取消扣回 / 金額調整） */}
-      {mode === "period" && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between text-left"
-              onClick={() => setAdjOpen((v) => !v)}
-              aria-expanded={adjOpen}
-            >
-              <div className="flex items-center gap-2">
-                {adjOpen ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="font-medium">分潤補差（{payoutMonthKey} 發放月）</span>
-                <span className="text-xs text-muted-foreground">{adjRows.length} 筆</span>
-              </div>
-              <span
-                className={cn(
-                  "text-sm font-medium tabular-nums",
-                  adjTotal < 0 ? "text-destructive" : "text-emerald-600",
-                )}
-              >
-                合計 {fmtMoney(adjTotal)}
-              </span>
-            </button>
-            <p className="text-xs text-muted-foreground">
-              補差為快照建立後訂單金額變動或取消所產生的差額，不計入上方業績統計，會直接反映在發放管理。
-            </p>
-            {adjOpen &&
-              (adjRows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">本發放月無補差記錄</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">成員</TableHead>
-                        <TableHead className="whitespace-nowrap">類別</TableHead>
-                        <TableHead className="whitespace-nowrap">補差類型</TableHead>
-                        <TableHead className="whitespace-nowrap">館別</TableHead>
-                        <TableHead className="whitespace-nowrap">訂單編號</TableHead>
-                        <TableHead className="whitespace-nowrap text-right tabular-nums">金額</TableHead>
-                        <TableHead className="whitespace-nowrap">說明</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {adjRows.map((r) => (
-                        <TableRow key={r.key}>
-                          <TableCell className="whitespace-nowrap">{r.member}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.role}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.type}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.venue}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.order_number}</TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-right tabular-nums whitespace-nowrap",
-                              r.amount < 0 ? "text-destructive" : "text-emerald-600",
-                            )}
-                          >
-                            {fmtMoney(r.amount)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{r.reason}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
-      )}
+
+
 
 
 
@@ -1150,8 +1108,9 @@ export default function TeamCommissionStatsTab() {
       {/* 成交組 / 影音組業績 */}
       {!isScoutOnly && (
         <>
-          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true)}
-          {renderMemberCard("影音組業績", videoStats, expandedVideo, setExpandedVideo, "影音組成員")}
+          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true, "closer")}
+          {renderMemberCard("影音組業績", videoStats, expandedVideo, setExpandedVideo, "影音組成員", false, "video")}
+
         </>
       )}
 
