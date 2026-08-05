@@ -9893,6 +9893,7 @@ export type Database = {
       }
       team_member_profiles: {
         Row: {
+          am_managed_accommodation_ids: string[] | null
           commission_rate: number | null
           created_at: string | null
           display_name: string
@@ -9908,6 +9909,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          am_managed_accommodation_ids?: string[] | null
           commission_rate?: number | null
           created_at?: string | null
           display_name: string
@@ -9923,6 +9925,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          am_managed_accommodation_ids?: string[] | null
           commission_rate?: number | null
           created_at?: string | null
           display_name?: string
