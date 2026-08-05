@@ -732,7 +732,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", range.prevMonth),
         supabase
           .from("teamcommission_bonus_snapshots")
-          .select("id, bonus_type, member_id, amount")
+          .select("id, bonus_type, member_id, amount, snapshot_month")
           .eq("payout_month", payoutMonthKey),
       ]);
 
@@ -908,7 +908,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           r.bonus_type,
           profileById.get(r.member_id),
           SOURCE_LABEL[r.bonus_type] ?? r.bonus_type,
-          "團隊獎金",
+          r.snapshot_month ? `${r.snapshot_month} 結算` : "團隊獎金",
           amount,
         );
       });
