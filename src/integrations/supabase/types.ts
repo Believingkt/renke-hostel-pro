@@ -11011,6 +11011,8 @@ export type Database = {
         | "franchise_internal"
         | "franchise_external"
         | "am"
+        | "am_manager"
+        | "closer_manager"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
       hotelnabe_ari_push_reason: "order_change" | "manual" | "backfill"
@@ -11185,6 +11187,8 @@ export const Constants = {
         "franchise_internal",
         "franchise_external",
         "am",
+        "am_manager",
+        "closer_manager",
       ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
