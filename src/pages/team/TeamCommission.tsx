@@ -97,6 +97,7 @@ export default function TeamCommission() {
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
   const payoutsReadOnly = false;
+  const [tab, setTab] = useState("payouts");
 
   if (!canAccess) {
     return (
