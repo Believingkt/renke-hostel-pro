@@ -752,7 +752,7 @@ export default function TeamMembers() {
                       lockedByManager
                         ? "已由主管角色包含"
                         : lockedByRole
-                        ? "您僅能指派 星探 角色"
+                        ? `您僅能指派 ${managedChildLabel} 角色`
                         : undefined
                     }
                     className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
@@ -795,7 +795,7 @@ export default function TeamMembers() {
                 <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
               </div>
               )}
-            {!isAdmin && isScoutManager && <p className="text-xs text-muted-foreground">您僅能指派 星探 角色</p>}
+            {!isAdmin && isRestrictedManager && <p className="text-xs text-muted-foreground">您僅能指派 {managedChildLabel} 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
 
@@ -951,7 +951,7 @@ export default function TeamMembers() {
       </Card>
 
       {/* 編輯側邊面板 */}
-      {(canEditAll || isScoutManager) && (
+      {(canEditAll || isRestrictedManager) && (
         <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
           <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto overflow-x-hidden">
             <SheetHeader>
@@ -979,16 +979,17 @@ export default function TeamMembers() {
                     {ALL_INVITABLE_ROLES.map((role) => {
                       const parent = CHILD_OF[role];
                       const lockedByManager = !!(parent && editRoles.includes(parent));
-                      const lockedByScoutManager = !canEditAll && isScoutManager && role !== "scout";
-                      const disabled = lockedByManager || lockedByScoutManager;
+                      const lockedByRestrictedManager =
+                        !canEditAll && isRestrictedManager && !managedChildRoles.includes(role);
+                      const disabled = lockedByManager || lockedByRestrictedManager;
                       return (
                         <label
                           key={role}
                           title={
                             lockedByManager
                               ? "已由主管角色包含"
-                              : lockedByScoutManager
-                              ? "您僅能調整 星探 角色"
+                              : lockedByRestrictedManager
+                              ? `您僅能調整 ${managedChildLabel} 角色`
                               : undefined
                           }
                           className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
