@@ -5,12 +5,24 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, CreditCard, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, FileText, Loader2, RefreshCw, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 const POLL_INTERVAL_MS = 8000;
 
@@ -97,6 +109,11 @@ export default function PaymentStatus() {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const timerRef = useRef<number | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelEmail, setCancelEmail] = useState("");
+  const [cancelPhone, setCancelPhone] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchOrder = useCallback(
     async (silent = false) => {
@@ -138,6 +155,38 @@ export default function PaymentStatus() {
       if (timerRef.current) window.clearInterval(timerRef.current);
     };
   }, [shouldPoll, fetchOrder]);
+
+  const canCancel = status?.kind === "pending" || status?.kind === "card_bound";
+  const canDownloadReceipt = status?.kind === "charged";
+
+  const submitCancel = async () => {
+    if (!order) return;
+    if (!cancelEmail.trim() && cancelPhone.replace(/\D/g, "").length < 4) {
+      toast.error("請填寫訂購人 Email 或手機末四碼");
+      return;
+    }
+    setCancelling(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("public-order-cancel", {
+        body: {
+          order_number: order.order_number,
+          email: cancelEmail.trim() || undefined,
+          phone_last4: cancelPhone.replace(/\D/g, "").slice(-4) || undefined,
+          reason: cancelReason.trim() || undefined,
+        },
+      });
+      if (fnError) throw new Error((await parseFunctionInvokeError(fnError)).message);
+      if (!data?.success) throw new Error(data?.message || "取消失敗");
+      toast.success(data.message || "訂單已取消");
+      setCancelOpen(false);
+      setCancelReason("");
+      await fetchOrder(true);
+    } catch (e: any) {
+      toast.error(e?.message || "取消失敗，請聯繫客服");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -223,6 +272,37 @@ export default function PaymentStatus() {
                 </div>
               </dl>
 
+              {(canCancel || canDownloadReceipt) && (
+                <div className="flex flex-wrap gap-2">
+                  {canDownloadReceipt && (
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          `/payment-receipt?order=${encodeURIComponent(order.order_number)}&print=1`,
+                          "_blank",
+                          "noopener",
+                        )
+                      }
+                    >
+                      <FileText className="mr-1.5 h-4 w-4" />
+                      下載付款收據 PDF
+                    </Button>
+                  )}
+                  {canCancel && (
+                    <Button variant="outline" onClick={() => setCancelOpen(true)}>
+                      <Trash2 className="mr-1.5 h-4 w-4" />
+                      取消訂單
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {canCancel && (
+                <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+                  信用卡於下單時僅先完成綁卡授權，實際扣款會在入住當天由系統自動執行；在扣款完成前取消，將立即釋放保留的房間且不會產生任何款項。
+                </p>
+              )}
+
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
                   {shouldPoll ? "狀態每 8 秒自動更新" : "狀態已確認，停止自動更新"}
@@ -237,6 +317,57 @@ export default function PaymentStatus() {
           </Card>
         )}
       </main>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>取消訂單</DialogTitle>
+            <DialogDescription>
+              為確認您的身分，請填寫訂購人 Email 或手機末四碼。取消後保留的房間會立即釋放，且入住當天不會再扣款。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-email">訂購人 Email</Label>
+              <Input
+                id="cancel-email"
+                type="email"
+                value={cancelEmail}
+                onChange={(e) => setCancelEmail(e.target.value)}
+                placeholder="name@example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-phone">或 手機末四碼</Label>
+              <Input
+                id="cancel-phone"
+                inputMode="numeric"
+                maxLength={4}
+                value={cancelPhone}
+                onChange={(e) => setCancelPhone(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="1234"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-reason">取消原因（選填）</Label>
+              <Textarea
+                id="cancel-reason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelling}>
+              先不要
+            </Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={cancelling}>
+              {cancelling ? "處理中…" : "確認取消訂單"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
