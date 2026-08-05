@@ -280,7 +280,7 @@ export default function TeamMembers() {
     if (!canAccess) return;
     (async () => {
       const [kolRes, accRes] = await Promise.all([
-        supabase.from("kol_venues").select("id, name").eq("is_active", true),
+        supabase.from("kol_venues").select("id, name, accommodation_id").eq("is_active", true),
         supabase.from("accommodation_info").select("id, name").eq("is_active", true),
       ]);
       const names = new Set<string>();
@@ -294,6 +294,15 @@ export default function TeamMembers() {
       }
       merged.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
       setVenues(merged);
+
+      const kolList: ManagedVenueOption[] = (kolRes.data ?? [])
+        .map((row) => {
+          const r = row as { id: string; name: string | null; accommodation_id: string | null };
+          return { id: r.id, name: r.name ?? "", accommodation_id: r.accommodation_id ?? null };
+        })
+        .filter((v) => !!v.name)
+        .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+      setKolVenues(kolList);
 
       const accList: VenueOption[] = (accRes.data ?? [])
         .map((row) => ({ id: (row as { id: string }).id, name: (row as { name: string }).name }))
