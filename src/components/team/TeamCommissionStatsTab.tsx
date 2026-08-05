@@ -380,6 +380,31 @@ export default function TeamCommissionStatsTab() {
 
   const adjTotal = useMemo(() => adjRows.reduce((s, r) => s + r.amount, 0), [adjRows]);
 
+  // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
+  const adjMaps = useMemo(() => {
+    const closerByUid = new Map<string, number>();
+    const closerByUidAcc = new Map<string, number>();
+    const videoByUid = new Map<string, number>();
+    const videoByUidAcc = new Map<string, number>();
+    const add = (m: Map<string, number>, k: string, v: number) =>
+      m.set(k, (m.get(k) ?? 0) + v);
+    for (const a of adjustments) {
+      if (a.closer_id && a.closer_amount !== 0) {
+        add(closerByUid, a.closer_id, a.closer_amount);
+        if (a.accommodation_id)
+          add(closerByUidAcc, `${a.closer_id}|${a.accommodation_id}`, a.closer_amount);
+      }
+      if (a.video_creator_id && a.video_amount !== 0) {
+        add(videoByUid, a.video_creator_id, a.video_amount);
+        if (a.accommodation_id)
+          add(videoByUidAcc, `${a.video_creator_id}|${a.accommodation_id}`, a.video_amount);
+      }
+    }
+    return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
+  }, [adjustments]);
+
+
+
 
 
   useEffect(() => {
