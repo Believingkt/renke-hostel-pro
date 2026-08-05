@@ -290,6 +290,98 @@ export default function TeamCommissionStatsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.startIso, period.nextIso, period.label]);
 
+  // 補差資料：期別模式下 adjustment_month = 發放年月（YYYY-MM）
+  const payoutMonthKey = useMemo(
+    () => `${year}-${String(Number(month)).padStart(2, "0")}`,
+    [year, month],
+  );
+  useEffect(() => {
+    if (mode !== "period") {
+      setAdjustments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("closer_commission_adjustments")
+        .select(
+          "id, adjustment_type, closer_id, video_creator_id, closer_amount, video_amount, reason, orders(order_number, accommodation_id)",
+        )
+        .eq("adjustment_month", payoutMonthKey);
+      if (cancelled) return;
+      setAdjustments(
+        ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          adjustment_type: r.adjustment_type,
+          closer_id: r.closer_id,
+          video_creator_id: r.video_creator_id,
+          closer_amount: Number(r.closer_amount ?? 0),
+          video_amount: Number(r.video_amount ?? 0),
+          reason: r.reason ?? null,
+          order_number: r.orders?.order_number ?? null,
+          accommodation_id: r.orders?.accommodation_id ?? null,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, payoutMonthKey]);
+
+  const adjRows = useMemo(() => {
+    const label = (t: string) =>
+      t === "amount_change"
+        ? "金額調整"
+        : t === "cancellation"
+          ? "訂單取消扣回"
+          : t === "reactivation"
+            ? "取消復原補回"
+            : t;
+    const rows: {
+      key: string;
+      member: string;
+      role: string;
+      type: string;
+      venue: string;
+      order_number: string;
+      amount: number;
+      reason: string;
+    }[] = [];
+    for (const a of adjustments) {
+      const venue = a.accommodation_id ? (accNameMap.get(a.accommodation_id) ?? "－") : "－";
+      const order_number = a.order_number ?? "－";
+      if (a.closer_id && a.closer_amount !== 0) {
+        rows.push({
+          key: `${a.id}:closer`,
+          member: nameMapByUserId.get(a.closer_id) ?? "未知成員",
+          role: "成交組",
+          type: label(a.adjustment_type),
+          venue,
+          order_number,
+          amount: a.closer_amount,
+          reason: a.reason ?? "",
+        });
+      }
+      if (a.video_creator_id && a.video_amount !== 0) {
+        rows.push({
+          key: `${a.id}:video`,
+          member: nameMapByUserId.get(a.video_creator_id) ?? "未知成員",
+          role: "影音組",
+          type: label(a.adjustment_type),
+          venue,
+          order_number,
+          amount: a.video_amount,
+          reason: a.reason ?? "",
+        });
+      }
+    }
+    return rows.sort((x, y) => x.member.localeCompare(y.member, "zh-Hant"));
+  }, [adjustments, accNameMap, nameMapByUserId]);
+
+  const adjTotal = useMemo(() => adjRows.reduce((s, r) => s + r.amount, 0), [adjRows]);
+
+
+
   useEffect(() => {
     (async () => {
       const [c, v, fp, ts, bm] = await Promise.all([
