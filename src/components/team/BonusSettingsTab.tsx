@@ -74,7 +74,7 @@ const BONUS_TYPES: { type: string; label: string; field: "rate" | "fixed_amount"
 
 const ROLE_TYPES: { type: string; label: string }[] = [
   { type: "am_manager", label: "AM總管" },
-  { type: "closer_manager", label: "成交大師管理者" },
+  { type: "closer_manager", label: "成交組主管" },
   { type: "kol_bonus_recipient", label: "網紅營銷專利獎金受領人" },
 ];
 

@@ -123,7 +123,7 @@ const ROLE_OPTIONS = [
   "franchise_external",
   "franchise_manager",
   "starlink",
-  "owner",
+  // "owner", // 暫時隱藏（屋主），之後要重新開放時取消註解即可
   "finance",
   "venue_manager",
 ];
