@@ -429,10 +429,10 @@ export default function TeamMembers() {
 
   const canEditMember = (m: MemberRow): boolean => {
     if (isAdmin) return true;
-    if (isScoutManager) {
+    if (isRestrictedManager) {
       if (!m.user_id) return false;
       if (m.user_id === myUserId) return false;
-      return m.roles.includes("scout");
+      return managedChildRoles.some((r) => m.roles.includes(r));
     }
     return false;
   };
