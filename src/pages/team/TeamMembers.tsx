@@ -306,7 +306,7 @@ export default function TeamMembers() {
 
       const accList: VenueOption[] = (accRes.data ?? [])
         .map((row) => ({ id: (row as { id: string }).id, name: (row as { name: string }).name }))
-        .filter((a) => !!a.name && !a.name.startsWith("旅行日"))
+        .filter((a) => !!a.name)
         .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
       setAccommodations(accList);
     })();
