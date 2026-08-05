@@ -420,7 +420,13 @@ serve(async (req) => {
       created_backfill: createdBackfill,
       created_backfill_total: createdBackfillTotal,
       skipped_backfill: skippedBackfill,
+      // 未發放快照金額重算
+      resynced: resync.updated,
+      resync_checked: resync.checked,
+      resync_skipped_paid: resync.skipped_paid,
+      resync_details: resync.details,
       errors,
+
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
