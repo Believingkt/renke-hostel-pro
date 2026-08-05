@@ -585,16 +585,59 @@ serve(async (req) => {
       });
     }
 
-    /* ---------- 逐筆寫入（23505 視為 skipped） ---------- */
+    /* ---------- 逐筆寫入（衝突時：未發放則覆寫更新，已發放則 skip） ---------- */
     const errors: Array<{ bonus_type: string; member_id: string; error: string }> = [];
     let created = 0;
     let skipped = 0;
+    let updated = 0;
+
+    // 已標記發放的快照 id（有標記者不覆寫）
+    const { data: markRows } = await supabase
+      .from("commission_payout_marks")
+      .select("source_id, payout_status")
+      .eq("source_table", "teamcommission_bonus_snapshots");
+    const paidSnapshotIds = new Set(
+      ((markRows ?? []) as any[])
+        .filter((m) => m.payout_status === "paid")
+        .map((m) => String(m.source_id)),
+    );
 
     for (const row of rows) {
       const { error: insErr } = await supabase.from("teamcommission_bonus_snapshots").insert(row);
       if (insErr) {
         if ((insErr as any).code === "23505") {
-          skipped++;
+          const { data: existing } = await supabase
+            .from("teamcommission_bonus_snapshots")
+            .select("id")
+            .eq("bonus_type", row.bonus_type)
+            .eq("member_id", row.member_id)
+            .eq("snapshot_month", row.snapshot_month)
+            .maybeSingle();
+          if (existing?.id && !paidSnapshotIds.has(String(existing.id))) {
+            const { error: updErr } = await supabase
+              .from("teamcommission_bonus_snapshots")
+              .update({
+                payout_month: row.payout_month,
+                base_revenue: row.base_revenue,
+                rate: row.rate,
+                fixed_amount: row.fixed_amount,
+                venue_count: row.venue_count,
+                amount: row.amount,
+                settings_snapshot: row.settings_snapshot,
+              })
+              .eq("id", existing.id);
+            if (updErr) {
+              errors.push({
+                bonus_type: row.bonus_type,
+                member_id: row.member_id,
+                error: updErr.message,
+              });
+            } else {
+              updated++;
+            }
+          } else {
+            skipped++;
+          }
         } else {
           errors.push({
             bonus_type: row.bonus_type,
@@ -607,11 +650,13 @@ serve(async (req) => {
       }
     }
 
+
     console.log("[create-team-bonus-snapshots] done", {
       snapshotMonthStr,
       payoutMonthStr,
       candidates: rows.length,
       created,
+      updated,
       skipped,
       errorCount: errors.length,
     });
@@ -623,6 +668,7 @@ serve(async (req) => {
       payout_month: payoutMonthStr,
       candidates: rows.length,
       created,
+      updated,
       skipped,
       errors,
     });
