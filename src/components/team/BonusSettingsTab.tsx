@@ -117,6 +117,7 @@ export default function BonusSettingsTab() {
   const [uid, setUid] = useState<string | null>(null);
   const [isKolEditor, setIsKolEditor] = useState(false);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
+  const [sourceOwners, setSourceOwners] = useState<Record<string, string[]>>({});
 
   const [rates, setRates] = useState<RateRow[]>([]);
   const [sharedSources, setSharedSources] = useState<SourceRow[]>([]);
@@ -168,6 +169,15 @@ export default function BonusSettingsTab() {
         }
       }
       setSourceOptions(Array.from(set));
+
+      const { data: ownerRows } = await (supabase as any).rpc("get_order_source_owners");
+      const map: Record<string, string[]> = {};
+      for (const r of (ownerRows ?? []) as any[]) {
+        const s = String(r?.source ?? "").trim();
+        if (!s) continue;
+        map[s] = Array.isArray(r?.accommodation_names) ? r.accommodation_names : [];
+      }
+      setSourceOwners(map);
     } catch (e: any) {
       toast.error("讀取獎金設定失敗：" + (e?.message ?? ""));
     } finally {
@@ -195,6 +205,31 @@ export default function BonusSettingsTab() {
     [members],
   );
 
+  // 依「使用館別」分組：多館共用一區，單一館別各自成區
+  const sourceGroups = useMemo(() => {
+    const common: string[] = [];
+    const byAcc = new Map<string, string[]>();
+    for (const s of sourceOptions) {
+      const owners = sourceOwners[s] ?? [];
+      if (owners.length === 1) {
+        const key = owners[0];
+        const list = byAcc.get(key) ?? [];
+        list.push(s);
+        byAcc.set(key, list);
+      } else {
+        common.push(s);
+      }
+    }
+    const groups: { title: string; sources: string[] }[] = [];
+    if (common.length > 0) groups.push({ title: "共用來源（多館別通用）", sources: common });
+    for (const [name, list] of Array.from(byAcc.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0], "zh-TW"),
+    )) {
+      groups.push({ title: `${name} 專屬來源`, sources: list });
+    }
+    return groups;
+  }, [sourceOptions, sourceOwners]);
+
   return (
     <div className="space-y-6 pt-4">
       <RateSection
@@ -210,7 +245,7 @@ export default function BonusSettingsTab() {
         loading={loading}
         uid={uid}
         table="teamcommission_shared_revenue_source_whitelist"
-        options={sourceOptions}
+        sourceGroups={sourceGroups}
         canEdit
         onSaved={loadAll}
       />
@@ -221,7 +256,7 @@ export default function BonusSettingsTab() {
         loading={loading}
         uid={uid}
         table="teamcommission_kol_revenue_source_whitelist"
-        options={sourceOptions}
+        sourceGroups={sourceGroups}
         canEdit={isKolEditor}
         onSaved={loadAll}
       />
@@ -476,7 +511,7 @@ function SourceSection({
   loading,
   uid,
   table,
-  options,
+  sourceGroups,
   canEdit,
   onSaved,
 }: {
@@ -486,7 +521,7 @@ function SourceSection({
   loading: boolean;
   uid: string | null;
   table: string;
-  options: string[];
+  sourceGroups: { title: string; sources: string[] }[];
   canEdit: boolean;
   onSaved: () => void;
 }) {
@@ -605,23 +640,30 @@ function SourceSection({
             <DialogTitle>新增版本：{title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label>採計的訂單來源</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {options.map((s) => (
-                  <label key={s} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selected.includes(s)}
-                      onCheckedChange={(c) =>
-                        setSelected((prev) =>
-                          c ? Array.from(new Set([...prev, s])) : prev.filter((x) => x !== s),
-                        )
-                      }
-                    />
-                    <span>{getOrderSourceConfig(s).label}</span>
-                  </label>
-                ))}
-              </div>
+              {sourceGroups.map((g) => (
+                <div key={g.title} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    {g.title}（{g.sources.length}）
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {g.sources.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selected.includes(s)}
+                          onCheckedChange={(c) =>
+                            setSelected((prev) =>
+                              c ? Array.from(new Set([...prev, s])) : prev.filter((x) => x !== s),
+                            )
+                          }
+                        />
+                        <span>{getOrderSourceConfig(s).label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="space-y-2">
               <Label>生效日</Label>
