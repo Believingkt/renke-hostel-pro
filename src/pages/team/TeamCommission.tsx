@@ -764,7 +764,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", range.prevMonth),
         supabase
           .from("teamcommission_bonus_snapshots")
-          .select("id, bonus_type, member_id, amount, snapshot_month")
+          .select("id, bonus_type, member_id, amount, snapshot_month, venue_count, settings_snapshot")
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("closer_commission_adjustments")
@@ -946,6 +946,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             multiplied_amount: amount,
             paid,
             payout_date: r.payout_date ?? null,
+            venue_name: "全館別",
+            order_number: null,
           });
         });
       });
@@ -965,17 +967,46 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       // 八種團隊獎金：由 create-team-bonus-snapshots 每月10日鎖定寫入
+      // 固定金額×館別數的類型（AM 場域／場域成交／網紅月費）拆成逐館一筆，其餘為全公司口徑
+      const PER_VENUE_BONUS = new Set(["am_venue_bonus", "venue_closing", "kol_monthly"]);
       (teamBonusSnapshots ?? []).forEach((r: any) => {
         const amount = Math.round(Number(r.amount ?? 0));
         if (amount <= 0) return;
+        const label = SOURCE_LABEL[r.bonus_type] ?? r.bonus_type;
+        const detail = `${payoutMonthKey.replace("-", "/")} 10日期`;
+        const snap = (r.settings_snapshot ?? {}) as any;
+        const accIds: string[] = Array.isArray(snap.accommodation_ids) ? snap.accommodation_ids : [];
+        const snapNames: string[] = Array.isArray(snap.accommodation_names) ? snap.accommodation_names : [];
+
+        if (PER_VENUE_BONUS.has(r.bonus_type) && accIds.length > 0) {
+          const per = Math.round(amount / accIds.length);
+          accIds.forEach((accId, idx) => {
+            const name = snapNames[idx] || venueOf(accId) || "其他";
+            // 最後一筆吸收整數尾差，確保逐館加總 = 快照金額
+            const value = idx === accIds.length - 1 ? amount - per * (accIds.length - 1) : per;
+            pushItem(
+              "teamcommission_bonus_snapshots",
+              r.id,
+              `${r.bonus_type}#${accId}`,
+              profileById.get(r.member_id),
+              label,
+              detail,
+              value,
+              { venue_name: name },
+            );
+          });
+          return;
+        }
+
         pushItem(
           "teamcommission_bonus_snapshots",
           r.id,
           r.bonus_type,
           profileById.get(r.member_id),
-          SOURCE_LABEL[r.bonus_type] ?? r.bonus_type,
-          `${payoutMonthKey.replace("-", "/")} 10日期`,
+          label,
+          detail,
           amount,
+          { venue_name: "全館別" },
         );
       });
 

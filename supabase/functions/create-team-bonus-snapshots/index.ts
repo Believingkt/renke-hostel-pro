@@ -525,7 +525,15 @@ serve(async (req) => {
         },
       });
 
+      // 月費：以「目前合作中館別數」計價（旅行日系列合併只算一館，停用館別不計）
       const kolMonthlyFixed = fixedOf("kol_monthly");
+      const travelDayIds = activeAccIds.filter((id) =>
+        (accNameById.get(id) ?? "").startsWith("旅行日"),
+      );
+      const kolMonthlyAccIds = [
+        ...activeAccIds.filter((id) => !(accNameById.get(id) ?? "").startsWith("旅行日")),
+        ...(travelDayIds.length > 0 ? [travelDayIds[0]] : []),
+      ];
       push({
         bonus_type: "kol_monthly",
         member_id: kolRecipientId,
@@ -534,12 +542,17 @@ serve(async (req) => {
         base_revenue: null,
         rate: null,
         fixed_amount: kolMonthlyFixed,
-        venue_count: null,
-        amount: Number(kolMonthlyFixed ?? 0),
+        venue_count: kolMonthlyAccIds.length,
+        amount: Number(kolMonthlyFixed ?? 0) * kolMonthlyAccIds.length,
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: kolMonthlyFixed,
           role_binding: "kol_bonus_recipient",
+          accommodation_ids: kolMonthlyAccIds,
+          accommodation_names: kolMonthlyAccIds.map((id) =>
+            (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
+          ),
+          travel_days_merged_ids: travelDayIds,
         },
       });
     }
