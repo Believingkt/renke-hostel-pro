@@ -97,12 +97,22 @@ serve(async (req) => {
     const isAdmin = callerRoleSet.has("super_admin") ||
       callerRoleSet.has("admin");
     const isScoutManager = callerRoleSet.has("scout_manager");
+    const isCloserManager = callerRoleSet.has("closer_manager");
+    const isAmManager = callerRoleSet.has("am_manager");
 
-    if (!isAdmin && !isScoutManager) {
-      return json({ success: false, error: "需要管理員或星探主管權限" }, 403);
+    if (!isAdmin && !isScoutManager && !isCloserManager && !isAmManager) {
+      return json({ success: false, error: "需要管理員或主管權限" }, 403);
     }
 
-    const allowed = isAdmin ? ADMIN_INVITABLE : SCOUT_MANAGER_INVITABLE;
+    let allowed: Set<string>;
+    if (isAdmin) {
+      allowed = ADMIN_INVITABLE;
+    } else {
+      allowed = new Set<string>();
+      if (isScoutManager) SCOUT_MANAGER_INVITABLE.forEach((r) => allowed.add(r));
+      if (isCloserManager) CLOSER_MANAGER_INVITABLE.forEach((r) => allowed.add(r));
+      if (isAmManager) AM_MANAGER_INVITABLE.forEach((r) => allowed.add(r));
+    }
     if (roles.some((r) => !allowed.has(r))) {
       return json({ success: false, error: "您沒有權限指派部分角色" }, 403);
     }
