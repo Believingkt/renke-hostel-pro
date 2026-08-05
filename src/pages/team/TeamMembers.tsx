@@ -82,6 +82,7 @@ interface MemberRow {
   is_active: boolean;
   roles: TeamRole[];
   managed_venue: string[] | null;
+  am_managed_accommodation_ids: string[] | null;
   is_scout_team_member: boolean;
   employment_type: "fulltime" | "parttime";
   fulltime_start_yearmonth: string | null;
@@ -120,6 +121,7 @@ export default function TeamMembers() {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
   const [venues, setVenues] = useState<VenueOption[]>([]);
+  const [accommodations, setAccommodations] = useState<VenueOption[]>([]);
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
@@ -135,6 +137,7 @@ export default function TeamMembers() {
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
   const [editVenues, setEditVenues] = useState<string[]>([]);
+  const [editAmAccommodations, setEditAmAccommodations] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [editFulltime, setEditFulltime] = useState(false);
   const getCurrentTaipeiYM = () => {
@@ -159,7 +162,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+      .select("id, user_id, display_name, is_active, managed_venue, am_managed_accommodation_ids, is_scout_team_member, employment_type, fulltime_start_yearmonth")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -204,6 +207,8 @@ export default function TeamMembers() {
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
+      am_managed_accommodation_ids:
+        (p as { am_managed_accommodation_ids?: string[] | null }).am_managed_accommodation_ids ?? null,
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
       employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
         ? "fulltime"
