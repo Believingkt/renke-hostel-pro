@@ -514,68 +514,8 @@ export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Pro
         )}
       </div>
 
-      {/* 額度模式 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">額度模式</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <RadioGroup
-            value={mode}
-            onValueChange={(v) => saveConfig(v as Mode, trackedIds)}
-            className="grid gap-2 sm:grid-cols-2"
-          >
-            <label
-              className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer ${mode === "shared" ? "border-primary bg-primary/5" : ""}`}
-            >
-              <RadioGroupItem value="shared" id="mode-shared" disabled={!editable || savingConfig} className="mt-1" />
-              <div>
-                <div className="text-sm font-medium">全部共用</div>
-                <div className="text-xs text-muted-foreground">整家民宿共用同一個月度上限，任何 KOL 訂單都計入。</div>
-              </div>
-            </label>
-            <label
-              className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer ${mode === "per_package" ? "border-primary bg-primary/5" : ""}`}
-            >
-              <RadioGroupItem value="per_package" id="mode-per_package" disabled={!editable || savingConfig} className="mt-1" />
-              <div>
-                <div className="text-sm font-medium">分棟設定</div>
-                <div className="text-xs text-muted-foreground">
-                  勾選的包棟各自獨立額度（未設定該月＝視為 0）；未勾選的包棟訂單併入「全館共用」額度。
-                </div>
-              </div>
-            </label>
-          </RadioGroup>
+      {/* 額度模式卡片暫時隱藏（功能保留，設定沿用資料庫既有值） */}
 
-          {mode === "per_package" && (
-            <div>
-              <Label className="text-sm mb-2 block">追蹤包棟（勾選要獨立設額度的包棟）</Label>
-              {packages.length === 0 ? (
-                <div className="text-sm text-muted-foreground">此民宿尚無啟用中的包棟方案</div>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {packages.map((p) => {
-                    const checked = trackedIds.includes(p.id);
-                    return (
-                      <label
-                        key={p.id}
-                        className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer ${checked ? "border-primary bg-primary/5" : ""}`}
-                      >
-                        <Checkbox
-                          checked={checked}
-                          disabled={!editable || savingConfig}
-                          onCheckedChange={() => toggleTracked(p.id)}
-                        />
-                        <span className="text-sm">{p.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* 月份額度列表 */}
       <Card>
