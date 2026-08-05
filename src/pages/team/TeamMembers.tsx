@@ -459,8 +459,58 @@ export default function TeamMembers() {
       if (!ok) return;
     }
 
+    // 獨佔角色（AM總管／成交大師管理）：新指派前先確認是否已有現任者
+    if (canEditAll && editTarget.user_id) {
+      const newlyExclusive = EXCLUSIVE_ROLES.filter(
+        (r) => editRoles.includes(r) && !editTarget.roles.includes(r),
+      );
+      if (newlyExclusive.length > 0) {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .is("accommodation_id", null)
+          .in("role", newlyExclusive)
+          .neq("user_id", editTarget.user_id);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        const incumbents = (data ?? []).map((row) => ({
+          role: row.role as TeamRole,
+          userId: row.user_id as string,
+          name:
+            members.find((m) => m.user_id === row.user_id)?.display_name ?? "（未知成員）",
+        }));
+        if (incumbents.length > 0) {
+          setExclusiveConflicts(incumbents);
+          return;
+        }
+      }
+    }
+
+    await performSave([]);
+  };
+
+  const performSave = async (incumbentsToRemove: ExclusiveIncumbent[]) => {
+    if (!editTarget) return;
+    const nextFulltimeYM =
+      editRoles.includes("scout") && editFulltime
+        ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+        : null;
+
     setSaving(true);
     try {
+      // 先移除舊任者的獨佔角色，再走原本流程新增
+      for (const inc of incumbentsToRemove) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", inc.userId)
+          .is("accommodation_id", null)
+          .eq("role", inc.role);
+        if (error) throw error;
+      }
+
       if (!canEditAll && isScoutManager) {
         // scout_manager 僅能改 display_name、is_scout_team_member，以及 scout role 的勾選
         const nextHasScout = editRoles.includes("scout");
