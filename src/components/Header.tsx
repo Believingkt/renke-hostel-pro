@@ -1,4 +1,4 @@
-import { LogOut, UserCircle, Bell, Key, ExternalLink } from "lucide-react";
+import { LogOut, UserCircle, Bell, Key } from "lucide-react";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,6 @@ import { AccommodationSelector } from "@/components/AccommodationSelector";
 import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
-import { openFrontendBooking } from "@/lib/frontendUrl";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
