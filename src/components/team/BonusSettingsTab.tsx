@@ -476,7 +476,7 @@ function SourceSection({
   loading,
   uid,
   table,
-  options,
+  sourceGroups,
   canEdit,
   onSaved,
 }: {
@@ -486,7 +486,7 @@ function SourceSection({
   loading: boolean;
   uid: string | null;
   table: string;
-  options: string[];
+  sourceGroups: { title: string; sources: string[] }[];
   canEdit: boolean;
   onSaved: () => void;
 }) {
