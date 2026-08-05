@@ -117,7 +117,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     title: "成員管理",
     url: "/team/members",
     icon: Users,
-    allowedRoles: ["super_admin", "admin", "scout_manager"],
+    allowedRoles: ["super_admin", "admin", "scout_manager", "closer_manager", "am_manager"],
   },
   {
     title: "LINE群設定",

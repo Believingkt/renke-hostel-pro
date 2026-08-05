@@ -118,20 +118,39 @@ interface ExclusiveIncumbent {
 
 
 
+// 受限主管角色 → 其可管理（新增/移除）的子角色
+const MANAGED_CHILD_BY_MANAGER: Partial<Record<TeamRole, TeamRole>> = {
+  scout_manager: "scout",
+  ["closer_manager" as TeamRole]: "closer" as TeamRole,
+  ["am_manager" as TeamRole]: "am" as TeamRole,
+};
+
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
   const isAdmin = useMemo(() => myRoles.includes("super_admin") || myRoles.includes("admin"), [myRoles]);
   const isScoutManager = useMemo(() => myRoles.includes("scout_manager"), [myRoles]);
-  // 僅 admin 與 scout_manager 可進入
-  const canAccess = isAdmin || isScoutManager;
+  const isCloserManager = useMemo(() => myRoles.includes("closer_manager" as TeamRole), [myRoles]);
+  const isAmManager = useMemo(() => myRoles.includes("am_manager" as TeamRole), [myRoles]);
+  // 登入者目前持有的受限主管角色可管理的子角色（聯集）
+  const managedChildRoles: TeamRole[] = useMemo(
+    () =>
+      (Object.entries(MANAGED_CHILD_BY_MANAGER) as [TeamRole, TeamRole][])
+        .filter(([mgr]) => myRoles.includes(mgr))
+        .map(([, child]) => child),
+    [myRoles],
+  );
+  const isRestrictedManager = isScoutManager || isCloserManager || isAmManager;
+  // admin 與受限主管（星探主管／成交組主管／AM總管）可進入
+  const canAccess = isAdmin || isCloserManager || isAmManager || isScoutManager;
   // 僅 admin 可邀請任意角色 / 編輯 / 刪除
   const canEditAll = isAdmin;
 
-  // 邀請可選角色（依當前使用者身份）— scout_manager 在 UI 顯示完整清單但僅 scout 可勾
+  // 邀請可選角色（依當前使用者身份）— 受限主管在 UI 顯示完整清單但僅可勾對應子角色
   const invitableRoles = ALL_INVITABLE_ROLES;
+  const managedChildLabel = managedChildRoles.map((r) => ROLE_LABEL[r]).join("、");
   const enabledInviteRoles: Set<TeamRole> = isAdmin
     ? new Set(ALL_INVITABLE_ROLES)
-    : new Set<TeamRole>(["scout"]);
+    : new Set<TeamRole>(managedChildRoles);
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
@@ -410,10 +429,10 @@ export default function TeamMembers() {
 
   const canEditMember = (m: MemberRow): boolean => {
     if (isAdmin) return true;
-    if (isScoutManager) {
+    if (isRestrictedManager) {
       if (!m.user_id) return false;
       if (m.user_id === myUserId) return false;
-      return m.roles.includes("scout");
+      return managedChildRoles.some((r) => m.roles.includes(r));
     }
     return false;
   };
@@ -520,9 +539,9 @@ export default function TeamMembers() {
         if (error) throw error;
       }
 
-      if (!canEditAll && isScoutManager) {
-        // scout_manager 僅能改 display_name、is_scout_team_member，以及 scout role 的勾選
-        const nextHasScout = editRoles.includes("scout");
+      if (!canEditAll && isRestrictedManager) {
+        // 受限主管僅能改 display_name、is_scout_team_member，以及自己可管理的子角色勾選
+        const nextHasScout = editRoles.includes("scout") && managedChildRoles.includes("scout");
         const { error: pErr } = await supabase
           .from("team_member_profiles")
           .update({
@@ -534,24 +553,27 @@ export default function TeamMembers() {
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
 
-        // 額外處理 scout role 的新增/移除（僅限 scout role 本身，不碰其他 role）
+        // 依登入者可管理的子角色動態處理新增/移除（不碰其他 role）
         if (editTarget.user_id) {
-          const originalHasScout = editTarget.roles.includes("scout");
-          if (originalHasScout && !nextHasScout) {
-            const { error } = await supabase
-              .from("user_roles")
-              .delete()
-              .eq("user_id", editTarget.user_id)
-              .is("accommodation_id", null)
-              .eq("role", "scout");
-            if (error) throw error;
-          } else if (!originalHasScout && nextHasScout) {
-            const { error } = await supabase.from("user_roles").insert({
-              user_id: editTarget.user_id,
-              accommodation_id: null,
-              role: "scout",
-            });
-            if (error) throw error;
+          for (const childRole of managedChildRoles) {
+            const originalHas = editTarget.roles.includes(childRole);
+            const nextHas = editRoles.includes(childRole);
+            if (originalHas && !nextHas) {
+              const { error } = await supabase
+                .from("user_roles")
+                .delete()
+                .eq("user_id", editTarget.user_id)
+                .is("accommodation_id", null)
+                .eq("role", childRole);
+              if (error) throw error;
+            } else if (!originalHas && nextHas) {
+              const { error } = await supabase.from("user_roles").insert({
+                user_id: editTarget.user_id,
+                accommodation_id: null,
+                role: childRole,
+              });
+              if (error) throw error;
+            }
           }
         }
       } else {
@@ -730,7 +752,7 @@ export default function TeamMembers() {
                       lockedByManager
                         ? "已由主管角色包含"
                         : lockedByRole
-                        ? "您僅能指派 星探 角色"
+                        ? `您僅能指派 ${managedChildLabel} 角色`
                         : undefined
                     }
                     className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
@@ -773,7 +795,7 @@ export default function TeamMembers() {
                 <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
               </div>
               )}
-            {!isAdmin && isScoutManager && <p className="text-xs text-muted-foreground">您僅能指派 星探 角色</p>}
+            {!isAdmin && isRestrictedManager && <p className="text-xs text-muted-foreground">您僅能指派 {managedChildLabel} 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
 
@@ -929,7 +951,7 @@ export default function TeamMembers() {
       </Card>
 
       {/* 編輯側邊面板 */}
-      {(canEditAll || isScoutManager) && (
+      {(canEditAll || isRestrictedManager) && (
         <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
           <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto overflow-x-hidden">
             <SheetHeader>
@@ -957,16 +979,17 @@ export default function TeamMembers() {
                     {ALL_INVITABLE_ROLES.map((role) => {
                       const parent = CHILD_OF[role];
                       const lockedByManager = !!(parent && editRoles.includes(parent));
-                      const lockedByScoutManager = !canEditAll && isScoutManager && role !== "scout";
-                      const disabled = lockedByManager || lockedByScoutManager;
+                      const lockedByRestrictedManager =
+                        !canEditAll && isRestrictedManager && !managedChildRoles.includes(role);
+                      const disabled = lockedByManager || lockedByRestrictedManager;
                       return (
                         <label
                           key={role}
                           title={
                             lockedByManager
                               ? "已由主管角色包含"
-                              : lockedByScoutManager
-                              ? "您僅能調整 星探 角色"
+                              : lockedByRestrictedManager
+                              ? `您僅能調整 ${managedChildLabel} 角色`
                               : undefined
                           }
                           className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
