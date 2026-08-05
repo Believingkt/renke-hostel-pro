@@ -84,6 +84,7 @@ export default function TeamHome() {
   const [isCloserManager, setIsCloserManager] = useState(false);
   const [isKolBonusRecipient, setIsKolBonusRecipient] = useState(false);
   const [amPerformanceAmt, setAmPerformanceAmt] = useState(0);
+  const [amVenueBonusAmt, setAmVenueBonusAmt] = useState(0);
   const [closerPerformanceAmt, setCloserPerformanceAmt] = useState(0);
   const [amManagerAmt, setAmManagerAmt] = useState(0);
   const [closerManagerAmt, setCloserManagerAmt] = useState(0);
@@ -675,6 +676,7 @@ export default function TeamHome() {
 
         // ===== 七種團隊獎金（來源：teamcommission_* 設定表）=====
         let amPerfSum = 0;
+        let amVenueSum = 0;
         let closerPerfSum = 0;
         let amManagerSum = 0;
         let closerManagerSum = 0;
@@ -726,23 +728,42 @@ export default function TeamHome() {
                 )
               : 0;
 
-          // (1) AM 績效獎金：固定金額 × 管理場館數 + 管理場館營收 × rate
+          // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
+          //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
           if (showAM) {
+            // 過濾掉「旅行日」開頭的場館
+            let myManagedAccIdsExcludingTravelDays: string[] = [];
+            if (myManagedAccIds.length > 0) {
+              const { data: mAccs } = await supabase
+                .from("accommodation_info")
+                .select("id, name")
+                .in("id", myManagedAccIds);
+              const nameMap = new Map(
+                ((mAccs ?? []) as any[]).map((a) => [a.id as string, String(a.name ?? "")]),
+              );
+              myManagedAccIdsExcludingTravelDays = myManagedAccIds.filter(
+                (id) => !(nameMap.get(id) ?? "").startsWith("旅行日"),
+              );
+            }
+
             const s = rateSettings.am_performance;
-            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_performance = true;
+            if (!s || s.rate == null) missing.am_performance = true;
             const myRevenue =
-              myManagedAccIds.length > 0 && sharedSources.length > 0
+              myManagedAccIdsExcludingTravelDays.length > 0 && sharedSources.length > 0
                 ? await getAccommodationRevenue(
                     client,
-                    myManagedAccIds,
+                    myManagedAccIdsExcludingTravelDays,
                     monthStartDate,
                     monthEndDate,
                     sharedSources,
                   )
                 : 0;
-            amPerfSum =
-              Number(s?.fixed_amount ?? 0) * myManagedAccIds.length +
-              myRevenue * Number(s?.rate ?? 0);
+            amPerfSum = myRevenue * Number(s?.rate ?? 0);
+
+            const vs = rateSettings.am_venue_bonus;
+            if (!vs || vs.fixed_amount == null) missing.am_venue_bonus = true;
+            amVenueSum =
+              Number(vs?.fixed_amount ?? 0) * myManagedAccIdsExcludingTravelDays.length;
           }
 
           // (2) 成交組績效獎金：全公司營收 × rate
@@ -853,6 +874,7 @@ export default function TeamHome() {
         setIsCloserManager(closerManagerFlag);
         setIsKolBonusRecipient(kolRecipientFlag);
         setAmPerformanceAmt(amPerfSum);
+        setAmVenueBonusAmt(amVenueSum);
         setCloserPerformanceAmt(closerPerfSum);
         setAmManagerAmt(amManagerSum);
         setCloserManagerAmt(closerManagerSum);
@@ -996,6 +1018,14 @@ export default function TeamHome() {
       amount: Math.round(amPerformanceAmt * m),
       multiplier: m,
       note: rateNote("am_performance"),
+    });
+    const mv = multOf("am_venue_bonus");
+    cards.push({
+      key: "am_venue_bonus",
+      title: "AM場域獎金",
+      amount: Math.round(amVenueBonusAmt * mv),
+      multiplier: mv,
+      note: rateNote("am_venue_bonus"),
     });
   }
   if (showCloser) {
