@@ -1085,6 +1085,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             skipped?: number;
             created_backfill_total?: number;
             created_backfill?: Array<{ month: string; count: number }>;
+            resynced?: number;
           }
         | undefined;
       const createdCurrent = Number(snapBody?.created ?? 0);
@@ -1093,7 +1094,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           (snapBody?.created_backfill ?? []).reduce((s, b) => s + Number(b.count ?? 0), 0),
       );
       const skippedCount = Number(snapBody?.skipped ?? 0);
-      const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在）`;
+      const resyncedCount = Number(snapBody?.resynced ?? 0);
+      const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在），金額重算 ${resyncedCount} 筆（未發放）`;
+
       if (failed.length > 0) {
         toast.error(`部分步驟失敗：${failed.join("、")}`);
       } else {
@@ -1338,9 +1341,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                   <p>
                     將補建<strong>尚未產生過快照</strong>的訂單（結算月份 {prevMonthKey}，並自動回溯最近 1 個月），
                     並試算金額調整與星探發放。補建的快照歸入{" "}
-                    <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月；
-                    已鎖定的既有快照金額不會被覆寫或修改。
+                    <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月。
                   </p>
+                  <p>
+                    同時會檢查<strong>尚未發放</strong>的快照：若訂單金額（分潤基準）事後有異動，
+                    會自動以最新金額重寫快照。<strong>已標記發放</strong>的快照永遠不會被修改。
+                  </p>
+
                   <div>
                     <Label className="text-xs">星探期別</Label>
                     <Select
