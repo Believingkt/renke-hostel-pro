@@ -360,6 +360,8 @@ function calcDayOfWeek(dateStr: string): string {
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
   const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
+  // scout 可唯讀檢視互惠額度（含切換館別），但不可編輯
+  const canViewReciprocalQuota = isManager || roles.includes("scout");
   const { currentAccommodationId } = useAccommodation();
 
   const [tab, setTab] = useState("invitations");
