@@ -940,19 +940,28 @@ export default function TeamMembers() {
                             </Badge>
                           ))
                         )}
-                        {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && m.managed_venue.length > 0 && (
-                          <span className="text-xs text-muted-foreground ml-1">{m.managed_venue.join(", ")}</span>
-                        )}
-                        {displayRoles(m).includes("am" as TeamRole) &&
-                          m.am_managed_accommodation_ids &&
-                          m.am_managed_accommodation_ids.length > 0 && (
+                        {(() => {
+                          const roles = displayRoles(m);
+                          const names: string[] = [];
+                          if (roles.includes("venue_manager" as TeamRole)) {
+                            for (const n of m.managed_venue ?? []) names.push(n);
+                          }
+                          if (roles.includes("am" as TeamRole)) {
+                            for (const id of m.am_managed_accommodation_ids ?? []) {
+                              const n =
+                                kolVenues.find((v) => v.accommodation_id === id)?.name ??
+                                accommodations.find((a) => a.id === id)?.name;
+                              if (n) names.push(n);
+                            }
+                          }
+                          const unique = Array.from(new Set(names));
+                          if (unique.length === 0) return null;
+                          return (
                             <span className="text-xs text-muted-foreground ml-1">
-                              {m.am_managed_accommodation_ids
-                                .map((id) => accommodations.find((a) => a.id === id)?.name)
-                                .filter(Boolean)
-                                .join(", ")}
+                              {unique.join(", ")}
                             </span>
-                          )}
+                          );
+                        })()}
                         {(displayRoles(m).includes("scout") || displayRoles(m).includes("scout_manager")) && m.is_scout_team_member && (
                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">團隊</Badge>
                         )}
@@ -1029,12 +1038,12 @@ export default function TeamMembers() {
                       </label>
                     )}
                   </div>
-                  {editRoles.includes("venue_manager" as TeamRole) && canEditAll && (
+                  {(editRoles.includes("venue_manager" as TeamRole) || wantsAM) && canEditAll && (
                     <div className="space-y-2 pt-2">
                       <Label>負責場域（可多選）</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
-                        {venues.map((v) => {
-                          const checked = editVenues.includes(v.name);
+                        {kolVenues.map((v) => {
+                          const checked = editManagedVenueIds.includes(v.id);
                           return (
                             <label
                               key={v.id}
@@ -1043,48 +1052,27 @@ export default function TeamMembers() {
                               <Checkbox
                                 checked={checked}
                                 onCheckedChange={() =>
-                                  setEditVenues((prev) =>
-                                    prev.includes(v.name)
-                                      ? prev.filter((n) => n !== v.name)
-                                      : [...prev, v.name],
+                                  setEditManagedVenueIds((prev) =>
+                                    prev.includes(v.id)
+                                      ? prev.filter((id) => id !== v.id)
+                                      : [...prev, v.id],
                                   )
                                 }
                               />
-                              <span className="text-sm">{v.name}</span>
+                              <span className="text-sm">
+                                {v.name}
+                                {!v.accommodation_id && (
+                                  <span className="text-[10px] text-muted-foreground ml-1">
+                                    （未串接 PMS，不計入 AM 績效營收）
+                                  </span>
+                                )}
+                              </span>
                             </label>
                           );
                         })}
                       </div>
-                      {editVenues.length === 0 && (
+                      {editManagedVenueIds.length === 0 && (
                         <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空負責場域</p>
-                      )}
-                    </div>
-                  )}
-                  {wantsAM && canEditAll && (
-                    <div className="space-y-2 pt-2">
-                      <Label>管理場域（可多選，不含旅行日系列）</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
-                        {accommodations.map((acc) => (
-                          <label
-                            key={acc.id}
-                            className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
-                          >
-                            <Checkbox
-                              checked={editAmAccommodations.includes(acc.id)}
-                              onCheckedChange={() =>
-                                setEditAmAccommodations((prev) =>
-                                  prev.includes(acc.id)
-                                    ? prev.filter((id) => id !== acc.id)
-                                    : [...prev, acc.id],
-                                )
-                              }
-                            />
-                            <span className="text-sm">{acc.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {editAmAccommodations.length === 0 && (
-                        <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空管理場域</p>
                       )}
                     </div>
                   )}
