@@ -746,7 +746,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", month),
         supabase
           .from("scout_discount_code_payouts")
-          .select("id, order_id, discount_code, commission_type, recipient_role, recipient_id, rate, base_amount, commission_amount, year, month, period, orders(order_number)")
+          .select("id, order_id, discount_code, commission_type, recipient_role, recipient_id, rate, base_amount, commission_amount, year, month, period, orders(order_number, accommodation_id)")
           .eq("year", year)
           .eq("month", month),
         supabase
