@@ -55,6 +55,14 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   franchise_internal: "特許加盟內部",
   franchise_external: "特許加盟外部",
   starlink: "星鏈分潤",
+  am_performance: "AM績效獎金",
+  am_venue_bonus: "AM場域獎金",
+  closer_performance: "成交組績效獎金",
+  am_manager: "AM總管獎金",
+  closer_manager: "成交組主管管理獎金",
+  kol_commission: "網紅營銷專利獎金(抽成)",
+  kol_monthly: "網紅營銷專利獎金(月費)",
+  venue_closing: "場域成交獎金",
 };
 
 // 結算規則用（不含「全部」）
