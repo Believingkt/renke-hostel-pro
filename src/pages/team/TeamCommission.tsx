@@ -630,7 +630,7 @@ function commissionPeriodRange(year: number, month: number, period: "10" | "25")
 }
 
 
-function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
+function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false, onOpenRules }: { scoutManagerOnly?: boolean; readOnly?: boolean; onOpenRules?: () => void }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -1273,8 +1273,21 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             ；不發底薪／團隊獎金
           </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground pt-1">
-            資料由系統於每月 10、25 日自動寫入；未到日期顯示空白屬正常，已過日期仍無資料再用「手動重新試算」或聯繫技術人員。
+            每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
+            {onOpenRules && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={onOpenRules}
+                  className="underline underline-offset-2 text-primary hover:opacity-80"
+                >
+                  結算規則
+                </button>
+              </>
+            )}
           </p>
+
         </div>
 
         {teamBonusNotFinalized && (
