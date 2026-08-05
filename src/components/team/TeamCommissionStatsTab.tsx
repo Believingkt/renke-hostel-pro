@@ -973,12 +973,18 @@ export default function TeamCommissionStatsTab() {
                         <TableCell />
                       </TableRow>
                       {isOpen &&
-                        r.byAcc.map((b) => {
+                        r.byAcc.map((b, bi) => {
                           const openSheet = () =>
                             setAccSheet({
                               title: `${r.name} ・ ${b.accName}`,
                               breakdown: b,
                             });
+                          // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
+                          const firstOfAcc =
+                            r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
+                          const accAdj = firstOfAcc
+                            ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
+                            : 0;
                           return (
                             <TableRow
                               key={`${r.uid}-${b.accId}-${b.rate}`}
@@ -992,7 +998,16 @@ export default function TeamCommissionStatsTab() {
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
                               <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              {showAdj && (
+                                <>
+                                  <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
+                                  <TableCell className="tabular-nums font-medium">
+                                    {fmtMoney(netCommission(b.commission) + accAdj)}
+                                  </TableCell>
+                                </>
+                              )}
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
+
                               <TableCell className="tabular-nums text-muted-foreground">
                                 {fmtMoney(b.cancelAmount)}
                               </TableCell>
