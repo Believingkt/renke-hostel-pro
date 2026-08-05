@@ -4,6 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
+import {
+  getBonusRateSettings,
+  getRoleBinding,
+  getRevenueSourceWhitelist,
+  getAccommodationRevenue,
+  getMarketingFeeFlags,
+} from "@/lib/teamBonusRevenue";
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
@@ -47,8 +54,11 @@ export default function TeamHome() {
   const showScout = hasRole("scout") || hasRole("scout_manager");
   const showFranchise = hasRole("franchise") || hasRole("franchise_manager");
   const showStarlink = hasRole("starlink");
+  const showAM = hasRole("am");
 
-  const anyCard = showCloser || showVideo || showScout || showFranchise || showStarlink;
+  // 只要是任一 team 角色成員就進入查詢流程（部分角色需 async 判斷，
+  // 最終以 cards.length === 0 顯示「暫無獎金項目」）
+  const anyCard = roles.length > 0;
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
@@ -67,6 +77,22 @@ export default function TeamHome() {
   const [franchiseExternalAmt, setFranchiseExternalAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
   const [multipliers, setMultipliers] = useState<Record<string, number>>({});
+
+  // ===== 七種團隊獎金 =====
+  const [isAmManager, setIsAmManager] = useState(false);
+  const [isCloserManager, setIsCloserManager] = useState(false);
+  const [isKolBonusRecipient, setIsKolBonusRecipient] = useState(false);
+  const [amPerformanceAmt, setAmPerformanceAmt] = useState(0);
+  const [closerPerformanceAmt, setCloserPerformanceAmt] = useState(0);
+  const [amManagerAmt, setAmManagerAmt] = useState(0);
+  const [closerManagerAmt, setCloserManagerAmt] = useState(0);
+  const [kolCommissionAmt, setKolCommissionAmt] = useState(0);
+  const [kolMonthlyAmt, setKolMonthlyAmt] = useState(0);
+  const [venueClosingAmt, setVenueClosingAmt] = useState(0);
+  const [venueClosingDetail, setVenueClosingDetail] = useState<
+    Array<{ name: string; amount: number }>
+  >([]);
+  const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
 
   const monthInfo = useMemo(() => {
     const now = taipeiParts();
@@ -136,24 +162,35 @@ export default function TeamHome() {
           currentMonthKey,
         } = monthInfo;
 
-        // profile id (for scout / franchise external)
+        // profile id (for scout / franchise external / 團隊獎金角色綁定)
         let profileId: string | null = null;
+        let myManagedAccIds: string[] = [];
         let scoutTeamMember = false;
         let myEmploymentType: string | null = null;
         let myFulltimeStart: string | null = null;
-        if (showScout || showFranchise) {
+        {
           const { data } = await supabase
             .from("team_member_profiles")
-            .select("id, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+            .select(
+              "id, is_scout_team_member, employment_type, fulltime_start_yearmonth, am_managed_accommodation_ids",
+            )
             .eq("user_id", userId)
             .maybeSingle();
           profileId = (data?.id as string | undefined) ?? null;
           const d = data as
-            | { is_scout_team_member?: boolean; employment_type?: string; fulltime_start_yearmonth?: string }
+            | {
+                is_scout_team_member?: boolean;
+                employment_type?: string;
+                fulltime_start_yearmonth?: string;
+                am_managed_accommodation_ids?: string[] | null;
+              }
             | null;
           scoutTeamMember = !!d?.is_scout_team_member;
           myEmploymentType = d?.employment_type ?? null;
           myFulltimeStart = d?.fulltime_start_yearmonth ?? null;
+          myManagedAccIds = Array.isArray(d?.am_managed_accommodation_ids)
+            ? (d!.am_managed_accommodation_ids as string[]).filter(Boolean)
+            : [];
         }
 
         // ===== Closer / Video =====
@@ -635,6 +672,149 @@ export default function TeamHome() {
           }
         }
 
+        // ===== 七種團隊獎金（來源：teamcommission_* 設定表）=====
+        let amPerfSum = 0;
+        let closerPerfSum = 0;
+        let amManagerSum = 0;
+        let closerManagerSum = 0;
+        let kolCommissionSum = 0;
+        let kolMonthlySum = 0;
+        let venueClosingSum = 0;
+        let venueClosingLines: Array<{ name: string; amount: number }> = [];
+        let amManagerFlag = false;
+        let closerManagerFlag = false;
+        let kolRecipientFlag = false;
+        const missing: Record<string, boolean> = {};
+
+        {
+          const client = supabase as any;
+          const [rateSettings, sharedSources, amManagerId, closerManagerId, kolRecipientId] =
+            await Promise.all([
+              getBonusRateSettings(client),
+              getRevenueSourceWhitelist(client, "teamcommission_shared_revenue_source_whitelist"),
+              getRoleBinding(client, "am_manager"),
+              getRoleBinding(client, "closer_manager"),
+              getRoleBinding(client, "kol_bonus_recipient"),
+            ]);
+
+          amManagerFlag = !!profileId && amManagerId === profileId;
+          closerManagerFlag = !!profileId && closerManagerId === profileId;
+          kolRecipientFlag = !!profileId && kolRecipientId === profileId;
+
+          const needCompanyRevenue =
+            amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag;
+
+          // 全公司範圍：所有啟用館別
+          let allAccIds: string[] = [];
+          if (needCompanyRevenue) {
+            const { data: accs } = await supabase
+              .from("accommodation_info")
+              .select("id")
+              .eq("is_active", true);
+            allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
+          }
+
+          const companyRevenue =
+            needCompanyRevenue && sharedSources.length > 0
+              ? await getAccommodationRevenue(
+                  client,
+                  allAccIds,
+                  monthStartDate,
+                  monthEndDate,
+                  sharedSources,
+                )
+              : 0;
+
+          // (1) AM 績效獎金：固定金額 × 管理場館數 + 管理場館營收 × rate
+          if (showAM) {
+            const s = rateSettings.am_performance;
+            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_performance = true;
+            const myRevenue =
+              myManagedAccIds.length > 0 && sharedSources.length > 0
+                ? await getAccommodationRevenue(
+                    client,
+                    myManagedAccIds,
+                    monthStartDate,
+                    monthEndDate,
+                    sharedSources,
+                  )
+                : 0;
+            amPerfSum =
+              Number(s?.fixed_amount ?? 0) * myManagedAccIds.length +
+              myRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (2) 成交組績效獎金：全公司營收 × rate
+          if (showCloser) {
+            const s = rateSettings.closer_performance;
+            if (!s || s.rate == null) missing.closer_performance = true;
+            closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (3) AM 總管獎金：全公司營收 × rate（若設定為固定金額則直接採用）
+          if (amManagerFlag) {
+            const s = rateSettings.am_manager;
+            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_manager = true;
+            amManagerSum =
+              Number(s?.fixed_amount ?? 0) + companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (4) 成交大師管理獎金：全公司營收 × rate
+          if (closerManagerFlag) {
+            const s = rateSettings.closer_manager;
+            if (!s || s.rate == null) missing.closer_manager = true;
+            closerManagerSum = companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (5)(6) 網紅營銷專利獎金 / 月費
+          if (kolRecipientFlag) {
+            const kolSources = await getRevenueSourceWhitelist(
+              client,
+              "teamcommission_kol_revenue_source_whitelist",
+            );
+            const kolRevenue =
+              kolSources.length > 0
+                ? await getAccommodationRevenue(
+                    client,
+                    allAccIds,
+                    monthStartDate,
+                    monthEndDate,
+                    kolSources,
+                  )
+                : 0;
+            const sc = rateSettings.kol_commission;
+            if (!sc || sc.rate == null) missing.kol_commission = true;
+            kolCommissionSum = kolRevenue * Number(sc?.rate ?? 0);
+
+            const sm = rateSettings.kol_monthly;
+            if (!sm || sm.fixed_amount == null) missing.kol_monthly = true;
+            kolMonthlySum = Number(sm?.fixed_amount ?? 0);
+          }
+
+          // (7) 場域成交獎金：管理場域中 charges_marketing_fee = true 者各發一份固定金額
+          if (showAM && myManagedAccIds.length > 0) {
+            const s = rateSettings.venue_closing;
+            if (!s || s.fixed_amount == null) missing.venue_closing = true;
+            const perVenue = Number(s?.fixed_amount ?? 0);
+            const flags = await getMarketingFeeFlags(client, myManagedAccIds, monthStartDate);
+            const hitIds = myManagedAccIds.filter((id) => flags[id] === true);
+            if (hitIds.length > 0) {
+              const { data: accNames } = await supabase
+                .from("accommodation_info")
+                .select("id, name")
+                .in("id", hitIds);
+              const nameMap = new Map<string, string>(
+                ((accNames ?? []) as any[]).map((a) => [a.id, a.name as string]),
+              );
+              venueClosingLines = hitIds.map((id) => ({
+                name: nameMap.get(id) ?? id,
+                amount: perVenue,
+              }));
+              venueClosingSum = perVenue * hitIds.length;
+            }
+          }
+        }
+
         // ===== Multipliers（當月 YYYY-MM）=====
         const { data: multRows } = await supabase
           .from("bonus_multiplier_settings")
@@ -663,6 +843,18 @@ export default function TeamHome() {
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
         setMultipliers(multMap);
+        setIsAmManager(amManagerFlag);
+        setIsCloserManager(closerManagerFlag);
+        setIsKolBonusRecipient(kolRecipientFlag);
+        setAmPerformanceAmt(amPerfSum);
+        setCloserPerformanceAmt(closerPerfSum);
+        setAmManagerAmt(amManagerSum);
+        setCloserManagerAmt(closerManagerSum);
+        setKolCommissionAmt(kolCommissionSum);
+        setKolMonthlyAmt(kolMonthlySum);
+        setVenueClosingAmt(venueClosingSum);
+        setVenueClosingDetail(venueClosingLines);
+        setMissingRates(missing);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
       } finally {
@@ -673,7 +865,7 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
+  }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo]);
 
   // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
   const allMult = multipliers.all ?? 1;
@@ -787,6 +979,83 @@ export default function TeamHome() {
     cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
   }
 
+  // ===== 七種團隊獎金卡片 =====
+  const rateNote = (key: string) => (missingRates[key] ? "尚未設定費率" : undefined);
+
+  if (showAM) {
+    const m = multOf("am_performance");
+    cards.push({
+      key: "am_performance",
+      title: "AM績效獎金",
+      amount: Math.round(amPerformanceAmt * m),
+      multiplier: m,
+      note: rateNote("am_performance"),
+    });
+  }
+  if (showCloser) {
+    const m = multOf("closer_performance");
+    cards.push({
+      key: "closer_performance",
+      title: "成交組績效獎金",
+      amount: Math.round(closerPerformanceAmt * m),
+      multiplier: m,
+      note: rateNote("closer_performance"),
+    });
+  }
+  if (isAmManager) {
+    const m = multOf("am_manager");
+    cards.push({
+      key: "am_manager",
+      title: "AM總管獎金",
+      amount: Math.round(amManagerAmt * m),
+      multiplier: m,
+      note: rateNote("am_manager"),
+    });
+  }
+  if (isCloserManager) {
+    const m = multOf("closer_manager");
+    cards.push({
+      key: "closer_manager",
+      title: "成交大師管理獎金",
+      amount: Math.round(closerManagerAmt * m),
+      multiplier: m,
+      note: rateNote("closer_manager"),
+    });
+  }
+  if (isKolBonusRecipient) {
+    const mc = multOf("kol_commission");
+    cards.push({
+      key: "kol_commission",
+      title: "網紅營銷專利獎金",
+      amount: Math.round(kolCommissionAmt * mc),
+      multiplier: mc,
+      note: rateNote("kol_commission"),
+    });
+    const mm = multOf("kol_monthly");
+    cards.push({
+      key: "kol_monthly",
+      title: "網紅營銷月獎金",
+      amount: Math.round(kolMonthlyAmt * mm),
+      multiplier: mm,
+      note: rateNote("kol_monthly"),
+    });
+  }
+  if (showAM && venueClosingDetail.length > 0) {
+    const m = multOf("venue_closing");
+    cards.push({
+      key: "venue_closing",
+      title: "場域成交獎金",
+      amount: Math.round(venueClosingAmt * m),
+      multiplier: m,
+      note: rateNote("venue_closing"),
+      lines: venueClosingDetail.map((d) => ({
+        label: d.name,
+        amount: Math.round(d.amount * m),
+        multiplier: m,
+      })),
+    });
+  }
+
   const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
   return (
@@ -798,7 +1067,7 @@ export default function TeamHome() {
         </p>
       </div>
 
-      {!anyCard ? (
+      {!loading && cards.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
             暫無獎金項目
@@ -839,7 +1108,9 @@ export default function TeamHome() {
                     <p className="text-2xl font-semibold">
                       {loading ? "—" : fmt(c.amount)}
                     </p>
-                    {!loading && c.lines && c.lines.length > 1 ? (
+                    {!loading &&
+                    c.lines &&
+                    (c.lines.length > 1 || c.key === "venue_closing") ? (
                       <div className="mt-2 space-y-0.5">
                         {c.lines.map((ln, i) => (
                           <div key={i} className="flex justify-between text-xs text-muted-foreground">
