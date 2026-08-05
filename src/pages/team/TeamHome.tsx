@@ -672,6 +672,149 @@ export default function TeamHome() {
           }
         }
 
+        // ===== 七種團隊獎金（來源：teamcommission_* 設定表）=====
+        let amPerfSum = 0;
+        let closerPerfSum = 0;
+        let amManagerSum = 0;
+        let closerManagerSum = 0;
+        let kolCommissionSum = 0;
+        let kolMonthlySum = 0;
+        let venueClosingSum = 0;
+        let venueClosingLines: Array<{ name: string; amount: number }> = [];
+        let amManagerFlag = false;
+        let closerManagerFlag = false;
+        let kolRecipientFlag = false;
+        const missing: Record<string, boolean> = {};
+
+        {
+          const client = supabase as any;
+          const [rateSettings, sharedSources, amManagerId, closerManagerId, kolRecipientId] =
+            await Promise.all([
+              getBonusRateSettings(client),
+              getRevenueSourceWhitelist(client, "teamcommission_shared_revenue_source_whitelist"),
+              getRoleBinding(client, "am_manager"),
+              getRoleBinding(client, "closer_manager"),
+              getRoleBinding(client, "kol_bonus_recipient"),
+            ]);
+
+          amManagerFlag = !!profileId && amManagerId === profileId;
+          closerManagerFlag = !!profileId && closerManagerId === profileId;
+          kolRecipientFlag = !!profileId && kolRecipientId === profileId;
+
+          const needCompanyRevenue =
+            amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag;
+
+          // 全公司範圍：所有啟用館別
+          let allAccIds: string[] = [];
+          if (needCompanyRevenue) {
+            const { data: accs } = await supabase
+              .from("accommodation_info")
+              .select("id")
+              .eq("is_active", true);
+            allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
+          }
+
+          const companyRevenue =
+            needCompanyRevenue && sharedSources.length > 0
+              ? await getAccommodationRevenue(
+                  client,
+                  allAccIds,
+                  monthStartDate,
+                  monthEndDate,
+                  sharedSources,
+                )
+              : 0;
+
+          // (1) AM 績效獎金：固定金額 × 管理場館數 + 管理場館營收 × rate
+          if (showAM) {
+            const s = rateSettings.am_performance;
+            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_performance = true;
+            const myRevenue =
+              myManagedAccIds.length > 0 && sharedSources.length > 0
+                ? await getAccommodationRevenue(
+                    client,
+                    myManagedAccIds,
+                    monthStartDate,
+                    monthEndDate,
+                    sharedSources,
+                  )
+                : 0;
+            amPerfSum =
+              Number(s?.fixed_amount ?? 0) * myManagedAccIds.length +
+              myRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (2) 成交組績效獎金：全公司營收 × rate
+          if (showCloser) {
+            const s = rateSettings.closer_performance;
+            if (!s || s.rate == null) missing.closer_performance = true;
+            closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (3) AM 總管獎金：全公司營收 × rate（若設定為固定金額則直接採用）
+          if (amManagerFlag) {
+            const s = rateSettings.am_manager;
+            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_manager = true;
+            amManagerSum =
+              Number(s?.fixed_amount ?? 0) + companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (4) 成交大師管理獎金：全公司營收 × rate
+          if (closerManagerFlag) {
+            const s = rateSettings.closer_manager;
+            if (!s || s.rate == null) missing.closer_manager = true;
+            closerManagerSum = companyRevenue * Number(s?.rate ?? 0);
+          }
+
+          // (5)(6) 網紅營銷專利獎金 / 月費
+          if (kolRecipientFlag) {
+            const kolSources = await getRevenueSourceWhitelist(
+              client,
+              "teamcommission_kol_revenue_source_whitelist",
+            );
+            const kolRevenue =
+              kolSources.length > 0
+                ? await getAccommodationRevenue(
+                    client,
+                    allAccIds,
+                    monthStartDate,
+                    monthEndDate,
+                    kolSources,
+                  )
+                : 0;
+            const sc = rateSettings.kol_commission;
+            if (!sc || sc.rate == null) missing.kol_commission = true;
+            kolCommissionSum = kolRevenue * Number(sc?.rate ?? 0);
+
+            const sm = rateSettings.kol_monthly;
+            if (!sm || sm.fixed_amount == null) missing.kol_monthly = true;
+            kolMonthlySum = Number(sm?.fixed_amount ?? 0);
+          }
+
+          // (7) 場域成交獎金：管理場域中 charges_marketing_fee = true 者各發一份固定金額
+          if (showAM && myManagedAccIds.length > 0) {
+            const s = rateSettings.venue_closing;
+            if (!s || s.fixed_amount == null) missing.venue_closing = true;
+            const perVenue = Number(s?.fixed_amount ?? 0);
+            const flags = await getMarketingFeeFlags(client, myManagedAccIds, monthStartDate);
+            const hitIds = myManagedAccIds.filter((id) => flags[id] === true);
+            if (hitIds.length > 0) {
+              const { data: accNames } = await supabase
+                .from("accommodation_info")
+                .select("id, name")
+                .in("id", hitIds);
+              const nameMap = new Map<string, string>(
+                ((accNames ?? []) as any[]).map((a) => [a.id, a.name as string]),
+              );
+              venueClosingLines = hitIds.map((id) => ({
+                name: nameMap.get(id) ?? id,
+                amount: perVenue,
+              }));
+              venueClosingSum = perVenue * hitIds.length;
+            }
+          }
+        }
+
         // ===== Multipliers（當月 YYYY-MM）=====
         const { data: multRows } = await supabase
           .from("bonus_multiplier_settings")
