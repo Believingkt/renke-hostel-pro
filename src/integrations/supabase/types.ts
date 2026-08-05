@@ -5952,6 +5952,7 @@ export type Database = {
           room_charge_rec_trade_id: string | null
           room_charge_scheduled_date: string | null
           room_charge_status: string | null
+          room_quantity: number
           room_type_id: string | null
           total_price: number
           updated_at: string | null
@@ -6036,6 +6037,7 @@ export type Database = {
           room_charge_rec_trade_id?: string | null
           room_charge_scheduled_date?: string | null
           room_charge_status?: string | null
+          room_quantity?: number
           room_type_id?: string | null
           total_price: number
           updated_at?: string | null
@@ -6120,6 +6122,7 @@ export type Database = {
           room_charge_rec_trade_id?: string | null
           room_charge_scheduled_date?: string | null
           room_charge_status?: string | null
+          room_quantity?: number
           room_type_id?: string | null
           total_price?: number
           updated_at?: string | null
