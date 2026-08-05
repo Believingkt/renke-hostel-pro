@@ -1051,6 +1051,30 @@ export default function TeamMembers() {
                     <div className="space-y-2 pt-2">
                       <Label>管理場域（可多選）</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                        {(() => {
+                          const travelIds = accommodations
+                            .filter((a) => a.name.startsWith("旅行日"))
+                            .map((a) => a.id);
+                          const allTravelChecked =
+                            travelIds.length > 0 &&
+                            travelIds.every((id) => editAmAccommodations.includes(id));
+                          if (travelIds.length === 0) return null;
+                          return (
+                            <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer bg-muted/30 hover:bg-muted/50 sm:col-span-2">
+                              <Checkbox
+                                checked={allTravelChecked}
+                                onCheckedChange={() =>
+                                  setEditAmAccommodations((prev) =>
+                                    allTravelChecked
+                                      ? prev.filter((id) => !travelIds.includes(id))
+                                      : Array.from(new Set([...prev, ...travelIds])),
+                                  )
+                                }
+                              />
+                              <span className="text-sm font-medium">旅行日（全系列）</span>
+                            </label>
+                          );
+                        })()}
                         {accommodations.map((acc) => (
                           <label
                             key={acc.id}
