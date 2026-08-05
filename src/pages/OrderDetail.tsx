@@ -292,6 +292,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [showRepushDialog, setShowRepushDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
