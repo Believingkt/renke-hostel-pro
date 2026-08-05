@@ -907,6 +907,17 @@ export default function TeamCommissionStatsTab() {
                     </span>
                   )}
                 </TableHead>
+                {showAdj && (
+                  <>
+                    <TableHead className="whitespace-nowrap tabular-nums">
+                      分潤補差
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        （{payoutMonthKey} 發放月）
+                      </span>
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap tabular-nums">發放總計</TableHead>
+                  </>
+                )}
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
@@ -916,11 +927,12 @@ export default function TeamCommissionStatsTab() {
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={showAdj ? 11 : 9} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
               ) : (
+
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
                   return (
