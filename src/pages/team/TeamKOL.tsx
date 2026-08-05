@@ -468,7 +468,7 @@ export default function TeamKOL() {
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
             {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
             <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
-            {isManager && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
+            {canViewReciprocalQuota && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
             <TabsTrigger value="settings">設定</TabsTrigger>
           </TabsList>
         </div>
