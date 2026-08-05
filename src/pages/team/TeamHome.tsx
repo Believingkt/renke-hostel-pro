@@ -865,7 +865,7 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, monthInfo]);
+  }, [userId, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo]);
 
   // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
   const allMult = multipliers.all ?? 1;
