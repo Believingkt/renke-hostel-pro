@@ -946,6 +946,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             multiplied_amount: amount,
             paid,
             payout_date: r.payout_date ?? null,
+            venue_name: "全館別",
+            order_number: null,
           });
         });
       });
