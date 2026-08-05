@@ -730,6 +730,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("is_finalized", true)
           .eq("year", range.prevYear)
           .eq("month", range.prevMonth),
+        supabase
+          .from("teamcommission_bonus_snapshots")
+          .select("id, bonus_type, member_id, amount")
+          .eq("payout_month", payoutMonthKey),
       ]);
 
 
