@@ -761,9 +761,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("closer_commission_adjustments")
-          .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month")
+          .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month, orders(order_number, accommodation_id)")
           .eq("adjustment_month", payoutMonthKey),
+        supabase.from("accommodation_info").select("id, name"),
       ]);
+
+      const venueNameById = new Map<string, string>();
+      (accommodations ?? []).forEach((a: any) => venueNameById.set(a.id, a.name));
+      const venueOf = (id?: string | null) => (id ? venueNameById.get(id) ?? null : null);
 
 
       // （星探折扣碼獎金已改為後端試算，見下方 discountPayoutRows）
