@@ -1135,6 +1135,39 @@ export default function TeamMembers() {
         </Sheet>
       )}
 
+      {/* 獨佔角色交接確認 */}
+      <Dialog
+        open={!!exclusiveConflicts}
+        onOpenChange={(open) => {
+          if (!open) setExclusiveConflicts(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>此角色已有現任者</DialogTitle>
+            <DialogDescription>此角色同時只能有一人在任，確認後將自動移除舊任者的角色。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2 text-sm">
+            {(exclusiveConflicts ?? []).map((inc) => (
+              <p key={`${inc.role}-${inc.userId}`}>
+                將把 <span className="font-semibold">{inc.name}</span> 的{" "}
+                <span className="font-semibold">{ROLE_LABEL[inc.role]}</span> 移除，改由{" "}
+                <span className="font-semibold">{editTarget?.display_name}</span> 擔任，確定要這樣設定嗎？
+              </p>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExclusiveConflicts(null)} disabled={saving}>
+              取消
+            </Button>
+            <Button onClick={() => performSave(exclusiveConflicts ?? [])} disabled={saving}>
+              {saving ? "儲存中..." : "確認變更"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* 新增無帳號成員 Dialog（僅 admin） */}
       {canEditAll && (
         <Dialog open={noAccountOpen} onOpenChange={setNoAccountOpen}>
