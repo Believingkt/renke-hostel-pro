@@ -76,6 +76,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
       "admin",
       "hotel_admin",
       "closer",
+      "closer_manager",
       "video",
       "scout_manager",
       "scout",

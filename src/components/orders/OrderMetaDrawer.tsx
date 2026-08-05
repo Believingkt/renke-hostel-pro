@@ -333,6 +333,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         const roles = ((roleRows ?? []) as Array<{ role: string }>).map((r) => r.role);
         setCanEditCommissionPrice(
           roles.includes("closer") ||
+            roles.includes("closer_manager") ||
             roles.includes("hotel_admin") ||
             roles.includes("super_admin"),
         );
