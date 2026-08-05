@@ -5921,66 +5921,81 @@ const BookingFlow = () => {
             付款失敗
           </DialogTitle>
           <DialogDescription className="space-y-4">
-            {lastPaymentError && (
-              <>
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                  <p className="text-sm font-semibold mb-2 text-destructive">{lastPaymentError.message}</p>
-                  <p className="text-xs text-muted-foreground">{lastPaymentError.suggestion}</p>
-                </div>
-                
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <p className="text-sm font-semibold mb-2">建議處理方式：</p>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>檢查信用卡資訊是否正確（卡號、有效期限、安全碼）</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>確認網路連線是否穩定</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>確認信用卡額度是否足夠</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>嘗試使用其他付款方式</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {paymentRetryCount > 0 && (
-                  <div className="text-xs text-center bg-muted/30 py-2 rounded-lg">
-                    已重試 <span className="font-semibold text-primary">{paymentRetryCount}</span> / {MAX_RETRY_ATTEMPTS} 次
+            {lastPaymentError && (() => {
+              const failure = classifyPaymentFailure(lastPaymentError.message);
+              return (
+                <>
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <p className="text-sm font-semibold mb-1 text-destructive">{failure.headline}</p>
+                    {/* 後端解析出的真正失敗原因 */}
+                    <p className="text-sm text-foreground break-words">{lastPaymentError.message}</p>
+                    {lastPaymentError.suggestion && (
+                      <p className="mt-2 text-xs text-muted-foreground">{lastPaymentError.suggestion}</p>
+                    )}
                   </div>
-                )}
-              </>
-            )}
+
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <p className="text-sm font-semibold mb-2">建議處理方式：</p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {failure.tips.map((tip) => (
+                        <li key={tip} className="flex items-start gap-2">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {paymentRetryCount > 0 && (
+                    <div className="text-xs text-center bg-muted/30 py-2 rounded-lg">
+                      已重試 <span className="font-semibold text-primary">{paymentRetryCount}</span> / {MAX_RETRY_ATTEMPTS} 次
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </DialogDescription>
-          
-          <div className="flex gap-3 mt-4">
+
+          <div className="flex flex-col gap-2 mt-4">
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRetryDialog(false);
+                  setPaymentFailed(false);
+                  setLastPaymentError(null);
+                  setTappayPrime(null);
+                  setTappayPrimeIssuedAt(null);
+                  setCurrentStep('dates');
+                }}
+                className="flex-1"
+              >
+                重選日期
+              </Button>
+              <Button
+                onClick={handlePaymentRetry}
+                disabled={paymentRetryCount >= MAX_RETRY_ATTEMPTS}
+                className="flex-1"
+              >
+                {paymentRetryCount >= MAX_RETRY_ATTEMPTS ? '已達上限' : '重新發起付款'}
+              </Button>
+            </div>
             <Button
-              variant="outline"
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
               onClick={() => {
                 setShowRetryDialog(false);
                 setPaymentFailed(false);
                 setCurrentStep('payment');
               }}
-              className="flex-1"
             >
-              返回修改
-            </Button>
-            <Button
-              onClick={handlePaymentRetry}
-              disabled={paymentRetryCount >= MAX_RETRY_ATTEMPTS}
-              className="flex-1"
-            >
-              {paymentRetryCount >= MAX_RETRY_ATTEMPTS ? '已達上限' : '重試付款'}
+              返回修改訂房資料
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
       
       {/* 開發環境住宿切換器 */}
       <DevAccommodationSwitcher />
