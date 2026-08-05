@@ -319,11 +319,48 @@ serve(async (req) => {
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
 
+      // 已存在的取消扣回補差（避免重複產生）
+      const { data: existCancel, error: existCancelErr } = await supabase
+        .from("closer_commission_adjustments")
+        .select("order_id")
+        .eq("adjustment_type", "cancellation")
+        .in("order_id", orderIds);
+      if (existCancelErr) throw existCancelErr;
+      const cancelledAdjSet = new Set<string>((existCancel ?? []).map((r) => r.order_id as string));
+
+      const adjMonthStr = `${tp.y}-${pad2(tp.m)}`;
+
       for (const s of pending) {
         const ord = orderMap.get(s.order_id as string);
         if (!ord) continue;
-        // 取消單由 create-commission-adjustments 以「扣回」處理，不在此改寫
-        if (ord.order_status === "cancelled") continue;
+        // 取消單：若尚未有取消扣回補差，於此補產生（金額不再改寫）
+        if (ord.order_status === "cancelled") {
+          if (cancelledAdjSet.has(s.order_id as string)) continue;
+          if (isExemptR(ord)) continue;
+          const { error: insErr } = await supabase
+            .from("closer_commission_adjustments")
+            .insert({
+              snapshot_id: s.id,
+              order_id: s.order_id,
+              closer_id: s.closer_id,
+              video_creator_id: s.video_creator_id,
+              adjustment_type: "cancellation",
+              closer_amount: -Number(s.closer_commission_amount ?? 0),
+              video_amount: -Number(s.video_commission_amount ?? 0),
+              reason: "訂單已取消，全額扣回",
+              adjustment_month: adjMonthStr,
+            });
+          if (insErr) {
+            if ((insErr as any).code !== "23505") {
+              out.errors.push({ order_id: s.order_id as string, error: insErr.message });
+            }
+          } else {
+            cancelledAdjSet.add(s.order_id as string);
+            out.cancelled_adjustments++;
+          }
+          continue;
+        }
+
         const cur = ord.currency_at_booking;
         if (cur && cur !== "TWD") continue;
         if (isExemptR(ord)) continue;
