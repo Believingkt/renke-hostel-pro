@@ -91,10 +91,8 @@ const formatMoney = (n: number | null | undefined) =>
 export default function TeamCommission() {
   const { roles } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
-  const isScoutManager = roles.includes("scout_manager");
   const isFinance = roles.includes("finance");
-  const canAccess = isAdmin || isScoutManager || isFinance;
-  const scoutManagerOnly = !isAdmin && isScoutManager;
+  const canAccess = isAdmin || isFinance;
   // finance 在其他設定 Tab 仍為唯讀（不能新增/刪除規則、加倍活動）
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
@@ -130,7 +128,7 @@ export default function TeamCommission() {
           </TabsList>
         </div>
         <TabsContent value="payouts">
-          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={payoutsReadOnly} />
+          <PayoutsBlock readOnly={payoutsReadOnly} />
         </TabsContent>
         {showAdminTabs && (
           <TabsContent value="payout">
