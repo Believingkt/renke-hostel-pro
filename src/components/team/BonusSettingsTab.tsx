@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 
 /* ------------------------------ 共用工具 ------------------------------ */
@@ -796,10 +797,18 @@ function BindingSection({
                         {cur?.effective_from ?? "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          新增版本
-                        </Button>
+                        {r.type === "am_manager" || r.type === "closer_manager" ? (
+                          <Button variant="ghost" size="icon" asChild title="前往成員管理設定">
+                            <Link to="/team/members" aria-label="前往成員管理設定">
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            新增版本
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                     {isOpen && (
