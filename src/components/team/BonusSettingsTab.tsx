@@ -205,6 +205,31 @@ export default function BonusSettingsTab() {
     [members],
   );
 
+  // 依「使用館別」分組：多館共用一區，單一館別各自成區
+  const sourceGroups = useMemo(() => {
+    const common: string[] = [];
+    const byAcc = new Map<string, string[]>();
+    for (const s of sourceOptions) {
+      const owners = sourceOwners[s] ?? [];
+      if (owners.length === 1) {
+        const key = owners[0];
+        const list = byAcc.get(key) ?? [];
+        list.push(s);
+        byAcc.set(key, list);
+      } else {
+        common.push(s);
+      }
+    }
+    const groups: { title: string; sources: string[] }[] = [];
+    if (common.length > 0) groups.push({ title: "共用來源（多館別通用）", sources: common });
+    for (const [name, list] of Array.from(byAcc.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0], "zh-TW"),
+    )) {
+      groups.push({ title: `${name} 專屬來源`, sources: list });
+    }
+    return groups;
+  }, [sourceOptions, sourceOwners]);
+
   return (
     <div className="space-y-6 pt-4">
       <RateSection
@@ -220,7 +245,7 @@ export default function BonusSettingsTab() {
         loading={loading}
         uid={uid}
         table="teamcommission_shared_revenue_source_whitelist"
-        options={sourceOptions}
+        sourceGroups={sourceGroups}
         canEdit
         onSaved={loadAll}
       />
@@ -231,7 +256,7 @@ export default function BonusSettingsTab() {
         loading={loading}
         uid={uid}
         table="teamcommission_kol_revenue_source_whitelist"
-        options={sourceOptions}
+        sourceGroups={sourceGroups}
         canEdit={isKolEditor}
         onSaved={loadAll}
       />
