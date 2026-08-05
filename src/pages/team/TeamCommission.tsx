@@ -836,11 +836,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         const venue = venueOf(r.orders?.accommodation_id);
         const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) ${venue ? `${venue} ` : ""}訂單 ${orderNo}${r.reason ? ` ${r.reason}` : ""}`;
         const meta = { venue_name: venue, order_number: orderNo };
+        // 補差獨立成一個類別，不與成交組／影音組分潤混在一起
         if (r.closer_id && Number(r.closer_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount), meta);
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), `${SOURCE_LABEL.closer}補差`, detail, Number(r.closer_amount), meta);
         }
         if (r.video_creator_id && Number(r.video_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount), meta);
+          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), `${SOURCE_LABEL.video}補差`, detail, Number(r.video_amount), meta);
         }
       });
 
