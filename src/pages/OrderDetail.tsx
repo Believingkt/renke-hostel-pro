@@ -2262,6 +2262,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                         </DropdownMenuItem>
                       </>
                     )}
+                    {isSuperAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          disabled={isDeletingOrder}
+                          onClick={() => { setDeleteConfirmText(""); setDeleteReason(""); setShowDeleteDialog(true); }}
+                          className="py-3 text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />刪除訂單
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
