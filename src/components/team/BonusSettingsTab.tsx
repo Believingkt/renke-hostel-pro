@@ -1176,3 +1176,127 @@ function VenueClosingAssignmentSection({
     </Card>
   );
 }
+
+/* --------------------- (f) AM 場域總覽（唯讀） --------------------- */
+
+function AmVenueOverviewSection() {
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [amByAcc, setAmByAcc] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [accRes, roleRes] = await Promise.all([
+          supabase
+            .from("accommodation_info")
+            .select("id, name")
+            .eq("is_active", true)
+            .order("name", { ascending: true }),
+          supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "am")
+            .is("accommodation_id", null),
+        ]);
+
+        setAccs(
+          ((accRes.data ?? []) as AccOption[]).filter(
+            (a) => !String(a.name ?? "").startsWith("旅行日"),
+          ),
+        );
+
+        const userIds = Array.from(
+          new Set(((roleRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean)),
+        );
+
+        const map: Record<string, string[]> = {};
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("team_member_profiles")
+            .select("id, user_id, display_name, am_managed_accommodation_ids")
+            .in("user_id", userIds);
+
+          for (const p of (profiles ?? []) as {
+            id: string;
+            display_name: string | null;
+            am_managed_accommodation_ids: string[] | null;
+          }[]) {
+            const name = p.display_name ?? p.id.slice(0, 8);
+            for (const accId of p.am_managed_accommodation_ids ?? []) {
+              if (!accId) continue;
+              const list = map[accId] ?? [];
+              list.push(name);
+              map[accId] = list;
+            }
+          }
+        }
+        setAmByAcc(map);
+      } catch (e: any) {
+        toast.error("讀取 AM 場域總覽失敗：" + (e?.message ?? ""));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">AM 場域總覽</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          逐館顯示目前負責的 AM（唯讀），如需調整請至成員管理設定
+        </p>
+      </CardHeader>
+      <CardContent>
+        {loading ? null : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>館別</TableHead>
+                <TableHead>負責 AM</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accs.map((a) => {
+                const names = amByAcc[a.id] ?? [];
+                return (
+                  <TableRow key={a.id}>
+                    <TableCell className="whitespace-nowrap">{a.name}</TableCell>
+                    <TableCell>
+                      {names.length === 0 ? (
+                        <span className="text-muted-foreground">尚無</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {names.map((n) => (
+                            <Badge key={n} variant="secondary">
+                              {n}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" asChild title="前往成員管理設定">
+                        <a
+                          href="/team/members"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="前往成員管理設定"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
