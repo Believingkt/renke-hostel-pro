@@ -159,7 +159,10 @@ export default function TeamOrders() {
   const [saving, setSaving] = useState(false);
 
   // Tab + Settings
-  const [tab, setTab] = useState<string>("orders");
+  const initialTab = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("tab") || "orders"
+    : "orders";
+  const [tab, setTab] = useState<string>(initialTab);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isScout, setIsScout] = useState(false);
   const [isCloser, setIsCloser] = useState(false);
@@ -309,7 +312,7 @@ export default function TeamOrders() {
         setIsScout(scout && !admin);
         setIsCloser(closer);
         setIsVideo(video);
-        if (scout && !admin) setTab("scout-codes");
+        if (scout && !admin && initialTab === "orders") setTab("scout-codes");
       }
       loadOptions();
     })();
