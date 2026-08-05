@@ -537,6 +537,8 @@ interface SourceItem {
   multiplied_amount: number;    // 加倍後金額（顯示與合計用）
   paid: boolean;
   payout_date: string | null;
+  venue_name?: string | null;   // 館別名稱（訂單類獎金）
+  order_number?: string | null; // 訂單編號
 }
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
