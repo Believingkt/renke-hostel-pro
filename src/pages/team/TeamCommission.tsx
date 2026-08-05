@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
@@ -536,6 +537,8 @@ interface SourceItem {
   multiplied_amount: number;    // 加倍後金額（顯示與合計用）
   paid: boolean;
   payout_date: string | null;
+  venue_name?: string | null;   // 館別名稱（訂單類獎金）
+  order_number?: string | null; // 訂單編號
 }
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
@@ -646,6 +649,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
+  const [venueDetail, setVenueDetail] = useState<{
+    member: string;
+    sourceLabel: string;
+    venue: string;
+    items: SourceItem[];
+  } | null>(null);
 
 
 
@@ -713,10 +722,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: teamBonusDist },
         { data: teamBonusSnapshots },
         { data: closerAdjustments },
+        { data: accommodations },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
-          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, orders!inner(order_number)")
+          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, accommodation_id, orders!inner(order_number)")
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("franchise_orders")
@@ -743,7 +753,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", month),
         supabase
           .from("scout_discount_code_payouts")
-          .select("id, order_id, discount_code, commission_type, recipient_role, recipient_id, rate, base_amount, commission_amount, year, month, period, orders(order_number)")
+          .select("id, order_id, discount_code, commission_type, recipient_role, recipient_id, rate, base_amount, commission_amount, year, month, period, orders(order_number, accommodation_id)")
           .eq("year", year)
           .eq("month", month),
         supabase
@@ -758,9 +768,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("closer_commission_adjustments")
-          .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month")
+          .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month, orders(order_number, accommodation_id)")
           .eq("adjustment_month", payoutMonthKey),
+        supabase.from("accommodation_info").select("id, name"),
       ]);
+
+      const venueNameById = new Map<string, string>();
+      (accommodations ?? []).forEach((a: any) => venueNameById.set(a.id, a.name));
+      const venueOf = (id?: string | null) => (id ? venueNameById.get(id) ?? null : null);
 
 
       // （星探折扣碼獎金已改為後端試算，見下方 discountPayoutRows）
@@ -783,6 +798,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         source_label: string,
         detail: string,
         amount: number,
+        extra?: { venue_name?: string | null; order_number?: string | null },
       ) => {
         if (!amount || amount === 0) return;
         items.push({
@@ -798,29 +814,36 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           multiplied_amount: Number(amount),
           paid: false,
           payout_date: null,
+          venue_name: extra?.venue_name ?? null,
+          order_number: extra?.order_number ?? null,
         });
       };
 
       (closers ?? []).forEach((r: any) => {
+        const orderNo = r.orders?.order_number ?? String(r.order_id).slice(0, 8);
+        const meta = { venue_name: venueOf(r.accommodation_id), order_number: orderNo };
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, r.closer_commission_amount, meta);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
+          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${orderNo}`, r.video_commission_amount, meta);
         }
       });
 
       // 分潤補差（closer_commission_adjustments）：獨立項目，金額可為負，不套倍率
       (closerAdjustments ?? []).forEach((r: any) => {
-        const orderRef = String(r.order_id ?? "").slice(0, 8);
-        const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) 訂單${orderRef}${r.reason ? ` ${r.reason}` : ""}`;
+        const orderNo = r.orders?.order_number ?? String(r.order_id ?? "").slice(0, 8);
+        const venue = venueOf(r.orders?.accommodation_id);
+        const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) ${venue ? `${venue} ` : ""}訂單 ${orderNo}${r.reason ? ` ${r.reason}` : ""}`;
+        const meta = { venue_name: venue, order_number: orderNo };
         if (r.closer_id && Number(r.closer_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount));
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount), meta);
         }
         if (r.video_creator_id && Number(r.video_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount));
+          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount), meta);
         }
       });
+
 
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
       // - 有 early_payout_month → 該值 === prevMonthKey（期別月，即發放月-1）
@@ -882,6 +905,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             : SOURCE_LABEL.scout_discount_scout,
           `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}・${r.discount_code}・${r.year}/${String(r.month).padStart(2, "0")} ${periodLabel}`,
           amount,
+          {
+            venue_name: venueOf(r.orders?.accommodation_id),
+            order_number: r.orders?.order_number ?? String(r.order_id).slice(0, 8),
+          },
         );
       });
 
@@ -1465,42 +1492,70 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead>訂單編號</TableHead>
-                                        <TableHead className="text-right w-[120px]">金額</TableHead>
+                                        <TableHead>館別</TableHead>
+                                        <TableHead className="w-[90px] text-right">筆數</TableHead>
+                                        <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
                                         <TableHead className="w-[140px] text-right"></TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {src.items.map((it) => (
-                                        <TableRow key={it.key}>
-                                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                                          <TableCell className="text-right tabular-nums">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                              {it.multiplier > 1 && (
-                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
-                                                  × {Number(it.multiplier).toFixed(2)} 倍
-                                                </Badge>
-                                              )}
-                                              <span>{formatMoney(it.multiplied_amount)}</span>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell>
-                                            {it.paid ? (
-                                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
-                                            ) : (
-                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
-                                            )}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {!it.paid && !readOnly && it.member_id && (
-                                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
-                                                標記已發放
-                                              </Button>
-                                            )}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
+                                      {(() => {
+                                        const byVenue = new Map<string, SourceItem[]>();
+                                        for (const it of src.items) {
+                                          const v = it.venue_name || "其他";
+                                          const arr = byVenue.get(v) ?? [];
+                                          arr.push(it);
+                                          byVenue.set(v, arr);
+                                        }
+                                        return Array.from(byVenue.entries()).map(([venue, vItems]) => {
+                                          const subtotal = vItems.reduce((s, i) => s + i.multiplied_amount, 0);
+                                          const unpaid = vItems.filter((i) => !i.paid);
+                                          const vKey = `${g.member_id}:${src.label}:${venue}`;
+                                          return (
+                                            <TableRow
+                                              key={vKey}
+                                              className="cursor-pointer"
+                                              onClick={() =>
+                                                setVenueDetail({
+                                                  member: g.display_name,
+                                                  sourceLabel: src.label,
+                                                  venue,
+                                                  items: vItems,
+                                                })
+                                              }
+                                            >
+                                              <TableCell className="text-sm">{venue}</TableCell>
+                                              <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
+                                              <TableCell className="text-right tabular-nums">{formatMoney(subtotal)}</TableCell>
+                                              <TableCell>
+                                                {unpaid.length === 0 ? (
+                                                  <Badge variant="outline" className="text-xs">已發放</Badge>
+                                                ) : (
+                                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                                                    待發放 {unpaid.length} 筆
+                                                  </Badge>
+                                                )}
+                                              </TableCell>
+                                              <TableCell className="text-right">
+                                                {unpaid.length > 0 && !readOnly && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={markingSource === vKey}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      markSourceAll(g.member_id, `${src.label}・${venue}`, vItems);
+                                                    }}
+                                                  >
+                                                    標記已發放
+                                                  </Button>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                          );
+                                        });
+                                      })()}
                                     </TableBody>
                                   </Table>
                                 </div>
@@ -1519,6 +1574,72 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
         )}
       </CardContent>
+
+      <Sheet open={!!venueDetail} onOpenChange={(open) => !open && setVenueDetail(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {venueDetail?.member} ・ {venueDetail?.venue}
+            </SheetTitle>
+            <SheetDescription>
+              {venueDetail?.sourceLabel} ・ 共 {venueDetail?.items.length ?? 0} 筆 ・ 合計{" "}
+              {formatMoney((venueDetail?.items ?? []).reduce((s, i) => s + i.multiplied_amount, 0))}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>訂單</TableHead>
+                  <TableHead className="text-right w-[110px]">金額</TableHead>
+                  <TableHead className="w-[100px]">狀態</TableHead>
+                  <TableHead className="w-[110px] text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(venueDetail?.items ?? []).map((it) => (
+                  <TableRow key={it.key}>
+                    <TableCell className="text-xs">{it.detail || it.order_number || "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {it.multiplier > 1 && (
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                            × {Number(it.multiplier).toFixed(2)} 倍
+                          </Badge>
+                        )}
+                        <span>{formatMoney(it.multiplied_amount)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {it.paid ? (
+                        <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!it.paid && !readOnly && it.member_id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            await markItem(it);
+                            setVenueDetail(null);
+                          }}
+                        >
+                          標記已發放
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+
 
       <AlertDialog open={!!confirmMember} onOpenChange={(open) => !open && setConfirmMember(null)}>
         <AlertDialogContent>
