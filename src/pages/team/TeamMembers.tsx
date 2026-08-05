@@ -110,6 +110,13 @@ interface VenueOption {
   name: string;
 }
 
+/** kol_venues 選項（合併「負責場域」與 AM「管理場域」的唯一來源） */
+interface ManagedVenueOption {
+  id: string;
+  name: string;
+  accommodation_id: string | null;
+}
+
 interface ExclusiveIncumbent {
   role: TeamRole;
   userId: string;
@@ -139,6 +146,7 @@ export default function TeamMembers() {
   const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
   const [venues, setVenues] = useState<VenueOption[]>([]);
   const [accommodations, setAccommodations] = useState<VenueOption[]>([]);
+  const [kolVenues, setKolVenues] = useState<ManagedVenueOption[]>([]);
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
@@ -155,6 +163,8 @@ export default function TeamMembers() {
   const [editActive, setEditActive] = useState(true);
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editAmAccommodations, setEditAmAccommodations] = useState<string[]>([]);
+  /** 合併後的單一勾選狀態：kol_venues.id 陣列 */
+  const [editManagedVenueIds, setEditManagedVenueIds] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [editFulltime, setEditFulltime] = useState(false);
   const getCurrentTaipeiYM = () => {
