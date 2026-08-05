@@ -899,6 +899,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             : SOURCE_LABEL.scout_discount_scout,
           `訂單 ${r.orders?.order_number ?? String(r.order_id).slice(0, 8)}・${r.discount_code}・${r.year}/${String(r.month).padStart(2, "0")} ${periodLabel}`,
           amount,
+          {
+            venue_name: venueOf(r.orders?.accommodation_id),
+            order_number: r.orders?.order_number ?? String(r.order_id).slice(0, 8),
+          },
         );
       });
 
