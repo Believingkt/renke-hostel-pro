@@ -898,6 +898,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         );
       });
 
+      // 八種團隊獎金：由 create-team-bonus-snapshots 每月10日鎖定寫入
+      (teamBonusSnapshots ?? []).forEach((r: any) => {
+        const amount = Math.round(Number(r.amount ?? 0));
+        if (amount <= 0) return;
+        pushItem(
+          "teamcommission_bonus_snapshots",
+          r.id,
+          r.bonus_type,
+          profileById.get(r.member_id),
+          SOURCE_LABEL[r.bonus_type] ?? r.bonus_type,
+          "團隊獎金",
+          amount,
+        );
+      });
+
+
+
       // 提醒：上月有成交組分潤快照（代表本來就該有團隊獎金池），但分配尚未定案
       setTeamBonusNotFinalized(
         (teamBonusDist ?? []).length === 0 && (closers ?? []).length > 0,
