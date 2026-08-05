@@ -764,7 +764,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("month", range.prevMonth),
         supabase
           .from("teamcommission_bonus_snapshots")
-          .select("id, bonus_type, member_id, amount, snapshot_month")
+          .select("id, bonus_type, member_id, amount, snapshot_month, venue_count, settings_snapshot")
           .eq("payout_month", payoutMonthKey),
         supabase
           .from("closer_commission_adjustments")
