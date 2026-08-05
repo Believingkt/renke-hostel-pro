@@ -376,6 +376,7 @@ export default function OwnerSettlementSettings() {
           marketing_fee_low: config.marketing_fee_low,
           marketing_fee_high: config.marketing_fee_high,
           marketing_fee_threshold: config.marketing_fee_threshold,
+          charges_marketing_fee: config.charges_marketing_fee,
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
