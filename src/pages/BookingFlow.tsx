@@ -93,6 +93,7 @@ import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
@@ -3240,9 +3241,12 @@ const BookingFlow = () => {
 
           if (opError || !opResult?.success) {
             console.error('Card binding / order creation failed:', opError, opResult);
+            // Edge Function 以 400/500 回應時，supabase-js 只給 "non-2xx status code"，
+            // 需要解析 response body 才能顯示真正的後端訊息。
+            const parsed = opError ? await parseFunctionInvokeError(opError) : null;
             const errorInfo = {
               type: 'card' as const,
-              message: opResult?.message || opError?.message || '信用卡綁定失敗',
+              message: opResult?.message || parsed?.backendError || parsed?.message || opError?.message || '信用卡綁定失敗',
               suggestion: opResult?.suggestion || '請確認卡片資訊是否正確，或更換其他卡片',
               errorCode: opResult?.errorCode,
               technicalMessage: opResult?.technicalMessage,
