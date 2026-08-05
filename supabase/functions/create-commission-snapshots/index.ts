@@ -461,6 +461,8 @@ serve(async (req) => {
       skipped_backfill: skippedBackfill,
       // 未發放快照金額重算
       resynced: resync.updated,
+      resync_cancelled_adjustments: resync.cancelled_adjustments,
+
       resync_checked: resync.checked,
       resync_skipped_paid: resync.skipped_paid,
       resync_details: resync.details,
