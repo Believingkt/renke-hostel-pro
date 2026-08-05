@@ -117,6 +117,7 @@ export default function BonusSettingsTab() {
   const [uid, setUid] = useState<string | null>(null);
   const [isKolEditor, setIsKolEditor] = useState(false);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
+  const [sourceOwners, setSourceOwners] = useState<Record<string, string[]>>({});
 
   const [rates, setRates] = useState<RateRow[]>([]);
   const [sharedSources, setSharedSources] = useState<SourceRow[]>([]);
