@@ -656,6 +656,7 @@ serve(async (req) => {
       payoutMonthStr,
       candidates: rows.length,
       created,
+      updated,
       skipped,
       errorCount: errors.length,
     });
@@ -667,6 +668,7 @@ serve(async (req) => {
       payout_month: payoutMonthStr,
       candidates: rows.length,
       created,
+      updated,
       skipped,
       errors,
     });
