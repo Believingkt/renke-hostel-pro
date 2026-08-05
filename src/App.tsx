@@ -336,6 +336,10 @@ function App() {
                     <Route path="payment-status" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentStatus /></Suspense>
                     } />
+                    <Route path="payment-receipt" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PaymentReceipt /></Suspense>
+                    } />
+
 
                     <Route path="privacy" element={
                       <Suspense fallback={<FrontendSkeleton />}><Privacy /></Suspense>
