@@ -110,6 +110,14 @@ interface VenueOption {
   name: string;
 }
 
+interface ExclusiveIncumbent {
+  role: TeamRole;
+  userId: string;
+  name: string;
+}
+
+
+
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
   const isAdmin = useMemo(() => myRoles.includes("super_admin") || myRoles.includes("admin"), [myRoles]);
