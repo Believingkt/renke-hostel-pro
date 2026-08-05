@@ -34,7 +34,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "starlink",
   "owner",
   "finance",
-  "venue_manager",
+  // "venue_manager", // 暫時隱藏（業主），之後要重新開放時取消註解即可
 ];
 
 /** 同時只能有一人在任的全域獨佔角色 */
@@ -59,7 +59,7 @@ const ROLE_LABEL = {
   
   owner: "屋主",
   finance: "財務",
-  venue_manager: "場域負責人",
+  venue_manager: "業主",
 } as Record<TeamRole, string>;
 
 const ROLE_BADGE_CLASS = {
