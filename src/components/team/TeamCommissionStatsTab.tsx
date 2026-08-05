@@ -234,6 +234,24 @@ export default function TeamCommissionStatsTab() {
     cancelList: OrderLite[];
   } | null>(null);
 
+  // 分潤補差（closer_commission_adjustments）：以「發放月」為單位，僅期別模式顯示
+  const [adjustments, setAdjustments] = useState<
+    {
+      id: string;
+      adjustment_type: string;
+      closer_id: string | null;
+      video_creator_id: string | null;
+      closer_amount: number;
+      video_amount: number;
+      reason: string | null;
+      order_number: string | null;
+      accommodation_id: string | null;
+    }[]
+  >([]);
+  const [adjOpen, setAdjOpen] = useState(false);
+
+
+
   const period = useMemo(() => {
     if (mode === "custom") {
       // 防呆：若起始 > 結束，自動 swap
@@ -271,6 +289,98 @@ export default function TeamCommissionStatsTab() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.startIso, period.nextIso, period.label]);
+
+  // 補差資料：期別模式下 adjustment_month = 發放年月（YYYY-MM）
+  const payoutMonthKey = useMemo(
+    () => `${year}-${String(Number(month)).padStart(2, "0")}`,
+    [year, month],
+  );
+  useEffect(() => {
+    if (mode !== "period") {
+      setAdjustments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("closer_commission_adjustments")
+        .select(
+          "id, adjustment_type, closer_id, video_creator_id, closer_amount, video_amount, reason, orders(order_number, accommodation_id)",
+        )
+        .eq("adjustment_month", payoutMonthKey);
+      if (cancelled) return;
+      setAdjustments(
+        ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          adjustment_type: r.adjustment_type,
+          closer_id: r.closer_id,
+          video_creator_id: r.video_creator_id,
+          closer_amount: Number(r.closer_amount ?? 0),
+          video_amount: Number(r.video_amount ?? 0),
+          reason: r.reason ?? null,
+          order_number: r.orders?.order_number ?? null,
+          accommodation_id: r.orders?.accommodation_id ?? null,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, payoutMonthKey]);
+
+  const adjRows = useMemo(() => {
+    const label = (t: string) =>
+      t === "amount_change"
+        ? "金額調整"
+        : t === "cancellation"
+          ? "訂單取消扣回"
+          : t === "reactivation"
+            ? "取消復原補回"
+            : t;
+    const rows: {
+      key: string;
+      member: string;
+      role: string;
+      type: string;
+      venue: string;
+      order_number: string;
+      amount: number;
+      reason: string;
+    }[] = [];
+    for (const a of adjustments) {
+      const venue = a.accommodation_id ? (accNameMap.get(a.accommodation_id) ?? "－") : "－";
+      const order_number = a.order_number ?? "－";
+      if (a.closer_id && a.closer_amount !== 0) {
+        rows.push({
+          key: `${a.id}:closer`,
+          member: nameMapByUserId.get(a.closer_id) ?? "未知成員",
+          role: "成交組",
+          type: label(a.adjustment_type),
+          venue,
+          order_number,
+          amount: a.closer_amount,
+          reason: a.reason ?? "",
+        });
+      }
+      if (a.video_creator_id && a.video_amount !== 0) {
+        rows.push({
+          key: `${a.id}:video`,
+          member: nameMapByUserId.get(a.video_creator_id) ?? "未知成員",
+          role: "影音組",
+          type: label(a.adjustment_type),
+          venue,
+          order_number,
+          amount: a.video_amount,
+          reason: a.reason ?? "",
+        });
+      }
+    }
+    return rows.sort((x, y) => x.member.localeCompare(y.member, "zh-Hant"));
+  }, [adjustments, accNameMap, nameMapByUserId]);
+
+  const adjTotal = useMemo(() => adjRows.reduce((s, r) => s + r.amount, 0), [adjRows]);
+
+
 
   useEffect(() => {
     (async () => {
@@ -957,6 +1067,83 @@ export default function TeamCommissionStatsTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 分潤補差（訂單取消扣回 / 金額調整） */}
+      {mode === "period" && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between text-left"
+              onClick={() => setAdjOpen((v) => !v)}
+              aria-expanded={adjOpen}
+            >
+              <div className="flex items-center gap-2">
+                {adjOpen ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="font-medium">分潤補差（{payoutMonthKey} 發放月）</span>
+                <span className="text-xs text-muted-foreground">{adjRows.length} 筆</span>
+              </div>
+              <span
+                className={cn(
+                  "text-sm font-medium tabular-nums",
+                  adjTotal < 0 ? "text-destructive" : "text-emerald-600",
+                )}
+              >
+                合計 {fmtMoney(adjTotal)}
+              </span>
+            </button>
+            <p className="text-xs text-muted-foreground">
+              補差為快照建立後訂單金額變動或取消所產生的差額，不計入上方業績統計，會直接反映在發放管理。
+            </p>
+            {adjOpen &&
+              (adjRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">本發放月無補差記錄</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">成員</TableHead>
+                        <TableHead className="whitespace-nowrap">類別</TableHead>
+                        <TableHead className="whitespace-nowrap">補差類型</TableHead>
+                        <TableHead className="whitespace-nowrap">館別</TableHead>
+                        <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                        <TableHead className="whitespace-nowrap text-right tabular-nums">金額</TableHead>
+                        <TableHead className="whitespace-nowrap">說明</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adjRows.map((r) => (
+                        <TableRow key={r.key}>
+                          <TableCell className="whitespace-nowrap">{r.member}</TableCell>
+                          <TableCell className="whitespace-nowrap">{r.role}</TableCell>
+                          <TableCell className="whitespace-nowrap">{r.type}</TableCell>
+                          <TableCell className="whitespace-nowrap">{r.venue}</TableCell>
+                          <TableCell className="whitespace-nowrap">{r.order_number}</TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-right tabular-nums whitespace-nowrap",
+                              r.amount < 0 ? "text-destructive" : "text-emerald-600",
+                            )}
+                          >
+                            {fmtMoney(r.amount)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{r.reason}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
+
 
 
       {/* 成交組 / 影音組業績 */}
