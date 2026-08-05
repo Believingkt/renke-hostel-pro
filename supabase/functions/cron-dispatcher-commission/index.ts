@@ -148,6 +148,11 @@ Deno.serve(async (req) => {
     }),
   );
 
+  // 第4步：八種團隊獎金月結鎖定（函式內部自行守門：僅台北時間每月10日實際執行）
+  results.push(await callFunction("create-team-bonus-snapshots", snapshotBody));
+
+
+
 
   const succeeded = results.filter((r) => r.ok).map((r) => r.fn);
   const failed = results.filter((r) => !r.ok).map((r) => r.fn);
