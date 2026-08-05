@@ -360,6 +360,8 @@ function calcDayOfWeek(dateStr: string): string {
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
   const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
+  // scout 可唯讀檢視互惠額度（含切換館別），但不可編輯
+  const canViewReciprocalQuota = isManager || roles.includes("scout");
   const { currentAccommodationId } = useAccommodation();
 
   const [tab, setTab] = useState("invitations");
@@ -466,7 +468,7 @@ export default function TeamKOL() {
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
             {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
             <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
-            {isManager && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
+            {canViewReciprocalQuota && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
             <TabsTrigger value="settings">設定</TabsTrigger>
           </TabsList>
         </div>
@@ -517,7 +519,7 @@ export default function TeamKOL() {
           <SettingsTab isManager={isManager} />
         </TabsContent>
 
-        {isManager && (
+        {canViewReciprocalQuota && (
           <TabsContent value="reciprocal_quota" className="mt-4">
             <KolReciprocalQuotaTab isManager={isManager} defaultAccommodationId={currentAccommodationId} />
           </TabsContent>
