@@ -1341,9 +1341,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                   <p>
                     將補建<strong>尚未產生過快照</strong>的訂單（結算月份 {prevMonthKey}，並自動回溯最近 1 個月），
                     並試算金額調整與星探發放。補建的快照歸入{" "}
-                    <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月；
-                    已鎖定的既有快照金額不會被覆寫或修改。
+                    <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月。
                   </p>
+                  <p>
+                    同時會檢查<strong>尚未發放</strong>的快照：若訂單金額（分潤基準）事後有異動，
+                    會自動以最新金額重寫快照。<strong>已標記發放</strong>的快照永遠不會被修改。
+                  </p>
+
                   <div>
                     <Label className="text-xs">星探期別</Label>
                     <Select
