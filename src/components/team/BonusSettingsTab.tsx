@@ -269,7 +269,9 @@ export default function BonusSettingsTab() {
         uid={uid}
         onSaved={loadAll}
       />
+      <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} />
     </div>
+
   );
 }
 
