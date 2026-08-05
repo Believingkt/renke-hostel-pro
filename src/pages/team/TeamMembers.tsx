@@ -32,7 +32,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "franchise_internal",
   "franchise_external",
   "starlink",
-  "owner",
+  // "owner", // 暫時隱藏（屋主），之後要重新開放時取消註解即可
   "finance",
   // "venue_manager", // 暫時隱藏（業主），之後要重新開放時取消註解即可
 ];
@@ -50,7 +50,7 @@ const ROLE_LABEL = {
   franchise_manager: "特許加盟主管",
   scout: "星探",
   closer: "成交組",
-  closer_manager: "成交大師管理",
+  closer_manager: "成交組主管",
   video: "影音組",
   franchise: "特許加盟內部",
   franchise_internal: "特許加盟內部",
@@ -468,7 +468,7 @@ export default function TeamMembers() {
       if (!ok) return;
     }
 
-    // 獨佔角色（AM總管／成交大師管理）：新指派前先確認是否已有現任者
+    // 獨佔角色（AM總管／成交組主管）：新指派前先確認是否已有現任者
     if (canEditAll && editTarget.user_id) {
       const newlyExclusive = EXCLUSIVE_ROLES.filter(
         (r) => editRoles.includes(r) && !editTarget.roles.includes(r),
