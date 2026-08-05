@@ -4905,7 +4905,7 @@ const BookingFlow = () => {
                             <div className="flex flex-col">
                               <span className="text-xs text-muted-foreground">住宿人數</span>
                               <span className="text-sm text-foreground">
-                                {contextGuests?.adults || 2}位大人{(contextGuests?.children || 0) > 0 ? ` · ${contextGuests.children}位兒童` : ""} · 1間客房
+                                {contextGuests?.adults || 2}位大人{(contextGuests?.children || 0) > 0 ? ` · ${contextGuests.children}位兒童` : ""} · {roomQuantity}間客房
                               </span>
                             </div>
                           </button>
@@ -4957,15 +4957,61 @@ const BookingFlow = () => {
                                 </button>
                               </div>
                             </div>
+                            {/* 房間數（可多間預訂的房型才顯示） */}
+                            {canSelectRoomQuantity && (
+                              <div className="flex items-center justify-between pt-4 border-t">
+                                <div>
+                                  <div className="font-medium text-base">房間數</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    最多 {liveValidation?.minAvailable != null ? Math.min(maxRoomUnits, liveValidation.minAvailable) : maxRoomUnits} 間
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={() => updateRoomQuantity(roomQuantity - 1)}
+                                    disabled={roomQuantity <= 1}
+                                    className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-40"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-8 text-center font-medium">{roomQuantity}</span>
+                                  <button
+                                    onClick={() => updateRoomQuantity(roomQuantity + 1)}
+                                    disabled={roomQuantity >= maxRoomUnits}
+                                    className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-40"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </PopoverContent>
                       </Popover>
-                      {selectedRoom && (
-                        <p className="text-xs text-muted-foreground">
-                          此房型最多可容納 {selectedRoom.capacity} 人
-                        </p>
+                      {selectedRoom && liveValidation && (
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">
+                            此房型每間最多可容納 {liveValidation.perRoomCapacity} 人
+                            {canSelectRoomQuantity && `，目前 ${roomQuantity} 間（上限 ${liveValidation.maxGuests} 人）`}
+                            {liveValidation.minAvailable != null && ` · 所選日期最少可訂 ${liveValidation.minAvailable} 間`}
+                          </p>
+                          {liveValidation.overCapacity && (
+                            <p className="text-xs font-medium text-destructive">
+                              目前 {liveValidation.guests} 人已超過上限 {liveValidation.maxGuests} 人，
+                              {canSelectRoomQuantity && liveValidation.canSuggest
+                                ? `請至少訂 ${liveValidation.suggestedRooms} 間或減少人數`
+                                : "請減少人數或改選其他房型"}
+                            </p>
+                          )}
+                          {liveValidation.notEnoughRooms && (
+                            <p className="text-xs font-medium text-destructive">
+                              所選日期最少僅剩 {liveValidation.minAvailable} 間，請調整間數或日期
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
+
                     {checkInDate && checkOutDate && (
                       <Card className="bg-muted/50">
                         <CardContent className="p-4">
