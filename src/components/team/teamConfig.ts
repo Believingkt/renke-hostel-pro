@@ -17,7 +17,9 @@ export type TeamRole =
   | "super_admin"
   | "admin"
   | "am"
+  | "am_manager"
   | "closer"
+  | "closer_manager"
   | "scout"
   | "scout_manager"
   | "video"
@@ -34,7 +36,9 @@ export const TEAM_ROLES: TeamRole[] = [
   "super_admin",
   "admin",
   "am",
+  "am_manager",
   "closer",
+  "closer_manager",
   "scout",
   "scout_manager",
   "video",

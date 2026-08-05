@@ -22,10 +22,12 @@ const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
   "am",
+  "am_manager",
   "scout_manager",
   "franchise_manager" as TeamRole,
   "scout",
   "closer",
+  "closer_manager",
   "video",
   "franchise_internal",
   "franchise_external",
@@ -35,15 +37,20 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "venue_manager",
 ];
 
+/** 同時只能有一人在任的全域獨佔角色 */
+const EXCLUSIVE_ROLES: TeamRole[] = ["am_manager", "closer_manager"];
+
 
 const ROLE_LABEL = {
   super_admin: "超級管理員",
   admin: "管理員",
   am: "AM",
+  am_manager: "AM總管",
   scout_manager: "星探主管",
   franchise_manager: "特許加盟主管",
   scout: "星探",
   closer: "成交組",
+  closer_manager: "成交大師管理",
   video: "影音組",
   franchise: "特許加盟內部",
   franchise_internal: "特許加盟內部",
@@ -59,10 +66,12 @@ const ROLE_BADGE_CLASS = {
   super_admin: "bg-purple-100 text-purple-700 border-purple-200",
   admin: "bg-blue-100 text-blue-700 border-blue-200",
   am: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  am_manager: "bg-sky-100 text-sky-700 border-sky-200",
   scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
   franchise_manager: "bg-amber-100 text-amber-700 border-amber-200",
   scout: "bg-orange-100 text-orange-700 border-orange-200",
   closer: "bg-green-100 text-green-700 border-green-200",
+  closer_manager: "bg-emerald-100 text-emerald-700 border-emerald-200",
   video: "bg-cyan-100 text-cyan-700 border-cyan-200",
   franchise: "bg-amber-100 text-amber-700 border-amber-200",
   franchise_internal: "bg-amber-100 text-amber-700 border-amber-200",
@@ -100,6 +109,14 @@ interface VenueOption {
   id: string;
   name: string;
 }
+
+interface ExclusiveIncumbent {
+  role: TeamRole;
+  userId: string;
+  name: string;
+}
+
+
 
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
@@ -149,6 +166,7 @@ export default function TeamMembers() {
   const [editFulltimeStartYear, setEditFulltimeStartYear] = useState<number>(() => getCurrentTaipeiYM().year);
   const [editFulltimeStartMonth, setEditFulltimeStartMonth] = useState<number>(() => getCurrentTaipeiYM().month);
   const [saving, setSaving] = useState(false);
+  const [exclusiveConflicts, setExclusiveConflicts] = useState<ExclusiveIncumbent[] | null>(null);
   const [removing, setRemoving] = useState(false);
 
   // 新增無帳號成員
@@ -450,8 +468,58 @@ export default function TeamMembers() {
       if (!ok) return;
     }
 
+    // 獨佔角色（AM總管／成交大師管理）：新指派前先確認是否已有現任者
+    if (canEditAll && editTarget.user_id) {
+      const newlyExclusive = EXCLUSIVE_ROLES.filter(
+        (r) => editRoles.includes(r) && !editTarget.roles.includes(r),
+      );
+      if (newlyExclusive.length > 0) {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .is("accommodation_id", null)
+          .in("role", newlyExclusive)
+          .neq("user_id", editTarget.user_id);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        const incumbents = (data ?? []).map((row) => ({
+          role: row.role as TeamRole,
+          userId: row.user_id as string,
+          name:
+            members.find((m) => m.user_id === row.user_id)?.display_name ?? "（未知成員）",
+        }));
+        if (incumbents.length > 0) {
+          setExclusiveConflicts(incumbents);
+          return;
+        }
+      }
+    }
+
+    await performSave([]);
+  };
+
+  const performSave = async (incumbentsToRemove: ExclusiveIncumbent[]) => {
+    if (!editTarget) return;
+    const nextFulltimeYM =
+      editRoles.includes("scout") && editFulltime
+        ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+        : null;
+
     setSaving(true);
     try {
+      // 先移除舊任者的獨佔角色，再走原本流程新增
+      for (const inc of incumbentsToRemove) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", inc.userId)
+          .is("accommodation_id", null)
+          .eq("role", inc.role);
+        if (error) throw error;
+      }
+
       if (!canEditAll && isScoutManager) {
         // scout_manager 僅能改 display_name、is_scout_team_member，以及 scout role 的勾選
         const nextHasScout = editRoles.includes("scout");
@@ -535,6 +603,7 @@ export default function TeamMembers() {
       }
 
       toast.success("已更新成員資料");
+      setExclusiveConflicts(null);
       setEditTarget(null);
       fetchMembers();
     } catch (err) {
@@ -1065,6 +1134,39 @@ export default function TeamMembers() {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* 獨佔角色交接確認 */}
+      <Dialog
+        open={!!exclusiveConflicts}
+        onOpenChange={(open) => {
+          if (!open) setExclusiveConflicts(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>此角色已有現任者</DialogTitle>
+            <DialogDescription>此角色同時只能有一人在任，確認後將自動移除舊任者的角色。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2 text-sm">
+            {(exclusiveConflicts ?? []).map((inc) => (
+              <p key={`${inc.role}-${inc.userId}`}>
+                將把 <span className="font-semibold">{inc.name}</span> 的{" "}
+                <span className="font-semibold">{ROLE_LABEL[inc.role]}</span> 移除，改由{" "}
+                <span className="font-semibold">{editTarget?.display_name}</span> 擔任，確定要這樣設定嗎？
+              </p>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExclusiveConflicts(null)} disabled={saving}>
+              取消
+            </Button>
+            <Button onClick={() => performSave(exclusiveConflicts ?? [])} disabled={saving}>
+              {saving ? "儲存中..." : "確認變更"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* 新增無帳號成員 Dialog（僅 admin） */}
       {canEditAll && (
