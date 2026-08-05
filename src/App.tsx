@@ -64,6 +64,7 @@ const OrderPayment = lazy(() => import("./pages/OrderPayment"));
 const AtmBookingSuccess = lazy(() => import("./pages/AtmBookingSuccess"));
 const DepositCardBind = lazy(() => import("./pages/DepositCardBind"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
+const PaymentStatus = lazy(() => import("./pages/PaymentStatus"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
@@ -332,6 +333,10 @@ function App() {
                     <Route path="payment-result" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>
                     } />
+                    <Route path="payment-status" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PaymentStatus /></Suspense>
+                    } />
+
                     <Route path="privacy" element={
                       <Suspense fallback={<FrontendSkeleton />}><Privacy /></Suspense>
                     } />
