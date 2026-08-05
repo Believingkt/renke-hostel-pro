@@ -1041,7 +1041,7 @@ function VenueClosingAssignmentSection({
       <CardHeader>
         <CardTitle className="text-base">場域簽約人</CardTitle>
         <p className="text-sm text-muted-foreground">
-          場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷費」為開啟）
+          場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）
         </p>
       </CardHeader>
       <CardContent>
