@@ -1575,6 +1575,72 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         )}
       </CardContent>
 
+      <Sheet open={!!venueDetail} onOpenChange={(open) => !open && setVenueDetail(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {venueDetail?.member} ・ {venueDetail?.venue}
+            </SheetTitle>
+            <SheetDescription>
+              {venueDetail?.sourceLabel} ・ 共 {venueDetail?.items.length ?? 0} 筆 ・ 合計{" "}
+              {formatMoney((venueDetail?.items ?? []).reduce((s, i) => s + i.multiplied_amount, 0))}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>訂單</TableHead>
+                  <TableHead className="text-right w-[110px]">金額</TableHead>
+                  <TableHead className="w-[100px]">狀態</TableHead>
+                  <TableHead className="w-[110px] text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(venueDetail?.items ?? []).map((it) => (
+                  <TableRow key={it.key}>
+                    <TableCell className="text-xs">{it.detail || it.order_number || "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {it.multiplier > 1 && (
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                            × {Number(it.multiplier).toFixed(2)} 倍
+                          </Badge>
+                        )}
+                        <span>{formatMoney(it.multiplied_amount)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {it.paid ? (
+                        <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!it.paid && !readOnly && it.member_id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            await markItem(it);
+                            setVenueDetail(null);
+                          }}
+                        >
+                          標記已發放
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+
+
       <AlertDialog open={!!confirmMember} onOpenChange={(open) => !open && setConfirmMember(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
