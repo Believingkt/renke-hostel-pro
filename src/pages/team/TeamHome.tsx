@@ -843,6 +843,18 @@ export default function TeamHome() {
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
         setMultipliers(multMap);
+        setIsAmManager(amManagerFlag);
+        setIsCloserManager(closerManagerFlag);
+        setIsKolBonusRecipient(kolRecipientFlag);
+        setAmPerformanceAmt(amPerfSum);
+        setCloserPerformanceAmt(closerPerfSum);
+        setAmManagerAmt(amManagerSum);
+        setCloserManagerAmt(closerManagerSum);
+        setKolCommissionAmt(kolCommissionSum);
+        setKolMonthlyAmt(kolMonthlySum);
+        setVenueClosingAmt(venueClosingSum);
+        setVenueClosingDetail(venueClosingLines);
+        setMissingRates(missing);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
       } finally {
