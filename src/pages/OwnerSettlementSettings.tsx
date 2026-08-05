@@ -26,6 +26,8 @@ interface SettlementConfig {
   marketing_fee_low: number;
   marketing_fee_high: number;
   marketing_fee_threshold: number;
+  /** 合約層面是否約定收取行銷推廣費（獨立判斷，不影響金額計算欄位） */
+  charges_marketing_fee: boolean;
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -38,6 +40,7 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_low: 53000,
   marketing_fee_high: 0,
   marketing_fee_threshold: 0,
+  charges_marketing_fee: false,
 };
 
 interface AccommodationGroup {
