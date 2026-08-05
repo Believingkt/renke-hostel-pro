@@ -54,8 +54,11 @@ export default function TeamHome() {
   const showScout = hasRole("scout") || hasRole("scout_manager");
   const showFranchise = hasRole("franchise") || hasRole("franchise_manager");
   const showStarlink = hasRole("starlink");
+  const showAM = hasRole("am");
 
-  const anyCard = showCloser || showVideo || showScout || showFranchise || showStarlink;
+  // 只要是任一 team 角色成員就進入查詢流程（部分角色需 async 判斷，
+  // 最終以 cards.length === 0 顯示「暫無獎金項目」）
+  const anyCard = roles.length > 0;
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
