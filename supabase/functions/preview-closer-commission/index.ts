@@ -73,7 +73,7 @@ serve(async (req) => {
 
     const roles = ctx.globalRoles ?? [];
     const isPrivileged = ctx.isServiceRole ||
-      roles.some((r) => ["super_admin", "hotel_admin", "closer"].includes(r));
+      roles.some((r) => ["super_admin", "hotel_admin", "closer", "closer_manager"].includes(r));
     if (scope === "team" && !isPrivileged) {
       return json({ success: false, error: "Forbidden" }, 403);
     }

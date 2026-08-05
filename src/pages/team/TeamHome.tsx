@@ -50,7 +50,7 @@ export default function TeamHome() {
   const { userId, displayName, roles } = useTeam();
 
   const hasRole = (r: TeamRole) => roles.includes(r);
-  const showCloser = hasRole("closer");
+  const showCloser = hasRole("closer") || hasRole("closer_manager");
   const showVideo = hasRole("video");
   const showScout = hasRole("scout") || hasRole("scout_manager");
   const showFranchise = hasRole("franchise") || hasRole("franchise_manager");

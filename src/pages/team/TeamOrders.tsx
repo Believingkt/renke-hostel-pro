@@ -306,7 +306,7 @@ export default function TeamOrders() {
         const scout = roleList.some(
           (r: string) => r === "scout" || r === "scout_manager",
         );
-        const closer = roleList.some((r: string) => r === "closer");
+        const closer = roleList.some((r: string) => r === "closer" || r === "closer_manager");
         const video = roleList.some((r: string) => r === "video");
         setIsAdmin(admin);
         setIsScout(scout && !admin);
