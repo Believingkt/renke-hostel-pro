@@ -9999,6 +9999,59 @@ export type Database = {
         }
         Relationships: []
       }
+      teamcommission_bonus_snapshots: {
+        Row: {
+          amount: number
+          base_revenue: number | null
+          bonus_type: string
+          created_at: string
+          fixed_amount: number | null
+          id: string
+          member_id: string
+          payout_month: string
+          rate: number | null
+          settings_snapshot: Json | null
+          snapshot_month: string
+          venue_count: number | null
+        }
+        Insert: {
+          amount: number
+          base_revenue?: number | null
+          bonus_type: string
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          member_id: string
+          payout_month: string
+          rate?: number | null
+          settings_snapshot?: Json | null
+          snapshot_month: string
+          venue_count?: number | null
+        }
+        Update: {
+          amount?: number
+          base_revenue?: number | null
+          bonus_type?: string
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          member_id?: string
+          payout_month?: string
+          rate?: number | null
+          settings_snapshot?: Json | null
+          snapshot_month?: string
+          venue_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamcommission_bonus_snapshots_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teamcommission_kol_bonus_editor_whitelist: {
         Row: {
           created_at: string
