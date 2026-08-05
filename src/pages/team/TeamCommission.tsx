@@ -113,7 +113,7 @@ export default function TeamCommission() {
   }
 
   const showAdminTabs = isAdmin || isFinance;
-  const [tab, setTab] = useState("payouts");
+
 
 
   return (
