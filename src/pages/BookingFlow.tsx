@@ -170,6 +170,45 @@ import {
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
+/**
+ * 依後端回傳的失敗原因分類，決定要給使用者哪一組可操作的下一步。
+ */
+type PaymentFailureAction = "reselect_dates" | "retry_card" | "contact";
+
+function classifyPaymentFailure(message?: string | null): {
+  action: PaymentFailureAction;
+  headline: string;
+  tips: string[];
+} {
+  const m = (message || "").toString();
+  if (/價格|金額|驗證|price/i.test(m)) {
+    return {
+      action: "reselect_dates",
+      headline: "房價已變動，需要重新確認",
+      tips: ["日期或方案的價格在您結帳期間有更新", "請回到日期選擇重新查詢最新價格後再送出"],
+    };
+  }
+  if (/庫存|已滿|不足|可訂|售完|availab/i.test(m)) {
+    return {
+      action: "reselect_dates",
+      headline: "所選日期已無足夠空房",
+      tips: ["您選擇的日期或間數已被其他訂單佔用", "請改選其他日期，或減少預訂間數"],
+    };
+  }
+  if (/卡|card|授權|額度|拒絕|decline|prime/i.test(m)) {
+    return {
+      action: "retry_card",
+      headline: "信用卡授權未通過",
+      tips: ["確認卡號、有效期限與安全碼是否正確", "確認卡片額度足夠且已開通網路交易", "可改用其他卡片或改選 ATM／LINE Pay"],
+    };
+  }
+  return {
+    action: "contact",
+    headline: "付款處理時發生問題",
+    tips: ["請稍候再試一次", "若持續失敗，請聯繫客服協助處理"],
+  };
+}
+
 const BookingFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
