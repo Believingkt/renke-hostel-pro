@@ -172,7 +172,7 @@ type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm"
 const BookingFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const keyboardInset = useKeyboardInset();
   const { 
