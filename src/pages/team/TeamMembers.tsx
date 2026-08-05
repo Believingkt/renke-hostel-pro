@@ -118,20 +118,39 @@ interface ExclusiveIncumbent {
 
 
 
+// 受限主管角色 → 其可管理（新增/移除）的子角色
+const MANAGED_CHILD_BY_MANAGER: Partial<Record<TeamRole, TeamRole>> = {
+  scout_manager: "scout",
+  ["closer_manager" as TeamRole]: "closer" as TeamRole,
+  ["am_manager" as TeamRole]: "am" as TeamRole,
+};
+
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
   const isAdmin = useMemo(() => myRoles.includes("super_admin") || myRoles.includes("admin"), [myRoles]);
   const isScoutManager = useMemo(() => myRoles.includes("scout_manager"), [myRoles]);
-  // 僅 admin 與 scout_manager 可進入
-  const canAccess = isAdmin || isScoutManager;
+  const isCloserManager = useMemo(() => myRoles.includes("closer_manager" as TeamRole), [myRoles]);
+  const isAmManager = useMemo(() => myRoles.includes("am_manager" as TeamRole), [myRoles]);
+  // 登入者目前持有的受限主管角色可管理的子角色（聯集）
+  const managedChildRoles: TeamRole[] = useMemo(
+    () =>
+      (Object.entries(MANAGED_CHILD_BY_MANAGER) as [TeamRole, TeamRole][])
+        .filter(([mgr]) => myRoles.includes(mgr))
+        .map(([, child]) => child),
+    [myRoles],
+  );
+  const isRestrictedManager = isScoutManager || isCloserManager || isAmManager;
+  // admin 與受限主管（星探主管／成交組主管／AM總管）可進入
+  const canAccess = isAdmin || isCloserManager || isAmManager || isScoutManager;
   // 僅 admin 可邀請任意角色 / 編輯 / 刪除
   const canEditAll = isAdmin;
 
-  // 邀請可選角色（依當前使用者身份）— scout_manager 在 UI 顯示完整清單但僅 scout 可勾
+  // 邀請可選角色（依當前使用者身份）— 受限主管在 UI 顯示完整清單但僅可勾對應子角色
   const invitableRoles = ALL_INVITABLE_ROLES;
+  const managedChildLabel = managedChildRoles.map((r) => ROLE_LABEL[r]).join("、");
   const enabledInviteRoles: Set<TeamRole> = isAdmin
     ? new Set(ALL_INVITABLE_ROLES)
-    : new Set<TeamRole>(["scout"]);
+    : new Set<TeamRole>(managedChildRoles);
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
