@@ -226,6 +226,13 @@ export default function TeamCommissionStatsTab() {
   const [accSheet, setAccSheet] = useState<{
     title: string;
     breakdown: AccBreakdown;
+    adjList?: {
+      id: string;
+      adjustment_type: string;
+      order_number: string | null;
+      reason: string | null;
+      amount: number;
+    }[];
   } | null>(null);
   const [scoutSheet, setScoutSheet] = useState<{
     title: string;
@@ -921,17 +928,35 @@ export default function TeamCommissionStatsTab() {
                       </TableRow>
                       {isOpen &&
                         r.byAcc.map((b, bi) => {
-                          const openSheet = () =>
-                            setAccSheet({
-                              title: `${r.name} ・ ${b.accName}`,
-                              breakdown: b,
-                            });
                           // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
                           const firstOfAcc =
                             r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
                           const accAdj = firstOfAcc
                             ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
+                          const adjList =
+                            showAdj && firstOfAcc
+                              ? adjustments
+                                  .filter((a) =>
+                                    role === "closer"
+                                      ? a.closer_id === r.uid && a.closer_amount !== 0
+                                      : a.video_creator_id === r.uid && a.video_amount !== 0,
+                                  )
+                                  .filter((a) => a.accommodation_id === b.accId)
+                                  .map((a) => ({
+                                    id: a.id,
+                                    adjustment_type: a.adjustment_type,
+                                    order_number: a.order_number,
+                                    reason: a.reason,
+                                    amount: role === "closer" ? a.closer_amount : a.video_amount,
+                                  }))
+                              : [];
+                          const openSheet = () =>
+                            setAccSheet({
+                              title: `${r.name} ・ ${b.accName}`,
+                              breakdown: b,
+                              adjList,
+                            });
                           return (
                             <TableRow
                               key={`${r.uid}-${b.accId}-${b.rate}`}
@@ -1284,6 +1309,48 @@ export default function TeamCommissionStatsTab() {
                           </TableRow>
                         );
                       })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              {!!accSheet.adjList?.length && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">
+                    分潤補差（{payoutMonthKey} 發放月）
+                  </h3>
+                  <Table className="fixed-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>類型</TableHead>
+                        <TableHead>說明</TableHead>
+                        <TableHead className="tabular-nums">補差金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {accSheet.adjList.map((a) => (
+                        <TableRow key={a.id}>
+                          <TableCell className="font-mono">{a.order_number ?? "—"}</TableCell>
+                          <TableCell className="text-sm">
+                            {a.adjustment_type === "order_cancelled"
+                              ? "訂單取消扣回"
+                              : a.adjustment_type === "amount_changed"
+                                ? "金額調整"
+                                : a.adjustment_type}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-normal">
+                            {a.reason ?? "—"}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              "tabular-nums",
+                              a.amount < 0 ? "text-destructive" : "text-emerald-600",
+                            )}
+                          >
+                            {fmtMoney(a.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
