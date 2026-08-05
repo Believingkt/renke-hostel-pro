@@ -26,6 +26,8 @@ interface SettlementConfig {
   marketing_fee_low: number;
   marketing_fee_high: number;
   marketing_fee_threshold: number;
+  /** 合約層面是否約定收取行銷推廣費（獨立判斷，不影響金額計算欄位） */
+  charges_marketing_fee: boolean;
 }
 
 const DEFAULT_CONFIG: SettlementConfig = {
@@ -38,6 +40,7 @@ const DEFAULT_CONFIG: SettlementConfig = {
   marketing_fee_low: 53000,
   marketing_fee_high: 0,
   marketing_fee_threshold: 0,
+  charges_marketing_fee: false,
 };
 
 interface AccommodationGroup {
@@ -204,6 +207,7 @@ export default function OwnerSettlementSettings() {
           marketing_fee_low: Number(ruleRow.marketing_fee_low) || 0,
           marketing_fee_high: Number(ruleRow.marketing_fee_high) || 0,
           marketing_fee_threshold: Number(ruleRow.marketing_fee_threshold) || 0,
+          charges_marketing_fee: ruleRow.charges_marketing_fee === true,
           exempt_order_sources: Array.isArray(ruleRow.exempt_order_sources)
             ? ruleRow.exempt_order_sources
             : baseConfig.exempt_order_sources,
@@ -372,6 +376,7 @@ export default function OwnerSettlementSettings() {
           marketing_fee_low: config.marketing_fee_low,
           marketing_fee_high: config.marketing_fee_high,
           marketing_fee_threshold: config.marketing_fee_threshold,
+          charges_marketing_fee: config.charges_marketing_fee,
           tier_rate_enabled: false,
           exempt_order_sources: config.exempt_order_sources,
           revenue_breakdown_type: config.revenue_breakdown_type,
@@ -633,6 +638,18 @@ export default function OwnerSettlementSettings() {
 
         </CardHeader>
         <CardContent className="space-y-4">
+          <label className="flex items-start gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/40 max-w-xl">
+            <Checkbox
+              checked={config.charges_marketing_fee}
+              onCheckedChange={(v) => setConfig({ ...config, charges_marketing_fee: v === true })}
+            />
+            <span className="text-sm">
+              本館合約有約定收取行銷推廣費（月費）
+              <span className="block text-xs text-muted-foreground">
+                獨立於下方金額設定，僅記錄合約是否約定收取。
+              </span>
+            </span>
+          </label>
           <div className="space-y-2 max-w-sm">
             <Label htmlFor="marketing_fee_base">基本服務費（NT$）</Label>
             <Input
@@ -768,6 +785,7 @@ export default function OwnerSettlementSettings() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <div>抽成費率：{((Number(r.commission_rate) || 0) * 100).toFixed(2)}%</div>
                       <div>抽成門檻：NT$ {(Number(r.commission_threshold) || 0).toLocaleString()}</div>
+                      <div>收取行銷推廣費：{r.charges_marketing_fee === true ? "是" : "否"}</div>
                       <div>行銷推廣費門檻：NT$ {(Number(r.marketing_fee_threshold) || 0).toLocaleString()}</div>
                       <div>行銷推廣費（未達門檻）：NT$ {(Number(r.marketing_fee_low) || 0).toLocaleString()}</div>
                       <div>行銷推廣費（超過門檻）：NT$ {(Number(r.marketing_fee_high) || 0).toLocaleString()}</div>
