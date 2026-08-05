@@ -55,6 +55,14 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   franchise_internal: "特許加盟內部",
   franchise_external: "特許加盟外部",
   starlink: "星鏈分潤",
+  am_performance: "AM績效獎金",
+  am_venue_bonus: "AM場域獎金",
+  closer_performance: "成交組績效獎金",
+  am_manager: "AM總管獎金",
+  closer_manager: "成交組主管管理獎金",
+  kol_commission: "網紅營銷專利獎金(抽成)",
+  kol_monthly: "網紅營銷專利獎金(月費)",
+  venue_closing: "場域成交獎金",
 };
 
 // 結算規則用（不含「全部」）
@@ -193,6 +201,7 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
           <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
           <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
           <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
+          <li><span className="font-medium">團隊獎金（AM績效、AM場域、成交組績效、AM總管、成交組主管管理、網紅營銷抽成/月費、場域成交）：</span>每月 10 日結算並鎖定上月金額。</li>
         </ul>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
@@ -535,6 +544,7 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "starlink_orders") return "starlink";
   if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
+  if (source_table === "teamcommission_bonus_snapshots") return role_key;
   return null;
 }
 
@@ -562,6 +572,15 @@ const SOURCE_LABEL: Record<string, string> = {
   scout_discount_closer: "星探折扣碼獎金（協助成交）",
 
   closer_team_bonus: "成交組團隊獎金",
+
+  am_performance: "AM績效獎金",
+  am_venue_bonus: "AM場域獎金",
+  closer_performance: "成交組績效獎金",
+  am_manager: "AM總管獎金",
+  closer_manager: "成交組主管管理獎金",
+  kol_commission: "網紅營銷專利獎金(抽成)",
+  kol_monthly: "網紅營銷專利獎金(月費)",
+  venue_closing: "場域成交獎金",
 };
 
 
@@ -671,6 +690,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: scoutPayouts },
         { data: discountPayoutRows },
         { data: teamBonusDist },
+        { data: teamBonusSnapshots },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -710,6 +730,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .eq("is_finalized", true)
           .eq("year", range.prevYear)
           .eq("month", range.prevMonth),
+        supabase
+          .from("teamcommission_bonus_snapshots")
+          .select("id, bonus_type, member_id, amount")
+          .eq("payout_month", payoutMonthKey),
       ]);
 
 
@@ -873,6 +897,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           Math.round(Number(r.bonus_amount)),
         );
       });
+
+      // 八種團隊獎金：由 create-team-bonus-snapshots 每月10日鎖定寫入
+      (teamBonusSnapshots ?? []).forEach((r: any) => {
+        const amount = Math.round(Number(r.amount ?? 0));
+        if (amount <= 0) return;
+        pushItem(
+          "teamcommission_bonus_snapshots",
+          r.id,
+          r.bonus_type,
+          profileById.get(r.member_id),
+          SOURCE_LABEL[r.bonus_type] ?? r.bonus_type,
+          "團隊獎金",
+          amount,
+        );
+      });
+
+
 
       // 提醒：上月有成交組分潤快照（代表本來就該有團隊獎金池），但分配尚未定案
       setTeamBonusNotFinalized(
