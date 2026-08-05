@@ -1257,23 +1257,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         </div>
 
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
-          <div className="text-xs text-foreground">
-            <span className="font-medium">{month} 月 10 日期</span>：稀有度／KOL訂單星探分潤{" "}
-            <span className="tabular-nums">
-              {commissionPeriodRange(year, month, "10").start} ~ {commissionPeriodRange(year, month, "10").end}
-            </span>
-            ；底薪／團隊獎金{" "}
-            <span className="tabular-nums">{range.start} ~ {range.end}（{range.prevMonth} 月整月）</span>
-          </div>
-          <div className="text-xs text-foreground">
-            <span className="font-medium">{month} 月 25 日期</span>：稀有度／KOL訂單星探分潤{" "}
-            <span className="tabular-nums">
-              {commissionPeriodRange(year, month, "25").start} ~ {commissionPeriodRange(year, month, "25").end}
-            </span>
-            ；不發底薪／團隊獎金
-          </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground pt-1">
-            每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            資料由系統於每月 10、25 日自動寫入；未到日期顯示空白屬正常，已過日期仍無資料再用「手動重新試算」或聯繫技術人員。
+
             {onOpenRules && (
               <>
                 {" "}
