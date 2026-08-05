@@ -539,9 +539,9 @@ export default function TeamMembers() {
         if (error) throw error;
       }
 
-      if (!canEditAll && isScoutManager) {
-        // scout_manager 僅能改 display_name、is_scout_team_member，以及 scout role 的勾選
-        const nextHasScout = editRoles.includes("scout");
+      if (!canEditAll && isRestrictedManager) {
+        // 受限主管僅能改 display_name、is_scout_team_member，以及自己可管理的子角色勾選
+        const nextHasScout = editRoles.includes("scout") && managedChildRoles.includes("scout");
         const { error: pErr } = await supabase
           .from("team_member_profiles")
           .update({
@@ -553,24 +553,27 @@ export default function TeamMembers() {
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
 
-        // 額外處理 scout role 的新增/移除（僅限 scout role 本身，不碰其他 role）
+        // 依登入者可管理的子角色動態處理新增/移除（不碰其他 role）
         if (editTarget.user_id) {
-          const originalHasScout = editTarget.roles.includes("scout");
-          if (originalHasScout && !nextHasScout) {
-            const { error } = await supabase
-              .from("user_roles")
-              .delete()
-              .eq("user_id", editTarget.user_id)
-              .is("accommodation_id", null)
-              .eq("role", "scout");
-            if (error) throw error;
-          } else if (!originalHasScout && nextHasScout) {
-            const { error } = await supabase.from("user_roles").insert({
-              user_id: editTarget.user_id,
-              accommodation_id: null,
-              role: "scout",
-            });
-            if (error) throw error;
+          for (const childRole of managedChildRoles) {
+            const originalHas = editTarget.roles.includes(childRole);
+            const nextHas = editRoles.includes(childRole);
+            if (originalHas && !nextHas) {
+              const { error } = await supabase
+                .from("user_roles")
+                .delete()
+                .eq("user_id", editTarget.user_id)
+                .is("accommodation_id", null)
+                .eq("role", childRole);
+              if (error) throw error;
+            } else if (!originalHas && nextHas) {
+              const { error } = await supabase.from("user_roles").insert({
+                user_id: editTarget.user_id,
+                accommodation_id: null,
+                role: childRole,
+              });
+              if (error) throw error;
+            }
           }
         }
       } else {
