@@ -15,7 +15,10 @@ const TEAM_REMEMBER_EMAIL_KEY = "team_remember_email";
 type TeamRole =
   | "super_admin"
   | "admin"
+  | "am"
+  | "am_manager"
   | "closer"
+  | "closer_manager"
   | "scout"
   | "scout_manager"
   | "video"
@@ -31,7 +34,10 @@ type TeamRole =
 const TEAM_ROLES: TeamRole[] = [
   "super_admin",
   "admin",
+  "am",
+  "am_manager",
   "closer",
+  "closer_manager",
   "scout",
   "scout_manager",
   "video",
