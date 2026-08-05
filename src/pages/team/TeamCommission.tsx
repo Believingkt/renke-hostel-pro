@@ -1508,7 +1508,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                           arr.push(it);
                                           byVenue.set(v, arr);
                                         }
-                                        return Array.from(byVenue.entries()).map(([venue, vItems]) => {
+                                         // 與「業績統計」一致：依小計金額由大到小排序
+                                         const sortedVenues = Array.from(byVenue.entries()).sort((a, b) => {
+                                           const sa = a[1].reduce((s, i) => s + i.multiplied_amount, 0);
+                                           const sb = b[1].reduce((s, i) => s + i.multiplied_amount, 0);
+                                           return sb === sa ? a[0].localeCompare(b[0], "zh-Hant") : sb - sa;
+                                         });
+                                         return sortedVenues.map(([venue, vItems]) => {
                                           const subtotal = vItems.reduce((s, i) => s + i.multiplied_amount, 0);
                                           const unpaid = vItems.filter((i) => !i.paid);
                                           const vKey = `${g.member_id}:${src.label}:${venue}`;
