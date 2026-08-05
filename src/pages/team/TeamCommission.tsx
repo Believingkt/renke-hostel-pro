@@ -116,7 +116,7 @@ export default function TeamCommission() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
-      <Tabs defaultValue="payouts">
+      <Tabs value={tab} onValueChange={setTab}>
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="payouts">發放管理</TabsTrigger>
@@ -128,7 +128,10 @@ export default function TeamCommission() {
           </TabsList>
         </div>
         <TabsContent value="payouts">
-          <PayoutsBlock readOnly={payoutsReadOnly} />
+          <PayoutsBlock
+            readOnly={payoutsReadOnly}
+            onOpenRules={showAdminTabs ? () => setTab("payout") : undefined}
+          />
         </TabsContent>
         {showAdminTabs && (
           <TabsContent value="payout">
