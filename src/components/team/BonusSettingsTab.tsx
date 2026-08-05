@@ -605,23 +605,30 @@ function SourceSection({
             <DialogTitle>新增版本：{title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label>採計的訂單來源</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {options.map((s) => (
-                  <label key={s} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selected.includes(s)}
-                      onCheckedChange={(c) =>
-                        setSelected((prev) =>
-                          c ? Array.from(new Set([...prev, s])) : prev.filter((x) => x !== s),
-                        )
-                      }
-                    />
-                    <span>{getOrderSourceConfig(s).label}</span>
-                  </label>
-                ))}
-              </div>
+              {sourceGroups.map((g) => (
+                <div key={g.title} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    {g.title}（{g.sources.length}）
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {g.sources.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selected.includes(s)}
+                          onCheckedChange={(c) =>
+                            setSelected((prev) =>
+                              c ? Array.from(new Set([...prev, s])) : prev.filter((x) => x !== s),
+                            )
+                          }
+                        />
+                        <span>{getOrderSourceConfig(s).label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="space-y-2">
               <Label>生效日</Label>
