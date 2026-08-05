@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 
 /* ------------------------------ 共用工具 ------------------------------ */
