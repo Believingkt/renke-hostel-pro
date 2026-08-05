@@ -1046,7 +1046,7 @@ export default function TeamHome() {
       note: rateNote("kol_monthly"),
     });
   }
-  if (showAM && venueClosingDetail.length > 0) {
+  if (venueClosingDetail.length > 0) {
     const m = multOf("venue_closing");
     cards.push({
       key: "venue_closing",
