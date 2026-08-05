@@ -1258,7 +1258,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            資料由系統於每月 10、25 日自動寫入；未到日期顯示空白屬正常，已過日期仍無資料再用「手動重新試算」或聯繫技術人員。
+            每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
 
             {onOpenRules && (
               <>
