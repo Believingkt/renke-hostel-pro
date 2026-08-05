@@ -333,6 +333,10 @@ function App() {
                     <Route path="payment-result" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>
                     } />
+                    <Route path="payment-status" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PaymentStatus /></Suspense>
+                    } />
+
                     <Route path="privacy" element={
                       <Suspense fallback={<FrontendSkeleton />}><Privacy /></Suspense>
                     } />
