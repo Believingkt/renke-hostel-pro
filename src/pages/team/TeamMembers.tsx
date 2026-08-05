@@ -587,15 +587,22 @@ export default function TeamMembers() {
         }
       } else {
         const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
+        const wantsAmRole = editRoles.includes("am" as TeamRole);
         const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
+        // 合併勾選 → 拆寫兩個欄位（角色各自決定該欄位是否寫入）
+        const selectedVenues = kolVenues.filter((v) => editManagedVenueIds.includes(v.id));
+        const selectedNames = Array.from(new Set(selectedVenues.map((v) => v.name)));
+        const selectedAccIds = Array.from(
+          new Set(selectedVenues.map((v) => v.accommodation_id).filter((x): x is string => !!x)),
+        );
         const { error: pErr } = await supabase
           .from("team_member_profiles")
           .update({
             display_name: editName.trim(),
             is_active: editActive,
-            managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
+            managed_venue: wantsVenueManager && selectedNames.length > 0 ? selectedNames : null,
             am_managed_accommodation_ids:
-              editRoles.includes("am" as TeamRole) && editAmAccommodations.length > 0 ? editAmAccommodations : null,
+              wantsAmRole && selectedAccIds.length > 0 ? selectedAccIds : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
             fulltime_start_yearmonth: nextFulltimeYM,
