@@ -93,6 +93,7 @@ import BookerForm from "@/components/booking-flow/BookerForm";
 import MobileOrderSummary from "@/components/booking-flow/MobileOrderSummary";
 import MemberSessionBar from "@/components/booking-flow/MemberSessionBar";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
