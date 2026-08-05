@@ -128,7 +128,7 @@ export default function TeamCommission() {
           </TabsList>
         </div>
         <TabsContent value="payouts">
-          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={payoutsReadOnly} />
+          <PayoutsBlock readOnly={payoutsReadOnly} />
         </TabsContent>
         {showAdminTabs && (
           <TabsContent value="payout">
