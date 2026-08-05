@@ -226,6 +226,13 @@ export default function TeamCommissionStatsTab() {
   const [accSheet, setAccSheet] = useState<{
     title: string;
     breakdown: AccBreakdown;
+    adjList?: {
+      id: string;
+      adjustment_type: string;
+      order_number: string | null;
+      reason: string | null;
+      amount: number;
+    }[];
   } | null>(null);
   const [scoutSheet, setScoutSheet] = useState<{
     title: string;
