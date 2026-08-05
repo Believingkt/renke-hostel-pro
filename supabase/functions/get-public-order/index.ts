@@ -48,12 +48,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Fetch accommodation name
     const { data: accData } = await admin
       .from("accommodation_info")
-      .select("name")
+      .select("name, address, phone, header_logo_url")
       .eq("id", accommodation_id || (data as any).accommodation_id)
       .maybeSingle();
 
     return new Response(
-      JSON.stringify({ order: data, accommodation_name: accData?.name ?? "" }),
+      JSON.stringify({ order: data, accommodation_name: accData?.name ?? "", accommodation: accData ?? null }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
