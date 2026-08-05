@@ -266,6 +266,12 @@ export default function TeamMembers() {
       }
       merged.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
       setVenues(merged);
+
+      const accList: VenueOption[] = (accRes.data ?? [])
+        .map((row) => ({ id: (row as { id: string }).id, name: (row as { name: string }).name }))
+        .filter((a) => !!a.name && !a.name.startsWith("旅行日"))
+        .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+      setAccommodations(accList);
     })();
   }, [canAccess]);
 
@@ -401,6 +407,7 @@ export default function TeamMembers() {
     setEditRoles(m.roles);
     setEditActive(m.is_active);
     setEditVenues(m.managed_venue ?? []);
+    setEditAmAccommodations(m.am_managed_accommodation_ids ?? []);
     setEditScoutTeam(m.is_scout_team_member);
     setEditFulltime(m.employment_type === "fulltime");
     const cur = getCurrentTaipeiYM();
@@ -487,6 +494,8 @@ export default function TeamMembers() {
             display_name: editName.trim(),
             is_active: editActive,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
+            am_managed_accommodation_ids:
+              editRoles.includes("am" as TeamRole) && editAmAccommodations.length > 0 ? editAmAccommodations : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
             fulltime_start_yearmonth: nextFulltimeYM,
