@@ -690,6 +690,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: scoutPayouts },
         { data: discountPayoutRows },
         { data: teamBonusDist },
+        { data: teamBonusSnapshots },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
