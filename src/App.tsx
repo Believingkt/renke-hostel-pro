@@ -64,6 +64,7 @@ const OrderPayment = lazy(() => import("./pages/OrderPayment"));
 const AtmBookingSuccess = lazy(() => import("./pages/AtmBookingSuccess"));
 const DepositCardBind = lazy(() => import("./pages/DepositCardBind"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
+const PaymentStatus = lazy(() => import("./pages/PaymentStatus"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
