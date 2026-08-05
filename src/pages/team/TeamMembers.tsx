@@ -445,6 +445,18 @@ export default function TeamMembers() {
     setEditActive(m.is_active);
     setEditVenues(m.managed_venue ?? []);
     setEditAmAccommodations(m.am_managed_accommodation_ids ?? []);
+    // 合併勾選狀態：managed_venue（名稱）與 am_managed_accommodation_ids（accommodation_id）取聯集
+    {
+      const nameSet = new Set(m.managed_venue ?? []);
+      const accSet = new Set(m.am_managed_accommodation_ids ?? []);
+      const ids = kolVenues
+        .filter(
+          (v) =>
+            nameSet.has(v.name) || (v.accommodation_id ? accSet.has(v.accommodation_id) : false),
+        )
+        .map((v) => v.id);
+      setEditManagedVenueIds(Array.from(new Set(ids)));
+    }
     setEditScoutTeam(m.is_scout_team_member);
     setEditFulltime(m.employment_type === "fulltime");
     const cur = getCurrentTaipeiYM();
