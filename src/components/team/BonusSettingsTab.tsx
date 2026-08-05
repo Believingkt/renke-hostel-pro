@@ -66,6 +66,7 @@ function pickCurrent<T extends { effective_from: string; created_at?: string }>(
 const BONUS_TYPES: { type: string; label: string; field: "rate" | "fixed_amount" }[] = [
   { type: "venue_closing", label: "場域成交獎金", field: "fixed_amount" },
   { type: "am_performance", label: "AM績效獎金", field: "rate" },
+  { type: "am_venue_bonus", label: "AM場域獎金", field: "fixed_amount" },
   { type: "am_manager", label: "AM總管獎金", field: "rate" },
   { type: "closer_performance", label: "成交組績效獎金", field: "rate" },
   { type: "closer_manager", label: "成交大師管理獎金", field: "rate" },
@@ -76,7 +77,7 @@ const BONUS_TYPES: { type: string; label: string; field: "rate" | "fixed_amount"
 /** 費率設定表格的分類與顯示順序 */
 const BONUS_GROUPS: { title: string; types: string[] }[] = [
   { title: "場域成交", types: ["venue_closing"] },
-  { title: "AM", types: ["am_performance", "am_manager"] },
+  { title: "AM", types: ["am_performance", "am_venue_bonus", "am_manager"] },
   { title: "成交組／成交大師", types: ["closer_performance", "closer_manager"] },
   { title: "網紅營銷", types: ["kol_commission", "kol_monthly"] },
 ];
