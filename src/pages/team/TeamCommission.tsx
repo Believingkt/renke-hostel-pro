@@ -112,6 +112,8 @@ export default function TeamCommission() {
   }
 
   const showAdminTabs = isAdmin || isFinance;
+  const [tab, setTab] = useState("payouts");
+
 
   return (
     <div className="space-y-4">
