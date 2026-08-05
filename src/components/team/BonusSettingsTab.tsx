@@ -65,7 +65,7 @@ function pickCurrent<T extends { effective_from: string; created_at?: string }>(
 const BONUS_TYPES: { type: string; label: string; field: "rate" | "fixed_amount" }[] = [
   { type: "am_performance", label: "AM績效獎金", field: "rate" },
   { type: "closer_performance", label: "成交組績效獎金", field: "rate" },
-  { type: "am_manager", label: "AM總管獎金", field: "fixed_amount" },
+  { type: "am_manager", label: "AM總管獎金", field: "rate" },
   { type: "closer_manager", label: "成交大師管理獎金", field: "rate" },
   { type: "kol_commission", label: "網紅營銷專利獎金", field: "rate" },
   { type: "kol_monthly", label: "網紅營銷月獎金", field: "fixed_amount" },

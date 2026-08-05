@@ -751,12 +751,11 @@ export default function TeamHome() {
             closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
           }
 
-          // (3) AM 總管獎金：全公司營收 × rate（若設定為固定金額則直接採用）
+          // (3) AM 總管獎金：全公司營收 × rate（抽成制）
           if (amManagerFlag) {
             const s = rateSettings.am_manager;
-            if (!s || (s.rate == null && s.fixed_amount == null)) missing.am_manager = true;
-            amManagerSum =
-              Number(s?.fixed_amount ?? 0) + companyRevenue * Number(s?.rate ?? 0);
+            if (!s || s.rate == null) missing.am_manager = true;
+            amManagerSum = companyRevenue * Number(s?.rate ?? 0);
           }
 
           // (4) 成交大師管理獎金：全公司營收 × rate
