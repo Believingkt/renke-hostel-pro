@@ -649,6 +649,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
+  const [venueDetail, setVenueDetail] = useState<{
+    member: string;
+    sourceLabel: string;
+    venue: string;
+    items: SourceItem[];
+  } | null>(null);
 
 
 
