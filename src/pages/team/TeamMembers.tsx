@@ -631,7 +631,7 @@ export default function TeamMembers() {
       setEditTarget(null);
       fetchMembers();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "儲存失敗");
+      toast.error((err as any)?.message || "儲存失敗");
     } finally {
       setSaving(false);
     }
