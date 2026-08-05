@@ -82,6 +82,7 @@ interface MemberRow {
   is_active: boolean;
   roles: TeamRole[];
   managed_venue: string[] | null;
+  am_managed_accommodation_ids: string[] | null;
   is_scout_team_member: boolean;
   employment_type: "fulltime" | "parttime";
   fulltime_start_yearmonth: string | null;
@@ -120,6 +121,7 @@ export default function TeamMembers() {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
   const [venues, setVenues] = useState<VenueOption[]>([]);
+  const [accommodations, setAccommodations] = useState<VenueOption[]>([]);
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
@@ -135,6 +137,7 @@ export default function TeamMembers() {
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
   const [editVenues, setEditVenues] = useState<string[]>([]);
+  const [editAmAccommodations, setEditAmAccommodations] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [editFulltime, setEditFulltime] = useState(false);
   const getCurrentTaipeiYM = () => {
@@ -159,7 +162,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+      .select("id, user_id, display_name, is_active, managed_venue, am_managed_accommodation_ids, is_scout_team_member, employment_type, fulltime_start_yearmonth")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -204,6 +207,8 @@ export default function TeamMembers() {
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
+      am_managed_accommodation_ids:
+        (p as { am_managed_accommodation_ids?: string[] | null }).am_managed_accommodation_ids ?? null,
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
       employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
         ? "fulltime"
@@ -261,6 +266,12 @@ export default function TeamMembers() {
       }
       merged.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
       setVenues(merged);
+
+      const accList: VenueOption[] = (accRes.data ?? [])
+        .map((row) => ({ id: (row as { id: string }).id, name: (row as { name: string }).name }))
+        .filter((a) => !!a.name && !a.name.startsWith("旅行日"))
+        .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+      setAccommodations(accList);
     })();
   }, [canAccess]);
 
@@ -396,6 +407,7 @@ export default function TeamMembers() {
     setEditRoles(m.roles);
     setEditActive(m.is_active);
     setEditVenues(m.managed_venue ?? []);
+    setEditAmAccommodations(m.am_managed_accommodation_ids ?? []);
     setEditScoutTeam(m.is_scout_team_member);
     setEditFulltime(m.employment_type === "fulltime");
     const cur = getCurrentTaipeiYM();
@@ -410,6 +422,7 @@ export default function TeamMembers() {
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
+  const wantsAM = editRoles.includes("am" as TeamRole);
 
   const toggleEditRole = (role: TeamRole) => {
     setEditRoles((prev) => {
@@ -482,6 +495,8 @@ export default function TeamMembers() {
             display_name: editName.trim(),
             is_active: editActive,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
+            am_managed_accommodation_ids:
+              editRoles.includes("am" as TeamRole) && editAmAccommodations.length > 0 ? editAmAccommodations : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
             fulltime_start_yearmonth: nextFulltimeYM,
@@ -821,6 +836,16 @@ export default function TeamMembers() {
                         {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && m.managed_venue.length > 0 && (
                           <span className="text-xs text-muted-foreground ml-1">{m.managed_venue.join(", ")}</span>
                         )}
+                        {displayRoles(m).includes("am" as TeamRole) &&
+                          m.am_managed_accommodation_ids &&
+                          m.am_managed_accommodation_ids.length > 0 && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              {m.am_managed_accommodation_ids
+                                .map((id) => accommodations.find((a) => a.id === id)?.name)
+                                .filter(Boolean)
+                                .join(", ")}
+                            </span>
+                          )}
                         {(displayRoles(m).includes("scout") || displayRoles(m).includes("scout_manager")) && m.is_scout_team_member && (
                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">團隊</Badge>
                         )}
@@ -925,6 +950,34 @@ export default function TeamMembers() {
                       </div>
                       {editVenues.length === 0 && (
                         <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空負責場域</p>
+                      )}
+                    </div>
+                  )}
+                  {wantsAM && canEditAll && (
+                    <div className="space-y-2 pt-2">
+                      <Label>管理場域（可多選，不含旅行日系列）</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                        {accommodations.map((acc) => (
+                          <label
+                            key={acc.id}
+                            className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={editAmAccommodations.includes(acc.id)}
+                              onCheckedChange={() =>
+                                setEditAmAccommodations((prev) =>
+                                  prev.includes(acc.id)
+                                    ? prev.filter((id) => id !== acc.id)
+                                    : [...prev, acc.id],
+                                )
+                              }
+                            />
+                            <span className="text-sm">{acc.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {editAmAccommodations.length === 0 && (
+                        <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空管理場域</p>
                       )}
                     </div>
                   )}
