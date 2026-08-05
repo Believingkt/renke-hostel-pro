@@ -804,6 +804,18 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
+      // 分潤補差（closer_commission_adjustments）：獨立項目，金額可為負，不套倍率
+      (closerAdjustments ?? []).forEach((r: any) => {
+        const orderRef = String(r.order_id ?? "").slice(0, 8);
+        const detail = `補差(${adjustmentTypeLabel(r.adjustment_type)}) 訂單${orderRef}${r.reason ? ` ${r.reason}` : ""}`;
+        if (r.closer_id && Number(r.closer_amount) !== 0) {
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, detail, Number(r.closer_amount));
+        }
+        if (r.video_creator_id && Number(r.video_amount) !== 0) {
+          pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, detail, Number(r.video_amount));
+        }
+      });
+
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
       // - 有 early_payout_month → 該值 === prevMonthKey（期別月，即發放月-1）
       // - 無 → sold_at / signed_at 的 YYYY-MM === prevMonthKey（上月）
