@@ -9,6 +9,7 @@ import {
   getRoleBinding,
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
+  getVenueClosingAccommodations,
   getMarketingFeeFlags,
 } from "@/lib/teamBonusRevenue";
 
@@ -790,28 +791,34 @@ export default function TeamHome() {
             kolMonthlySum = Number(sm?.fixed_amount ?? 0);
           }
 
-          // (7) 場域成交獎金：管理場域中 charges_marketing_fee = true 者各發一份固定金額
-          if (showAM && myManagedAccIds.length > 0) {
-            const s = rateSettings.venue_closing;
-            if (!s || s.fixed_amount == null) missing.venue_closing = true;
-            const perVenue = Number(s?.fixed_amount ?? 0);
-            const flags = await getMarketingFeeFlags(client, myManagedAccIds, monthStartDate);
-            const hitIds = myManagedAccIds.filter((id) => flags[id] === true);
-            if (hitIds.length > 0) {
-              const { data: accNames } = await supabase
-                .from("accommodation_info")
-                .select("id, name")
-                .in("id", hitIds);
-              const nameMap = new Map<string, string>(
-                ((accNames ?? []) as any[]).map((a) => [a.id, a.name as string]),
-              );
-              venueClosingLines = hitIds.map((id) => ({
-                name: nameMap.get(id) ?? id,
-                amount: perVenue,
-              }));
-              venueClosingSum = perVenue * hitIds.length;
+          // (7) 場域成交獎金：我是簽約人的館別中，charges_marketing_fee = true 者各發一份固定金額
+          {
+            const myClosingAccIds = profileId
+              ? await getVenueClosingAccommodations(client, profileId, monthStartDate)
+              : [];
+            if (myClosingAccIds.length > 0) {
+              const s = rateSettings.venue_closing;
+              if (!s || s.fixed_amount == null) missing.venue_closing = true;
+              const perVenue = Number(s?.fixed_amount ?? 0);
+              const flags = await getMarketingFeeFlags(client, myClosingAccIds, monthStartDate);
+              const hitIds = myClosingAccIds.filter((id) => flags[id] === true);
+              if (hitIds.length > 0) {
+                const { data: accNames } = await supabase
+                  .from("accommodation_info")
+                  .select("id, name")
+                  .in("id", hitIds);
+                const nameMap = new Map<string, string>(
+                  ((accNames ?? []) as any[]).map((a) => [a.id, a.name as string]),
+                );
+                venueClosingLines = hitIds.map((id) => ({
+                  name: nameMap.get(id) ?? id,
+                  amount: perVenue,
+                }));
+                venueClosingSum = perVenue * hitIds.length;
+              }
             }
           }
+
         }
 
         // ===== Multipliers（當月 YYYY-MM）=====
@@ -1039,7 +1046,7 @@ export default function TeamHome() {
       note: rateNote("kol_monthly"),
     });
   }
-  if (showAM && venueClosingDetail.length > 0) {
+  if (venueClosingDetail.length > 0) {
     const m = multOf("venue_closing");
     cards.push({
       key: "venue_closing",
