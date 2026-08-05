@@ -64,14 +64,23 @@ function pickCurrent<T extends { effective_from: string; created_at?: string }>(
 }
 
 const BONUS_TYPES: { type: string; label: string; field: "rate" | "fixed_amount" }[] = [
+  { type: "venue_closing", label: "場域成交獎金", field: "fixed_amount" },
   { type: "am_performance", label: "AM績效獎金", field: "rate" },
-  { type: "closer_performance", label: "成交組績效獎金", field: "rate" },
   { type: "am_manager", label: "AM總管獎金", field: "rate" },
+  { type: "closer_performance", label: "成交組績效獎金", field: "rate" },
   { type: "closer_manager", label: "成交大師管理獎金", field: "rate" },
   { type: "kol_commission", label: "網紅營銷專利獎金", field: "rate" },
   { type: "kol_monthly", label: "網紅營銷月獎金", field: "fixed_amount" },
-  { type: "venue_closing", label: "場域成交獎金", field: "fixed_amount" },
 ];
+
+/** 費率設定表格的分類與顯示順序 */
+const BONUS_GROUPS: { title: string; types: string[] }[] = [
+  { title: "場域成交", types: ["venue_closing"] },
+  { title: "AM", types: ["am_performance", "am_manager"] },
+  { title: "成交組／成交大師", types: ["closer_performance", "closer_manager"] },
+  { title: "網紅營銷", types: ["kol_commission", "kol_monthly"] },
+];
+
 
 const ROLE_TYPES: { type: string; label: string }[] = [
   { type: "am_manager", label: "AM總管" },
@@ -371,7 +380,17 @@ function RateSection({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {BONUS_TYPES.map((b) => {
+              {BONUS_GROUPS.flatMap((g) => [
+                <TableRow key={`g-${g.title}`} className="bg-muted/50 hover:bg-muted/50">
+                  <TableCell colSpan={5} className="py-1 text-xs font-medium text-muted-foreground">
+                    {g.title}
+                  </TableCell>
+                </TableRow>,
+                ...g.types.map((t) => BONUS_TYPES.find((b) => b.type === t)!).filter(Boolean),
+              ]).map((b: any) => {
+                if (b?.props !== undefined) return b; // 分類標題列
+
+
                 const history = byType.get(b.type) ?? [];
                 const cur = pickCurrent(history);
                 const isOpen = expanded.has(b.type);
