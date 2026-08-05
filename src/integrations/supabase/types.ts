@@ -10100,6 +10100,48 @@ export type Database = {
         }
         Relationships: []
       }
+      teamcommission_venue_closing_assignments: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          created_by: string
+          effective_from: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          created_by: string
+          effective_from: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamcommission_venue_closing_assignments_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teamcommission_venue_closing_assignments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traffic_sources: {
         Row: {
           created_at: string | null
