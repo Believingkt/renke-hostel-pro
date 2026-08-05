@@ -12,7 +12,7 @@ const corsHeaders = {
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 // 回溯補建的月份數（上上月起往前算，不含正常掃描的上月）
-const BACKFILL_MONTHS = 3;
+const BACKFILL_MONTHS = 1;
 
 function getTaipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
