@@ -205,3 +205,41 @@ export async function getMarketingFeeFlags(
   }
   return out;
 }
+
+/**
+ * 取得「該成員在指定月份為場域簽約人」的館別清單。
+ * teamcommission_venue_closing_assignments 為 append-only 版本化：
+ * 依 accommodation_id 分組取 effective_from <= monthStartDate 的最新一筆。
+ */
+export async function getVenueClosingAccommodations(
+  client: any,
+  memberProfileId: string,
+  monthStartDate: string,
+): Promise<string[]> {
+  if (!memberProfileId) return [];
+  const { data } = await client
+    .from("teamcommission_venue_closing_assignments")
+    .select("accommodation_id, member_id, effective_from, created_at")
+    .lte("effective_from", monthStartDate);
+
+  const byAcc = new Map<string, any[]>();
+  for (const row of (data ?? []) as any[]) {
+    const key = row?.accommodation_id;
+    if (!key) continue;
+    const list = byAcc.get(key) ?? [];
+    list.push(row);
+    byAcc.set(key, list);
+  }
+
+  const out: string[] = [];
+  for (const [accId, list] of byAcc) {
+    const latest = list.reduce((best, r) => {
+      const ef = String(r.effective_from ?? "").localeCompare(String(best.effective_from ?? ""));
+      if (ef > 0) return r;
+      if (ef === 0 && String(r.created_at ?? "") > String(best.created_at ?? "")) return r;
+      return best;
+    });
+    if (latest?.member_id === memberProfileId) out.push(accId);
+  }
+  return out;
+}
