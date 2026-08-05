@@ -168,6 +168,15 @@ export default function BonusSettingsTab() {
         }
       }
       setSourceOptions(Array.from(set));
+
+      const { data: ownerRows } = await (supabase as any).rpc("get_order_source_owners");
+      const map: Record<string, string[]> = {};
+      for (const r of (ownerRows ?? []) as any[]) {
+        const s = String(r?.source ?? "").trim();
+        if (!s) continue;
+        map[s] = Array.isArray(r?.accommodation_names) ? r.accommodation_names : [];
+      }
+      setSourceOwners(map);
     } catch (e: any) {
       toast.error("讀取獎金設定失敗：" + (e?.message ?? ""));
     } finally {
