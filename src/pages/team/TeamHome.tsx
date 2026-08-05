@@ -1108,7 +1108,9 @@ export default function TeamHome() {
                     <p className="text-2xl font-semibold">
                       {loading ? "—" : fmt(c.amount)}
                     </p>
-                    {!loading && c.lines && c.lines.length > 1 ? (
+                    {!loading &&
+                    c.lines &&
+                    (c.lines.length > 1 || c.key === "venue_closing") ? (
                       <div className="mt-2 space-y-0.5">
                         {c.lines.map((ln, i) => (
                           <div key={i} className="flex justify-between text-xs text-muted-foreground">
