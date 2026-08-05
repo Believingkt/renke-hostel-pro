@@ -388,7 +388,8 @@ function RateSection({
                 </TableRow>,
                 ...g.types.map((t) => BONUS_TYPES.find((b) => b.type === t)!).filter(Boolean),
               ]).map((b: any) => {
-                if (b?.type == null) return b;
+                if (b?.props !== undefined) return b; // 分類標題列
+
 
                 const history = byType.get(b.type) ?? [];
                 const cur = pickCurrent(history);
