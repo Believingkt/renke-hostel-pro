@@ -1284,8 +1284,16 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                 {range.prevYear} 年 {range.prevMonth} 月成交組團隊獎金尚未定案
               </span>
               <p className="text-muted-foreground mt-0.5">
-                該月已有成交組分潤資料，但團隊獎金分配尚未定案，發放管理不會列出此筆獎金。請至「團隊獎金分配」頁完成定案。
+                該月已有成交組分潤資料，但團隊獎金分配尚未定案，發放管理不會列出此筆獎金。請至{" "}
+                <a
+                  href="/team/orders?tab=team-bonus"
+                  className="underline underline-offset-2 text-primary hover:opacity-80"
+                >
+                  團隊成交統計
+                </a>{" "}
+                完成定案。
               </p>
+
             </div>
           </div>
         )}
