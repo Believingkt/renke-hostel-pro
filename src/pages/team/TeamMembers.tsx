@@ -316,6 +316,8 @@ export default function TeamMembers() {
   const MANAGER_CHILD_MAP: Partial<Record<TeamRole, TeamRole>> = {
     scout_manager: "scout",
     ["franchise_manager" as TeamRole]: "franchise",
+    ["closer_manager" as TeamRole]: "closer" as TeamRole,
+    ["am_manager" as TeamRole]: "am" as TeamRole,
   };
   const CHILD_OF: Partial<Record<TeamRole, TeamRole>> = Object.fromEntries(
     Object.entries(MANAGER_CHILD_MAP).map(([m, c]) => [c as string, m as TeamRole]),
