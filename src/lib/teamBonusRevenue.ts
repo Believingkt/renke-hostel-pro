@@ -37,14 +37,15 @@ export function taipeiToday(): string {
 }
 
 /**
- * 取「目前生效版本」：effective_from <= 今天(台北) 中 effective_from 最大者。
- * 不可直接取陣列第一筆（會誤取未來生效版本）。
+ * 取「指定日期當時生效版本」：effective_from <= asOf 中 effective_from 最大者。
+ * asOf 預設為今天（台北）。不可直接取陣列第一筆（會誤取未來生效版本）。
  */
 export function pickCurrent<T extends { effective_from: string; created_at?: string }>(
   rows: T[],
+  asOf?: string,
 ): T | null {
-  const today = taipeiToday();
-  const eligible = (rows ?? []).filter((r) => r?.effective_from && r.effective_from <= today);
+  const cutoff = asOf ?? taipeiToday();
+  const eligible = (rows ?? []).filter((r) => r?.effective_from && r.effective_from <= cutoff);
   if (eligible.length === 0) return null;
   return eligible.reduce((best, r) => {
     if (r.effective_from > best.effective_from) return r;
@@ -54,15 +55,16 @@ export function pickCurrent<T extends { effective_from: string; created_at?: str
   });
 }
 
-/** 取每個 bonus_type 目前生效版本的費率／固定金額 */
+/** 取每個 bonus_type 在指定日期（預設今天）生效版本的費率／固定金額 */
 export async function getBonusRateSettings(
   client: any,
+  asOf?: string,
 ): Promise<Record<string, BonusRateSetting>> {
-  const today = taipeiToday();
+  const cutoff = asOf ?? taipeiToday();
   const { data } = await client
     .from("teamcommission_bonus_rate_settings")
     .select("bonus_type, rate, fixed_amount, effective_from, created_at")
-    .lte("effective_from", today);
+    .lte("effective_from", cutoff);
 
   const grouped = new Map<string, any[]>();
   for (const row of (data ?? []) as any[]) {
@@ -75,7 +77,7 @@ export async function getBonusRateSettings(
 
   const out: Record<string, BonusRateSetting> = {};
   for (const [key, list] of grouped) {
-    const cur = pickCurrent(list);
+    const cur = pickCurrent(list, cutoff);
     if (!cur) continue;
     out[key] = {
       rate: cur.rate === null || cur.rate === undefined ? null : Number(cur.rate),
@@ -88,36 +90,39 @@ export async function getBonusRateSettings(
   return out;
 }
 
-/** 取角色綁定目前生效版本的 member_id（查無回 null） */
+/** 取角色綁定在指定日期（預設今天）生效版本的 member_id（查無回 null） */
 export async function getRoleBinding(
   client: any,
   roleType: RoleBindingType,
+  asOf?: string,
 ): Promise<string | null> {
-  const today = taipeiToday();
+  const cutoff = asOf ?? taipeiToday();
   const { data } = await client
     .from("teamcommission_role_bindings")
     .select("member_id, effective_from, created_at")
     .eq("role_type", roleType)
-    .lte("effective_from", today);
-  const cur = pickCurrent((data ?? []) as any[]);
+    .lte("effective_from", cutoff);
+  const cur = pickCurrent((data ?? []) as any[], cutoff);
   return cur?.member_id ?? null;
 }
 
-/** 取訂單來源白名單目前生效版本（查無回空陣列） */
+/** 取訂單來源白名單在指定日期（預設今天）生效版本（查無回空陣列） */
 export async function getRevenueSourceWhitelist(
   client: any,
   table: RevenueSourceWhitelistTable,
+  asOf?: string,
 ): Promise<string[]> {
-  const today = taipeiToday();
+  const cutoff = asOf ?? taipeiToday();
   const { data } = await client
     .from(table)
     .select("included_order_sources, effective_from, created_at")
-    .lte("effective_from", today);
-  const cur = pickCurrent((data ?? []) as any[]);
+    .lte("effective_from", cutoff);
+  const cur = pickCurrent((data ?? []) as any[], cutoff);
   const sources = cur?.included_order_sources;
   if (!Array.isArray(sources)) return [];
   return sources.map((s: unknown) => String(s)).filter(Boolean);
 }
+
 
 const CHUNK = 500;
 
