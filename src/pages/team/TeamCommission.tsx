@@ -1296,8 +1296,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               <AlertDialogDescription asChild>
                 <div className="space-y-3 text-sm">
                   <p>
-                    將重新產生 <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月的成交組快照、
-                    金額調整，以及星探發放試算（結算月份 {prevMonthKey}）。已標記為「已發放」的紀錄不會被覆蓋。
+                    將補建<strong>尚未產生過快照</strong>的訂單（結算月份 {prevMonthKey}，並自動回溯最近 3 個月），
+                    並試算金額調整與星探發放。補建的快照歸入{" "}
+                    <strong>{year}/{String(month).padStart(2, "0")}</strong> 發放月；
+                    已鎖定的既有快照金額不會被覆寫或修改。
                   </p>
                   <div>
                     <Label className="text-xs">星探期別</Label>
