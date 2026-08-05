@@ -935,6 +935,8 @@ export default function TeamCommissionStatsTab() {
 
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
+                  const memberAdj = byUid.get(r.uid) ?? 0;
+                  const memberTotal = netCommission(r.commission) + memberAdj;
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -952,7 +954,16 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
                         <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        {showAdj && (
+                          <>
+                            <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
+                            <TableCell className="tabular-nums font-semibold">
+                              {fmtMoney(memberTotal)}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="tabular-nums">{r.cancelCount}</TableCell>
+
                         <TableCell className="tabular-nums text-muted-foreground">
                           {fmtMoney(r.cancelAmount)}
                         </TableCell>
