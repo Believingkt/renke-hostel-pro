@@ -908,7 +908,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           r.bonus_type,
           profileById.get(r.member_id),
           SOURCE_LABEL[r.bonus_type] ?? r.bonus_type,
-          r.snapshot_month ? `${r.snapshot_month} 結算` : "團隊獎金",
+          `${payoutMonthKey.replace("-", "/")} 10日期`,
           amount,
         );
       });
