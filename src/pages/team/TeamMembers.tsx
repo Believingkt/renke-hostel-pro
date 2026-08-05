@@ -1049,7 +1049,7 @@ export default function TeamMembers() {
                   )}
                   {wantsAM && canEditAll && (
                     <div className="space-y-2 pt-2">
-                      <Label>管理場域（可多選，不含旅行日系列）</Label>
+                      <Label>管理場域（可多選）</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
                         {accommodations.map((acc) => (
                           <label
@@ -1066,7 +1066,14 @@ export default function TeamMembers() {
                                 )
                               }
                             />
-                            <span className="text-sm">{acc.name}</span>
+                            <span className="text-sm">
+                              {acc.name}
+                              {acc.name.startsWith("旅行日") && (
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                  （不列入 AM績效獎金與AM場域獎金計算）
+                                </span>
+                              )}
+                            </span>
                           </label>
                         ))}
                       </div>
