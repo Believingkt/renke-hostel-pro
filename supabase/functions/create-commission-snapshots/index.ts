@@ -246,15 +246,152 @@ serve(async (req) => {
       return result;
     }
 
+    /**
+     * 重算「未發放」快照：若訂單目前的分潤基準金額與快照凍結金額不同，
+     * 直接改寫該快照（金額、費率、check_out_date），使發放金額與現況一致。
+     * 已標記發放（commission_payout_marks.payout_status = 'paid'）的快照永不改寫。
+     */
+    async function resyncUnpaidSnapshots() {
+      const out = {
+        checked: 0,
+        updated: 0,
+        skipped_paid: 0,
+        details: [] as Array<{
+          order_id: string; before: number; after: number;
+          closer_amount_before: number; closer_amount_after: number;
+        }>,
+        errors: [] as Array<{ order_id: string; error: string }>,
+      };
+
+      const { data: snaps, error: snapErr } = await supabase
+        .from("closer_commission_snapshots")
+        .select("id, order_id, accommodation_id, video_creator_id, final_price_snapshot, closer_rate, video_rate, closer_commission_amount, video_commission_amount");
+      if (snapErr) throw snapErr;
+      const snapList = snaps ?? [];
+      if (snapList.length === 0) return out;
+
+      // 已發放標記
+      const { data: marks, error: markErr } = await supabase
+        .from("commission_payout_marks")
+        .select("source_id")
+        .eq("source_table", "closer_commission_snapshots")
+        .eq("payout_status", "paid");
+      if (markErr) throw markErr;
+      const paidSet = new Set<string>((marks ?? []).map((r) => r.source_id as string));
+
+      const pending = snapList.filter((s) => !paidSet.has(s.id as string));
+      out.skipped_paid = snapList.length - pending.length;
+      if (pending.length === 0) return out;
+
+      const orderIds = pending.map((s) => s.order_id as string);
+
+      const { data: orders, error: ordErr } = await supabase
+        .from("orders")
+        .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .in("id", orderIds);
+      if (ordErr) throw ordErr;
+      const orderMap = new Map<string, any>();
+      for (const o of orders ?? []) orderMap.set(o.id as string, o);
+
+      const { data: metas, error: metaErr } = await supabase
+        .from("order_meta")
+        .select("order_id, team_commission_price, video_creator_id")
+        .in("order_id", orderIds);
+      if (metaErr) throw metaErr;
+      const metaMap = new Map<string, any>();
+      for (const mm of metas ?? []) metaMap.set(mm.order_id as string, mm);
+
+      const accIds = Array.from(new Set((orders ?? []).map((o) => o.accommodation_id as string)));
+      const { data: settings, error: setErr } = await supabase
+        .from("accommodation_commission_settings")
+        .select("accommodation_id, closer_rate, video_rate, effective_from")
+        .in("accommodation_id", accIds)
+        .order("effective_from", { ascending: false });
+      if (setErr) throw setErr;
+      const rateFor = (accId: string, orderDateIso: string) => {
+        const top = (settings ?? []).find(
+          (s) => s.accommodation_id === accId && s.effective_from <= String(orderDateIso).slice(0, 10),
+        );
+        return { closer: Number(top?.closer_rate ?? 0), video: Number(top?.video_rate ?? 0) };
+      };
+
+      const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
+
+      for (const s of pending) {
+        const ord = orderMap.get(s.order_id as string);
+        if (!ord) continue;
+        // 取消單由 create-commission-adjustments 以「扣回」處理，不在此改寫
+        if (ord.order_status === "cancelled") continue;
+        const cur = ord.currency_at_booking;
+        if (cur && cur !== "TWD") continue;
+        if (isExemptR(ord)) continue;
+
+        out.checked++;
+
+        const meta = metaMap.get(s.order_id as string);
+        const tcp = meta?.team_commission_price;
+        const finalPrice = Number(ord.final_price ?? 0);
+        const baseAmount =
+          tcp == null || Number(tcp) === finalPrice
+            ? commissionBaseFromOrder(ord)
+            : Number(tcp);
+
+        const rates = rateFor(ord.accommodation_id as string, ord.order_date as string);
+        const closerRate = s.closer_rate == null ? rates.closer : Number(s.closer_rate);
+        const hasVideo = !!s.video_creator_id;
+        const videoRate = hasVideo ? (s.video_rate == null ? rates.video : Number(s.video_rate)) : 0;
+
+        const closerAmt = baseAmount * closerRate;
+        const videoAmt = hasVideo ? baseAmount * videoRate : 0;
+
+        const beforeBase = Number(s.final_price_snapshot ?? 0);
+        const beforeCloser = Number(s.closer_commission_amount ?? 0);
+        const beforeVideo = Number(s.video_commission_amount ?? 0);
+
+        const near = (a: number, b: number) => Math.abs(a - b) < 0.005;
+        if (near(beforeBase, baseAmount) && near(beforeCloser, closerAmt) && near(beforeVideo, videoAmt)) {
+          continue;
+        }
+
+        const { error: updErr } = await supabase
+          .from("closer_commission_snapshots")
+          .update({
+            final_price_snapshot: baseAmount,
+            closer_commission_amount: closerAmt,
+            video_commission_amount: videoAmt,
+            check_out_date: ord.check_out_date,
+          })
+          .eq("id", s.id);
+        if (updErr) {
+          out.errors.push({ order_id: s.order_id as string, error: updErr.message });
+          continue;
+        }
+
+        out.updated++;
+        out.details.push({
+          order_id: s.order_id as string,
+          before: beforeBase,
+          after: baseAmount,
+          closer_amount_before: Math.round(beforeCloser * 100) / 100,
+          closer_amount_after: Math.round(closerAmt * 100) / 100,
+        });
+      }
+
+      return out;
+    }
+
     // ===== 本期（上月 / test_month）=====
     const current = await processMonth(snapYear, snapMonth);
 
-    // ===== 回溯補建：上上月起往前 3 個月 =====
+    // ===== 回溯補建：上上月起往前 BACKFILL_MONTHS 個月 =====
     const backfillResults: MonthResult[] = [];
     for (let i = 1; i <= BACKFILL_MONTHS; i++) {
       const { y, m } = addMonths(snapYear, snapMonth, -i);
       backfillResults.push(await processMonth(y, m));
     }
+
+    // ===== 未發放快照金額重算（金額異動 → 重寫快照）=====
+    const resync = await resyncUnpaidSnapshots();
 
     const createdBackfill = backfillResults
       .filter((r) => r.created > 0)
@@ -264,7 +401,9 @@ serve(async (req) => {
     const errors = [
       ...current.errors,
       ...backfillResults.flatMap((r) => r.errors.map((e) => ({ ...e, month: r.month }))),
+      ...resync.errors.map((e) => ({ ...e, month: "resync" })),
     ];
+
 
     return jsonResponse({
       success: true,
