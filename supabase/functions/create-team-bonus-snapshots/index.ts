@@ -1,0 +1,621 @@
+// 每月鎖定八種團隊獎金金額 → teamcommission_bonus_snapshots
+//
+// 設計原則（比照 create-commission-snapshots）：
+// - 非 test_mode 時，只有台北時間「當月 10 日」實際執行，其餘回傳 skipped
+// - snapshot_month = 上個月；payout_month = 執行當下月份（可用 test_month 覆寫 snapshot_month）
+// - 所有版本判定（費率／白名單／角色綁定／簽約人／行銷費旗標）一律用
+//   asOf = snapshot_month + "-01"，鎖定「結算月當時生效的版本」，
+//   事後修改設定表不會回溯影響已鎖定月份
+// - 逐筆 insert，UNIQUE(bonus_type, member_id, snapshot_month) 衝突（23505）視為 skipped
+//
+// 計算邏輯完全比照 src/pages/team/TeamHome.tsx 的即時試算，只是搬到後端並鎖定版本。
+// 註：Edge Function 無法 import src/ 下的檔案，teamBonusRevenue.ts 的邏輯在此重寫一份。
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const BONUS_TYPES = [
+  "am_performance",
+  "am_venue_bonus",
+  "closer_performance",
+  "am_manager",
+  "closer_manager",
+  "kol_commission",
+  "kol_monthly",
+  "venue_closing",
+] as const;
+type BonusType = (typeof BONUS_TYPES)[number];
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+function getTaipeiParts(d: Date = new Date()) {
+  const f = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(d)) parts[p.type] = p.value;
+  return { y: Number(parts.year), m: Number(parts.month), day: Number(parts.day) };
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/* ============================ 版本化設定查詢（asOf 版） ============================ */
+
+interface Versioned {
+  effective_from: string;
+  created_at?: string;
+}
+
+/** 取 effective_from <= asOf 中 effective_from 最大者（同日取 created_at 最新） */
+function pickCurrent<T extends Versioned>(rows: T[], asOf: string): T | null {
+  const eligible = (rows ?? []).filter((r) => r?.effective_from && r.effective_from <= asOf);
+  if (eligible.length === 0) return null;
+  return eligible.reduce((best, r) => {
+    if (r.effective_from > best.effective_from) return r;
+    if (r.effective_from === best.effective_from && (r.created_at ?? "") > (best.created_at ?? ""))
+      return r;
+    return best;
+  });
+}
+
+interface BonusRateSetting {
+  rate: number | null;
+  fixed_amount: number | null;
+}
+
+async function getBonusRateSettings(
+  client: any,
+  asOf: string,
+): Promise<Record<string, BonusRateSetting>> {
+  const { data } = await client
+    .from("teamcommission_bonus_rate_settings")
+    .select("bonus_type, rate, fixed_amount, effective_from, created_at")
+    .lte("effective_from", asOf);
+
+  const grouped = new Map<string, any[]>();
+  for (const row of (data ?? []) as any[]) {
+    const key = String(row?.bonus_type ?? "");
+    if (!key) continue;
+    const list = grouped.get(key) ?? [];
+    list.push(row);
+    grouped.set(key, list);
+  }
+
+  const out: Record<string, BonusRateSetting> = {};
+  for (const [key, list] of grouped) {
+    const cur = pickCurrent(list, asOf);
+    if (!cur) continue;
+    out[key] = {
+      rate: cur.rate == null ? null : Number(cur.rate),
+      fixed_amount: cur.fixed_amount == null ? null : Number(cur.fixed_amount),
+    };
+  }
+  return out;
+}
+
+async function getRoleBinding(
+  client: any,
+  roleType: "am_manager" | "closer_manager" | "kol_bonus_recipient",
+  asOf: string,
+): Promise<string | null> {
+  const { data } = await client
+    .from("teamcommission_role_bindings")
+    .select("member_id, effective_from, created_at")
+    .eq("role_type", roleType)
+    .lte("effective_from", asOf);
+  const cur = pickCurrent((data ?? []) as any[], asOf);
+  return cur?.member_id ?? null;
+}
+
+async function getRevenueSourceWhitelist(
+  client: any,
+  table:
+    | "teamcommission_shared_revenue_source_whitelist"
+    | "teamcommission_kol_revenue_source_whitelist",
+  asOf: string,
+): Promise<string[]> {
+  const { data } = await client
+    .from(table)
+    .select("included_order_sources, effective_from, created_at")
+    .lte("effective_from", asOf);
+  const cur = pickCurrent((data ?? []) as any[], asOf);
+  const sources = cur?.included_order_sources;
+  if (!Array.isArray(sources)) return [];
+  return sources.map((s: unknown) => String(s)).filter(Boolean);
+}
+
+const CHUNK = 500;
+
+/** 分潤基準營收加總（order_meta.team_commission_price），monthEndDate 為排他 */
+async function getAccommodationRevenue(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+  allowedSources: string[],
+): Promise<number> {
+  const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+  const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
+  if (accIds.length === 0 || sources.length === 0) return 0;
+
+  let total = 0;
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const slice = accIds.slice(i, i + CHUNK);
+    const { data } = await client
+      .from("orders")
+      .select("id, order_meta(team_commission_price, is_excluded)")
+      .in("accommodation_id", slice)
+      .gte("order_date", monthStartDate)
+      .lt("order_date", monthEndDate)
+      .neq("order_status", "cancelled")
+      .neq("guest_name", "保留單")
+      .in("order_source", sources);
+
+    for (const row of (data ?? []) as any[]) {
+      const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
+      if (!meta) continue;
+      if (meta.is_excluded === true) continue;
+      total += Number(meta.team_commission_price ?? 0) || 0;
+    }
+  }
+  return total;
+}
+
+/** 各館別在該月是否約定收取行銷推廣費（append-only，逐館取最新一筆） */
+async function getMarketingFeeFlags(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+): Promise<Record<string, boolean>> {
+  const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+  const out: Record<string, boolean> = {};
+  if (accIds.length === 0) return out;
+
+  const byAcc = new Map<string, any[]>();
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const slice = accIds.slice(i, i + CHUNK);
+    const { data } = await client
+      .from("owner_settlement_pricing_rules")
+      .select("accommodation_id, charges_marketing_fee, effective_from, created_at")
+      .in("accommodation_id", slice)
+      .lte("effective_from", monthStartDate);
+    for (const row of (data ?? []) as any[]) {
+      const key = row?.accommodation_id;
+      if (!key) continue;
+      const list = byAcc.get(key) ?? [];
+      list.push(row);
+      byAcc.set(key, list);
+    }
+  }
+
+  for (const accId of accIds) {
+    const list = byAcc.get(accId) ?? [];
+    const latest = pickCurrent(list, monthStartDate);
+    out[accId] = latest?.charges_marketing_fee === true;
+  }
+  return out;
+}
+
+/** 該月「場域簽約人 → 館別」對照（append-only，逐館取最新一筆） */
+async function getVenueClosingMap(
+  client: any,
+  monthStartDate: string,
+): Promise<Map<string, string[]>> {
+  const { data } = await client
+    .from("teamcommission_venue_closing_assignments")
+    .select("accommodation_id, member_id, effective_from, created_at")
+    .lte("effective_from", monthStartDate);
+
+  const byAcc = new Map<string, any[]>();
+  for (const row of (data ?? []) as any[]) {
+    const key = row?.accommodation_id;
+    if (!key) continue;
+    const list = byAcc.get(key) ?? [];
+    list.push(row);
+    byAcc.set(key, list);
+  }
+
+  const out = new Map<string, string[]>();
+  for (const [accId, list] of byAcc) {
+    const latest = pickCurrent(list, monthStartDate);
+    const memberId = latest?.member_id as string | undefined;
+    if (!memberId) continue;
+    const arr = out.get(memberId) ?? [];
+    arr.push(accId);
+    out.set(memberId, arr);
+  }
+  return out;
+}
+
+/* ================================== 主流程 ================================== */
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) {
+      return jsonResponse({ success: false, error: authRes.error }, authRes.status);
+    }
+    if (!isSuperAdmin(authRes.ctx)) {
+      return jsonResponse({ success: false, error: "Forbidden" }, 403);
+    }
+
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const testMode = body?.test_mode === true;
+    const testMonth = typeof body?.test_month === "string" ? body.test_month : null;
+
+    const tp = getTaipeiParts();
+
+    // 每月 10 日才實際執行（cron 每日呼叫，其餘日期 skip）
+    if (!testMode && tp.day !== 10) {
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        reason: "今日非發放日（每月10日），不執行",
+        today_taipei: `${tp.y}-${pad2(tp.m)}-${pad2(tp.day)}`,
+      });
+    }
+
+    const payoutYear = tp.y;
+    const payoutMonth = tp.m;
+
+    let snapYear: number;
+    let snapMonth: number;
+    if (testMonth && /^\d{4}-\d{2}$/.test(testMonth)) {
+      const [y, m] = testMonth.split("-").map(Number);
+      snapYear = y;
+      snapMonth = m;
+    } else {
+      snapYear = payoutMonth === 1 ? payoutYear - 1 : payoutYear;
+      snapMonth = payoutMonth === 1 ? 12 : payoutMonth - 1;
+    }
+
+    const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
+    const payoutMonthStr = `${payoutYear}-${pad2(payoutMonth)}`;
+
+    // 結算月區間（Asia/Taipei 日期字串，end 為排他）與版本基準日
+    const nextY = snapMonth === 12 ? snapYear + 1 : snapYear;
+    const nextM = snapMonth === 12 ? 1 : snapMonth + 1;
+    const monthStartDate = `${snapshotMonthStr}-01`;
+    const monthEndDate = `${nextY}-${pad2(nextM)}-01`;
+    const asOf = monthStartDate;
+
+    const supabase = authRes.ctx.admin;
+
+    /* ---------- 設定（全部以 asOf 鎖定版本） ---------- */
+    const [rateSettings, sharedSources, kolSources, amManagerId, closerManagerId, kolRecipientId] =
+      await Promise.all([
+        getBonusRateSettings(supabase, asOf),
+        getRevenueSourceWhitelist(supabase, "teamcommission_shared_revenue_source_whitelist", asOf),
+        getRevenueSourceWhitelist(supabase, "teamcommission_kol_revenue_source_whitelist", asOf),
+        getRoleBinding(supabase, "am_manager", asOf),
+        getRoleBinding(supabase, "closer_manager", asOf),
+        getRoleBinding(supabase, "kol_bonus_recipient", asOf),
+      ]);
+
+    /* ---------- 成員與角色 ---------- */
+    const { data: roleRows, error: roleErr } = await supabase
+      .from("user_roles")
+      .select("user_id, role")
+      .is("accommodation_id", null)
+      .in("role", ["am", "am_manager", "closer", "closer_manager"]);
+    if (roleErr) throw roleErr;
+
+    const rolesByUser = new Map<string, Set<string>>();
+    for (const r of (roleRows ?? []) as any[]) {
+      const set = rolesByUser.get(r.user_id) ?? new Set<string>();
+      set.add(String(r.role));
+      rolesByUser.set(r.user_id, set);
+    }
+
+    const { data: profileRows, error: profErr } = await supabase
+      .from("team_member_profiles")
+      .select("id, user_id, display_name, am_managed_accommodation_ids");
+    if (profErr) throw profErr;
+
+    const profileByUserId = new Map<string, any>();
+    const profileById = new Map<string, any>();
+    for (const p of (profileRows ?? []) as any[]) {
+      profileById.set(p.id, p);
+      if (p.user_id) profileByUserId.set(p.user_id, p);
+    }
+
+    /* ---------- 全公司啟用館別與名稱 ---------- */
+    const { data: accs, error: accErr } = await supabase
+      .from("accommodation_info")
+      .select("id, name, is_active");
+    if (accErr) throw accErr;
+    const accNameById = new Map<string, string>();
+    const activeAccIds: string[] = [];
+    for (const a of (accs ?? []) as any[]) {
+      accNameById.set(a.id, String(a.name ?? ""));
+      if (a.is_active) activeAccIds.push(a.id);
+    }
+
+    const companyRevenue = await getAccommodationRevenue(
+      supabase,
+      activeAccIds,
+      monthStartDate,
+      monthEndDate,
+      sharedSources,
+    );
+    const kolRevenue = await getAccommodationRevenue(
+      supabase,
+      activeAccIds,
+      monthStartDate,
+      monthEndDate,
+      kolSources,
+    );
+
+    /* ---------- 組出待寫入的 snapshot ---------- */
+    interface Row {
+      bonus_type: BonusType;
+      member_id: string;
+      snapshot_month: string;
+      payout_month: string;
+      base_revenue: number | null;
+      rate: number | null;
+      fixed_amount: number | null;
+      venue_count: number | null;
+      amount: number;
+      settings_snapshot: Record<string, unknown>;
+    }
+    const rows: Row[] = [];
+    const push = (r: Row) => {
+      if (!r.member_id) return;
+      if (!(r.amount > 0)) return; // 金額 0 或負數不寫入
+      rows.push(r);
+    };
+
+    const rateOf = (bt: string) => rateSettings[bt]?.rate ?? null;
+    const fixedOf = (bt: string) => rateSettings[bt]?.fixed_amount ?? null;
+
+    // (1)(2) AM 績效獎金 / AM 場域獎金：具 am 或 am_manager 角色者
+    const amPerfRate = rateOf("am_performance");
+    const amVenueFixed = fixedOf("am_venue_bonus");
+    for (const [userId, roleSet] of rolesByUser) {
+      if (!roleSet.has("am") && !roleSet.has("am_manager")) continue;
+      const profile = profileByUserId.get(userId);
+      if (!profile) continue;
+
+      const managed: string[] = Array.isArray(profile.am_managed_accommodation_ids)
+        ? profile.am_managed_accommodation_ids.filter(Boolean)
+        : [];
+      // 旅行日系列不計入 AM 績效／場域獎金
+      const managedNoTravel = managed.filter(
+        (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
+      );
+      if (managedNoTravel.length === 0) continue;
+
+      const myRevenue = await getAccommodationRevenue(
+        supabase,
+        managedNoTravel,
+        monthStartDate,
+        monthEndDate,
+        sharedSources,
+      );
+
+      push({
+        bonus_type: "am_performance",
+        member_id: profile.id,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: myRevenue,
+        rate: amPerfRate,
+        fixed_amount: null,
+        venue_count: managedNoTravel.length,
+        amount: myRevenue * Number(amPerfRate ?? 0),
+        settings_snapshot: {
+          as_of: asOf,
+          rate: amPerfRate,
+          shared_sources: sharedSources,
+          accommodation_ids: managedNoTravel,
+          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+        },
+      });
+
+      push({
+        bonus_type: "am_venue_bonus",
+        member_id: profile.id,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: null,
+        rate: null,
+        fixed_amount: amVenueFixed,
+        venue_count: managedNoTravel.length,
+        amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
+        settings_snapshot: {
+          as_of: asOf,
+          fixed_amount: amVenueFixed,
+          accommodation_ids: managedNoTravel,
+          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+        },
+      });
+    }
+
+    // (3) 成交組績效獎金：具 closer 或 closer_manager 角色者，全公司營收 × rate
+    const closerPerfRate = rateOf("closer_performance");
+    for (const [userId, roleSet] of rolesByUser) {
+      if (!roleSet.has("closer") && !roleSet.has("closer_manager")) continue;
+      const profile = profileByUserId.get(userId);
+      if (!profile) continue;
+      push({
+        bonus_type: "closer_performance",
+        member_id: profile.id,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: companyRevenue,
+        rate: closerPerfRate,
+        fixed_amount: null,
+        venue_count: null,
+        amount: companyRevenue * Number(closerPerfRate ?? 0),
+        settings_snapshot: {
+          as_of: asOf,
+          rate: closerPerfRate,
+          shared_sources: sharedSources,
+          accommodation_ids: activeAccIds,
+        },
+      });
+    }
+
+    // (4)(5) AM 總管 / 成交組主管：角色綁定當月生效者，全公司營收 × rate
+    const managerBindings: Array<[BonusType, string | null]> = [
+      ["am_manager", amManagerId],
+      ["closer_manager", closerManagerId],
+    ];
+    for (const [bt, memberId] of managerBindings) {
+      if (!memberId || !profileById.has(memberId)) continue;
+      const rate = rateOf(bt);
+      push({
+        bonus_type: bt,
+        member_id: memberId,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: companyRevenue,
+        rate,
+        fixed_amount: null,
+        venue_count: null,
+        amount: companyRevenue * Number(rate ?? 0),
+        settings_snapshot: {
+          as_of: asOf,
+          rate,
+          shared_sources: sharedSources,
+          accommodation_ids: activeAccIds,
+          role_binding: bt,
+        },
+      });
+    }
+
+    // (6)(7) 網紅營銷抽成 / 月費：kol_bonus_recipient 綁定者
+    if (kolRecipientId && profileById.has(kolRecipientId)) {
+      const kolRate = rateOf("kol_commission");
+      push({
+        bonus_type: "kol_commission",
+        member_id: kolRecipientId,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: kolRevenue,
+        rate: kolRate,
+        fixed_amount: null,
+        venue_count: null,
+        amount: kolRevenue * Number(kolRate ?? 0),
+        settings_snapshot: {
+          as_of: asOf,
+          rate: kolRate,
+          kol_sources: kolSources,
+          accommodation_ids: activeAccIds,
+          role_binding: "kol_bonus_recipient",
+        },
+      });
+
+      const kolMonthlyFixed = fixedOf("kol_monthly");
+      push({
+        bonus_type: "kol_monthly",
+        member_id: kolRecipientId,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: null,
+        rate: null,
+        fixed_amount: kolMonthlyFixed,
+        venue_count: null,
+        amount: Number(kolMonthlyFixed ?? 0),
+        settings_snapshot: {
+          as_of: asOf,
+          fixed_amount: kolMonthlyFixed,
+          role_binding: "kol_bonus_recipient",
+        },
+      });
+    }
+
+    // (8) 場域成交獎金：該月生效簽約人，逐館 charges_marketing_fee = true 者各一份固定金額
+    const venueClosingFixed = fixedOf("venue_closing");
+    const closingMap = await getVenueClosingMap(supabase, monthStartDate);
+    for (const [memberId, accIds] of closingMap) {
+      if (!profileById.has(memberId)) continue;
+      const flags = await getMarketingFeeFlags(supabase, accIds, monthStartDate);
+      const hitIds = accIds.filter((id) => flags[id] === true);
+      if (hitIds.length === 0) continue;
+      push({
+        bonus_type: "venue_closing",
+        member_id: memberId,
+        snapshot_month: snapshotMonthStr,
+        payout_month: payoutMonthStr,
+        base_revenue: null,
+        rate: null,
+        fixed_amount: venueClosingFixed,
+        venue_count: hitIds.length,
+        amount: Number(venueClosingFixed ?? 0) * hitIds.length,
+        settings_snapshot: {
+          as_of: asOf,
+          fixed_amount: venueClosingFixed,
+          accommodation_ids: hitIds,
+          accommodation_names: hitIds.map((id) => accNameById.get(id) ?? id),
+          assigned_accommodation_ids: accIds,
+        },
+      });
+    }
+
+    /* ---------- 逐筆寫入（23505 視為 skipped） ---------- */
+    const errors: Array<{ bonus_type: string; member_id: string; error: string }> = [];
+    let created = 0;
+    let skipped = 0;
+
+    for (const row of rows) {
+      const { error: insErr } = await supabase.from("teamcommission_bonus_snapshots").insert(row);
+      if (insErr) {
+        if ((insErr as any).code === "23505") {
+          skipped++;
+        } else {
+          errors.push({
+            bonus_type: row.bonus_type,
+            member_id: row.member_id,
+            error: insErr.message,
+          });
+        }
+      } else {
+        created++;
+      }
+    }
+
+    console.log("[create-team-bonus-snapshots] done", {
+      snapshotMonthStr,
+      payoutMonthStr,
+      candidates: rows.length,
+      created,
+      skipped,
+      errorCount: errors.length,
+    });
+
+    return jsonResponse({
+      success: true,
+      test_mode: testMode,
+      snapshot_month: snapshotMonthStr,
+      payout_month: payoutMonthStr,
+      candidates: rows.length,
+      created,
+      skipped,
+      errors,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[create-team-bonus-snapshots] failed", msg);
+    return jsonResponse({ success: false, error: msg }, 500);
+  }
+});
