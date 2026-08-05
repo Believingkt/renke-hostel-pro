@@ -234,6 +234,24 @@ export default function TeamCommissionStatsTab() {
     cancelList: OrderLite[];
   } | null>(null);
 
+  // 分潤補差（closer_commission_adjustments）：以「發放月」為單位，僅期別模式顯示
+  const [adjustments, setAdjustments] = useState<
+    {
+      id: string;
+      adjustment_type: string;
+      closer_id: string | null;
+      video_creator_id: string | null;
+      closer_amount: number;
+      video_amount: number;
+      reason: string | null;
+      order_number: string | null;
+      accommodation_id: string | null;
+    }[]
+  >([]);
+  const [adjOpen, setAdjOpen] = useState(false);
+
+
+
   const period = useMemo(() => {
     if (mode === "custom") {
       // 防呆：若起始 > 結束，自動 swap
