@@ -292,6 +292,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [showRepushDialog, setShowRepushDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
@@ -1877,6 +1881,33 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     return () => { cancelled = true; };
   }, [order?.accommodation_id]);
 
+  // 刪除訂單（僅 super_admin，透過後端 RPC 二次驗證權限）
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    setIsDeletingOrder(true);
+    try {
+      const { error } = await supabase.rpc("admin_delete_order", {
+        _order_id: order.id,
+        _reason: deleteReason.trim() || null,
+      });
+      if (error) throw error;
+      toast({
+        title: "訂單已刪除",
+        description: `訂單 ${order.order_number} 已永久刪除，並已寫入稽核紀錄。`,
+      });
+      setShowDeleteDialog(false);
+      navigate(-1);
+    } catch (e: any) {
+      toast({
+        title: "刪除失敗",
+        description: e?.message || "無法刪除訂單，請稍後再試。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingOrder(false);
+    }
+  };
+
   const handleRepushOwlting = async () => {
     if (!order) return;
     // 由確認彈窗觸發，這裡不再使用 window.confirm
@@ -2184,6 +2215,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <XCircle className="h-4 w-4 mr-2" />取消訂單
                   </Button>
                 )}
+                {isSuperAdmin && (
+                  <Button
+                    variant="destructive"
+                    className="text-sm"
+                    disabled={isDeletingOrder}
+                    onClick={() => { setDeleteConfirmText(""); setDeleteReason(""); setShowDeleteDialog(true); }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />刪除訂單
+                  </Button>
+                )}
               </div>
               {/* 手機：主 CTA + 更多 */}
               <div className="flex sm:hidden gap-2 w-full">
@@ -2228,6 +2269,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                         <DropdownMenuSeparator />
                         <DropdownMenuItem disabled={isCancelling} onClick={() => setShowCancelDialog(true)} className="py-3 text-destructive focus:text-destructive">
                           <XCircle className="mr-2 h-4 w-4" />取消訂單
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {isSuperAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          disabled={isDeletingOrder}
+                          onClick={() => { setDeleteConfirmText(""); setDeleteReason(""); setShowDeleteDialog(true); }}
+                          className="py-3 text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />刪除訂單
                         </DropdownMenuItem>
                       </>
                     )}
@@ -3871,6 +3924,60 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           }}
           onCancelled={goBack}
         />
+      )}
+
+      {/* 刪除訂單確認彈窗（僅 super_admin 可見） */}
+      {order && isSuperAdmin && (
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">永久刪除此訂單？</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <div>此操作無法復原。訂單本體與其房間、分潤、佣金等關聯紀錄將一併移除，房間庫存會即時釋放。</div>
+                  <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                    <div><span className="text-muted-foreground">訂單編號：</span><span className="font-mono">{order.order_number}</span></div>
+                    <div><span className="text-muted-foreground">訂房人：</span>{order.guest_name}</div>
+                    <div><span className="text-muted-foreground">入住／退房：</span>{order.check_in_date} → {order.check_out_date}</div>
+                  </div>
+                  <div className="text-muted-foreground">若只是要停止此訂單，建議改用「取消訂單」以保留紀錄。刪除前系統會自動將完整內容寫入稽核紀錄。</div>
+                  <div className="space-y-2">
+                    <div className="text-foreground">刪除原因（選填，會寫入稽核紀錄）</div>
+                    <Textarea
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      placeholder="例如：重複建單、測試訂單"
+                      className="text-sm"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-foreground">請輸入訂單編號 <span className="font-mono">{order.order_number}</span> 以確認刪除</div>
+                    <Input
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder={order.order_number}
+                      className="text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingOrder}>取消</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isDeletingOrder || deleteConfirmText.trim().toUpperCase() !== order.order_number.toUpperCase()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await handleDeleteOrder();
+                }}
+              >
+                {isDeletingOrder ? "刪除中..." : "永久刪除"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
 
       {/* 重新推送奧丁丁確認彈窗 */}
