@@ -158,6 +158,7 @@ export default function TeamMembers() {
   const [editFulltimeStartYear, setEditFulltimeStartYear] = useState<number>(() => getCurrentTaipeiYM().year);
   const [editFulltimeStartMonth, setEditFulltimeStartMonth] = useState<number>(() => getCurrentTaipeiYM().month);
   const [saving, setSaving] = useState(false);
+  const [exclusiveConflicts, setExclusiveConflicts] = useState<ExclusiveIncumbent[] | null>(null);
   const [removing, setRemoving] = useState(false);
 
   // 新增無帳號成員
