@@ -594,6 +594,7 @@ export default function TeamMembers() {
       }
 
       toast.success("已更新成員資料");
+      setExclusiveConflicts(null);
       setEditTarget(null);
       fetchMembers();
     } catch (err) {
