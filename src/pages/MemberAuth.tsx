@@ -3,6 +3,8 @@ import lokezeLogo2 from "@/assets/lakeze-portal-logo.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referral";
+
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -458,8 +460,10 @@ const MemberAuth = () => {
       .eq("user_id", user.id)
       .maybeSingle();
 
+    let memberId = existing?.id as string | undefined;
+
     if (!existing) {
-      await supabase.from("platform_members").insert({
+      const { data: created } = await supabase.from("platform_members").insert({
         user_id: user.id,
         name: user.user_metadata?.name || user.email?.split("@")[0] || "",
         email: user.email || "",
@@ -468,9 +472,18 @@ const MemberAuth = () => {
         gender: user.user_metadata?.gender || null,
         nationality: user.user_metadata?.nationality || null,
         address: user.user_metadata?.address || null,
-      } as any);
+      } as any).select("id").maybeSingle();
+      memberId = created?.id;
+    }
+
+    // 社群裂變：若帶有邀請碼，回填邀請關係（失敗不影響註冊流程）
+    const inviteCode = searchParams.get("invite") || readInviteCode();
+    if (inviteCode && memberId) {
+      await registerReferral(inviteCode, memberId);
+      clearInviteCode();
     }
   };
+
 
   // 註冊成功畫面
   if (viewMode === "signup-success") {

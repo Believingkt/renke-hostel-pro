@@ -8476,6 +8476,143 @@ export type Database = {
           },
         ]
       }
+      referral_campaigns: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          reward_tiers: Json
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          reward_tiers?: Json
+          starts_at?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          reward_tiers?: Json
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_campaigns_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_records: {
+        Row: {
+          campaign_id: string
+          click_count: number
+          created_at: string
+          id: string
+          invite_code: string
+          invitee_id: string | null
+          invitee_order_id: string | null
+          inviter_id: string | null
+          parent_record_id: string | null
+          reward_type: string | null
+          reward_value: number
+          rewarded_at: string | null
+          status: string
+          tier: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          click_count?: number
+          created_at?: string
+          id?: string
+          invite_code: string
+          invitee_id?: string | null
+          invitee_order_id?: string | null
+          inviter_id?: string | null
+          parent_record_id?: string | null
+          reward_type?: string | null
+          reward_value?: number
+          rewarded_at?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          click_count?: number
+          created_at?: string
+          id?: string
+          invite_code?: string
+          invitee_id?: string | null
+          invitee_order_id?: string | null
+          inviter_id?: string | null
+          parent_record_id?: string | null
+          reward_type?: string | null
+          reward_value?: number
+          rewarded_at?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_records_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "referral_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_records_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_records_invitee_order_id_fkey"
+            columns: ["invitee_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_records_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_records_parent_record_id_fkey"
+            columns: ["parent_record_id"]
+            isOneToOne: false
+            referencedRelation: "referral_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           accommodation_id: string

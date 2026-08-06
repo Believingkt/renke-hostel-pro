@@ -47,6 +47,10 @@ const MemberRecentViews = lazy(() => import("./pages/MemberRecentViews"));
 const MemberCards = lazy(() => import("./pages/MemberCards"));
 const MemberCommonInfo = lazy(() => import("./pages/MemberCommonInfo"));
 const MemberFavorites = lazy(() => import("./pages/MemberFavorites"));
+const MemberReferral = lazy(() => import("./pages/MemberReferral"));
+const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
+const ReferralAdmin = lazy(() => import("./pages/ReferralAdmin"));
+
 const MemberResetPassword = lazy(() => import("./pages/MemberResetPassword"));
 const MemberLineCallback = lazy(() => import("./pages/MemberLineCallback"));
 const MemberFacebookCallback = lazy(() => import("./pages/MemberFacebookCallback"));
@@ -247,10 +251,17 @@ function App() {
                       <Route path="favorites" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberFavorites /></Suspense>
                       } />
+                      <Route path="referral" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberReferral /></Suspense>
+                      } />
                     </Route>
+                    <Route path="r/:inviteCode" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ReferralLanding /></Suspense>
+                    } />
                     <Route path="member/reset-password" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberResetPassword /></Suspense>
                     } />
+
                     <Route path="member/auth/line-callback" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
                     } />
@@ -554,6 +565,12 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/referral" element={
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/notifications" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>

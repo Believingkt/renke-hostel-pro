@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
+import { qualifyReferral } from "@/lib/referral";
+
 import { fetchRoomScopeAmenities } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
@@ -3554,6 +3556,12 @@ const BookingFlow = () => {
           console.log('KOL webhook notification sent (or skipped if not configured)');
         }
       }
+
+      // 社群裂變推廣：受邀會員首筆訂單成立時歸因並發放獎勵（失敗不影響訂單流程）
+      if (effectiveMemberId && orderData?.id) {
+        await qualifyReferral(effectiveMemberId, orderData.id);
+      }
+
 
       // 發送訂購確認郵件（統一走 notify-booking-confirmation）
       // - 非 3DS 信用卡（paidOrderResult）：create-paid-order 已寄信，跳過避免重複
