@@ -798,6 +798,9 @@ function RoomTypeRows({
     });
   }, [templates, roomType.id, roomType.name]);
 
+  // 價格行預設摺疊，僅顯示庫存
+  const [pricesExpanded, setPricesExpanded] = useState(false);
+
   return (
     <>
       {/* 房型名稱行 + 庫存數量 */}
@@ -814,8 +817,22 @@ function RoomTypeRows({
       {/* 庫存行 */}
       <tr className="border-b hover:bg-muted/20">
         <td className="sticky left-0 z-10 bg-background border-r px-3 py-2 font-medium">
-          {!showCategoryHeader && <span className="font-semibold">{roomType.name}</span>}
-          {showCategoryHeader && <span className="text-muted-foreground text-xs">庫存</span>}
+          <div className="flex items-center gap-2">
+            {!showCategoryHeader && <span className="font-semibold">{roomType.name}</span>}
+            {showCategoryHeader && <span className="text-muted-foreground text-xs">庫存</span>}
+            {visibleTemplates.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPricesExpanded(v => !v)}
+                className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted"
+                aria-expanded={pricesExpanded}
+                title={pricesExpanded ? '收合價格' : '展開價格'}
+              >
+                {pricesExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                價格
+              </button>
+            )}
+          </div>
         </td>
         {monthDays.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
