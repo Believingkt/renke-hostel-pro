@@ -89,7 +89,7 @@ export function getCommissionStatusShortLabel(s: CommissionStatus): string {
   switch (s) {
     case "locked": return "🔒已鎖定";
     case "mismatch": return "⚠️金額異動";
-    case "addon_mismatch": return "⚠️加購異動";
+    case "addon_mismatch": return "📦增值異動";
     case "confirmed": return "🔔已確認";
     default: return "-";
   }

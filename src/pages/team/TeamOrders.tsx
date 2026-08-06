@@ -1588,7 +1588,7 @@ export default function TeamOrders() {
                         if (status === "addon_mismatch") {
                           return (
                             <div className="text-xs text-amber-600">
-                              ⚠️ 加購項目異動（增值服務不計入分潤），分潤基準金額無須調整
+                              ⚠️ 增值服務異動（增值服務金額不計入分潤），分潤基準金額無須調整
                             </div>
                           );
                         }
