@@ -1405,6 +1405,55 @@ export default function TeamHome() {
           </div>
         </>
       )}
+
+      <Drawer
+        open={!!detailCardKey}
+        onOpenChange={(o) => !o && setDetailCardKey(null)}
+      >
+        <DrawerContent>
+          {(() => {
+            const c = cards.find((x) => x.key === detailCardKey);
+            if (!c) return null;
+            const lines = c.lines ?? [];
+            const totalRevenue = lines.reduce((s, l) => s + (l.revenue ?? 0), 0);
+            const totalAmount = lines.reduce((s, l) => s + l.amount, 0);
+            return (
+              <div className="mx-auto w-full max-w-2xl">
+                <DrawerHeader>
+                  <DrawerTitle>{c.title}－各館別明細</DrawerTitle>
+                  <DrawerDescription>
+                    營收合計 {fmt(totalRevenue)}　獎金合計 {fmt(totalAmount)}
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground border-b">
+                        <th className="text-left py-2 font-medium">館別</th>
+                        <th className="text-right py-2 font-medium">營收</th>
+                        <th className="text-right py-2 font-medium">獎金</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((ln, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-2 pr-2">{ln.label}</td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                            {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
+                          </td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                            {fmt(ln.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
