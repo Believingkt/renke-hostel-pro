@@ -24,6 +24,13 @@ import {
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
 } from "@/lib/teamBonusRevenue";
+/** 館別營收／獎金明細列 */
+interface VenueRevenueLine {
+  name: string;
+  revenue: number;
+  amount: number;
+}
+
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
