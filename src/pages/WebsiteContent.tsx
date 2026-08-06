@@ -1442,9 +1442,12 @@ const WebsiteContent = () => {
         if (error) throw error;
       }
       if (toInsert.length > 0) {
+        // 注意：唯一索引是 partial index（accommodation_id IS NOT NULL），
+        // PostgREST 的 upsert/on_conflict 無法套用 partial index，會回 42P10，
+        // 因此這裡直接 insert（toInsert 已排除既有 row）。
         const { error } = await supabase
           .from("accommodation_facilities")
-          .upsert(toInsert, { onConflict: "accommodation_id,facility_name,category", ignoreDuplicates: false });
+          .insert(toInsert);
         if (error) throw error;
       }
 
