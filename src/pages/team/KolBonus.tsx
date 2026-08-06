@@ -676,7 +676,7 @@ export default function KolBonus() {
                   );
                   return (
                     <div className="ml-auto text-sm text-muted-foreground">
-                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
+                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab1CommissionMultiplier} />
                     </div>
                   );
                 })()}
@@ -742,7 +742,7 @@ export default function KolBonus() {
                               <TableCell className="text-right tabular-nums border-r">{fmtMoney(m.orderRevenue)}</TableCell>
                               <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
                               <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
-                              <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
+                              <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab1CommissionMultiplier} /></TableCell>
                               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                   size="icon"
@@ -840,7 +840,7 @@ export default function KolBonus() {
                       );
                       return (
                         <div className="ml-auto text-sm text-muted-foreground">
-                          共 {tab2FilteredRows.length} 位 KOL｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
+                          共 {tab2FilteredRows.length} 位 KOL｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab2CommissionMultiplier} />
                         </div>
                       );
                     })()}
@@ -889,7 +889,7 @@ export default function KolBonus() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
                                 <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
-                                <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
+                                <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab2CommissionMultiplier} /></TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <Button
                                     size="icon"
