@@ -2743,28 +2743,49 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                 </div>
                               )}
                             </div>
-                            {idx === 0 ? (
+                            {(() => {
+                              const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, or.room_type_id));
+                              return (
                               <div className="space-y-1">
                                 <Label className="text-xs">專案</Label>
                                 <Select
                                   value={or.template_name || "none"}
                                   onValueChange={async (v) => {
                                     const newTemplate = v === "none" ? "" : v;
-                                    // 主方案變更 → 同步套用到所有 room rows（若該房型有對應方案）
-                                    const updates = await Promise.all(editOrderRooms.map(async (r) => {
-                                      const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, r.room_type_id));
-                                      const applyTpl = newTemplate && candidates.some(t => t.template_name === newTemplate)
-                                        ? newTemplate
-                                        : (r.id === or.id ? newTemplate : r.template_name);
-                                      const dateBasedTotal = await computeRoomTotalByDates(r.room_type_id, applyTpl);
+                                    if (idx === 0) {
+                                      // 主列變更 → 其他列同步；無同名方案時自動帶入該房型第一個預設方案
+                                      const updates = await Promise.all(editOrderRooms.map(async (r) => {
+                                        const cands = allTemplates.filter(t => templateMatchesRoomType(t as any, r.room_type_id));
+                                        let applyTpl: string;
+                                        if (r.id === or.id) {
+                                          applyTpl = newTemplate;
+                                        } else if (newTemplate && cands.some(t => t.template_name === newTemplate)) {
+                                          applyTpl = newTemplate;
+                                        } else {
+                                          applyTpl = cands[0]?.template_name || r.template_name || "";
+                                        }
+                                        const dateBasedTotal = await computeRoomTotalByDates(r.room_type_id, applyTpl);
+                                        if (dateBasedTotal > 0) {
+                                          const roomTotal = dateBasedTotal * r.quantity;
+                                          const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
+                                          return { ...r, template_name: applyTpl, unit_price: unitPrice, room_price: roomTotal };
+                                        }
+                                        return { ...r, template_name: applyTpl };
+                                      }));
+                                      setEditOrderRooms(updates);
+                                      return;
+                                    }
+                                    // 非主列：獨立設定自己的方案
+                                    const dateBasedTotal = await computeRoomTotalByDates(or.room_type_id, newTemplate);
+                                    setEditOrderRooms(prev => prev.map(r => {
+                                      if (r.id !== or.id) return r;
                                       if (dateBasedTotal > 0) {
                                         const roomTotal = dateBasedTotal * r.quantity;
                                         const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
-                                        return { ...r, template_name: applyTpl, unit_price: unitPrice, room_price: roomTotal };
+                                        return { ...r, template_name: newTemplate, unit_price: unitPrice, room_price: roomTotal };
                                       }
-                                      return { ...r, template_name: applyTpl };
+                                      return { ...r, template_name: newTemplate };
                                     }));
-                                    setEditOrderRooms(updates);
                                   }}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
@@ -2772,25 +2793,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none">無</SelectItem>
-                                    {allTemplates
-                                      .filter(t => templateMatchesRoomType(t as any, or.room_type_id))
-                                      .map(t => (
+                                    {candidates.map(t => (
                                       <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
                               </div>
-                            ) : (() => {
-                              const primaryTpl = editOrderRooms[0]?.template_name || null;
-                              const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, or.room_type_id));
-                              const matched = primaryTpl && candidates.some(t => t.template_name === primaryTpl);
-                              return (
-                                <div className="space-y-1">
-                                  <Label className="text-xs">專案</Label>
-                                  <div className={`h-8 px-3 flex items-center rounded-md border bg-muted/50 text-xs ${matched ? "text-muted-foreground" : "text-destructive"}`}>
-                                    {matched ? `共用主方案：${primaryTpl}` : (primaryTpl ? "此房型無對應主方案" : "未選擇主方案")}
-                                  </div>
-                                </div>
                               );
                             })()}
 
