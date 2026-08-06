@@ -360,6 +360,7 @@ serve(async (req) => {
               const holidaySet = holidaySetByAcc.get(rt.accommodation_id) || new Set<string>();
               let totalPrice = 0;
               let allAvailable = true;
+              let minAvailableRooms: number | null = null;
               const unavailableDates: string[] = [];
 
               for (const date of datesToCheck) {
@@ -368,9 +369,12 @@ serve(async (req) => {
                 // 庫存沒開、無底表、被訂走 → 不可訂
                 if (!base || base.is_available === false || !adj || adj.is_blocked || adj.available_rooms <= 0) {
                   allAvailable = false;
+                  minAvailableRooms = 0;
                   unavailableDates.push(date);
                   continue;
                 }
+                const remain = Number(adj.available_rooms ?? 0);
+                minAvailableRooms = minAvailableRooms === null ? remain : Math.min(minAvailableRooms, remain);
                 const nightly = resolveNightlyPrice(rt, date, holidaySet, base.price);
                 if (!nightly || nightly <= 0) {
                   allAvailable = false;
@@ -393,8 +397,10 @@ serve(async (req) => {
                 is_exclusive_package: rt.is_exclusive_package === true,
                 photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url).slice(0, 1) || [],
                 is_available_for_range: allAvailable,
+                available_rooms: allAvailable ? (minAvailableRooms ?? null) : 0,
                 unavailable_dates: unavailableDates,
                 range_total_price: allAvailable ? totalPrice : null,
+                nights: datesToCheck.length,
               };
             }),
           };
