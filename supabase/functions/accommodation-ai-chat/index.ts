@@ -332,6 +332,19 @@ serve(async (req) => {
       });
     }
 
+    // 該民宿封面照（房型無照片時的 fallback）
+    let accCoverPhoto = "";
+    try {
+      const { data: accPhoto } = await supabase
+        .from("accommodation_photos")
+        .select("photo_url, display_order")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      accCoverPhoto = sanitizePhotoUrl(accPhoto?.photo_url);
+    } catch (_e) { /* 沒有封面就留空 */ }
+
     // ===== 房型圖文卡片：與 system prompt 的「即時房況與價格」使用同一份查詢結果 =====
     const buildRoomCards = (assistantText: string): RoomCardPayload[] => {
       if (!roomRows.length) return [];
