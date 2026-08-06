@@ -20,9 +20,17 @@ import {
   getRoleBinding,
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
+  getAccommodationRevenueByAcc,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
 } from "@/lib/teamBonusRevenue";
+/** 館別營收／獎金明細列 */
+interface VenueRevenueLine {
+  name: string;
+  revenue: number;
+  amount: number;
+}
+
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
@@ -175,6 +183,7 @@ export default function TeamHome() {
   const [venueClosingDetail, setVenueClosingDetail] = useState<
     Array<{ name: string; amount: number }>
   >([]);
+  const [revenueBreakdown, setRevenueBreakdown] = useState<Record<string, VenueRevenueLine[]>>({});
   const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
 
   const monthInfo = useMemo(() => {
@@ -766,6 +775,9 @@ export default function TeamHome() {
         let kolMonthlySum = 0;
         let venueClosingSum = 0;
         let venueClosingLines: Array<{ name: string; amount: number }> = [];
+        // 各獎金類型的「館別營收 / 館別獎金」明細
+        const breakdown: Record<string, VenueRevenueLine[]> = {};
+        const accNameFallback = new Map<string, string>();
         let amManagerFlag = false;
         let closerManagerFlag = false;
         let kolRecipientFlag = false;
@@ -803,16 +815,28 @@ export default function TeamHome() {
             allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
           }
 
-          const companyRevenue =
+          const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
-              ? await getAccommodationRevenue(
+              ? await getAccommodationRevenueByAcc(
                   client,
                   allAccIds,
                   monthStartDate,
                   monthEndDate,
                   sharedSources,
                 )
-              : 0;
+              : {};
+          const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
+
+          // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
+          const linesOf = (byAcc: Record<string, number>, rate: number) =>
+            Object.entries(byAcc)
+              .filter(([, rev]) => rev > 0)
+              .sort((a, b) => b[1] - a[1])
+              .map(([accId, rev]) => ({
+                name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
+                revenue: rev,
+                amount: rev * rate,
+              }));
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
           //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
@@ -827,6 +851,7 @@ export default function TeamHome() {
               const nameMap = new Map(
                 ((mAccs ?? []) as any[]).map((a) => [a.id as string, String(a.name ?? "")]),
               );
+              nameMap.forEach((n, id) => accNameFallback.set(id, n));
               myManagedAccIdsExcludingTravelDays = myManagedAccIds.filter(
                 (id) => !(nameMap.get(id) ?? "").startsWith("旅行日"),
               );
@@ -834,17 +859,19 @@ export default function TeamHome() {
 
             const s = rateSettings.am_performance;
             if (!s || s.rate == null) missing.am_performance = true;
-            const myRevenue =
+            const myByAcc =
               myManagedAccIdsExcludingTravelDays.length > 0 && sharedSources.length > 0
-                ? await getAccommodationRevenue(
+                ? await getAccommodationRevenueByAcc(
                     client,
                     myManagedAccIdsExcludingTravelDays,
                     monthStartDate,
                     monthEndDate,
                     sharedSources,
                   )
-                : 0;
+                : {};
+            const myRevenue = Object.values(myByAcc).reduce((sum, v) => sum + v, 0);
             amPerfSum = myRevenue * Number(s?.rate ?? 0);
+            breakdown.am_performance = linesOf(myByAcc, Number(s?.rate ?? 0));
 
             const vs = rateSettings.am_venue_bonus;
             if (!vs || vs.fixed_amount == null) missing.am_venue_bonus = true;
@@ -857,6 +884,7 @@ export default function TeamHome() {
             const s = rateSettings.closer_performance;
             if (!s || s.rate == null) missing.closer_performance = true;
             closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
+            breakdown.closer_performance = linesOf(companyByAcc, Number(s?.rate ?? 0));
           }
 
           // (3) AM 總管獎金：全公司營收 × rate（抽成制）
@@ -864,6 +892,7 @@ export default function TeamHome() {
             const s = rateSettings.am_manager;
             if (!s || s.rate == null) missing.am_manager = true;
             amManagerSum = companyRevenue * Number(s?.rate ?? 0);
+            breakdown.am_manager = linesOf(companyByAcc, Number(s?.rate ?? 0));
           }
 
           // (4) 成交大師管理獎金：全公司營收 × rate
@@ -871,6 +900,7 @@ export default function TeamHome() {
             const s = rateSettings.closer_manager;
             if (!s || s.rate == null) missing.closer_manager = true;
             closerManagerSum = companyRevenue * Number(s?.rate ?? 0);
+            breakdown.closer_manager = linesOf(companyByAcc, Number(s?.rate ?? 0));
           }
 
           // (5)(6) 網紅營銷專利獎金 / 月費
@@ -879,19 +909,21 @@ export default function TeamHome() {
               client,
               "teamcommission_kol_revenue_source_whitelist",
             );
-            const kolRevenue =
+            const kolByAcc =
               kolSources.length > 0
-                ? await getAccommodationRevenue(
+                ? await getAccommodationRevenueByAcc(
                     client,
                     allAccIds,
                     monthStartDate,
                     monthEndDate,
                     kolSources,
                   )
-                : 0;
+                : {};
+            const kolRevenue = Object.values(kolByAcc).reduce((sum, v) => sum + v, 0);
             const sc = rateSettings.kol_commission;
             if (!sc || sc.rate == null) missing.kol_commission = true;
             kolCommissionSum = kolRevenue * Number(sc?.rate ?? 0);
+            breakdown.kol_commission = linesOf(kolByAcc, Number(sc?.rate ?? 0));
 
             const sm = rateSettings.kol_monthly;
             if (!sm || sm.fixed_amount == null) missing.kol_monthly = true;
@@ -979,6 +1011,7 @@ export default function TeamHome() {
         setKolMonthlyAmt(kolMonthlySum);
         setVenueClosingAmt(venueClosingSum);
         setVenueClosingDetail(venueClosingLines);
+        setRevenueBreakdown(breakdown);
         setMissingRates(missing);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
@@ -1003,9 +1036,19 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number }>;
+    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number }>;
+    alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
+
+  /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
+  const venueLines = (bonusType: string, m: number) =>
+    (revenueBreakdown[bonusType] ?? []).map((d) => ({
+      label: d.name,
+      revenue: Math.round(d.revenue),
+      amount: Math.round(d.amount * m),
+      multiplier: m,
+    }));
 
   if (showCloser) {
     const closerMult = multOf("closer");
@@ -1125,6 +1168,8 @@ export default function TeamHome() {
       baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
+      lines: venueLines("am_performance", m),
+      alwaysShowLines: true,
     });
     const mv = multOf("am_venue_bonus");
     cards.push({
@@ -1145,6 +1190,8 @@ export default function TeamHome() {
       baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
+      lines: venueLines("closer_performance", m),
+      alwaysShowLines: true,
     });
   }
   if (isAmManager) {
@@ -1156,6 +1203,8 @@ export default function TeamHome() {
       baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
+      lines: venueLines("am_manager", m),
+      alwaysShowLines: true,
     });
   }
   if (isCloserManager) {
@@ -1167,6 +1216,8 @@ export default function TeamHome() {
       baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
+      lines: venueLines("closer_manager", m),
+      alwaysShowLines: true,
     });
   }
   if (isKolBonusRecipient) {
@@ -1178,6 +1229,8 @@ export default function TeamHome() {
       baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
+      lines: venueLines("kol_commission", mc),
+      alwaysShowLines: true,
     });
     const mm = multOf("kol_monthly");
     cards.push({
@@ -1303,12 +1356,16 @@ export default function TeamHome() {
 
                     {!loading &&
                     c.lines &&
-                    (c.lines.length > 1 || c.key === "venue_closing") ? (
+                    c.lines.length > 0 &&
+                    (c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines) ? (
                       <div className="mt-2 space-y-0.5">
                         {c.lines.map((ln, i) => (
-                          <div key={i} className="flex justify-between text-xs text-muted-foreground">
-                            <span>{ln.label}</span>
-                            <span className="tabular-nums">{fmt(ln.amount)}</span>
+                          <div key={i} className="flex justify-between gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{ln.label}</span>
+                            <span className="tabular-nums whitespace-nowrap">
+                              {ln.revenue !== undefined ? `營收 ${fmt(ln.revenue)}　獎金 ` : ""}
+                              {fmt(ln.amount)}
+                            </span>
                           </div>
                         ))}
                       </div>

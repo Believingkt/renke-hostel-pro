@@ -137,16 +137,34 @@ export async function getAccommodationRevenue(
   monthEndDate: string,
   allowedSources: string[],
 ): Promise<number> {
+  const byAcc = await getAccommodationRevenueByAcc(
+    client,
+    accommodationIds,
+    monthStartDate,
+    monthEndDate,
+    allowedSources,
+  );
+  return Object.values(byAcc).reduce((s, v) => s + v, 0);
+}
+
+/** 同上，但回傳「各館別」的營收明細（只含有營收的館別） */
+export async function getAccommodationRevenueByAcc(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+  allowedSources: string[],
+): Promise<Record<string, number>> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  if (accIds.length === 0 || sources.length === 0) return 0;
+  const out: Record<string, number> = {};
+  if (accIds.length === 0 || sources.length === 0) return out;
 
-  let total = 0;
   for (let i = 0; i < accIds.length; i += CHUNK) {
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
       .from("orders")
-      .select("id, order_meta(team_commission_price, is_excluded)")
+      .select("id, accommodation_id, order_meta(team_commission_price, is_excluded)")
       .in("accommodation_id", slice)
       .gte("order_date", monthStartDate)
       .lt("order_date", monthEndDate)
@@ -158,10 +176,14 @@ export async function getAccommodationRevenue(
       const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
       if (!meta) continue;
       if (meta.is_excluded === true) continue;
-      total += Number(meta.team_commission_price ?? 0) || 0;
+      const accId = String(row?.accommodation_id ?? "");
+      if (!accId) continue;
+      const amt = Number(meta.team_commission_price ?? 0) || 0;
+      if (!amt) continue;
+      out[accId] = (out[accId] ?? 0) + amt;
     }
   }
-  return total;
+  return out;
 }
 
 /**

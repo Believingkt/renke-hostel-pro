@@ -42,6 +42,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import { getAccommodationRevenueByAcc } from "@/lib/teamBonusRevenue";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
@@ -538,6 +539,7 @@ interface SourceItem {
   paid: boolean;
   payout_date: string | null;
   venue_name?: string | null;   // 館別名稱（訂單類獎金）
+  base_revenue?: number | null; // 該館別計算基準營收（抽成類獎金）
   order_number?: string | null; // 訂單編號
 }
 
@@ -802,7 +804,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         source_label: string,
         detail: string,
         amount: number,
-        extra?: { venue_name?: string | null; order_number?: string | null },
+        extra?: {
+          venue_name?: string | null;
+          order_number?: string | null;
+          base_revenue?: number | null;
+        },
       ) => {
         if (!amount || amount === 0) return;
         items.push({
@@ -819,6 +825,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           paid: false,
           payout_date: null,
           venue_name: extra?.venue_name ?? null,
+          base_revenue: extra?.base_revenue ?? null,
           order_number: extra?.order_number ?? null,
         });
       };
@@ -971,11 +978,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       // 八種團隊獎金：由 create-team-bonus-snapshots 每月10日鎖定寫入
-      // 固定金額×館別數的類型（AM 場域／場域成交／網紅月費）拆成逐館一筆，其餘為全公司口徑
+      // 固定金額×館別數的類型（AM 場域／場域成交／網紅月費）拆成逐館一筆
+      // 抽成類（營收 × 費率）依「各館別營收」拆成逐館一筆，並顯示該館營收
       const PER_VENUE_BONUS = new Set(["am_venue_bonus", "venue_closing", "kol_monthly"]);
-      (teamBonusSnapshots ?? []).forEach((r: any) => {
+      const REVENUE_BONUS = new Set([
+        "am_performance",
+        "closer_performance",
+        "am_manager",
+        "closer_manager",
+        "kol_commission",
+      ]);
+      for (const r of (teamBonusSnapshots ?? []) as any[]) {
         const amount = Math.round(Number(r.amount ?? 0));
-        if (amount <= 0) return;
+        if (amount <= 0) continue;
         const label = SOURCE_LABEL[r.bonus_type] ?? r.bonus_type;
         const detail = `${payoutMonthKey.replace("-", "/")} 10日期`;
         const snap = (r.settings_snapshot ?? {}) as any;
@@ -999,7 +1014,53 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               { venue_name: name },
             );
           });
-          return;
+          continue;
+        }
+
+        if (REVENUE_BONUS.has(r.bonus_type) && accIds.length > 0) {
+          const sources: string[] = Array.isArray(snap.kol_sources)
+            ? snap.kol_sources
+            : Array.isArray(snap.shared_sources)
+              ? snap.shared_sources
+              : [];
+          const snapMonth = String(r.snapshot_month ?? "");
+          const [sy, sm] = snapMonth.split("-").map(Number);
+          if (sources.length > 0 && sy && sm) {
+            const nextY = sm === 12 ? sy + 1 : sy;
+            const nextM = sm === 12 ? 1 : sm + 1;
+            const byAcc: Record<string, number> = await getAccommodationRevenueByAcc(
+              supabase as any,
+              accIds,
+              `${snapMonth}-01`,
+              `${nextY}-${String(nextM).padStart(2, "0")}-01`,
+              sources,
+            );
+            const entries = Object.entries(byAcc)
+              .filter(([, rev]) => rev > 0)
+              .sort((a, b) => b[1] - a[1]);
+            const totalRev = entries.reduce((s2, [, v]) => s2 + v, 0);
+            if (entries.length > 0 && totalRev > 0) {
+              let allocated = 0;
+              entries.forEach(([accId, rev], idx) => {
+                const value =
+                  idx === entries.length - 1
+                    ? amount - allocated
+                    : Math.round((amount * rev) / totalRev);
+                allocated += value;
+                pushItem(
+                  "teamcommission_bonus_snapshots",
+                  r.id,
+                  `${r.bonus_type}#${accId}`,
+                  profileById.get(r.member_id),
+                  label,
+                  detail,
+                  value,
+                  { venue_name: venueOf(accId) || "其他", base_revenue: Math.round(rev) },
+                );
+              });
+              continue;
+            }
+          }
         }
 
         pushItem(
@@ -1010,9 +1071,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           label,
           detail,
           amount,
-          { venue_name: "全館別" },
+          { venue_name: "全館別", base_revenue: Number(r.base_revenue ?? 0) || null },
         );
-      });
+      }
 
 
 
@@ -1543,6 +1604,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead>館別</TableHead>
+                                        <TableHead className="w-[120px] text-right">營收</TableHead>
                                         <TableHead className="w-[90px] text-right">筆數</TableHead>
                                         <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
@@ -1582,6 +1644,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                               }
                                             >
                                               <TableCell className="text-sm">{venue}</TableCell>
+                                              <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                                                {(() => {
+                                                  const rev = vItems.reduce(
+                                                    (s2, i) => s2 + Number(i.base_revenue ?? 0),
+                                                    0,
+                                                  );
+                                                  return rev > 0 ? formatMoney(rev) : "—";
+                                                })()}
+                                              </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
                                               <TableCell className="text-right tabular-nums">{formatMoney(subtotal)}</TableCell>
                                               <TableCell>
