@@ -767,6 +767,9 @@ export default function TeamHome() {
         let kolMonthlySum = 0;
         let venueClosingSum = 0;
         let venueClosingLines: Array<{ name: string; amount: number }> = [];
+        // 各獎金類型的「館別營收 / 館別獎金」明細
+        const breakdown: Record<string, VenueRevenueLine[]> = {};
+        const accNameFallback = new Map<string, string>();
         let amManagerFlag = false;
         let closerManagerFlag = false;
         let kolRecipientFlag = false;
