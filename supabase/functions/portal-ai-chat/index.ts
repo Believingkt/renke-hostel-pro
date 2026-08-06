@@ -1111,6 +1111,17 @@ ${accListStr}
                     }
                   }
 
+                  // 房型圖文卡片（資料全部取自工具的資料庫查詢結果，模型不參與）
+                  try {
+                    const cardsBlock = buildRoomCardsBlock(buildRoomCardPayloads(lastRoomsResult));
+                    if (cardsBlock) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: cardsBlock } }] })}\n\n`));
+                    }
+                  } catch (cardErr) {
+                    console.error('Room cards failed:', cardErr);
+                  }
+
+
                   shouldExecuteToolCalls = false;
                   toolCallsByIndex.clear();
                 }
