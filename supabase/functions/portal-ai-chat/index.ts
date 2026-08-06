@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -730,7 +731,8 @@ serve(async (req) => {
 
 
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = taipeiToday();
+    const dateBlock = buildDateBlock();
     const locationStr = Array.from(new Set(accommodationList.map(a => [a.region_1, a.region_2].filter(Boolean).join(' ')).filter(Boolean))).join('、');
 
     const replaceVars = (s: string) => (s || '')
@@ -750,6 +752,7 @@ serve(async (req) => {
       : '';
 
     const systemPrompt = `${dbPromptBlock}
+${dateBlock}
 ${replyTemplateBlock}
 
 ${userContextBlock}
@@ -1051,7 +1054,7 @@ ${accListStr}
                         body: JSON.stringify({
                           model: "claude-sonnet-4-5-20250929",
                           max_tokens: 1024,
-                          system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。今天是 ${new Date().toISOString().split('T')[0]}`,
+                          system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}`,
                           messages: followUpMessages,
                           stream: true,
                         }),

@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -175,7 +176,8 @@ serve(async (req) => {
       ? `\n\n## 禁止主題\n${promptRow.forbidden_topics.split("|").join("、")}`
       : "";
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = taipeiToday();
+    const dateBlock = buildDateBlock();
     const accInfo = acc.data
       ? `\n\n## 民宿資訊\n- 名稱：${acc.data.name}\n- 地址：${acc.data.address || "未提供"}\n- 地區：${[acc.data.region_1, acc.data.region_2].filter(Boolean).join(" / ") || "未提供"}\n- 電話：${acc.data.phone || "未提供"}\n- 今天日期：${today}`
       : "";
@@ -196,7 +198,7 @@ serve(async (req) => {
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
-      + accInfo + roomList + knowledgeText + examplesText + tone + forbidden;
+      + dateBlock + accInfo + roomList + knowledgeText + examplesText + tone + forbidden;
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
