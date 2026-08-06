@@ -538,6 +538,7 @@ interface SourceItem {
   paid: boolean;
   payout_date: string | null;
   venue_name?: string | null;   // 館別名稱（訂單類獎金）
+  base_revenue?: number | null; // 該館別計算基準營收（抽成類獎金）
   order_number?: string | null; // 訂單編號
 }
 
@@ -802,7 +803,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         source_label: string,
         detail: string,
         amount: number,
-        extra?: { venue_name?: string | null; order_number?: string | null },
+        extra?: {
+          venue_name?: string | null;
+          order_number?: string | null;
+          base_revenue?: number | null;
+        },
       ) => {
         if (!amount || amount === 0) return;
         items.push({
@@ -819,6 +824,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           paid: false,
           payout_date: null,
           venue_name: extra?.venue_name ?? null,
+          base_revenue: extra?.base_revenue ?? null,
           order_number: extra?.order_number ?? null,
         });
       };
@@ -1543,6 +1549,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead>館別</TableHead>
+                                        <TableHead className="w-[120px] text-right">營收</TableHead>
                                         <TableHead className="w-[90px] text-right">筆數</TableHead>
                                         <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
@@ -1582,6 +1589,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                               }
                                             >
                                               <TableCell className="text-sm">{venue}</TableCell>
+                                              <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                                                {(() => {
+                                                  const rev = vItems.reduce(
+                                                    (s2, i) => s2 + Number(i.base_revenue ?? 0),
+                                                    0,
+                                                  );
+                                                  return rev > 0 ? formatMoney(rev) : "—";
+                                                })()}
+                                              </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
                                               <TableCell className="text-right tabular-nums">{formatMoney(subtotal)}</TableCell>
                                               <TableCell>
