@@ -42,6 +42,9 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Pencil, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 interface Props {
   isAdmin: boolean;
@@ -89,6 +92,7 @@ function taipeiMonthOf(d: Date): { year: number; month: number } {
 }
 
 export default function TeamBonusDistributionTab({ isAdmin }: Props) {
+  const { multiplierForDataMonth } = useBonusMultipliers();
   // ============ Card 1: bonus settings ============
   const [settings, setSettings] = useState<BonusSetting[]>([]);
   const [addOpen, setAddOpen] = useState(false);
@@ -139,6 +143,12 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   // Settlement year/month = period month - 1 (wraps to previous year)
   const year = periodMonth === 1 ? periodYear - 1 : periodYear;
   const month = periodMonth === 1 ? 12 : periodMonth - 1;
+
+  const dataMonthKey = useMemo(
+    () => `${year}-${String(month).padStart(2, "0")}`,
+    [year, month],
+  );
+  const closerMultiplier = multiplierForDataMonth("closer", dataMonthKey);
 
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
@@ -458,9 +468,11 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               有效訂單分潤金額：
               <span className="font-semibold">{fmtNT(totalCommission)}</span>
             </div>
-            <div>
+            <div className="flex items-center gap-1">
               成交組團隊獎金：
-              <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
+              <span className="font-semibold text-primary">
+                <BoostedAmount amount={displayPool} multiplier={closerMultiplier} />
+              </span>
             </div>
             <div className="text-xs text-muted-foreground">
               （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單分潤金額 = 全館別+全成交組成員加總）
@@ -543,7 +555,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                       />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmtNT(amountFor(m.user_id))}
+                      <BoostedAmount amount={amountFor(m.user_id)} multiplier={closerMultiplier} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -556,7 +568,9 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             </div>
             <div>
               分配金額總和：
-              <span className="font-semibold">{fmtNT(totalAmount)}</span>
+              <span className="font-semibold">
+                <BoostedAmount amount={totalAmount} multiplier={closerMultiplier} />
+              </span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   （若有微小差異來自小數四捨五入）

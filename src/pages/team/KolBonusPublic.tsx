@@ -21,6 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo.png";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
 
 interface KolInfo {
   id: string;
@@ -88,6 +90,7 @@ export default function KolBonusPublic() {
   const [totals, setTotals] = useState<Totals>({ addonExcludedTotal: 0, nonTwdCount: 0 });
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   useEffect(() => {
     if (!token) {
@@ -214,6 +217,10 @@ export default function KolBonusPublic() {
     }
     return { count, revenue, base, commission: Math.round(commission) };
   }, [completedList, getRate]);
+
+  const commissionMultiplier = useMemo(() => {
+    return isYearAll ? 1 : multiplierForDataMonth("kol_commission", prefix);
+  }, [isYearAll, prefix, multiplierForDataMonth]);
 
   const computePayoutDate = (checkOut: string | null | undefined): string => {
     if (!checkOut) return "—";
@@ -397,7 +404,7 @@ export default function KolBonusPublic() {
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
-                            <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
+                            <TableCell className="whitespace-nowrap text-right tabular-nums"><BoostedAmount amount={amount} multiplier={commissionMultiplier} /></TableCell>
                             <TableCell className="whitespace-nowrap text-xs">{computePayoutDate(o.check_out_date)}</TableCell>
                           </TableRow>
                         );
@@ -407,7 +414,7 @@ export default function KolBonusPublic() {
                 </Table>
               </div>
               <div className="text-xs text-muted-foreground text-right">
-                小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜分潤基準合計 {fmtMoney(completedTotals.base)}｜總分潤 {fmtMoney(completedTotals.commission)}
+                小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜分潤基準合計 {fmtMoney(completedTotals.base)}｜總分潤 <BoostedAmount amount={completedTotals.commission} multiplier={commissionMultiplier} />
               </div>
               <p className="text-xs text-muted-foreground">
                 分潤基準＝訂單金額扣除加購項目（如另有議定之基準金額則以該金額為準）。

@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
+import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
+
 import {
   getBonusRateSettings,
   getRoleBinding,
@@ -842,16 +844,20 @@ export default function TeamHome() {
 
         }
 
-        // ===== Multipliers（當月 YYYY-MM）=====
+        // ===== Multipliers =====
+        // 加倍活動一律以「發放月」設定（發放月 = 資料月 + 1），需先換算再比對，
+        // 否則會與「獎金管理 → 發放管理」差一個月。
+        const multMonthKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
         const { data: multRows } = await supabase
           .from("bonus_multiplier_settings")
           .select("bonus_type, multiplier, start_month, end_month")
-          .lte("start_month", monthInfo.currentMonthKey)
-          .gte("end_month", monthInfo.currentMonthKey);
+          .lte("start_month", multMonthKey)
+          .gte("end_month", multMonthKey);
         const multMap: Record<string, number> = {};
         (multRows ?? []).forEach((r: any) => {
           multMap[r.bonus_type] = Number(r.multiplier ?? 1);
         });
+
 
         if (cancelled) return;
         setCloserAmt(closerSum);
@@ -903,6 +909,7 @@ export default function TeamHome() {
     key: string;
     title: string;
     amount: number;              // 加倍後金額（顯示用）
+    baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
     lines?: Array<{ label: string; amount: number; multiplier: number }>;
@@ -919,10 +926,12 @@ export default function TeamHome() {
       key: "closer",
       title: "成交獎金",
       amount: closerBoosted + scoutCloserBoosted,
+      baseAmount: closerAmt + scoutCloserAmt,
       multiplier: closerMult,
       lines,
     });
   }
+
   if (showCloser && closerTeamBonusRate > 0) {
     const m = multOf("closer");
     if (closerTeamBonusFinalized) {
@@ -930,6 +939,7 @@ export default function TeamHome() {
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
         amount: Math.round(closerTeamBonusAmt * m),
+        baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: "已定案分配金額",
       });
@@ -944,6 +954,7 @@ export default function TeamHome() {
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
         amount: Math.round(closerTeamBonusAmt * m),
+        baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: noteParts.join("；"),
         excludeFromTotal: true,
@@ -952,19 +963,20 @@ export default function TeamHome() {
   }
   if (showVideo) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), multiplier: m });
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
   }
   if (showScout) {
     const kolM = multOf("scout_kol");
     const rarityM = multOf("scout_rarity");
     const baseM = multOf("scout_base");
     const teamM = multOf("scout_team");
-    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
       key: "scout_base",
       title: "底薪",
       amount: Math.round(baseSalaryAmt * baseM),
+      baseAmount: baseSalaryAmt,
       multiplier: baseM,
       note: isScoutTeamMember
         ? "依上月邀約達標計算，本月 10 日發放"
@@ -974,6 +986,7 @@ export default function TeamHome() {
       key: "scout_team",
       title: "團隊獎金",
       amount: Math.round(teamBonusAmt * teamM),
+      baseAmount: teamBonusAmt,
       multiplier: teamM,
       note: isScoutTeamMember
         ? "依全隊上月達標計算,本月 10 日發放"
@@ -998,13 +1011,15 @@ export default function TeamHome() {
       key: "franchise",
       title: "特許加盟",
       amount: intBoosted + extBoosted,
+      baseAmount: franchiseInternalAmt + franchiseExternalAmt,
       multiplier: combinedMult,
       lines: lines.length > 1 ? lines : undefined,
     });
+
   }
   if (showStarlink) {
     const m = multOf("starlink");
-    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m });
   }
 
   // ===== 七種團隊獎金卡片 =====
@@ -1016,6 +1031,7 @@ export default function TeamHome() {
       key: "am_performance",
       title: "AM績效獎金",
       amount: Math.round(amPerformanceAmt * m),
+      baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
     });
@@ -1024,6 +1040,7 @@ export default function TeamHome() {
       key: "am_venue_bonus",
       title: "AM場域獎金",
       amount: Math.round(amVenueBonusAmt * mv),
+      baseAmount: amVenueBonusAmt,
       multiplier: mv,
       note: rateNote("am_venue_bonus"),
     });
@@ -1034,6 +1051,7 @@ export default function TeamHome() {
       key: "closer_performance",
       title: "成交組績效獎金",
       amount: Math.round(closerPerformanceAmt * m),
+      baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
     });
@@ -1044,6 +1062,7 @@ export default function TeamHome() {
       key: "am_manager",
       title: "AM總管獎金",
       amount: Math.round(amManagerAmt * m),
+      baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
     });
@@ -1054,6 +1073,7 @@ export default function TeamHome() {
       key: "closer_manager",
       title: "成交大師管理獎金",
       amount: Math.round(closerManagerAmt * m),
+      baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
     });
@@ -1064,6 +1084,7 @@ export default function TeamHome() {
       key: "kol_commission",
       title: "網紅營銷專利獎金",
       amount: Math.round(kolCommissionAmt * mc),
+      baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
     });
@@ -1072,6 +1093,7 @@ export default function TeamHome() {
       key: "kol_monthly",
       title: "網紅營銷月獎金",
       amount: Math.round(kolMonthlyAmt * mm),
+      baseAmount: kolMonthlyAmt,
       multiplier: mm,
       note: rateNote("kol_monthly"),
     });
@@ -1082,6 +1104,7 @@ export default function TeamHome() {
       key: "venue_closing",
       title: "場域成交獎金",
       amount: Math.round(venueClosingAmt * m),
+      baseAmount: venueClosingAmt,
       multiplier: m,
       note: rateNote("venue_closing"),
       lines: venueClosingDetail.map((d) => ({
@@ -1141,9 +1164,15 @@ export default function TeamHome() {
                     ) : null}
                   </CardHeader>
                   <CardContent>
+                    {!loading && c.multiplier > 1 ? (
+                      <p className="text-sm text-muted-foreground line-through tabular-nums">
+                        {fmt(c.baseAmount ?? Math.round(c.amount / c.multiplier))}
+                      </p>
+                    ) : null}
                     <p className="text-2xl font-semibold">
                       {loading ? "—" : fmt(c.amount)}
                     </p>
+
                     {!loading &&
                     c.lines &&
                     (c.lines.length > 1 || c.key === "venue_closing") ? (

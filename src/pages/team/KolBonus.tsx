@@ -52,6 +52,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
 
 interface KolRow {
   // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
@@ -156,6 +158,7 @@ export default function KolBonus() {
   const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
   const [scoutFilter, setScoutFilter] = useState<string>("all");
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -459,6 +462,19 @@ export default function KolBonus() {
     return `${payoutYear}-${String(p - 1).padStart(2, "0")}`;
   }, [payoutYear, payoutPeriod]);
 
+  // 獎金加倍：Tab1 以篩選的「進單/完成」月份為資料月；Tab2 以退房月（tab2TargetPrefix）為資料月
+  const tab1DataMonthKey =
+    filterYear !== 0 && filterMonth !== "all"
+      ? `${filterYear}-${String(filterMonth).padStart(2, "0")}`
+      : null;
+  const tab1CommissionMultiplier = tab1DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab1DataMonthKey)
+    : 1;
+  const tab2DataMonthKey = payoutPeriod !== "all" ? tab2TargetPrefix : null;
+  const tab2CommissionMultiplier = tab2DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab2DataMonthKey)
+    : 1;
+
   // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在對應退房月份有退房
   const tab2FilteredRows = useMemo(() => {
     return rows.filter((k) => {
@@ -660,7 +676,7 @@ export default function KolBonus() {
                   );
                   return (
                     <div className="ml-auto text-sm text-muted-foreground">
-                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
+                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab1CommissionMultiplier} />
                     </div>
                   );
                 })()}
@@ -726,7 +742,7 @@ export default function KolBonus() {
                               <TableCell className="text-right tabular-nums border-r">{fmtMoney(m.orderRevenue)}</TableCell>
                               <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
                               <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
-                              <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
+                              <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab1CommissionMultiplier} /></TableCell>
                               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                   size="icon"
@@ -824,7 +840,7 @@ export default function KolBonus() {
                       );
                       return (
                         <div className="ml-auto text-sm text-muted-foreground">
-                          共 {tab2FilteredRows.length} 位 KOL｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
+                          共 {tab2FilteredRows.length} 位 KOL｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab2CommissionMultiplier} />
                         </div>
                       );
                     })()}
@@ -873,7 +889,7 @@ export default function KolBonus() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
                                 <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
-                                <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
+                                <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab2CommissionMultiplier} /></TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <Button
                                     size="icon"
@@ -962,6 +978,7 @@ function KolDetailDrawer({
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   useEffect(() => {
     if (kol) setMonth(initialMonth);
@@ -1037,6 +1054,13 @@ function KolDetailDrawer({
     }
     return { count, revenue };
   }, [orderList]);
+
+  const commissionMultiplier = useMemo(() => {
+    const key = settlementMode
+      ? (filterPrefix && filterPrefix.length === 7 ? filterPrefix : null)
+      : (filterMonthAll ? null : month);
+    return key ? multiplierForDataMonth("kol_commission", key) : 1;
+  }, [settlementMode, filterPrefix, filterMonthAll, month, multiplierForDataMonth]);
 
   const completedTotals = useMemo(() => {
     let count = 0;
@@ -1251,7 +1275,7 @@ function KolDetailDrawer({
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
-                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums"><BoostedAmount amount={amount} multiplier={commissionMultiplier} /></TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{(() => {
                             const co = o.check_out_date?.slice(0, 10);
                             if (!co) return "—";
@@ -1270,7 +1294,7 @@ function KolDetailDrawer({
             </div>
 
             <div className="text-xs text-muted-foreground text-right">
-              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 {fmtMoney(completedTotals.commission)}
+              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 <BoostedAmount amount={completedTotals.commission} multiplier={commissionMultiplier} />
             </div>
           </div>
         </div>
