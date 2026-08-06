@@ -454,15 +454,25 @@ export default function TeamOrders() {
   }
 
   async function loadMembers() {
-    const [c, v, s] = await Promise.all([
+    const [c, cm, v, s] = await Promise.all([
       supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
+      supabase.rpc("get_team_role_members", { p_role: "closer_manager" as any }),
       supabase.rpc("get_team_role_members", { p_role: "video" as any }),
       supabase.rpc("get_team_role_members", { p_role: "scout" as any }),
     ]);
-    setClosers((c.data as Member[]) || []);
+    // 成交組下拉需同時包含 closer 與 closer_manager（依 user_id 去重）
+    const closerList = [
+      ...((c.data as Member[]) || []),
+      ...((cm.data as Member[]) || []),
+    ];
+    const dedupedClosers = Array.from(
+      new Map(closerList.map((m) => [m.user_id, m])).values(),
+    );
+    setClosers(dedupedClosers);
     setVideos((v.data as Member[]) || []);
     setScouts((s.data as Member[]) || []);
   }
+
 
   // Helper: page through a Supabase query to collect all rows (used for meta-side prefilter)
   async function fetchAllOrderIdsFromMeta(filters: {
