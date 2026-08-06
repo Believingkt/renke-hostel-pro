@@ -238,7 +238,7 @@ const PortalAIChatPanel = () => {
         params.set("adults", String(searchIntent.guests || defaultGuests));
         params.set("ai", "1");
         params.set("aiQuery", content.trim().slice(0, 80));
-        const note = assistantMessage
+        const note = parseRoomCards(assistantMessage).text
           .replace(/\[SUGGEST:\s*[^\]]+\]/g, "")
           .split("\n")
           .map((l) => l.trim())
