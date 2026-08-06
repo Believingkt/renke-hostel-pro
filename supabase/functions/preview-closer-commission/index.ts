@@ -159,7 +159,7 @@ serve(async (req) => {
     // 4) 免抽成判斷（與正式快照相同）
     const isExempt = await buildExemptResolver(supabase, accIds);
 
-    const selfId = ctx.userId;
+    const selfId = targetUserId ?? ctx.userId;
     let selfCloser = 0;
     let selfVideo = 0;
     let teamCloser = 0;
