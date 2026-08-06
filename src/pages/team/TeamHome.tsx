@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import { Eye } from "lucide-react";
 import {
   Select,
@@ -184,6 +192,7 @@ export default function TeamHome() {
     Array<{ name: string; amount: number }>
   >([]);
   const [revenueBreakdown, setRevenueBreakdown] = useState<Record<string, VenueRevenueLine[]>>({});
+  const [detailCardKey, setDetailCardKey] = useState<string | null>(null);
   const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
 
   const monthInfo = useMemo(() => {
@@ -815,11 +824,16 @@ export default function TeamHome() {
             allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
           }
 
+          // 旅行日系列不列入抽成類獎金（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
+          const revenueAccIds = allAccIds.filter(
+            (id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日"),
+          );
+
           const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
               ? await getAccommodationRevenueByAcc(
                   client,
-                  allAccIds,
+                  revenueAccIds,
                   monthStartDate,
                   monthEndDate,
                   sharedSources,
@@ -913,7 +927,7 @@ export default function TeamHome() {
               kolSources.length > 0
                 ? await getAccommodationRevenueByAcc(
                     client,
-                    allAccIds,
+                    revenueAccIds,
                     monthStartDate,
                     monthEndDate,
                     kolSources,
@@ -1354,22 +1368,36 @@ export default function TeamHome() {
                       {loading ? "—" : fmt(c.amount)}
                     </p>
 
-                    {!loading &&
-                    c.lines &&
-                    c.lines.length > 0 &&
-                    (c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines) ? (
-                      <div className="mt-2 space-y-0.5">
-                        {c.lines.map((ln, i) => (
-                          <div key={i} className="flex justify-between gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{ln.label}</span>
-                            <span className="tabular-nums whitespace-nowrap">
-                              {ln.revenue !== undefined ? `營收 ${fmt(ln.revenue)}　獎金 ` : ""}
-                              {fmt(ln.amount)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
+                    {!loading && c.lines && c.lines.length > 0
+                      ? c.lines.some((ln) => ln.revenue !== undefined)
+                        ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 h-7 text-xs"
+                            onClick={() => setDetailCardKey(c.key)}
+                          >
+                            各館別明細（{c.lines.length} 館）
+                          </Button>
+                        )
+                        : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
+                          ? (
+                            <div className="mt-2 space-y-0.5">
+                              {c.lines.map((ln, i) => (
+                                <div
+                                  key={i}
+                                  className="flex justify-between gap-2 text-xs text-muted-foreground"
+                                >
+                                  <span className="truncate">{ln.label}</span>
+                                  <span className="tabular-nums whitespace-nowrap">
+                                    {fmt(ln.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                          : null
+                      : null}
                   </CardContent>
                 </Card>
               ))}
@@ -1377,6 +1405,55 @@ export default function TeamHome() {
           </div>
         </>
       )}
+
+      <Drawer
+        open={!!detailCardKey}
+        onOpenChange={(o) => !o && setDetailCardKey(null)}
+      >
+        <DrawerContent>
+          {(() => {
+            const c = cards.find((x) => x.key === detailCardKey);
+            if (!c) return null;
+            const lines = c.lines ?? [];
+            const totalRevenue = lines.reduce((s, l) => s + (l.revenue ?? 0), 0);
+            const totalAmount = lines.reduce((s, l) => s + l.amount, 0);
+            return (
+              <div className="mx-auto w-full max-w-2xl">
+                <DrawerHeader>
+                  <DrawerTitle>{c.title}－各館別明細</DrawerTitle>
+                  <DrawerDescription>
+                    營收合計 {fmt(totalRevenue)}　獎金合計 {fmt(totalAmount)}
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground border-b">
+                        <th className="text-left py-2 font-medium">館別</th>
+                        <th className="text-right py-2 font-medium">營收</th>
+                        <th className="text-right py-2 font-medium">獎金</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((ln, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-2 pr-2">{ln.label}</td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                            {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
+                          </td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                            {fmt(ln.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

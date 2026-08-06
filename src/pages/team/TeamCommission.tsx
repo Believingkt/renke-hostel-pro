@@ -1025,12 +1025,16 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               : [];
           const snapMonth = String(r.snapshot_month ?? "");
           const [sy, sm] = snapMonth.split("-").map(Number);
-          if (sources.length > 0 && sy && sm) {
+          // 旅行日系列不列入抽成類獎金
+          const revenueAccIds = accIds.filter(
+            (id) => !String(venueOf(id) ?? "").startsWith("旅行日"),
+          );
+          if (sources.length > 0 && sy && sm && revenueAccIds.length > 0) {
             const nextY = sm === 12 ? sy + 1 : sy;
             const nextM = sm === 12 ? 1 : sm + 1;
             const byAcc: Record<string, number> = await getAccommodationRevenueByAcc(
               supabase as any,
-              accIds,
+              revenueAccIds,
               `${snapMonth}-01`,
               `${nextY}-${String(nextM).padStart(2, "0")}-01`,
               sources,
