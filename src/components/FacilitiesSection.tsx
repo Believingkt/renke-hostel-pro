@@ -11,9 +11,19 @@ interface Facility {
 
 interface FacilitiesSectionProps {
   facilities: Facility[];
+  wholeFacilities?: Facility[];
+  singleFacilities?: Facility[];
   customTitle?: string;
   customSubtitle?: string;
 }
+
+type ScopeKey = "venue" | "whole" | "single";
+
+const scopeNames: Record<ScopeKey, string> = {
+  venue: "整館設施",
+  whole: "包棟客房",
+  single: "單間客房",
+};
 
 const categoryNames: Record<string, string> = {
   public: "公共區設施服務",
@@ -31,11 +41,25 @@ const shortCategoryNames: Record<string, string> = {
   language: "服務語言",
 };
 
-const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: FacilitiesSectionProps) => {
-  if (!facilities || facilities.length === 0) return null;
+const FacilitiesSection = ({
+  facilities,
+  wholeFacilities = [],
+  singleFacilities = [],
+  customTitle,
+  customSubtitle,
+}: FacilitiesSectionProps) => {
+  const scopeOptions: ScopeKey[] = [
+    ...((facilities?.length || 0) > 0 ? (["venue"] as ScopeKey[]) : []),
+    ...(wholeFacilities.length > 0 ? (["whole"] as ScopeKey[]) : []),
+    ...(singleFacilities.length > 0 ? (["single"] as ScopeKey[]) : []),
+  ];
+  const [activeScope, setActiveScope] = useState<ScopeKey>(scopeOptions[0] || "venue");
+  const scopeList =
+    activeScope === "whole" ? wholeFacilities : activeScope === "single" ? singleFacilities : facilities;
+  const currentFacilities = scopeOptions.includes(activeScope) ? scopeList : facilities;
 
   // 按類別分組
-  const grouped = facilities.reduce((acc, f) => {
+  const grouped = (currentFacilities || []).reduce((acc, f) => {
     (acc[f.category] ||= []).push(f);
     return acc;
   }, {} as Record<string, Facility[]>);
@@ -43,6 +67,12 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
   const categoryKeys = Object.keys(grouped);
   const [activeCat, setActiveCat] = useState(categoryKeys[0]);
   const tabsRef = useRef<HTMLDivElement>(null);
+
+  // 切換 scope 時重置類別
+  useEffect(() => {
+    setActiveCat(Object.keys(grouped)[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScope]);
 
   // 切換類別時，只在 tab 列內部水平捲動使 active tab 置中
   // （避免使用 scrollIntoView，否則會連同整個頁面一起被水平捲動，造成內容左偏）
@@ -59,6 +89,13 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
 
   const activeItems = grouped[activeCat] || [];
 
+  if (
+    (facilities?.length || 0) === 0 &&
+    wholeFacilities.length === 0 &&
+    singleFacilities.length === 0
+  )
+    return null;
+
   return (
     <section id="facilities" className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
@@ -70,6 +107,26 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
             {customSubtitle || "完善設施與貼心服務，讓您的住宿體驗更加舒適"}
           </p>
         </div>
+
+        {scopeOptions.length > 1 && (
+          <div className="flex justify-center mb-6 md:mb-8">
+            <div className="inline-flex rounded-full border border-border/60 bg-muted/40 p-1">
+              {scopeOptions.map((sc) => (
+                <button
+                  key={sc}
+                  onClick={() => setActiveScope(sc)}
+                  className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                    sc === activeScope
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {scopeNames[sc]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* === 手機版：分頁網格 === */}
         <div className="md:hidden max-w-md mx-auto">
@@ -127,7 +184,7 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
               {/* Summary */}
               <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  共 {facilities.length} 項設施服務
+                  共 {currentFacilities.length} 項設施服務
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {categoryNames[activeCat] || activeCat} · {activeItems.length} 項
