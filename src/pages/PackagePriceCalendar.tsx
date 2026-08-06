@@ -303,7 +303,7 @@ export default function PackagePriceCalendar() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="方案日期價格"
+        title="前台訂房價格"
         description="以「入住方案 × 日期」直接改價，前台訂房頁與伺服器驗價同步採用。庫存數量仍以房價價格設定為準。"
         icon={DollarSign}
       />
