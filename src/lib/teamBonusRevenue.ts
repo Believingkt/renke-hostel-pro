@@ -222,10 +222,12 @@ export async function getVenueClosingAccommodations(
   monthStartDate: string,
 ): Promise<string[]> {
   if (!memberProfileId) return [];
+  // 只要在「資料月內任一天」生效即計入該資料月（隔月發放）
+  const monthLastDate = `${monthStartDate.slice(0, 7)}-31`;
   const { data } = await client
     .from("teamcommission_venue_closing_assignments")
     .select("accommodation_id, member_id, effective_from, created_at")
-    .lte("effective_from", monthStartDate);
+    .lte("effective_from", monthLastDate);
 
   const byAcc = new Map<string, any[]>();
   for (const row of (data ?? []) as any[]) {
