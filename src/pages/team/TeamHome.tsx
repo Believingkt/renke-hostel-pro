@@ -49,7 +49,74 @@ const fmt = (n: number) =>
 
 
 export default function TeamHome() {
-  const { userId, displayName, roles } = useTeam();
+  const { userId: selfUserId, displayName: selfDisplayName, roles: selfRoles } = useTeam();
+
+  // ===== 管理員檢視模式 =====
+  // 具備 super_admin / admin 全域角色者，可切換檢視其他成員的 TeamHome 總覽。
+  // 預設一律先看自己；切換後資料改由 team-view-query Edge Function（service role）取得，
+  // 計算邏輯完全沿用同一份程式碼。
+  const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  const [viewAsRoles, setViewAsRoles] = useState<TeamRole[]>([]);
+  const [members, setMembers] = useState<
+    Array<{ user_id: string; display_name: string; roles: TeamRole[] }>
+  >([]);
+
+  const isViewing = Boolean(viewAsUserId);
+  const viewUserId = viewAsUserId ?? selfUserId;
+  const roles = isViewing ? viewAsRoles : selfRoles;
+  const displayName = isViewing
+    ? members.find((m) => m.user_id === viewAsUserId)?.display_name ?? "成員"
+    : selfDisplayName;
+
+  const db = useMemo(
+    () => (viewAsUserId ? (createTeamViewClient() as any) : (supabase as any)),
+    [viewAsUserId],
+  );
+
+  // 管理員：載入可檢視的成員清單（含各自角色）
+  useEffect(() => {
+    if (!isAdminViewer) return;
+    let cancelled = false;
+    (async () => {
+      const view = createTeamViewClient() as any;
+      const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+        view.from("team_member_profiles").select("user_id, display_name"),
+        view.from("user_roles").select("user_id, role").is("accommodation_id", null),
+      ]);
+      if (cancelled) return;
+      const roleMap = new Map<string, TeamRole[]>();
+      for (const r of (roleRows ?? []) as any[]) {
+        if (!r?.user_id) continue;
+        const list = roleMap.get(r.user_id) ?? [];
+        list.push(r.role as TeamRole);
+        roleMap.set(r.user_id, list);
+      }
+      const list = ((profiles ?? []) as any[])
+        .filter((p) => p?.user_id && roleMap.has(p.user_id))
+        .map((p) => ({
+          user_id: p.user_id as string,
+          display_name: (p.display_name as string) || "未命名",
+          roles: roleMap.get(p.user_id) ?? [],
+        }))
+        .sort((a, b) => a.display_name.localeCompare(b.display_name, "zh-Hant"));
+      setMembers(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminViewer]);
+
+  const handleViewAs = (value: string) => {
+    if (value === "self") {
+      setViewAsUserId(null);
+      setViewAsRoles([]);
+      return;
+    }
+    const m = members.find((x) => x.user_id === value);
+    setViewAsUserId(value);
+    setViewAsRoles(m?.roles ?? []);
+  };
 
   const hasRole = (r: TeamRole) => roles.includes(r);
   const showCloser = hasRole("closer") || hasRole("closer_manager");
@@ -62,6 +129,7 @@ export default function TeamHome() {
   // 只要是任一 team 角色成員就進入查詢流程（部分角色需 async 判斷，
   // 最終以 cards.length === 0 顯示「暫無獎金項目」）
   const anyCard = roles.length > 0;
+
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
