@@ -743,6 +743,15 @@ const Customers = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => navigate(`/admin/cdp?q=${encodeURIComponent(customer.email || customer.phone || customer.name)}`)}
+                              className="h-10 w-10 touch-manipulation"
+                              title="查看旅客檔案"
+                            >
+                              <UserSearch className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleOpenDialog(customer)}
                               className="h-10 w-10 touch-manipulation"
                             >
