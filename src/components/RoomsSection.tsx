@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Users, ZoomIn, Home, BedDouble, Bath, Wind, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
-import { fetchScopedFacilities, getRoomScope, type RoomScope } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Carousel,
@@ -390,7 +389,6 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
   const [allInventoryPricing, setAllInventoryPricing] = useState<Record<string, InventoryPricing>>({});
   const [perRoomTemplateLabels, setPerRoomTemplateLabels] = useState<Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }>>({});
   const [allRoomTemplates, setAllRoomTemplates] = useState<Record<string, RoomTemplate[]>>({});
-  const [scopedFacilities, setScopedFacilities] = useState<Record<RoomScope, string[]>>({ whole: [], single: [] });
 
   const accommodationId = roomTypes[0]?.accommodation_id;
   const roomTypeIds = roomTypes.map((r: any) => r.id);
@@ -459,9 +457,6 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         setPerRoomTemplateLabels(perRoomLabels);
         setAllRoomTemplates(roomTemplatesMap);
       }
-
-      // 房型專屬設施（包棟／單間）
-      fetchScopedFacilities(accommodationId).then(setScopedFacilities);
 
       // Process holidays
       if (holidaysResult.data) {
@@ -551,10 +546,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         isFirstRoom={index === 0}
         sharedTemplateLabels={mergedLabels}
         sharedHolidays={sharedHolidays}
-        amenities={(() => {
-          const scoped = scopedFacilities[getRoomScope(room as any)];
-          return scoped && scoped.length > 0 ? scoped : allAmenities[room.id];
-        })()}
+        amenities={allAmenities[room.id]}
         inventoryPricing={allInventoryPricing[room.id]}
         roomTemplates={allRoomTemplates[room.id]}
       />
