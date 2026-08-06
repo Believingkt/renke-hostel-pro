@@ -978,6 +978,7 @@ function KolDetailDrawer({
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   useEffect(() => {
     if (kol) setMonth(initialMonth);
