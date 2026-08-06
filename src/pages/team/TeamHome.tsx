@@ -98,7 +98,7 @@ export default function TeamHome() {
       for (const r of (roleRows ?? []) as any[]) {
         if (!r?.user_id) continue;
         const list = roleMap.get(r.user_id) ?? [];
-        list.push(r.role as TeamRole);
+        if (!list.includes(r.role as TeamRole)) list.push(r.role as TeamRole);
         roleMap.set(r.user_id, list);
       }
       const list = ((profiles ?? []) as any[])
