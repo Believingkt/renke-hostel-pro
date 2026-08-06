@@ -1480,7 +1480,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving facilities:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -1609,7 +1609,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving booking info:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -1751,7 +1751,7 @@ const WebsiteContent = () => {
       toast.success('訂房確認通知設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error saving email notification:', error);
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -2012,7 +2012,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving location info:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -2454,7 +2454,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error("Error saving basic info:", error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -3082,7 +3082,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving addon plans:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -3128,7 +3128,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving about section:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     } finally {
       setIsSaving(false);
     }
@@ -3189,7 +3189,7 @@ const WebsiteContent = () => {
       if (import.meta.env.DEV) {
         console.error('Error saving feature:', error);
       }
-      toast.error('儲存失敗，請稍後再試');
+      toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
     }
   };
 
