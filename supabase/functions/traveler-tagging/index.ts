@@ -127,9 +127,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 補充來源：沒有可歸戶對話時，改用訂單備註／需求文字解析（同樣冪等覆蓋）
+    if (byTraveler.size < batchLimit) {
+      for (const p of profiles as any[]) {
+        if (byTraveler.size >= batchLimit) break;
+        if (byTraveler.has(p.id)) continue;
+        const notes = (p.custom_needs ?? []).filter((n: string) => !n.startsWith("AI："));
+        if (!notes.length) continue;
+        byTraveler.set(p.id, { profile: p, text: [`訂單備註：\n${notes.join("\n")}`] });
+      }
+    }
+
     const targets = Array.from(byTraveler.values()).slice(0, batchLimit);
     if (!targets.length) {
-      return json({ success: true, processed: 0, matched: 0, note: "找不到可歸戶的對話（對話中未出現 email／手機）" });
+      return json({ success: true, processed: 0, matched: 0, note: "找不到可歸戶的對話或訂單備註" });
     }
 
     let processed = 0;
