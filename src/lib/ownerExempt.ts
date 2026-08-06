@@ -149,3 +149,14 @@ export async function buildExemptResolver(
     return sources.includes(source);
   };
 }
+
+import { extractAddonTotal } from "./ownerSettlement";
+
+/** 佣金/獎金計算基礎：final_price 扣除加購項目（不小於 0） */
+export function commissionBaseFromOrder(order: {
+  final_price?: number | string | null;
+  custom_addon_details?: unknown;
+}): number {
+  const final = Number(order.final_price ?? 0) || 0;
+  return Math.max(0, final - extractAddonTotal(order.custom_addon_details));
+}
