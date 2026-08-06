@@ -247,7 +247,8 @@ const BookingSearchResults = () => {
             .order("display_order", { ascending: true }),
           supabase
             .from("accommodation_facilities")
-            .select("accommodation_id, category, facility_name, is_available"),
+            .select("accommodation_id, category, facility_name, is_available")
+            .is("room_scope", null),
           supabase
             .from("pricing_templates")
             .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")

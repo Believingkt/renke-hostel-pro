@@ -209,6 +209,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
         supabase
           .from("accommodation_facilities")
           .select("*")
+          .is("room_scope", null)
           .or(`accommodation_id.is.null,accommodation_id.eq.${accId}`),
         supabase
           .from("location_info")

@@ -189,6 +189,7 @@ export async function buildOrderConfirmationEmail(
       .from("accommodation_facilities")
       .select("facility_name, is_available")
       .eq("accommodation_id", order.accommodation_id)
+      .is("room_scope", null)
       .order("category", { ascending: true }),
   ]);
 

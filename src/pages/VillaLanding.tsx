@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { fetchScopedFacilities, getRoomScope, type RoomScope } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import fallbackHero from "/images/villa-landing-hero.jpg";
@@ -89,6 +90,7 @@ export default function VillaLanding() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPhotos, setRoomPhotos] = useState<RoomPhoto[]>([]);
   const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [scopedFacilities, setScopedFacilities] = useState<Record<RoomScope, string[]>>({ whole: [], single: [] });
   const [aboutFeatures, setAboutFeatures] = useState<AboutFeature[]>([]);
   const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
   const [packages, setPackages] = useState<Pkg[]>([]);
@@ -138,6 +140,8 @@ export default function VillaLanding() {
 
       const rts = (rtRes?.data ?? []) as RoomType[];
       setRoomTypes(rts);
+
+      fetchScopedFacilities(resolvedId).then((sf) => { if (!cancelled) setScopedFacilities(sf); });
 
       if (rts.length > 0) {
         const ids = rts.map((r) => r.id);
@@ -281,8 +285,13 @@ export default function VillaLanding() {
   const firstPhotoOf = (rtId: string) =>
     roomPhotos.find((p) => p.room_type_id === rtId)?.photo_url;
 
-  /* 每房前 4 個 amenity（去重） */
+  /* 每房前 4 個 amenity（去重）；優先使用包棟／單間設施設定 */
   const amenitiesOf = (rtId: string) => {
+    const rt = roomTypes.find((r) => r.id === rtId);
+    const scoped = rt ? scopedFacilities[getRoomScope(rt as any)] : [];
+    if (scoped && scoped.length > 0) {
+      return scoped.slice(0, 4).map((name) => ({ room_type_id: rtId, amenity_name: name, category: "" } as Amenity));
+    }
     const seen = new Set<string>();
     const list = amenities
       .filter((a) => a.room_type_id === rtId)

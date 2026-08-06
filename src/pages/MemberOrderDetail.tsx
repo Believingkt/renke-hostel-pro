@@ -403,6 +403,7 @@ const MemberOrderDetail = () => {
           .from("accommodation_facilities")
           .select("facility_name, is_available")
           .eq("accommodation_id", data.accommodation_id)
+          .is("room_scope", null)
           .order("category", { ascending: true }),
       ]);
 

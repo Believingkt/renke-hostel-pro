@@ -98,6 +98,7 @@ import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import RoomScopeFacilitiesSection from "@/components/website-content/RoomScopeFacilitiesSection";
 // 定義所有設施項目
 const facilitiesData = {
   public: [
@@ -772,6 +773,7 @@ const WebsiteContent = () => {
         const { data: facRows } = await supabase
           .from("accommodation_facilities")
           .select("accommodation_id, facility_name, category, is_available, pricing_type")
+          .is("room_scope", null)
           .or(`accommodation_id.is.null,accommodation_id.eq.${infoData.id}`);
 
         if (facRows) {
@@ -1106,6 +1108,7 @@ const WebsiteContent = () => {
             const { data: facRowsReload } = await supabase
               .from("accommodation_facilities")
               .select("accommodation_id, facility_name, category, is_available, pricing_type")
+              .is("room_scope", null)
               .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
             if (facRowsReload) {
@@ -1337,6 +1340,7 @@ const WebsiteContent = () => {
       const { data: allRows, error: loadErr } = await supabase
         .from("accommodation_facilities")
         .select("id, accommodation_id, facility_name, category, pricing_type, is_available")
+        .is("room_scope", null)
         .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
       if (loadErr) throw loadErr;
 
@@ -1455,6 +1459,7 @@ const WebsiteContent = () => {
       const { data: refreshed } = await supabase
         .from("accommodation_facilities")
         .select("accommodation_id, facility_name, category, is_available, pricing_type")
+        .is("room_scope", null)
         .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
       if (refreshed) {
@@ -3602,11 +3607,33 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
+          <RoomScopeFacilitiesSection
+            accommodationId={accommodationId}
+            itemsByCategory={{
+              public: getMergedItems('public'),
+              dining: getMergedItems('dining'),
+              safety: getMergedItems('safety'),
+              entertainment: getMergedItems('entertainment'),
+              language: getMergedItems('language'),
+            }}
+            categoryLabels={{
+              public: '公共區設施與服務',
+              dining: '餐飲服務',
+              safety: '安全設施',
+              entertainment: '休閒娛樂',
+              language: '服務語言',
+            }}
+            wholeHouseSelectedNames={Object.entries(selectedFacilities)
+              .filter(([, v]) => v)
+              .map(([k]) => k)}
+          />
+
           <SaveButtonContainer 
             onSave={handleSaveFacilities} 
             isSaving={isSaving}
             saveText="儲存變更"
           />
+
         </TabsContent>
 
         <TabsContent value="addon-plans" className="space-y-6">
