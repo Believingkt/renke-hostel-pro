@@ -166,7 +166,9 @@ const CapacityPriceLadder = ({
   childRuleLines = [],
   childBlocked = false,
   childBlockReason,
+  scopeFacilities = [],
 }: Props) => {
+
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
     weekday: isSensan ? "含少人包區早鳥優惠" : "標準銷售方案",
