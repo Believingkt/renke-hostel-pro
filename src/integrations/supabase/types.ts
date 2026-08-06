@@ -229,6 +229,7 @@ export type Database = {
           id: string
           is_available: boolean | null
           pricing_type: string | null
+          room_scope: string | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -238,6 +239,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           pricing_type?: string | null
+          room_scope?: string | null
         }
         Update: {
           accommodation_id?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           pricing_type?: string | null
+          room_scope?: string | null
         }
         Relationships: [
           {
