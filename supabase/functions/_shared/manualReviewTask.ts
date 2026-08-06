@@ -81,18 +81,32 @@ export async function createManualReviewTask(
       : `訂單 ${p.orderNumber} 申請將入住人數改為 ${p.requestedGuestCount ?? "-"} 人，需人工確認金額`;
 
   try {
-    await supabase.from("notifications").upsert(
-      {
-        accommodation_id: p.accommodationId,
-        order_id: p.orderId,
-        type: `manual_review_${p.taskType}`,
-        title,
-        description,
-        is_read: false,
-      },
-      { onConflict: "order_id,type" },
-    );
+    // notifications 的唯一索引是部分索引（order_id IS NOT NULL AND type <> ...），
+    // PostgREST 無法據此做 on_conflict 推斷，改為先查再寫。
+    const notifType = `manual_review_${p.taskType}`;
+    const { data: existingNotif } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("order_id", p.orderId)
+      .eq("type", notifType)
+      .maybeSingle();
+
+    const notifPayload = {
+      accommodation_id: p.accommodationId,
+      order_id: p.orderId,
+      type: notifType,
+      title,
+      description,
+      is_read: false,
+    };
+
+    if (existingNotif?.id) {
+      await supabase.from("notifications").update(notifPayload).eq("id", existingNotif.id);
+    } else {
+      await supabase.from("notifications").insert(notifPayload);
+    }
   } catch (e) {
+
     console.error("[manualReviewTask] notification failed", e);
   }
 
