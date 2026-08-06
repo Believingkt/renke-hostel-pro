@@ -111,7 +111,10 @@ interface Props {
   childBlocked?: boolean;
   /** 不可訂時的中文說明 */
   childBlockReason?: string;
+  /** 房型專屬設施（包棟範圍），顯示在方案卡片內 */
+  scopeFacilities?: string[];
 }
+
 
 import {
   SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
