@@ -81,6 +81,17 @@ serve(async (req) => {
       return json({ success: false, error: "Unauthorized" }, 401);
     }
 
+    // 管理員檢視模式：可指定 target_user_id 代看其他成員的 self 預估
+    const targetUserId = typeof body?.target_user_id === "string" && body.target_user_id
+      ? body.target_user_id
+      : null;
+    const isAdminViewer = ctx.isServiceRole ||
+      roles.includes("super_admin") || roles.includes("admin");
+    if (targetUserId && targetUserId !== ctx.userId && !isAdminViewer) {
+      return json({ success: false, error: "Forbidden" }, 403);
+    }
+
+
     const startUtc = hasRange ? startIsoOverride! : taipeiMidnightUtcISO(year, month, 1);
     const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
