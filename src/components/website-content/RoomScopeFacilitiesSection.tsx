@@ -36,12 +36,21 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
     if (!accommodationId) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("accommodation_facilities")
-        .select("facility_name, category, room_scope, is_available")
-        .eq("accommodation_id", accommodationId)
-        .in("room_scope", ["whole", "single"]);
-      if (error || cancelled) return;
+      const [{ data, error }, { data: info }] = await Promise.all([
+        supabase
+          .from("accommodation_facilities")
+          .select("facility_name, category, room_scope, is_available")
+          .eq("accommodation_id", accommodationId)
+          .in("room_scope", ["whole", "single"]),
+        supabase
+          .from("accommodation_info")
+          .select("show_room_scope_facilities")
+          .eq("id", accommodationId)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      if (info) setShowOnFrontend((info as any).show_room_scope_facilities !== false);
+      if (error) return;
       const next: Record<RoomFacilityScope, ScopeSelection> = {
         whole: emptySelection(),
         single: emptySelection(),
@@ -59,6 +68,21 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
       cancelled = true;
     };
   }, [accommodationId]);
+
+  const toggleFrontend = async (checked: boolean) => {
+    setShowOnFrontend(checked);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ show_room_scope_facilities: checked } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      setShowOnFrontend(!checked);
+      toast.error("更新顯示開關失敗");
+      return;
+    }
+    toast.success(checked ? "已開啟前台顯示" : "已關閉前台顯示");
+  };
+
 
   const toggle = (category: string, name: string, checked: boolean) => {
     setSelections((prev) => {
