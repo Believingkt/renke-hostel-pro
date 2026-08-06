@@ -131,6 +131,8 @@ const TeamStarlink = lazy(() => import("./pages/team/TeamStarlink"));
 const TeamLineOA = lazy(() => import("./pages/team/TeamLineOA"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
+const TravelerCdp = lazy(() => import("./pages/TravelerCdp"));
+const TravelerProfileDetail = lazy(() => import("./pages/TravelerProfileDetail"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
@@ -540,6 +542,16 @@ function App() {
                     <Route path="admin/customers/:customerId/orders" element={
                       <RequireModule module="customers">
                         <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/cdp" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><TravelerCdp /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/cdp/:travelerId" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/notifications" element={

@@ -123,7 +123,16 @@ const menuItems = [
       { title: "國定假日", url: "/admin/holidays", icon: Calendar },
     ]
   },
-  { title: "顧客資料", url: "/admin/customers", icon: Users, moduleKey: "customers" },
+  { 
+    title: "顧客資料", 
+    url: "/admin/customers", 
+    icon: Users,
+    moduleKey: "customers",
+    subItems: [
+      { title: "客戶列表", url: "/admin/customers", icon: Users },
+      { title: "旅客資料匯流", url: "/admin/cdp", icon: Database },
+    ]
+  },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
   // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
