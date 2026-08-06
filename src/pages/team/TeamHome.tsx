@@ -176,6 +176,7 @@ export default function TeamHome() {
   const [venueClosingDetail, setVenueClosingDetail] = useState<
     Array<{ name: string; amount: number }>
   >([]);
+  const [revenueBreakdown, setRevenueBreakdown] = useState<Record<string, VenueRevenueLine[]>>({});
   const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
 
   const monthInfo = useMemo(() => {
