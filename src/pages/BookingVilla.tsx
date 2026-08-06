@@ -1272,9 +1272,25 @@ const BookingVilla = () => {
 
         {/* ── 7. Facilities ── */}
         {info.show_facilities_section !== false &&
-          (secondaryData?.facilities?.length || 0) > 0 && (
+          ((secondaryData?.facilities?.length || 0) > 0 ||
+            ((info as any).show_room_facilities_whole !== false &&
+              (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0) ||
+            ((info as any).show_room_facilities_single !== false &&
+              (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0)) && (
             <div id="facilities">
-              <FacilitiesSection facilities={secondaryData!.facilities} />
+              <FacilitiesSection
+                facilities={secondaryData!.facilities}
+                wholeFacilities={
+                  (info as any).show_room_facilities_whole !== false
+                    ? secondaryData?.roomScopeFacilities?.whole || []
+                    : []
+                }
+                singleFacilities={
+                  (info as any).show_room_facilities_single !== false
+                    ? secondaryData?.roomScopeFacilities?.single || []
+                    : []
+                }
+              />
             </div>
           )}
 
