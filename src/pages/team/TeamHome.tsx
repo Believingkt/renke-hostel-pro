@@ -1189,8 +1189,45 @@ export default function TeamHome() {
 
   return (
     <div className="space-y-6 max-w-5xl">
+      {isAdminViewer && (
+        <Card className="border-dashed">
+          <CardContent className="py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium shrink-0">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              檢視身分
+            </div>
+            <Select value={viewAsUserId ?? "self"} onValueChange={handleViewAs}>
+              <SelectTrigger className="w-full sm:w-72">
+                <SelectValue placeholder="選擇成員" />
+              </SelectTrigger>
+              <SelectContent className="z-50 bg-background max-h-80">
+                <SelectItem value="self">我自己（{selfDisplayName}）</SelectItem>
+                {members
+                  .filter((m) => m.user_id !== selfUserId)
+                  .map((m) => (
+                    <SelectItem key={m.user_id} value={m.user_id}>
+                      {m.display_name}
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        {m.roles.join(" / ")}
+                      </span>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {isViewing && (
+              <Badge variant="secondary" className="shrink-0">
+                唯讀檢視中
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div>
-        <h2 className="text-2xl font-bold">歡迎回來，{displayName}</h2>
+        <h2 className="text-2xl font-bold">
+          {isViewing ? `檢視中：${displayName}` : `歡迎回來，${displayName}`}
+        </h2>
+
         <p className="text-muted-foreground mt-1">
           當月預估，尚未結算；預計 {monthInfo.nextMonthLabel} 10 日發放
         </p>
