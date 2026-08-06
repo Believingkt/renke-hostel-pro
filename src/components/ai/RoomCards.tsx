@@ -52,6 +52,30 @@ export function parseRoomCards(raw: string): { text: string; cards: AiRoomCard[]
   return { text: text.trim(), cards };
 }
 
+function RoomCardImage({ card }: { card: AiRoomCard }) {
+  const valid = typeof card.image_url === "string" && /^https?:\/\//.test(card.image_url.trim());
+  const [failed, setFailed] = useState(!valid);
+
+  if (failed) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-primary/15 to-primary/5 px-3 text-center">
+        <BedDouble className="w-6 h-6 text-primary/60" />
+        <span className="text-[11px] font-medium text-primary/80 line-clamp-2">{card.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={card.image_url!.trim()}
+      alt={card.name}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="w-full h-full object-cover"
+    />
+  );
+}
+
 export function RoomCardList({ cards }: { cards: AiRoomCard[] }) {
   const navigate = useNavigate();
   if (!cards.length) return null;
@@ -64,17 +88,9 @@ export function RoomCardList({ cards }: { cards: AiRoomCard[] }) {
           className="rounded-xl overflow-hidden border border-border bg-background shadow-sm"
         >
           <div className="relative w-full h-32 bg-muted flex items-center justify-center">
-            {c.image_url ? (
-              <img
-                src={c.image_url}
-                alt={c.name}
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <BedDouble className="w-8 h-8 text-muted-foreground/50" />
-            )}
+            <RoomCardImage card={c} />
           </div>
+
           <div className="p-3 space-y-1.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
