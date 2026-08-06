@@ -195,12 +195,101 @@ serve(async (req) => {
       ? `\n\n## 對話範例\n${examples.data.map((e: any) => `**情境：${e.scenario}**\n用戶：${e.user_message}\n理想回應：${e.ideal_response}`).join("\n\n")}`
       : "";
 
+    // ===== 即時房況／價格（唯一真實來源，文字與卡片共用同一份）=====
+    const conversationTexts: string[] = [...messages]
+      .reverse()
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .map((m: any) => String(m.content || ""));
+
+    let checkIn: string | null = null;
+    for (const t of conversationTexts) {
+      checkIn = extractDate(t, today);
+      if (checkIn) break;
+    }
+    const checkOut = checkIn ? addDaysISO(checkIn, 1) : null;
+
+    const roomRows = (rooms.data || []) as any[];
+    const priceByRoom = new Map<string, number>();
+    const availByRoom = new Map<string, number>();
+
+    if (checkIn && roomRows.length) {
+      const { data: inv } = await supabase
+        .from("room_inventory_pricing")
+        .select("room_type_id, price, available_rooms, is_available")
+        .in("room_type_id", roomRows.map((r) => r.id))
+        .is("pricing_template_id", null)
+        .eq("date", checkIn);
+      for (const row of inv || []) {
+        if (row.price > 0) priceByRoom.set(row.room_type_id, row.price);
+        if (row.is_available === false) availByRoom.set(row.room_type_id, 0);
+      }
+
+      await Promise.all(
+        roomRows.map(async (r) => {
+          if (availByRoom.get(r.id) === 0) return;
+          try {
+            const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+              p_room_type_id: r.id,
+              p_dates: [checkIn],
+              p_accommodation_id: accommodationId,
+            });
+            const row = Array.isArray(data) ? data[0] : null;
+            if (row) {
+              const n = row.is_blocked ? 0 : Number(row.available_rooms ?? 0);
+              availByRoom.set(r.id, Number.isFinite(n) ? n : 0);
+            }
+          } catch { /* 忽略庫存查詢失敗 */ }
+        }),
+      );
+
+      // 價格補強：同名方案（前台訂房價格）為主要售價來源
+      const missingPrice = roomRows.filter((r) => !priceByRoom.get(r.id));
+      if (missingPrice.length) {
+        const { data: pkgs } = await supabase
+          .from("accommodation_packages")
+          .select("id, name, sale_price")
+          .eq("accommodation_id", accommodationId)
+          .in("name", missingPrice.map((r) => r.name));
+        const pkgList = (pkgs || []) as any[];
+        if (pkgList.length) {
+          const { data: dp } = await supabase
+            .from("package_date_prices")
+            .select("package_id, sale_price")
+            .in("package_id", pkgList.map((p) => p.id))
+            .eq("date", checkIn);
+          const dateMap = new Map((dp || []).map((d: any) => [d.package_id, Number(d.sale_price)]));
+          for (const r of missingPrice) {
+            const pkg = pkgList.find((p) => p.name === r.name);
+            if (!pkg) continue;
+            const price = dateMap.get(pkg.id) ?? Number(pkg.sale_price);
+            if (price > 0) priceByRoom.set(r.id, price);
+          }
+        }
+      }
+    }
+
+    const liveAvailabilityBlock = checkIn && roomRows.length
+      ? `\n\n## 即時房況與價格（唯一依據，日期 ${checkIn}）\n` +
+        roomRows.map((r) => {
+          const p = priceByRoom.get(r.id);
+          const a = availByRoom.get(r.id);
+          const avail = a === undefined ? "未知" : a > 0 ? `剩 ${a} 間` : "已額滿（0 間）";
+          return `- ${r.name}：當日售價 ${p ? `NT$${p}` : "未設定"} / ${avail}`;
+        }).join("\n") +
+        `\n\n### 強制規則（不可違反）
+- 文字敘述中的價格，只能引用上表「當日售價」，不可使用起價／底價／自己記憶或推算的金額。
+- 若上表顯示「已額滿（0 間）」，文字必須明說該房型當日已額滿，並建議客人更換日期或改看其他有空房的房型；絕對不可說「幫您鎖定」「可直接訂購」「還有空房」。
+- 若「未知」或「未設定」，就不要提出具體數字，改請客人以訂房頁為準。
+- 卡片與文字必須一致，兩者都以上表為準。`
+      : "\n\n## 房況查詢說明\n- 客人尚未提供明確入住日期時，不要說出任何具體當日價格或剩餘間數，請先詢問日期。";
+
     const systemMessage = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
-      + dateBlock + accInfo + roomList + knowledgeText + examplesText + tone + forbidden
+      + dateBlock + accInfo + roomList + liveAvailabilityBlock + knowledgeText + examplesText + tone + forbidden
       + ROOM_CARD_PROMPT_RULE;
+
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
