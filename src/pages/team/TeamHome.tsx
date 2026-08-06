@@ -278,7 +278,7 @@ export default function TeamHome() {
         if (needMeta) {
           const { data: preview } = await supabase.functions.invoke(
             "preview-closer-commission",
-            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self" } },
+            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
           );
           if (preview?.success) {
             if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
