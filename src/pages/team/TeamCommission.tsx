@@ -42,6 +42,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import { getAccommodationRevenueByAcc } from "@/lib/teamBonusRevenue";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
