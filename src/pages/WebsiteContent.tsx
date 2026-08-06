@@ -98,7 +98,6 @@ import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
 import { useAccommodation } from "@/contexts/AccommodationContext";
-import RoomScopeFacilitiesSection from "@/components/website-content/RoomScopeFacilitiesSection";
 // 定義所有設施項目
 const facilitiesData = {
   public: [
@@ -3606,27 +3605,6 @@ const WebsiteContent = () => {
               </div>
             </CardContent>
           </Card>
-
-          <RoomScopeFacilitiesSection
-            accommodationId={accommodationId}
-            itemsByCategory={{
-              public: getMergedItems('public'),
-              dining: getMergedItems('dining'),
-              safety: getMergedItems('safety'),
-              entertainment: getMergedItems('entertainment'),
-              language: getMergedItems('language'),
-            }}
-            categoryLabels={{
-              public: '公共區設施與服務',
-              dining: '餐飲服務',
-              safety: '安全設施',
-              entertainment: '休閒娛樂',
-              language: '服務語言',
-            }}
-            wholeHouseSelectedNames={Object.entries(selectedFacilities)
-              .filter(([, v]) => v)
-              .map(([k]) => k)}
-          />
 
           <SaveButtonContainer 
             onSave={handleSaveFacilities} 

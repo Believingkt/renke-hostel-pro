@@ -34,7 +34,6 @@ const BookingPortal = lazy(() => import("./pages/BookingPortal"));
 const BookingSearchResults = lazy(() => import("./pages/BookingSearchResults"));
 const LegacyBookingRedirect = lazy(() => import("./components/LegacyBookingRedirect"));
 const BookingVilla = lazy(() => import("./pages/BookingVilla"));
-const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
@@ -202,9 +201,6 @@ function App() {
                     } />
                     <Route path="booking/villa/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingVilla /></Suspense>
-                    } />
-                    <Route path="villa/:accId" element={
-                      <Suspense fallback={<FrontendSkeleton />}><VillaLanding /></Suspense>
                     } />
                     <Route path="booking/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><LegacyBookingRedirect /></Suspense>

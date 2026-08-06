@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
-import { fetchScopedFacilities, getRoomScope } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { getDepositBreakdown } from "@/lib/bookingDeposit";
@@ -888,7 +887,6 @@ const BookingFlow = () => {
         if (roomTypesError) throw roomTypesError;
 
         if (roomTypesData) {
-          const scopedFacilities = await fetchScopedFacilities(accommodationId);
           const roomTypesWithPhotos: RoomType[] = roomTypesData.map(room => ({
             id: room.id,
             name: room.name,
@@ -903,13 +901,7 @@ const BookingFlow = () => {
             is_exclusive_package: room.is_exclusive_package,
             is_bound_to_exclusive: room.is_bound_to_exclusive,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
-            amenities: (() => {
-              const scoped = scopedFacilities[getRoomScope(room as any)] || [];
-              const list = scoped.length > 0
-                ? scoped
-                : (room.room_amenities || []).map((a: any) => a.amenity_name);
-              return list.slice(0, 8);
-            })(),
+            amenities: (room.room_amenities || []).map((a: any) => a.amenity_name).slice(0, 8),
           }));
           
           setRoomTypes(roomTypesWithPhotos);
