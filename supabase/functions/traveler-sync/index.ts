@@ -103,8 +103,8 @@ Deno.serve(async (req) => {
       if (!d) continue;
       d.user_id = d.user_id ?? m.user_id ?? null;
       d.display_name = d.display_name ?? m.name ?? null;
-      d.email = d.email ?? normalizeEmail(m.email) || d.email;
-      d.phone = d.phone ?? normalizePhone(m.phone) || d.phone;
+      d.email = d.email ?? (normalizeEmail(m.email) || null);
+      d.phone = d.phone ?? (normalizePhone(m.phone) || null);
       d.identities.set(`member:${m.id}`, {
         type: "member", ref: m.id, label: m.name ?? m.email ?? "", bound_at: m.created_at ?? null,
       });
