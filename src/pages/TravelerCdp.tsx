@@ -14,12 +14,13 @@ import { identityLabel, formatDateTime } from "@/types/traveler";
 
 export default function TravelerCdp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { withPrefix } = useAliasPrefix();
   const [rows, setRows] = useState<TravelerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tagging, setTagging] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
 
   const load = async () => {
     const { data, error } = await supabase
