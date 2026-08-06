@@ -842,20 +842,29 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
-    const renderAdjCell = (amount: number) => (
-      <span
-        className={cn(
-          "tabular-nums",
-          amount === 0
-            ? "text-muted-foreground"
-            : amount < 0
-              ? "text-destructive"
-              : "text-emerald-600",
-        )}
-      >
-        {amount === 0 ? "—" : fmtMoney(amount)}
-      </span>
-    );
+    const renderAdjCell = (amount: number) => {
+      const cls = cn(
+        "tabular-nums",
+        amount === 0
+          ? "text-muted-foreground"
+          : amount < 0
+            ? "text-destructive"
+            : "text-emerald-600",
+      );
+      if (amount === 0) return <span className={cls}>—</span>;
+      if (bonusMultiplier <= 1) return <span className={cls}>{fmtMoney(amount)}</span>;
+      return (
+        <div className="flex flex-col leading-tight items-end">
+          <span className="text-muted-foreground line-through text-xs">{fmtMoney(amount)}</span>
+          <span className={cls}>
+            {fmtMoney(boostedAmount(amount, bonusMultiplier))}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              ×{bonusMultiplier.toFixed(2)}
+            </span>
+          </span>
+        </div>
+      );
+    };
 
     return (
     <Card>
