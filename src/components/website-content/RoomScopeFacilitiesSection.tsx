@@ -26,7 +26,10 @@ const emptySelection = (): ScopeSelection =>
 
 export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
   const [scope, setScope] = useState<RoomFacilityScope>("whole");
-  const [showOnFrontend, setShowOnFrontend] = useState(true);
+  const [showScope, setShowScope] = useState<Record<RoomFacilityScope, boolean>>({
+    whole: true,
+    single: true,
+  });
   const [selections, setSelections] = useState<Record<RoomFacilityScope, ScopeSelection>>({
     whole: emptySelection(),
     single: emptySelection(),
@@ -45,12 +48,16 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
           .in("room_scope", ["whole", "single"]),
         supabase
           .from("accommodation_info")
-          .select("show_room_scope_facilities")
+          .select("show_room_facilities_whole, show_room_facilities_single")
           .eq("id", accommodationId)
           .maybeSingle(),
       ]);
       if (cancelled) return;
-      if (info) setShowOnFrontend((info as any).show_room_scope_facilities !== false);
+      if (info)
+        setShowScope({
+          whole: (info as any).show_room_facilities_whole !== false,
+          single: (info as any).show_room_facilities_single !== false,
+        });
       if (error) return;
       const next: Record<RoomFacilityScope, ScopeSelection> = {
         whole: emptySelection(),
@@ -70,19 +77,24 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
     };
   }, [accommodationId]);
 
-  const toggleFrontend = async (checked: boolean) => {
-    setShowOnFrontend(checked);
+  const toggleFrontend = async (target: RoomFacilityScope, checked: boolean) => {
+    setShowScope((prev) => ({ ...prev, [target]: checked }));
+    const column =
+      target === "whole" ? "show_room_facilities_whole" : "show_room_facilities_single";
     const { error } = await supabase
       .from("accommodation_info")
-      .update({ show_room_scope_facilities: checked } as any)
+      .update({ [column]: checked } as any)
       .eq("id", accommodationId);
     if (error) {
-      setShowOnFrontend(!checked);
+      setShowScope((prev) => ({ ...prev, [target]: !checked }));
       toast.error("更新顯示開關失敗");
       return;
     }
-    toast.success(checked ? "已開啟前台顯示" : "已關閉前台顯示");
+    toast.success(
+      `${ROOM_SCOPE_LABELS[target]}客房設施已${checked ? "開啟" : "關閉"}前台顯示`
+    );
   };
+
 
 
   const toggle = (category: string, name: string, checked: boolean) => {
