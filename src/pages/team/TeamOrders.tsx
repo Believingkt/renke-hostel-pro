@@ -1193,12 +1193,15 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
+                          const autoBase = Math.max(
+                            0,
+                            (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details),
+                          );
                           const status = getCommissionStatus({
                             checkOutDate: o.check_out_date,
-                            teamCommissionPrice:
-                              o.meta?.team_commission_price ??
-                              Math.max(0, (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details)),
+                            teamCommissionPrice: o.meta?.team_commission_price ?? autoBase,
                             finalPrice: o.final_price,
+                            commissionBase: autoBase,
                             confirmedBy: o.meta?.commission_price_confirmed_by,
                             lastConfirmedCommissionPrice: o.meta?.last_confirmed_commission_price ?? null,
                             lastConfirmedFinalPrice: o.meta?.last_confirmed_final_price ?? null,
@@ -1209,9 +1212,11 @@ export default function TeamOrders() {
                               ? "text-red-600"
                               : status === "mismatch"
                                 ? "text-orange-600"
-                                : status === "confirmed"
-                                  ? "text-muted-foreground"
-                                  : "text-muted-foreground";
+                                : status === "addon_mismatch"
+                                  ? "text-amber-600"
+                                  : status === "confirmed"
+                                    ? "text-muted-foreground"
+                                    : "text-muted-foreground";
                           return <span className={cls}>{label}</span>;
                         })()}
                       </TableCell>
@@ -1561,6 +1566,7 @@ export default function TeamOrders() {
                           checkOutDate: editOrder.check_out_date,
                           teamCommissionPrice: tcp,
                           finalPrice: fp,
+                          commissionBase: autoBase,
                           confirmedBy,
                           lastConfirmedCommissionPrice: form.last_confirmed_commission_price ?? null,
                           lastConfirmedFinalPrice: form.last_confirmed_final_price ?? null,
@@ -1576,6 +1582,13 @@ export default function TeamOrders() {
                           return (
                             <div className="text-xs text-orange-600">
                               ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                            </div>
+                          );
+                        }
+                        if (status === "addon_mismatch") {
+                          return (
+                            <div className="text-xs text-amber-600">
+                              ⚠️ 加購項目異動（增值服務不計入分潤），分潤基準金額無須調整
                             </div>
                           );
                         }
