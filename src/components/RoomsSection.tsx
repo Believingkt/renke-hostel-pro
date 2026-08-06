@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ZoomIn, Home, BedDouble, Bath, Wind, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
+import { fetchRoomScopeAmenities } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Carousel,
@@ -403,7 +404,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       const todayStr = today.toISOString().split('T')[0];
       const futureStr = thirtyDaysLater.toISOString().split('T')[0];
 
-      const [templatesResult, holidaysResult, amenitiesResult, inventoryResult] = await Promise.all([
+      const [templatesResult, holidaysResult, amenitiesMap, inventoryResult] = await Promise.all([
         supabase
           .from('pricing_templates')
           .select('template_name, price, display_order, room_type_id, room_type_ids')
@@ -414,11 +415,8 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
           .select('holiday_date')
           .gte('holiday_date', todayStr)
           .lte('holiday_date', futureStr),
-        // Batch fetch amenities for ALL room types
-        supabase
-          .from('room_amenities')
-          .select('amenity_name, room_type_id')
-          .in('room_type_id', roomTypeIds),
+        // 客房設施（已合併至 accommodation_facilities，依包棟/單間 scope）
+        fetchRoomScopeAmenities(accommodationId, roomTypes as any),
         // Batch fetch inventory pricing for ALL room types
         supabase
           .from('room_inventory_pricing')
@@ -463,14 +461,9 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         setSharedHolidays(new Set(holidaysResult.data.map(h => h.holiday_date)));
       }
 
-      // Process amenities - group by room_type_id
-      if (!amenitiesResult.error && amenitiesResult.data) {
-        const grouped: Record<string, string[]> = {};
-        for (const item of amenitiesResult.data) {
-          if (!grouped[item.room_type_id]) grouped[item.room_type_id] = [];
-          grouped[item.room_type_id].push(item.amenity_name);
-        }
-        setAllAmenities(grouped);
+      // Process amenities
+      if (amenitiesMap) {
+        setAllAmenities(amenitiesMap);
       }
 
       // Process inventory pricing - group by room_type_id and compute min/max

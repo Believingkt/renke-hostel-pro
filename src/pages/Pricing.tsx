@@ -9,7 +9,6 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
-import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { ExclusivePackageSettings } from "@/components/website-content/ExclusivePackageSettings";
 import { VillaPageContentSettings } from "@/components/website-content/VillaPageContentSettings";
 import { PricingTemplateManager, PricingTemplateManagerRef } from "@/components/PricingTemplateManager";
@@ -173,7 +172,7 @@ const Pricing = () => {
       }
     }
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "facilities" || tab === "holidays")) {
+    if (tab && (tab === "rooms" || tab === "basic" || tab === "holidays")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -339,8 +338,6 @@ const Pricing = () => {
     switch (tab) {
       case "rooms":
         return "房型管理";
-      case "facilities":
-        return "客房設施";
       case "basic":
         return "房價價格設定";
       case "holidays":
@@ -506,14 +503,6 @@ const Pricing = () => {
           )}
         </TabsContent>
 
-
-        <TabsContent value="facilities" className="space-y-4">
-          <PageHeader
-            title="客房設施"
-            icon={Wrench}
-          />
-          <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
-        </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
           <PageHeader

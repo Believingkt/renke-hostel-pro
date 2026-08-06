@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock, Star, Mail, Phone, MessageCircle } from "lucide-react";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
+import RoomScopeFacilitiesSection from "@/components/website-content/RoomScopeFacilitiesSection";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -3611,6 +3612,8 @@ const WebsiteContent = () => {
             isSaving={isSaving}
             saveText="儲存變更"
           />
+
+          <RoomScopeFacilitiesSection accommodationId={accommodationId || ""} />
 
         </TabsContent>
 
