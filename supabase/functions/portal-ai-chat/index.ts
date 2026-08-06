@@ -859,6 +859,47 @@ ${accListStr}
       return items.slice(0, 3);
     };
 
+    // 房型圖文卡片：資料一律取自 get_available_rooms 的資料庫查詢結果
+    const buildRoomCardPayloads = (roomsResult: any): RoomCardPayload[] => {
+      const rooms: any[] = Array.isArray(roomsResult?.rooms) ? roomsResult.rooms : [];
+      if (!rooms.length) return [];
+      const checkIn = roomsResult?.check_in_date || null;
+      const checkOut = roomsResult?.check_out_date || null;
+      const nights = Number(roomsResult?.nights || 1) || 1;
+
+      const sorted = [...rooms].sort(
+        (a, b) => Number(Boolean(b.is_available_for_range)) - Number(Boolean(a.is_available_for_range)),
+      );
+
+      return sorted.slice(0, 3).map((r: any) => {
+        const nightly = checkIn
+          ? (r.range_total_price ? Math.round(r.range_total_price / nights) : null)
+          : (r.min_price ?? (r.base_price > 0 ? r.base_price : null));
+        const params = new URLSearchParams({ accId: String(r.accommodation_id), roomId: String(r.id) });
+        if (checkIn) params.set('checkIn', checkIn);
+        if (checkOut) params.set('checkOut', checkOut);
+        return {
+          room_type_id: r.id,
+          name: r.name,
+          image_url: Array.isArray(r.photos) && r.photos.length ? r.photos[0] : '',
+          price: nightly,
+          available: checkIn ? Number(r.available_rooms ?? (r.is_available_for_range ? 1 : 0)) : null,
+          check_in: checkIn,
+          check_out: checkOut,
+          features: [
+            r.capacity ? `${r.capacity}人` : '',
+            r.size_sqm ? `${r.size_sqm}坪` : '',
+            r.is_exclusive_package ? '包棟' : '',
+            (r.description || '').replace(/\s+/g, ' ').slice(0, 24),
+          ].filter(Boolean).join('・'),
+          accommodation_name: r.accommodation_name || '',
+          booking_url: `/book?${params.toString()}`,
+        } as RoomCardPayload;
+      });
+    };
+
+
+
 
     const toAnthropicMessages = (msgs: any[]) =>
       msgs.filter(m => m.role !== 'system').map(m => ({
