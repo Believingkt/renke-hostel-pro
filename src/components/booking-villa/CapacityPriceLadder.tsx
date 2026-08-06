@@ -379,6 +379,26 @@ const CapacityPriceLadder = ({
                   </div>
                 )}
 
+                {/* 2b. 房型專屬設施（包棟） */}
+                {scopeFacilities.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80 mb-1">
+                      {TERM}專屬設施
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {scopeFacilities.map((f) => (
+                        <span
+                          key={f}
+                          className="text-[11px] px-2 py-0.5 rounded-full bg-secondary/50 text-secondary-foreground"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+
                 {/* 3. 模組化資訊區塊：標籤 + 禮遇 + 附加說明 + 訂房規則 */}
                 <div className="rounded-xl bg-[#F9F8F6] border border-border/50 p-3.5 space-y-3">
                   {/* 標籤列（最划算已用其他位置呈現，不重複） */}
