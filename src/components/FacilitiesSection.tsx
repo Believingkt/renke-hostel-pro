@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { ROOM_FACILITY_CATEGORY_NAMES } from "@/lib/room-facilities-catalog";
 
 interface Facility {
   id: string;
