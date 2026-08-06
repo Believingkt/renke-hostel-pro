@@ -1,0 +1,1 @@
+UPDATE public.accommodation_info SET show_facilities_section = true WHERE id = '6b6ac0dc-602b-4dec-9167-7791ac412ba3';
