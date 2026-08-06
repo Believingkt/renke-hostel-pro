@@ -1011,6 +1011,7 @@ export default function TeamHome() {
         setKolMonthlyAmt(kolMonthlySum);
         setVenueClosingAmt(venueClosingSum);
         setVenueClosingDetail(venueClosingLines);
+        setRevenueBreakdown(breakdown);
         setMissingRates(missing);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
