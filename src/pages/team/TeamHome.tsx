@@ -893,7 +893,14 @@ export default function TeamHome() {
 
             const sm = rateSettings.kol_monthly;
             if (!sm || sm.fixed_amount == null) missing.kol_monthly = true;
-            kolMonthlySum = Number(sm?.fixed_amount ?? 0);
+            // 月費：以「目前合作中館別數」計價（旅行日系列合併只算一館，停用館別不計）
+            const travelDayIds = allAccIds.filter((id) =>
+              (allAccNameById.get(id) ?? "").startsWith("旅行日"),
+            );
+            const kolMonthlyAccCount =
+              allAccIds.filter((id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日")).length +
+              (travelDayIds.length > 0 ? 1 : 0);
+            kolMonthlySum = Number(sm?.fixed_amount ?? 0) * kolMonthlyAccCount;
           }
 
           // (7) 場域成交獎金：我是簽約人的館別中，charges_marketing_fee = true 者各發一份固定金額
