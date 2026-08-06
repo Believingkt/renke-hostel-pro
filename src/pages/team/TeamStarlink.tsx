@@ -1671,6 +1671,7 @@ function PayoutsTab({
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [detailGroup, setDetailGroup] = useState<PayoutGroup | null>(null);
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
@@ -1715,6 +1716,12 @@ function PayoutsTab({
       displayLabel: `${targetYear}-${pad(targetMonth)}-01 ～ ${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
     };
   }, [year, month]);
+
+  const dataMonthKey = useMemo(() => {
+    if (year === "ALL" || month === "ALL") return null;
+    return range.label;
+  }, [year, month, range.label]);
+  const starlinkMultiplier = dataMonthKey ? multiplierForDataMonth("starlink", dataMonthKey) : 1;
 
   const loadData = async () => {
     setLoading(true);
@@ -1881,7 +1888,7 @@ function PayoutsTab({
                     <TableCell>{g.display_name}</TableCell>
                     <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(g.total_sales)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                    <TableCell className="text-right tabular-nums"><BoostedAmount amount={g.total_commission} multiplier={starlinkMultiplier} /></TableCell>
                     <TableCell className="text-right tabular-nums">
                       {g.pending_count > 0 ? (
                         <Badge variant="secondary">{g.pending_count}</Badge>
@@ -1930,7 +1937,7 @@ function PayoutsTab({
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtPct(o.commission_rate)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(o.commission_amount)}</TableCell>
+                    <TableCell className="text-right tabular-nums"><BoostedAmount amount={o.commission_amount ?? 0} multiplier={starlinkMultiplier} /></TableCell>
                     <TableCell>
                       {o.payout_status === "paid" ? (
                         <Badge className="bg-green-600 hover:bg-green-600 text-white">已發放</Badge>

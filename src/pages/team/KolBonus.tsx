@@ -52,6 +52,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
 
 interface KolRow {
   // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
@@ -156,6 +158,7 @@ export default function KolBonus() {
   const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
   const [scoutFilter, setScoutFilter] = useState<string>("all");
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

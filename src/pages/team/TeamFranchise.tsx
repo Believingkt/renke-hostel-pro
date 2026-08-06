@@ -4743,6 +4743,7 @@ function FranchisePayoutsTab() {
   const [loadingE, setLoadingE] = useState(false);
   const [detailInternal, setDetailInternal] = useState<FpInternalGroup | null>(null);
   const [detailExternal, setDetailExternal] = useState<FpExternalGroup | null>(null);
+  const { multiplierForDataMonth } = useBonusMultipliers();
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
@@ -4795,6 +4796,10 @@ function FranchisePayoutsTab() {
       displayLabel: `${targetYear}-${pad(targetMonth)}-01 ～ ${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
     };
   }, [year, month]);
+
+  const dataMonthKey = range.targetMonthKey;
+  const internalMultiplier = dataMonthKey ? multiplierForDataMonth("franchise_internal", dataMonthKey) : 1;
+  const externalMultiplier = dataMonthKey ? multiplierForDataMonth("franchise_external", dataMonthKey) : 1;
 
   useEffect(() => {
     let aborted = false;
@@ -4997,7 +5002,7 @@ function FranchisePayoutsTab() {
                   <TableCell>{g.name}</TableCell>
                   <TableCell><Badge variant={g.role === "隊長" ? "default" : "secondary"}>{g.role}</Badge></TableCell>
                   <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                  <TableCell className="text-right tabular-nums"><BoostedAmount amount={g.total_commission} multiplier={internalMultiplier} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -5028,7 +5033,7 @@ function FranchisePayoutsTab() {
                   <TableCell>{g.name}</TableCell>
                   <TableCell><Badge variant="secondary">{g.role}</Badge></TableCell>
                   <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                  <TableCell className="text-right tabular-nums"><BoostedAmount amount={g.total_commission} multiplier={externalMultiplier} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -5059,7 +5064,7 @@ function FranchisePayoutsTab() {
                     <TableCell>{o.customer_name ?? "—"}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(o._bonus)}</TableCell>
+                    <TableCell className="text-right tabular-nums"><BoostedAmount amount={o._bonus} multiplier={internalMultiplier} /></TableCell>
                     <TableCell className="whitespace-nowrap">{o.sold_at ?? "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -5092,7 +5097,7 @@ function FranchisePayoutsTab() {
                     <TableCell>{o.customer_name ?? "—"}</TableCell>
                     <TableCell>{o.project_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.total_amount ?? (o.unit_count ?? 0) * (o.plan_price ?? 0))}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(o._bonus)}</TableCell>
+                    <TableCell className="text-right tabular-nums"><BoostedAmount amount={o._bonus} multiplier={externalMultiplier} /></TableCell>
                     <TableCell className="whitespace-nowrap">{o.signed_at ?? "—"}</TableCell>
                   </TableRow>
                 ))}

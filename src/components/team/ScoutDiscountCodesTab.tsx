@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2, Plus, ExternalLink } from "lucide-react";
 import { pmsHref } from "@/lib/appMode";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 
 type CommissionType = "scout_self" | "partner";
 
@@ -81,6 +82,12 @@ const fmtPct = (n: number | null | undefined) =>
 
 export default function ScoutDiscountCodesTab() {
   const { roles } = useTeam();
+  const { multiplierForPayoutMonth } = useBonusMultipliers();
+  const currentPayoutMonth = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+  const discountCodeMult = multiplierForPayoutMonth("scout_discount_code", currentPayoutMonth);
   const canManage = ["scout_manager", "closer", "closer_manager", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const isAdmin = ["hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const [rows, setRows] = useState<ScoutCode[]>([]);
@@ -287,6 +294,11 @@ export default function ScoutDiscountCodesTab() {
       <p className="text-xs text-muted-foreground">
         此表的折扣代碼，不需填寫資料在「KOL星探邀約表」，會獨立設定 &amp; 計算分潤獎金
       </p>
+      {discountCodeMult > 1 && (
+        <p className="text-xs font-semibold text-primary">
+          🎉 本月獎金加倍活動中，折扣碼分潤獎金將以 ×{discountCodeMult.toFixed(2)} 倍發放
+        </p>
+      )}
 
       <Card>
         <CardContent className="p-4 space-y-4">

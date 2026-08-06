@@ -468,9 +468,11 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               有效訂單分潤金額：
               <span className="font-semibold">{fmtNT(totalCommission)}</span>
             </div>
-            <div>
+            <div className="flex items-center gap-1">
               成交組團隊獎金：
-              <span className="font-semibold text-primary">{fmtNT(displayPool)}</span>
+              <span className="font-semibold text-primary">
+                <BoostedAmount amount={displayPool} multiplier={closerMultiplier} />
+              </span>
             </div>
             <div className="text-xs text-muted-foreground">
               （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單分潤金額 = 全館別+全成交組成員加總）
@@ -553,7 +555,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
                       />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmtNT(amountFor(m.user_id))}
+                      <BoostedAmount amount={amountFor(m.user_id)} multiplier={closerMultiplier} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -566,7 +568,9 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             </div>
             <div>
               分配金額總和：
-              <span className="font-semibold">{fmtNT(totalAmount)}</span>
+              <span className="font-semibold">
+                <BoostedAmount amount={totalAmount} multiplier={closerMultiplier} />
+              </span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   （若有微小差異來自小數四捨五入）

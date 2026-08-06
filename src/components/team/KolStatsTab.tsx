@@ -849,10 +849,14 @@ export function KolStatsTab() {
                       >
                         {s.qualified_count}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{s.rarity_bonus.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <BoostedAmount amount={s.rarity_bonus} multiplier={rarityMult} stacked />
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{s.pms_order_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
-                      <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <BoostedAmount amount={s.kol_commission} multiplier={kolMult} stacked />
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {showSalary && s.is_scout_team_member ? s.base_salary.toLocaleString() : "—"}
                       </TableCell>
@@ -860,7 +864,16 @@ export function KolStatsTab() {
                         {showSalary && s.is_scout_team_member ? s.team_bonus.toLocaleString() : "—"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">
-                        {s.total.toLocaleString()}
+                        <BoostedAmount
+                          amount={s.total}
+                          multiplier={
+                            s.total > 0
+                              ? (s.base_salary + s.team_bonus + Math.round(s.rarity_bonus * rarityMult) + Math.round(s.kol_commission * kolMult)) /
+                                s.total
+                              : 1
+                          }
+                          stacked
+                        />
                       </TableCell>
                     </TableRow>
                   ))
@@ -951,11 +964,13 @@ export function KolStatsTab() {
                       </Table>
                     </div>
 
-                    <div className="mt-2 text-right text-sm">
+                    <div className="mt-2 text-right text-sm flex items-center justify-end gap-1">
                       小計：
-                      <span className="font-semibold tabular-nums ml-1">
-                        {selectedScout.qualifiedKols.reduce((s, k) => s + k.bonus, 0).toLocaleString()}
-                      </span>
+                      <BoostedAmount
+                        amount={selectedScout.qualifiedKols.reduce((s, k) => s + k.bonus, 0)}
+                        multiplier={rarityMult}
+                        className="font-semibold ml-1"
+                      />
                     </div>
                   </section>
 
@@ -1013,11 +1028,13 @@ export function KolStatsTab() {
                         </TableBody>
                       </Table>
                     </div>
-                    <div className="mt-2 text-right text-sm">
+                    <div className="mt-2 text-right text-sm flex items-center justify-end gap-1">
                       小計：
-                      <span className="font-semibold tabular-nums ml-1">
-                        {selectedScout.orderItems.reduce((s, o) => s + o.commission, 0).toLocaleString()}
-                      </span>
+                      <BoostedAmount
+                        amount={selectedScout.orderItems.reduce((s, o) => s + o.commission, 0)}
+                        multiplier={kolMult}
+                        className="font-semibold ml-1"
+                      />
                     </div>
                   </section>
 
