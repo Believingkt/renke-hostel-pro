@@ -1027,7 +1027,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           if (sources.length > 0 && sy && sm) {
             const nextY = sm === 12 ? sy + 1 : sy;
             const nextM = sm === 12 ? 1 : sm + 1;
-            const byAcc = await getAccommodationRevenueByAcc(
+            const byAcc: Record<string, number> = await getAccommodationRevenueByAcc(
               supabase as any,
               accIds,
               `${snapMonth}-01`,
