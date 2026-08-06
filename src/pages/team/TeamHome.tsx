@@ -1356,12 +1356,16 @@ export default function TeamHome() {
 
                     {!loading &&
                     c.lines &&
-                    (c.lines.length > 1 || c.key === "venue_closing") ? (
+                    c.lines.length > 0 &&
+                    (c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines) ? (
                       <div className="mt-2 space-y-0.5">
                         {c.lines.map((ln, i) => (
-                          <div key={i} className="flex justify-between text-xs text-muted-foreground">
-                            <span>{ln.label}</span>
-                            <span className="tabular-nums">{fmt(ln.amount)}</span>
+                          <div key={i} className="flex justify-between gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{ln.label}</span>
+                            <span className="tabular-nums whitespace-nowrap">
+                              {ln.revenue !== undefined ? `營收 ${fmt(ln.revenue)}　獎金 ` : ""}
+                              {fmt(ln.amount)}
+                            </span>
                           </div>
                         ))}
                       </div>
