@@ -134,6 +134,8 @@ const menuItems = [
     ]
   },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
+  { title: "社群裂變推廣", url: "/admin/referral", icon: Share2, moduleKey: "discount_codes" },
+
   // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
   { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "owner_settlement" },
