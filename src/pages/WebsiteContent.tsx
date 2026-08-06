@@ -3612,6 +3612,8 @@ const WebsiteContent = () => {
             saveText="儲存變更"
           />
 
+          <RoomScopeFacilitiesSection accommodationId={accommodationId || ""} />
+
         </TabsContent>
 
         <TabsContent value="addon-plans" className="space-y-6">
