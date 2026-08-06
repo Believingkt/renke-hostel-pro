@@ -39,6 +39,9 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 function DateYMDPicker({
   label,
@@ -165,6 +168,7 @@ interface MemberStats {
 
 export default function TeamCommissionStatsTab() {
   const { roles } = useTeam();
+  const { multiplierForDataMonth } = useBonusMultipliers();
   const isPrivileged = roles.some((r) =>
     ["admin", "super_admin", "hotel_admin"].includes(r as string)
   );
