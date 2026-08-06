@@ -919,7 +919,7 @@ export default function TeamCommissionStatsTab() {
                   const isOpen = expanded.has(r.uid);
                   const memberAdj = byUid.get(r.uid) ?? 0;
                   const memberTotal = netCommission(r.commission) + memberAdj;
-                  const memberTotalBoosted = boostedAmount(netCommission(r.commission), bonusMultiplier) + memberAdj;
+                  const memberTotalBoosted = boostedAmount(netCommission(r.commission), bonusMultiplier) + boostedAmount(memberAdj, bonusMultiplier);
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
