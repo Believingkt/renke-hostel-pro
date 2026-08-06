@@ -1036,9 +1036,19 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number }>;
+    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number }>;
+    alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
+
+  /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
+  const venueLines = (bonusType: string, m: number) =>
+    (revenueBreakdown[bonusType] ?? []).map((d) => ({
+      label: d.name,
+      revenue: Math.round(d.revenue),
+      amount: Math.round(d.amount * m),
+      multiplier: m,
+    }));
 
   if (showCloser) {
     const closerMult = multOf("closer");
