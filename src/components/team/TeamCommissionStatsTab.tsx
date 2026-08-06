@@ -1015,7 +1015,21 @@ export default function TeamCommissionStatsTab() {
                                 <>
                                   <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
                                   <TableCell className="tabular-nums font-medium">
-                                    {fmtMoney(netCommission(b.commission) + accAdj)}
+                                    {bonusMultiplier > 1 ? (
+                                      <div className="flex flex-col leading-tight items-end">
+                                        <span className="text-muted-foreground line-through text-xs font-normal">
+                                          {fmtMoney(netCommission(b.commission) + accAdj)}
+                                        </span>
+                                        <span className="text-primary">
+                                          {fmtMoney(
+                                            boostedAmount(netCommission(b.commission), bonusMultiplier) +
+                                              boostedAmount(accAdj, bonusMultiplier),
+                                          )}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      fmtMoney(netCommission(b.commission) + accAdj)
+                                    )}
                                   </TableCell>
                                 </>
                               )}
