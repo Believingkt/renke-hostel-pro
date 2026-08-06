@@ -251,10 +251,17 @@ function App() {
                       <Route path="favorites" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberFavorites /></Suspense>
                       } />
+                      <Route path="referral" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberReferral /></Suspense>
+                      } />
                     </Route>
+                    <Route path="r/:inviteCode" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ReferralLanding /></Suspense>
+                    } />
                     <Route path="member/reset-password" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberResetPassword /></Suspense>
                     } />
+
                     <Route path="member/auth/line-callback" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
                     } />
