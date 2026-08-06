@@ -18,6 +18,53 @@ export function buildRoomCardsBlock(cards: RoomCardPayload[]): string {
   return `\n\n[ROOM_CARDS]${JSON.stringify(cards)}[/ROOM_CARDS]`;
 }
 
+/** 只保留有效的 http(s) 圖片網址，其餘視為無圖 */
+export function sanitizePhotoUrl(url: unknown): string {
+  if (typeof url !== "string") return "";
+  const u = url.trim();
+  return /^https?:\/\/\S+$/.test(u) ? u : "";
+}
+
+/**
+ * 組「人數・簡短特色」一行：
+ * - 描述中若重複房型名稱（資料常見貼上重複），會先移除
+ * - 重複片語去除，只留簡短特色
+ */
+export function buildFeatureLine(
+  name: string,
+  description: string | null | undefined,
+  extras: (string | false | null | undefined)[] = [],
+): string {
+  const roomName = (name || "").trim();
+  let desc = (description || "").replace(/\s+/g, " ").trim();
+  if (roomName) {
+    // 移除描述中所有房型名稱片段（含全形符號變體）
+    desc = desc.split(roomName).join(" ");
+  }
+  // 去除重複片語（以標點切段後去重）
+  const seen = new Set<string>();
+  desc = desc
+    .split(/[|｜,，、。\/]+/)
+    .map((s) => s.trim())
+    .filter((s) => {
+      if (!s) return false;
+      if (seen.has(s)) return false;
+      seen.add(s);
+      return true;
+    })
+    .join("・");
+  desc = desc.replace(/[\s・]+/g, "・").replace(/^[・\-—]+|[・\-—]+$/g, "").trim();
+
+  const parts: string[] = [];
+  for (const e of extras) if (e) parts.push(String(e));
+  if (desc) parts.push(desc.slice(0, 24));
+
+  const out = new Set<string>();
+  for (const p of parts) if (p && p !== roomName) out.add(p);
+  return Array.from(out).join("・");
+}
+
+
 /** 從文字中抓出日期（支援 2026-07-12、7/12、7月12日），回傳 YYYY-MM-DD（過去日期自動 +1 年） */
 export function extractDate(text: string, todayISO: string): string | null {
   const iso = text.match(/(20\d{2})-(\d{1,2})-(\d{1,2})/);

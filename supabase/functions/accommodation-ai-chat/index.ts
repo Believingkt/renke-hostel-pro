@@ -6,7 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
-import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -332,6 +332,19 @@ serve(async (req) => {
       });
     }
 
+    // 該民宿封面照（房型無照片時的 fallback）
+    let accCoverPhoto = "";
+    try {
+      const { data: accPhoto } = await supabase
+        .from("accommodation_photos")
+        .select("photo_url, display_order")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      accCoverPhoto = sanitizePhotoUrl(accPhoto?.photo_url);
+    } catch (_e) { /* 沒有封面就留空 */ }
+
     // ===== 房型圖文卡片：與 system prompt 的「即時房況與價格」使用同一份查詢結果 =====
     const buildRoomCards = (assistantText: string): RoomCardPayload[] => {
       if (!roomRows.length) return [];
@@ -343,14 +356,17 @@ serve(async (req) => {
       const picked = mentioned.slice(0, 4);
 
       return picked.map((r) => {
-        const photo = (r.room_photos || [])
-          .slice()
-          .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))[0]?.photo_url || "";
-        const features = [
+        const photo = sanitizePhotoUrl(
+          (r.room_photos || [])
+            .slice()
+            .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+            .map((p: any) => sanitizePhotoUrl(p?.photo_url))
+            .find((u: string) => !!u) || "",
+        ) || accCoverPhoto;
+        const features = buildFeatureLine(r.name, r.description, [
           r.capacity ? `${r.capacity}人` : "",
           r.size_sqm ? `${r.size_sqm}坪` : "",
-          (r.description || "").replace(/\s+/g, " ").slice(0, 24),
-        ].filter(Boolean).join("・");
+        ]);
         const params = new URLSearchParams({ accId: String(accommodationId), roomId: r.id });
         if (checkIn) params.set("checkIn", checkIn);
         if (checkOut) params.set("checkOut", checkOut);
@@ -367,6 +383,7 @@ serve(async (req) => {
           booking_url: `/book?${params.toString()}`,
         } as RoomCardPayload;
       });
+
     };
 
 

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
-import { buildRoomCardsBlock, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -884,17 +884,17 @@ ${accListStr}
         return {
           room_type_id: r.id,
           name: r.name,
-          image_url: Array.isArray(r.photos) && r.photos.length ? r.photos[0] : '',
+          image_url: (Array.isArray(r.photos) ? r.photos.map((p: any) => sanitizePhotoUrl(p)).find((u: string) => !!u) : '') || '',
           price: nightly,
           available: checkIn ? Number(r.available_rooms ?? (r.is_available_for_range ? 1 : 0)) : null,
           check_in: checkIn,
           check_out: checkOut,
-          features: [
+          features: buildFeatureLine(r.name, r.description, [
             r.capacity ? `${r.capacity}人` : '',
             r.size_sqm ? `${r.size_sqm}坪` : '',
             r.is_exclusive_package ? '包棟' : '',
-            (r.description || '').replace(/\s+/g, ' ').slice(0, 24),
-          ].filter(Boolean).join('・'),
+          ]),
+
           accommodation_name: r.accommodation_name || '',
           booking_url: `/book?${params.toString()}`,
         } as RoomCardPayload;
