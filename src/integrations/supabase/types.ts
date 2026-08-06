@@ -10276,6 +10276,54 @@ export type Database = {
         }
         Relationships: []
       }
+      traveler_profiles: {
+        Row: {
+          bound_identities: Json
+          consumption: Json
+          created_at: string
+          custom_needs: string[]
+          customer_key: string
+          display_name: string | null
+          email: string | null
+          id: string
+          interest_tags: string[]
+          last_synced_at: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bound_identities?: Json
+          consumption?: Json
+          created_at?: string
+          custom_needs?: string[]
+          customer_key: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          interest_tags?: string[]
+          last_synced_at?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bound_identities?: Json
+          consumption?: Json
+          created_at?: string
+          custom_needs?: string[]
+          customer_key?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          interest_tags?: string[]
+          last_synced_at?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trip_products: {
         Row: {
           accommodation_id: string | null
