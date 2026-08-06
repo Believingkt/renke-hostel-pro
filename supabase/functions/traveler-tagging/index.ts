@@ -66,17 +66,26 @@ Deno.serve(async (req) => {
     // 旅客檔案（比對用）
     let profilesQuery = admin
       .from("traveler_profiles")
-      .select("id,customer_key,email,phone,custom_needs")
+      .select("id,customer_key,email,phone,display_name,user_id,custom_needs")
       .limit(5000);
     if (travelerId) profilesQuery = admin
       .from("traveler_profiles")
-      .select("id,customer_key,email,phone,custom_needs")
+      .select("id,customer_key,email,phone,display_name,user_id,custom_needs")
       .eq("id", travelerId);
     const { data: profiles, error: pErr } = await profilesQuery;
     if (pErr) return json({ error: pErr.message }, 500);
     if (!profiles?.length) return json({ success: true, processed: 0, note: "尚無旅客檔案，請先執行同步" });
 
     const keyToProfile = new Map<string, any>(profiles.map((p: any) => [p.customer_key, p]));
+    const userIdToProfile = new Map<string, any>(
+      profiles.filter((p: any) => p.user_id).map((p: any) => [p.user_id, p]),
+    );
+    // 姓名比對（3 字以上才用，避免誤判）
+    const nameToProfile = new Map<string, any>(
+      profiles
+        .filter((p: any) => typeof p.display_name === "string" && p.display_name.trim().length >= 3)
+        .map((p: any) => [p.display_name.trim(), p]),
+    );
 
     // 對話紀錄
     const since = new Date(Date.now() - days * 86400000).toISOString();
@@ -88,26 +97,33 @@ Deno.serve(async (req) => {
       .limit(2000);
     if (lErr) return json({ error: lErr.message }, 500);
 
-    // 依 email / 手機把對話歸戶
+    // 依 email / 手機 / 會員 session / 姓名把對話歸戶
     const byTraveler = new Map<string, { profile: any; text: string[] }>();
+    const attach = (profile: any, text: string) => {
+      if (!profile) return;
+      if (travelerId && profile.id !== travelerId) return;
+      const cur = byTraveler.get(profile.id) ?? { profile, text: [] };
+      if (cur.text.length < 5) cur.text.push(text);
+      byTraveler.set(profile.id, cur);
+    };
     for (const log of logs ?? []) {
       const text = conversationText(log.messages);
       if (!text) continue;
-      const keys = new Set<string>();
       for (const e of text.match(EMAIL_RE) ?? []) {
         const k = buildCustomerKey(e, null);
-        if (k) keys.add(k);
+        if (k) attach(keyToProfile.get(k), text);
       }
-      for (const p of text.match(PHONE_RE) ?? []) {
-        const k = buildCustomerKey(null, p);
-        if (k) keys.add(k);
+      for (const ph of text.match(PHONE_RE) ?? []) {
+        const k = buildCustomerKey(null, ph);
+        if (k) attach(keyToProfile.get(k), text);
       }
-      for (const k of keys) {
-        const profile = keyToProfile.get(k);
-        if (!profile) continue;
-        const cur = byTraveler.get(profile.id) ?? { profile, text: [] };
-        if (cur.text.length < 5) cur.text.push(text);
-        byTraveler.set(profile.id, cur);
+      // session_id 直接是會員 user_id 的情況
+      if (log.session_id && userIdToProfile.has(log.session_id)) {
+        attach(userIdToProfile.get(log.session_id), text);
+      }
+      // 對話中出現旅客姓名
+      for (const [name, profile] of nameToProfile) {
+        if (text.includes(name)) attach(profile, text);
       }
     }
 
