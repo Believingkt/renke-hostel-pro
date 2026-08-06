@@ -215,10 +215,13 @@ async function getVenueClosingMap(
   client: any,
   monthStartDate: string,
 ): Promise<Map<string, string[]>> {
+  // 規則：只要簽約人在「資料月內任一天」生效，該資料月即計入（隔月發放）。
+  // 例：7/27 生效 → 7 月資料月計入 → 8/10 發放；8/1 生效 → 8 月資料月 → 9/10 發放。
+  const monthLastDate = `${monthStartDate.slice(0, 7)}-31`;
   const { data } = await client
     .from("teamcommission_venue_closing_assignments")
     .select("accommodation_id, member_id, effective_from, created_at")
-    .lte("effective_from", monthStartDate);
+    .lte("effective_from", monthLastDate);
 
   const byAcc = new Map<string, any[]>();
   for (const row of (data ?? []) as any[]) {
@@ -231,7 +234,7 @@ async function getVenueClosingMap(
 
   const out = new Map<string, string[]>();
   for (const [accId, list] of byAcc) {
-    const latest = pickCurrent(list, monthStartDate);
+    const latest = pickCurrent(list, monthLastDate);
     const memberId = latest?.member_id as string | undefined;
     if (!memberId) continue;
     const arr = out.get(memberId) ?? [];
