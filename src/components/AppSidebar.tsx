@@ -106,7 +106,6 @@ const menuItems = [
     moduleKey: "pricing",
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
-      { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
     ]
   },
   { 
