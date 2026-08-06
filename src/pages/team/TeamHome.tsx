@@ -815,11 +815,16 @@ export default function TeamHome() {
             allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
           }
 
+          // 旅行日系列不列入抽成類獎金（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
+          const revenueAccIds = allAccIds.filter(
+            (id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日"),
+          );
+
           const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
               ? await getAccommodationRevenueByAcc(
                   client,
-                  allAccIds,
+                  revenueAccIds,
                   monthStartDate,
                   monthEndDate,
                   sharedSources,
