@@ -12,6 +12,7 @@ import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
+import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
