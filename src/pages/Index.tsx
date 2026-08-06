@@ -1,7 +1,6 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
-import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import Navigation from "@/components/Navigation";
@@ -28,7 +27,6 @@ const Index = () => {
   const urlAccId = searchParams.get('accId');
   
   const { accommodationId: subdomainAccId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
-  const { setCurrentAccommodationId } = useAccommodation();
   
   // 優先使用 URL 中的 accId，否則使用 subdomain 解析結果
   const accommodationId = urlAccId || subdomainAccId;
@@ -60,12 +58,9 @@ const Index = () => {
     }
   }, [(info as any)?.seo_title, info?.og_title, info?.name]);
 
-  // 同步 accommodationId 到 AccommodationContext（不再覆蓋 URL 參數）
-  useEffect(() => {
-    if (accommodationId) {
-      setCurrentAccommodationId(accommodationId);
-    }
-  }, [accommodationId, setCurrentAccommodationId]);
+  // 注意：此頁解析到館別後一律轉址到 /booking/villa/:accId。
+  // 不可在此呼叫 setCurrentAccommodationId —— 它會以「/」為基準改寫 query（replace），
+  // 覆蓋掉下方 <Navigate> 的轉址，造成根路徑無限停留在「/」而畫面空白。
 
   // 舊版「一般民宿訂房頁」已停用：解析到館別後一律導向新版包棟訂房頁
   if (accommodationId) {
