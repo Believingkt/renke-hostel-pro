@@ -731,7 +731,8 @@ serve(async (req) => {
 
 
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = taipeiToday();
+    const dateBlock = buildDateBlock();
     const locationStr = Array.from(new Set(accommodationList.map(a => [a.region_1, a.region_2].filter(Boolean).join(' ')).filter(Boolean))).join('、');
 
     const replaceVars = (s: string) => (s || '')
