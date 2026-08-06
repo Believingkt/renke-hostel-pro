@@ -157,13 +157,30 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="gap-2" onClick={copyFromOther}>
-              <Copy className="h-4 w-4" />
-              從「{ROOM_SCOPE_LABELS[scope === "whole" ? "single" : "whole"]}」複製勾選
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-room-scope-facilities"
+                  checked={showOnFrontend}
+                  onCheckedChange={toggleFrontend}
+                />
+                <Label htmlFor="show-room-scope-facilities" className="text-sm cursor-pointer">
+                  前台顯示
+                </Label>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2" onClick={copyFromOther}>
+                <Copy className="h-4 w-4" />
+                從「{ROOM_SCOPE_LABELS[scope === "whole" ? "single" : "whole"]}」複製勾選
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
+          {!showOnFrontend && (
+            <p className="text-sm text-muted-foreground mb-3">
+              目前已關閉前台顯示，客人在訂房頁不會看到客房設施內容（設定仍會保留）。
+            </p>
+          )}
           <Tabs value={scope} onValueChange={(v) => setScope(v as RoomFacilityScope)}>
             <TabsList>
               <TabsTrigger value="whole">包棟</TabsTrigger>
@@ -171,6 +188,7 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
             </TabsList>
           </Tabs>
         </CardContent>
+
       </Card>
 
       {Object.entries(ROOM_FACILITY_CATEGORIES).map(([key, { title, description, items }]) => (
