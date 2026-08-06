@@ -1368,22 +1368,36 @@ export default function TeamHome() {
                       {loading ? "—" : fmt(c.amount)}
                     </p>
 
-                    {!loading &&
-                    c.lines &&
-                    c.lines.length > 0 &&
-                    (c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines) ? (
-                      <div className="mt-2 space-y-0.5">
-                        {c.lines.map((ln, i) => (
-                          <div key={i} className="flex justify-between gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{ln.label}</span>
-                            <span className="tabular-nums whitespace-nowrap">
-                              {ln.revenue !== undefined ? `營收 ${fmt(ln.revenue)}　獎金 ` : ""}
-                              {fmt(ln.amount)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
+                    {!loading && c.lines && c.lines.length > 0
+                      ? c.lines.some((ln) => ln.revenue !== undefined)
+                        ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 h-7 text-xs"
+                            onClick={() => setDetailCardKey(c.key)}
+                          >
+                            各館別明細（{c.lines.length} 館）
+                          </Button>
+                        )
+                        : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
+                          ? (
+                            <div className="mt-2 space-y-0.5">
+                              {c.lines.map((ln, i) => (
+                                <div
+                                  key={i}
+                                  className="flex justify-between gap-2 text-xs text-muted-foreground"
+                                >
+                                  <span className="truncate">{ln.label}</span>
+                                  <span className="tabular-nums whitespace-nowrap">
+                                    {fmt(ln.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                          : null
+                      : null}
                   </CardContent>
                 </Card>
               ))}
