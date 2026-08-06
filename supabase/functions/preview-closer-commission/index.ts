@@ -81,6 +81,17 @@ serve(async (req) => {
       return json({ success: false, error: "Unauthorized" }, 401);
     }
 
+    // 管理員檢視模式：可指定 target_user_id 代看其他成員的 self 預估
+    const targetUserId = typeof body?.target_user_id === "string" && body.target_user_id
+      ? body.target_user_id
+      : null;
+    const isAdminViewer = ctx.isServiceRole ||
+      roles.includes("super_admin") || roles.includes("admin");
+    if (targetUserId && targetUserId !== ctx.userId && !isAdminViewer) {
+      return json({ success: false, error: "Forbidden" }, 403);
+    }
+
+
     const startUtc = hasRange ? startIsoOverride! : taipeiMidnightUtcISO(year, month, 1);
     const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
@@ -148,7 +159,7 @@ serve(async (req) => {
     // 4) 免抽成判斷（與正式快照相同）
     const isExempt = await buildExemptResolver(supabase, accIds);
 
-    const selfId = ctx.userId;
+    const selfId = targetUserId ?? ctx.userId;
     let selfCloser = 0;
     let selfVideo = 0;
     let teamCloser = 0;
