@@ -244,7 +244,11 @@ serve(async (req) => {
     }
 
     // ===== 房型圖文卡片：由 edge function 以資料庫實際資料後處理補齊 =====
-    const lastUserText = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    // 由最新往回找對話中最後提到的日期（含較早的使用者訊息）
+    const conversationTexts: string[] = [...messages]
+      .reverse()
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .map((m: any) => String(m.content || ""));
 
     const buildRoomCards = async (assistantText: string): Promise<RoomCardPayload[]> => {
       const roomRows = (rooms.data || []) as any[];
@@ -255,7 +259,11 @@ serve(async (req) => {
       if (!mentioned.length) return [];
 
       const picked = mentioned.slice(0, 4);
-      const checkIn = extractDate(lastUserText, today) || extractDate(assistantText, today);
+      let checkIn = extractDate(assistantText, today);
+      for (const t of conversationTexts) {
+        if (checkIn) break;
+        checkIn = extractDate(t, today);
+      }
       const checkOut = checkIn ? addDaysISO(checkIn, 1) : null;
 
       // 當日價格 / 庫存（資料庫實際值）
