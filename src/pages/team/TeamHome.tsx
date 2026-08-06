@@ -106,8 +106,10 @@ export default function TeamHome() {
         .map((p) => ({
           user_id: p.user_id as string,
           display_name: (p.display_name as string) || "未命名",
-          roles: roleMap.get(p.user_id) ?? [],
+          // 排除財務角色（不參與獎金檢視）
+          roles: (roleMap.get(p.user_id) ?? []).filter((r) => r !== "finance"),
         }))
+        .filter((m) => m.roles.length > 0)
         .sort((a, b) => a.display_name.localeCompare(b.display_name, "zh-Hant"));
       setMembers(list);
     })();
