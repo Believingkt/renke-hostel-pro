@@ -233,21 +233,36 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
             .from("accommodation_info")
             .select("id");
           if (accs && accs.length > 0) {
-            const optOuts = accs.map((a: any) => ({
-              accommodation_id: a.id,
-              facility_name: trimmedName,
-              category: formData.category,
-              pricing_type: null,
-              is_available: false,
-            }));
-            await supabase
+            // 注意：accommodation_facilities 的唯一索引是「部分索引」
+            // (WHERE accommodation_id IS NOT NULL)，PostgREST 無法用它做
+            // on_conflict 推斷（會回 42P10），因此改為先查既有列再 insert。
+            const { data: existing } = await supabase
               .from("accommodation_facilities")
-              .upsert(optOuts, {
-                onConflict: "accommodation_id,facility_name,category",
-                ignoreDuplicates: true,
-              });
+              .select("accommodation_id")
+              .eq("facility_name", trimmedName)
+              .eq("category", formData.category)
+              .not("accommodation_id", "is", null);
+            const existingIds = new Set(
+              (existing ?? []).map((e: any) => e.accommodation_id),
+            );
+            const optOuts = accs
+              .filter((a: any) => !existingIds.has(a.id))
+              .map((a: any) => ({
+                accommodation_id: a.id,
+                facility_name: trimmedName,
+                category: formData.category,
+                pricing_type: null,
+                is_available: false,
+              }));
+            if (optOuts.length > 0) {
+              const { error: optOutError } = await supabase
+                .from("accommodation_facilities")
+                .insert(optOuts);
+              if (optOutError) throw optOutError;
+            }
           }
         }
+
 
         toast.success("設施已新增", {
           description: "已加入共用清單；各民宿後台預設未勾選，需民宿自行啟用。",
