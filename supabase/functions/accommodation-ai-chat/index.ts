@@ -6,7 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
-import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
