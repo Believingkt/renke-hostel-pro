@@ -1055,6 +1055,13 @@ function KolDetailDrawer({
     return { count, revenue };
   }, [orderList]);
 
+  const commissionMultiplier = useMemo(() => {
+    const key = settlementMode
+      ? (filterPrefix && filterPrefix.length === 7 ? filterPrefix : null)
+      : (filterMonthAll ? null : month);
+    return key ? multiplierForDataMonth("kol_commission", key) : 1;
+  }, [settlementMode, filterPrefix, filterMonthAll, month, multiplierForDataMonth]);
+
   const completedTotals = useMemo(() => {
     let count = 0;
     let revenue = 0;
@@ -1268,7 +1275,7 @@ function KolDetailDrawer({
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
-                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums"><BoostedAmount amount={amount} multiplier={commissionMultiplier} /></TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{(() => {
                             const co = o.check_out_date?.slice(0, 10);
                             if (!co) return "—";
@@ -1287,7 +1294,7 @@ function KolDetailDrawer({
             </div>
 
             <div className="text-xs text-muted-foreground text-right">
-              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 {fmtMoney(completedTotals.commission)}
+              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 <BoostedAmount amount={completedTotals.commission} multiplier={commissionMultiplier} />
             </div>
           </div>
         </div>
