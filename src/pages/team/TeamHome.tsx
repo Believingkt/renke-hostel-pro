@@ -1049,10 +1049,10 @@ export default function TeamHome() {
     const baseM = multOf("scout_base");
     const teamM = multOf("scout_team");
     cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
       key: "scout_base",
-      title: "底薪",
+      title: "兼職星探底薪",
       amount: Math.round(baseSalaryAmt * baseM),
       baseAmount: baseSalaryAmt,
       multiplier: baseM,
@@ -1062,13 +1062,13 @@ export default function TeamHome() {
     });
     cards.push({
       key: "scout_team",
-      title: "團隊獎金",
+      title: "星探團隊獎金",
       amount: Math.round(teamBonusAmt * teamM),
       baseAmount: teamBonusAmt,
       multiplier: teamM,
       note: isScoutTeamMember
         ? "依全隊上月達標計算,本月 10 日發放"
-        : "非全職星探不發團隊獎金",
+        : "非參與星探團隊機制，則星探不發團隊獎金",
     });
   }
   if (showFranchise) {
