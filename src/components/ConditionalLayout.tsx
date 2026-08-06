@@ -143,7 +143,6 @@ export function ConditionalLayout() {
     return () => subscription.unsubscribe();
   }, [checkPasswordChangeRequired, checkUserValidity, isAdminPage, isHQPage]);
 
-  console.log("[DBG] path", location.pathname, "isFrontendPage", isFrontendPage);
   if (isFrontendPage) {
     return (
       <TooltipProvider>

@@ -24,7 +24,6 @@ import Footer from "@/components/Footer";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 
 const Index = () => {
-  console.log("[DBG] Index render");
   const [searchParams] = useSearchParams();
   const urlAccId = searchParams.get('accId');
   
@@ -61,20 +60,15 @@ const Index = () => {
     }
   }, [(info as any)?.seo_title, info?.og_title, info?.name]);
 
-  // 同步 accommodationId 到 AccommodationContext（不再覆蓋 URL 參數）
-  useEffect(() => {
-    if (accommodationId) {
-      setCurrentAccommodationId(accommodationId);
-    }
-  }, [accommodationId, setCurrentAccommodationId]);
+  // 注意：此頁解析到館別後一律轉址到 /booking/villa/:accId。
+  // 不可在此呼叫 setCurrentAccommodationId —— 它會以「/」為基準改寫 query（replace），
+  // 覆蓋掉下方 <Navigate> 的轉址，造成根路徑無限停留在「/」而畫面空白。
 
   // 舊版「一般民宿訂房頁」已停用：解析到館別後一律導向新版包棟訂房頁
-  console.log("[DBG] accId", accommodationId);
   if (accommodationId) {
     const params = new URLSearchParams(searchParams);
     params.delete("accId");
     const qs = params.toString();
-    console.log("[DBG] navigating");
     return <Navigate to={`/booking/villa/${accommodationId}${qs ? `?${qs}` : ""}`} replace />;
   }
 
