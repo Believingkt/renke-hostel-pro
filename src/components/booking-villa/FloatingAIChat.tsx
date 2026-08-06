@@ -374,16 +374,25 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
 function MessageBubble({ role, content }: { role: "user" | "assistant"; content: string }) {
   const isUser = role === "user";
+  const { text, cards } = isUser ? { text: content, cards: [] as never[] } : parseRoomCards(content);
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser ? "text-white" : "bg-muted text-foreground"
-        }`}
-        style={isUser ? { background: "#F08A3E" } : undefined}
-      >
-        {content}
-      </div>
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+      {(text || isUser) && (
+        <div
+          className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+            isUser ? "text-white" : "bg-muted text-foreground"
+          }`}
+          style={isUser ? { background: "#F08A3E" } : undefined}
+        >
+          {text}
+        </div>
+      )}
+      {!isUser && cards.length > 0 && (
+        <div className="w-[86%] max-w-[300px]">
+          <RoomCardList cards={cards} />
+        </div>
+      )}
     </div>
   );
 }
