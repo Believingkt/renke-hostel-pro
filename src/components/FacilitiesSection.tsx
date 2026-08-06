@@ -31,6 +31,7 @@ const categoryNames: Record<string, string> = {
   safety: "安全設施",
   entertainment: "休閒娛樂設施",
   language: "服務語言",
+  ...ROOM_FACILITY_CATEGORY_NAMES,
 };
 
 const shortCategoryNames: Record<string, string> = {
@@ -39,7 +40,15 @@ const shortCategoryNames: Record<string, string> = {
   safety: "安全",
   entertainment: "休閒娛樂",
   language: "服務語言",
+  general: "一般",
+  bedTypes: "床型",
+  ventilation: "進階",
+  bathroom: "浴室",
+  media: "媒體科技",
+  foodBeverage: "餐飲",
+  family: "家庭",
 };
+
 
 const FacilitiesSection = ({
   facilities,
