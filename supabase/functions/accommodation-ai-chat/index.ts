@@ -155,7 +155,7 @@ serve(async (req) => {
       supabase.from("ai_examples").select("scenario, user_message, ideal_response")
         .eq("accommodation_id", accommodationId).eq("is_active", true).limit(30),
       supabase.from("room_types")
-        .select("id, name, description, base_price, capacity, size_sqm, room_count")
+        .select("id, name, description, base_price, capacity, size_sqm, room_count, room_photos(photo_url, display_order)")
         .eq("accommodation_id", accommodationId).order("display_order"),
     ]);
 
