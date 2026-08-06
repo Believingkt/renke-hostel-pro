@@ -10914,6 +10914,7 @@ export type Database = {
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_admin_or_super: { Args: never; Returns: boolean }
+      is_am_team: { Args: { _user_id: string }; Returns: boolean }
       is_hotel_admin_of: {
         Args: { _accommodation_id: string }
         Returns: boolean

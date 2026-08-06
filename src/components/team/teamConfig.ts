@@ -124,7 +124,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     title: "LINE群設定",
     url: "/team/lineoa",
     icon: MessageCircle,
-    allowedRoles: ["super_admin", "admin", "am"],
+    allowedRoles: ["super_admin", "admin", "am", "am_manager"],
   },
   // 暫時隱藏「外部導購連結」選單項（路由與頁面仍保留，之後取消註解即可復原）
   // {
