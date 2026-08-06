@@ -14,13 +14,15 @@ export async function fetchRoomScopeAmenities(
   const result: Record<string, string[]> = {};
   if (!accommodationId || roomTypes.length === 0) return result;
 
-  // 後台開關：關閉時前台完全不顯示客房設施
+  // 後台開關：包棟／單間各自可獨立關閉前台顯示
   const { data: info } = await supabase
     .from("accommodation_info")
-    .select("show_room_scope_facilities")
+    .select("show_room_facilities_whole, show_room_facilities_single")
     .eq("id", accommodationId)
     .maybeSingle();
-  if (info && (info as any).show_room_scope_facilities === false) return result;
+  const showWhole = (info as any)?.show_room_facilities_whole !== false;
+  const showSingle = (info as any)?.show_room_facilities_single !== false;
+  if (!showWhole && !showSingle) return result;
 
   const { data } = await supabase
     .from("accommodation_facilities")
@@ -34,15 +36,23 @@ export async function fetchRoomScopeAmenities(
     const s = row.room_scope as RoomFacilityScope;
     if (byScope[s]) byScope[s].push(row.facility_name);
   });
+  if (!showWhole) byScope.whole = [];
+  if (!showSingle) byScope.single = [];
 
   const hasScoped = byScope.whole.length > 0 || byScope.single.length > 0;
   if (hasScoped) {
     for (const rt of roomTypes) {
       const scope: RoomFacilityScope = rt.is_exclusive_package ? "whole" : "single";
+      const enabled = scope === "whole" ? showWhole : showSingle;
+      if (!enabled) {
+        result[rt.id] = [];
+        continue;
+      }
       result[rt.id] = byScope[scope].length > 0 ? byScope[scope] : byScope.single.concat(byScope.whole);
     }
     return result;
   }
+
 
   // Legacy fallback
   const { data: legacy } = await supabase
