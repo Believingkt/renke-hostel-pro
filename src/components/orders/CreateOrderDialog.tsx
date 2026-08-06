@@ -2154,6 +2154,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                               </Select>
                             );
                           })()}
+                        </div>
+
+
 
                         {!(isYunxiu && !isExclusive) && (
                           <div className="space-y-1.5">
