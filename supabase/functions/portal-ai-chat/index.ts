@@ -752,6 +752,7 @@ serve(async (req) => {
       : '';
 
     const systemPrompt = `${dbPromptBlock}
+${dateBlock}
 ${replyTemplateBlock}
 
 ${userContextBlock}
