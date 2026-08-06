@@ -12,6 +12,7 @@ import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
+import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -237,7 +238,7 @@ const PortalAIChatPanel = () => {
         params.set("adults", String(searchIntent.guests || defaultGuests));
         params.set("ai", "1");
         params.set("aiQuery", content.trim().slice(0, 80));
-        const note = assistantMessage
+        const note = parseRoomCards(assistantMessage).text
           .replace(/\[SUGGEST:\s*[^\]]+\]/g, "")
           .split("\n")
           .map((l) => l.trim())
@@ -285,7 +286,7 @@ const PortalAIChatPanel = () => {
     if (last.role !== "assistant" || !last.content) return;
     if (lastSpokenIndexRef.current === idx) return;
     lastSpokenIndexRef.current = idx;
-    const timer = setTimeout(() => playTTS(last.content, idx, { forceRestart: true }), 300);
+    const timer = setTimeout(() => playTTS(parseRoomCards(last.content).text, idx, { forceRestart: true }), 300);
     return () => clearTimeout(timer);
   }, [isLoading, autoSpeak, messages.length]);
 
@@ -359,7 +360,8 @@ const PortalAIChatPanel = () => {
 
                       {msg.content ? (
                         (() => {
-                          const parsed = parseRoomListings(msg.content);
+                          const { text: cleanText, cards } = parseRoomCards(msg.content);
+                          const parsed = cleanText ? parseRoomListings(cleanText) : null;
                           if (parsed) {
                             return (
                               <div className="space-y-2">
@@ -378,13 +380,19 @@ const PortalAIChatPanel = () => {
                                     <ReactMarkdown>{parsed.afterText}</ReactMarkdown>
                                   </div>
                                 )}
+                                <RoomCardList cards={cards} />
                               </div>
                             );
                           }
                           return (
-                            <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
+                            <>
+                              {cleanText && (
+                                <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
+                                  <ReactMarkdown>{cleanText}</ReactMarkdown>
+                                </div>
+                              )}
+                              <RoomCardList cards={cards} />
+                            </>
                           );
                         })()
                       ) : (
