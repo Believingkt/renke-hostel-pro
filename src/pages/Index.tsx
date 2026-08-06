@@ -1,7 +1,6 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
-import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import Navigation from "@/components/Navigation";
@@ -28,7 +27,6 @@ const Index = () => {
   const urlAccId = searchParams.get('accId');
   
   const { accommodationId: subdomainAccId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
-  const { setCurrentAccommodationId } = useAccommodation();
   
   // 優先使用 URL 中的 accId，否則使用 subdomain 解析結果
   const accommodationId = urlAccId || subdomainAccId;
