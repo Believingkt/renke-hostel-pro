@@ -918,7 +918,7 @@ export default function TeamHome() {
               kolSources.length > 0
                 ? await getAccommodationRevenueByAcc(
                     client,
-                    allAccIds,
+                    revenueAccIds,
                     monthStartDate,
                     monthEndDate,
                     kolSources,
