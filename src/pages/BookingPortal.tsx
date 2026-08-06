@@ -246,7 +246,8 @@ const BookingPortal = () => {
           .order("display_order", { ascending: true }),
         supabase
           .from("accommodation_facilities")
-          .select("accommodation_id, category, facility_name, is_available"),
+          .select("accommodation_id, category, facility_name, is_available")
+          .is("room_scope", null),
         supabase
           .from("addon_settings")
           .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")

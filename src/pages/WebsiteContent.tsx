@@ -773,6 +773,7 @@ const WebsiteContent = () => {
         const { data: facRows } = await supabase
           .from("accommodation_facilities")
           .select("accommodation_id, facility_name, category, is_available, pricing_type")
+          .is("room_scope", null)
           .or(`accommodation_id.is.null,accommodation_id.eq.${infoData.id}`);
 
         if (facRows) {
@@ -1107,6 +1108,7 @@ const WebsiteContent = () => {
             const { data: facRowsReload } = await supabase
               .from("accommodation_facilities")
               .select("accommodation_id, facility_name, category, is_available, pricing_type")
+              .is("room_scope", null)
               .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
             if (facRowsReload) {
@@ -1338,6 +1340,7 @@ const WebsiteContent = () => {
       const { data: allRows, error: loadErr } = await supabase
         .from("accommodation_facilities")
         .select("id, accommodation_id, facility_name, category, pricing_type, is_available")
+        .is("room_scope", null)
         .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
       if (loadErr) throw loadErr;
 
@@ -1456,6 +1459,7 @@ const WebsiteContent = () => {
       const { data: refreshed } = await supabase
         .from("accommodation_facilities")
         .select("accommodation_id, facility_name, category, is_available, pricing_type")
+        .is("room_scope", null)
         .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
       if (refreshed) {

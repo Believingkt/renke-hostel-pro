@@ -62,6 +62,7 @@ export const PortalFeatureTagsSection = ({ accommodationId, onPreviewTagsChange 
           supabase
             .from("accommodation_facilities")
             .select("accommodation_id, category, facility_name, is_available")
+            .is("room_scope", null)
             .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`),
         ]);
         if (cancelled) return;

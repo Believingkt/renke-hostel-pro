@@ -209,6 +209,7 @@ async function handleGetAccommodation(supabase: any, accId: string) {
     .from("accommodation_facilities")
     .select("facility_name, category")
     .eq("accommodation_id", accId)
+    .is("room_scope", null)
     .eq("is_available", true);
 
   const { data: reviews } = await supabase
