@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
