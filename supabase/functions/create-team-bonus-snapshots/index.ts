@@ -352,16 +352,21 @@ serve(async (req) => {
       if (a.is_active) activeAccIds.push(a.id);
     }
 
+    // 旅行日系列不列入抽成類獎金（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
+    const revenueAccIds = activeAccIds.filter(
+      (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
+    );
+
     const companyRevenue = await getAccommodationRevenue(
       supabase,
-      activeAccIds,
+      revenueAccIds,
       monthStartDate,
       monthEndDate,
       sharedSources,
     );
     const kolRevenue = await getAccommodationRevenue(
       supabase,
-      activeAccIds,
+      revenueAccIds,
       monthStartDate,
       monthEndDate,
       kolSources,
