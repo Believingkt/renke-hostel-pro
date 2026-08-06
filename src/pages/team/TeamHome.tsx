@@ -930,6 +930,7 @@ export default function TeamHome() {
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
         amount: Math.round(closerTeamBonusAmt * m),
+        baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: "已定案分配金額",
       });
@@ -944,6 +945,7 @@ export default function TeamHome() {
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
         amount: Math.round(closerTeamBonusAmt * m),
+        baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: noteParts.join("；"),
         excludeFromTotal: true,
@@ -952,19 +954,20 @@ export default function TeamHome() {
   }
   if (showVideo) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), multiplier: m });
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
   }
   if (showScout) {
     const kolM = multOf("scout_kol");
     const rarityM = multOf("scout_rarity");
     const baseM = multOf("scout_base");
     const teamM = multOf("scout_team");
-    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
-    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_rarity", title: "稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
       key: "scout_base",
       title: "底薪",
       amount: Math.round(baseSalaryAmt * baseM),
+      baseAmount: baseSalaryAmt,
       multiplier: baseM,
       note: isScoutTeamMember
         ? "依上月邀約達標計算，本月 10 日發放"
@@ -974,6 +977,7 @@ export default function TeamHome() {
       key: "scout_team",
       title: "團隊獎金",
       amount: Math.round(teamBonusAmt * teamM),
+      baseAmount: teamBonusAmt,
       multiplier: teamM,
       note: isScoutTeamMember
         ? "依全隊上月達標計算,本月 10 日發放"
@@ -1004,7 +1008,7 @@ export default function TeamHome() {
   }
   if (showStarlink) {
     const m = multOf("starlink");
-    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), multiplier: m });
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m });
   }
 
   // ===== 七種團隊獎金卡片 =====
@@ -1016,6 +1020,7 @@ export default function TeamHome() {
       key: "am_performance",
       title: "AM績效獎金",
       amount: Math.round(amPerformanceAmt * m),
+      baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
     });
@@ -1024,6 +1029,7 @@ export default function TeamHome() {
       key: "am_venue_bonus",
       title: "AM場域獎金",
       amount: Math.round(amVenueBonusAmt * mv),
+      baseAmount: amVenueBonusAmt,
       multiplier: mv,
       note: rateNote("am_venue_bonus"),
     });
@@ -1034,6 +1040,7 @@ export default function TeamHome() {
       key: "closer_performance",
       title: "成交組績效獎金",
       amount: Math.round(closerPerformanceAmt * m),
+      baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
     });
@@ -1044,6 +1051,7 @@ export default function TeamHome() {
       key: "am_manager",
       title: "AM總管獎金",
       amount: Math.round(amManagerAmt * m),
+      baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
     });
@@ -1054,6 +1062,7 @@ export default function TeamHome() {
       key: "closer_manager",
       title: "成交大師管理獎金",
       amount: Math.round(closerManagerAmt * m),
+      baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
     });
@@ -1064,6 +1073,7 @@ export default function TeamHome() {
       key: "kol_commission",
       title: "網紅營銷專利獎金",
       amount: Math.round(kolCommissionAmt * mc),
+      baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
     });
@@ -1072,6 +1082,7 @@ export default function TeamHome() {
       key: "kol_monthly",
       title: "網紅營銷月獎金",
       amount: Math.round(kolMonthlyAmt * mm),
+      baseAmount: kolMonthlyAmt,
       multiplier: mm,
       note: rateNote("kol_monthly"),
     });
@@ -1082,6 +1093,7 @@ export default function TeamHome() {
       key: "venue_closing",
       title: "場域成交獎金",
       amount: Math.round(venueClosingAmt * m),
+      baseAmount: venueClosingAmt,
       multiplier: m,
       note: rateNote("venue_closing"),
       lines: venueClosingDetail.map((d) => ({

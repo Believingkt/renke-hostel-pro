@@ -933,7 +933,15 @@ export default function TeamCommissionStatsTab() {
                             <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
                             <TableCell className="tabular-nums font-semibold">
                               {bonusMultiplier > 1 ? (
-                                <BoostedAmount amount={memberTotal} multiplier={bonusMultiplier} />
+                                <div className="flex flex-col leading-tight items-end">
+                                  <span className="text-muted-foreground line-through text-xs font-normal">
+                                    {fmtMoney(memberTotal)}
+                                  </span>
+                                  <span className="text-primary">
+                                    {fmtMoney(memberTotalBoosted)}
+                                    <span className="ml-1 text-xs font-normal text-primary/80">×{bonusMultiplier.toFixed(2)}</span>
+                                  </span>
+                                </div>
                               ) : (
                                 fmtMoney(memberTotal)
                               )}

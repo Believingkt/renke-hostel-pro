@@ -42,6 +42,9 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Pencil, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 interface Props {
   isAdmin: boolean;
@@ -89,6 +92,7 @@ function taipeiMonthOf(d: Date): { year: number; month: number } {
 }
 
 export default function TeamBonusDistributionTab({ isAdmin }: Props) {
+  const { multiplierForDataMonth } = useBonusMultipliers();
   // ============ Card 1: bonus settings ============
   const [settings, setSettings] = useState<BonusSetting[]>([]);
   const [addOpen, setAddOpen] = useState(false);

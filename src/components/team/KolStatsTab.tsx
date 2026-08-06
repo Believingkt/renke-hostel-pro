@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { buildExemptResolver, commissionBaseFromOrder } from "@/lib/ownerExempt";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
 
 
 const RARITIES = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
@@ -175,6 +177,7 @@ export function KolStatsTab() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ScoutStats[]>([]);
   const [selectedScout, setSelectedScout] = useState<ScoutStats | null>(null);
+  const { multiplierForPayoutMonth } = useBonusMultipliers();
 
   const yearOptions = useMemo(() => {
     const arr: number[] = [0];
