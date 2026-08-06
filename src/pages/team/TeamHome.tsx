@@ -1168,6 +1168,8 @@ export default function TeamHome() {
       baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
+      lines: venueLines("am_performance", m),
+      alwaysShowLines: true,
     });
     const mv = multOf("am_venue_bonus");
     cards.push({
@@ -1188,6 +1190,8 @@ export default function TeamHome() {
       baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
+      lines: venueLines("closer_performance", m),
+      alwaysShowLines: true,
     });
   }
   if (isAmManager) {
@@ -1199,6 +1203,8 @@ export default function TeamHome() {
       baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
+      lines: venueLines("am_manager", m),
+      alwaysShowLines: true,
     });
   }
   if (isCloserManager) {
@@ -1210,6 +1216,8 @@ export default function TeamHome() {
       baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
+      lines: venueLines("closer_manager", m),
+      alwaysShowLines: true,
     });
   }
   if (isKolBonusRecipient) {
@@ -1221,6 +1229,8 @@ export default function TeamHome() {
       baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
+      lines: venueLines("kol_commission", mc),
+      alwaysShowLines: true,
     });
     const mm = multOf("kol_monthly");
     cards.push({
