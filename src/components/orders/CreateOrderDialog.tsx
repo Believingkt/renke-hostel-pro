@@ -1965,8 +1965,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                             if (i === 0) {
                               return { ...s, template_id: value, template_name: template?.template_name || "" };
                             }
-                            const match = s.filteredTemplates.find(t => t.id === value);
-                            if (!match) return s; // 此房型無對應專案則保留原值
+                            // 此房型有同名/同 id 方案則同步；否則自動帶入該房型第一個預設方案
+                            const match = s.filteredTemplates.find(t => t.id === value)
+                              || (template ? s.filteredTemplates.find(t => t.template_name === template.template_name) : undefined)
+                              || s.filteredTemplates[0];
+                            if (!match) return s;
                             return { ...s, template_id: match.id, template_name: match.template_name };
                           }));
                         }}
