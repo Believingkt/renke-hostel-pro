@@ -268,7 +268,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       ]) as any;
 
 
-      const closerIds = Array.from(new Set((closerRoles ?? []).map((r) => r.user_id)));
+      const closerIds: string[] = Array.from(
+        new Set(((closerRoles ?? []) as any[]).map((r) => String(r.user_id))),
+      );
+
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
       const allIds = Array.from(new Set([...closerIds, ...videoIds]));
 
