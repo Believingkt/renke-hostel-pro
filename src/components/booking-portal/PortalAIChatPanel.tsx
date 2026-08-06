@@ -286,7 +286,7 @@ const PortalAIChatPanel = () => {
     if (last.role !== "assistant" || !last.content) return;
     if (lastSpokenIndexRef.current === idx) return;
     lastSpokenIndexRef.current = idx;
-    const timer = setTimeout(() => playTTS(last.content, idx, { forceRestart: true }), 300);
+    const timer = setTimeout(() => playTTS(parseRoomCards(last.content).text, idx, { forceRestart: true }), 300);
     return () => clearTimeout(timer);
   }, [isLoading, autoSpeak, messages.length]);
 
