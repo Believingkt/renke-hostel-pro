@@ -199,7 +199,8 @@ serve(async (req) => {
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
-      + dateBlock + accInfo + roomList + knowledgeText + examplesText + tone + forbidden;
+      + dateBlock + accInfo + roomList + knowledgeText + examplesText + tone + forbidden
+      + ROOM_CARD_PROMPT_RULE;
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
