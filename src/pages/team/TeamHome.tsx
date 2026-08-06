@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
+import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
+
 import {
   getBonusRateSettings,
   getRoleBinding,

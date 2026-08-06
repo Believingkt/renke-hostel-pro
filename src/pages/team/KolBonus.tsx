@@ -462,6 +462,19 @@ export default function KolBonus() {
     return `${payoutYear}-${String(p - 1).padStart(2, "0")}`;
   }, [payoutYear, payoutPeriod]);
 
+  // 獎金加倍：Tab1 以篩選的「進單/完成」月份為資料月；Tab2 以退房月（tab2TargetPrefix）為資料月
+  const tab1DataMonthKey =
+    filterYear !== 0 && filterMonth !== "all"
+      ? `${filterYear}-${String(filterMonth).padStart(2, "0")}`
+      : null;
+  const tab1CommissionMultiplier = tab1DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab1DataMonthKey)
+    : 1;
+  const tab2DataMonthKey = payoutPeriod !== "all" ? tab2TargetPrefix : null;
+  const tab2CommissionMultiplier = tab2DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab2DataMonthKey)
+    : 1;
+
   // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在對應退房月份有退房
   const tab2FilteredRows = useMemo(() => {
     return rows.filter((k) => {
