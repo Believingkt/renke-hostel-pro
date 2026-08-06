@@ -150,13 +150,13 @@ export default function TeamLineOA() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .in("role", ["super_admin", "admin", "am"]);
+        .in("role", ["super_admin", "admin", "am", "am_manager"]);
       if (!data || data.length === 0) {
         navigate("/team", { replace: true });
       } else {
         const roles = data.map((r: any) => r.role);
         const onlyAm =
-          roles.includes("am") &&
+          (roles.includes("am") || roles.includes("am_manager")) &&
           !roles.includes("super_admin") &&
           !roles.includes("admin");
         setIsAm(onlyAm);
@@ -522,7 +522,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
 
   const save = async () => {
     if (!form) return;
-    if (!form.target_id.trim()) {
+    if (!hideGroupId && !form.target_id.trim()) {
       toast.error("請輸入 groupId");
       return;
     }
@@ -624,9 +624,11 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
           </p>
 
         </div>
-        <Button size="sm" onClick={openAdd}>
-          <Plus className="h-4 w-4 mr-1" /> 手動新增群組
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={openAdd}>
+            <Plus className="h-4 w-4 mr-1" /> 手動新增群組
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -810,7 +812,7 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                 )}
               </div>
 
-              <div>
+              <div className={hideGroupId ? "hidden" : undefined}>
                 <Label>使用 OA</Label>
                 <select
                   className="w-full border rounded-md h-10 px-3 bg-background"
