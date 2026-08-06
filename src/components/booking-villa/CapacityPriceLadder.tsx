@@ -111,10 +111,7 @@ interface Props {
   childBlocked?: boolean;
   /** 不可訂時的中文說明 */
   childBlockReason?: string;
-  /** 房型專屬設施（包棟範圍），顯示在方案卡片內 */
-  scopeFacilities?: string[];
 }
-
 
 import {
   SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
@@ -166,9 +163,7 @@ const CapacityPriceLadder = ({
   childRuleLines = [],
   childBlocked = false,
   childBlockReason,
-  scopeFacilities = [],
 }: Props) => {
-
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
     weekday: isSensan ? "含少人包區早鳥優惠" : "標準銷售方案",
@@ -383,26 +378,6 @@ const CapacityPriceLadder = ({
                     </p>
                   </div>
                 )}
-
-                {/* 2b. 房型專屬設施（包棟） */}
-                {scopeFacilities.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80 mb-1">
-                      {TERM}專屬設施
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {scopeFacilities.map((f) => (
-                        <span
-                          key={f}
-                          className="text-[11px] px-2 py-0.5 rounded-full bg-secondary/50 text-secondary-foreground"
-                        >
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
 
                 {/* 3. 模組化資訊區塊：標籤 + 禮遇 + 附加說明 + 訂房規則 */}
                 <div className="rounded-xl bg-[#F9F8F6] border border-border/50 p-3.5 space-y-3">

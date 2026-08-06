@@ -65,8 +65,6 @@ import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
-import { fetchScopedFacilities } from "@/lib/roomScopeFacilities";
-
 import {
   useAccommodationPackages,
   useAccommodationHolidays,
@@ -318,20 +316,7 @@ const BookingVilla = () => {
 
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : "";
 
-  const [scopeFacilities, setScopeFacilities] = useState<string[]>([]);
-  useEffect(() => {
-    if (!accId) return;
-    let cancelled = false;
-    fetchScopedFacilities(accId).then((sf) => {
-      if (!cancelled) setScopeFacilities(sf.whole);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [accId]);
-
   usePageAnalytics({ accommodationId: accId || null, enabled: !!accId && !!info });
-
 
   useLayoutEffect(() => {
     if (info) {
@@ -1257,8 +1242,6 @@ const BookingVilla = () => {
           <div data-capacity-list>
             <CapacityPriceLadder
               roomTypes={secondaryData?.roomTypes || []}
-              scopeFacilities={scopeFacilities}
-
               onSelect={handleSelectOption}
               nights={nights}
               checkIn={checkIn}
