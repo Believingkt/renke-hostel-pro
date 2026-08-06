@@ -311,28 +311,38 @@ export default function TeamCommissionStatsTab() {
       const { data } = await supabase
         .from("closer_commission_adjustments")
         .select(
-          "id, adjustment_type, closer_id, video_creator_id, closer_amount, video_amount, reason, orders(order_number, accommodation_id)",
+          "id, adjustment_type, closer_id, video_creator_id, closer_amount, video_amount, reason, orders(order_number, accommodation_id, order_date)",
         )
         .eq("adjustment_month", payoutMonthKey);
       if (cancelled) return;
       setAdjustments(
-        ((data ?? []) as any[]).map((r) => ({
-          id: r.id,
-          adjustment_type: r.adjustment_type,
-          closer_id: r.closer_id,
-          video_creator_id: r.video_creator_id,
-          closer_amount: Number(r.closer_amount ?? 0),
-          video_amount: Number(r.video_amount ?? 0),
-          reason: r.reason ?? null,
-          order_number: r.orders?.order_number ?? null,
-          accommodation_id: r.orders?.accommodation_id ?? null,
-        })),
+        ((data ?? []) as any[])
+          // 取消扣回：若該訂單的下單日就落在本期別，統計口徑已直接排除該筆分潤，
+          // 再扣一次補差會重複扣款（發放管理是「快照 + 補差」，統計是「即時排除」）。
+          .filter((r) => {
+            const isCancel = String(r.adjustment_type ?? "").includes("cancel");
+            if (!isCancel) return true;
+            const od = r.orders?.order_date as string | undefined;
+            if (!od || !period.startIso || !period.nextIso) return true;
+            return !(od >= period.startIso && od < period.nextIso);
+          })
+          .map((r) => ({
+            id: r.id,
+            adjustment_type: r.adjustment_type,
+            closer_id: r.closer_id,
+            video_creator_id: r.video_creator_id,
+            closer_amount: Number(r.closer_amount ?? 0),
+            video_amount: Number(r.video_amount ?? 0),
+            reason: r.reason ?? null,
+            order_number: r.orders?.order_number ?? null,
+            accommodation_id: r.orders?.accommodation_id ?? null,
+          })),
       );
     })();
     return () => {
       cancelled = true;
     };
-  }, [mode, payoutMonthKey]);
+  }, [mode, payoutMonthKey, period.startIso, period.nextIso]);
 
   // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
   const adjMaps = useMemo(() => {
