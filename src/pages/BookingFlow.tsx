@@ -3555,6 +3555,12 @@ const BookingFlow = () => {
         }
       }
 
+      // 社群裂變推廣：受邀會員首筆訂單成立時歸因並發放獎勵（失敗不影響訂單流程）
+      if (effectiveMemberId && orderData?.id) {
+        await qualifyReferral(effectiveMemberId, orderData.id);
+      }
+
+
       // 發送訂購確認郵件（統一走 notify-booking-confirmation）
       // - 非 3DS 信用卡（paidOrderResult）：create-paid-order 已寄信，跳過避免重複
       // - ATM 待匯款：建單當下即寄「訂房確認（待匯款）」，入帳後的收據信由 tappay-notify 另寄，不重複
