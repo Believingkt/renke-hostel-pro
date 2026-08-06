@@ -3,6 +3,8 @@ import lokezeLogo2 from "@/assets/lakeze-portal-logo.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referral";
+
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
