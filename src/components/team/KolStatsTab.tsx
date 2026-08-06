@@ -755,6 +755,15 @@ export function KolStatsTab() {
   }, [year, period]);
 
   const showSalary = periodIsDayTen(period);
+  const payoutMonthKey = (() => {
+    if (period === "all") return "";
+    const m = periodMonth(period);
+    if (!m) return "";
+    const effYear = year === 0 ? currentYear : year;
+    return `${effYear}-${pad(m)}`;
+  })();
+  const kolMult = multiplierForPayoutMonth("scout_kol", payoutMonthKey);
+  const rarityMult = multiplierForPayoutMonth("scout_rarity", payoutMonthKey);
 
   return (
     <>

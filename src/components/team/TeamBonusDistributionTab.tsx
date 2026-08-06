@@ -144,6 +144,12 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   const year = periodMonth === 1 ? periodYear - 1 : periodYear;
   const month = periodMonth === 1 ? 12 : periodMonth - 1;
 
+  const dataMonthKey = useMemo(
+    () => `${year}-${String(month).padStart(2, "0")}`,
+    [year, month],
+  );
+  const closerMultiplier = multiplierForDataMonth("closer", dataMonthKey);
+
   const [closers, setClosers] = useState<Member[]>([]);
   const [pool, setPool] = useState<number>(0);
   const [totalCommission, setTotalCommission] = useState<number>(0);
