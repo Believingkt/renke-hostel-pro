@@ -1040,7 +1040,7 @@ function VenueClosingAssignmentSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">場域簽約人</CardTitle>
+        <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
         <p className="text-sm text-muted-foreground">
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）
         </p>
