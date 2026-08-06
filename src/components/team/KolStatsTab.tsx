@@ -416,7 +416,9 @@ export function KolStatsTab() {
           );
           let q = supabase
             .from("orders")
-            .select("order_number, discount_code, final_price, created_at, order_date, accommodation_id")
+            .select(
+              "order_number, discount_code, final_price, custom_addon_details, currency_at_booking, owner_direct, order_source, created_at, order_date, accommodation_id",
+            )
             .not("discount_code", "is", null)
             .neq("order_status", "cancelled");
           if (range) {
@@ -427,28 +429,31 @@ export function KolStatsTab() {
           }
           const { data: orders, error: ordErr } = await q;
           if (ordErr) throw ordErr;
-          for (const o of orders ?? []) {
-            const row = o as {
-              discount_code: string | null;
-              final_price: number | null;
-              order_number: string | null;
-              created_at: string | null;
-              accommodation_id: string | null;
-            };
+          const rawOrders = (orders ?? []) as any[];
+          // 與 calculate-scout-payout 對齊：排除非台幣、業主免抽成來源，且分潤基礎需扣除加購項目
+          const isExempt = await buildExemptResolver(
+            supabase as any,
+            rawOrders.map((o) => o.accommodation_id).filter(Boolean),
+          );
+          for (const row of rawOrders) {
             if (!row.discount_code) continue;
-            const key = row.discount_code.trim().toUpperCase();
+            const key = String(row.discount_code).trim().toUpperCase();
             if (!cidUpperSet.has(key)) continue;
+            if (row.currency_at_booking && row.currency_at_booking !== "TWD") continue;
+            if (isExempt(row)) continue;
+            const base = commissionBaseFromOrder(row);
             const entry = orderMap.get(key) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
-            entry.total += Number(row.final_price || 0);
+            entry.total += base;
             entry.orders.push({
               order_number: row.order_number ?? "",
-              final_price: Number(row.final_price || 0),
+              final_price: base,
               created_at: row.created_at,
               accommodation_id: row.accommodation_id,
             });
             orderMap.set(key, entry);
           }
+
         }
 
         // ⚠️ 底薪／團隊獎金：僅於 period=10 發放
