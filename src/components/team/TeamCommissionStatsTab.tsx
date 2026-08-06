@@ -295,6 +295,10 @@ export default function TeamCommissionStatsTab() {
     };
   }, [mode, year, month, customStart, customEnd]);
 
+  const dataMonthKey = useMemo(() => period.startDate.slice(0, 7), [period.startDate]);
+  const closerMultiplier = multiplierForDataMonth("closer", dataMonthKey);
+  const videoMultiplier = multiplierForDataMonth("video", dataMonthKey);
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -823,16 +827,17 @@ export default function TeamCommissionStatsTab() {
     const showAdj = mode === "period";
     const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
     const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
+    const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
     const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
     const renderCommissionCell = (amount: number) => {
-      if (!showBonus) return <>{fmtMoney(amount)}</>;
+      if (!showBonus) return <BoostedAmount amount={amount} multiplier={bonusMultiplier} />;
       return (
         <div className="flex flex-col leading-tight">
           <span className="text-muted-foreground line-through text-xs">
             {fmtMoney(amount)}
           </span>
           <span className="text-orange-600 font-medium">
-            {fmtMoney(amount * netFactor)}
+            <BoostedAmount amount={amount * netFactor} multiplier={bonusMultiplier} />
           </span>
         </div>
       );
@@ -905,6 +910,7 @@ export default function TeamCommissionStatsTab() {
                   const isOpen = expanded.has(r.uid);
                   const memberAdj = byUid.get(r.uid) ?? 0;
                   const memberTotal = netCommission(r.commission) + memberAdj;
+                  const memberTotalBoosted = boostedAmount(netCommission(r.commission), bonusMultiplier) + memberAdj;
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -926,7 +932,11 @@ export default function TeamCommissionStatsTab() {
                           <>
                             <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
                             <TableCell className="tabular-nums font-semibold">
-                              {fmtMoney(memberTotal)}
+                              {bonusMultiplier > 1 ? (
+                                <BoostedAmount amount={memberTotal} multiplier={bonusMultiplier} />
+                              ) : (
+                                fmtMoney(memberTotal)
+                              )}
                             </TableCell>
                           </>
                         )}
