@@ -14,6 +14,14 @@ export async function fetchRoomScopeAmenities(
   const result: Record<string, string[]> = {};
   if (!accommodationId || roomTypes.length === 0) return result;
 
+  // 後台開關：關閉時前台完全不顯示客房設施
+  const { data: info } = await supabase
+    .from("accommodation_info")
+    .select("show_room_scope_facilities")
+    .eq("id", accommodationId)
+    .maybeSingle();
+  if (info && (info as any).show_room_scope_facilities === false) return result;
+
   const { data } = await supabase
     .from("accommodation_facilities")
     .select("facility_name, room_scope, is_available")
