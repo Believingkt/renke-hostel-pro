@@ -299,6 +299,35 @@ serve(async (req) => {
         );
       }
 
+      // 價格補強：同名方案（前台訂房價格）為主要售價來源
+      const missingPrice = picked.filter((r) => !priceByRoom.get(r.id));
+      if (missingPrice.length) {
+        const { data: pkgs } = await supabase
+          .from("accommodation_packages")
+          .select("id, name, sale_price")
+          .eq("accommodation_id", accommodationId)
+          .in("name", missingPrice.map((r) => r.name));
+        const pkgList = (pkgs || []) as any[];
+        if (pkgList.length) {
+          let dateMap = new Map<string, number>();
+          if (checkIn) {
+            const { data: dp } = await supabase
+              .from("package_date_prices")
+              .select("package_id, sale_price")
+              .in("package_id", pkgList.map((p) => p.id))
+              .eq("date", checkIn);
+            dateMap = new Map((dp || []).map((d: any) => [d.package_id, Number(d.sale_price)]));
+          }
+          for (const r of missingPrice) {
+            const pkg = pkgList.find((p) => p.name === r.name);
+            if (!pkg) continue;
+            const price = dateMap.get(pkg.id) ?? Number(pkg.sale_price);
+            if (price > 0) priceByRoom.set(r.id, price);
+          }
+        }
+      }
+
+
       return picked.map((r) => {
         const photo = (r.room_photos || [])
           .slice()
