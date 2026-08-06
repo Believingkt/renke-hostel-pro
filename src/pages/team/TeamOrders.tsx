@@ -1193,12 +1193,15 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
+                          const autoBase = Math.max(
+                            0,
+                            (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details),
+                          );
                           const status = getCommissionStatus({
                             checkOutDate: o.check_out_date,
-                            teamCommissionPrice:
-                              o.meta?.team_commission_price ??
-                              Math.max(0, (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details)),
+                            teamCommissionPrice: o.meta?.team_commission_price ?? autoBase,
                             finalPrice: o.final_price,
+                            commissionBase: autoBase,
                             confirmedBy: o.meta?.commission_price_confirmed_by,
                             lastConfirmedCommissionPrice: o.meta?.last_confirmed_commission_price ?? null,
                             lastConfirmedFinalPrice: o.meta?.last_confirmed_final_price ?? null,
@@ -1209,9 +1212,11 @@ export default function TeamOrders() {
                               ? "text-red-600"
                               : status === "mismatch"
                                 ? "text-orange-600"
-                                : status === "confirmed"
-                                  ? "text-muted-foreground"
-                                  : "text-muted-foreground";
+                                : status === "addon_mismatch"
+                                  ? "text-amber-600"
+                                  : status === "confirmed"
+                                    ? "text-muted-foreground"
+                                    : "text-muted-foreground";
                           return <span className={cls}>{label}</span>;
                         })()}
                       </TableCell>
