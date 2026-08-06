@@ -24,6 +24,7 @@ import Footer from "@/components/Footer";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 
 const Index = () => {
+  console.log("[DBG] Index render");
   const [searchParams] = useSearchParams();
   const urlAccId = searchParams.get('accId');
   
