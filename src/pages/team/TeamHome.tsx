@@ -173,7 +173,7 @@ export default function TeamHome() {
         let myEmploymentType: string | null = null;
         let myFulltimeStart: string | null = null;
         {
-          const { data } = await supabase
+          const { data } = await db
             .from("team_member_profiles")
             .select(
               "id, is_scout_team_member, employment_type, fulltime_start_yearmonth, am_managed_accommodation_ids",
@@ -222,7 +222,7 @@ export default function TeamHome() {
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
         if (showCloser) {
-          const { data: partnerCodes } = await supabase
+          const { data: partnerCodes } = await db
             .from("scout_discount_codes")
             .select("discount_code, closer_rate")
             .eq("commission_type", "partner")
@@ -237,7 +237,7 @@ export default function TeamHome() {
           });
 
           if (rateMap.size > 0) {
-            const { data: ords } = await supabase
+            const { data: ords } = await db
               .from("orders")
               .select("id, discount_code, final_price, order_date")
               .neq("order_status", "cancelled")
@@ -250,7 +250,7 @@ export default function TeamHome() {
             const closerByOrderId = new Map<string, string>();
             const excluded = new Set<string>();
             if (orderIds.length > 0) {
-              const { data: metas2 } = await supabase
+              const { data: metas2 } = await db
                 .from("order_meta")
                 .select("order_id, closer_id, is_excluded")
                 .in("order_id", orderIds);
@@ -277,7 +277,7 @@ export default function TeamHome() {
         let closerTeamBonusNoSet = false;
         let closerTeamBonusFinalizedFlag = false;
         if (showCloser) {
-          const { data: bonusSetting } = await supabase
+          const { data: bonusSetting } = await db
             .from("closer_team_bonus_settings")
             .select("bonus_rate, effective_from")
             .lte("effective_from", monthInfo.monthStartDate)
@@ -289,7 +289,7 @@ export default function TeamHome() {
 
           if (bonusRate > 0) {
             // 先查自己是否已有定案分配
-            const { data: ownDist } = await supabase
+            const { data: ownDist } = await db
               .from("closer_team_bonus_distribution")
               .select("bonus_amount, is_finalized")
               .eq("year", monthInfo.y)
@@ -315,7 +315,7 @@ export default function TeamHome() {
 
 
               // 檢查全隊是否已有分配資料（任何 finalized 記錄）
-              const { data: dist } = await supabase
+              const { data: dist } = await db
                 .from("closer_team_bonus_distribution")
                 .select("id")
                 .eq("year", monthInfo.y)
@@ -343,24 +343,24 @@ export default function TeamHome() {
             cumulativeRes,
             { data: tierRows },
           ] = await Promise.all([
-            supabase
+            db
               .from("kol_profiles")
               .select("cid_code")
               .eq("scout_id", userId)
               .eq("kpi_qualified", true)
               .not("cid_code", "is", null),
             profileId
-              ? supabase
+              ? db
                   .from("scout_discount_codes")
                   .select("discount_code")
                   .eq("scout_id", profileId)
               : Promise.resolve({ data: [] as any[] }),
-            supabase
+            db
               .from("kol_profiles")
               .select("id", { count: "exact", head: true })
               .eq("scout_id", userId)
               .eq("kpi_qualified", true),
-            supabase
+            db
               .from("scout_tier_settings")
               .select("min_count, max_count, commission_rate, effective_from")
               .lte("effective_from", today)
@@ -400,7 +400,7 @@ export default function TeamHome() {
 
           // KOL 分潤: 期別內 check_in_date 且 discount_code 對應 cid
           if (cidUpperSet.size > 0 && commissionRate > 0) {
-            const { data: kolOrders } = await supabase
+            const { data: kolOrders } = await db
               .from("orders")
               .select("final_price, discount_code, order_status, check_in_date")
               .neq("order_status", "cancelled")
@@ -439,12 +439,12 @@ export default function TeamHome() {
           };
 
           const [{ data: rarityRows }, { data: periodKols }] = await Promise.all([
-            supabase
+            db
               .from("kol_rarity_settings")
               .select("rarity, bonus_amount, effective_from")
               .lte("effective_from", today)
               .order("effective_from", { ascending: false }),
-            supabase
+            db
               .from("kol_profiles")
               .select("rarity, check_in_date, invited_at, is_error, kpi_qualified, created_at")
               .eq("scout_id", userId)
@@ -480,19 +480,19 @@ export default function TeamHome() {
           // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
           if (scoutTeamMember) {
             const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
-              supabase
+              db
                 .from("scout_salary_settings")
                 .select("base_salary, team_bonus, effective_from")
                 .lte("effective_from", today)
                 .order("effective_from", { ascending: false })
                 .limit(1)
                 .maybeSingle(),
-              supabase
+              db
                 .from("scout_team_targets")
                 .select("venue_id, venue_name, personal_min, target_count")
                 .eq("year", prevY)
                 .eq("month", prevM),
-              supabase
+              db
                 .from("kol_profiles")
                 .select("venue_id, venue_name, kpi_month")
                 .eq("scout_id", userId)
@@ -506,7 +506,7 @@ export default function TeamHome() {
             const teamBonusAmount = Number((salaryRow as any)?.team_bonus ?? 0);
 
             // 子館別 → 母館 venue_id normalize（用於 JOIN scout_team_targets）
-            const { data: kolVenuesData } = await supabase
+            const { data: kolVenuesData } = await db
               .from("kol_venues" as any)
               .select("id, accommodation_id, room_type_id");
             const kvs = ((kolVenuesData ?? []) as unknown) as Array<{ id: string; accommodation_id: string | null; room_type_id: string | null }>;
@@ -553,7 +553,7 @@ export default function TeamHome() {
 
 
               // 團隊達標：所有 scout team members，兼職全計、正職只計 SR/SSR/UR
-              const { data: allScouts } = await supabase
+              const { data: allScouts } = await db
                 .from("team_member_profiles")
                 .select("user_id, employment_type, fulltime_start_yearmonth")
                 .eq("is_scout_team_member", true);
@@ -571,7 +571,7 @@ export default function TeamHome() {
               );
 
               if (scoutIds.length > 0) {
-                const { data: teamKols } = await supabase
+                const { data: teamKols } = await db
                   .from("kol_profiles")
                   .select("venue_id, venue_name, scout_id, rarity, kpi_month")
                   .in("scout_id", scoutIds)
@@ -620,7 +620,7 @@ export default function TeamHome() {
             return String(r?.[dateField] ?? "").slice(0, 7) === currentMonthKey;
           };
 
-          const { data: fInternal } = await supabase
+          const { data: fInternal } = await db
             .from("franchise_orders")
             .select("commission_amount, sold_by, payment_confirmed, sold_at, early_payout_month")
             .eq("sold_by", userId)
@@ -633,7 +633,7 @@ export default function TeamHome() {
           }
 
           if (profileId) {
-            const { data: fExt } = await supabase
+            const { data: fExt } = await db
               .from("franchise_external_orders")
               .select(
                 "sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, contract_progress, signed_at, early_payout_month",
@@ -664,7 +664,7 @@ export default function TeamHome() {
         // ===== Starlink =====
         let starlinkSum = 0;
         if (showStarlink) {
-          const { data: slOrders } = await supabase
+          const { data: slOrders } = await db
             .from("starlink_orders")
             .select("commission_amount, sold_by, payment_confirmed, sold_at")
             .eq("sold_by", userId)
@@ -692,7 +692,7 @@ export default function TeamHome() {
         const missing: Record<string, boolean> = {};
 
         {
-          const client = supabase as any;
+          const client = db as any;
           const [rateSettings, sharedSources, amManagerId, closerManagerId, kolRecipientId] =
             await Promise.all([
               getBonusRateSettings(client),
@@ -712,7 +712,7 @@ export default function TeamHome() {
           // 全公司範圍：所有啟用館別
           let allAccIds: string[] = [];
           if (needCompanyRevenue) {
-            const { data: accs } = await supabase
+            const { data: accs } = await db
               .from("accommodation_info")
               .select("id")
               .eq("is_active", true);
@@ -736,7 +736,7 @@ export default function TeamHome() {
             // 過濾掉「旅行日」開頭的場館
             let myManagedAccIdsExcludingTravelDays: string[] = [];
             if (myManagedAccIds.length > 0) {
-              const { data: mAccs } = await supabase
+              const { data: mAccs } = await db
                 .from("accommodation_info")
                 .select("id, name")
                 .in("id", myManagedAccIds);
@@ -826,7 +826,7 @@ export default function TeamHome() {
               const flags = await getMarketingFeeFlags(client, myClosingAccIds, monthStartDate);
               const hitIds = myClosingAccIds.filter((id) => flags[id] === true);
               if (hitIds.length > 0) {
-                const { data: accNames } = await supabase
+                const { data: accNames } = await db
                   .from("accommodation_info")
                   .select("id, name")
                   .in("id", hitIds);
@@ -848,7 +848,7 @@ export default function TeamHome() {
         // 加倍活動一律以「發放月」設定（發放月 = 資料月 + 1），需先換算再比對，
         // 否則會與「獎金管理 → 發放管理」差一個月。
         const multMonthKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
-        const { data: multRows } = await supabase
+        const { data: multRows } = await db
           .from("bonus_multiplier_settings")
           .select("bonus_type, multiplier, start_month, end_month")
           .lte("start_month", multMonthKey)
