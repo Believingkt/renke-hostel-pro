@@ -69,10 +69,12 @@ const Index = () => {
   }, [accommodationId, setCurrentAccommodationId]);
 
   // 舊版「一般民宿訂房頁」已停用：解析到館別後一律導向新版包棟訂房頁
+  console.log("[DBG] accId", accommodationId);
   if (accommodationId) {
     const params = new URLSearchParams(searchParams);
     params.delete("accId");
     const qs = params.toString();
+    console.log("[DBG] navigating");
     return <Navigate to={`/booking/villa/${accommodationId}${qs ? `?${qs}` : ""}`} replace />;
   }
 
