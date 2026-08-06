@@ -332,15 +332,8 @@ serve(async (req) => {
       });
     }
 
-    // ===== 房型圖文卡片：由 edge function 以資料庫實際資料後處理補齊 =====
-    // 由最新往回找對話中最後提到的日期（含較早的使用者訊息）
-    const conversationTexts: string[] = [...messages]
-      .reverse()
-      .filter((m: any) => m.role === "user" || m.role === "assistant")
-      .map((m: any) => String(m.content || ""));
-
-    const buildRoomCards = async (assistantText: string): Promise<RoomCardPayload[]> => {
-      const roomRows = (rooms.data || []) as any[];
+    // ===== 房型圖文卡片：與 system prompt 的「即時房況與價格」使用同一份查詢結果 =====
+    const buildRoomCards = (assistantText: string): RoomCardPayload[] => {
       if (!roomRows.length) return [];
 
       // 只在助理回覆中「明確提到房型名稱」時才出卡片（一般閒聊不出）
@@ -348,74 +341,6 @@ serve(async (req) => {
       if (!mentioned.length) return [];
 
       const picked = mentioned.slice(0, 4);
-      let checkIn = extractDate(assistantText, today);
-      for (const t of conversationTexts) {
-        if (checkIn) break;
-        checkIn = extractDate(t, today);
-      }
-      const checkOut = checkIn ? addDaysISO(checkIn, 1) : null;
-
-      // 當日價格 / 庫存（資料庫實際值）
-      const priceByRoom = new Map<string, number>();
-      const availByRoom = new Map<string, number>();
-      if (checkIn) {
-        const { data: inv } = await supabase
-          .from("room_inventory_pricing")
-          .select("room_type_id, price, available_rooms, is_available")
-          .in("room_type_id", picked.map((r) => r.id))
-          .is("pricing_template_id", null)
-          .eq("date", checkIn);
-        for (const row of inv || []) {
-          if (row.price > 0) priceByRoom.set(row.room_type_id, row.price);
-          if (row.is_available === false) availByRoom.set(row.room_type_id, 0);
-        }
-        await Promise.all(
-          picked.map(async (r) => {
-            if (availByRoom.get(r.id) === 0) return;
-            try {
-              const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-                p_room_type_id: r.id,
-                p_dates: [checkIn],
-                p_accommodation_id: accommodationId,
-              });
-              const row = Array.isArray(data) ? data[0] : null;
-              if (row) {
-                const n = row.is_blocked ? 0 : Number(row.available_rooms ?? 0);
-                availByRoom.set(r.id, Number.isFinite(n) ? n : 0);
-              }
-            } catch { /* 忽略庫存查詢失敗 */ }
-          }),
-        );
-      }
-
-      // 價格補強：同名方案（前台訂房價格）為主要售價來源
-      const missingPrice = picked.filter((r) => !priceByRoom.get(r.id));
-      if (missingPrice.length) {
-        const { data: pkgs } = await supabase
-          .from("accommodation_packages")
-          .select("id, name, sale_price")
-          .eq("accommodation_id", accommodationId)
-          .in("name", missingPrice.map((r) => r.name));
-        const pkgList = (pkgs || []) as any[];
-        if (pkgList.length) {
-          let dateMap = new Map<string, number>();
-          if (checkIn) {
-            const { data: dp } = await supabase
-              .from("package_date_prices")
-              .select("package_id, sale_price")
-              .in("package_id", pkgList.map((p) => p.id))
-              .eq("date", checkIn);
-            dateMap = new Map((dp || []).map((d: any) => [d.package_id, Number(d.sale_price)]));
-          }
-          for (const r of missingPrice) {
-            const pkg = pkgList.find((p) => p.name === r.name);
-            if (!pkg) continue;
-            const price = dateMap.get(pkg.id) ?? Number(pkg.sale_price);
-            if (price > 0) priceByRoom.set(r.id, price);
-          }
-        }
-      }
-
 
       return picked.map((r) => {
         const photo = (r.room_photos || [])
@@ -443,6 +368,7 @@ serve(async (req) => {
         } as RoomCardPayload;
       });
     };
+
 
     // Stream-pipe and collect full assistant content for logging
     let fullContent = "";
