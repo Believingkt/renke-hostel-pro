@@ -377,6 +377,7 @@ export type Database = {
           show_gallery_section: boolean
           show_location_section: boolean
           show_reviews_section: boolean
+          show_room_scope_facilities: boolean
           show_rooms_section: boolean
           star_rating: string | null
           theme_preset: string | null
@@ -475,6 +476,7 @@ export type Database = {
           show_gallery_section?: boolean
           show_location_section?: boolean
           show_reviews_section?: boolean
+          show_room_scope_facilities?: boolean
           show_rooms_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null
@@ -573,6 +575,7 @@ export type Database = {
           show_gallery_section?: boolean
           show_location_section?: boolean
           show_reviews_section?: boolean
+          show_room_scope_facilities?: boolean
           show_rooms_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null

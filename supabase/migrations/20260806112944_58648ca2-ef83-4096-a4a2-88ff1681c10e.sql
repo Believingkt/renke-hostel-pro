@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS show_room_scope_facilities boolean NOT NULL DEFAULT true;

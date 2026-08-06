@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,7 @@ const emptySelection = (): ScopeSelection =>
 
 export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
   const [scope, setScope] = useState<RoomFacilityScope>("whole");
+  const [showOnFrontend, setShowOnFrontend] = useState(true);
   const [selections, setSelections] = useState<Record<RoomFacilityScope, ScopeSelection>>({
     whole: emptySelection(),
     single: emptySelection(),
@@ -35,12 +37,21 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
     if (!accommodationId) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("accommodation_facilities")
-        .select("facility_name, category, room_scope, is_available")
-        .eq("accommodation_id", accommodationId)
-        .in("room_scope", ["whole", "single"]);
-      if (error || cancelled) return;
+      const [{ data, error }, { data: info }] = await Promise.all([
+        supabase
+          .from("accommodation_facilities")
+          .select("facility_name, category, room_scope, is_available")
+          .eq("accommodation_id", accommodationId)
+          .in("room_scope", ["whole", "single"]),
+        supabase
+          .from("accommodation_info")
+          .select("show_room_scope_facilities")
+          .eq("id", accommodationId)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      if (info) setShowOnFrontend((info as any).show_room_scope_facilities !== false);
+      if (error) return;
       const next: Record<RoomFacilityScope, ScopeSelection> = {
         whole: emptySelection(),
         single: emptySelection(),
@@ -58,6 +69,21 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
       cancelled = true;
     };
   }, [accommodationId]);
+
+  const toggleFrontend = async (checked: boolean) => {
+    setShowOnFrontend(checked);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ show_room_scope_facilities: checked } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      setShowOnFrontend(!checked);
+      toast.error("更新顯示開關失敗");
+      return;
+    }
+    toast.success(checked ? "已開啟前台顯示" : "已關閉前台顯示");
+  };
+
 
   const toggle = (category: string, name: string, checked: boolean) => {
     setSelections((prev) => {
@@ -132,13 +158,30 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="gap-2" onClick={copyFromOther}>
-              <Copy className="h-4 w-4" />
-              從「{ROOM_SCOPE_LABELS[scope === "whole" ? "single" : "whole"]}」複製勾選
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-room-scope-facilities"
+                  checked={showOnFrontend}
+                  onCheckedChange={toggleFrontend}
+                />
+                <Label htmlFor="show-room-scope-facilities" className="text-sm cursor-pointer">
+                  前台顯示
+                </Label>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2" onClick={copyFromOther}>
+                <Copy className="h-4 w-4" />
+                從「{ROOM_SCOPE_LABELS[scope === "whole" ? "single" : "whole"]}」複製勾選
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
+          {!showOnFrontend && (
+            <p className="text-sm text-muted-foreground mb-3">
+              目前已關閉前台顯示，客人在訂房頁不會看到客房設施內容（設定仍會保留）。
+            </p>
+          )}
           <Tabs value={scope} onValueChange={(v) => setScope(v as RoomFacilityScope)}>
             <TabsList>
               <TabsTrigger value="whole">包棟</TabsTrigger>
@@ -146,6 +189,7 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
             </TabsList>
           </Tabs>
         </CardContent>
+
       </Card>
 
       {Object.entries(ROOM_FACILITY_CATEGORIES).map(([key, { title, description, items }]) => (
