@@ -176,7 +176,8 @@ serve(async (req) => {
       ? `\n\n## 禁止主題\n${promptRow.forbidden_topics.split("|").join("、")}`
       : "";
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = taipeiToday();
+    const dateBlock = buildDateBlock();
     const accInfo = acc.data
       ? `\n\n## 民宿資訊\n- 名稱：${acc.data.name}\n- 地址：${acc.data.address || "未提供"}\n- 地區：${[acc.data.region_1, acc.data.region_2].filter(Boolean).join(" / ") || "未提供"}\n- 電話：${acc.data.phone || "未提供"}\n- 今天日期：${today}`
       : "";
