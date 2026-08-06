@@ -343,14 +343,17 @@ serve(async (req) => {
       const picked = mentioned.slice(0, 4);
 
       return picked.map((r) => {
-        const photo = (r.room_photos || [])
-          .slice()
-          .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))[0]?.photo_url || "";
-        const features = [
+        const photo = sanitizePhotoUrl(
+          (r.room_photos || [])
+            .slice()
+            .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+            .map((p: any) => sanitizePhotoUrl(p?.photo_url))
+            .find((u: string) => !!u) || "",
+        ) || accCoverPhoto;
+        const features = buildFeatureLine(r.name, r.description, [
           r.capacity ? `${r.capacity}人` : "",
           r.size_sqm ? `${r.size_sqm}坪` : "",
-          (r.description || "").replace(/\s+/g, " ").slice(0, 24),
-        ].filter(Boolean).join("・");
+        ]);
         const params = new URLSearchParams({ accId: String(accommodationId), roomId: r.id });
         if (checkIn) params.set("checkIn", checkIn);
         if (checkOut) params.set("checkOut", checkOut);
@@ -367,6 +370,7 @@ serve(async (req) => {
           booking_url: `/book?${params.toString()}`,
         } as RoomCardPayload;
       });
+
     };
 
 
