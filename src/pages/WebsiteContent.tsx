@@ -3602,11 +3602,33 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
+          <RoomScopeFacilitiesSection
+            accommodationId={accommodationId}
+            itemsByCategory={{
+              public: getMergedItems('public'),
+              dining: getMergedItems('dining'),
+              safety: getMergedItems('safety'),
+              entertainment: getMergedItems('entertainment'),
+              language: getMergedItems('language'),
+            }}
+            categoryLabels={{
+              public: '公共區設施與服務',
+              dining: '餐飲服務',
+              safety: '安全設施',
+              entertainment: '休閒娛樂',
+              language: '服務語言',
+            }}
+            wholeHouseSelectedNames={Object.entries(selectedFacilities)
+              .filter(([, v]) => v)
+              .map(([k]) => k)}
+          />
+
           <SaveButtonContainer 
             onSave={handleSaveFacilities} 
             isSaving={isSaving}
             saveText="儲存變更"
           />
+
         </TabsContent>
 
         <TabsContent value="addon-plans" className="space-y-6">
