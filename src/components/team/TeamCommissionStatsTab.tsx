@@ -381,9 +381,11 @@ export default function TeamCommissionStatsTab() {
 
   useEffect(() => {
     (async () => {
-      const [c, v, fp, ts, bm] = await Promise.all([
+      const [c, cm, v, fp, ts, bm] = await Promise.all([
         supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
+        supabase.rpc("get_team_role_members", { p_role: "closer_manager" as any }),
         supabase.rpc("get_team_role_members", { p_role: "video" as any }),
+
         supabase
           .from("franchise_projects")
           .select("id, name")
@@ -400,7 +402,18 @@ export default function TeamCommissionStatsTab() {
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
       ]);
-      setClosersList((c.data as any[]) || []);
+      // 成交組名單需同時包含 closer 與 closer_manager（依 user_id 去重）
+      setClosersList(
+        Array.from(
+          new Map(
+            [...(((c.data as any[]) || [])), ...(((cm.data as any[]) || []))].map((m: any) => [
+              m.user_id,
+              m,
+            ]),
+          ).values(),
+        ),
+      );
+
       setVideosList((v.data as any[]) || []);
       setFranchiseProjects((fp.data as any[]) || []);
       setTrafficSources((ts.data as any[]) || []);

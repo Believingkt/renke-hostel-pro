@@ -220,8 +220,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         supabase
           .from("user_roles")
           .select("user_id")
-          .eq("role", "closer")
+          // 成交組名單需同時包含 closer 與 closer_manager
+          .in("role", ["closer", "closer_manager"])
           .is("accommodation_id", null),
+
         supabase
           .from("user_roles")
           .select("user_id")
@@ -266,7 +268,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       ]) as any;
 
 
-      const closerIds = (closerRoles ?? []).map((r) => r.user_id);
+      const closerIds = Array.from(new Set((closerRoles ?? []).map((r) => r.user_id)));
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
       const allIds = Array.from(new Set([...closerIds, ...videoIds]));
 
