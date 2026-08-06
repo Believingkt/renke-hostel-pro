@@ -316,7 +316,20 @@ const BookingVilla = () => {
 
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : "";
 
+  const [scopeFacilities, setScopeFacilities] = useState<string[]>([]);
+  useEffect(() => {
+    if (!accId) return;
+    let cancelled = false;
+    fetchScopedFacilities(accId).then((sf) => {
+      if (!cancelled) setScopeFacilities(sf.whole);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [accId]);
+
   usePageAnalytics({ accommodationId: accId || null, enabled: !!accId && !!info });
+
 
   useLayoutEffect(() => {
     if (info) {
