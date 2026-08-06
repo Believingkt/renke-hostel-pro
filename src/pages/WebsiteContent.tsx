@@ -98,6 +98,7 @@ import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import RoomScopeFacilitiesSection from "@/components/website-content/RoomScopeFacilitiesSection";
 // 定義所有設施項目
 const facilitiesData = {
   public: [
