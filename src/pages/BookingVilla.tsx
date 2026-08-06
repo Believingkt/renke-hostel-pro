@@ -65,6 +65,8 @@ import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
+import { fetchScopedFacilities } from "@/lib/roomScopeFacilities";
+
 import {
   useAccommodationPackages,
   useAccommodationHolidays,
