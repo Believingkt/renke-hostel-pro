@@ -796,6 +796,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 checkOutDate,
                 teamCommissionPrice,
                 finalPrice,
+                commissionBase: autoTeamCommissionPrice,
                 confirmedBy: commissionConfirmedBy,
                 lastConfirmedCommissionPrice,
                 lastConfirmedFinalPrice,
@@ -811,6 +812,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 return (
                   <div className="text-xs text-orange-600">
                     ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                  </div>
+                );
+              }
+              if (status === "addon_mismatch") {
+                return (
+                  <div className="text-xs text-amber-600">
+                    ⚠️ 加購項目異動（增值服務不計入分潤），分潤基準金額無須調整
                   </div>
                 );
               }
