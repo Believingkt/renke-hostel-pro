@@ -25,6 +25,7 @@ const emptySelection = (): ScopeSelection =>
 
 export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
   const [scope, setScope] = useState<RoomFacilityScope>("whole");
+  const [showOnFrontend, setShowOnFrontend] = useState(true);
   const [selections, setSelections] = useState<Record<RoomFacilityScope, ScopeSelection>>({
     whole: emptySelection(),
     single: emptySelection(),
