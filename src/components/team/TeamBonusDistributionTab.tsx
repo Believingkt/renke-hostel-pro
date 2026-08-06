@@ -186,18 +186,28 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   }
 
   async function loadClosers() {
-    const { data, error } = await supabase.rpc("get_team_role_members", {
-      p_role: "closer" as any,
-    });
-    if (error) {
-      toast.error("讀取成交組成員失敗：" + error.message);
+    // 成交組名單需同時包含 closer 與 closer_manager
+    const [{ data, error }, { data: mgrData, error: mgrError }] = await Promise.all([
+      supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
+      supabase.rpc("get_team_role_members", { p_role: "closer_manager" as any }),
+    ]);
+    if (error || mgrError) {
+      toast.error("讀取成交組成員失敗：" + (error?.message ?? mgrError?.message));
       return;
     }
-    const list = ((data as any[]) || []).map((m) => ({
-      user_id: m.user_id,
-      display_name: m.display_name ?? m.user_id?.slice(0, 8) ?? "—",
-    }));
+    const list = Array.from(
+      new Map(
+        [...(((data as any[]) || [])), ...(((mgrData as any[]) || []))].map((m: any) => [
+          m.user_id,
+          {
+            user_id: m.user_id,
+            display_name: m.display_name ?? m.user_id?.slice(0, 8) ?? "—",
+          },
+        ]),
+      ).values(),
+    );
     setClosers(list);
+
 
     // 額外查所有 team_member_profiles，建立完整 userId → display_name map（供定案者名稱等使用）
     const { data: allProfiles } = await supabase
