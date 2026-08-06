@@ -789,11 +789,15 @@ export default function TeamHome() {
 
           // 全公司範圍：所有啟用館別
           let allAccIds: string[] = [];
+          const allAccNameById = new Map<string, string>();
           if (needCompanyRevenue) {
             const { data: accs } = await db
               .from("accommodation_info")
-              .select("id")
+              .select("id, name")
               .eq("is_active", true);
+            ((accs ?? []) as any[]).forEach((a) => {
+              if (a?.id) allAccNameById.set(a.id, String(a.name ?? ""));
+            });
             allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
           }
 
