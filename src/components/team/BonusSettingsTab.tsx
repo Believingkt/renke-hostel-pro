@@ -250,7 +250,7 @@ export default function BonusSettingsTab() {
         onSaved={loadAll}
       />
       <SourceSection
-        title="共用來源白名單"
+        title="共用訂單來源 (AM、成交)"
         description="AM績效、成交組績效等共用獎金採計的訂單來源"
         rows={sharedSources}
         loading={loading}
@@ -261,7 +261,7 @@ export default function BonusSettingsTab() {
         onSaved={loadAll}
       />
       <SourceSection
-        title="KOL 專用來源白名單"
+        title="獨立訂單來源 (專利獎金)"
         description="網紅營銷專利獎金採計的訂單來源（僅指定人員可編輯）"
         rows={kolSources}
         loading={loading}
