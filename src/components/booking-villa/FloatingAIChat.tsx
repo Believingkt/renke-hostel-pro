@@ -6,6 +6,7 @@ import { Sparkles, Send, X, Headphones, LogIn, Trash2, MessageCircleMore } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "react-router-dom";
+import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 
 type Msg = { id?: string; role: "user" | "assistant"; content: string };
 
