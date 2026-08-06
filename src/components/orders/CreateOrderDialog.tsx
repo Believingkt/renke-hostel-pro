@@ -23,6 +23,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 import { Switch } from "@/components/ui/switch";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
@@ -577,10 +578,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
     const filtered = pricingTemplates.filter(t => {
       const ids = (t as any).room_type_ids;
-      const matches = Array.isArray(ids) && ids.length > 0
-        ? ids.includes(roomTypeId)
-        : (t as any).room_type_id === roomTypeId;
-      return matches && inValidRange(t);
+      const hasBinding = (Array.isArray(ids) && ids.length > 0) || !!(t as any).room_type_id;
+      return hasBinding && templateMatchesRoomType(t as any, roomTypeId) && inValidRange(t);
     });
     const result = filtered.length > 0
       ? filtered
