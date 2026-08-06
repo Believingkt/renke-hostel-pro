@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
+import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
 import { useToast } from "@/hooks/use-toast";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { formatSecondary } from "@/lib/currency";
@@ -503,7 +504,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     if (!dates.length) return 0;
 
     // 候選方案：包含「未綁定房型 (room_type_id = null，視為全房型通用，如包棟方案)」與「綁定本房型」的 templates
-    const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === roomTypeId);
+    const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, roomTypeId));
     let template: PricingTemplateLite | null = null;
     if (templateName) {
       // 1) 精準同名
@@ -1672,9 +1673,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           if (templatesData && templatesData.length > 0) {
             const roomTypeId = orderData.room_type_id;
             const roomTypeTemplates = roomTypeId
-              ? templatesData.filter((t: any) =>
-                  (Array.isArray(t.room_type_ids) && t.room_type_ids.includes(roomTypeId)) ||
-                  t.room_type_id === roomTypeId)
+              ? templatesData.filter((t: any) => templateMatchesRoomType(t, roomTypeId))
               : templatesData;
             setRoomTemplates(roomTypeTemplates as any);
             setAllRoomTemplates(templatesData as any);
@@ -2593,7 +2592,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                             if (!rt) return;
                             // 同一張訂單共用主方案
                             const primaryTpl = editOrderRooms[0]?.template_name || null;
-                            const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === rt.id);
+                            const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, rt.id));
                             const sharedTpl = primaryTpl && candidates.some(t => t.template_name === primaryTpl) ? primaryTpl : null;
                             const dateBasedTotal = await computeRoomTotalByDates(rt.id, sharedTpl);
                             const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
@@ -2621,7 +2620,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               const rt = roomTypes.filter(r => r.is_exclusive_package)[0];
                               if (!rt) return;
                               const primaryTpl = editOrderRooms[0]?.template_name || null;
-                              const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === rt.id);
+                              const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, rt.id));
                               const sharedTpl = primaryTpl && candidates.some(t => t.template_name === primaryTpl) ? primaryTpl : null;
                               const dateBasedTotal = await computeRoomTotalByDates(rt.id, sharedTpl);
                               const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
@@ -2753,7 +2752,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                     const newTemplate = v === "none" ? "" : v;
                                     // 主方案變更 → 同步套用到所有 room rows（若該房型有對應方案）
                                     const updates = await Promise.all(editOrderRooms.map(async (r) => {
-                                      const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === r.room_type_id);
+                                      const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, r.room_type_id));
                                       const applyTpl = newTemplate && candidates.some(t => t.template_name === newTemplate)
                                         ? newTemplate
                                         : (r.id === or.id ? newTemplate : r.template_name);
@@ -2774,7 +2773,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                   <SelectContent>
                                     <SelectItem value="none">無</SelectItem>
                                     {allTemplates
-                                      .filter(t => !t.room_type_id || t.room_type_id === or.room_type_id)
+                                      .filter(t => templateMatchesRoomType(t as any, or.room_type_id))
                                       .map(t => (
                                       <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
                                     ))}
@@ -2783,7 +2782,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               </div>
                             ) : (() => {
                               const primaryTpl = editOrderRooms[0]?.template_name || null;
-                              const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === or.room_type_id);
+                              const candidates = allTemplates.filter(t => templateMatchesRoomType(t as any, or.room_type_id));
                               const matched = primaryTpl && candidates.some(t => t.template_name === primaryTpl);
                               return (
                                 <div className="space-y-1">
