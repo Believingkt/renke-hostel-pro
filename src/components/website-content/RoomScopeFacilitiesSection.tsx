@@ -170,17 +170,19 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="show-room-scope-facilities"
-                  checked={showOnFrontend}
-                  onCheckedChange={toggleFrontend}
-                />
-                <Label htmlFor="show-room-scope-facilities" className="text-sm cursor-pointer">
-                  前台顯示
-                </Label>
-              </div>
+            <div className="flex flex-wrap items-center gap-4">
+              {(["whole", "single"] as RoomFacilityScope[]).map((s) => (
+                <div key={s} className="flex items-center gap-2">
+                  <Switch
+                    id={`show-room-facilities-${s}`}
+                    checked={showScope[s]}
+                    onCheckedChange={(checked) => toggleFrontend(s, checked)}
+                  />
+                  <Label htmlFor={`show-room-facilities-${s}`} className="text-sm cursor-pointer">
+                    {ROOM_SCOPE_LABELS[s]}前台顯示
+                  </Label>
+                </div>
+              ))}
               <Button variant="outline" size="sm" className="gap-2" onClick={copyFromOther}>
                 <Copy className="h-4 w-4" />
                 從「{ROOM_SCOPE_LABELS[scope === "whole" ? "single" : "whole"]}」複製勾選
@@ -189,11 +191,12 @@ export const RoomScopeFacilitiesSection = ({ accommodationId }: Props) => {
           </div>
         </CardHeader>
         <CardContent>
-          {!showOnFrontend && (
+          {!showScope[scope] && (
             <p className="text-sm text-muted-foreground mb-3">
-              目前已關閉前台顯示，客人在訂房頁不會看到客房設施內容（設定仍會保留）。
+              目前已關閉「{ROOM_SCOPE_LABELS[scope]}」的前台顯示，客人不會看到這組客房設施（設定仍保留）。
             </p>
           )}
+
           <Tabs value={scope} onValueChange={(v) => setScope(v as RoomFacilityScope)}>
             <TabsList>
               <TabsTrigger value="whole">包棟</TabsTrigger>
