@@ -559,7 +559,11 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
   if (source_table === "teamcommission_bonus_snapshots") return role_key;
-  if (source_table === "closer_commission_adjustments") return null; // 補差不套加倍倍率
+  // 補差需跟著原始分潤的倍率，否則加倍期間取消訂單會「發 1.5x、扣回 1x」造成多發
+  if (source_table === "closer_commission_adjustments") {
+    if (role_key === "closer") return "closer";
+    if (role_key === "video") return "video";
+  }
   return null;
 }
 
