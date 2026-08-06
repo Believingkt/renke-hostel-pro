@@ -31,6 +31,8 @@ import {
   BadgePercent,
   Banknote,
   Sparkles,
+  Share2,
+
   BookOpen,
   Bed,
   TrendingUp,
