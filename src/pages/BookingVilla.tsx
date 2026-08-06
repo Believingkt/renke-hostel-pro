@@ -1257,6 +1257,8 @@ const BookingVilla = () => {
           <div data-capacity-list>
             <CapacityPriceLadder
               roomTypes={secondaryData?.roomTypes || []}
+              scopeFacilities={scopeFacilities}
+
               onSelect={handleSelectOption}
               nights={nights}
               checkIn={checkIn}
