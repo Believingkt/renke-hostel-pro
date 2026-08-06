@@ -359,7 +359,8 @@ const PortalAIChatPanel = () => {
 
                       {msg.content ? (
                         (() => {
-                          const parsed = parseRoomListings(msg.content);
+                          const { text: cleanText, cards } = parseRoomCards(msg.content);
+                          const parsed = cleanText ? parseRoomListings(cleanText) : null;
                           if (parsed) {
                             return (
                               <div className="space-y-2">
@@ -378,13 +379,19 @@ const PortalAIChatPanel = () => {
                                     <ReactMarkdown>{parsed.afterText}</ReactMarkdown>
                                   </div>
                                 )}
+                                <RoomCardList cards={cards} />
                               </div>
                             );
                           }
                           return (
-                            <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
+                            <>
+                              {cleanText && (
+                                <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
+                                  <ReactMarkdown>{cleanText}</ReactMarkdown>
+                                </div>
+                              )}
+                              <RoomCardList cards={cards} />
+                            </>
                           );
                         })()
                       ) : (
