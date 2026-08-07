@@ -3,7 +3,7 @@
 // IMPORTANT: Always return 200 so SendGrid does not retry indefinitely.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
-import { autoCreatePendingOrder, cancelAutoPendingOrders } from "../_shared/owltingAutoOrder.ts";
+import { autoCreatePendingOrder, cancelAutoPendingOrders, applyModificationToExistingOrder } from "../_shared/owltingAutoOrder.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
