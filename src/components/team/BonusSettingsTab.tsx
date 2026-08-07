@@ -603,6 +603,10 @@ function SourceSection({
             <div className="text-sm text-muted-foreground">
               目前生效版本：{cur?.effective_from ?? "尚無"}
             </div>
+            <div className="text-xs text-muted-foreground">
+              僅作用於已設定「合作生效日」的館別；採計起算日 = MAX(月初, 該館合作生效日)。
+            </div>
+
             <div className="flex flex-wrap gap-2">
               {(cur?.included_order_sources ?? []).length === 0 ? (
                 <span className="text-sm text-muted-foreground">尚未設定任何來源</span>
