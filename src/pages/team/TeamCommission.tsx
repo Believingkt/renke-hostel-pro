@@ -1172,22 +1172,55 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         it.multiplied_amount = Math.round(it.amount * mult);
       });
 
-      // 4. 依人分組（合計使用加倍後金額）
+      // 4. 依人分組（合計使用加倍後金額），並取得每人角色分類
+      const memberUserIds = Array.from(
+        new Set(
+          Array.from(profileById.values())
+            .map((p) => p.user_id)
+            .filter(Boolean) as string[],
+        ),
+      );
+      const rolesByUserId = new Map<string, string[]>();
+      if (memberUserIds.length > 0) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", memberUserIds);
+        (roleRows ?? []).forEach((r: any) => {
+          const list = rolesByUserId.get(r.user_id) ?? [];
+          list.push(String(r.role));
+          rolesByUserId.set(r.user_id, list);
+        });
+      }
+
       const groupMap = new Map<string, MemberGroup>();
       items.forEach((it) => {
         const key = it.member_id ?? "__unassigned__";
+        const profile = it.member_id ? profileById.get(it.member_id) : undefined;
         const name = it.member_id
-          ? (profileById.get(it.member_id)?.display_name ?? "未命名成員")
+          ? (profile?.display_name ?? "未命名成員")
           : "（未對應到成員）";
         if (!groupMap.has(key)) {
-          groupMap.set(key, { member_id: key, display_name: name, items: [], total: 0 });
+          const cat = roleCategoryOf(
+            profile?.user_id ? (rolesByUserId.get(profile.user_id) ?? []) : [],
+          );
+          groupMap.set(key, {
+            member_id: key,
+            display_name: name,
+            items: [],
+            total: 0,
+            role_rank: cat.rank,
+            role_label: cat.label,
+          });
         }
         const g = groupMap.get(key)!;
         g.items.push(it);
         g.total += it.multiplied_amount;
       });
 
-      const list = Array.from(groupMap.values()).sort((a, b) => b.total - a.total);
+      const list = Array.from(groupMap.values()).sort(
+        (a, b) => a.role_rank - b.role_rank || b.total - a.total,
+      );
       setGroups(list);
     } catch (e) {
       toast.error((e as Error).message);
