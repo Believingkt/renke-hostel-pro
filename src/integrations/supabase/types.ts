@@ -8613,6 +8613,114 @@ export type Database = {
           },
         ]
       }
+      remarketing_campaigns: {
+        Row: {
+          channel: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          recommend_products: string[]
+          scheduled_at: string | null
+          segment: Json
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          recommend_products?: string[]
+          scheduled_at?: string | null
+          segment?: Json
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          recommend_products?: string[]
+          scheduled_at?: string | null
+          segment?: Json
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      remarketing_sends: {
+        Row: {
+          campaign_id: string
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          message_body: string | null
+          opened_at: string | null
+          recipient: string | null
+          sent_at: string
+          status: string
+          traveler_profile_id: string
+        }
+        Insert: {
+          campaign_id: string
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_body?: string | null
+          opened_at?: string | null
+          recipient?: string | null
+          sent_at?: string
+          status?: string
+          traveler_profile_id: string
+        }
+        Update: {
+          campaign_id?: string
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_body?: string | null
+          opened_at?: string | null
+          recipient?: string | null
+          sent_at?: string
+          status?: string
+          traveler_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remarketing_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "remarketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remarketing_sends_traveler_profile_id_fkey"
+            columns: ["traveler_profile_id"]
+            isOneToOne: false
+            referencedRelation: "traveler_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           accommodation_id: string
