@@ -141,7 +141,7 @@ async function getRevenueSourceWhitelist(
 const CHUNK = 500;
 
 /** 團隊獎金口徑切換生效資料月（含當月起改用入住營收，與業主月結一致） */
-const STAY_REVENUE_SWITCH_MONTH = "2026-09-01";
+const STAY_REVENUE_SWITCH_MONTH = "2026-07-01";
 
 interface CountableRange {
   start: string;

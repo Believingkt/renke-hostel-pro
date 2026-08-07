@@ -17,7 +17,7 @@ import type { CountableRange } from "./teamBonusRevenue";
 const CHUNK = 500;
 
 /** 團隊獎金口徑切換生效資料月（含當月起改用入住營收） */
-export const STAY_REVENUE_SWITCH_MONTH = "2026-09-01";
+export const STAY_REVENUE_SWITCH_MONTH = "2026-07-01";
 
 /** 該資料月是否已切換到入住營收口徑 */
 export function usesStayRevenue(monthStartDate: string): boolean {
