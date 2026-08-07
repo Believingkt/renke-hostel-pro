@@ -1198,11 +1198,27 @@ export default function TeamMembers() {
               )}
 
               {canEditAll && (
-                <div className="flex items-center justify-between border-t pt-4">
-                  <Label htmlFor="active-switch">啟用狀態</Label>
-                  <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="active-switch">啟用狀態</Label>
+                    <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="resigned-at">離職生效日</Label>
+                    <Input
+                      id="resigned-at"
+                      type="date"
+                      value={editResignedAt}
+                      onChange={(e) => setEditResignedAt(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      留白＝在職。離職生效日之後的資料月不列入成交組績效均分與管理職獎金；
+                      個人歸屬的訂單分潤（如成交大師個人分潤）仍依原成交人計算。
+                    </p>
+                  </div>
                 </div>
               )}
+
             </div>
 
             <SheetFooter className="flex flex-row justify-between gap-2 pt-2 border-t">
