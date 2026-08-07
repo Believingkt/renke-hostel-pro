@@ -40,12 +40,14 @@ import {
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
   getCountableRangesByAcc,
+  formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
   name: string;
   revenue: number;
   amount: number;
+  rangeNote?: string;
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
@@ -1301,7 +1303,7 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number }>;
+    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number; rangeNote?: string }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
@@ -1333,6 +1335,7 @@ export default function TeamHome() {
       revenue: Math.round(d.revenue),
       amount: Math.round(d.amount * m),
       multiplier: m,
+      rangeNote: d.rangeNote,
     }));
 
   if (showCloser && isMonthly) {
@@ -1729,7 +1732,14 @@ export default function TeamHome() {
                     <tbody>
                       {lines.map((ln, i) => (
                         <tr key={i} className="border-b last:border-0">
-                          <td className="py-2 pr-2">{ln.label}</td>
+                          <td className="py-2 pr-2">
+                            <div>{ln.label}</div>
+                            {ln.rangeNote ? (
+                              <div className="text-[11px] leading-tight text-muted-foreground mt-0.5">
+                                {ln.rangeNote}
+                              </div>
+                            ) : null}
+                          </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
                           </td>
