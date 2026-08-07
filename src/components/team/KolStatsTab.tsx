@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { buildExemptResolver, commissionBaseFromOrder } from "@/lib/ownerExempt";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+
 
 
 const RARITIES = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
@@ -238,9 +240,12 @@ export function KolStatsTab() {
             ? supabase
                 .from("scout_team_targets")
                 .select("year, month, personal_min, target_count, venue_id, venue_name")
-                .eq("year", month === 1 ? effYear - 1 : effYear)
-                .eq("month", month === 1 ? 12 : month - 1)
+                // 與 calculate-scout-payout 一致：門檻取「結算年月」的設定，
+                // 實際邀約數才是用 kpi_month = 上月。
+                .eq("year", effYear)
+                .eq("month", month)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
+
         ]);
 
         if (profilesRes.error) throw profilesRes.error;
@@ -325,8 +330,10 @@ export function KolStatsTab() {
         };
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
+        // 不可只留 personal_min > 0：團隊目標（target_count）與個人門檻是獨立欄位，
+        // 過濾掉 personal_min 為 NULL 的館別會漏算團隊達標。
         const targetsList = targetRows
-          .filter((t) => Number(t.personal_min || 0) > 0)
+          .filter((t) => Number(t.personal_min || 0) > 0 || Number(t.target_count || 0) > 0)
           .map((t) => ({
             key: groupKey(t.venue_id, t.venue_name),
             venue_id: (t.venue_id ?? null) as string | null,
@@ -335,6 +342,7 @@ export function KolStatsTab() {
             target_count: Number(t.target_count || 0),
           }));
         const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
+
 
         if (scoutIds.length === 0) {
           if (!cancelled) {
@@ -494,7 +502,9 @@ export function KolStatsTab() {
         // 供團隊獎金計算用：per scout per venue 的實際貢獻數
         // - 兼職：kpi_qualified=true 的全部邀約
         // - 正職：kpi_qualified=true 且 rarity ∈ {SR,SSR,UR}
-        const teamContribBy: Map<string, Map<string, number>> = new Map();
+        const teamContribBy: Map<string, { isFulltime: boolean; perVenue: Map<string, number> }> =
+          new Map();
+
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
@@ -652,11 +662,12 @@ export function KolStatsTab() {
                 r.kpi_month === prevMonthStart,
             );
             monthlySuccess = monthRows.length;
-            if (targetsList.length === 0) {
+            const personalTargets = targetsList.filter((t) => t.personal_min > 0);
+            if (personalTargets.length === 0) {
               individualAchieved = false;
             } else {
               individualAchieved = true;
-              venueBreakdown = targetsList.map((t) => {
+              venueBreakdown = personalTargets.map((t) => {
                 const actual = monthRows.filter((r) => groupKey(r.venue_id, r.venue_name) === t.key).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
@@ -671,16 +682,15 @@ export function KolStatsTab() {
               });
             }
 
-            // 【修改二】團隊獎金貢獻：兼職 → 全部；正職 → 只算 SR/SSR/UR
-            const teamRows = isFulltime
-              ? monthRows.filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
-              : monthRows;
+            // 團隊獎金貢獻：兼職 → 全部；正職 → 只算 SR/SSR/UR（共用 scoutTeamAchievement）
+            const teamRows = monthRows.filter((r) => countsTowardTeamTarget(isFulltime, r.rarity));
             const perVenue = new Map<string, number>();
             for (const r of teamRows) {
               const k = groupKey(r.venue_id, r.venue_name);
               perVenue.set(k, (perVenue.get(k) ?? 0) + 1);
             }
-            teamContribBy.set(s.user_id, perVenue);
+            teamContribBy.set(s.user_id, { isFulltime, perVenue });
+
           }
           const baseSalaryPayout =
             showSalary && s.is_scout_team_member && !isFulltime && individualAchieved ? baseSalary : 0;
@@ -717,21 +727,20 @@ export function KolStatsTab() {
 
         let teamBonusPayout = 0;
         if (showSalary && targetsList.length > 0) {
-          // 【修改二】團隊達標：各 target 館別
-          // 兼職邀約數（全部 kpi_qualified）＋ 正職 SR/SSR/UR 邀約數 >= target_count
-          let teamAchieved = true;
-          for (const t of targetsList) {
-            let total = 0;
-            for (const contrib of teamContribBy.values()) {
-              total += contrib.get(t.key) ?? 0;
-            }
-            if (total < t.target_count) {
-              teamAchieved = false;
-              break;
+          // 團隊達標：兼職全量 ＋ 正職 SR/SSR/UR 累加 >= target_count（共用 scoutTeamAchievement）
+          const counts = new Map<string, { parttime: number; fulltime: number }>();
+          for (const contrib of teamContribBy.values()) {
+            for (const [k, n] of contrib.perVenue.entries()) {
+              const cur = counts.get(k) ?? { parttime: 0, fulltime: 0 };
+              if (contrib.isFulltime) cur.fulltime += n;
+              else cur.parttime += n;
+              counts.set(k, cur);
             }
           }
-          if (teamAchieved) teamBonusPayout = teamBonusAmount;
+          const { achieved } = evaluateTeamAchievement(targetsList, counts);
+          if (achieved) teamBonusPayout = teamBonusAmount;
         }
+
         for (const r of periodFiltered) {
           r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
           r.total = r.rarity_bonus + r.kol_commission + r.base_salary + r.team_bonus;

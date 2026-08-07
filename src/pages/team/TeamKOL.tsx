@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { countsTowardTeamTarget } from "@/lib/scoutTeamAchievement";
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -464,8 +466,8 @@ export default function TeamKOL() {
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
             {canSeeStats && <TabsTrigger value="weekly_report">入住週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
-            {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
-            {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
+            {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職個人）</TabsTrigger>}
+            {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標</TabsTrigger>}
             {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
             <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
             {canViewReciprocalQuota && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
@@ -4003,7 +4005,10 @@ interface TeamTargetRow {
   personal_min: number | null;
   is_starlink: boolean;
   actual_count: number;
+  parttime_count: number;
+  fulltime_count: number;
 }
+
 
 interface PersonalRow {
   scout_id: string;
@@ -4146,7 +4151,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     if (venueNames.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, rarity")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -4176,24 +4181,35 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       return selectedYM < start;
     };
 
-    const filteredKolData = kolData.filter((k) => isParttimeForMonth(k.scout_id));
     const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
     const allKol = filteredAllKol;
 
-    // 團隊實際統計
-    const teamActual = new Map<string, number>();
-    filteredKolData.forEach((k) => {
-      if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
+    // 團隊實際統計：正職 / 兼職共用同一目標，實際數為「兼職全量 ＋ 正職 SR↑」累加
+    const teamCounts = new Map<string, { parttime: number; fulltime: number }>();
+    kolData.forEach((k) => {
+      if (!k.venue_name) return;
+      const full = !isParttimeForMonth(k.scout_id);
+      if (!countsTowardTeamTarget(full, k.rarity)) return;
+      const cur = teamCounts.get(k.venue_name) ?? { parttime: 0, fulltime: 0 };
+      if (full) cur.fulltime += 1;
+      else cur.parttime += 1;
+      teamCounts.set(k.venue_name, cur);
     });
 
-    const tRows: TeamTargetRow[] = (settings as any[]).map((s) => ({
-      id: s.id,
-      venue_name: s.venue_name ?? "-",
-      target_count: s.target_count ?? 0,
-      personal_min: s.personal_min,
-      is_starlink: !!s.is_starlink,
-      actual_count: teamActual.get(s.venue_name) ?? 0,
-    }));
+    const tRows: TeamTargetRow[] = (settings as any[]).map((s) => {
+      const c = teamCounts.get(s.venue_name) ?? { parttime: 0, fulltime: 0 };
+      return {
+        id: s.id,
+        venue_name: s.venue_name ?? "-",
+        target_count: s.target_count ?? 0,
+        personal_min: s.personal_min,
+        is_starlink: !!s.is_starlink,
+        actual_count: c.parttime + c.fulltime,
+        parttime_count: c.parttime,
+        fulltime_count: c.fulltime,
+      };
+    });
+
     tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
     setTeamRows(tRows);
 
@@ -4366,6 +4382,9 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             {fallbackLabel && <span className="text-xs text-muted-foreground">{fallbackLabel}</span>}
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          正職與兼職共用同一團隊目標；實際邀約數＝兼職全量 ＋ 正職（SR 以上）累加。
+        </p>
         <Card>
           <Table>
             <TableHeader>
@@ -4394,11 +4413,17 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                       <TableCell>{r.venue_name}</TableCell>
                       <TableCell className="text-center">{r.is_starlink ? "✅" : "－"}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <div>{r.actual_count}</div>
+                        <div className="text-xs font-normal text-muted-foreground">
+                          兼職 {r.parttime_count} + 正職(SR↑) {r.fulltime_count}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{rate}%</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {r.personal_min == null ? "不限定" : `每人至少 ${r.personal_min} 位`}
                       </TableCell>
+
                       <TableCell className="text-right">
                         <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                           {achievementLabel(r.actual_count, r.target_count)}
@@ -4995,51 +5020,14 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         </Select>
       </div>
 
-      {/* 團隊邀約目標 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">正職團隊邀約目標</h2>
-        </div>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>場域</TableHead>
-                <TableHead className="text-right">目標邀約數</TableHead>
-                <TableHead className="text-right">實際邀約數</TableHead>
-                <TableHead className="text-right">達成率</TableHead>
-                <TableHead className="text-right">狀態</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? null : teamRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    尚無目標資料
-                  </TableCell>
-                </TableRow>
-              ) : (
-                teamRows.map((r) => {
-                  const rate = r.target_count > 0 ? Math.round((r.actual_count / r.target_count) * 100) : 0;
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.venue_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{rate}%</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
-                          {achievementLabel(r.actual_count, r.target_count)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+      {/* 團隊目標已統一至「邀約目標」分頁（scout_team_targets），此處不再另設正職團隊目標 */}
+      <Card className="border-dashed">
+        <CardContent className="py-4 text-sm text-muted-foreground">
+          團隊邀約目標已統一由「邀約目標」分頁設定，正職與兼職共用同一門檻；
+          實際邀約數＝兼職全量 ＋ 正職（SR 以上）累加。本頁僅顯示正職個人邀約狀況。
+        </CardContent>
+      </Card>
+
 
       {/* 個人邀約達標率 */}
       <div className="space-y-2">
