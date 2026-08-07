@@ -27,6 +27,7 @@ import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
 import {
   resolveNextPayoutPeriod,
   resolvePrevPayoutPeriod,
+  listRecentPayoutPeriods,
   resolveFollowingPayoutPeriod,
 } from "@/lib/scoutPayoutPeriod";
 
@@ -247,10 +248,11 @@ export default function TeamHome() {
   const [monthlySettled, setMonthlySettled] = useState(false);
 
   // ===== 期別（台北時間）=====
-  const nextPeriod = useMemo(() => resolveNextPayoutPeriod(), []);
-  const prevPeriod = useMemo(() => resolvePrevPayoutPeriod(nextPeriod), [nextPeriod]);
-  const [viewingPrev, setViewingPrev] = useState(false);
-  const activePeriod = viewingPrev ? prevPeriod : nextPeriod;
+  // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
+  const periodOptions = useMemo(() => listRecentPayoutPeriods(6), []);
+  const [periodIndex, setPeriodIndex] = useState(0);
+  const activePeriod = periodOptions[periodIndex] ?? periodOptions[0];
+  const viewingPrev = periodIndex > 0;
   const followingPeriod = useMemo(
     () => resolveFollowingPayoutPeriod(activePeriod),
     [activePeriod],
@@ -1602,10 +1604,9 @@ export default function TeamHome() {
       </div>
 
       <PayoutPeriodBanner
-        period={activePeriod}
-        prevPeriod={prevPeriod}
-        viewingPrev={viewingPrev}
-        onChange={setViewingPrev}
+        periods={periodOptions}
+        index={periodIndex}
+        onIndexChange={setPeriodIndex}
         loading={loading}
       />
 
