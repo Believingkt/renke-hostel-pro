@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Clock, Banknote, Link2, Copy, Check } from "lucide-react";
+import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Banknote } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 
 interface Props {
   orderId: string;
@@ -35,15 +34,6 @@ interface DepositSummary {
   order_number: string;
   accommodation_id: string;
   check_in_date: string | null;
-}
-
-interface CardToken {
-  id: string;
-  card_last_four: string | null;
-  card_type: string | null;
-  card_expiry: string | null;
-  is_active: boolean;
-  created_at: string;
 }
 
 interface ChargeLog {
@@ -71,7 +61,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [deposit, setDeposit] = useState<DepositSummary | null>(null);
-  const [token, setToken] = useState<CardToken | null>(null);
   const [logs, setLogs] = useState<ChargeLog[]>([]);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState<string>("");
@@ -80,7 +69,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
   const load = async () => {
     setLoading(true);
     try {
-      const [{ data: order }, { data: tokenData }, { data: logData }] = await Promise.all([
+      const [{ data: order }, { data: logData }] = await Promise.all([
         supabase
           .from("orders")
           .select(
@@ -88,14 +77,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
           )
           .eq("id", orderId)
           .single(),
-        supabase
-          .from("deposit_card_tokens")
-          .select("id, card_last_four, card_type, card_expiry, is_active, created_at")
-          .eq("order_id", orderId)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         supabase
           .from("deposit_charges")
           .select("id, action, amount, status, trigger_source, rec_trade_id, error_message, created_at")
@@ -105,7 +86,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
       ]);
 
       setDeposit(order as DepositSummary | null);
-      setToken(tokenData as CardToken | null);
       setLogs((logData as ChargeLog[]) ?? []);
     } finally {
       setLoading(false);
@@ -118,8 +98,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
 
   if (loading || !deposit) return null;
 
-  const remainingToCharge =
-    deposit.deposit_required_amount - deposit.deposit_charged_amount;
   const refundable =
     deposit.deposit_charged_amount - deposit.deposit_refunded_amount;
   const statusInfo = STATUS_LABEL[deposit.deposit_status] ?? {
