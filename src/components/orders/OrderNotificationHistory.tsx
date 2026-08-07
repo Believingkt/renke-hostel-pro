@@ -10,7 +10,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Mail, RefreshCcw, History } from "lucide-react";
+import { Loader2, Mail, RefreshCcw, History, ShieldCheck } from "lucide-react";
 
 interface Props {
   orderId: string;
