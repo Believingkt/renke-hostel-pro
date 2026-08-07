@@ -47,6 +47,42 @@ interface VenueRevenueLine {
   amount: number;
 }
 
+// 單一期別計算完成後的結果快照（用於期別切換快取）
+interface TeamHomePayload {
+  closerSum: number;
+  scoutCloserSum: number;
+  closerTeamBonusSum: number;
+  closerTeamBonusRateVal: number;
+  closerTeamBonusNoSet: boolean;
+  closerTeamBonusFinalizedFlag: boolean;
+  videoSum: number;
+  scoutSum: number;
+  raritySum: number;
+  baseSalary: number;
+  teamBonus: number;
+  scoutTeamMember: boolean;
+  franchiseInternalSum: number;
+  franchiseExternalSum: number;
+  starlinkSum: number;
+  multMap: BonusMultiplierRow[];
+  scoutFromPayoutFlag: boolean;
+  monthlySettledFlag: boolean;
+  amManagerFlag: boolean;
+  closerManagerFlag: boolean;
+  kolRecipientFlag: boolean;
+  amPerfSum: number;
+  amVenueSum: number;
+  closerPerfSum: number;
+  amManagerSum: number;
+  closerManagerSum: number;
+  kolCommissionSum: number;
+  kolMonthlySum: number;
+  venueClosingSum: number;
+  venueClosingLines: Array<{ name: string; amount: number }>;
+  breakdown: Record<string, VenueRevenueLine[]>;
+  missing: Record<string, boolean>;
+}
+
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
