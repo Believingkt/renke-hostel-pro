@@ -476,7 +476,29 @@ export default function TeamHome() {
         let baseSalary = 0;
         let teamBonus = 0;
 
+        // 星探系優先讀後端正式試算（calculate-scout-payout 每日 cron 重跑，
+        // 未標記已發放前會持續更新），確保與「獎金管理 → 發放管理」完全一致。
+        let scoutFromPayoutFlag = false;
         if (showScout) {
+          const { data: payoutRow } = await db
+            .from("scout_monthly_payouts")
+            .select("base_salary, team_bonus, kol_commission, bonus_breakdown")
+            .eq("scout_id", userId)
+            .eq("year", payoutY)
+            .eq("month", payoutM)
+            .eq("period", Number(period))
+            .maybeSingle();
+          if (payoutRow) {
+            scoutFromPayoutFlag = true;
+            const br = ((payoutRow as any).bonus_breakdown ?? {}) as Record<string, unknown>;
+            scoutSum = Number((payoutRow as any).kol_commission ?? 0);
+            raritySum = Number(br.rarity_bonus ?? 0);
+            baseSalary = Number((payoutRow as any).base_salary ?? 0);
+            teamBonus = Number((payoutRow as any).team_bonus ?? 0);
+          }
+        }
+
+        if (showScout && !scoutFromPayoutFlag) {
           // (a) 收集所有歷史 kpi_qualified cid_code
           const [
             { data: qualifiedKols },
@@ -566,7 +588,7 @@ export default function TeamHome() {
           const isFullTime =
             myEmploymentType === "fulltime" &&
             !!myFulltimeStart &&
-            myFulltimeStart <= currentMonthKey;
+            myFulltimeStart <= payoutMonthKey;
           const startYMDigits =
             myEmploymentType === "fulltime" && myFulltimeStart
               ? String(myFulltimeStart).replace(/[^0-9]/g, "").slice(0, 6)
@@ -619,7 +641,7 @@ export default function TeamHome() {
 
 
           // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
-          if (scoutTeamMember) {
+          if (scoutTeamMember && isMonthlyPayout) {
             const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
               db
                 .from("scout_salary_settings")
@@ -633,8 +655,8 @@ export default function TeamHome() {
                 .select("venue_id, venue_name, personal_min, target_count")
                 // 與後端 calculate-scout-payout 一致：門檻用「結算年月（本月）」設定，
                 // 實際邀約數則用 kpi_month = 上月。
-                .eq("year", monthInfo.y)
-                .eq("month", monthInfo.m),
+                .eq("year", payoutY)
+                .eq("month", payoutM),
               db
                 .from("kol_profiles")
                 .select("venue_id, venue_name, kpi_month")
@@ -708,7 +730,7 @@ export default function TeamHome() {
                     (s) =>
                       s.employment_type === "fulltime" &&
                       !!s.fulltime_start_yearmonth &&
-                      String(s.fulltime_start_yearmonth) <= currentMonthKey,
+                      String(s.fulltime_start_yearmonth) <= payoutMonthKey,
                   )
                   .map((s) => s.user_id as string),
               );
@@ -1089,6 +1111,8 @@ export default function TeamHome() {
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
         setMultiplierRows(multMap);
+        setScoutFromPayout(scoutFromPayoutFlag);
+        setMonthlySettled(monthlySettledFlag);
         setIsAmManager(amManagerFlag);
         setIsCloserManager(closerManagerFlag);
         setIsKolBonusRecipient(kolRecipientFlag);
