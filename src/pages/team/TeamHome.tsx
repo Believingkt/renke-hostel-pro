@@ -1141,9 +1141,10 @@ export default function TeamHome() {
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
   // 各獎金資料月不同，需帶入各自的發放月，才會與「獎金管理 → 發放管理」完全一致。
-  const defaultPayoutKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
-  const scoutSalaryPayoutKey = monthInfo.currentMonthKey; // 底薪／團隊獎金：資料月＝上月 → 本月發放
-  const scoutPeriodPayoutKey = String(monthInfo.periodEnd ?? "").slice(0, 7) || defaultPayoutKey;
+  // 所有卡片統一以「該期的發放月」查加倍設定，與發放管理完全一致。
+  const defaultPayoutKey = monthInfo.payoutMonthKey;
+  const scoutSalaryPayoutKey = monthInfo.payoutMonthKey;
+  const scoutPeriodPayoutKey = monthInfo.payoutMonthKey;
   const multOf = (bt: string, payoutKey?: string) =>
     pickMultiplier(multiplierRows, bt, payoutKey ?? defaultPayoutKey);
 
