@@ -23,6 +23,12 @@ import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
 import { payoutMonthKeyFromDataMonth, pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
+import {
+  resolveNextPayoutPeriod,
+  resolvePrevPayoutPeriod,
+  resolveFollowingPayoutPeriod,
+} from "@/lib/scoutPayoutPeriod";
 
 
 import {
