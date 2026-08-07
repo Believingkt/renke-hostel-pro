@@ -1160,6 +1160,26 @@ export default function TeamHome() {
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
 
+  const isMonthly = monthInfo.isMonthlyPayout;
+  /** 月結型卡片統一備註：期別 + 是否已結算 */
+  const monthlyNote = (extra?: string) =>
+    [
+      `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
+      monthlySettled ? "已結算，實付金額" : "即時試算，10 日結算後定版",
+      extra,
+    ]
+      .filter(Boolean)
+      .join("・");
+  /** 星探系卡片備註：期別 + 資料來源 */
+  const scoutNote = (extra?: string) =>
+    [
+      `目前顯示 ${monthInfo.periodLabel}`,
+      scoutFromPayout ? "後端已試算" : "即時估算",
+      extra,
+    ]
+      .filter(Boolean)
+      .join("・");
+
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
@@ -1169,7 +1189,7 @@ export default function TeamHome() {
       multiplier: m,
     }));
 
-  if (showCloser) {
+  if (showCloser && isMonthly) {
     const closerMult = multOf("closer");
     const closerBoosted = Math.round(closerAmt * closerMult);
     const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
@@ -1181,11 +1201,12 @@ export default function TeamHome() {
       amount: closerBoosted + scoutCloserBoosted,
       baseAmount: closerAmt + scoutCloserAmt,
       multiplier: closerMult,
+      note: monthlyNote(),
       lines,
     });
   }
 
-  if (showCloser && closerTeamBonusRate > 0) {
+  if (showCloser && isMonthly && closerTeamBonusRate > 0) {
     const m = multOf("closer");
     if (closerTeamBonusFinalized) {
       cards.push({
@@ -1194,11 +1215,11 @@ export default function TeamHome() {
         amount: Math.round(closerTeamBonusAmt * m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
-        note: "已定案分配金額",
+        note: monthlyNote("已定案分配金額"),
       });
     } else {
       const noteParts = [
-        "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
+        monthlyNote("需下個月初由管理員設定分配後才能確認個人實拿"),
       ];
       if (closerTeamBonusNoSetting) {
         noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
@@ -1214,26 +1235,28 @@ export default function TeamHome() {
       });
     }
   }
-  if (showVideo) {
+  if (showVideo && isMonthly) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
   }
   if (showScout) {
     const kolM = multOf("scout_kol", scoutPeriodPayoutKey);
     const rarityM = multOf("scout_rarity", scoutPeriodPayoutKey);
     const baseM = multOf("scout_base", scoutSalaryPayoutKey);
     const teamM = multOf("scout_team", scoutSalaryPayoutKey);
-    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
-    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: scoutNote() });
+    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: scoutNote() });
     cards.push({
       key: "scout_base",
       title: "兼職星探底薪",
       amount: Math.round(baseSalaryAmt * baseM),
       baseAmount: baseSalaryAmt,
       multiplier: baseM,
-      note: isScoutTeamMember
-        ? "依上月邀約達標計算，本月 10 日發放"
-        : "非全職星探不發底薪",
+      note: !isMonthly
+        ? `本期（${monthInfo.payoutLabel}）不發放，下次為 ${followingPeriod.label}`
+        : isScoutTeamMember
+          ? scoutNote("依上月邀約達標計算")
+          : "非全職星探不發底薪",
     });
     cards.push({
       key: "scout_team",
@@ -1241,12 +1264,14 @@ export default function TeamHome() {
       amount: Math.round(teamBonusAmt * teamM),
       baseAmount: teamBonusAmt,
       multiplier: teamM,
-      note: isScoutTeamMember
-        ? "依全隊上月達標計算,本月 10 日發放"
-        : "非參與星探團隊機制，則星探不發團隊獎金",
+      note: !isMonthly
+        ? `本期（${monthInfo.payoutLabel}）不發放，下次為 ${followingPeriod.label}`
+        : isScoutTeamMember
+          ? scoutNote("依全隊上月達標計算")
+          : "非參與星探團隊機制，則星探不發團隊獎金",
     });
   }
-  if (showFranchise) {
+  if (showFranchise && isMonthly) {
     const intM = multOf("franchise_internal");
     const extM = multOf("franchise_external");
     const intBoosted = Math.round(franchiseInternalAmt * intM);
@@ -1266,19 +1291,20 @@ export default function TeamHome() {
       amount: intBoosted + extBoosted,
       baseAmount: franchiseInternalAmt + franchiseExternalAmt,
       multiplier: combinedMult,
+      note: monthlyNote(),
       lines: lines.length > 1 ? lines : undefined,
     });
 
   }
-  if (showStarlink) {
+  if (showStarlink && isMonthly) {
     const m = multOf("starlink");
-    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m });
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m, note: monthlyNote() });
   }
 
   // ===== 七種團隊獎金卡片 =====
-  const rateNote = (key: string) => (missingRates[key] ? "尚未設定費率" : undefined);
+  const rateNote = (key: string) => monthlyNote(missingRates[key] ? "尚未設定費率" : undefined);
 
-  if (showAM) {
+  if (showAM && isMonthly) {
     const m = multOf("am_performance");
     cards.push({
       key: "am_performance",
@@ -1300,7 +1326,7 @@ export default function TeamHome() {
       note: rateNote("am_venue_bonus"),
     });
   }
-  if (showCloser) {
+  if (showCloser && isMonthly) {
     const m = multOf("closer_performance");
     cards.push({
       key: "closer_performance",
@@ -1313,7 +1339,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isAmManager) {
+  if (isAmManager && isMonthly) {
     const m = multOf("am_manager");
     cards.push({
       key: "am_manager",
@@ -1326,7 +1352,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isCloserManager) {
+  if (isCloserManager && isMonthly) {
     const m = multOf("closer_manager");
     cards.push({
       key: "closer_manager",
@@ -1339,7 +1365,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isKolBonusRecipient) {
+  if (isKolBonusRecipient && isMonthly) {
     const mc = multOf("kol_commission");
     cards.push({
       key: "kol_commission",
@@ -1361,7 +1387,7 @@ export default function TeamHome() {
       note: rateNote("kol_monthly"),
     });
   }
-  if (venueClosingDetail.length > 0) {
+  if (venueClosingDetail.length > 0 && isMonthly) {
     const m = multOf("venue_closing");
     cards.push({
       key: "venue_closing",
@@ -1422,9 +1448,18 @@ export default function TeamHome() {
         </h2>
 
         <p className="text-muted-foreground mt-1">
-          當月預估，尚未結算；預計 {monthInfo.nextMonthLabel} 10 日發放
+          目前顯示：{monthInfo.periodLabel}
         </p>
       </div>
+
+      <PayoutPeriodBanner
+        activePeriod={activePeriod}
+        prevPeriod={prevPeriod}
+        nextPeriod={nextPeriod}
+        followingPeriod={followingPeriod}
+        viewingPrev={viewingPrev}
+        onChange={setViewingPrev}
+      />
 
       {!loading && cards.length === 0 ? (
         <Card>
@@ -1436,7 +1471,7 @@ export default function TeamHome() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">本月預估總收入</CardTitle>
+              <CardTitle className="text-base">{monthlySettled ? "本期實付總計" : "本期預估總收入"}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold text-primary">
