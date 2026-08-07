@@ -947,6 +947,16 @@ interface VenueAssignmentRow {
   created_at: string;
 }
 
+interface PartnershipPeriodRow {
+  id: string;
+  accommodation_id: string;
+  start_date: string;
+  end_date: string | null;
+  bonus_policy: "full" | "none";
+  note: string | null;
+}
+
+
 function VenueClosingAssignmentSection({
   members,
   memberName,
