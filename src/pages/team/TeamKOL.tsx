@@ -4382,6 +4382,9 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             {fallbackLabel && <span className="text-xs text-muted-foreground">{fallbackLabel}</span>}
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          正職與兼職共用同一團隊目標；實際邀約數＝兼職全量 ＋ 正職（SR 以上）累加。
+        </p>
         <Card>
           <Table>
             <TableHeader>
@@ -4410,11 +4413,17 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                       <TableCell>{r.venue_name}</TableCell>
                       <TableCell className="text-center">{r.is_starlink ? "✅" : "－"}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <div>{r.actual_count}</div>
+                        <div className="text-xs font-normal text-muted-foreground">
+                          兼職 {r.parttime_count} + 正職(SR↑) {r.fulltime_count}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{rate}%</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {r.personal_min == null ? "不限定" : `每人至少 ${r.personal_min} 位`}
                       </TableCell>
+
                       <TableCell className="text-right">
                         <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                           {achievementLabel(r.actual_count, r.target_count)}
