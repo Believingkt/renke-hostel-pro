@@ -3505,7 +3505,7 @@ const BookingFlow = () => {
             discount_amount: discountAmount,
             final_price: finalPrice,
             deposit_amount: 0,
-            deposit_required_amount: depositPaymentType ? DEPOSIT_AMOUNT : 0,
+            deposit_required_amount: depositPaymentType ? securityDepositAmount : 0,
             deposit_method: depositPaymentType || null,
             deposit_status: depositPaymentType ? "pending" : "not_required",
             deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : (orderPaymentType === "atm" ? "bank_transfer" : null),
@@ -5519,7 +5519,7 @@ const BookingFlow = () => {
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground">押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}</span>
+                            <span className="text-xs text-muted-foreground">押金 NT$ {securityDepositAmount.toLocaleString()}</span>
                             <span className="font-medium text-sm">
                               現場現金
                             </span>
