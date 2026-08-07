@@ -687,12 +687,24 @@ serve(async (req) => {
       });
     }
 
-    // (3) 成交組績效獎金：具 closer 或 closer_manager 角色者，全公司營收 × rate
+    // (3) 成交組績效獎金：全公司營收 × rate，由「資料月底仍在職」的成交組成員均分
     const closerPerfRate = rateOf("closer_performance");
+    const monthLastDateStr = `${snapshotMonthStr.slice(0, 7)}-31`;
+    const isActiveAtMonthEnd = (profile: any) =>
+      !profile?.resigned_at || String(profile.resigned_at).slice(0, 10) > monthLastDateStr;
+
+    const closerProfiles: any[] = [];
     for (const [userId, roleSet] of rolesByUser) {
       if (!roleSet.has("closer") && !roleSet.has("closer_manager")) continue;
       const profile = profileByUserId.get(userId);
       if (!profile) continue;
+      if (!isActiveAtMonthEnd(profile)) continue; // 離職者不參與均分
+      closerProfiles.push(profile);
+    }
+
+    const closerPoolAmount = companyRevenue * Number(closerPerfRate ?? 0);
+    const closerHeadcount = closerProfiles.length;
+    for (const profile of closerProfiles) {
       push({
         bonus_type: "closer_performance",
         member_id: profile.id,
@@ -702,15 +714,18 @@ serve(async (req) => {
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue * Number(closerPerfRate ?? 0),
+        amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
           shared_sources: sharedSources,
           accommodation_ids: activeAccIds,
+          pool_amount: closerPoolAmount,
+          split_headcount: closerHeadcount,
         },
       });
     }
+
 
     // (4)(5) AM 總管 / 成交組主管：角色綁定當月生效者，全公司營收 × rate
     const managerBindings: Array<[BonusType, string | null]> = [
