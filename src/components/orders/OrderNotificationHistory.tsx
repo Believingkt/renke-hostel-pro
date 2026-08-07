@@ -10,7 +10,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Mail, RefreshCcw, History } from "lucide-react";
+import { Loader2, Mail, RefreshCcw, History, ShieldCheck } from "lucide-react";
 
 interface Props {
   orderId: string;
@@ -41,6 +41,51 @@ type EmailEvent = {
   trigger_source: string | null;
   created_at: string;
 };
+
+type DepositAudit = {
+  id: string;
+  user_email: string | null;
+  details: Record<string, { from: unknown; to: unknown }> | null;
+  created_at: string;
+};
+
+type DepositCharge = {
+  id: string;
+  action: string;
+  amount: number;
+  status: string;
+  trigger_source: string;
+  error_message: string | null;
+  performed_by: string | null;
+  created_at: string;
+};
+
+const DEPOSIT_FIELD_LABEL: Record<string, string> = {
+  deposit_required_amount: "應收押金",
+  deposit_charged_amount: "已扣款金額",
+  deposit_refunded_amount: "已退款金額",
+  deposit_method: "收取方式",
+  deposit_status: "押金狀態",
+};
+
+const DEPOSIT_VALUE_LABEL: Record<string, string> = {
+  cash: "現場現金",
+  card: "線上綁卡(已停用)",
+  pending: "待設定",
+  card_bound: "已綁卡",
+  charged: "已扣款",
+  partially_refunded: "部分退款",
+  refunded: "已退款",
+  failed: "扣款失敗",
+  not_required: "不需押金",
+};
+
+function formatDepositValue(field: string, value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "number") return `NT$${value.toLocaleString()}`;
+  return DEPOSIT_VALUE_LABEL[String(value)] || String(value);
+}
+
 
 const STATUS_LABEL: Record<string, string> = {
   unpaid: "未付款",
@@ -87,12 +132,14 @@ type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_r
 export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
+  const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
+  const [depositCharges, setDepositCharges] = useState<DepositCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [resendingType, setResendingType] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [p, e] = await Promise.all([
+    const [p, e, d, c] = await Promise.all([
       supabase
         .from("payment_status_history")
         .select("id, from_status, to_status, paid_amount, final_price, source, notes, created_at")
@@ -103,11 +150,27 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
         .select("id, email_type, recipient, subject, status, resend_id, error_message, triggered_by, trigger_source, created_at")
         .eq("order_id", orderId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("audit_logs")
+        .select("id, user_email, details, created_at")
+        .eq("entity_type", "order_deposit")
+        .eq("entity_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("deposit_charges")
+        .select("id, action, amount, status, trigger_source, error_message, performed_by, created_at")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setPayments((p.data ?? []) as PaymentEvent[]);
     setEmails((e.data ?? []) as EmailEvent[]);
+    setDepositAudits((d.data ?? []) as unknown as DepositAudit[]);
+    setDepositCharges((c.data ?? []) as DepositCharge[]);
     setLoading(false);
   }, [orderId]);
+
 
   useEffect(() => {
     load();
@@ -244,7 +307,63 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
             </ul>
           )}
         </section>
+
+        {/* Deposit audit trail */}
+        <section>
+          <div className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> 押金異動紀錄
+          </div>
+          {loading ? null : depositAudits.length === 0 && depositCharges.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-3">尚無押金異動</div>
+          ) : (
+            <ul className="space-y-2">
+              {depositAudits.map((a) => (
+                <li key={a.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant="outline">押金設定異動</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(a.created_at), "yyyy-MM-dd HH:mm:ss")}
+                    </span>
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {Object.entries(a.details ?? {}).map(([field, v]) => (
+                      <div key={field} className="text-xs">
+                        <span className="text-muted-foreground">{DEPOSIT_FIELD_LABEL[field] || field}：</span>
+                        {formatDepositValue(field, v?.from)} → <strong>{formatDepositValue(field, v?.to)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    操作者：{a.user_email || "系統／排程"}
+                  </div>
+                </li>
+              ))}
+              {depositCharges.map((c) => (
+                <li key={c.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={c.status === "success" ? "default" : "destructive"}>
+                        {c.action === "charge" ? "押金扣款" : "押金退款"}
+                      </Badge>
+                      <span className="tabular-nums">NT${(c.amount || 0).toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({c.trigger_source === "scheduled" ? "自動排程" : "手動"}・{c.status === "success" ? "成功" : "失敗"})
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(c.created_at), "yyyy-MM-dd HH:mm:ss")}
+                    </span>
+                  </div>
+                  {c.error_message && (
+                    <div className="mt-1 text-xs text-destructive break-all">錯誤：{c.error_message}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </CardContent>
+
     </Card>
   );
 }

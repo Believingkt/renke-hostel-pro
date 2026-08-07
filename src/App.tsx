@@ -65,7 +65,6 @@ const PaymentTest = lazy(() => import("./pages/PaymentTest"));
 const PublicPayment = lazy(() => import("./pages/PublicPayment"));
 const OrderPayment = lazy(() => import("./pages/OrderPayment"));
 const AtmBookingSuccess = lazy(() => import("./pages/AtmBookingSuccess"));
-const DepositCardBind = lazy(() => import("./pages/DepositCardBind"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const PaymentStatus = lazy(() => import("./pages/PaymentStatus"));
 const PaymentReceipt = lazy(() => import("./pages/PaymentReceipt"));
@@ -338,9 +337,6 @@ function App() {
                     } />
                     <Route path="booking/atm-info" element={
                       <Suspense fallback={<FrontendSkeleton />}><AtmBookingSuccess /></Suspense>
-                    } />
-                    <Route path="pay/bind-card" element={
-                      <Suspense fallback={<FrontendSkeleton />}><DepositCardBind /></Suspense>
                     } />
                     <Route path="payment-result" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>

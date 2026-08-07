@@ -543,9 +543,8 @@ const BookingFlow = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
   const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
-  // 押金 5000 付款方式：card（線上綁卡 / 沿用同張卡）| cash（現場現金）
-  // 押金付款方式（UI 已移除，預設現場現金以維持既有流程）
-  const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("cash");
+  // 押金付款方式：僅支援 cash（現場現金），線上綁卡已停用
+  const depositPaymentType: "cash" = "cash";
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -658,9 +657,7 @@ const BookingFlow = () => {
   // 需要 TapPay 卡片欄位的情境：
   // 1. 訂單金額付款方式為信用卡
   // 2. 訂單為 ATM 虛擬帳號，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
-  const needsCardForm =
-    paymentMethod === '信用卡' ||
-    (orderPaymentType === 'atm' && depositPaymentType === 'card');
+  const needsCardForm = paymentMethod === '信用卡';
   const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
@@ -2669,7 +2666,7 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
-      const isDepositCardOnly = orderPaymentType === "atm" && depositPaymentType === "card";
+      const isDepositCardOnly = false;
       // 標記已嘗試送出，之後欄位下方才會顯示錯誤
       setCardSubmitAttempted(true);
 
@@ -5523,7 +5520,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}</span>
                             <span className="font-medium text-sm">
-                              {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
+                              現場現金
                             </span>
                           </div>
                           {orderPaymentType === "credit_card" && (
