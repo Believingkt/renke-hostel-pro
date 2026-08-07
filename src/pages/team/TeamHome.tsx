@@ -21,8 +21,14 @@ import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
-import { payoutMonthKeyFromDataMonth, pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
+import { pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
+import {
+  resolveNextPayoutPeriod,
+  resolvePrevPayoutPeriod,
+  resolveFollowingPayoutPeriod,
+} from "@/lib/scoutPayoutPeriod";
 
 
 import {
@@ -196,49 +202,59 @@ export default function TeamHome() {
   const [revenueBreakdown, setRevenueBreakdown] = useState<Record<string, VenueRevenueLine[]>>({});
   const [detailCardKey, setDetailCardKey] = useState<string | null>(null);
   const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
+  // 星探系是否來自後端正式試算（scout_monthly_payouts）
+  const [scoutFromPayout, setScoutFromPayout] = useState(false);
+  // 月結系是否已由後端結算（snapshot 存在）
+  const [monthlySettled, setMonthlySettled] = useState(false);
+
+  // ===== 期別（台北時間）=====
+  const nextPeriod = useMemo(() => resolveNextPayoutPeriod(), []);
+  const prevPeriod = useMemo(() => resolvePrevPayoutPeriod(nextPeriod), [nextPeriod]);
+  const [viewingPrev, setViewingPrev] = useState(false);
+  const activePeriod = viewingPrev ? prevPeriod : nextPeriod;
+  const followingPeriod = useMemo(
+    () => resolveFollowingPayoutPeriod(activePeriod),
+    [activePeriod],
+  );
 
   const monthInfo = useMemo(() => {
+    const p = activePeriod;
     const now = taipeiParts();
-    const nextY = now.m === 12 ? now.y + 1 : now.y;
-    const nextM = now.m === 12 ? 1 : now.m + 1;
-    const prevY = now.m === 1 ? now.y - 1 : now.y;
-    const prevM = now.m === 1 ? 12 : now.m - 1;
-
-    // 期別判斷：日 <=20 → 當月 25 日期（當月 6 - 當月 20）
-    //           日 >20  → 次月 10 日期（當月 21 - 次月 5）
-    const isEarlyPeriod = now.d <= 20;
-    let periodStart: string;
-    let periodEnd: string;
-    let periodLabel: string;
-    if (isEarlyPeriod) {
-      periodStart = taipeiDateStr(now.y, now.m, 6);
-      periodEnd = taipeiDateStr(now.y, now.m, 20);
-      periodLabel = `${now.m} 月 25 日期預估（${now.m}/6 - ${now.m}/20 入住）`;
-    } else {
-      periodStart = taipeiDateStr(now.y, now.m, 21);
-      periodEnd = taipeiDateStr(nextY, nextM, 5);
-      periodLabel = `${nextM} 月 10 日期預估（${now.m}/21 - ${nextM}/5 入住）`;
-    }
+    // 月結型資料月 ＝ 發放月 - 1
+    const dY = p.dataYear;
+    const dM = p.dataMonth;
+    // 資料月的前一個月（加盟寬鬆抓取用）
+    const prevY = dM === 1 ? dY - 1 : dY;
+    const prevM = dM === 1 ? 12 : dM - 1;
 
     return {
-      y: now.y,
-      m: now.m,
+      // 月結型資料月
+      y: dY,
+      m: dM,
       today: taipeiDateStr(now.y, now.m, now.d),
-      currentMonthKey: `${now.y}-${String(now.m).padStart(2, "0")}`,
-      monthStartIso: taipeiMidnightUtcISO(now.y, now.m, 1),
-      monthEndIso: taipeiMidnightUtcISO(nextY, nextM, 1),
-      monthStartDate: taipeiDateStr(now.y, now.m, 1),
-      monthEndDate: taipeiDateStr(nextY, nextM, 1),
-      prevMonthStartDate: taipeiDateStr(prevY, prevM, 1),
-      prevMonthEndDate: taipeiDateStr(now.y, now.m, 1),
+      currentMonthKey: p.dataMonthKey,
+      monthStartIso: taipeiMidnightUtcISO(dY, dM, 1),
+      monthEndIso: taipeiMidnightUtcISO(p.year, p.month, 1),
+      monthStartDate: taipeiDateStr(dY, dM, 1),
+      monthEndDate: taipeiDateStr(p.year, p.month, 1),
+      // 星探底薪／團隊獎金：kpi_month ＝ 發放月 - 1（＝資料月）
+      prevMonthStartDate: taipeiDateStr(dY, dM, 1),
+      prevMonthEndDate: taipeiDateStr(p.year, p.month, 1),
       prevY,
       prevM,
-      periodStart,
-      periodEnd,
-      periodLabel,
-      nextMonthLabel: `${nextY} 年 ${nextM} 月`,
+      // 發放期別
+      payoutY: p.year,
+      payoutM: p.month,
+      period: p.period,
+      payoutMonthKey: p.payoutMonthKey,
+      isMonthlyPayout: p.isMonthlyPayout,
+      periodStart: p.periodStart,
+      periodEnd: p.periodEnd,
+      periodLabel: `${p.label}（資料窗 ${p.windowLabel}）`,
+      dataMonthLabel: `${dY} 年 ${dM} 月`,
+      payoutLabel: p.label,
     };
-  }, []);
+  }, [activePeriod]);
 
   useEffect(() => {
     if (!anyCard) {
@@ -264,6 +280,11 @@ export default function TeamHome() {
           periodStart,
           periodEnd,
           currentMonthKey,
+          payoutY,
+          payoutM,
+          period,
+          payoutMonthKey,
+          isMonthlyPayout,
         } = monthInfo;
 
         // profile id (for scout / franchise external / 團隊獎金角色綁定)
@@ -298,21 +319,41 @@ export default function TeamHome() {
         }
 
         // ===== Closer / Video =====
-        // 分潤預估一律改由 preview-closer-commission Edge Function 試算，
-        // 公式與正式快照 closer_commission_snapshots 完全一致（order_date 分月、
-        // 扣加購、排除非台幣 / isExempt / is_excluded）。
-        const needMeta = showCloser || showVideo;
+        // 月結型獎金只在 10 日期發放；25 日期直接不計算、不查詢。
+        // 已有正式快照（closer_commission_snapshots）時以快照為準，與發放管理一致；
+        // 尚未結算則改由 preview-closer-commission Edge Function 試算（公式相同）。
+        const needMeta = (showCloser || showVideo) && isMonthlyPayout;
         let closerSum = 0;
         let videoSum = 0;
+        let monthlySettledFlag = false;
 
         if (needMeta) {
-          const { data: preview } = await supabase.functions.invoke(
-            "preview-closer-commission",
-            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
-          );
-          if (preview?.success) {
-            if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
-            if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+          const { data: snapRows } = await db
+            .from("closer_commission_snapshots")
+            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
+            .eq("payout_month", payoutMonthKey)
+            .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
+
+          const snaps = (snapRows ?? []) as any[];
+          if (snaps.length > 0) {
+            monthlySettledFlag = true;
+            for (const r of snaps) {
+              if (showCloser && r.closer_id === userId) {
+                closerSum += Number(r.closer_commission_amount ?? 0);
+              }
+              if (showVideo && r.video_creator_id === userId) {
+                videoSum += Number(r.video_commission_amount ?? 0);
+              }
+            }
+          } else {
+            const { data: preview } = await supabase.functions.invoke(
+              "preview-closer-commission",
+              { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
+            );
+            if (preview?.success) {
+              if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
+              if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+            }
           }
         }
 
@@ -321,7 +362,7 @@ export default function TeamHome() {
 
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
-        if (showCloser) {
+        if (showCloser && isMonthlyPayout) {
           const { data: partnerCodes } = await db
             .from("scout_discount_codes")
             .select("discount_code, closer_rate")
@@ -376,7 +417,7 @@ export default function TeamHome() {
         let closerTeamBonusRateVal = 0;
         let closerTeamBonusNoSet = false;
         let closerTeamBonusFinalizedFlag = false;
-        if (showCloser) {
+        if (showCloser && isMonthlyPayout) {
           const { data: bonusSetting } = await db
             .from("closer_team_bonus_settings")
             .select("bonus_rate, effective_from")
@@ -435,7 +476,29 @@ export default function TeamHome() {
         let baseSalary = 0;
         let teamBonus = 0;
 
+        // 星探系優先讀後端正式試算（calculate-scout-payout 每日 cron 重跑，
+        // 未標記已發放前會持續更新），確保與「獎金管理 → 發放管理」完全一致。
+        let scoutFromPayoutFlag = false;
         if (showScout) {
+          const { data: payoutRow } = await db
+            .from("scout_monthly_payouts")
+            .select("base_salary, team_bonus, kol_commission, bonus_breakdown")
+            .eq("scout_id", userId)
+            .eq("year", payoutY)
+            .eq("month", payoutM)
+            .eq("period", Number(period))
+            .maybeSingle();
+          if (payoutRow) {
+            scoutFromPayoutFlag = true;
+            const br = ((payoutRow as any).bonus_breakdown ?? {}) as Record<string, unknown>;
+            scoutSum = Number((payoutRow as any).kol_commission ?? 0);
+            raritySum = Number(br.rarity_bonus ?? 0);
+            baseSalary = Number((payoutRow as any).base_salary ?? 0);
+            teamBonus = Number((payoutRow as any).team_bonus ?? 0);
+          }
+        }
+
+        if (showScout && !scoutFromPayoutFlag) {
           // (a) 收集所有歷史 kpi_qualified cid_code
           const [
             { data: qualifiedKols },
@@ -525,7 +588,7 @@ export default function TeamHome() {
           const isFullTime =
             myEmploymentType === "fulltime" &&
             !!myFulltimeStart &&
-            myFulltimeStart <= currentMonthKey;
+            myFulltimeStart <= payoutMonthKey;
           const startYMDigits =
             myEmploymentType === "fulltime" && myFulltimeStart
               ? String(myFulltimeStart).replace(/[^0-9]/g, "").slice(0, 6)
@@ -578,7 +641,7 @@ export default function TeamHome() {
 
 
           // 底薪 / 團隊獎金 — 僅 is_scout_team_member 才計，kpi_month = 上月月初
-          if (scoutTeamMember) {
+          if (scoutTeamMember && isMonthlyPayout) {
             const [{ data: salaryRow }, { data: targetsData }, { data: myPrevKols }] = await Promise.all([
               db
                 .from("scout_salary_settings")
@@ -592,8 +655,8 @@ export default function TeamHome() {
                 .select("venue_id, venue_name, personal_min, target_count")
                 // 與後端 calculate-scout-payout 一致：門檻用「結算年月（本月）」設定，
                 // 實際邀約數則用 kpi_month = 上月。
-                .eq("year", monthInfo.y)
-                .eq("month", monthInfo.m),
+                .eq("year", payoutY)
+                .eq("month", payoutM),
               db
                 .from("kol_profiles")
                 .select("venue_id, venue_name, kpi_month")
@@ -667,7 +730,7 @@ export default function TeamHome() {
                     (s) =>
                       s.employment_type === "fulltime" &&
                       !!s.fulltime_start_yearmonth &&
-                      String(s.fulltime_start_yearmonth) <= currentMonthKey,
+                      String(s.fulltime_start_yearmonth) <= payoutMonthKey,
                   )
                   .map((s) => s.user_id as string),
               );
@@ -705,7 +768,7 @@ export default function TeamHome() {
         // ===== Franchise =====
         let franchiseInternalSum = 0;
         let franchiseExternalSum = 0;
-        if (showFranchise) {
+        if (showFranchise && isMonthlyPayout) {
           // Widen fetch to ±3 months so we can pick up early_payout_month rows via JS filter
           const wideStart = taipeiDateStr(prevY, prevM, 1);
           const nextY3 = monthInfo.y + (monthInfo.m + 3 > 12 ? 1 : 0);
@@ -762,7 +825,7 @@ export default function TeamHome() {
 
         // ===== Starlink =====
         let starlinkSum = 0;
-        if (showStarlink) {
+        if (showStarlink && isMonthlyPayout) {
           const { data: slOrders } = await db
             .from("starlink_orders")
             .select("commission_amount, sold_by, payment_confirmed, sold_at")
@@ -808,8 +871,10 @@ export default function TeamHome() {
           closerManagerFlag = !!profileId && closerManagerId === profileId;
           kolRecipientFlag = !!profileId && kolRecipientId === profileId;
 
+          // 月結型獎金只在 10 日期發放；25 日期不做任何營收計算。
           const needCompanyRevenue =
-            amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag;
+            isMonthlyPayout &&
+            (amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag);
 
           // 全公司範圍：所有啟用館別
           let allAccIds: string[] = [];
@@ -855,7 +920,7 @@ export default function TeamHome() {
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
           //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
-          if (showAM) {
+          if (showAM && isMonthlyPayout) {
             // 過濾掉「旅行日」開頭的場館
             let myManagedAccIdsExcludingTravelDays: string[] = [];
             if (myManagedAccIds.length > 0) {
@@ -895,7 +960,7 @@ export default function TeamHome() {
           }
 
           // (2) 成交組績效獎金：全公司營收 × rate
-          if (showCloser) {
+          if (showCloser && isMonthlyPayout) {
             const s = rateSettings.closer_performance;
             if (!s || s.rate == null) missing.closer_performance = true;
             closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
@@ -903,7 +968,7 @@ export default function TeamHome() {
           }
 
           // (3) AM 總管獎金：全公司營收 × rate（抽成制）
-          if (amManagerFlag) {
+          if (amManagerFlag && isMonthlyPayout) {
             const s = rateSettings.am_manager;
             if (!s || s.rate == null) missing.am_manager = true;
             amManagerSum = companyRevenue * Number(s?.rate ?? 0);
@@ -911,7 +976,7 @@ export default function TeamHome() {
           }
 
           // (4) 成交大師管理獎金：全公司營收 × rate
-          if (closerManagerFlag) {
+          if (closerManagerFlag && isMonthlyPayout) {
             const s = rateSettings.closer_manager;
             if (!s || s.rate == null) missing.closer_manager = true;
             closerManagerSum = companyRevenue * Number(s?.rate ?? 0);
@@ -919,7 +984,7 @@ export default function TeamHome() {
           }
 
           // (5)(6) 網紅營銷專利獎金 / 月費
-          if (kolRecipientFlag) {
+          if (kolRecipientFlag && isMonthlyPayout) {
             const kolSources = await getRevenueSourceWhitelist(
               client,
               "teamcommission_kol_revenue_source_whitelist",
@@ -953,7 +1018,7 @@ export default function TeamHome() {
           }
 
           // (7) 場域成交獎金：我是簽約人的館別中，charges_marketing_fee = true 者各發一份固定金額
-          {
+          if (isMonthlyPayout) {
             const myClosingAccIds = profileId
               ? await getVenueClosingAccommodations(client, profileId, monthStartDate)
               : [];
@@ -980,6 +1045,43 @@ export default function TeamHome() {
             }
           }
 
+        }
+
+        // ===== 月結型：已結算則以正式快照為準（與「獎金管理 → 發放管理」一致）=====
+        if (isMonthlyPayout && profileId) {
+          const { data: bonusSnaps } = await db
+            .from("teamcommission_bonus_snapshots")
+            .select("bonus_type, amount")
+            .eq("payout_month", payoutMonthKey)
+            .eq("member_id", profileId);
+          const snapRows = (bonusSnaps ?? []) as any[];
+          if (snapRows.length > 0) {
+            monthlySettledFlag = true;
+            const byType = new Map<string, number>();
+            for (const r of snapRows) {
+              byType.set(
+                String(r.bonus_type),
+                (byType.get(String(r.bonus_type)) ?? 0) + Number(r.amount ?? 0),
+              );
+            }
+            const take = (t: string, fallback: number) =>
+              byType.has(t) ? (byType.get(t) as number) : fallback;
+            amPerfSum = take("am_performance", amPerfSum);
+            amVenueSum = take("am_venue_bonus", amVenueSum);
+            closerPerfSum = take("closer_performance", closerPerfSum);
+            amManagerSum = take("am_manager", amManagerSum);
+            closerManagerSum = take("closer_manager", closerManagerSum);
+            kolCommissionSum = take("kol_commission", kolCommissionSum);
+            kolMonthlySum = take("kol_monthly", kolMonthlySum);
+            if (byType.has("venue_closing")) {
+              venueClosingSum = byType.get("venue_closing") as number;
+              if (venueClosingLines.length === 0) {
+                venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
+              }
+            }
+            // 已結算金額來自快照，逐館明細（即時費率算出）可能不一致 → 不顯示
+            for (const k of Object.keys(breakdown)) delete breakdown[k];
+          }
         }
 
         // ===== Multipliers =====
@@ -1009,6 +1111,8 @@ export default function TeamHome() {
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
         setMultiplierRows(multMap);
+        setScoutFromPayout(scoutFromPayoutFlag);
+        setMonthlySettled(monthlySettledFlag);
         setIsAmManager(amManagerFlag);
         setIsCloserManager(closerManagerFlag);
         setIsKolBonusRecipient(kolRecipientFlag);
@@ -1037,9 +1141,10 @@ export default function TeamHome() {
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
   // 各獎金資料月不同，需帶入各自的發放月，才會與「獎金管理 → 發放管理」完全一致。
-  const defaultPayoutKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
-  const scoutSalaryPayoutKey = monthInfo.currentMonthKey; // 底薪／團隊獎金：資料月＝上月 → 本月發放
-  const scoutPeriodPayoutKey = String(monthInfo.periodEnd ?? "").slice(0, 7) || defaultPayoutKey;
+  // 所有卡片統一以「該期的發放月」查加倍設定，與發放管理完全一致。
+  const defaultPayoutKey = monthInfo.payoutMonthKey;
+  const scoutSalaryPayoutKey = monthInfo.payoutMonthKey;
+  const scoutPeriodPayoutKey = monthInfo.payoutMonthKey;
   const multOf = (bt: string, payoutKey?: string) =>
     pickMultiplier(multiplierRows, bt, payoutKey ?? defaultPayoutKey);
 
@@ -1055,6 +1160,26 @@ export default function TeamHome() {
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
 
+  const isMonthly = monthInfo.isMonthlyPayout;
+  /** 月結型卡片統一備註：期別 + 是否已結算 */
+  const monthlyNote = (extra?: string) =>
+    [
+      `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
+      monthlySettled ? "已結算，實付金額" : "即時試算，10 日結算後定版",
+      extra,
+    ]
+      .filter(Boolean)
+      .join("・");
+  /** 星探系卡片備註：期別 + 資料來源 */
+  const scoutNote = (extra?: string) =>
+    [
+      `目前顯示 ${monthInfo.periodLabel}`,
+      scoutFromPayout ? "後端已試算" : "即時估算",
+      extra,
+    ]
+      .filter(Boolean)
+      .join("・");
+
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
@@ -1064,7 +1189,7 @@ export default function TeamHome() {
       multiplier: m,
     }));
 
-  if (showCloser) {
+  if (showCloser && isMonthly) {
     const closerMult = multOf("closer");
     const closerBoosted = Math.round(closerAmt * closerMult);
     const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
@@ -1076,11 +1201,12 @@ export default function TeamHome() {
       amount: closerBoosted + scoutCloserBoosted,
       baseAmount: closerAmt + scoutCloserAmt,
       multiplier: closerMult,
+      note: monthlyNote(),
       lines,
     });
   }
 
-  if (showCloser && closerTeamBonusRate > 0) {
+  if (showCloser && isMonthly && closerTeamBonusRate > 0) {
     const m = multOf("closer");
     if (closerTeamBonusFinalized) {
       cards.push({
@@ -1089,11 +1215,11 @@ export default function TeamHome() {
         amount: Math.round(closerTeamBonusAmt * m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
-        note: "已定案分配金額",
+        note: monthlyNote("已定案分配金額"),
       });
     } else {
       const noteParts = [
-        "當月累積預估，需下個月初由管理員設定分配後才能確認個人實拿",
+        monthlyNote("需下個月初由管理員設定分配後才能確認個人實拿"),
       ];
       if (closerTeamBonusNoSetting) {
         noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
@@ -1109,26 +1235,28 @@ export default function TeamHome() {
       });
     }
   }
-  if (showVideo) {
+  if (showVideo && isMonthly) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
+    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
   }
   if (showScout) {
     const kolM = multOf("scout_kol", scoutPeriodPayoutKey);
     const rarityM = multOf("scout_rarity", scoutPeriodPayoutKey);
     const baseM = multOf("scout_base", scoutSalaryPayoutKey);
     const teamM = multOf("scout_team", scoutSalaryPayoutKey);
-    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
-    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
+    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: scoutNote() });
+    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: scoutNote() });
     cards.push({
       key: "scout_base",
       title: "兼職星探底薪",
       amount: Math.round(baseSalaryAmt * baseM),
       baseAmount: baseSalaryAmt,
       multiplier: baseM,
-      note: isScoutTeamMember
-        ? "依上月邀約達標計算，本月 10 日發放"
-        : "非全職星探不發底薪",
+      note: !isMonthly
+        ? `本期（${monthInfo.payoutLabel}）不發放，下次為 ${followingPeriod.label}`
+        : isScoutTeamMember
+          ? scoutNote("依上月邀約達標計算")
+          : "非全職星探不發底薪",
     });
     cards.push({
       key: "scout_team",
@@ -1136,12 +1264,14 @@ export default function TeamHome() {
       amount: Math.round(teamBonusAmt * teamM),
       baseAmount: teamBonusAmt,
       multiplier: teamM,
-      note: isScoutTeamMember
-        ? "依全隊上月達標計算,本月 10 日發放"
-        : "非參與星探團隊機制，則星探不發團隊獎金",
+      note: !isMonthly
+        ? `本期（${monthInfo.payoutLabel}）不發放，下次為 ${followingPeriod.label}`
+        : isScoutTeamMember
+          ? scoutNote("依全隊上月達標計算")
+          : "非參與星探團隊機制，則星探不發團隊獎金",
     });
   }
-  if (showFranchise) {
+  if (showFranchise && isMonthly) {
     const intM = multOf("franchise_internal");
     const extM = multOf("franchise_external");
     const intBoosted = Math.round(franchiseInternalAmt * intM);
@@ -1161,19 +1291,20 @@ export default function TeamHome() {
       amount: intBoosted + extBoosted,
       baseAmount: franchiseInternalAmt + franchiseExternalAmt,
       multiplier: combinedMult,
+      note: monthlyNote(),
       lines: lines.length > 1 ? lines : undefined,
     });
 
   }
-  if (showStarlink) {
+  if (showStarlink && isMonthly) {
     const m = multOf("starlink");
-    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m });
+    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m, note: monthlyNote() });
   }
 
   // ===== 七種團隊獎金卡片 =====
-  const rateNote = (key: string) => (missingRates[key] ? "尚未設定費率" : undefined);
+  const rateNote = (key: string) => monthlyNote(missingRates[key] ? "尚未設定費率" : undefined);
 
-  if (showAM) {
+  if (showAM && isMonthly) {
     const m = multOf("am_performance");
     cards.push({
       key: "am_performance",
@@ -1195,7 +1326,7 @@ export default function TeamHome() {
       note: rateNote("am_venue_bonus"),
     });
   }
-  if (showCloser) {
+  if (showCloser && isMonthly) {
     const m = multOf("closer_performance");
     cards.push({
       key: "closer_performance",
@@ -1208,7 +1339,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isAmManager) {
+  if (isAmManager && isMonthly) {
     const m = multOf("am_manager");
     cards.push({
       key: "am_manager",
@@ -1221,7 +1352,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isCloserManager) {
+  if (isCloserManager && isMonthly) {
     const m = multOf("closer_manager");
     cards.push({
       key: "closer_manager",
@@ -1234,7 +1365,7 @@ export default function TeamHome() {
       alwaysShowLines: true,
     });
   }
-  if (isKolBonusRecipient) {
+  if (isKolBonusRecipient && isMonthly) {
     const mc = multOf("kol_commission");
     cards.push({
       key: "kol_commission",
@@ -1256,7 +1387,7 @@ export default function TeamHome() {
       note: rateNote("kol_monthly"),
     });
   }
-  if (venueClosingDetail.length > 0) {
+  if (venueClosingDetail.length > 0 && isMonthly) {
     const m = multOf("venue_closing");
     cards.push({
       key: "venue_closing",
@@ -1317,9 +1448,16 @@ export default function TeamHome() {
         </h2>
 
         <p className="text-muted-foreground mt-1">
-          當月預估，尚未結算；預計 {monthInfo.nextMonthLabel} 10 日發放
+          目前顯示：{monthInfo.periodLabel}
         </p>
       </div>
+
+      <PayoutPeriodBanner
+        period={activePeriod}
+        prevPeriod={prevPeriod}
+        viewingPrev={viewingPrev}
+        onChange={setViewingPrev}
+      />
 
       {!loading && cards.length === 0 ? (
         <Card>
@@ -1331,7 +1469,7 @@ export default function TeamHome() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">本月預估總收入</CardTitle>
+              <CardTitle className="text-base">{monthlySettled ? "本期實付總計" : "本期預估總收入"}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold text-primary">
