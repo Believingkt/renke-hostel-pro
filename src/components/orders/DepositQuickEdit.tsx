@@ -77,8 +77,8 @@ export function DepositQuickEdit({
     if (!Number.isInteger(parsedRetained)) return "扣押金額必須為整數（不可有小數）";
     if (parsedRetained <= 0) return "扣押金額必須大於 0";
     if (amountError) return null;
-    if (parsedRetained >= parsed)
-      return `扣押金額必須小於已收押金 NT$${parsed.toLocaleString()}（全額扣押請改選「已收押金」）`;
+    if (parsedRetained > parsed)
+      return `扣押金額不可大於已收押金 NT$${parsed.toLocaleString()}`;
     return null;
   })();
 
