@@ -466,8 +466,8 @@ export default function TeamKOL() {
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
             {canSeeStats && <TabsTrigger value="weekly_report">入住週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
-            {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
-            {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
+            {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職個人）</TabsTrigger>}
+            {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標</TabsTrigger>}
             {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
             <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
             {canViewReciprocalQuota && <TabsTrigger value="reciprocal_quota">互惠額度</TabsTrigger>}
