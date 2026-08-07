@@ -5020,51 +5020,14 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         </Select>
       </div>
 
-      {/* 團隊邀約目標 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">正職團隊邀約目標</h2>
-        </div>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>場域</TableHead>
-                <TableHead className="text-right">目標邀約數</TableHead>
-                <TableHead className="text-right">實際邀約數</TableHead>
-                <TableHead className="text-right">達成率</TableHead>
-                <TableHead className="text-right">狀態</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? null : teamRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    尚無目標資料
-                  </TableCell>
-                </TableRow>
-              ) : (
-                teamRows.map((r) => {
-                  const rate = r.target_count > 0 ? Math.round((r.actual_count / r.target_count) * 100) : 0;
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.venue_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{rate}%</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
-                          {achievementLabel(r.actual_count, r.target_count)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+      {/* 團隊目標已統一至「邀約目標」分頁（scout_team_targets），此處不再另設正職團隊目標 */}
+      <Card className="border-dashed">
+        <CardContent className="py-4 text-sm text-muted-foreground">
+          團隊邀約目標已統一由「邀約目標」分頁設定，正職與兼職共用同一門檻；
+          實際邀約數＝兼職全量 ＋ 正職（SR 以上）累加。本頁僅顯示正職個人邀約狀況。
+        </CardContent>
+      </Card>
+
 
       {/* 個人邀約達標率 */}
       <div className="space-y-2">
