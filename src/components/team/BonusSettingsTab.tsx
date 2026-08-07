@@ -243,7 +243,6 @@ export default function BonusSettingsTab() {
 
   return (
     <div className="space-y-6 pt-4">
-      <OwnerPricingRuleOverviewSection />
       <RateSection
         rows={rates}
         loading={loading}
@@ -282,6 +281,7 @@ export default function BonusSettingsTab() {
       />
       <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} />
       <AmVenueOverviewSection />
+      <OwnerPricingRuleOverviewSection />
     </div>
 
   );
@@ -937,6 +937,7 @@ interface AccOption {
   id: string;
   name: string;
   partnership_start_date?: string | null;
+  short_url_alias?: string | null;
 }
 
 
@@ -1535,7 +1536,7 @@ function OwnerPricingRuleOverviewSection() {
         const [accRes, ruleRes] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name")
+            .select("id, name, short_url_alias")
             .eq("is_active", true)
             .order("name", { ascending: true }),
           (supabase as any)
@@ -1596,6 +1597,7 @@ function OwnerPricingRuleOverviewSection() {
                 <TableHead>收行銷推廣費</TableHead>
                 <TableHead>抽成</TableHead>
                 <TableHead>免抽成來源</TableHead>
+                <TableHead className="w-10 text-right">連結</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1650,12 +1652,27 @@ function OwnerPricingRuleOverviewSection() {
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="w-10 text-right" onClick={(e) => e.stopPropagation()}>
+                        {a.short_url_alias ? (
+                          <a
+                            href={`https://pms.lakeze.com/${a.short_url_alias}/admin/owner-settlement`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`前往 ${a.name} 的業主月結`}
+                            className="inline-flex text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                     {isOpen &&
                       list.map((r) => (
                         <TableRow key={r.id} className="bg-muted/40">
                           <TableCell />
-                          <TableCell colSpan={5} className="text-sm">
+                          <TableCell colSpan={6} className="text-sm">
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                               <span className="font-medium">{r.effective_from} 起</span>
                               {cur?.id === r.id && <Badge variant="default">目前生效</Badge>}
