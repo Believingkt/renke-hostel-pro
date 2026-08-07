@@ -680,23 +680,20 @@ export default function TeamHome() {
                   .not("invited_at", "is", null)
                   .eq("kpi_month", prevMonthStartDate);
 
-                const rareSet = new Set(["SR", "SSR", "UR"]);
-                let teamOk = true;
-                for (const t of targetList) {
-                  if (t.target_count <= 0) continue;
-                  const total = ((teamKols ?? []) as any[]).filter((r) => {
-                    if (groupKey(r.venue_id, r.venue_name) !== t.key) return false;
-                    if (fulltimeSet.has(r.scout_id)) {
-                      return rareSet.has(String(r.rarity ?? "").toUpperCase());
-                    }
-                    return true;
-                  }).length;
-                  if (total < t.target_count) {
-                    teamOk = false;
-                    break;
-                  }
+                // 共用 scoutTeamAchievement：兼職全量 ＋ 正職 SR/SSR/UR 累加
+                const counts = new Map<string, { parttime: number; fulltime: number }>();
+                for (const r of ((teamKols ?? []) as any[])) {
+                  const k = groupKey(r.venue_id, r.venue_name);
+                  const full = fulltimeSet.has(r.scout_id);
+                  if (!countsTowardTeamTarget(full, r.rarity)) continue;
+                  const cur = counts.get(k) ?? { parttime: 0, fulltime: 0 };
+                  if (full) cur.fulltime += 1;
+                  else cur.parttime += 1;
+                  counts.set(k, cur);
                 }
+                const { achieved: teamOk } = evaluateTeamAchievement(targetList, counts);
                 if (teamOk) teamBonus = teamBonusAmount;
+
               }
             }
           }
