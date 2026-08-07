@@ -134,7 +134,7 @@ export function listRecentPayoutPeriods(
   for (let i = 0; i < 60; i++) {
     const prev = resolvePrevPayoutPeriod(cur);
     const key = prev.year * 12 + (prev.month - 1);
-    if (key < oldestKey || (key === oldestKey && prev.period === "25")) break;
+    if (key < oldestKey) break;
     out.push(prev);
     cur = prev;
   }
