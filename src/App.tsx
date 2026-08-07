@@ -136,6 +136,7 @@ const TeamLineOA = lazy(() => import("./pages/team/TeamLineOA"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const TravelerCdp = lazy(() => import("./pages/TravelerCdp"));
+const RemarketingAdmin = lazy(() => import("./pages/admin/RemarketingAdmin"));
 const TravelerProfileDetail = lazy(() => import("./pages/TravelerProfileDetail"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -563,6 +564,11 @@ function App() {
                     <Route path="admin/cdp/:travelerId" element={
                       <RequireModule module="customers">
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/remarketing" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/referral" element={
