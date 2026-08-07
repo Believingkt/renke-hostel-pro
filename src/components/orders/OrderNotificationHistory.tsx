@@ -134,6 +134,8 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
   const [depositCharges, setDepositCharges] = useState<DepositCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [resendingType, setResendingType] = useState<string | null>(null);
