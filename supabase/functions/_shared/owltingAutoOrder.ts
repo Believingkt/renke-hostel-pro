@@ -165,41 +165,14 @@ export async function autoCreatePendingOrder(
     }
 
     // Auto-assign units for each room row (sequential display_order pick).
-    const { data: units } = await admin
-      .from("room_units")
-      .select("id, display_order, unit_number")
-      .eq("room_type_id", roomTypeId)
-      .eq("is_active", true)
-      .order("display_order", { ascending: true })
-      .order("unit_number", { ascending: true });
-
-    const busySet = new Set<string>();
-    if (units && units.length > 0) {
-      const { data: conflicts } = await admin
-        .from("order_rooms")
-        .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-        .in("room_unit_id", units.map((u: any) => u.id))
-        .neq("orders.order_status", "cancelled")
-        .lt("orders.check_in_date", input.check_out_date)
-        .gt("orders.check_out_date", input.check_in_date);
-      for (const c of conflicts ?? []) {
-        if ((c as any).room_unit_id) busySet.add((c as any).room_unit_id);
-      }
-    }
-
-    const perRoomPrice = Math.round(total / roomQuantity);
-    const pickedIds = new Set<string>();
-    for (let i = 0; i < roomQuantity; i++) {
-      const free = (units ?? []).find((u: any) => !busySet.has(u.id) && !pickedIds.has(u.id));
-      if (free) pickedIds.add(free.id);
-      await admin.from("order_rooms").insert({
-        order_id: inserted.id,
-        room_type_id: roomTypeId,
-        quantity: 1,
-        room_price: perRoomPrice,
-        room_unit_id: free?.id ?? null,
-      });
-    }
+    await rebuildOrderRooms(admin, {
+      orderId: inserted.id,
+      roomTypeId,
+      roomQuantity,
+      total,
+      checkIn: input.check_in_date,
+      checkOut: input.check_out_date,
+    });
 
     // Link staging → order.
     await admin
