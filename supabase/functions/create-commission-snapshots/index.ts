@@ -411,6 +411,7 @@ serve(async (req) => {
         const cur = ord.currency_at_booking;
         if (cur && cur !== "TWD") continue;
         if (isExemptR(ord)) continue;
+        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) continue;
 
         out.checked++;
 
