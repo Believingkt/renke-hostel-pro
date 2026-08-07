@@ -1035,9 +1035,13 @@ export default function TeamHome() {
     };
   }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo]);
 
-  // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
-  const allMult = multipliers.all ?? 1;
-  const multOf = (bt: string) => (multipliers[bt] ?? 1) * allMult;
+  // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
+  // 各獎金資料月不同，需帶入各自的發放月，才會與「獎金管理 → 發放管理」完全一致。
+  const defaultPayoutKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
+  const scoutSalaryPayoutKey = monthInfo.currentMonthKey; // 底薪／團隊獎金：資料月＝上月 → 本月發放
+  const scoutPeriodPayoutKey = String(monthInfo.periodEnd ?? "").slice(0, 7) || defaultPayoutKey;
+  const multOf = (bt: string, payoutKey?: string) =>
+    pickMultiplier(multiplierRows, bt, payoutKey ?? defaultPayoutKey);
 
   const cards: Array<{
     key: string;
