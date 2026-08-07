@@ -28,12 +28,15 @@ interface RawEmail {
   accommodation_id: string | null;
   status: string;
   notes: string | null;
+  ingest_outcome?: string | null;
 }
 
 interface StagingLite {
   id: string;
   raw_email_id: string;
   pii_status: string;
+  review_status?: string | null;
+  modification_diff_status?: string | null;
   accommodation_id: string | null;
   accommodation_name: string | null;
   channel_source: string | null;
@@ -51,6 +54,18 @@ interface StagingLite {
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
+
+// Rows that need no action at all: modification emails with no material change,
+// or staging rows explicitly marked as ignored by the ingest pipeline / human review.
+function isNoActionNeeded(
+  raw: { ingest_outcome?: string | null } | undefined,
+  st: StagingLite | undefined,
+): boolean {
+  if (raw?.ingest_outcome && ["noop_modification", "order_updated", "order_cancelled", "ignored"].includes(raw.ingest_outcome)) return true;
+  if (st?.review_status === "ignored") return true;
+  return false;
+}
+
 
 // Channel sources that indicate the OTA email was triggered by our own push
 // (PMS → OwlNest → email back). These rows must NOT go through the fillup flow.
