@@ -967,9 +967,10 @@ function VenueClosingAssignmentSection({
       const [accRes, rowRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name")
+          .select("id, name, partnership_start_date")
           .eq("is_active", true)
           .order("name", { ascending: true }),
+
         (supabase as any)
           .from("teamcommission_venue_closing_assignments")
           .select("id, accommodation_id, member_id, effective_from, created_at")
