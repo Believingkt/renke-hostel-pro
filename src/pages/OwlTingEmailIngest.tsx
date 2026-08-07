@@ -28,12 +28,15 @@ interface RawEmail {
   accommodation_id: string | null;
   status: string;
   notes: string | null;
+  ingest_outcome?: string | null;
 }
 
 interface StagingLite {
   id: string;
   raw_email_id: string;
   pii_status: string;
+  review_status?: string | null;
+  modification_diff_status?: string | null;
   accommodation_id: string | null;
   accommodation_name: string | null;
   channel_source: string | null;
@@ -51,6 +54,18 @@ interface StagingLite {
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
+
+// Rows that need no action at all: modification emails with no material change,
+// or staging rows explicitly marked as ignored by the ingest pipeline / human review.
+function isNoActionNeeded(
+  raw: { ingest_outcome?: string | null } | undefined,
+  st: StagingLite | undefined,
+): boolean {
+  if (raw?.ingest_outcome && ["noop_modification", "order_updated", "order_cancelled", "ignored"].includes(raw.ingest_outcome)) return true;
+  if (st?.review_status === "ignored") return true;
+  return false;
+}
+
 
 // Channel sources that indicate the OTA email was triggered by our own push
 // (PMS → OwlNest → email back). These rows must NOT go through the fillup flow.
@@ -121,7 +136,7 @@ export default function OwlTingEmailIngest() {
     // RLS additionally enforces this at the database layer.
     const { data: list } = await supabase
       .from("owlting_email_orders_raw")
-      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes")
+      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes,ingest_outcome")
       .eq("accommodation_id", currentAccommodationId)
       .order("received_at", { ascending: false })
       .limit(50);
@@ -131,7 +146,7 @@ export default function OwlTingEmailIngest() {
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
+        .select("id,raw_email_id,pii_status,review_status,modification_diff_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
         .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
 
@@ -346,7 +361,8 @@ export default function OwlTingEmailIngest() {
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
                 const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
                 const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
@@ -378,8 +394,10 @@ export default function OwlTingEmailIngest() {
                     <TableCell className="text-xs">
                       {st ? (
                         <div className="flex flex-col gap-1">
-                          <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
-                            {selfPush && !alreadyLinked
+                          <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
+                            {noAction
+                              ? "無異動、不需補單"
+                              : selfPush && !alreadyLinked
                               ? "自家訂單、無需補單"
                               : PII_LABEL[st.pii_status] ?? st.pii_status}
                           </Badge>
@@ -420,7 +438,7 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {selfPush ? (
+                        {noAction ? null : selfPush ? (
                           !alreadyLinked && st ? (
                             <Button
                               size="sm"
@@ -508,7 +526,8 @@ export default function OwlTingEmailIngest() {
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
                 const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
                 return (
                   <div key={r.id} className="rounded-lg border p-3 space-y-2 bg-card">
                     <div className="flex items-start justify-between gap-2">
@@ -528,8 +547,8 @@ export default function OwlTingEmailIngest() {
 
                     {st && (
                       <div className="flex flex-wrap gap-1 items-center">
-                        <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
-                          {selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
+                        <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
+                          {noAction ? "無異動、不需補單" : selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
                         </Badge>
                         {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
                           <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400 max-w-full whitespace-normal break-all leading-tight h-auto py-0.5">
@@ -549,7 +568,7 @@ export default function OwlTingEmailIngest() {
                       <Button size="sm" variant="outline" className="w-full h-10 justify-center" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
                         <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                       </Button>
-                      {selfPush ? (
+                      {noAction ? null : selfPush ? (
                         !alreadyLinked && st ? (
                           <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
                             {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
