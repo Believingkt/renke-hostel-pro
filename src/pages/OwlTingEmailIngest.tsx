@@ -361,7 +361,8 @@ export default function OwlTingEmailIngest() {
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
                 const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
                 const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
@@ -393,8 +394,10 @@ export default function OwlTingEmailIngest() {
                     <TableCell className="text-xs">
                       {st ? (
                         <div className="flex flex-col gap-1">
-                          <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
-                            {selfPush && !alreadyLinked
+                          <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
+                            {noAction
+                              ? "無異動、不需補單"
+                              : selfPush && !alreadyLinked
                               ? "自家訂單、無需補單"
                               : PII_LABEL[st.pii_status] ?? st.pii_status}
                           </Badge>
@@ -435,7 +438,7 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {selfPush ? (
+                        {noAction ? null : selfPush ? (
                           !alreadyLinked && st ? (
                             <Button
                               size="sm"
@@ -523,7 +526,8 @@ export default function OwlTingEmailIngest() {
                 const selfPush = isSelfPushSource(st?.channel_source);
                 const alreadyLinked = st?.pii_status === "self_pushed";
                 const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
-                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush;
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
                 return (
                   <div key={r.id} className="rounded-lg border p-3 space-y-2 bg-card">
                     <div className="flex items-start justify-between gap-2">
@@ -543,8 +547,8 @@ export default function OwlTingEmailIngest() {
 
                     {st && (
                       <div className="flex flex-wrap gap-1 items-center">
-                        <Badge variant={PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
-                          {selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
+                        <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
+                          {noAction ? "無異動、不需補單" : selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
                         </Badge>
                         {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
                           <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400 max-w-full whitespace-normal break-all leading-tight h-auto py-0.5">
@@ -564,7 +568,7 @@ export default function OwlTingEmailIngest() {
                       <Button size="sm" variant="outline" className="w-full h-10 justify-center" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
                         <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                       </Button>
-                      {selfPush ? (
+                      {noAction ? null : selfPush ? (
                         !alreadyLinked && st ? (
                           <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
                             {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
