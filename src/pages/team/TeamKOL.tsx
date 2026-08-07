@@ -4149,7 +4149,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     if (venueNames.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, rarity")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -4179,24 +4179,35 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       return selectedYM < start;
     };
 
-    const filteredKolData = kolData.filter((k) => isParttimeForMonth(k.scout_id));
     const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
     const allKol = filteredAllKol;
 
-    // 團隊實際統計
-    const teamActual = new Map<string, number>();
-    filteredKolData.forEach((k) => {
-      if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
+    // 團隊實際統計：正職 / 兼職共用同一目標，實際數為「兼職全量 ＋ 正職 SR↑」累加
+    const teamCounts = new Map<string, { parttime: number; fulltime: number }>();
+    kolData.forEach((k) => {
+      if (!k.venue_name) return;
+      const full = !isParttimeForMonth(k.scout_id);
+      if (!countsTowardTeamTarget(full, k.rarity)) return;
+      const cur = teamCounts.get(k.venue_name) ?? { parttime: 0, fulltime: 0 };
+      if (full) cur.fulltime += 1;
+      else cur.parttime += 1;
+      teamCounts.set(k.venue_name, cur);
     });
 
-    const tRows: TeamTargetRow[] = (settings as any[]).map((s) => ({
-      id: s.id,
-      venue_name: s.venue_name ?? "-",
-      target_count: s.target_count ?? 0,
-      personal_min: s.personal_min,
-      is_starlink: !!s.is_starlink,
-      actual_count: teamActual.get(s.venue_name) ?? 0,
-    }));
+    const tRows: TeamTargetRow[] = (settings as any[]).map((s) => {
+      const c = teamCounts.get(s.venue_name) ?? { parttime: 0, fulltime: 0 };
+      return {
+        id: s.id,
+        venue_name: s.venue_name ?? "-",
+        target_count: s.target_count ?? 0,
+        personal_min: s.personal_min,
+        is_starlink: !!s.is_starlink,
+        actual_count: c.parttime + c.fulltime,
+        parttime_count: c.parttime,
+        fulltime_count: c.fulltime,
+      };
+    });
+
     tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
     setTeamRows(tRows);
 
