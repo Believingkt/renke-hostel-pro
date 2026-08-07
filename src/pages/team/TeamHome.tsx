@@ -26,7 +26,6 @@ import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeam
 import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
 import {
   resolveNextPayoutPeriod,
-  resolvePrevPayoutPeriod,
   listRecentPayoutPeriods,
   resolveFollowingPayoutPeriod,
 } from "@/lib/scoutPayoutPeriod";
@@ -252,7 +251,6 @@ export default function TeamHome() {
   const periodOptions = useMemo(() => listRecentPayoutPeriods(6), []);
   const [periodIndex, setPeriodIndex] = useState(0);
   const activePeriod = periodOptions[periodIndex] ?? periodOptions[0];
-  const viewingPrev = periodIndex > 0;
   const followingPeriod = useMemo(
     () => resolveFollowingPayoutPeriod(activePeriod),
     [activePeriod],
