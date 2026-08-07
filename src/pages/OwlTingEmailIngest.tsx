@@ -136,7 +136,7 @@ export default function OwlTingEmailIngest() {
     // RLS additionally enforces this at the database layer.
     const { data: list } = await supabase
       .from("owlting_email_orders_raw")
-      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes")
+      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes,ingest_outcome")
       .eq("accommodation_id", currentAccommodationId)
       .order("received_at", { ascending: false })
       .limit(50);
@@ -146,7 +146,7 @@ export default function OwlTingEmailIngest() {
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
+        .select("id,raw_email_id,pii_status,review_status,modification_diff_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
         .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
 
