@@ -4003,7 +4003,10 @@ interface TeamTargetRow {
   personal_min: number | null;
   is_starlink: boolean;
   actual_count: number;
+  parttime_count: number;
+  fulltime_count: number;
 }
+
 
 interface PersonalRow {
   scout_id: string;
