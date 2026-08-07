@@ -1042,13 +1042,38 @@ export default function TeamHome() {
               Number(vs?.fixed_amount ?? 0) * myManagedAccIdsExcludingTravelDays.length;
           }
 
-          // (2) 成交組績效獎金：全公司營收 × rate
+          // (2) 成交組績效獎金：全公司營收 × rate，由資料月底仍在職的成交組成員均分
           if (showCloser && isMonthlyPayout) {
             const s = rateSettings.closer_performance;
             if (!s || s.rate == null) missing.closer_performance = true;
-            closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
-            breakdown.closer_performance = linesOf(companyByAcc, Number(s?.rate ?? 0));
+            const monthLastDateStr = `${monthStartDate.slice(0, 7)}-31`;
+            let headcount = 1;
+            try {
+              const { data: closerRoles } = await db
+                .from("user_roles")
+                .select("user_id, role")
+                .in("role", ["closer", "closer_manager"] as any);
+              const userIds = Array.from(
+                new Set(((closerRoles ?? []) as any[]).map((r) => r?.user_id).filter(Boolean)),
+              );
+              if (userIds.length > 0) {
+                const { data: profs } = await db
+                  .from("team_member_profiles")
+                  .select("user_id, resigned_at")
+                  .in("user_id", userIds as string[]);
+                const active = ((profs ?? []) as any[]).filter(
+                  (p) => !p?.resigned_at || String(p.resigned_at).slice(0, 10) > monthLastDateStr,
+                );
+                if (active.length > 0) headcount = active.length;
+              }
+            } catch {
+              /* 讀不到人數時退回不均分，避免整頁計算中斷 */
+            }
+            const perHeadRate = Number(s?.rate ?? 0) / headcount;
+            closerPerfSum = companyRevenue * perHeadRate;
+            breakdown.closer_performance = linesOf(companyByAcc, perHeadRate);
           }
+
 
           // (3) AM 總管獎金：全公司營收 × rate（抽成制）
           if (amManagerFlag && isMonthlyPayout) {
