@@ -216,6 +216,8 @@ serve(async (req) => {
 
       // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
       const isExempt = await buildExemptResolver(supabase, accIds as string[]);
+      // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
+      const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
 
       // 5) Build snapshot rows
       const toInsert: any[] = [];
