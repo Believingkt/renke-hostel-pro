@@ -446,8 +446,26 @@ Deno.serve(async (req) => {
         });
         console.log("[owlting-email-ingest] modification apply result", modRes);
 
+        // Self-push（人客多 → 奧丁丁 → 回信）絕不補單，避免重複佔位。
+        const chSrcMod = (fields.channel_source ?? "").trim().toLowerCase();
+        const isSelfPushMod = chSrcMod.includes("人客多") || chSrcMod.includes("lakeze");
+
         // 找不到既有訂單 → 退回自動建單（首次補單）
-        if (!modRes.ok && modRes.skipped_reason === "order_not_found" && resolvedAccId) {
+        if (!modRes.ok && modRes.skipped_reason === "order_not_found" && isSelfPushMod) {
+          console.warn("[owlting-email-ingest] self-push modification: order not found, skip fallback create", {
+            obe: fields.obe_number,
+          });
+          await supabase.from("owlting_email_parsed_staging").update({
+            pii_status: "manual_review",
+            review_notes: `[self-push] 修改通知找不到對應本站訂單，已略過補單（${fields.check_in_date}~${fields.check_out_date}, ${fields.total_amount}）`,
+          }).eq("id", stagingRow.id);
+          await recordOutcome(supabase, inserted.id, "noop_modification", {
+            obe_number: fields.obe_number,
+            reason: "self_push_no_local_order",
+            diff_status: diffStatus,
+          });
+        } else if (!modRes.ok && modRes.skipped_reason === "order_not_found" && resolvedAccId) {
+
           const fallback = await autoCreatePendingOrder(supabase, {
             raw_email_id: inserted.id,
             staging_id: stagingRow.id,
