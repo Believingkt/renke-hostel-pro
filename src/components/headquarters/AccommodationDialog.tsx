@@ -121,6 +121,9 @@ export function AccommodationDialog({
   const [depositPercentage, setDepositPercentage] = useState<number>(30);
   const [loadingDeposit, setLoadingDeposit] = useState(false);
   const savedDepositRef = useRef<number>(30);
+  const [securityDeposit, setSecurityDeposit] = useState<number>(5000);
+  const [loadingSecurityDeposit, setLoadingSecurityDeposit] = useState(false);
+  const savedSecurityDepositRef = useRef<number>(5000);
 
   // Transaction fee percentage state
   const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
