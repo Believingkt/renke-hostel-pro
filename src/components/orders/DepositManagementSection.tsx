@@ -118,24 +118,29 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("refund-deposit", {
-        body: { orderId, amount },
-      });
+      // 押金一律為現場現金，退款直接記錄於訂單（不走金流退刷）
+      const refundedTotal = deposit.deposit_refunded_amount + amount;
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          deposit_refunded_amount: refundedTotal,
+          deposit_refunded_at: new Date().toISOString(),
+          deposit_status:
+            refundedTotal >= deposit.deposit_charged_amount ? "refunded" : "partially_refunded",
+        })
+        .eq("id", orderId);
       if (error) throw error;
-      if (!data?.success) {
-        toast({ variant: "destructive", title: "退款失敗", description: data?.message });
-      } else {
-        toast({ title: "退款成功", description: `已退款 NT$${amount}` });
-        setRefundOpen(false);
-        await load();
-        onRefresh?.();
-      }
+      toast({ title: "退款已記錄", description: `現金退還 NT$${amount.toLocaleString()}` });
+      setRefundOpen(false);
+      await load();
+      onRefresh?.();
     } catch (e: any) {
       toast({ variant: "destructive", title: "退款失敗", description: e?.message });
     } finally {
       setSubmitting(false);
     }
   };
+
 
 
   return (
