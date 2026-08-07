@@ -362,7 +362,7 @@ export default function TeamHome() {
 
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
-        if (showCloser) {
+        if (showCloser && isMonthlyPayout) {
           const { data: partnerCodes } = await db
             .from("scout_discount_codes")
             .select("discount_code, closer_rate")
@@ -417,7 +417,7 @@ export default function TeamHome() {
         let closerTeamBonusRateVal = 0;
         let closerTeamBonusNoSet = false;
         let closerTeamBonusFinalizedFlag = false;
-        if (showCloser) {
+        if (showCloser && isMonthlyPayout) {
           const { data: bonusSetting } = await db
             .from("closer_team_bonus_settings")
             .select("bonus_rate, effective_from")
@@ -746,7 +746,7 @@ export default function TeamHome() {
         // ===== Franchise =====
         let franchiseInternalSum = 0;
         let franchiseExternalSum = 0;
-        if (showFranchise) {
+        if (showFranchise && isMonthlyPayout) {
           // Widen fetch to ±3 months so we can pick up early_payout_month rows via JS filter
           const wideStart = taipeiDateStr(prevY, prevM, 1);
           const nextY3 = monthInfo.y + (monthInfo.m + 3 > 12 ? 1 : 0);
@@ -803,7 +803,7 @@ export default function TeamHome() {
 
         // ===== Starlink =====
         let starlinkSum = 0;
-        if (showStarlink) {
+        if (showStarlink && isMonthlyPayout) {
           const { data: slOrders } = await db
             .from("starlink_orders")
             .select("commission_amount, sold_by, payment_confirmed, sold_at")
