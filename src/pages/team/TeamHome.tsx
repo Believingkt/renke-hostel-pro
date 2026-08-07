@@ -202,49 +202,59 @@ export default function TeamHome() {
   const [revenueBreakdown, setRevenueBreakdown] = useState<Record<string, VenueRevenueLine[]>>({});
   const [detailCardKey, setDetailCardKey] = useState<string | null>(null);
   const [missingRates, setMissingRates] = useState<Record<string, boolean>>({});
+  // 星探系是否來自後端正式試算（scout_monthly_payouts）
+  const [scoutFromPayout, setScoutFromPayout] = useState(false);
+  // 月結系是否已由後端結算（snapshot 存在）
+  const [monthlySettled, setMonthlySettled] = useState(false);
+
+  // ===== 期別（台北時間）=====
+  const nextPeriod = useMemo(() => resolveNextPayoutPeriod(), []);
+  const prevPeriod = useMemo(() => resolvePrevPayoutPeriod(nextPeriod), [nextPeriod]);
+  const [viewingPrev, setViewingPrev] = useState(false);
+  const activePeriod = viewingPrev ? prevPeriod : nextPeriod;
+  const followingPeriod = useMemo(
+    () => resolveFollowingPayoutPeriod(activePeriod),
+    [activePeriod],
+  );
 
   const monthInfo = useMemo(() => {
+    const p = activePeriod;
     const now = taipeiParts();
-    const nextY = now.m === 12 ? now.y + 1 : now.y;
-    const nextM = now.m === 12 ? 1 : now.m + 1;
-    const prevY = now.m === 1 ? now.y - 1 : now.y;
-    const prevM = now.m === 1 ? 12 : now.m - 1;
-
-    // 期別判斷：日 <=20 → 當月 25 日期（當月 6 - 當月 20）
-    //           日 >20  → 次月 10 日期（當月 21 - 次月 5）
-    const isEarlyPeriod = now.d <= 20;
-    let periodStart: string;
-    let periodEnd: string;
-    let periodLabel: string;
-    if (isEarlyPeriod) {
-      periodStart = taipeiDateStr(now.y, now.m, 6);
-      periodEnd = taipeiDateStr(now.y, now.m, 20);
-      periodLabel = `${now.m} 月 25 日期預估（${now.m}/6 - ${now.m}/20 入住）`;
-    } else {
-      periodStart = taipeiDateStr(now.y, now.m, 21);
-      periodEnd = taipeiDateStr(nextY, nextM, 5);
-      periodLabel = `${nextM} 月 10 日期預估（${now.m}/21 - ${nextM}/5 入住）`;
-    }
+    // 月結型資料月 ＝ 發放月 - 1
+    const dY = p.dataYear;
+    const dM = p.dataMonth;
+    // 資料月的前一個月（加盟寬鬆抓取用）
+    const prevY = dM === 1 ? dY - 1 : dY;
+    const prevM = dM === 1 ? 12 : dM - 1;
 
     return {
-      y: now.y,
-      m: now.m,
+      // 月結型資料月
+      y: dY,
+      m: dM,
       today: taipeiDateStr(now.y, now.m, now.d),
-      currentMonthKey: `${now.y}-${String(now.m).padStart(2, "0")}`,
-      monthStartIso: taipeiMidnightUtcISO(now.y, now.m, 1),
-      monthEndIso: taipeiMidnightUtcISO(nextY, nextM, 1),
-      monthStartDate: taipeiDateStr(now.y, now.m, 1),
-      monthEndDate: taipeiDateStr(nextY, nextM, 1),
-      prevMonthStartDate: taipeiDateStr(prevY, prevM, 1),
-      prevMonthEndDate: taipeiDateStr(now.y, now.m, 1),
+      currentMonthKey: p.dataMonthKey,
+      monthStartIso: taipeiMidnightUtcISO(dY, dM, 1),
+      monthEndIso: taipeiMidnightUtcISO(p.year, p.month, 1),
+      monthStartDate: taipeiDateStr(dY, dM, 1),
+      monthEndDate: taipeiDateStr(p.year, p.month, 1),
+      // 星探底薪／團隊獎金：kpi_month ＝ 發放月 - 1（＝資料月）
+      prevMonthStartDate: taipeiDateStr(dY, dM, 1),
+      prevMonthEndDate: taipeiDateStr(p.year, p.month, 1),
       prevY,
       prevM,
-      periodStart,
-      periodEnd,
-      periodLabel,
-      nextMonthLabel: `${nextY} 年 ${nextM} 月`,
+      // 發放期別
+      payoutY: p.year,
+      payoutM: p.month,
+      period: p.period,
+      payoutMonthKey: p.payoutMonthKey,
+      isMonthlyPayout: p.isMonthlyPayout,
+      periodStart: p.periodStart,
+      periodEnd: p.periodEnd,
+      periodLabel: `${p.label}（資料窗 ${p.windowLabel}）`,
+      dataMonthLabel: `${dY} 年 ${dM} 月`,
+      payoutLabel: p.label,
     };
-  }, []);
+  }, [activePeriod]);
 
   useEffect(() => {
     if (!anyCard) {
