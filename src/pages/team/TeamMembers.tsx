@@ -106,6 +106,7 @@ interface MemberRow {
   id: string; // team_member_profiles.id (PK)
   user_id: string | null;
   display_name: string;
+  resigned_at?: string | null;
   email: string;
   is_active: boolean;
   roles: TeamRole[];
@@ -191,6 +192,7 @@ export default function TeamMembers() {
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
+  const [editResignedAt, setEditResignedAt] = useState("");
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editAmAccommodations, setEditAmAccommodations] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
@@ -218,7 +220,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue, am_managed_accommodation_ids, is_scout_team_member, employment_type, fulltime_start_yearmonth")
+      .select("id, user_id, display_name, is_active, managed_venue, am_managed_accommodation_ids, is_scout_team_member, employment_type, fulltime_start_yearmonth, resigned_at")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -261,6 +263,7 @@ export default function TeamMembers() {
       display_name: p.display_name,
       email: p.user_id ? (emailMap.get(p.user_id) ?? "") : "",
       is_active: p.is_active ?? true,
+      resigned_at: ((p as { resigned_at?: string | null }).resigned_at ?? null),
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
       am_managed_accommodation_ids:
@@ -464,6 +467,7 @@ export default function TeamMembers() {
     setEditName(m.display_name);
     setEditRoles(m.roles);
     setEditActive(m.is_active);
+    setEditResignedAt(m.resigned_at ? String(m.resigned_at).slice(0, 10) : "");
     setEditVenues(m.managed_venue ?? []);
     setEditAmAccommodations(m.am_managed_accommodation_ids ?? []);
     setEditScoutTeam(m.is_scout_team_member);
@@ -605,6 +609,7 @@ export default function TeamMembers() {
           .update({
             display_name: editName.trim(),
             is_active: editActive,
+            resigned_at: editResignedAt || null,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             am_managed_accommodation_ids:
               editRoles.includes("am" as TeamRole) && editAmAccommodations.length > 0 ? editAmAccommodations : null,
@@ -1198,11 +1203,27 @@ export default function TeamMembers() {
               )}
 
               {canEditAll && (
-                <div className="flex items-center justify-between border-t pt-4">
-                  <Label htmlFor="active-switch">啟用狀態</Label>
-                  <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="active-switch">啟用狀態</Label>
+                    <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="resigned-at">離職生效日</Label>
+                    <Input
+                      id="resigned-at"
+                      type="date"
+                      value={editResignedAt}
+                      onChange={(e) => setEditResignedAt(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      留白＝在職。離職生效日之後的資料月不列入成交組績效均分與管理職獎金；
+                      個人歸屬的訂單分潤（如成交大師個人分潤）仍依原成交人計算。
+                    </p>
+                  </div>
                 </div>
               )}
+
             </div>
 
             <SheetFooter className="flex flex-row justify-between gap-2 pt-2 border-t">

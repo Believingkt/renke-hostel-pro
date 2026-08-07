@@ -947,6 +947,16 @@ interface VenueAssignmentRow {
   created_at: string;
 }
 
+interface PartnershipPeriodRow {
+  id: string;
+  accommodation_id: string;
+  start_date: string;
+  end_date: string | null;
+  bonus_policy: "full" | "none";
+  note: string | null;
+}
+
+
 function VenueClosingAssignmentSection({
   members,
   memberName,
@@ -958,17 +968,25 @@ function VenueClosingAssignmentSection({
 }) {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
+  const [periods, setPeriods] = useState<PartnershipPeriodRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [dialogAcc, setDialogAcc] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string>("none");
   const [effectiveFrom, setEffectiveFrom] = useState(taipeiToday());
   const [saving, setSaving] = useState(false);
+  const [periodAcc, setPeriodAcc] = useState<string | null>(null);
+  const [pStart, setPStart] = useState(taipeiToday());
+  const [pEnd, setPEnd] = useState("");
+  const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
+  const [pNote, setPNote] = useState("");
+  const [pSaving, setPSaving] = useState(false);
+
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [accRes, rowRes] = await Promise.all([
+      const [accRes, rowRes, periodRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, partnership_start_date")
@@ -979,6 +997,11 @@ function VenueClosingAssignmentSection({
           .from("teamcommission_venue_closing_assignments")
           .select("id, accommodation_id, member_id, effective_from, created_at")
           .order("effective_from", { ascending: false }),
+
+        (supabase as any)
+          .from("accommodation_partnership_periods")
+          .select("id, accommodation_id, start_date, end_date, bonus_policy, note")
+          .order("start_date", { ascending: false }),
       ]);
       setAccs(
         ((accRes.data ?? []) as AccOption[]).filter(
@@ -986,6 +1009,8 @@ function VenueClosingAssignmentSection({
         ),
       );
       setRows((rowRes.data ?? []) as VenueAssignmentRow[]);
+      setPeriods((periodRes.data ?? []) as PartnershipPeriodRow[]);
+
     } catch (e: any) {
       toast.error("讀取場域簽約人失敗：" + (e?.message ?? ""));
     } finally {
@@ -1044,20 +1069,61 @@ function VenueClosingAssignmentSection({
 
   const accName = (id: string) => accs.find((a) => a.id === id)?.name ?? id.slice(0, 8);
 
-  async function savePartnership(accId: string, value: string) {
-    const next = value ? value : null;
-    const { error } = await supabase
-      .from("accommodation_info")
-      .update({ partnership_start_date: next })
-      .eq("id", accId);
-    if (error) return toast.error("儲存合作生效日失敗：" + error.message);
-    setAccs((prev) =>
-      prev.map((a) => (a.id === accId ? { ...a, partnership_start_date: next } : a)),
-    );
-    toast.success("已更新合作生效日");
-  }
+  const periodsByAcc = useMemo(() => {
+    const m = new Map<string, PartnershipPeriodRow[]>();
+    for (const p of periods) {
+      const arr = m.get(p.accommodation_id) ?? [];
+      arr.push(p);
+      m.set(p.accommodation_id, arr);
+    }
+    for (const [, arr] of m) arr.sort((a, b) => (a.start_date < b.start_date ? 1 : -1));
+    return m;
+  }, [periods]);
 
   const today = taipeiToday();
+
+  const currentPeriod = (accId: string) =>
+    (periodsByAcc.get(accId) ?? []).find(
+      (p) => p.start_date <= today && (!p.end_date || p.end_date >= today),
+    ) ?? null;
+
+  function openPeriodDialog(accId: string) {
+    setPStart(today);
+    setPEnd("");
+    setPPolicy("full");
+    setPNote("");
+    setPeriodAcc(accId);
+  }
+
+  async function submitPeriod() {
+    if (!periodAcc || !pStart) return toast.error("請填寫開始日");
+    if (pEnd && pEnd < pStart) return toast.error("結束日不可早於開始日");
+    setPSaving(true);
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .insert({
+        accommodation_id: periodAcc,
+        start_date: pStart,
+        end_date: pEnd || null,
+        bonus_policy: pPolicy,
+        note: pNote || null,
+      });
+    setPSaving(false);
+    if (error) return toast.error("新增合作期間失敗：" + error.message);
+    toast.success("已新增合作期間");
+    setPeriodAcc(null);
+    load();
+  }
+
+  async function endPeriod(period: PartnershipPeriodRow) {
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .update({ end_date: today })
+      .eq("id", period.id);
+    if (error) return toast.error("結束合作期間失敗：" + error.message);
+    toast.success("已將合作期間結束於今日");
+    load();
+  }
 
   return (
     <Card>
@@ -1065,7 +1131,7 @@ function VenueClosingAssignmentSection({
         <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
         <p className="text-sm text-muted-foreground">
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
-          「合作生效日」為該館所有團隊獎金的採計起算日；未設定者一律不計入任何團隊獎金。
+          「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
         </p>
       </CardHeader>
       <CardContent>
@@ -1075,7 +1141,7 @@ function VenueClosingAssignmentSection({
               <TableRow>
                 <TableHead className="w-10" />
                 <TableHead>館別</TableHead>
-                <TableHead>合作生效日</TableHead>
+                <TableHead>目前合作期間</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead>目前簽約人</TableHead>
                 <TableHead>簽約人指派日</TableHead>
@@ -1087,7 +1153,9 @@ function VenueClosingAssignmentSection({
                 const history = byAcc.get(a.id) ?? [];
                 const cur = pickCurrent(history);
                 const isOpen = expanded.has(a.id);
-                const p = a.partnership_start_date ?? "";
+                const accPeriods = periodsByAcc.get(a.id) ?? [];
+                const curPeriod = currentPeriod(a.id);
+                const upcoming = accPeriods.find((p) => p.start_date > today);
                 return (
                   <Fragment key={a.id}>
                     <TableRow>
@@ -1101,28 +1169,41 @@ function VenueClosingAssignmentSection({
                         </Button>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{a.name}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="date"
-                          className="w-[150px]"
-                          value={p}
-                          onChange={(e) => savePartnership(a.id, e.target.value)}
-                        />
+                      <TableCell className="whitespace-nowrap">
+                        {curPeriod
+                          ? `${curPeriod.start_date} ~ ${curPeriod.end_date ?? "迄今"}`
+                          : upcoming
+                            ? `${upcoming.start_date} 起（待生效）`
+                            : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {!p ? (
-                          <Badge variant="destructive">未設定合作日</Badge>
-                        ) : p > today ? (
+                        {curPeriod && curPeriod.bonus_policy === "full" ? (
+                          <Badge>合作中</Badge>
+                        ) : curPeriod ? (
+                          <Badge variant="secondary">合作中（不採計）</Badge>
+                        ) : upcoming ? (
                           <Badge variant="secondary">待生效</Badge>
+                        ) : accPeriods.length > 0 ? (
+                          <Badge variant="outline">已暫停</Badge>
                         ) : (
-                          <Badge>已生效</Badge>
+                          <Badge variant="destructive">未設定合作期間</Badge>
                         )}
                       </TableCell>
+
                       <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {cur?.effective_from ?? "—"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="space-x-2 text-right whitespace-nowrap">
+                        <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
+                          <Plus className="mr-1 h-4 w-4" />
+                          合作期間
+                        </Button>
+                        {curPeriod && !curPeriod.end_date && (
+                          <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
+                            結束合作
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
                           <Plus className="mr-1 h-4 w-4" />
                           新增版本
@@ -1132,10 +1213,35 @@ function VenueClosingAssignmentSection({
 
                     {isOpen && (
                       <TableRow>
-                        <TableCell colSpan={7} className="bg-muted/30">
+                        <TableCell colSpan={7} className="space-y-4 bg-muted/30">
+                          <div>
+                            <div className="mb-1 text-sm font-medium">合作期間</div>
+                            {accPeriods.length === 0 ? (
+                              <div className="py-1 text-sm text-muted-foreground">尚無合作期間</div>
+                            ) : (
+                              <ul className="space-y-1 text-sm">
+                                {accPeriods.map((p) => (
+                                  <li key={p.id} className="flex items-center gap-2">
+                                    <span className="whitespace-nowrap">
+                                      {p.start_date} ~ {p.end_date ?? "迄今"}
+                                    </span>
+                                    {p.bonus_policy === "none" ? (
+                                      <Badge variant="secondary">不採計獎金</Badge>
+                                    ) : (
+                                      <Badge variant="outline">採計</Badge>
+                                    )}
+                                    {p.note && (
+                                      <span className="text-muted-foreground">{p.note}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                           {history.length === 0 ? (
                             <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
+
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -1218,7 +1324,54 @@ function VenueClosingAssignmentSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!periodAcc} onOpenChange={(o) => !o && setPeriodAcc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增合作期間：{periodAcc ? accName(periodAcc) : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>開始日</Label>
+              <Input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>結束日（留白＝持續合作中）</Label>
+              <Input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>獎金採計</Label>
+              <Select value={pPolicy} onValueChange={(v) => setPPolicy(v as "full" | "none")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">正常採計</SelectItem>
+                  <SelectItem value="none">合作中但不發獎金</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>備註</Label>
+              <Input
+                value={pNote}
+                placeholder="例：暫停合作／重啟合作原因"
+                onChange={(e) => setPNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPeriodAcc(null)}>
+              取消
+            </Button>
+            <Button onClick={submitPeriod} disabled={pSaving}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+
   );
 }
 

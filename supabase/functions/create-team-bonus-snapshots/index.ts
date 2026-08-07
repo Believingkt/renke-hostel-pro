@@ -140,36 +140,202 @@ async function getRevenueSourceWhitelist(
 
 const CHUNK = 500;
 
+/** 團隊獎金口徑切換生效資料月（含當月起改用入住營收，與業主月結一致） */
+const STAY_REVENUE_SWITCH_MONTH = "2026-09-01";
+
+interface CountableRange {
+  start: string;
+  end: string; // 排他
+}
+
+function addOneDay(date: string): string {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + 1)).toISOString().slice(0, 10);
+}
+
+function nightsBetween(ci: string, co: string): number {
+  const a = Date.parse(`${ci}T00:00:00Z`);
+  const b = Date.parse(`${co}T00:00:00Z`);
+  return Math.max(1, Math.round((b - a) / 86_400_000));
+}
+
 /**
- * 各館別「合作生效日 P」（accommodation_info.partnership_start_date）。
- * 未設定者不會出現在回傳物件 —— 代表該館一律不計入任何團隊獎金。
+ * 各館別在資料月內「可採計的日期區間」。
+ * 來源：accommodation_partnership_periods（可暫停／重啟；bonus_policy = 'none' 不採計）。
+ * 沒有任何有效區間的館別 —— 一律不計入任何團隊獎金。
  */
-async function getPartnershipStartDates(
+async function getCountableRangesByAcc(
   client: any,
   accommodationIds: string[],
-): Promise<Record<string, string>> {
+  monthStartDate: string,
+  monthEndDate: string,
+): Promise<Record<string, CountableRange[]>> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
-  const out: Record<string, string> = {};
+  const out: Record<string, CountableRange[]> = {};
   if (accIds.length === 0) return out;
 
   for (let i = 0; i < accIds.length; i += CHUNK) {
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
-      .from("accommodation_info")
-      .select("id, partnership_start_date")
-      .in("id", slice);
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .in("accommodation_id", slice);
     for (const row of (data ?? []) as any[]) {
-      const p = row?.partnership_start_date;
-      if (!p) continue;
-      out[String(row.id)] = String(p).slice(0, 10);
+      const accId = String(row?.accommodation_id ?? "");
+      if (!accId || !row?.start_date) continue;
+      if (row?.bonus_policy === "none") continue;
+      const ps = String(row.start_date).slice(0, 10);
+      const pe = row.end_date ? addOneDay(String(row.end_date).slice(0, 10)) : monthEndDate;
+      const start = ps > monthStartDate ? ps : monthStartDate;
+      const end = pe < monthEndDate ? pe : monthEndDate;
+      if (start >= end) continue;
+      const list = out[accId] ?? [];
+      list.push({ start, end });
+      out[accId] = list;
+    }
+  }
+  return out;
+}
+
+/** 只加總「被館別設定為不列入抽成」的增值服務金額 */
+function excludedAddonTotal(
+  details: unknown,
+  excludedIds: string[],
+  excludedTypes: string[],
+): number {
+  if (!Array.isArray(details)) return 0;
+  if (excludedIds.length === 0 && excludedTypes.length === 0) return 0;
+  let sum = 0;
+  for (const item of details) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const addonId = rec.addon_id ? String(rec.addon_id) : "";
+    const matched = addonId
+      ? excludedIds.includes(addonId)
+      : excludedTypes.includes(String(rec.addon_type ?? ""));
+    if (matched) sum += Number(rec.total ?? 0) || 0;
+  }
+  return sum;
+}
+
+function toArr(v: unknown): string[] {
+  return Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : [];
+}
+
+/** 各館別當月生效的業主月結規則（exempt 來源 + 不列入抽成的增值服務） */
+async function getOwnerRules(
+  client: any,
+  accIds: string[],
+  monthStartDate: string,
+): Promise<Record<string, { exempt: string[]; addonIds: string[]; addonTypes: string[] }>> {
+  const out: Record<string, { exempt: string[]; addonIds: string[]; addonTypes: string[] }> = {};
+  if (accIds.length === 0) return out;
+  const byAcc = new Map<string, any[]>();
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const { data } = await client
+      .from("owner_settlement_pricing_rules")
+      .select(
+        "accommodation_id, effective_from, created_at, exempt_order_sources, commission_excluded_addon_ids, commission_excluded_addon_types",
+      )
+      .in("accommodation_id", accIds.slice(i, i + CHUNK))
+      .lte("effective_from", monthStartDate);
+    for (const row of (data ?? []) as any[]) {
+      const key = row?.accommodation_id;
+      if (!key) continue;
+      const list = byAcc.get(key) ?? [];
+      list.push(row);
+      byAcc.set(key, list);
+    }
+  }
+  for (const [accId, list] of byAcc) {
+    const latest = pickCurrent(list, monthStartDate);
+    out[accId] = {
+      exempt: toArr(latest?.exempt_order_sources),
+      addonIds: toArr(latest?.commission_excluded_addon_ids),
+      addonTypes: toArr(latest?.commission_excluded_addon_types),
+    };
+  }
+  return out;
+}
+
+/** 入住營收口徑（逐夜攤提、扣除設定的增值服務、排除 exempt、換算台幣） */
+async function getStayRevenueByAcc(
+  client: any,
+  accIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+  sources: string[],
+  rangesByAcc: Record<string, CountableRange[]>,
+): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  const ids = accIds.filter((id) => (rangesByAcc[id] ?? []).length > 0);
+  if (ids.length === 0) return out;
+  const rules = await getOwnerRules(client, ids, monthStartDate);
+
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { data } = await client
+      .from("orders")
+      .select(
+        "id, accommodation_id, check_in_date, check_out_date, final_price, order_source, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details",
+      )
+      .in("accommodation_id", ids.slice(i, i + CHUNK))
+      .gt("check_out_date", monthStartDate)
+      .lt("check_in_date", monthEndDate)
+      .neq("order_status", "cancelled")
+      .neq("guest_name", "保留單")
+      .in("order_source", sources);
+
+    for (const o of (data ?? []) as any[]) {
+      const accId = String(o?.accommodation_id ?? "");
+      if (!accId) continue;
+      if (o?.owner_direct === true) continue;
+      const rule = rules[accId];
+      if (rule && o?.order_source && rule.exempt.includes(String(o.order_source))) continue;
+
+      const ci = String(o?.check_in_date ?? "").slice(0, 10);
+      const co = String(o?.check_out_date ?? "").slice(0, 10);
+      if (!ci || !co) continue;
+      const total = nightsBetween(ci, co);
+      const ranges = rangesByAcc[accId] ?? [];
+      let counted = 0;
+      for (let n = 0; n < total; n++) {
+        const day = new Date(Date.parse(`${ci}T00:00:00Z`) + n * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+
+        if (day < monthStartDate || day >= monthEndDate) continue;
+        if (ranges.some((r) => day >= r.start && day < r.end)) counted++;
+      }
+      if (counted === 0) continue;
+
+      const ratio = counted / total;
+      const rate =
+        o?.currency_at_booking && String(o.currency_at_booking) !== "TWD"
+          ? Number(o?.exchange_rate_snapshot ?? 0) || 0
+          : 0;
+      const conv = (v: number) => (rate > 0 ? v / rate : v);
+      const amount = Math.max(
+        0,
+        conv((Number(o?.final_price) || 0) * ratio) -
+          conv(
+            excludedAddonTotal(
+              o?.custom_addon_details,
+              rule?.addonIds ?? [],
+              rule?.addonTypes ?? [],
+            ) * ratio,
+          ),
+      );
+      if (!amount) continue;
+      out[accId] = (out[accId] ?? 0) + amount;
     }
   }
   return out;
 }
 
 /**
- * 分潤基準營收加總（order_meta.team_commission_price），monthEndDate 為排他。
- * 採計起算日：每館 MAX(月初, 合作生效日 P)；未設定 P 的館別略過。
+ * 分潤基準營收加總，monthEndDate 為排他。
+ * 採計範圍：各館合作期間 ∩ 資料月。
+ * 口徑：資料月 >= STAY_REVENUE_SWITCH_MONTH 用入住營收，之前維持 order_date 舊口徑。
  */
 async function getAccommodationRevenue(
   client: any,
@@ -182,28 +348,34 @@ async function getAccommodationRevenue(
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
   if (accIds.length === 0 || sources.length === 0) return 0;
 
-  const partnership = await getPartnershipStartDates(client, accIds);
-  const byStart = new Map<string, string[]>();
-  for (const accId of accIds) {
-    const p = partnership[accId];
-    if (!p) continue;
-    if (p >= monthEndDate) continue;
-    const start = p > monthStartDate ? p : monthStartDate;
-    const list = byStart.get(start) ?? [];
-    list.push(accId);
-    byStart.set(start, list);
+  const rangesByAcc = await getCountableRangesByAcc(
+    client,
+    accIds,
+    monthStartDate,
+    monthEndDate,
+  );
+
+  if (monthStartDate >= STAY_REVENUE_SWITCH_MONTH) {
+    const byAcc = await getStayRevenueByAcc(
+      client,
+      accIds,
+      monthStartDate,
+      monthEndDate,
+      sources,
+      rangesByAcc,
+    );
+    return Object.values(byAcc).reduce((s, v) => s + v, 0);
   }
 
   let total = 0;
-  for (const [startDate, group] of byStart) {
-    for (let i = 0; i < group.length; i += CHUNK) {
-      const slice = group.slice(i, i + CHUNK);
+  for (const accId of accIds) {
+    for (const range of rangesByAcc[accId] ?? []) {
       const { data } = await client
         .from("orders")
         .select("id, order_meta(team_commission_price, is_excluded)")
-        .in("accommodation_id", slice)
-        .gte("order_date", startDate)
-        .lt("order_date", monthEndDate)
+        .eq("accommodation_id", accId)
+        .gte("order_date", range.start)
+        .lt("order_date", range.end)
         .neq("order_status", "cancelled")
         .neq("guest_name", "保留單")
         .in("order_source", sources);
@@ -218,6 +390,7 @@ async function getAccommodationRevenue(
   }
   return total;
 }
+
 
 
 /** 各館別在該月是否約定收取行銷推廣費（append-only，逐館取最新一筆） */
@@ -277,13 +450,18 @@ async function getVenueClosingMap(
     byAcc.set(key, list);
   }
 
-  const partnership = await getPartnershipStartDates(client, Array.from(byAcc.keys()));
+  const closingRanges = await getCountableRangesByAcc(
+    client,
+    Array.from(byAcc.keys()),
+    monthStartDate,
+    addOneDay(monthLastDate),
+  );
 
   const out = new Map<string, string[]>();
   for (const [accId, list] of byAcc) {
-    // 未設定合作生效日、或合作生效日晚於資料月底者不採計
-    const p = partnership[accId];
-    if (!p || p > monthLastDate) continue;
+    // 資料月內沒有有效合作期間（未合作／暫停中／不採計）者不計場域成交獎金
+    if ((closingRanges[accId] ?? []).length === 0) continue;
+
     const latest = pickCurrent(list, monthLastDate);
     const memberId = latest?.member_id as string | undefined;
     if (!memberId) continue;
@@ -381,7 +559,7 @@ serve(async (req) => {
 
     const { data: profileRows, error: profErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, am_managed_accommodation_ids");
+      .select("id, user_id, display_name, am_managed_accommodation_ids, resigned_at");
     if (profErr) throw profErr;
 
     const profileByUserId = new Map<string, any>();
@@ -509,12 +687,24 @@ serve(async (req) => {
       });
     }
 
-    // (3) 成交組績效獎金：具 closer 或 closer_manager 角色者，全公司營收 × rate
+    // (3) 成交組績效獎金：全公司營收 × rate，由「資料月底仍在職」的成交組成員均分
     const closerPerfRate = rateOf("closer_performance");
+    const monthLastDateStr = `${snapshotMonthStr.slice(0, 7)}-31`;
+    const isActiveAtMonthEnd = (profile: any) =>
+      !profile?.resigned_at || String(profile.resigned_at).slice(0, 10) > monthLastDateStr;
+
+    const closerProfiles: any[] = [];
     for (const [userId, roleSet] of rolesByUser) {
       if (!roleSet.has("closer") && !roleSet.has("closer_manager")) continue;
       const profile = profileByUserId.get(userId);
       if (!profile) continue;
+      if (!isActiveAtMonthEnd(profile)) continue; // 離職者不參與均分
+      closerProfiles.push(profile);
+    }
+
+    const closerPoolAmount = companyRevenue * Number(closerPerfRate ?? 0);
+    const closerHeadcount = closerProfiles.length;
+    for (const profile of closerProfiles) {
       push({
         bonus_type: "closer_performance",
         member_id: profile.id,
@@ -524,15 +714,18 @@ serve(async (req) => {
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue * Number(closerPerfRate ?? 0),
+        amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
           shared_sources: sharedSources,
           accommodation_ids: activeAccIds,
+          pool_amount: closerPoolAmount,
+          split_headcount: closerHeadcount,
         },
       });
     }
+
 
     // (4)(5) AM 總管 / 成交組主管：角色綁定當月生效者，全公司營收 × rate
     const managerBindings: Array<[BonusType, string | null]> = [
@@ -541,6 +734,9 @@ serve(async (req) => {
     ];
     for (const [bt, memberId] of managerBindings) {
       if (!memberId || !profileById.has(memberId)) continue;
+      // 資料月底已離職者不發管理職獎金
+      if (!isActiveAtMonthEnd(profileById.get(memberId))) continue;
+
       const rate = rateOf(bt);
       push({
         bonus_type: bt,

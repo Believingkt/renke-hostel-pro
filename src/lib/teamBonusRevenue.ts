@@ -6,6 +6,8 @@
  * - teamcommission_* 系列表尚未進 types.ts，查詢一律用 (client as any)
  */
 
+import { getStayRevenueByAcc, usesStayRevenue } from "./teamBonusStayRevenue";
+
 export type BonusType =
   | "am_performance"
   | "closer_performance"
@@ -126,36 +128,93 @@ export async function getRevenueSourceWhitelist(
 
 const CHUNK = 500;
 
+export interface PartnershipPeriod {
+  start_date: string;
+  end_date: string | null;
+  bonus_policy: "full" | "none";
+}
+
+/** 可採計的日期區間（start 含、end 排他） */
+export interface CountableRange {
+  start: string;
+  end: string;
+}
+
 /**
- * 取各館別「合作生效日 P」（accommodation_info.partnership_start_date）。
- * 未設定者不會出現在回傳 map —— 代表該館一律不計入任何團隊獎金。
+ * 取各館別的合作期間（可暫停／重啟）。
+ * 未設定任何期間的館別不會出現在回傳 map —— 代表一律不計入任何團隊獎金。
  */
-export async function getPartnershipStartDates(
+export async function getPartnershipPeriods(
   client: any,
   accommodationIds: string[],
-): Promise<Record<string, string>> {
+): Promise<Record<string, PartnershipPeriod[]>> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
-  const out: Record<string, string> = {};
+  const out: Record<string, PartnershipPeriod[]> = {};
   if (accIds.length === 0) return out;
 
   for (let i = 0; i < accIds.length; i += CHUNK) {
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
-      .from("accommodation_info")
-      .select("id, partnership_start_date")
-      .in("id", slice);
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .in("accommodation_id", slice);
     for (const row of (data ?? []) as any[]) {
-      const p = row?.partnership_start_date;
-      if (!p) continue;
-      out[String(row.id)] = String(p).slice(0, 10);
+      const accId = String(row?.accommodation_id ?? "");
+      if (!accId || !row?.start_date) continue;
+      const list = out[accId] ?? [];
+      list.push({
+        start_date: String(row.start_date).slice(0, 10),
+        end_date: row.end_date ? String(row.end_date).slice(0, 10) : null,
+        bonus_policy: row.bonus_policy === "none" ? "none" : "full",
+      });
+      out[accId] = list;
     }
+  }
+  return out;
+}
+
+function addOneDay(date: string): string {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+/** 把合作期間與資料月交集，換成可採計區間（bonus_policy = 'none' 的期間直接排除） */
+export function periodsToCountableRanges(
+  periods: PartnershipPeriod[] | undefined,
+  monthStartDate: string,
+  monthEndDate: string,
+): CountableRange[] {
+  const out: CountableRange[] = [];
+  for (const p of periods ?? []) {
+    if (p.bonus_policy !== "full") continue;
+    const start = p.start_date > monthStartDate ? p.start_date : monthStartDate;
+    const periodEnd = p.end_date ? addOneDay(p.end_date) : monthEndDate;
+    const end = periodEnd < monthEndDate ? periodEnd : monthEndDate;
+    if (start < end) out.push({ start, end });
+  }
+  return out.sort((a, b) => a.start.localeCompare(b.start));
+}
+
+/** 各館別在指定資料月可採計的日期區間 */
+export async function getCountableRangesByAcc(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+): Promise<Record<string, CountableRange[]>> {
+  const periods = await getPartnershipPeriods(client, accommodationIds);
+  const out: Record<string, CountableRange[]> = {};
+  for (const accId of Object.keys(periods)) {
+    const ranges = periodsToCountableRanges(periods[accId], monthStartDate, monthEndDate);
+    if (ranges.length > 0) out[accId] = ranges;
   }
   return out;
 }
 
 /**
  * 取指定館別、指定月份、指定訂單來源白名單的分潤基準營收加總。
- * monthEndDate 為排他（order_date < monthEndDate）。
+ * monthEndDate 為排他。
  */
 export async function getAccommodationRevenue(
   client: any,
@@ -177,8 +236,11 @@ export async function getAccommodationRevenue(
 /**
  * 同上，但回傳「各館別」的營收明細（只含有營收的館別）。
  *
- * 採計起算日：每館取 MAX(月初, 合作生效日 P)。
- * 未設定 P 的館別一律略過（不計入任何團隊獎金）。
+ * 採計範圍：各館合作期間（可暫停／重啟）與資料月的交集。
+ * 沒有任何有效合作期間的館別一律略過（不計入任何團隊獎金）。
+ *
+ * 口徑：資料月 >= STAY_REVENUE_SWITCH_MONTH 改用「入住營收」（與業主月結一致），
+ * 之前的月份維持舊口徑（order_date + team_commission_price）。
  */
 export async function getAccommodationRevenueByAcc(
   client: any,
@@ -192,29 +254,34 @@ export async function getAccommodationRevenueByAcc(
   const out: Record<string, number> = {};
   if (accIds.length === 0 || sources.length === 0) return out;
 
-  const partnership = await getPartnershipStartDates(client, accIds);
+  const rangesByAcc = await getCountableRangesByAcc(
+    client,
+    accIds,
+    monthStartDate,
+    monthEndDate,
+  );
 
-  // 依「採計起算日」分組，同起算日的館別合併成一次查詢
-  const byStart = new Map<string, string[]>();
-  for (const accId of accIds) {
-    const p = partnership[accId];
-    if (!p) continue; // 未設定合作生效日 → 不採計
-    if (p >= monthEndDate) continue; // 本月尚未開始合作
-    const start = p > monthStartDate ? p : monthStartDate;
-    const list = byStart.get(start) ?? [];
-    list.push(accId);
-    byStart.set(start, list);
+  if (usesStayRevenue(monthStartDate)) {
+    return await getStayRevenueByAcc(
+      client,
+      accIds,
+      monthStartDate,
+      monthEndDate,
+      sources,
+      rangesByAcc,
+    );
   }
 
-  for (const [startDate, group] of byStart) {
-    for (let i = 0; i < group.length; i += CHUNK) {
-      const slice = group.slice(i, i + CHUNK);
+  // 舊口徑：以 order_date 落在可採計區間內的訂單為準
+  for (const accId of accIds) {
+    const ranges = rangesByAcc[accId] ?? [];
+    for (const range of ranges) {
       const { data } = await client
         .from("orders")
         .select("id, accommodation_id, order_meta(team_commission_price, is_excluded)")
-        .in("accommodation_id", slice)
-        .gte("order_date", startDate)
-        .lt("order_date", monthEndDate)
+        .eq("accommodation_id", accId)
+        .gte("order_date", range.start)
+        .lt("order_date", range.end)
         .neq("order_status", "cancelled")
         .neq("guest_name", "保留單")
         .in("order_source", sources);
@@ -223,8 +290,6 @@ export async function getAccommodationRevenueByAcc(
         const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
         if (!meta) continue;
         if (meta.is_excluded === true) continue;
-        const accId = String(row?.accommodation_id ?? "");
-        if (!accId) continue;
         const amt = Number(meta.team_commission_price ?? 0) || 0;
         if (!amt) continue;
         out[accId] = (out[accId] ?? 0) + amt;
@@ -233,6 +298,7 @@ export async function getAccommodationRevenueByAcc(
   }
   return out;
 }
+
 
 
 /**
@@ -320,12 +386,16 @@ export async function getVenueClosingAccommodations(
     if (latest?.member_id === memberProfileId) matched.push(accId);
   }
 
-  // 未設定合作生效日、或合作生效日晚於資料月底者不採計
-  const partnership = await getPartnershipStartDates(client, matched);
-  const out = matched.filter((accId) => {
-    const p = partnership[accId];
-    return !!p && p <= monthLastDate;
-  });
+  // 資料月內沒有任何有效合作期間（含暫停中／不採計）者不計場域成交獎金
+  const monthStartExclusiveEnd = addOneDay(monthLastDate);
+  const rangesByAcc = await getCountableRangesByAcc(
+    client,
+    matched,
+    monthStartDate,
+    monthStartExclusiveEnd,
+  );
+  const out = matched.filter((accId) => (rangesByAcc[accId] ?? []).length > 0);
+
 
   return out;
 }
