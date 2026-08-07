@@ -42,6 +42,17 @@ export interface OwlTingParsedFields {
   confidence: ParsedConfidence;
   warnings: string[];
   raw_matches: Record<string, string | number | null>;
+  /** 修改通知專用：與「原始訂單」區塊比對後有變動的欄位；非修改信為 null */
+  modification_changes?: ModificationChange[] | null;
+  /** 修改通知專用：true = 空修改（內容完全一致，不需補單） */
+  is_noop_modification?: boolean | null;
+}
+
+export interface ModificationChange {
+  field: string;
+  label: string;
+  before: string | number | null;
+  after: string | number | null;
 }
 
 const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
