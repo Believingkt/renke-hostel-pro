@@ -318,10 +318,74 @@ Deno.serve(async (req) => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+      // 修改通知：先判斷是否為「空修改」（原始訂單 vs 修改後完全一致）。
+      const isNoopModification =
+        fields.message_type === "modified" && fields.is_noop_modification === true;
+      const changeSummary = (fields.modification_changes ?? [])
+        .map((c) => `${c.label}：${c.before ?? "—"} → ${c.after ?? "—"}`)
+        .join("；");
+
+      if (stagingRow?.id && isNoopModification) {
+        console.log("[owlting-email-ingest] no-op modification, skip notify & order update", {
+          obe: fields.obe_number,
+        });
+        await supabase.from("owlting_email_parsed_staging").update({
+          review_status: "no_action",
+          review_notes: "[空修改] 原始訂單與修改後內容完全一致，未通知業主、未建立或更新補單。",
+        }).eq("id", stagingRow.id);
+      }
+
+      // 修改通知（有實質差異）：更新既有訂單，不重複建單造成佔位。
+      if (
+        stagingRow?.id &&
+        fields.message_type === "modified" &&
+        !isNoopModification &&
+        fields.obe_number
+      ) {
+        const modRes = await applyModificationToExistingOrder(supabase, {
+          staging_id: stagingRow.id,
+          obe_number: fields.obe_number,
+          accommodation_id: resolvedAccId,
+          room_type_name: fields.room_type_name,
+          room_quantity: fields.room_quantity,
+          check_in_date: fields.check_in_date,
+          check_out_date: fields.check_out_date,
+          guest_count: fields.guest_count,
+          total_amount: fields.total_amount,
+          change_summary: changeSummary || null,
+        });
+        console.log("[owlting-email-ingest] modification apply result", modRes);
+
+        // 找不到既有訂單 → 退回自動建單（首次補單）
+        if (!modRes.ok && modRes.skipped_reason === "order_not_found" && resolvedAccId) {
+          const fallback = await autoCreatePendingOrder(supabase, {
+            raw_email_id: inserted.id,
+            staging_id: stagingRow.id,
+            accommodation_id: resolvedAccId,
+            obe_number: fields.obe_number,
+            channel_source: fields.channel_source,
+            room_type_name: fields.room_type_name,
+            room_quantity: fields.room_quantity,
+            check_in_date: fields.check_in_date,
+            check_out_date: fields.check_out_date,
+            guest_count: fields.guest_count,
+            total_amount: fields.total_amount,
+            guest_name: fields.guest_name,
+            special_requests: fields.special_requests,
+          });
+          console.log("[owlting-email-ingest] modification fallback create", fallback);
+        } else if (!modRes.ok) {
+          await supabase.from("owlting_email_parsed_staging").update({
+            auto_create_error: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",
+          }).eq("id", stagingRow.id);
+        }
+      }
+
       // Auto-notify owners on cancel/modify (fire-and-forget)
       if (
         stagingRow?.id &&
         resolvedAccId &&
+        !isNoopModification &&
         (fields.message_type === "cancelled" || fields.message_type === "modified")
       ) {
         fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
