@@ -1025,6 +1025,43 @@ export default function TeamHome() {
 
         }
 
+        // ===== 月結型：已結算則以正式快照為準（與「獎金管理 → 發放管理」一致）=====
+        if (isMonthlyPayout && profileId) {
+          const { data: bonusSnaps } = await db
+            .from("teamcommission_bonus_snapshots")
+            .select("bonus_type, amount")
+            .eq("payout_month", payoutMonthKey)
+            .eq("member_id", profileId);
+          const snapRows = (bonusSnaps ?? []) as any[];
+          if (snapRows.length > 0) {
+            monthlySettledFlag = true;
+            const byType = new Map<string, number>();
+            for (const r of snapRows) {
+              byType.set(
+                String(r.bonus_type),
+                (byType.get(String(r.bonus_type)) ?? 0) + Number(r.amount ?? 0),
+              );
+            }
+            const take = (t: string, fallback: number) =>
+              byType.has(t) ? (byType.get(t) as number) : fallback;
+            amPerfSum = take("am_performance", amPerfSum);
+            amVenueSum = take("am_venue_bonus", amVenueSum);
+            closerPerfSum = take("closer_performance", closerPerfSum);
+            amManagerSum = take("am_manager", amManagerSum);
+            closerManagerSum = take("closer_manager", closerManagerSum);
+            kolCommissionSum = take("kol_commission", kolCommissionSum);
+            kolMonthlySum = take("kol_monthly", kolMonthlySum);
+            if (byType.has("venue_closing")) {
+              venueClosingSum = byType.get("venue_closing") as number;
+              if (venueClosingLines.length === 0) {
+                venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
+              }
+            }
+            // 已結算金額來自快照，逐館明細（即時費率算出）可能不一致 → 不顯示
+            for (const k of Object.keys(breakdown)) delete breakdown[k];
+          }
+        }
+
         // ===== Multipliers =====
         // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
         // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
