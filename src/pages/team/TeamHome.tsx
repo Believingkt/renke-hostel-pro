@@ -849,8 +849,10 @@ export default function TeamHome() {
           closerManagerFlag = !!profileId && closerManagerId === profileId;
           kolRecipientFlag = !!profileId && kolRecipientId === profileId;
 
+          // 月結型獎金只在 10 日期發放；25 日期不做任何營收計算。
           const needCompanyRevenue =
-            amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag;
+            isMonthlyPayout &&
+            (amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag);
 
           // 全公司範圍：所有啟用館別
           let allAccIds: string[] = [];
@@ -896,7 +898,7 @@ export default function TeamHome() {
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
           //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
-          if (showAM) {
+          if (showAM && isMonthlyPayout) {
             // 過濾掉「旅行日」開頭的場館
             let myManagedAccIdsExcludingTravelDays: string[] = [];
             if (myManagedAccIds.length > 0) {
@@ -936,7 +938,7 @@ export default function TeamHome() {
           }
 
           // (2) 成交組績效獎金：全公司營收 × rate
-          if (showCloser) {
+          if (showCloser && isMonthlyPayout) {
             const s = rateSettings.closer_performance;
             if (!s || s.rate == null) missing.closer_performance = true;
             closerPerfSum = companyRevenue * Number(s?.rate ?? 0);
@@ -944,7 +946,7 @@ export default function TeamHome() {
           }
 
           // (3) AM 總管獎金：全公司營收 × rate（抽成制）
-          if (amManagerFlag) {
+          if (amManagerFlag && isMonthlyPayout) {
             const s = rateSettings.am_manager;
             if (!s || s.rate == null) missing.am_manager = true;
             amManagerSum = companyRevenue * Number(s?.rate ?? 0);
@@ -952,7 +954,7 @@ export default function TeamHome() {
           }
 
           // (4) 成交大師管理獎金：全公司營收 × rate
-          if (closerManagerFlag) {
+          if (closerManagerFlag && isMonthlyPayout) {
             const s = rateSettings.closer_manager;
             if (!s || s.rate == null) missing.closer_manager = true;
             closerManagerSum = companyRevenue * Number(s?.rate ?? 0);
@@ -960,7 +962,7 @@ export default function TeamHome() {
           }
 
           // (5)(6) 網紅營銷專利獎金 / 月費
-          if (kolRecipientFlag) {
+          if (kolRecipientFlag && isMonthlyPayout) {
             const kolSources = await getRevenueSourceWhitelist(
               client,
               "teamcommission_kol_revenue_source_whitelist",
@@ -994,7 +996,7 @@ export default function TeamHome() {
           }
 
           // (7) 場域成交獎金：我是簽約人的館別中，charges_marketing_fee = true 者各發一份固定金額
-          {
+          if (isMonthlyPayout) {
             const myClosingAccIds = profileId
               ? await getVenueClosingAccommodations(client, profileId, monthStartDate)
               : [];
