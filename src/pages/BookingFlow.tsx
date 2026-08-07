@@ -252,6 +252,7 @@ const BookingFlow = () => {
   // 加購方案是否展開（預設收合）
   const [isAddonsExpanded, setIsAddonsExpanded] = useState(false);
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
+  const securityDepositAmount = Number(bookingSettings?.security_deposit_amount ?? DEFAULT_DEPOSIT_AMOUNT);
   const [accommodationName, setAccommodationName] = useState("");
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
   const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
