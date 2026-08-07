@@ -278,7 +278,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     deposit_amount: 0,
     notes: "",
     order_source: "",
-    security_deposit_method: "cash" as "cash" | "card",
+    security_deposit_method: "cash" as const,
     security_deposit_amount: 5000,
     package_id: "" as string,
   });
@@ -2977,20 +2977,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-sm">收取方式</Label>
-            <Select
-              value={form.security_deposit_method}
-              onValueChange={(value: "cash" | "card") =>
-                setForm({ ...form, security_deposit_method: value })
-              }
-            >
-              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">現場現金</SelectItem>
-                <SelectItem value="card">線上綁卡</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input value="現場現金" readOnly disabled className="h-12 text-base sm:h-10 sm:text-sm bg-muted" />
           </div>
           <div className="space-y-2">
             <Label className="text-sm">押金金額</Label>
@@ -3004,11 +2991,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             />
           </div>
         </div>
-        {form.security_deposit_method === "card" && (
-          <p className="text-xs text-muted-foreground">
-            訂單建立後，請至訂單詳情頁的「押金管理」區塊請房客完成綁卡，系統會於入住前一天自動扣款。
-          </p>
-        )}
       </div>
 
       <div className="space-y-2">
