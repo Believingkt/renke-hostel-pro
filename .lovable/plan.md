@@ -7,6 +7,19 @@
 3. 成交組績效獎金均分分母改為「資料月在職人數」，支援離職日設定。
 4. 抽成類獎金基準口徑由 `order_meta.team_commission_price` 評估切換至「業主月結本月入住營收」。
 
+### 整體結構整合目標（每次獎金改動都必須遵守）
+
+- **說明同步**：任何獎金邏輯／規則異動，`team/commission` 的「結算規則說明」Tab 內容必須在同一次改動內同步更新，不得落後於程式。
+- **全鏈路檢視**：新增或修改任一項獎金邏輯時，需逐一檢視所有顯示該獎金的位置是否需一併調整，至少涵蓋：
+  - `TeamHome`（試算卡片、館別明細 Drawer）
+  - `TeamCommission` 發放管理 Tab（快照、明細 Drawer、補差分類）
+  - 業績統計 Tab（成交組／AM／KOL／星探各自的統計視圖）
+  - `BonusSettingsTab` 獎金費率／金額設定卡片與其說明文字
+  - edge function 快照產生器（`create-team-bonus-snapshots`、`create-commission-snapshots`、`calculate-scout-payout`）
+- **單一真相來源**：計算邏輯一律抽到 `src/lib/` 共用純函式，前端與 edge function 必須鏡射同一份規則，禁止各處各自實作。
+- **交付檢核**：改動完成後需比對 TeamHome 試算與發放管理實付金額一致，並確認說明 Tab 描述與實際計算相符。
+
+
 ---
 
 ## 一、資料模型
