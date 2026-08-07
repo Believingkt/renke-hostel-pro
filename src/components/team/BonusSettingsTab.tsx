@@ -931,7 +931,9 @@ function BindingSection({
 interface AccOption {
   id: string;
   name: string;
+  partnership_start_date?: string | null;
 }
+
 
 interface VenueAssignmentRow {
   id: string;
