@@ -328,7 +328,7 @@ export default function FinancialReportTab() {
           // Row 2 累計（KOL，依館別）— 先算，並收集 KOL 訂單 ID 供 Row 1 排除
           const kolOrderIds = new Set<string>();
           for (const o of row2List) {
-            if (o.guest_name === "保留單") continue;
+            if (o.order_status === "hold") continue;
             const rawPrice = Number(o.final_price ?? 0);
             if (!(rawPrice > 0)) continue;
             if (!o.order_date) continue;
@@ -349,7 +349,7 @@ export default function FinancialReportTab() {
 
           // Row 1 累計（依館別）— 排除已計入 Row 2 的 KOL 訂單，避免重複
           for (const o of row1List) {
-            if (o.guest_name === "保留單") continue;
+            if (o.order_status === "hold") continue;
             const rawPrice = Number(o.final_price ?? 0);
             if (!(rawPrice > 0)) continue;
             if (!eligibleCloserSet.has(o.id)) continue;

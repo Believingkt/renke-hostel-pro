@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
         const applyBookingFilters = <T extends any>(qb: T): T => {
           let q: any = applyTiansongExclusions(qb as any);
           if (!isTiansong) {
-            q = q.neq("guest_name", "保留單").gt("final_price", 0);
+            q = q.neq("order_status", "hold").gt("final_price", 0);
           }
           return q as T;
         };
