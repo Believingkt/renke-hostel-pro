@@ -1658,7 +1658,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                                 })()}
                                               </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
-                                              <TableCell className="text-right tabular-nums">{formatMoney(subtotal)}</TableCell>
+                                              <TableCell className="text-right tabular-nums">
+                                                {vItems.some((i) => i.multiplier > 1) ? (
+                                                  <div className="text-xs text-muted-foreground line-through">
+                                                    {formatMoney(vItems.reduce((s2, i) => s2 + i.amount, 0))}
+                                                  </div>
+                                                ) : null}
+                                                <div>{formatMoney(subtotal)}</div>
+                                              </TableCell>
                                               <TableCell>
                                                 {unpaid.length === 0 ? (
                                                   <Badge variant="outline" className="text-xs">已發放</Badge>
@@ -1715,6 +1722,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             <SheetDescription>
               {venueDetail?.sourceLabel} ・ 共 {venueDetail?.items.length ?? 0} 筆 ・ 合計{" "}
               {formatMoney((venueDetail?.items ?? []).reduce((s, i) => s + i.multiplied_amount, 0))}
+              {(venueDetail?.items ?? []).some((i) => i.multiplier > 1) ? (
+                <span className="ml-1 text-muted-foreground">
+                  （原始金額 {formatMoney((venueDetail?.items ?? []).reduce((s, i) => s + i.amount, 0))}）
+                </span>
+              ) : null}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4">
@@ -1733,6 +1745,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                     <TableCell className="text-xs">{it.detail || it.order_number || "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       <div className="flex items-center justify-end gap-1.5">
+                        {it.multiplier > 1 && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatMoney(it.amount)}
+                          </span>
+                        )}
                         {it.multiplier > 1 && (
                           <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
                             × {Number(it.multiplier).toFixed(2)} 倍

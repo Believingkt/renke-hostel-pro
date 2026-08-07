@@ -21,7 +21,7 @@ import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
-import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
+import { payoutMonthKeyFromDataMonth, pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
 
 
@@ -176,7 +176,7 @@ export default function TeamHome() {
   const [franchiseInternalAmt, setFranchiseInternalAmt] = useState(0);
   const [franchiseExternalAmt, setFranchiseExternalAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
-  const [multipliers, setMultipliers] = useState<Record<string, number>>({});
+  const [multiplierRows, setMultiplierRows] = useState<BonusMultiplierRow[]>([]);
 
   // ===== 七種團隊獎金 =====
   const [isAmManager, setIsAmManager] = useState(false);
@@ -983,18 +983,13 @@ export default function TeamHome() {
         }
 
         // ===== Multipliers =====
-        // 加倍活動一律以「發放月」設定（發放月 = 資料月 + 1），需先換算再比對，
-        // 否則會與「獎金管理 → 發放管理」差一個月。
-        const multMonthKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
+        // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
+        // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
+        // 由各卡片自行帶入正確的發放月比對，確保與「獎金管理 → 發放管理」一致。
         const { data: multRows } = await db
           .from("bonus_multiplier_settings")
-          .select("bonus_type, multiplier, start_month, end_month")
-          .lte("start_month", multMonthKey)
-          .gte("end_month", multMonthKey);
-        const multMap: Record<string, number> = {};
-        (multRows ?? []).forEach((r: any) => {
-          multMap[r.bonus_type] = Number(r.multiplier ?? 1);
-        });
+          .select("bonus_type, multiplier, start_month, end_month");
+        const multMap = (multRows ?? []) as unknown as BonusMultiplierRow[];
 
 
         if (cancelled) return;
@@ -1013,7 +1008,7 @@ export default function TeamHome() {
         setFranchiseInternalAmt(franchiseInternalSum);
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
-        setMultipliers(multMap);
+        setMultiplierRows(multMap);
         setIsAmManager(amManagerFlag);
         setIsCloserManager(closerManagerFlag);
         setIsKolBonusRecipient(kolRecipientFlag);
@@ -1040,9 +1035,13 @@ export default function TeamHome() {
     };
   }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo]);
 
-  // 加倍倍率取用：套用 bonus_type 專屬 × "all"（若同時存在則相乘）
-  const allMult = multipliers.all ?? 1;
-  const multOf = (bt: string) => (multipliers[bt] ?? 1) * allMult;
+  // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
+  // 各獎金資料月不同，需帶入各自的發放月，才會與「獎金管理 → 發放管理」完全一致。
+  const defaultPayoutKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
+  const scoutSalaryPayoutKey = monthInfo.currentMonthKey; // 底薪／團隊獎金：資料月＝上月 → 本月發放
+  const scoutPeriodPayoutKey = String(monthInfo.periodEnd ?? "").slice(0, 7) || defaultPayoutKey;
+  const multOf = (bt: string, payoutKey?: string) =>
+    pickMultiplier(multiplierRows, bt, payoutKey ?? defaultPayoutKey);
 
   const cards: Array<{
     key: string;
@@ -1115,10 +1114,10 @@ export default function TeamHome() {
     cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
   }
   if (showScout) {
-    const kolM = multOf("scout_kol");
-    const rarityM = multOf("scout_rarity");
-    const baseM = multOf("scout_base");
-    const teamM = multOf("scout_team");
+    const kolM = multOf("scout_kol", scoutPeriodPayoutKey);
+    const rarityM = multOf("scout_rarity", scoutPeriodPayoutKey);
+    const baseM = multOf("scout_base", scoutSalaryPayoutKey);
+    const teamM = multOf("scout_team", scoutSalaryPayoutKey);
     cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
