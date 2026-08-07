@@ -307,7 +307,63 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
             </ul>
           )}
         </section>
+
+        {/* Deposit audit trail */}
+        <section>
+          <div className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> 押金異動紀錄
+          </div>
+          {loading ? null : depositAudits.length === 0 && depositCharges.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-3">尚無押金異動</div>
+          ) : (
+            <ul className="space-y-2">
+              {depositAudits.map((a) => (
+                <li key={a.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant="outline">押金設定異動</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(a.created_at), "yyyy-MM-dd HH:mm:ss")}
+                    </span>
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {Object.entries(a.details ?? {}).map(([field, v]) => (
+                      <div key={field} className="text-xs">
+                        <span className="text-muted-foreground">{DEPOSIT_FIELD_LABEL[field] || field}：</span>
+                        {formatDepositValue(field, v?.from)} → <strong>{formatDepositValue(field, v?.to)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    操作者：{a.user_email || "系統／排程"}
+                  </div>
+                </li>
+              ))}
+              {depositCharges.map((c) => (
+                <li key={c.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={c.status === "success" ? "default" : "destructive"}>
+                        {c.action === "charge" ? "押金扣款" : "押金退款"}
+                      </Badge>
+                      <span className="tabular-nums">NT${(c.amount || 0).toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({c.trigger_source === "scheduled" ? "自動排程" : "手動"}・{c.status === "success" ? "成功" : "失敗"})
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(c.created_at), "yyyy-MM-dd HH:mm:ss")}
+                    </span>
+                  </div>
+                  {c.error_message && (
+                    <div className="mt-1 text-xs text-destructive break-all">錯誤：{c.error_message}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </CardContent>
+
     </Card>
   );
 }
