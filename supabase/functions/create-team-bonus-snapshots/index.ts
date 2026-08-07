@@ -277,8 +277,13 @@ async function getVenueClosingMap(
     byAcc.set(key, list);
   }
 
+  const partnership = await getPartnershipStartDates(client, Array.from(byAcc.keys()));
+
   const out = new Map<string, string[]>();
   for (const [accId, list] of byAcc) {
+    // 未設定合作生效日、或合作生效日晚於資料月底者不採計
+    const p = partnership[accId];
+    if (!p || p > monthLastDate) continue;
     const latest = pickCurrent(list, monthLastDate);
     const memberId = latest?.member_id as string | undefined;
     if (!memberId) continue;
@@ -287,6 +292,7 @@ async function getVenueClosingMap(
     out.set(memberId, arr);
   }
   return out;
+
 }
 
 /* ================================== 主流程 ================================== */
