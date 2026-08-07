@@ -1128,7 +1128,7 @@ function VenueClosingAssignmentSection({
 
                     {isOpen && (
                       <TableRow>
-                        <TableCell colSpan={5} className="bg-muted/30">
+                        <TableCell colSpan={7} className="bg-muted/30">
                           {history.length === 0 ? (
                             <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
