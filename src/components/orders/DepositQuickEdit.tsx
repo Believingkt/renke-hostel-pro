@@ -45,12 +45,17 @@ export function DepositQuickEdit({
   const [nextStatus, setNextStatus] = useState<DepositStatus>(normalizeDepositStatus(status));
   const [retained, setRetained] = useState(String(Math.max(0, chargedAmount - refundedAmount)));
 
+  // 只在「打開」的當下重設一次，避免輸入中因父層重新渲染而清掉游標選取
   useEffect(() => {
     if (!open) return;
     setAmount(String(requiredAmount ?? 0));
     setNextStatus(normalizeDepositStatus(status));
     setRetained(String(Math.max(0, chargedAmount - refundedAmount)));
-  }, [open, requiredAmount, status, chargedAmount, refundedAmount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const digitsOnly = (v: string) => v.replace(/[^\d]/g, "");
+  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select();
 
   const parsed = Number(amount);
   const parsedRetained = Number(retained);
@@ -119,12 +124,12 @@ export function DepositQuickEdit({
         <div className="space-y-1.5">
           <Label className="text-xs">押金金額 (NT$)</Label>
           <Input
-            type="number"
-            min={0}
-            step={1}
-            max={MAX_DEPOSIT}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onFocus={selectOnFocus}
+            onChange={(e) => setAmount(digitsOnly(e.target.value))}
             aria-invalid={Boolean(amountError)}
             className={amountError ? "border-destructive focus-visible:ring-destructive" : ""}
           />
@@ -149,12 +154,12 @@ export function DepositQuickEdit({
           <div className="space-y-1.5">
             <Label className="text-xs">扣押金額 (NT$)</Label>
             <Input
-              type="number"
-              min={1}
-              step={1}
-              max={Number.isFinite(parsed) ? Math.max(0, parsed - 1) : undefined}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               value={retained}
-              onChange={(e) => setRetained(e.target.value)}
+              onFocus={selectOnFocus}
+              onChange={(e) => setRetained(digitsOnly(e.target.value))}
               aria-invalid={Boolean(retainedError)}
               className={retainedError ? "border-destructive focus-visible:ring-destructive" : ""}
             />
