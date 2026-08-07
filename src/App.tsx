@@ -566,6 +566,11 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/remarketing" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/referral" element={
                       <RequireModule module="discount_codes">
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
