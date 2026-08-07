@@ -384,12 +384,16 @@ export async function getVenueClosingAccommodations(
     if (latest?.member_id === memberProfileId) matched.push(accId);
   }
 
-  // 未設定合作生效日、或合作生效日晚於資料月底者不採計
-  const partnership = await getPartnershipStartDates(client, matched);
-  const out = matched.filter((accId) => {
-    const p = partnership[accId];
-    return !!p && p <= monthLastDate;
-  });
+  // 資料月內沒有任何有效合作期間（含暫停中／不採計）者不計場域成交獎金
+  const monthStartExclusiveEnd = addOneDay(monthLastDate);
+  const rangesByAcc = await getCountableRangesByAcc(
+    client,
+    matched,
+    monthStartDate,
+    monthStartExclusiveEnd,
+  );
+  const out = matched.filter((accId) => (rangesByAcc[accId] ?? []).length > 0);
+
 
   return out;
 }
