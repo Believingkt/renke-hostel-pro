@@ -1109,38 +1109,42 @@ export default function TeamHome() {
 
 
         if (cancelled) return;
-        setCloserAmt(closerSum);
-        setScoutCloserAmt(scoutCloserSum);
-        setCloserTeamBonusAmt(closerTeamBonusSum);
-        setCloserTeamBonusRate(closerTeamBonusRateVal);
-        setCloserTeamBonusNoSetting(closerTeamBonusNoSet);
-        setCloserTeamBonusFinalized(closerTeamBonusFinalizedFlag);
-        setVideoAmt(videoSum);
-        setScoutAmt(scoutSum);
-        setRarityAmt(raritySum);
-        setBaseSalaryAmt(baseSalary);
-        setTeamBonusAmt(teamBonus);
-        setIsScoutTeamMember(scoutTeamMember);
-        setFranchiseInternalAmt(franchiseInternalSum);
-        setFranchiseExternalAmt(franchiseExternalSum);
-        setStarlinkAmt(starlinkSum);
-        setMultiplierRows(multMap);
-        setScoutFromPayout(scoutFromPayoutFlag);
-        setMonthlySettled(monthlySettledFlag);
-        setIsAmManager(amManagerFlag);
-        setIsCloserManager(closerManagerFlag);
-        setIsKolBonusRecipient(kolRecipientFlag);
-        setAmPerformanceAmt(amPerfSum);
-        setAmVenueBonusAmt(amVenueSum);
-        setCloserPerformanceAmt(closerPerfSum);
-        setAmManagerAmt(amManagerSum);
-        setCloserManagerAmt(closerManagerSum);
-        setKolCommissionAmt(kolCommissionSum);
-        setKolMonthlyAmt(kolMonthlySum);
-        setVenueClosingAmt(venueClosingSum);
-        setVenueClosingDetail(venueClosingLines);
-        setRevenueBreakdown(breakdown);
-        setMissingRates(missing);
+        const payload: TeamHomePayload = {
+          closerSum,
+          scoutCloserSum,
+          closerTeamBonusSum,
+          closerTeamBonusRateVal,
+          closerTeamBonusNoSet,
+          closerTeamBonusFinalizedFlag,
+          videoSum,
+          scoutSum,
+          raritySum,
+          baseSalary,
+          teamBonus,
+          scoutTeamMember,
+          franchiseInternalSum,
+          franchiseExternalSum,
+          starlinkSum,
+          multMap,
+          scoutFromPayoutFlag,
+          monthlySettledFlag,
+          amManagerFlag,
+          closerManagerFlag,
+          kolRecipientFlag,
+          amPerfSum,
+          amVenueSum,
+          closerPerfSum,
+          amManagerSum,
+          closerManagerSum,
+          kolCommissionSum,
+          kolMonthlySum,
+          venueClosingSum,
+          venueClosingLines,
+          breakdown,
+          missing,
+        };
+        cacheRef.current.set(cacheKey, payload);
+        applyPayload(payload);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
       } finally {
@@ -1151,7 +1155,8 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo]);
+  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload]);
+
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
   // 各獎金資料月不同，需帶入各自的發放月，才會與「獎金管理 → 發放管理」完全一致。
