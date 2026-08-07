@@ -21,7 +21,7 @@ import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
-import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
+import { payoutMonthKeyFromDataMonth, pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
 
 
@@ -1008,7 +1008,7 @@ export default function TeamHome() {
         setFranchiseInternalAmt(franchiseInternalSum);
         setFranchiseExternalAmt(franchiseExternalSum);
         setStarlinkAmt(starlinkSum);
-        setMultipliers(multMap);
+        setMultiplierRows(multMap);
         setIsAmManager(amManagerFlag);
         setIsCloserManager(closerManagerFlag);
         setIsKolBonusRecipient(kolRecipientFlag);
@@ -1114,10 +1114,10 @@ export default function TeamHome() {
     cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m });
   }
   if (showScout) {
-    const kolM = multOf("scout_kol");
-    const rarityM = multOf("scout_rarity");
-    const baseM = multOf("scout_base");
-    const teamM = multOf("scout_team");
+    const kolM = multOf("scout_kol", scoutPeriodPayoutKey);
+    const rarityM = multOf("scout_rarity", scoutPeriodPayoutKey);
+    const baseM = multOf("scout_base", scoutSalaryPayoutKey);
+    const teamM = multOf("scout_team", scoutSalaryPayoutKey);
     cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: `目前顯示 ${monthInfo.periodLabel}` });
     cards.push({
