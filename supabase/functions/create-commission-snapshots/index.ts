@@ -232,6 +232,8 @@ serve(async (req) => {
         if (cur && cur !== "TWD") continue;
         // 免抽成來源訂單不計入獎金
         if (isExempt(o as any)) continue;
+        // 訂單日不在館別合作期間內 → 不計入獎金
+        if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
         result.processed++;
 
         if (existingSet.has(o.id as string)) {
