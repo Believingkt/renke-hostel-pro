@@ -25,11 +25,13 @@
 
 月結系只在 10 日期發放，資料月＝發放月的上一個月。計算邏輯完全不動，只調整呈現：
 
-| 情境 | 顯示 |
-|---|---|
-| 選到 10 日期，且該發放月尚無 snapshot | 金額＝當月即時試算；副標「X/10 期（資料月 YYYY-MM）・即時試算，10 日結算後定版」 |
-| 選到 10 日期，且已有 snapshot（`closer_commission_snapshots` / `teamcommission_bonus_snapshots`） | 金額＝snapshot 原始金額 + 加倍顯示；副標「X/10 期・已結算」，與發放管理一致 |
-| 選到 25 日期 | 不顯示金額，整區淡化並可摺疊；文案「本期（X/25）不發放月結型獎金，下次為 Y/10 期」 |
+
+| 情境                                                                                      | 顯示                                               |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 選到 10 日期，且該發放月尚無 snapshot                                                               | 金額＝當月即時試算；副標「X/10 期（資料月 YYYY-MM）・即時試算，10 日結算後定版」 |
+| 選到 10 日期，且已有 snapshot（`closer_commission_snapshots` / `teamcommission_bonus_snapshots`） | 金額＝snapshot 原始金額 + 加倍顯示；副標「X/10 期・已結算」，與發放管理一致   |
+| 選到 25 日期                                                                                | 不顯示金額，整區淡化並可摺疊；文案「本期（X/25）不發放月結型獎金，下次為 Y/10 期」   |
+
 
 頁面頂部新增期別橫幅：「目前顯示：即將發放的 8/10 期（資料窗 7/21–8/5）」，讓兩種口徑共存時不會誤讀。
 
@@ -41,12 +43,14 @@
 
 ## 檔案清單
 
-| 檔案 | 改動 |
-|---|---|
-| `src/pages/team/TeamHome.tsx` | 主要改動：`monthInfo` 增加 `nextPayout`（year/month/period/資料窗/label）；期別狀態與切換選單；星探系查詢改讀 `scout_monthly_payouts`，查無再回退現有即時計算；月結系新增 snapshot 優先讀取與期別文案；25 日期月結區塊摺疊；加倍倍率鍵改用該期的發放月 |
-| `src/lib/scoutPayoutPeriod.ts`（新增） | 純函式：`resolveNextPayoutPeriod(now)`、`resolvePrevPayoutPeriod(period)`，與 `cron-dispatcher-commission` 的 `resolveScoutPeriod()` 同口徑 |
-| `src/components/team/PayoutPeriodBanner.tsx`（新增） | 期別橫幅 + 上一期/本期切換的小元件，供 TeamHome 使用 |
-| `src/lib/__tests__/scoutPayoutPeriod.test.ts`（新增） | 邊界日測試：8/1、8/10、8/11、8/25、8/26、12/26 跨年 |
+
+| 檔案                                                | 改動                                                                                                                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages/team/TeamHome.tsx`                     | 主要改動：`monthInfo` 增加 `nextPayout`（year/month/period/資料窗/label）；期別狀態與切換選單；星探系查詢改讀 `scout_monthly_payouts`，查無再回退現有即時計算；月結系新增 snapshot 優先讀取與期別文案；25 日期月結區塊摺疊；加倍倍率鍵改用該期的發放月 |
+| `src/lib/scoutPayoutPeriod.ts`（新增）                | 純函式：`resolveNextPayoutPeriod(now)`、`resolvePrevPayoutPeriod(period)`，與 `cron-dispatcher-commission` 的 `resolveScoutPeriod()` 同口徑                                       |
+| `src/components/team/PayoutPeriodBanner.tsx`（新增）  | 期別橫幅 + 上一期/本期切換的小元件，供 TeamHome 使用                                                                                                                                      |
+| `src/lib/__tests__/scoutPayoutPeriod.test.ts`（新增） | 邊界日測試：8/1、8/10、8/11、8/25、8/26、12/26 跨年                                                                                                                                 |
+
 
 不改任何 edge function、不改資料表、不動已發放資料。
 
@@ -112,6 +116,6 @@
 
 - 期別切換當天（10/11、25/26）畫面金額會跳動，屬預期行為，靠橫幅與文案說明。
 - 25 日期星探底薪／團隊獎金與整組月結卡片為空，需明確文案避免誤會成「獎金消失」。
-- `scout_monthly_payouts` 若當期尚未跑過 cron，會回退即時試算，數字可能與稍後的正式試算有微小差異（四捨五入層級），卡片會標示來源。
+- `scout_monthly_payouts` 若當期尚未跑過 cron，會回退即時試算，數字可能與稍後的正式試算有微小差異（四捨五入層級），卡片會標示來源和差異的文字提醒說明。
 - 月結系在 1–9 日通常尚無 snapshot，會落在「即時試算」狀態，10 日結算後數字可能微調；文案已標示。
 - 切到「上一期」時不做即時回算，若該期從未產生資料會顯示空狀態，屬預期。
