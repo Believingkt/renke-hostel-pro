@@ -330,7 +330,7 @@ export default function OwlTingEmailIngest() {
                 <TableHead>OBE</TableHead>
                 
                 <TableHead>補單狀態</TableHead>
-                <TableHead className="text-right pr-[5.5rem]">動作</TableHead>
+                <TableHead className="text-right pr-[17rem]">動作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -430,7 +430,7 @@ export default function OwlTingEmailIngest() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1.5 flex-wrap">
+                      <div className="ml-auto flex items-center justify-end gap-1.5">
                         <Button
                           size="sm"
                           variant="outline"
@@ -438,31 +438,13 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {noAction ? null : selfPush ? (
-                          !alreadyLinked && st ? (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => linkSelfPush(st.id)}
-                              disabled={linkingId === st.id}
-                            >
-                              {linkingId === st.id ? (
-                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                              ) : (
-                                <ClipboardEdit className="h-3.5 w-3.5 mr-1" />
-                              )}
-                              連結自家訂單
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
-                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
-                            </Button>
-                          )
-                        ) : canSend ? (
-                          <>
+                        {/* 固定寬度插槽：重發通知信 */}
+                        <div className="w-[7.5rem] shrink-0 flex justify-end">
+                          {!noAction && !selfPush && canSend ? (
                             <Button
                               size="sm"
                               variant="outline"
+                              className="w-full"
                               onClick={() => sendFillupNotification(st.id)}
                               disabled={sendingId === st.id}
                             >
@@ -473,26 +455,41 @@ export default function OwlTingEmailIngest() {
                               )}
                               重發通知信
                             </Button>
+                          ) : null}
+                        </div>
+                        {/* 固定寬度插槽：主要動作 */}
+                        <div className="w-[8.5rem] shrink-0 flex justify-end">
+                          {noAction ? null : selfPush ? (
+                            !alreadyLinked && st ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="w-full"
+                                onClick={() => linkSelfPush(st.id)}
+                                disabled={linkingId === st.id}
+                              >
+                                {linkingId === st.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                ) : (
+                                  <ClipboardEdit className="h-3.5 w-3.5 mr-1" />
+                                )}
+                                連結自家訂單
+                              </Button>
+                            ) : null
+                          ) : canSend ? (
                             <Button
                               size="sm"
                               variant="default"
+                              className="w-full"
                               onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
                             >
                               <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
                             </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" variant="outline" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
-                              <Send className="h-3.5 w-3.5 mr-1" />重發通知信
-                            </Button>
-                            <Button size="sm" variant="default" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
-                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
-                            </Button>
-                          </>
-                        )}
+                          ) : null}
+                        </div>
                       </div>
                     </TableCell>
+
                   </TableRow>
                 );
               });
