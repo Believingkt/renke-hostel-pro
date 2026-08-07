@@ -1501,3 +1501,194 @@ function AmVenueOverviewSection() {
     </Card>
   );
 }
+
+/* --------- (g) 業主月結抽成規則總覽（唯讀，與業主月結設定同步） --------- */
+
+interface OwnerRuleRow {
+  id: string;
+  accommodation_id: string;
+  effective_from: string;
+  created_at: string;
+  charges_marketing_fee: boolean | null;
+  commission_rate: number | null;
+  commission_threshold: number | null;
+  tier_rate_enabled: boolean | null;
+  marketing_fee_low: number | null;
+  marketing_fee_high: number | null;
+  marketing_fee_threshold: number | null;
+  exempt_order_sources: string[] | null;
+  commission_excluded_addon_types: string[] | null;
+  note: string | null;
+}
+
+function OwnerPricingRuleOverviewSection() {
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [rules, setRules] = useState<OwnerRuleRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [accRes, ruleRes] = await Promise.all([
+          supabase
+            .from("accommodation_info")
+            .select("id, name")
+            .eq("is_active", true)
+            .order("name", { ascending: true }),
+          (supabase as any)
+            .from("owner_settlement_pricing_rules")
+            .select(
+              "id, accommodation_id, effective_from, created_at, charges_marketing_fee, commission_rate, commission_threshold, tier_rate_enabled, marketing_fee_low, marketing_fee_high, marketing_fee_threshold, exempt_order_sources, commission_excluded_addon_types, note",
+            )
+            .order("effective_from", { ascending: false }),
+        ]);
+        setAccs((accRes.data ?? []) as AccOption[]);
+        setRules((ruleRes.data ?? []) as OwnerRuleRow[]);
+      } catch (e: any) {
+        toast.error("讀取業主月結抽成規則失敗：" + (e?.message ?? ""));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const byAcc = useMemo(() => {
+    const map = new Map<string, OwnerRuleRow[]>();
+    for (const r of rules) {
+      const list = map.get(r.accommodation_id) ?? [];
+      list.push(r);
+      map.set(r.accommodation_id, list);
+    }
+    return map;
+  }, [rules]);
+
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const pct = (v: number | null | undefined) =>
+    v === null || v === undefined ? "—" : `${(Number(v) * 100).toFixed(1)}%`;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">業主月結抽成規則（唯讀同步）</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          此為獎金採計的<strong>第一層過濾條件</strong>：訂單須先通過該館別的「免抽成來源／業主自帶」判斷，
+          才會進入上方「共用訂單來源 (AM、成交)」與「獨立訂單來源 (專利獎金)」白名單比對。
+          場域成交獎金另外需要「收取行銷推廣費」為是。內容與業主月結設定即時同步，如需修改請至業主月結設定。
+        </p>
+      </CardHeader>
+      <CardContent>
+        {loading ? null : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8" />
+                <TableHead>館別</TableHead>
+                <TableHead>生效日</TableHead>
+                <TableHead>收行銷推廣費</TableHead>
+                <TableHead>抽成</TableHead>
+                <TableHead>免抽成來源</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accs.map((a) => {
+                const list = byAcc.get(a.id) ?? [];
+                const cur = pickCurrent(list as any) as OwnerRuleRow | null;
+                const isOpen = expanded.has(a.id);
+                const exempt = cur?.exempt_order_sources ?? [];
+                return (
+                  <Fragment key={a.id}>
+                    <TableRow
+                      className="cursor-pointer"
+                      onClick={() => list.length > 0 && toggle(a.id)}
+                    >
+                      <TableCell>
+                        {list.length > 0 &&
+                          (isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          ))}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{a.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {cur ? cur.effective_from : <span className="text-muted-foreground">未設定</span>}
+                      </TableCell>
+                      <TableCell>
+                        {cur ? (
+                          <Badge variant={cur.charges_marketing_fee ? "default" : "secondary"}>
+                            {cur.charges_marketing_fee ? "是" : "否"}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums">
+                        {cur ? pct(cur.commission_rate) : "—"}
+                        {cur?.tier_rate_enabled && (
+                          <span className="ml-1 text-xs text-muted-foreground">累進</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {exempt.length === 0 ? (
+                          <span className="text-muted-foreground">無</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {exempt.map((s) => (
+                              <Badge key={s} variant="outline">
+                                {ORDER_SOURCE_DISPLAY_NAMES[s] ?? s}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                    {isOpen &&
+                      list.map((r) => (
+                        <TableRow key={r.id} className="bg-muted/40">
+                          <TableCell />
+                          <TableCell colSpan={5} className="text-sm">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <span className="font-medium">{r.effective_from} 起</span>
+                              {cur?.id === r.id && <Badge variant="default">目前生效</Badge>}
+                              <span>抽成 {pct(r.commission_rate)}</span>
+                              <span>
+                                抽成門檻{" "}
+                                {r.commission_threshold != null ? money(r.commission_threshold) : "—"}
+                              </span>
+                              <span>
+                                行銷費 {r.marketing_fee_low != null ? money(r.marketing_fee_low) : "—"} /{" "}
+                                {r.marketing_fee_high != null ? money(r.marketing_fee_high) : "—"}
+                                {r.marketing_fee_threshold != null &&
+                                  `（門檻 ${money(r.marketing_fee_threshold)}）`}
+                              </span>
+                              <span>
+                                不計抽成加購：
+                                {(r.commission_excluded_addon_types ?? []).length > 0
+                                  ? (r.commission_excluded_addon_types ?? []).join("、")
+                                  : "無"}
+                              </span>
+                              {r.note && (
+                                <span className="text-muted-foreground">備註：{r.note}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
