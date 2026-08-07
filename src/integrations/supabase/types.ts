@@ -11277,6 +11277,19 @@ export type Database = {
       is_team_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_kol_reciprocal_orders: {
+        Args: { _accommodation_id: string; _end: string; _start: string }
+        Returns: {
+          check_in_date: string
+          check_out_date: string
+          guest_name: string
+          id: string
+          order_number: string
+          order_status: string
+          package_id: string
+          room_type_id: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

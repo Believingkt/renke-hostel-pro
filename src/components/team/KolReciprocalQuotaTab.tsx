@@ -171,13 +171,12 @@ export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Pro
       const minStart = `${months[0]}-01`;
       const [maxY, maxM] = months[months.length - 1].split("-").map(Number);
       const maxEnd = format(new Date(maxY, maxM, 1), "yyyy-MM-dd");
-      const { data: ordersData } = await supabase
-        .from("orders")
-        .select("id, check_in_date, order_status, package_id, room_type_id")
-        .eq("accommodation_id", currentAccommodationId)
-        .eq("order_source", "kol")
-        .gte("check_in_date", minStart)
-        .lt("check_in_date", maxEnd);
+      // 以 security definer RPC 讀取，讓沒有訂單存取權的團隊角色（如 scout）也能看到使用量
+      const { data: ordersData } = await (supabase as any).rpc("list_kol_reciprocal_orders", {
+        _accommodation_id: currentAccommodationId,
+        _start: minStart,
+        _end: maxEnd,
+      });
       const orderIds: string[] = [];
       for (const o of (ordersData ?? []) as any[]) {
         if (o.order_status === "cancelled") continue;
@@ -705,14 +704,11 @@ function UsedOrdersList({
     const start = `${yearMonth}-01`;
     const end = format(new Date(y, m, 1), "yyyy-MM-dd");
     (async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("id, order_number, check_in_date, check_out_date, guest_name, order_status, package_id, room_type_id")
-        .eq("accommodation_id", accommodationId)
-        .eq("order_source", "kol")
-        .gte("check_in_date", start)
-        .lt("check_in_date", end)
-        .order("check_in_date", { ascending: true });
+      const { data } = await (supabase as any).rpc("list_kol_reciprocal_orders", {
+        _accommodation_id: accommodationId,
+        _start: start,
+        _end: end,
+      });
       const filtered = ((data ?? []) as any[]).filter((o) => {
         if (o.order_status === "cancelled") return false;
         if (packageId) return o.package_id === packageId || o.room_type_id === packageId;
