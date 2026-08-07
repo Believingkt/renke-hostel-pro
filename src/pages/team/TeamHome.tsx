@@ -991,6 +991,13 @@ export default function TeamHome() {
               : {};
           const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
 
+          // 各館別在資料月的可採計合作期間（用於「非整月」提醒）
+          const noteRanges = needCompanyRevenue
+            ? await getCountableRangesByAcc(client, allAccIds, monthStartDate, monthEndDate)
+            : {};
+          const rangeNoteOf = (accId: string) =>
+            formatCountableRangeNote(noteRanges[accId], monthStartDate, monthEndDate) ?? undefined;
+
           // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
           const linesOf = (byAcc: Record<string, number>, rate: number) =>
             Object.entries(byAcc)
@@ -1000,7 +1007,9 @@ export default function TeamHome() {
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
                 amount: rev * rate,
+                rangeNote: rangeNoteOf(accId),
               }));
+
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
           //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
