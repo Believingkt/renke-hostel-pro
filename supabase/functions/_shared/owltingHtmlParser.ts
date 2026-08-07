@@ -334,3 +334,82 @@ function parseCore(input: {
     },
   };
 }
+
+// ─────────────────────────────────────────────────────────────
+// 修改通知：切出「原始訂單」與「修改後」兩段，分別解析並比對差異。
+// OTA（Booking/Agoda…）的修改信常常兩段內容完全一致（空修改），
+// 這種信不需要重新補單。
+// ─────────────────────────────────────────────────────────────
+
+const MOD_BEFORE_MARK = /(原始訂單|修改前|變更前|Original)/;
+const MOD_AFTER_MARK = /(修改後|變更後|修改後訂單|Modified)/;
+
+function sliceSections(src: string | null): { before: string; after: string } | null {
+  if (!src) return null;
+  const b = src.search(MOD_BEFORE_MARK);
+  const a = src.search(MOD_AFTER_MARK);
+  if (b < 0 || a < 0 || a <= b) return null;
+  return { before: src.slice(b, a), after: src.slice(a) };
+}
+
+const DIFF_FIELDS: Array<{ key: keyof OwlTingParsedFields; label: string }> = [
+  { key: "check_in_date", label: "入住日期" },
+  { key: "check_out_date", label: "退房日期" },
+  { key: "room_type_name", label: "房型" },
+  { key: "project_name", label: "專案" },
+  { key: "room_quantity", label: "房間數" },
+  { key: "guest_count", label: "人數" },
+  { key: "total_amount", label: "訂單款項" },
+];
+
+export function parseOwlNestForwardEmail(input: {
+  subject: string | null;
+  text_body: string | null;
+  html_body: string | null;
+}): OwlTingParsedFields {
+  const full = parseCore(input);
+  if (full.message_type !== "modified") {
+    return { ...full, modification_changes: null, is_noop_modification: null };
+  }
+
+  const textSec = sliceSections(input.text_body);
+  const htmlSec = sliceSections(input.html_body);
+  if (!textSec && !htmlSec) {
+    // 無法辨識兩段結構 → 無法判定空修改，維持原行為
+    return { ...full, modification_changes: null, is_noop_modification: null };
+  }
+
+  const before = parseCore({
+    subject: input.subject,
+    text_body: textSec?.before ?? null,
+    html_body: htmlSec?.before ?? null,
+  });
+  const after = parseCore({
+    subject: input.subject,
+    text_body: textSec?.after ?? null,
+    html_body: htmlSec?.after ?? null,
+  });
+
+  const changes: ModificationChange[] = [];
+  for (const f of DIFF_FIELDS) {
+    const b = (before as any)[f.key] ?? null;
+    const a = (after as any)[f.key] ?? null;
+    if (b === null && a === null) continue;
+    if (String(b ?? "") !== String(a ?? "")) {
+      changes.push({ field: String(f.key), label: f.label, before: b, after: a });
+    }
+  }
+
+  // 以「修改後」的值為準，抓不到就退回整封信的解析值
+  const merged: OwlTingParsedFields = { ...full };
+  for (const f of DIFF_FIELDS) {
+    const a = (after as any)[f.key];
+    if (a !== null && a !== undefined) (merged as any)[f.key] = a;
+  }
+
+  return {
+    ...merged,
+    modification_changes: changes,
+    is_noop_modification: changes.length === 0,
+  };
+}
