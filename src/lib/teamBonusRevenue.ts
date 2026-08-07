@@ -283,7 +283,7 @@ export async function getAccommodationRevenueByAcc(
         .gte("order_date", range.start)
         .lt("order_date", range.end)
         .neq("order_status", "cancelled")
-        .neq("guest_name", "保留單")
+        .neq("order_status", "hold")
         .in("order_source", sources);
 
       for (const row of (data ?? []) as any[]) {

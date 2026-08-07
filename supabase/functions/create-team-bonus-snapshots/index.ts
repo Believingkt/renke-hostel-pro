@@ -282,7 +282,7 @@ async function getStayRevenueByAcc(
       .gt("check_out_date", monthStartDate)
       .lt("check_in_date", monthEndDate)
       .neq("order_status", "cancelled")
-      .neq("guest_name", "保留單")
+      .neq("order_status", "hold")
       .in("order_source", sources);
 
     for (const o of (data ?? []) as any[]) {
@@ -379,7 +379,7 @@ async function getAccommodationRevenue(
         .gte("order_date", range.start)
         .lt("order_date", range.end)
         .neq("order_status", "cancelled")
-        .neq("guest_name", "保留單")
+        .neq("order_status", "hold")
         .in("order_source", sources);
 
       for (const row of (data ?? []) as any[]) {

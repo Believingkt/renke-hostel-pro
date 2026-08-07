@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { isHoldOrder } from "@/lib/holdOrder";
 import { boostedAmount } from "@/lib/bonusMultiplier";
 
 function DateYMDPicker({
@@ -701,8 +702,8 @@ export default function TeamCommissionStatsTab() {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      // 對齊 TeamHome：排除保留單與 final_price <= 0
-      if (o.guest_name === "保留單") return;
+      // 對齊 TeamHome：排除保留中訂單與 final_price <= 0
+      if (isHoldOrder(o)) return;
       if ((o.final_price || 0) <= 0) return;
       // 金額基礎與費率一律採用 Edge Function 的試算結果（扣加購、排非台幣 / isExempt）
       const pv = previewMap.get(o.id);
@@ -720,7 +721,7 @@ export default function TeamCommissionStatsTab() {
       const m = metaMap.get(o.id);
       const uid = (m as any)?.[field] as string | undefined;
       if (!uid) return;
-      if (o.guest_name === "保留單") return;
+      if (isHoldOrder(o)) return;
       if ((o.final_price || 0) <= 0) return;
       const rateDate = o.order_date?.slice(0, 10) ?? null;
       const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);

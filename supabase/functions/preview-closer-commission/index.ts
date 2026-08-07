@@ -102,7 +102,7 @@ serve(async (req) => {
         "id, accommodation_id, final_price, custom_addon_details, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source",
       )
       .neq("order_status", "cancelled")
-      .neq("guest_name", "保留單")
+      .neq("order_status", "hold")
       .gt("final_price", 0)
       .gte("order_date", startUtc)
       .lt("order_date", endUtc);

@@ -529,7 +529,7 @@ export default function TeamOrders() {
       // Helper: apply shared filters to any orders query
       const applyFilters = <T extends any>(qb: T): T => {
         let q: any = qb;
-        q = q.neq("guest_name", "保留單").gt("final_price", 0);
+        q = q.neq("order_status", "hold").gt("final_price", 0);
         if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
         if (year !== "ALL") {
           const y = Number(year);
