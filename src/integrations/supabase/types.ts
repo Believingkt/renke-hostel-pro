@@ -356,6 +356,7 @@ export type Database = {
           og_title: string | null
           owlting_aliases: string[]
           package_inventory_as_one: boolean
+          partnership_start_date: string | null
           phone: string | null
           rating_score: number | null
           region_1: string | null
@@ -457,6 +458,7 @@ export type Database = {
           og_title?: string | null
           owlting_aliases?: string[]
           package_inventory_as_one?: boolean
+          partnership_start_date?: string | null
           phone?: string | null
           rating_score?: number | null
           region_1?: string | null
@@ -558,6 +560,7 @@ export type Database = {
           og_title?: string | null
           owlting_aliases?: string[]
           package_inventory_as_one?: boolean
+          partnership_start_date?: string | null
           phone?: string | null
           rating_score?: number | null
           region_1?: string | null
