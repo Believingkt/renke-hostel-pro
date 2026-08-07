@@ -1571,6 +1571,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                       <ChevronDown
                         className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
                       />
+                      <Badge variant="secondary" className="text-xs">{g.role_label}</Badge>
                       <span className="font-medium">{g.display_name}</span>
                       <span className="text-xs text-muted-foreground">{g.items.length} 筆</span>
                       {allPaid ? (
