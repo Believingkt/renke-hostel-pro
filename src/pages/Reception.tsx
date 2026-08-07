@@ -800,6 +800,21 @@ export default function Reception() {
                       )}
                     </div>
 
+                    <div>
+                      <DepositQuickEdit
+                        orderId={o.id}
+                        requiredAmount={o.deposit_required_amount ?? 0}
+                        status={o.deposit_status}
+                        chargedAmount={o.deposit_charged_amount ?? 0}
+                        refundedAmount={o.deposit_refunded_amount ?? 0}
+                        disabled={!editable || acting}
+                        onSaved={(patch) => applyDepositPatch(o.id, patch)}
+                        triggerClassName="h-11 w-full justify-start"
+                      />
+                    </div>
+
+
+
 
                     {(o.checked_in_at || o.checked_out_at) && (
                       <div className="text-[11px] text-muted-foreground">
