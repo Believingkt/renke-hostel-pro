@@ -73,13 +73,9 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
   const [deposit, setDeposit] = useState<DepositSummary | null>(null);
   const [token, setToken] = useState<CardToken | null>(null);
   const [logs, setLogs] = useState<ChargeLog[]>([]);
-  const [chargeOpen, setChargeOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
-  const [chargeAmount, setChargeAmount] = useState<string>("5000");
   const [refundAmount, setRefundAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-  const [bindLinkCopied, setBindLinkCopied] = useState(false);
-  const [recharging, setRecharging] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -131,33 +127,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
     variant: "outline" as const,
   };
 
-  const handleCharge = async () => {
-    const amount = Number(chargeAmount);
-    if (!Number.isInteger(amount) || amount <= 0) {
-      toast({ variant: "destructive", title: "請輸入有效的扣款金額" });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("charge-deposit", {
-        body: { orderId, amount, triggerSource: "manual" },
-      });
-      if (error) throw error;
-      if (!data?.success) {
-        toast({ variant: "destructive", title: "扣款失敗", description: data?.message });
-      } else {
-        toast({ title: "押金扣款成功", description: `已扣款 NT$${amount}` });
-        setChargeOpen(false);
-        await load();
-        onRefresh?.();
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "扣款失敗", description: e?.message });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleRefund = async () => {
     const amount = Number(refundAmount);
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -189,50 +158,6 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
     }
   };
 
-  const handleAutoRecharge = async () => {
-    if (!token) {
-      toast({ variant: "destructive", title: "尚未綁卡", description: "請先請客人完成押金綁卡" });
-      return;
-    }
-    if (remainingToCharge <= 0) {
-      toast({ title: "押金已收齊，無需再次預刷" });
-      return;
-    }
-    setRecharging(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("charge-deposit", {
-        body: { orderId, amount: remainingToCharge, triggerSource: "manual_recharge" },
-      });
-      if (error) throw error;
-      if (!data?.success) {
-        toast({ variant: "destructive", title: "重新預刷失敗", description: data?.message });
-      } else {
-        toast({ title: "重新預刷成功", description: `已扣款 NT$${remainingToCharge.toLocaleString()}` });
-        await load();
-        onRefresh?.();
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "重新預刷失敗", description: e?.message });
-    } finally {
-      setRecharging(false);
-    }
-  };
-
-  // Auto-precharge schedule: 1 day before check-in
-  const scheduledChargeDate = deposit.check_in_date
-    ? new Date(new Date(deposit.check_in_date).getTime() - 24 * 60 * 60 * 1000)
-    : null;
-  const lastAutoChargeLog = logs.find(
-    (l) => l.trigger_source === "scheduled" || l.trigger_source === "auto",
-  );
-  const autoChargeStatus: { label: string; tone: "muted" | "success" | "destructive" | "warning" } =
-    deposit.deposit_status === "charged" || deposit.deposit_status === "partially_refunded" || deposit.deposit_status === "refunded"
-      ? { label: "已自動預刷完成", tone: "success" }
-      : lastAutoChargeLog?.status === "failed"
-        ? { label: "自動預刷失敗", tone: "destructive" }
-        : scheduledChargeDate && scheduledChargeDate.getTime() < Date.now() && deposit.deposit_method === "card" && remainingToCharge > 0
-          ? { label: "自動預刷待重試", tone: "warning" }
-          : { label: "等待自動預刷", tone: "muted" };
 
   return (
     <Card>
@@ -263,7 +188,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
               {deposit.deposit_method === "cash" ? (
                 <><Banknote className="h-3.5 w-3.5" />現場現金</>
               ) : deposit.deposit_method === "card" ? (
-                <><CreditCard className="h-3.5 w-3.5" />線上綁卡</>
+                <><Banknote className="h-3.5 w-3.5" />現場現金<span className="text-xs text-muted-foreground">(綁卡已停用)</span></>
               ) : (
                 <span className="text-muted-foreground">未設定</span>
               )}
@@ -271,108 +196,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
           </div>
         </div>
 
-        {token && (
-          <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span>已綁定卡片 •••• {token.card_last_four ?? "----"}</span>
-              {token.card_expiry && (
-                <span className="text-muted-foreground">({token.card_expiry})</span>
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {format(new Date(token.created_at), "yyyy/MM/dd HH:mm")}
-            </span>
-          </div>
-        )}
-
-        {deposit.deposit_method === "card" && (
-          <div className="rounded-md border p-3 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  自動預刷狀態
-                </div>
-                <div
-                  className={
-                    autoChargeStatus.tone === "success"
-                      ? "text-sm text-primary flex items-center gap-1.5"
-                      : autoChargeStatus.tone === "destructive"
-                        ? "text-sm text-destructive flex items-center gap-1.5"
-                        : autoChargeStatus.tone === "warning"
-                          ? "text-sm text-amber-600 flex items-center gap-1.5"
-                          : "text-sm text-muted-foreground flex items-center gap-1.5"
-                  }
-                >
-                  {autoChargeStatus.tone === "success" ? (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  ) : autoChargeStatus.tone === "destructive" || autoChargeStatus.tone === "warning" ? (
-                    <AlertCircle className="h-3.5 w-3.5" />
-                  ) : (
-                    <Clock className="h-3.5 w-3.5" />
-                  )}
-                  {autoChargeStatus.label}
-                </div>
-              </div>
-              {token && remainingToCharge > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAutoRecharge}
-                  disabled={recharging}
-                >
-                  <RefreshCw className={`h-4 w-4 ${recharging ? "animate-spin" : ""}`} />
-                  {recharging ? "處理中..." : "手動重新預刷"}
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-              <div className="flex justify-between sm:block">
-                <span className="text-muted-foreground">預定預刷時間</span>
-                <span className="sm:block font-medium tabular-nums">
-                  {scheduledChargeDate
-                    ? format(scheduledChargeDate, "yyyy/MM/dd HH:mm")
-                    : "—"}
-                </span>
-              </div>
-              <div className="flex justify-between sm:block">
-                <span className="text-muted-foreground">實際扣款時間</span>
-                <span className="sm:block font-medium tabular-nums">
-                  {deposit.deposit_charged_at
-                    ? format(new Date(deposit.deposit_charged_at), "yyyy/MM/dd HH:mm")
-                    : "—"}
-                </span>
-              </div>
-              {lastAutoChargeLog && (
-                <div className="flex justify-between sm:block sm:col-span-2">
-                  <span className="text-muted-foreground">最近自動執行</span>
-                  <span className="sm:block font-medium tabular-nums">
-                    {format(new Date(lastAutoChargeLog.created_at), "yyyy/MM/dd HH:mm")}
-                    <span className="ml-2 text-muted-foreground">
-                      ({lastAutoChargeLog.status === "success" ? "成功" : "失敗"})
-                    </span>
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="flex flex-wrap gap-2">
-          {deposit.deposit_method === "card" && remainingToCharge > 0 && token && (
-            <Button
-              size="sm"
-              onClick={() => {
-                setChargeAmount(String(remainingToCharge));
-                setChargeOpen(true);
-              }}
-            >
-              <CreditCard className="h-4 w-4" />
-              立即扣款
-            </Button>
-          )}
           {refundable > 0 && (
             <Button
               size="sm"
@@ -425,72 +249,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
           </div>
         )}
 
-        {deposit.deposit_method === "card" && !token && deposit.deposit_status === "pending" && (
-          <div className="space-y-2 rounded-md border border-dashed p-3">
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              尚未綁卡。複製下方連結傳給客人，即可由客人自行完成綁卡。
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const baseUrl = await getPaymentOriginForAccommodation(deposit.accommodation_id);
-                const link = `${baseUrl}/pay/bind-card?order_number=${encodeURIComponent(deposit.order_number)}&acc=${encodeURIComponent(deposit.accommodation_id)}`;
-                try {
-                  await navigator.clipboard.writeText(link);
-                } catch {
-                  const ta = document.createElement("textarea");
-                  ta.value = link;
-                  document.body.appendChild(ta);
-                  ta.select();
-                  document.execCommand("copy");
-                  document.body.removeChild(ta);
-                }
-                setBindLinkCopied(true);
-                toast({ title: "已複製押金綁卡連結", description: "可傳送給客人完成綁卡" });
-                setTimeout(() => setBindLinkCopied(false), 2000);
-              }}
-            >
-              {bindLinkCopied ? (
-                <><Check className="h-4 w-4" />已複製綁卡連結</>
-              ) : (
-                <><Link2 className="h-4 w-4" />複製押金綁卡連結</>
-              )}
-            </Button>
-          </div>
-        )}
       </CardContent>
-
-      {/* Charge dialog */}
-      <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>立即扣押金</DialogTitle>
-            <DialogDescription>
-              將從已綁定卡片扣款。剩餘可扣金額：NT${remainingToCharge.toLocaleString()}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>扣款金額 (NT$)</Label>
-            <Input
-              type="number"
-              value={chargeAmount}
-              onChange={(e) => setChargeAmount(e.target.value)}
-              min={1}
-              max={remainingToCharge}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChargeOpen(false)} disabled={submitting}>
-              取消
-            </Button>
-            <Button onClick={handleCharge} disabled={submitting}>
-              {submitting ? "處理中..." : "確認扣款"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Refund dialog */}
       <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
