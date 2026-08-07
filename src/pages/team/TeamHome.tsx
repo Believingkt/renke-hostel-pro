@@ -21,7 +21,7 @@ import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
-import { payoutMonthKeyFromDataMonth, pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
+import { pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
 import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
 import {
@@ -1453,10 +1453,8 @@ export default function TeamHome() {
       </div>
 
       <PayoutPeriodBanner
-        activePeriod={activePeriod}
+        period={activePeriod}
         prevPeriod={prevPeriod}
-        nextPeriod={nextPeriod}
-        followingPeriod={followingPeriod}
         viewingPrev={viewingPrev}
         onChange={setViewingPrev}
       />
