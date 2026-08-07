@@ -121,6 +121,9 @@ export function AccommodationDialog({
   const [depositPercentage, setDepositPercentage] = useState<number>(30);
   const [loadingDeposit, setLoadingDeposit] = useState(false);
   const savedDepositRef = useRef<number>(30);
+  const [securityDeposit, setSecurityDeposit] = useState<number>(5000);
+  const [loadingSecurityDeposit, setLoadingSecurityDeposit] = useState(false);
+  const savedSecurityDepositRef = useRef<number>(5000);
 
   // Transaction fee percentage state
   const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
@@ -245,7 +248,7 @@ export function AccommodationDialog({
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods, deposit_percentage, free_cancel_days")
+        .select("payment_methods, deposit_percentage, free_cancel_days, security_deposit_amount")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -259,8 +262,35 @@ export function AccommodationDialog({
       const fcd = (data as any)?.free_cancel_days ?? 14;
       setFreeCancelDays(fcd);
       savedFreeCancelRef.current = fcd;
+      const sd = (data as any)?.security_deposit_amount ?? 5000;
+      setSecurityDeposit(sd);
+      savedSecurityDepositRef.current = sd;
     } catch (error) {
       console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const handleSecurityDepositChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 1000000) return;
+
+    setLoadingSecurityDeposit(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({ security_deposit_amount: value, updated_at: new Date().toISOString() } as any)
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setSecurityDeposit(value);
+      savedSecurityDepositRef.current = value;
+      toast.success(`預設押金已更新為 NT$${value.toLocaleString()}`);
+    } catch (error: any) {
+      console.error("Error updating security deposit:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingSecurityDeposit(false);
     }
   };
 
@@ -1060,6 +1090,48 @@ export function AccommodationDialog({
                               </div>
                             </div>
                           </div>
+
+                          {/* 預設押金金額 */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">預設押金金額</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  新建訂單與前台訂房時預設帶入的押金（現場現金）
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">NT$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={1000000}
+                                  value={securityDeposit}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val >= 0 && val <= 1000000) setSecurityDeposit(val);
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val < 0 || val > 1000000) return;
+                                    if (val !== savedSecurityDepositRef.current) {
+                                      handleSecurityDepositChange(val);
+                                    }
+                                  }}
+                                  disabled={loadingSecurityDeposit || isSubmitting}
+                                  className="w-28 h-9 text-center"
+                                />
+                                {loadingSecurityDeposit && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+
 
                           {/* 請款手續費設定 */}
                           <div className="border rounded-lg p-4 bg-muted/30">

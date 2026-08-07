@@ -482,11 +482,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       if (!currentAccommodationId) return;
       const { data } = await supabase
         .from("booking_settings")
-        .select("deposit_percentage")
+        .select("deposit_percentage, security_deposit_amount")
         .eq("accommodation_id", currentAccommodationId)
         .maybeSingle();
       if (data?.deposit_percentage != null) {
         setDepositPct(data.deposit_percentage);
+      }
+      const sd = (data as any)?.security_deposit_amount;
+      if (sd != null) {
+        setForm((f) => ({ ...f, security_deposit_amount: Number(sd) }));
       }
     };
     if (open) loadDepositPct();

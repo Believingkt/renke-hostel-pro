@@ -157,9 +157,10 @@ interface BookingSettings {
   deposit_percentage: number;
   payment_methods: any;
   bank_account_info?: string | null;
+  security_deposit_amount?: number | null;
 }
 
-const DEPOSIT_AMOUNT = 5000;
+const DEFAULT_DEPOSIT_AMOUNT = 5000;
 
 import {
   detectTierByDate,
@@ -251,6 +252,7 @@ const BookingFlow = () => {
   // 加購方案是否展開（預設收合）
   const [isAddonsExpanded, setIsAddonsExpanded] = useState(false);
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
+  const securityDepositAmount = Number(bookingSettings?.security_deposit_amount ?? DEFAULT_DEPOSIT_AMOUNT);
   const [accommodationName, setAccommodationName] = useState("");
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
   const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
@@ -3504,7 +3506,7 @@ const BookingFlow = () => {
             discount_amount: discountAmount,
             final_price: finalPrice,
             deposit_amount: 0,
-            deposit_required_amount: depositPaymentType ? DEPOSIT_AMOUNT : 0,
+            deposit_required_amount: depositPaymentType ? securityDepositAmount : 0,
             deposit_method: depositPaymentType || null,
             deposit_status: depositPaymentType ? "pending" : "not_required",
             deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : (orderPaymentType === "atm" ? "bank_transfer" : null),
@@ -5518,7 +5520,7 @@ const BookingFlow = () => {
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground">押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}</span>
+                            <span className="text-xs text-muted-foreground">押金 NT$ {securityDepositAmount.toLocaleString()}</span>
                             <span className="font-medium text-sm">
                               現場現金
                             </span>
