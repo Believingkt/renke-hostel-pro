@@ -104,21 +104,32 @@ export function DepositQuickEdit({
     }
   };
 
+  const isPartial = normalizeDepositStatus(status) === "partially_refunded";
+  const retainedAmount = Math.max(0, (chargedAmount ?? 0) - (refundedAmount ?? 0));
+  const displayAmount = isPartial ? retainedAmount : requiredAmount ?? 0;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled}
-          className={`h-8 gap-1.5 text-xs font-medium ${depositStatusCls(status)} ${triggerClassName ?? ""}`}
-        >
-          <CreditCard className="h-3.5 w-3.5" />
-          {depositStatusLabel(status)}
-          <span className="tabular-nums">NT${(requiredAmount ?? 0).toLocaleString()}</span>
-        </Button>
-      </PopoverTrigger>
+      <div className="inline-flex flex-col items-start gap-0.5">
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className={`h-8 gap-1.5 text-xs font-medium ${depositStatusCls(status)} ${triggerClassName ?? ""}`}
+          >
+            <CreditCard className="h-3.5 w-3.5" />
+            {depositStatusLabel(status)}
+            <span className="tabular-nums">NT${displayAmount.toLocaleString()}</span>
+          </Button>
+        </PopoverTrigger>
+        {isPartial && (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            ${retainedAmount.toLocaleString()} / ${(requiredAmount ?? 0).toLocaleString()}
+          </span>
+        )}
+      </div>
       <PopoverContent className="w-64 space-y-3 z-50" align="start" collisionPadding={12}>
         <div className="text-sm font-medium">押金管理</div>
         <div className="space-y-1.5">
