@@ -280,6 +280,11 @@ export default function TeamHome() {
           periodStart,
           periodEnd,
           currentMonthKey,
+          payoutY,
+          payoutM,
+          period,
+          payoutMonthKey,
+          isMonthlyPayout,
         } = monthInfo;
 
         // profile id (for scout / franchise external / 團隊獎金角色綁定)
