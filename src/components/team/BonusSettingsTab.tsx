@@ -1656,7 +1656,7 @@ function OwnerPricingRuleOverviewSection() {
                       list.map((r) => (
                         <TableRow key={r.id} className="bg-muted/40">
                           <TableCell />
-                          <TableCell colSpan={5} className="text-sm">
+                          <TableCell colSpan={6} className="text-sm">
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                               <span className="font-medium">{r.effective_from} 起</span>
                               {cur?.id === r.id && <Badge variant="default">目前生效</Badge>}
