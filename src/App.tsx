@@ -136,6 +136,7 @@ const TeamLineOA = lazy(() => import("./pages/team/TeamLineOA"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const TravelerCdp = lazy(() => import("./pages/TravelerCdp"));
+const RemarketingAdmin = lazy(() => import("./pages/admin/RemarketingAdmin"));
 const TravelerProfileDetail = lazy(() => import("./pages/TravelerProfileDetail"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
