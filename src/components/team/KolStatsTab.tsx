@@ -500,7 +500,9 @@ export function KolStatsTab() {
         // 供團隊獎金計算用：per scout per venue 的實際貢獻數
         // - 兼職：kpi_qualified=true 的全部邀約
         // - 正職：kpi_qualified=true 且 rarity ∈ {SR,SSR,UR}
-        const teamContribBy: Map<string, Map<string, number>> = new Map();
+        const teamContribBy: Map<string, { isFulltime: boolean; perVenue: Map<string, number> }> =
+          new Map();
+
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
