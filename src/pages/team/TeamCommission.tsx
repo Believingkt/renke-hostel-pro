@@ -42,7 +42,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import FinancialReportTab from "@/components/team/FinancialReportTab";
 import RagicSyncTab from "@/components/team/RagicSyncTab";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
-import { getAccommodationRevenueByAcc } from "@/lib/teamBonusRevenue";
+import {
+  getAccommodationRevenueByAcc,
+  getCountableRangesByAcc,
+  formatCountableRangeNote,
+} from "@/lib/teamBonusRevenue";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
@@ -551,6 +555,7 @@ interface SourceItem {
   payout_date: string | null;
   venue_name?: string | null;   // 館別名稱（訂單類獎金）
   base_revenue?: number | null; // 該館別計算基準營收（抽成類獎金）
+  range_note?: string | null;   // 非整月合作期間提醒
   order_number?: string | null; // 訂單編號
 }
 
@@ -1061,12 +1066,20 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           if (sources.length > 0 && sy && sm && revenueAccIds.length > 0) {
             const nextY = sm === 12 ? sy + 1 : sy;
             const nextM = sm === 12 ? 1 : sm + 1;
+            const monthStartDate = `${snapMonth}-01`;
+            const monthEndDate = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
             const byAcc: Record<string, number> = await getAccommodationRevenueByAcc(
               supabase as any,
               revenueAccIds,
-              `${snapMonth}-01`,
-              `${nextY}-${String(nextM).padStart(2, "0")}-01`,
+              monthStartDate,
+              monthEndDate,
               sources,
+            );
+            const noteRanges = await getCountableRangesByAcc(
+              supabase as any,
+              revenueAccIds,
+              monthStartDate,
+              monthEndDate,
             );
             const entries = Object.entries(byAcc)
               .filter(([, rev]) => rev > 0)
@@ -1088,7 +1101,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                   label,
                   detail,
                   value,
-                  { venue_name: venueOf(accId) || "其他", base_revenue: Math.round(rev) },
+                  {
+                    venue_name: venueOf(accId) || "其他",
+                    base_revenue: Math.round(rev),
+                    range_note: formatCountableRangeNote(
+                      noteRanges[accId],
+                      monthStartDate,
+                      monthEndDate,
+                    ),
+                  },
                 );
               });
               continue;
@@ -1710,7 +1731,17 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                                 })
                                               }
                                             >
-                                              <TableCell className="text-sm">{venue}</TableCell>
+                                              <TableCell className="text-sm">
+                                                <div>{venue}</div>
+                                                {(() => {
+                                                  const note = vItems.find((i) => i.range_note)?.range_note;
+                                                  return note ? (
+                                                    <div className="text-[11px] leading-tight text-muted-foreground mt-0.5 whitespace-normal">
+                                                      {note}
+                                                    </div>
+                                                  ) : null;
+                                                })()}
+                                              </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
                                                 {(() => {
                                                   const rev = vItems.reduce(
