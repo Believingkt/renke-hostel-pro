@@ -1471,7 +1471,15 @@ export default function TeamHome() {
         prevPeriod={prevPeriod}
         viewingPrev={viewingPrev}
         onChange={setViewingPrev}
+        loading={loading}
       />
+
+      {loading && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          正在讀取並計算 {activePeriod.label} 的獎金資料…
+        </p>
+      )}
 
       {!loading && cards.length === 0 ? (
         <Card>
