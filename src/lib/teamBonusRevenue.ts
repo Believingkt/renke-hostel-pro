@@ -399,3 +399,35 @@ export async function getVenueClosingAccommodations(
 
   return out;
 }
+
+/** 由日期字串取 M/D 顯示 */
+function mdLabel(date: string): string {
+  const [, m, d] = date.slice(0, 10).split("-");
+  return `${Number(m)}/${Number(d)}`;
+}
+
+function minusOneDay(date: string): string {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) - 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * 若某館別在該資料月的可採計區間不是「整月」，回傳提醒文字；
+ * 完整整月則回傳 null（不顯示提醒）。
+ * monthEndDate 為排他（下個月 1 號）。
+ */
+export function formatCountableRangeNote(
+  ranges: CountableRange[] | undefined,
+  monthStartDate: string,
+  monthEndDate: string,
+): string | null {
+  if (!ranges || ranges.length === 0) return null;
+  const isFullMonth =
+    ranges.length === 1 &&
+    ranges[0].start <= monthStartDate &&
+    ranges[0].end >= monthEndDate;
+  if (isFullMonth) return null;
+  const parts = ranges.map((r) => `${mdLabel(r.start)}–${mdLabel(minusOneDay(r.end))}`);
+  return `本期僅採計合作期間 ${parts.join("、")}（非整月，與業主月結整月營收不同）`;
+}

@@ -40,12 +40,14 @@ import {
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
   getCountableRangesByAcc,
+  formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
   name: string;
   revenue: number;
   amount: number;
+  rangeNote?: string;
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
@@ -991,6 +993,13 @@ export default function TeamHome() {
               : {};
           const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
 
+          // 各館別在資料月的可採計合作期間（用於「非整月」提醒）
+          const noteRanges = needCompanyRevenue
+            ? await getCountableRangesByAcc(client, allAccIds, monthStartDate, monthEndDate)
+            : {};
+          const rangeNoteOf = (accId: string) =>
+            formatCountableRangeNote(noteRanges[accId], monthStartDate, monthEndDate) ?? undefined;
+
           // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
           const linesOf = (byAcc: Record<string, number>, rate: number) =>
             Object.entries(byAcc)
@@ -1000,7 +1009,9 @@ export default function TeamHome() {
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
                 amount: rev * rate,
+                rangeNote: rangeNoteOf(accId),
               }));
+
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
           //     AM 場域獎金：固定金額 × 管理場館數（排除旅行日系列）
@@ -1292,7 +1303,7 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number }>;
+    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number; rangeNote?: string }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
@@ -1324,6 +1335,7 @@ export default function TeamHome() {
       revenue: Math.round(d.revenue),
       amount: Math.round(d.amount * m),
       multiplier: m,
+      rangeNote: d.rangeNote,
     }));
 
   if (showCloser && isMonthly) {
@@ -1720,7 +1732,14 @@ export default function TeamHome() {
                     <tbody>
                       {lines.map((ln, i) => (
                         <tr key={i} className="border-b last:border-0">
-                          <td className="py-2 pr-2">{ln.label}</td>
+                          <td className="py-2 pr-2">
+                            <div>{ln.label}</div>
+                            {ln.rangeNote ? (
+                              <div className="text-[11px] leading-tight text-muted-foreground mt-0.5">
+                                {ln.rangeNote}
+                              </div>
+                            ) : null}
+                          </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
                           </td>
