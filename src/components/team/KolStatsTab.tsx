@@ -238,9 +238,12 @@ export function KolStatsTab() {
             ? supabase
                 .from("scout_team_targets")
                 .select("year, month, personal_min, target_count, venue_id, venue_name")
-                .eq("year", month === 1 ? effYear - 1 : effYear)
-                .eq("month", month === 1 ? 12 : month - 1)
+                // 與 calculate-scout-payout 一致：門檻取「結算年月」的設定，
+                // 實際邀約數才是用 kpi_month = 上月。
+                .eq("year", effYear)
+                .eq("month", month)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
+
         ]);
 
         if (profilesRes.error) throw profilesRes.error;
