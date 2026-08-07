@@ -782,13 +782,23 @@ serve(async (req) => {
         },
       });
 
-      // 月費：以「目前合作中館別數」計價（旅行日系列合併只算一館，停用館別不計）
+      // 月費：以「該資料月有合作期間（bonus_policy != none）的館別」計價
+      // （旅行日系列合併只算一館，停用館別／無合作期間不計）
       const kolMonthlyFixed = fixedOf("kol_monthly");
-      const travelDayIds = activeAccIds.filter((id) =>
+      const kolMonthlyRanges = await getCountableRangesByAcc(
+        supabase,
+        activeAccIds,
+        monthStartDate,
+        monthEndDate,
+      );
+      const partneredAccIds = activeAccIds.filter(
+        (id) => (kolMonthlyRanges[id]?.length ?? 0) > 0,
+      );
+      const travelDayIds = partneredAccIds.filter((id) =>
         (accNameById.get(id) ?? "").startsWith("旅行日"),
       );
       const kolMonthlyAccIds = [
-        ...activeAccIds.filter((id) => !(accNameById.get(id) ?? "").startsWith("旅行日")),
+        ...partneredAccIds.filter((id) => !(accNameById.get(id) ?? "").startsWith("旅行日")),
         ...(travelDayIds.length > 0 ? [travelDayIds[0]] : []),
       ];
       push({
