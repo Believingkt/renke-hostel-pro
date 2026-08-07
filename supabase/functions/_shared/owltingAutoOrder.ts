@@ -165,41 +165,14 @@ export async function autoCreatePendingOrder(
     }
 
     // Auto-assign units for each room row (sequential display_order pick).
-    const { data: units } = await admin
-      .from("room_units")
-      .select("id, display_order, unit_number")
-      .eq("room_type_id", roomTypeId)
-      .eq("is_active", true)
-      .order("display_order", { ascending: true })
-      .order("unit_number", { ascending: true });
-
-    const busySet = new Set<string>();
-    if (units && units.length > 0) {
-      const { data: conflicts } = await admin
-        .from("order_rooms")
-        .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
-        .in("room_unit_id", units.map((u: any) => u.id))
-        .neq("orders.order_status", "cancelled")
-        .lt("orders.check_in_date", input.check_out_date)
-        .gt("orders.check_out_date", input.check_in_date);
-      for (const c of conflicts ?? []) {
-        if ((c as any).room_unit_id) busySet.add((c as any).room_unit_id);
-      }
-    }
-
-    const perRoomPrice = Math.round(total / roomQuantity);
-    const pickedIds = new Set<string>();
-    for (let i = 0; i < roomQuantity; i++) {
-      const free = (units ?? []).find((u: any) => !busySet.has(u.id) && !pickedIds.has(u.id));
-      if (free) pickedIds.add(free.id);
-      await admin.from("order_rooms").insert({
-        order_id: inserted.id,
-        room_type_id: roomTypeId,
-        quantity: 1,
-        room_price: perRoomPrice,
-        room_unit_id: free?.id ?? null,
-      });
-    }
+    await rebuildOrderRooms(admin, {
+      orderId: inserted.id,
+      roomTypeId,
+      roomQuantity,
+      total,
+      checkIn: input.check_in_date,
+      checkOut: input.check_out_date,
+    });
 
     // Link staging → order.
     await admin
@@ -246,5 +219,193 @@ export async function cancelAutoPendingOrders(
   } catch (e) {
     console.error("[cancelAutoPendingOrders] failed:", e);
     return [];
+  }
+}
+
+/**
+ * (Re)build order_rooms for an order, auto-assigning free room units.
+ * Existing rows for the order are replaced.
+ */
+export async function rebuildOrderRooms(
+  admin: any,
+  opts: {
+    orderId: string;
+    roomTypeId: string;
+    roomQuantity: number;
+    total: number;
+    checkIn: string;
+    checkOut: string;
+  },
+): Promise<void> {
+  await admin.from("order_rooms").delete().eq("order_id", opts.orderId);
+
+  const { data: units } = await admin
+    .from("room_units")
+    .select("id, display_order, unit_number")
+    .eq("room_type_id", opts.roomTypeId)
+    .eq("is_active", true)
+    .order("display_order", { ascending: true })
+    .order("unit_number", { ascending: true });
+
+  const busySet = new Set<string>();
+  if (units && units.length > 0) {
+    const { data: conflicts } = await admin
+      .from("order_rooms")
+      .select("room_unit_id, order_id, orders!inner(order_status, check_in_date, check_out_date)")
+      .in("room_unit_id", units.map((u: any) => u.id))
+      .neq("order_id", opts.orderId)
+      .neq("orders.order_status", "cancelled")
+      .lt("orders.check_in_date", opts.checkOut)
+      .gt("orders.check_out_date", opts.checkIn);
+    for (const c of conflicts ?? []) {
+      if ((c as any).room_unit_id) busySet.add((c as any).room_unit_id);
+    }
+  }
+
+  const qty = Math.max(1, opts.roomQuantity);
+  const perRoomPrice = Math.round(opts.total / qty);
+  const pickedIds = new Set<string>();
+  for (let i = 0; i < qty; i++) {
+    const free = (units ?? []).find((u: any) => !busySet.has(u.id) && !pickedIds.has(u.id));
+    if (free) pickedIds.add(free.id);
+    await admin.from("order_rooms").insert({
+      order_id: opts.orderId,
+      room_type_id: opts.roomTypeId,
+      quantity: 1,
+      room_price: perRoomPrice,
+      room_unit_id: free?.id ?? null,
+    });
+  }
+}
+
+export interface ApplyModificationResult {
+  ok: boolean;
+  order_id?: string;
+  order_number?: string;
+  updated_fields?: string[];
+  skipped_reason?: string;
+  error?: string;
+}
+
+/**
+ * Modified email → UPDATE the existing order tied to the same OBE number
+ * instead of creating a duplicate (which would double-book inventory).
+ * Returns skipped_reason = "order_not_found" when there is nothing to update.
+ * Never throws.
+ */
+export async function applyModificationToExistingOrder(
+  admin: any,
+  input: {
+    staging_id: string;
+    obe_number: string | null;
+    accommodation_id: string | null;
+    room_type_name: string | null;
+    room_quantity: number | null;
+    check_in_date: string | null;
+    check_out_date: string | null;
+    guest_count: number | null;
+    total_amount: number | null;
+    change_summary?: string | null;
+  },
+): Promise<ApplyModificationResult> {
+  try {
+    if (!input.obe_number) return { ok: false, skipped_reason: "no_obe_number" };
+
+    const { data: order } = await admin
+      .from("orders")
+      .select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, guest_count, total_price, final_price, paid_amount, payment_status, order_status, notes")
+      .eq("owlting_reservation_id", input.obe_number)
+      .neq("order_status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!order) return { ok: false, skipped_reason: "order_not_found" };
+
+    const accId = input.accommodation_id ?? order.accommodation_id;
+    const patch: Record<string, unknown> = {};
+    const changed: string[] = [];
+
+    if (input.check_in_date && input.check_in_date !== order.check_in_date) {
+      patch.check_in_date = input.check_in_date;
+      changed.push("入住日期");
+    }
+    if (input.check_out_date && input.check_out_date !== order.check_out_date) {
+      patch.check_out_date = input.check_out_date;
+      changed.push("退房日期");
+    }
+    const guestCount = Number(input.guest_count ?? 0);
+    if (guestCount > 0 && guestCount !== Number(order.guest_count)) {
+      patch.guest_count = guestCount;
+      changed.push("人數");
+    }
+
+    let roomTypeId: string | null = order.room_type_id;
+    if (input.room_type_name && accId) {
+      const matched = await matchRoomTypeByName(admin, accId, input.room_type_name);
+      if (matched && matched !== order.room_type_id) {
+        roomTypeId = matched;
+        patch.room_type_id = matched;
+        changed.push("房型");
+      }
+    }
+
+    const total = input.total_amount != null ? Math.max(0, Math.round(Number(input.total_amount))) : null;
+    if (total != null && total !== Number(order.final_price)) {
+      patch.total_price = total;
+      patch.final_price = total;
+      if (order.payment_status === "paid") patch.paid_amount = total;
+      changed.push("金額");
+    }
+
+    if (changed.length === 0) {
+      return {
+        ok: true,
+        order_id: order.id,
+        order_number: order.order_number,
+        updated_fields: [],
+        skipped_reason: "no_material_change",
+      };
+    }
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    const summary = input.change_summary?.trim();
+    patch.notes = `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary || changed.join("、")}`;
+
+    const { error: updErr } = await admin.from("orders").update(patch).eq("id", order.id);
+    if (updErr) return { ok: false, error: updErr.message };
+
+    // Rebuild room rows when dates / room type / quantity / price changed.
+    const finalCheckIn = (patch.check_in_date as string) ?? order.check_in_date;
+    const finalCheckOut = (patch.check_out_date as string) ?? order.check_out_date;
+    const finalTotal = total ?? Number(order.final_price ?? 0);
+    if (roomTypeId) {
+      const { count } = await admin
+        .from("order_rooms")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", order.id);
+      const qty = Math.max(1, Math.min(20, Number(input.room_quantity ?? count ?? 1) || 1));
+      await rebuildOrderRooms(admin, {
+        orderId: order.id,
+        roomTypeId,
+        roomQuantity: qty,
+        total: finalTotal,
+        checkIn: finalCheckIn,
+        checkOut: finalCheckOut,
+      });
+    }
+
+    await admin
+      .from("owlting_email_parsed_staging")
+      .update({
+        auto_order_id: order.id,
+        auto_create_error: null,
+        review_notes: `[auto-update] 修改通知已自動更新既有訂單 ${order.order_number}：${changed.join("、")}`,
+      })
+      .eq("id", input.staging_id);
+
+    return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: changed };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
   }
 }
