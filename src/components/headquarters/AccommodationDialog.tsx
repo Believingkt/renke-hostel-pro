@@ -248,7 +248,7 @@ export function AccommodationDialog({
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods, deposit_percentage, free_cancel_days")
+        .select("payment_methods, deposit_percentage, free_cancel_days, security_deposit_amount")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -262,8 +262,35 @@ export function AccommodationDialog({
       const fcd = (data as any)?.free_cancel_days ?? 14;
       setFreeCancelDays(fcd);
       savedFreeCancelRef.current = fcd;
+      const sd = (data as any)?.security_deposit_amount ?? 5000;
+      setSecurityDeposit(sd);
+      savedSecurityDepositRef.current = sd;
     } catch (error) {
       console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const handleSecurityDepositChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 1000000) return;
+
+    setLoadingSecurityDeposit(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({ security_deposit_amount: value, updated_at: new Date().toISOString() } as any)
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setSecurityDeposit(value);
+      savedSecurityDepositRef.current = value;
+      toast.success(`預設押金已更新為 NT$${value.toLocaleString()}`);
+    } catch (error: any) {
+      console.error("Error updating security deposit:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingSecurityDeposit(false);
     }
   };
 
