@@ -133,6 +133,7 @@ const menuItems = [
     subItems: [
       { title: "客戶列表", url: "/admin/customers", icon: Users },
       { title: "旅客資料匯流", url: "/admin/cdp", icon: Database },
+      { title: "AI 再行銷推播", url: "/admin/remarketing", icon: Send },
     ]
   },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
