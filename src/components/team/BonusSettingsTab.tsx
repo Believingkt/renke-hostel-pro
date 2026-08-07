@@ -1536,7 +1536,7 @@ function OwnerPricingRuleOverviewSection() {
         const [accRes, ruleRes] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name")
+            .select("id, name, short_url_alias")
             .eq("is_active", true)
             .order("name", { ascending: true }),
           (supabase as any)
