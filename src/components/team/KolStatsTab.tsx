@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { buildExemptResolver, commissionBaseFromOrder } from "@/lib/ownerExempt";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+
 
 
 const RARITIES = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
