@@ -42,6 +42,51 @@ type EmailEvent = {
   created_at: string;
 };
 
+type DepositAudit = {
+  id: string;
+  user_email: string | null;
+  details: Record<string, { from: unknown; to: unknown }> | null;
+  created_at: string;
+};
+
+type DepositCharge = {
+  id: string;
+  action: string;
+  amount: number;
+  status: string;
+  trigger_source: string;
+  error_message: string | null;
+  performed_by: string | null;
+  created_at: string;
+};
+
+const DEPOSIT_FIELD_LABEL: Record<string, string> = {
+  deposit_required_amount: "應收押金",
+  deposit_charged_amount: "已扣款金額",
+  deposit_refunded_amount: "已退款金額",
+  deposit_method: "收取方式",
+  deposit_status: "押金狀態",
+};
+
+const DEPOSIT_VALUE_LABEL: Record<string, string> = {
+  cash: "現場現金",
+  card: "線上綁卡(已停用)",
+  pending: "待設定",
+  card_bound: "已綁卡",
+  charged: "已扣款",
+  partially_refunded: "部分退款",
+  refunded: "已退款",
+  failed: "扣款失敗",
+  not_required: "不需押金",
+};
+
+function formatDepositValue(field: string, value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "number") return `NT$${value.toLocaleString()}`;
+  return DEPOSIT_VALUE_LABEL[String(value)] || String(value);
+}
+
+
 const STATUS_LABEL: Record<string, string> = {
   unpaid: "未付款",
   pending_payment: "待付款",
