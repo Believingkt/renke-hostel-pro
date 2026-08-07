@@ -559,7 +559,7 @@ serve(async (req) => {
 
     const { data: profileRows, error: profErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, am_managed_accommodation_ids");
+      .select("id, user_id, display_name, am_managed_accommodation_ids, resigned_at");
     if (profErr) throw profErr;
 
     const profileByUserId = new Map<string, any>();
