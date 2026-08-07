@@ -1069,20 +1069,61 @@ function VenueClosingAssignmentSection({
 
   const accName = (id: string) => accs.find((a) => a.id === id)?.name ?? id.slice(0, 8);
 
-  async function savePartnership(accId: string, value: string) {
-    const next = value ? value : null;
-    const { error } = await supabase
-      .from("accommodation_info")
-      .update({ partnership_start_date: next })
-      .eq("id", accId);
-    if (error) return toast.error("儲存合作生效日失敗：" + error.message);
-    setAccs((prev) =>
-      prev.map((a) => (a.id === accId ? { ...a, partnership_start_date: next } : a)),
-    );
-    toast.success("已更新合作生效日");
-  }
+  const periodsByAcc = useMemo(() => {
+    const m = new Map<string, PartnershipPeriodRow[]>();
+    for (const p of periods) {
+      const arr = m.get(p.accommodation_id) ?? [];
+      arr.push(p);
+      m.set(p.accommodation_id, arr);
+    }
+    for (const [, arr] of m) arr.sort((a, b) => (a.start_date < b.start_date ? 1 : -1));
+    return m;
+  }, [periods]);
 
   const today = taipeiToday();
+
+  const currentPeriod = (accId: string) =>
+    (periodsByAcc.get(accId) ?? []).find(
+      (p) => p.start_date <= today && (!p.end_date || p.end_date >= today),
+    ) ?? null;
+
+  function openPeriodDialog(accId: string) {
+    setPStart(today);
+    setPEnd("");
+    setPPolicy("full");
+    setPNote("");
+    setPeriodAcc(accId);
+  }
+
+  async function submitPeriod() {
+    if (!periodAcc || !pStart) return toast.error("請填寫開始日");
+    if (pEnd && pEnd < pStart) return toast.error("結束日不可早於開始日");
+    setPSaving(true);
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .insert({
+        accommodation_id: periodAcc,
+        start_date: pStart,
+        end_date: pEnd || null,
+        bonus_policy: pPolicy,
+        note: pNote || null,
+      });
+    setPSaving(false);
+    if (error) return toast.error("新增合作期間失敗：" + error.message);
+    toast.success("已新增合作期間");
+    setPeriodAcc(null);
+    load();
+  }
+
+  async function endPeriod(period: PartnershipPeriodRow) {
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .update({ end_date: today })
+      .eq("id", period.id);
+    if (error) return toast.error("結束合作期間失敗：" + error.message);
+    toast.success("已將合作期間結束於今日");
+    load();
+  }
 
   return (
     <Card>
@@ -1090,7 +1131,7 @@ function VenueClosingAssignmentSection({
         <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
         <p className="text-sm text-muted-foreground">
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
-          「合作生效日」為該館所有團隊獎金的採計起算日；未設定者一律不計入任何團隊獎金。
+          「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
         </p>
       </CardHeader>
       <CardContent>
@@ -1100,7 +1141,7 @@ function VenueClosingAssignmentSection({
               <TableRow>
                 <TableHead className="w-10" />
                 <TableHead>館別</TableHead>
-                <TableHead>合作生效日</TableHead>
+                <TableHead>目前合作期間</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead>目前簽約人</TableHead>
                 <TableHead>簽約人指派日</TableHead>
@@ -1112,7 +1153,9 @@ function VenueClosingAssignmentSection({
                 const history = byAcc.get(a.id) ?? [];
                 const cur = pickCurrent(history);
                 const isOpen = expanded.has(a.id);
-                const p = a.partnership_start_date ?? "";
+                const accPeriods = periodsByAcc.get(a.id) ?? [];
+                const curPeriod = currentPeriod(a.id);
+                const upcoming = accPeriods.find((p) => p.start_date > today);
                 return (
                   <Fragment key={a.id}>
                     <TableRow>
@@ -1126,23 +1169,27 @@ function VenueClosingAssignmentSection({
                         </Button>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{a.name}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="date"
-                          className="w-[150px]"
-                          value={p}
-                          onChange={(e) => savePartnership(a.id, e.target.value)}
-                        />
+                      <TableCell className="whitespace-nowrap">
+                        {curPeriod
+                          ? `${curPeriod.start_date} ~ ${curPeriod.end_date ?? "迄今"}`
+                          : upcoming
+                            ? `${upcoming.start_date} 起（待生效）`
+                            : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {!p ? (
-                          <Badge variant="destructive">未設定合作日</Badge>
-                        ) : p > today ? (
+                        {curPeriod && curPeriod.bonus_policy === "full" ? (
+                          <Badge>合作中</Badge>
+                        ) : curPeriod ? (
+                          <Badge variant="secondary">合作中（不採計）</Badge>
+                        ) : upcoming ? (
                           <Badge variant="secondary">待生效</Badge>
+                        ) : accPeriods.length > 0 ? (
+                          <Badge variant="outline">已暫停</Badge>
                         ) : (
-                          <Badge>已生效</Badge>
+                          <Badge variant="destructive">未設定合作期間</Badge>
                         )}
                       </TableCell>
+
                       <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {cur?.effective_from ?? "—"}
