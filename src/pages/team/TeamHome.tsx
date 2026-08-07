@@ -1079,8 +1079,22 @@ export default function TeamHome() {
                 venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
               }
             }
-            // 已結算金額來自快照，逐館明細（即時費率算出）可能不一致 → 不顯示
-            for (const k of Object.keys(breakdown)) delete breakdown[k];
+            // 已結算金額以快照為準；逐館明細（即時費率算出）等比例縮放，
+            // 讓各館別加總＝快照金額，避免明細與實付總額對不上。
+            for (const k of Object.keys(breakdown)) {
+              if (!byType.has(k)) {
+                delete breakdown[k];
+                continue;
+              }
+              const snapTotal = Number(byType.get(k) ?? 0);
+              const liveTotal = breakdown[k].reduce((s, d) => s + d.amount, 0);
+              if (liveTotal <= 0) {
+                delete breakdown[k];
+                continue;
+              }
+              const ratio = snapTotal / liveTotal;
+              breakdown[k] = breakdown[k].map((d) => ({ ...d, amount: d.amount * ratio }));
+            }
           }
         }
 
