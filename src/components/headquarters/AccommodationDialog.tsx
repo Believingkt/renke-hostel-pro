@@ -1061,6 +1061,48 @@ export function AccommodationDialog({
                             </div>
                           </div>
 
+                          {/* 預設押金金額 */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">預設押金金額</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  新建訂單與前台訂房時預設帶入的押金（現場現金）
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">NT$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={1000000}
+                                  value={securityDeposit}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val >= 0 && val <= 1000000) setSecurityDeposit(val);
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val < 0 || val > 1000000) return;
+                                    if (val !== savedSecurityDepositRef.current) {
+                                      handleSecurityDepositChange(val);
+                                    }
+                                  }}
+                                  disabled={loadingSecurityDeposit || isSubmitting}
+                                  className="w-28 h-9 text-center"
+                                />
+                                {loadingSecurityDeposit && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+
+
                           {/* 請款手續費設定 */}
                           <div className="border rounded-lg p-4 bg-muted/30">
                             <div className="flex items-center justify-between">
