@@ -144,8 +144,22 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
           <CreditCard className="h-4 w-4" />
           押金管理
         </CardTitle>
-        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+          <DepositQuickEdit
+            orderId={orderId}
+            requiredAmount={deposit.deposit_required_amount}
+            status={deposit.deposit_status}
+            chargedAmount={deposit.deposit_charged_amount}
+            refundedAmount={deposit.deposit_refunded_amount}
+            onSaved={async () => {
+              await load();
+              onRefresh?.();
+            }}
+          />
+        </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div>
