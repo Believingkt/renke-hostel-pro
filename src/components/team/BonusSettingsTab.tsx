@@ -1194,7 +1194,16 @@ function VenueClosingAssignmentSection({
                       <TableCell className="whitespace-nowrap">
                         {cur?.effective_from ?? "—"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="space-x-2 text-right whitespace-nowrap">
+                        <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
+                          <Plus className="mr-1 h-4 w-4" />
+                          合作期間
+                        </Button>
+                        {curPeriod && !curPeriod.end_date && (
+                          <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
+                            結束合作
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
                           <Plus className="mr-1 h-4 w-4" />
                           新增版本
@@ -1204,10 +1213,35 @@ function VenueClosingAssignmentSection({
 
                     {isOpen && (
                       <TableRow>
-                        <TableCell colSpan={7} className="bg-muted/30">
+                        <TableCell colSpan={7} className="space-y-4 bg-muted/30">
+                          <div>
+                            <div className="mb-1 text-sm font-medium">合作期間</div>
+                            {accPeriods.length === 0 ? (
+                              <div className="py-1 text-sm text-muted-foreground">尚無合作期間</div>
+                            ) : (
+                              <ul className="space-y-1 text-sm">
+                                {accPeriods.map((p) => (
+                                  <li key={p.id} className="flex items-center gap-2">
+                                    <span className="whitespace-nowrap">
+                                      {p.start_date} ~ {p.end_date ?? "迄今"}
+                                    </span>
+                                    {p.bonus_policy === "none" ? (
+                                      <Badge variant="secondary">不採計獎金</Badge>
+                                    ) : (
+                                      <Badge variant="outline">採計</Badge>
+                                    )}
+                                    {p.note && (
+                                      <span className="text-muted-foreground">{p.note}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                           {history.length === 0 ? (
                             <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
+
                             <Table>
                               <TableHeader>
                                 <TableRow>
