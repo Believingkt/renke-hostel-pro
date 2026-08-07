@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
 import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
+import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+
 
 import {
   getBonusRateSettings,
