@@ -937,6 +937,7 @@ interface AccOption {
   id: string;
   name: string;
   partnership_start_date?: string | null;
+  short_url_alias?: string | null;
 }
 
 
