@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DepositQuickEdit } from "@/components/orders/DepositQuickEdit";
 
 interface Props {
   orderId: string;
@@ -48,12 +49,12 @@ interface ChargeLog {
 }
 
 const STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "待設定", variant: "outline" },
+  pending: { label: "未收押金", variant: "outline" },
   cash: { label: "現場現金", variant: "secondary" },
   card_bound: { label: "已綁卡", variant: "default" },
-  charged: { label: "已扣款", variant: "default" },
-  partially_refunded: { label: "部分退款", variant: "secondary" },
-  refunded: { label: "已退款", variant: "secondary" },
+  charged: { label: "已收押金", variant: "default" },
+  partially_refunded: { label: "部分扣押", variant: "secondary" },
+  refunded: { label: "已退還", variant: "secondary" },
   failed: { label: "扣款失敗", variant: "destructive" },
 };
 
@@ -167,11 +168,11 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
             <div className="font-medium tabular-nums">NT${deposit.deposit_required_amount.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-muted-foreground">已扣款</div>
+            <div className="text-muted-foreground">已收押金</div>
             <div className="font-medium tabular-nums">NT${deposit.deposit_charged_amount.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-muted-foreground">已退款</div>
+            <div className="text-muted-foreground">已退還</div>
             <div className="font-medium tabular-nums">NT${deposit.deposit_refunded_amount.toLocaleString()}</div>
           </div>
           <div>
