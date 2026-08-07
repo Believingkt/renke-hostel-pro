@@ -309,7 +309,7 @@ export async function getVenueClosingAccommodations(
     byAcc.set(key, list);
   }
 
-  const out: string[] = [];
+  const matched: string[] = [];
   for (const [accId, list] of byAcc) {
     const latest = list.reduce((best, r) => {
       const ef = String(r.effective_from ?? "").localeCompare(String(best.effective_from ?? ""));
@@ -317,7 +317,15 @@ export async function getVenueClosingAccommodations(
       if (ef === 0 && String(r.created_at ?? "") > String(best.created_at ?? "")) return r;
       return best;
     });
-    if (latest?.member_id === memberProfileId) out.push(accId);
+    if (latest?.member_id === memberProfileId) matched.push(accId);
   }
+
+  // 未設定合作生效日、或合作生效日晚於資料月底者不採計
+  const partnership = await getPartnershipStartDates(client, matched);
+  const out = matched.filter((accId) => {
+    const p = partnership[accId];
+    return !!p && p <= monthLastDate;
+  });
+
   return out;
 }
