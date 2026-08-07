@@ -39,6 +39,7 @@ import {
   getAccommodationRevenueByAcc,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
+  getCountableRangesByAcc,
 } from "@/lib/teamBonusRevenue";
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
