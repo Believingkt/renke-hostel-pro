@@ -1902,6 +1902,7 @@ export type Database = {
           pet_policy: string | null
           pet_section_subtitle: string | null
           pet_section_title: string | null
+          security_deposit_amount: number
           updated_at: string
           use_deposit: boolean | null
         }
@@ -1930,6 +1931,7 @@ export type Database = {
           pet_policy?: string | null
           pet_section_subtitle?: string | null
           pet_section_title?: string | null
+          security_deposit_amount?: number
           updated_at?: string
           use_deposit?: boolean | null
         }
@@ -1958,6 +1960,7 @@ export type Database = {
           pet_policy?: string | null
           pet_section_subtitle?: string | null
           pet_section_title?: string | null
+          security_deposit_amount?: number
           updated_at?: string
           use_deposit?: boolean | null
         }

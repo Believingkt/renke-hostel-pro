@@ -1,0 +1,1 @@
+ALTER TABLE public.booking_settings ADD COLUMN IF NOT EXISTS security_deposit_amount integer NOT NULL DEFAULT 5000;
