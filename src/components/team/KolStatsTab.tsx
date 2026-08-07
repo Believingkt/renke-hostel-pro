@@ -725,21 +725,20 @@ export function KolStatsTab() {
 
         let teamBonusPayout = 0;
         if (showSalary && targetsList.length > 0) {
-          // 【修改二】團隊達標：各 target 館別
-          // 兼職邀約數（全部 kpi_qualified）＋ 正職 SR/SSR/UR 邀約數 >= target_count
-          let teamAchieved = true;
-          for (const t of targetsList) {
-            let total = 0;
-            for (const contrib of teamContribBy.values()) {
-              total += contrib.get(t.key) ?? 0;
-            }
-            if (total < t.target_count) {
-              teamAchieved = false;
-              break;
+          // 團隊達標：兼職全量 ＋ 正職 SR/SSR/UR 累加 >= target_count（共用 scoutTeamAchievement）
+          const counts = new Map<string, { parttime: number; fulltime: number }>();
+          for (const contrib of teamContribBy.values()) {
+            for (const [k, n] of contrib.perVenue.entries()) {
+              const cur = counts.get(k) ?? { parttime: 0, fulltime: 0 };
+              if (contrib.isFulltime) cur.fulltime += n;
+              else cur.parttime += n;
+              counts.set(k, cur);
             }
           }
-          if (teamAchieved) teamBonusPayout = teamBonusAmount;
+          const { achieved } = evaluateTeamAchievement(targetsList, counts);
+          if (achieved) teamBonusPayout = teamBonusAmount;
         }
+
         for (const r of periodFiltered) {
           r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
           r.total = r.rarity_bonus + r.kol_commission + r.base_salary + r.team_bonus;
