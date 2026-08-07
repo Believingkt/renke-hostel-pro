@@ -14,30 +14,51 @@
 
 底薪／團隊獎金只在 10 日期發放，資料月＝該發放月的上一個月。25 日期時這兩張卡不顯示金額，改顯示「本期不發放，下次為 X/10」。
 
-## 資料來源優先序
+## 資料來源優先序（星探系）
 
 1. 先查 `scout_monthly_payouts`（year / month / period / user）— 後端 `calculate-scout-payout` 每日由 cron 重跑，未標記已發放前會持續更新，所以在發放日前就讀得到。有資料 -> 直接使用其欄位（分潤、稀有度、底薪、團隊獎金）。
 2. 查無資料（例如期初尚未跑過）-> 回退目前的前端即時試算，卡片標註「即時試算」。
 
 兩種來源都只顯示原始金額 + 加倍後金額（沿用 `BoostedAmount` 規則，不覆蓋原值）。
 
+## 月結系卡片的文案與顯示規則（新增）
+
+月結系只在 10 日期發放，資料月＝發放月的上一個月。計算邏輯完全不動，只調整呈現：
+
+| 情境 | 顯示 |
+|---|---|
+| 選到 10 日期，且該發放月尚無 snapshot | 金額＝當月即時試算；副標「X/10 期（資料月 YYYY-MM）・即時試算，10 日結算後定版」 |
+| 選到 10 日期，且已有 snapshot（`closer_commission_snapshots` / `teamcommission_bonus_snapshots`） | 金額＝snapshot 原始金額 + 加倍顯示；副標「X/10 期・已結算」，與發放管理一致 |
+| 選到 25 日期 | 不顯示金額，整區淡化並可摺疊；文案「本期（X/25）不發放月結型獎金，下次為 Y/10 期」 |
+
+頁面頂部新增期別橫幅：「目前顯示：即將發放的 8/10 期（資料窗 7/21–8/5）」，讓兩種口徑共存時不會誤讀。
+
+## 期別切換（新增）
+
+- 預設＝依台北時間今日自動判定的下一期。
+- 頂部提供輕量選單：`上一期 / 本期（預設）`，與管理員「模擬其他成員」同一列。
+- 切到上一期時，星探系直接讀該期 `scout_monthly_payouts`（已發放者顯示實付），月結系讀該發放月 snapshot；查無資料顯示「該期無資料」，不做即時回算，避免用今天的訂單狀態誤算過去期別。
+
 ## 檔案清單
 
 | 檔案 | 改動 |
 |---|---|
-| `src/pages/team/TeamHome.tsx` | 主要改動：`monthInfo` 增加 `nextPayout`（year/month/period/資料窗/label）；星探系查詢改讀 `scout_monthly_payouts`，查無再回退現有即時計算；卡片 note／標題文案改為期別描述；加倍倍率鍵改用該期的發放月 |
-| `src/lib/scoutPayoutPeriod.ts`（新增） | 純函式：`resolveNextPayoutPeriod(now)` 回傳期別與資料窗，與 `cron-dispatcher-commission` 的 `resolveScoutPeriod()` 同口徑，供前端與測試共用 |
+| `src/pages/team/TeamHome.tsx` | 主要改動：`monthInfo` 增加 `nextPayout`（year/month/period/資料窗/label）；期別狀態與切換選單；星探系查詢改讀 `scout_monthly_payouts`，查無再回退現有即時計算；月結系新增 snapshot 優先讀取與期別文案；25 日期月結區塊摺疊；加倍倍率鍵改用該期的發放月 |
+| `src/lib/scoutPayoutPeriod.ts`（新增） | 純函式：`resolveNextPayoutPeriod(now)`、`resolvePrevPayoutPeriod(period)`，與 `cron-dispatcher-commission` 的 `resolveScoutPeriod()` 同口徑 |
+| `src/components/team/PayoutPeriodBanner.tsx`（新增） | 期別橫幅 + 上一期/本期切換的小元件，供 TeamHome 使用 |
 | `src/lib/__tests__/scoutPayoutPeriod.test.ts`（新增） | 邊界日測試：8/1、8/10、8/11、8/25、8/26、12/26 跨年 |
 
 不改任何 edge function、不改資料表、不動已發放資料。
 
 ## 實作步驟
 
-1. 新增 `scoutPayoutPeriod.ts` 與單元測試，鎖定期別判定。
-2. `TeamHome.tsx` 的 `monthInfo` 接上 `resolveNextPayoutPeriod`，同時保留舊的 `monthStartDate/monthEndDate`（月結系仍在用），並把 `useMemo` 依賴加上當日日期字串，避免跨日不重算。
-3. 星探系資料層：先 `scout_monthly_payouts` 查詢 -> 命中則取值並標記 `source: "payout"`；未命中沿用現有 `periodStart/periodEnd` 即時計算並標記 `source: "live"`。
-4. 加倍倍率：四張卡一律以「該期的發放月」查 `bonus_multiplier_settings`，與發放管理一致。
-5. 文案：卡片副標統一為期別 + 來源狀態；25 日期的底薪／團隊獎金顯示不發放說明。
+1. 新增 `scoutPayoutPeriod.ts` 與單元測試，鎖定期別判定與上一期推導。
+2. 新增 `PayoutPeriodBanner.tsx`，掛到 TeamHome 頂部（含期別切換）。
+3. `TeamHome.tsx` 的 `monthInfo` 接上期別狀態，同時保留舊的 `monthStartDate/monthEndDate`（月結即時試算仍在用），`useMemo` 依賴加上當日日期字串避免跨日不重算。
+4. 星探系資料層：先 `scout_monthly_payouts` -> 命中標記 `source: "payout"`；未命中沿用現有即時計算標記 `source: "live"`。
+5. 月結系資料層：10 日期先查該發放月 snapshot -> 命中標記 `settled`；未命中沿用即時試算標記 `live`。25 日期直接切成不發放狀態，不發查詢。
+6. 加倍倍率：所有卡片一律以「該期的發放月」查 `bonus_multiplier_settings`，與發放管理一致，僅顯示層套用、不覆蓋原值。
+7. 文案：所有卡片副標統一為「期別 + 資料窗/資料月 + 來源狀態」；25 日期的星探底薪／團隊獎金與整組月結卡片顯示不發放說明。
 
 ## 修改後 TeamHome 預覽（以今天 8/7 為例，下一期＝8/10 期）
 
