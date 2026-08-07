@@ -704,14 +704,11 @@ function UsedOrdersList({
     const start = `${yearMonth}-01`;
     const end = format(new Date(y, m, 1), "yyyy-MM-dd");
     (async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("id, order_number, check_in_date, check_out_date, guest_name, order_status, package_id, room_type_id")
-        .eq("accommodation_id", accommodationId)
-        .eq("order_source", "kol")
-        .gte("check_in_date", start)
-        .lt("check_in_date", end)
-        .order("check_in_date", { ascending: true });
+      const { data } = await (supabase as any).rpc("list_kol_reciprocal_orders", {
+        _accommodation_id: accommodationId,
+        _start: start,
+        _end: end,
+      });
       const filtered = ((data ?? []) as any[]).filter((o) => {
         if (o.order_status === "cancelled") return false;
         if (packageId) return o.package_id === packageId || o.room_type_id === packageId;
