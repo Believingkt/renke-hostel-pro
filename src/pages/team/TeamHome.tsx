@@ -256,6 +256,45 @@ export default function TeamHome() {
     };
   }, [activePeriod]);
 
+  // ===== 期別資料快取：避免「上一期／本期」來回切換時重複讀取 =====
+  const cacheRef = useRef<Map<string, TeamHomePayload>>(new Map());
+  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
+
+  const applyPayload = useCallback((p: TeamHomePayload) => {
+    setCloserAmt(p.closerSum);
+    setScoutCloserAmt(p.scoutCloserSum);
+    setCloserTeamBonusAmt(p.closerTeamBonusSum);
+    setCloserTeamBonusRate(p.closerTeamBonusRateVal);
+    setCloserTeamBonusNoSetting(p.closerTeamBonusNoSet);
+    setCloserTeamBonusFinalized(p.closerTeamBonusFinalizedFlag);
+    setVideoAmt(p.videoSum);
+    setScoutAmt(p.scoutSum);
+    setRarityAmt(p.raritySum);
+    setBaseSalaryAmt(p.baseSalary);
+    setTeamBonusAmt(p.teamBonus);
+    setIsScoutTeamMember(p.scoutTeamMember);
+    setFranchiseInternalAmt(p.franchiseInternalSum);
+    setFranchiseExternalAmt(p.franchiseExternalSum);
+    setStarlinkAmt(p.starlinkSum);
+    setMultiplierRows(p.multMap);
+    setScoutFromPayout(p.scoutFromPayoutFlag);
+    setMonthlySettled(p.monthlySettledFlag);
+    setIsAmManager(p.amManagerFlag);
+    setIsCloserManager(p.closerManagerFlag);
+    setIsKolBonusRecipient(p.kolRecipientFlag);
+    setAmPerformanceAmt(p.amPerfSum);
+    setAmVenueBonusAmt(p.amVenueSum);
+    setCloserPerformanceAmt(p.closerPerfSum);
+    setAmManagerAmt(p.amManagerSum);
+    setCloserManagerAmt(p.closerManagerSum);
+    setKolCommissionAmt(p.kolCommissionSum);
+    setKolMonthlyAmt(p.kolMonthlySum);
+    setVenueClosingAmt(p.venueClosingSum);
+    setVenueClosingDetail(p.venueClosingLines);
+    setRevenueBreakdown(p.breakdown);
+    setMissingRates(p.missing);
+  }, []);
+
   useEffect(() => {
     if (!anyCard) {
       setLoading(false);
@@ -264,8 +303,16 @@ export default function TeamHome() {
     const userId = viewUserId;
     let cancelled = false;
 
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      applyPayload(cached);
+      setLoading(false);
+      return;
+    }
+
     (async () => {
       setLoading(true);
+
       try {
         const {
           today,
