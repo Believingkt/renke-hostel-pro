@@ -328,8 +328,10 @@ export function KolStatsTab() {
         };
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
+        // 不可只留 personal_min > 0：團隊目標（target_count）與個人門檻是獨立欄位，
+        // 過濾掉 personal_min 為 NULL 的館別會漏算團隊達標。
         const targetsList = targetRows
-          .filter((t) => Number(t.personal_min || 0) > 0)
+          .filter((t) => Number(t.personal_min || 0) > 0 || Number(t.target_count || 0) > 0)
           .map((t) => ({
             key: groupKey(t.venue_id, t.venue_name),
             venue_id: (t.venue_id ?? null) as string | null,
@@ -338,6 +340,7 @@ export function KolStatsTab() {
             target_count: Number(t.target_count || 0),
           }));
         const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
+
 
         if (scoutIds.length === 0) {
           if (!cancelled) {
