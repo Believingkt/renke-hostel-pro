@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { isHoldOrder } from "@/lib/holdOrder";
 import { boostedAmount } from "@/lib/bonusMultiplier";
 
 function DateYMDPicker({
