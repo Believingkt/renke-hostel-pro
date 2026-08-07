@@ -660,11 +660,12 @@ export function KolStatsTab() {
                 r.kpi_month === prevMonthStart,
             );
             monthlySuccess = monthRows.length;
-            if (targetsList.length === 0) {
+            const personalTargets = targetsList.filter((t) => t.personal_min > 0);
+            if (personalTargets.length === 0) {
               individualAchieved = false;
             } else {
               individualAchieved = true;
-              venueBreakdown = targetsList.map((t) => {
+              venueBreakdown = personalTargets.map((t) => {
                 const actual = monthRows.filter((r) => groupKey(r.venue_id, r.venue_name) === t.key).length;
                 const achieved = actual >= t.personal_min;
                 if (!achieved) individualAchieved = false;
@@ -679,16 +680,15 @@ export function KolStatsTab() {
               });
             }
 
-            // 【修改二】團隊獎金貢獻：兼職 → 全部；正職 → 只算 SR/SSR/UR
-            const teamRows = isFulltime
-              ? monthRows.filter((r) => r.rarity === "SR" || r.rarity === "SSR" || r.rarity === "UR")
-              : monthRows;
+            // 團隊獎金貢獻：兼職 → 全部；正職 → 只算 SR/SSR/UR（共用 scoutTeamAchievement）
+            const teamRows = monthRows.filter((r) => countsTowardTeamTarget(isFulltime, r.rarity));
             const perVenue = new Map<string, number>();
             for (const r of teamRows) {
               const k = groupKey(r.venue_id, r.venue_name);
               perVenue.set(k, (perVenue.get(k) ?? 0) + 1);
             }
-            teamContribBy.set(s.user_id, perVenue);
+            teamContribBy.set(s.user_id, { isFulltime, perVenue });
+
           }
           const baseSalaryPayout =
             showSalary && s.is_scout_team_member && !isFulltime && individualAchieved ? baseSalary : 0;
