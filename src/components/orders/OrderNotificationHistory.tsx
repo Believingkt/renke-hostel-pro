@@ -132,12 +132,14 @@ type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_r
 export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
+  const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
+  const [depositCharges, setDepositCharges] = useState<DepositCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [resendingType, setResendingType] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [p, e] = await Promise.all([
+    const [p, e, d, c] = await Promise.all([
       supabase
         .from("payment_status_history")
         .select("id, from_status, to_status, paid_amount, final_price, source, notes, created_at")
@@ -148,11 +150,27 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
         .select("id, email_type, recipient, subject, status, resend_id, error_message, triggered_by, trigger_source, created_at")
         .eq("order_id", orderId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("audit_logs")
+        .select("id, user_email, details, created_at")
+        .eq("entity_type", "order_deposit")
+        .eq("entity_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("deposit_charges")
+        .select("id, action, amount, status, trigger_source, error_message, performed_by, created_at")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setPayments((p.data ?? []) as PaymentEvent[]);
     setEmails((e.data ?? []) as EmailEvent[]);
+    setDepositAudits((d.data ?? []) as unknown as DepositAudit[]);
+    setDepositCharges((c.data ?? []) as DepositCharge[]);
     setLoading(false);
   }, [orderId]);
+
 
   useEffect(() => {
     load();
