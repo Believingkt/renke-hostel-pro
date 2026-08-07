@@ -983,18 +983,13 @@ export default function TeamHome() {
         }
 
         // ===== Multipliers =====
-        // 加倍活動一律以「發放月」設定（發放月 = 資料月 + 1），需先換算再比對，
-        // 否則會與「獎金管理 → 發放管理」差一個月。
-        const multMonthKey = payoutMonthKeyFromDataMonth(monthInfo.currentMonthKey);
+        // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
+        // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
+        // 由各卡片自行帶入正確的發放月比對，確保與「獎金管理 → 發放管理」一致。
         const { data: multRows } = await db
           .from("bonus_multiplier_settings")
-          .select("bonus_type, multiplier, start_month, end_month")
-          .lte("start_month", multMonthKey)
-          .gte("end_month", multMonthKey);
-        const multMap: Record<string, number> = {};
-        (multRows ?? []).forEach((r: any) => {
-          multMap[r.bonus_type] = Number(r.multiplier ?? 1);
-        });
+          .select("bonus_type, multiplier, start_month, end_month");
+        const multMap = (multRows ?? []) as unknown as BonusMultiplierRow[];
 
 
         if (cancelled) return;
