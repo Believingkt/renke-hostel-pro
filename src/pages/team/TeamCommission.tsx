@@ -594,7 +594,25 @@ interface MemberGroup {
   display_name: string;
   items: SourceItem[];
   total: number;
+  role_rank: number;
+  role_label: string;
 }
+
+// 發放管理人員排序：比照 TeamMembers 的四大分類
+const ROLE_CATEGORIES: { rank: number; label: string; roles: string[] }[] = [
+  { rank: 0, label: "管理員", roles: ["super_admin", "admin", "finance"] },
+  { rank: 1, label: "AM", roles: ["am_manager", "am"] },
+  { rank: 2, label: "成交組", roles: ["closer_manager", "closer", "video"] },
+  { rank: 3, label: "星探", roles: ["scout_manager", "scout"] },
+];
+
+function roleCategoryOf(roles: string[]): { rank: number; label: string } {
+  for (const c of ROLE_CATEGORIES) {
+    if (roles.some((r) => c.roles.includes(r))) return { rank: c.rank, label: c.label };
+  }
+  return { rank: 4, label: "其他" };
+}
+
 
 const SOURCE_LABEL: Record<string, string> = {
   closer: "成交組分潤",
