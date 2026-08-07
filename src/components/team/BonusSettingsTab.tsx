@@ -243,7 +243,6 @@ export default function BonusSettingsTab() {
 
   return (
     <div className="space-y-6 pt-4">
-      <OwnerPricingRuleOverviewSection />
       <RateSection
         rows={rates}
         loading={loading}
