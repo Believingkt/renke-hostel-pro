@@ -986,7 +986,7 @@ function VenueClosingAssignmentSection({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [accRes, rowRes] = await Promise.all([
+      const [accRes, rowRes, periodRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, partnership_start_date")
@@ -997,6 +997,11 @@ function VenueClosingAssignmentSection({
           .from("teamcommission_venue_closing_assignments")
           .select("id, accommodation_id, member_id, effective_from, created_at")
           .order("effective_from", { ascending: false }),
+
+        (supabase as any)
+          .from("accommodation_partnership_periods")
+          .select("id, accommodation_id, start_date, end_date, bonus_policy, note")
+          .order("start_date", { ascending: false }),
       ]);
       setAccs(
         ((accRes.data ?? []) as AccOption[]).filter(
@@ -1004,6 +1009,8 @@ function VenueClosingAssignmentSection({
         ),
       );
       setRows((rowRes.data ?? []) as VenueAssignmentRow[]);
+      setPeriods((periodRes.data ?? []) as PartnershipPeriodRow[]);
+
     } catch (e: any) {
       toast.error("讀取場域簽約人失敗：" + (e?.message ?? ""));
     } finally {
