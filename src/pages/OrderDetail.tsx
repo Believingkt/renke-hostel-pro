@@ -1997,6 +1997,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         "send-booking-confirmation",
         {
           body: {
+            triggerSource: "manual_resend",
             guestName: order.guest_name,
             guestEmail: order.guest_email,
             orderNumber: order.order_number,
