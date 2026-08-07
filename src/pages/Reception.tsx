@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { DepositQuickEdit } from "@/components/orders/DepositQuickEdit";
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
   { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
@@ -48,6 +49,10 @@ interface ReceptionOrder {
   payment_status: string;
   final_price: number | null;
   paid_amount: number | null;
+  deposit_required_amount: number | null;
+  deposit_status: string | null;
+  deposit_charged_amount: number | null;
+  deposit_refunded_amount: number | null;
   room_type?: { name: string | null } | null;
   rooms?: Array<{
     room_type_id: string;
@@ -247,6 +252,7 @@ export default function Reception() {
           `id, order_number, guest_name, guest_phone,
            check_in_date, check_out_date, checked_in_at, checked_out_at,
            order_source, order_status, payment_status, final_price, paid_amount,
+           deposit_required_amount, deposit_status, deposit_charged_amount, deposit_refunded_amount,
            room_type:room_types ( name ),
            rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ), room_unit:room_units ( unit_number, display_order ) )`
         )
@@ -327,6 +333,22 @@ export default function Reception() {
     } finally {
       setActingId(null);
     }
+  };
+
+  const applyDepositPatch = (orderId: string, patch: Record<string, unknown>) => {
+    setOrders((prev) =>
+      prev.map((x) =>
+        x.id === orderId
+          ? {
+              ...x,
+              deposit_required_amount: Number(patch.deposit_required_amount ?? x.deposit_required_amount),
+              deposit_status: String(patch.deposit_status ?? x.deposit_status),
+              deposit_charged_amount: Number(patch.deposit_charged_amount ?? 0),
+              deposit_refunded_amount: Number(patch.deposit_refunded_amount ?? 0),
+            }
+          : x,
+      ),
+    );
   };
 
   const sortedFiltered = useMemo(() => {
@@ -548,6 +570,7 @@ export default function Reception() {
                     房號
                   </Th>
                   <Th>付款狀態</Th>
+                  <Th>押金</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
                   </Th>
@@ -559,13 +582,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
@@ -626,6 +649,17 @@ export default function Reception() {
                               ${(o.paid_amount ?? 0).toLocaleString()} / ${o.final_price.toLocaleString()}
                             </div>
                           )}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <DepositQuickEdit
+                            orderId={o.id}
+                            requiredAmount={o.deposit_required_amount ?? 0}
+                            status={o.deposit_status}
+                            chargedAmount={o.deposit_charged_amount ?? 0}
+                            refundedAmount={o.deposit_refunded_amount ?? 0}
+                            disabled={!editable || acting}
+                            onSaved={(patch) => applyDepositPatch(o.id, patch)}
+                          />
                         </td>
                         <td className="px-4 py-3 align-top">
                           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
