@@ -133,9 +133,11 @@ export async function getStayRevenueByAcc(
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
       const rule = rules[accId];
+      // 一、團隊獎金（AM 共用／成交共用／網紅營銷專利獨立）：
+      // 免抽成來源（exempt_order_sources）與共用／獨立白名單為各自獨立的清單，
+      // 不再以 exempt 作為第一層過濾；僅「業主自帶（owner_direct）」永遠排除。
       if (o?.owner_direct === true) continue;
-      if (rule && o?.order_source && rule.exempt_order_sources.includes(String(o.order_source)))
-        continue;
+
 
       const ci = String(o?.check_in_date ?? "").slice(0, 10);
       const co = String(o?.check_out_date ?? "").slice(0, 10);
