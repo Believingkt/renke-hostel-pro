@@ -1324,7 +1324,54 @@ function VenueClosingAssignmentSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!periodAcc} onOpenChange={(o) => !o && setPeriodAcc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增合作期間：{periodAcc ? accName(periodAcc) : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>開始日</Label>
+              <Input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>結束日（留白＝持續合作中）</Label>
+              <Input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>獎金採計</Label>
+              <Select value={pPolicy} onValueChange={(v) => setPPolicy(v as "full" | "none")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">正常採計</SelectItem>
+                  <SelectItem value="none">合作中但不發獎金</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>備註</Label>
+              <Input
+                value={pNote}
+                placeholder="例：暫停合作／重啟合作原因"
+                onChange={(e) => setPNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPeriodAcc(null)}>
+              取消
+            </Button>
+            <Button onClick={submitPeriod} disabled={pSaving}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+
   );
 }
 
