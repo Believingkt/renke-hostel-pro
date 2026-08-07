@@ -1651,6 +1651,21 @@ function OwnerPricingRuleOverviewSection() {
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="w-10 text-right" onClick={(e) => e.stopPropagation()}>
+                        {a.short_url_alias ? (
+                          <a
+                            href={`https://pms.lakeze.com/${a.short_url_alias}/admin/owner-settlement`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`前往 ${a.name} 的業主月結`}
+                            className="inline-flex text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                     {isOpen &&
                       list.map((r) => (
