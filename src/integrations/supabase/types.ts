@@ -938,6 +938,47 @@ export type Database = {
           },
         ]
       }
+      accommodation_partnership_periods: {
+        Row: {
+          accommodation_id: string
+          bonus_policy: string
+          created_at: string
+          end_date: string | null
+          id: string
+          note: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          bonus_policy?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          note?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          bonus_policy?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          note?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_partnership_periods_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_photos: {
         Row: {
           accommodation_id: string | null
@@ -10164,6 +10205,7 @@ export type Database = {
           is_scout_team_member: boolean
           line_user_id: string | null
           managed_venue: string[] | null
+          resigned_at: string | null
           scout_tier: string | null
           updated_at: string | null
           user_id: string | null
@@ -10180,6 +10222,7 @@ export type Database = {
           is_scout_team_member?: boolean
           line_user_id?: string | null
           managed_venue?: string[] | null
+          resigned_at?: string | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -10196,6 +10239,7 @@ export type Database = {
           is_scout_team_member?: boolean
           line_user_id?: string | null
           managed_venue?: string[] | null
+          resigned_at?: string | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
