@@ -157,9 +157,10 @@ interface BookingSettings {
   deposit_percentage: number;
   payment_methods: any;
   bank_account_info?: string | null;
+  security_deposit_amount?: number | null;
 }
 
-const DEPOSIT_AMOUNT = 5000;
+const DEFAULT_DEPOSIT_AMOUNT = 5000;
 
 import {
   detectTierByDate,
