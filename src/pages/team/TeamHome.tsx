@@ -176,7 +176,7 @@ export default function TeamHome() {
   const [franchiseInternalAmt, setFranchiseInternalAmt] = useState(0);
   const [franchiseExternalAmt, setFranchiseExternalAmt] = useState(0);
   const [starlinkAmt, setStarlinkAmt] = useState(0);
-  const [multipliers, setMultipliers] = useState<Record<string, number>>({});
+  const [multiplierRows, setMultiplierRows] = useState<BonusMultiplierRow[]>([]);
 
   // ===== 七種團隊獎金 =====
   const [isAmManager, setIsAmManager] = useState(false);
