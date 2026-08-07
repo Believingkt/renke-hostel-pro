@@ -1,75 +1,89 @@
+# 方案 B：TeamHome 星探系卡片改為「下一期發放」口徑
 
-## Task 1 — 多住宿下訂 RLS 回讀驗證（需你手動測，我提供腳本 + 檢查清單）
+## 目標
 
-RLS 回讀錯誤只發生在「已登入會員 + `.insert().select()`」。上一輪已加 `Members can view their own orders`，理論上所有民宿都能通過（policy 不綁 accommodation）。但為確認沒有其他隱藏 policy 或 trigger 干擾，建議你用下面清單各測一次：
+讓 TeamHome 的星探系四張卡（KOL訂單星探分潤、星探稀有度獎金、星探底薪、星探團隊獎金）改成顯示「即將發放的下一期」，並在該期已有正式試算資料時直接讀後端凍結／試算結果，與「獎金管理 → 發放管理」數字完全一致。月結系卡片（成交、影音、AM 總管、網紅營銷月費、場域成交、成交組團隊獎金）維持現況「本月即時預估」不動。
 
-- 森山寫照（已修）
-- 雲岫（villa 包棟）
-- 哈庫納（villa）
-- 旅行日-DAIDODO（外幣）
-- 任一散客型民宿（例如 Olivia）
+## 期別判定規則（台北時間）
 
-每家測「LINE 登入會員 → 下訂 ATM → 驗證回傳 order_number 有出現」即可。若任一家仍出錯，把 Network payload 貼給我。
+```text
+日 <= 10   -> 下一期 = 當月 10 日期   (資料窗 上月 21 ~ 當月 5)
+11 <= 日 <= 25 -> 下一期 = 當月 25 日期 (資料窗 當月 6 ~ 當月 20)
+日 > 25    -> 下一期 = 次月 10 日期   (資料窗 當月 21 ~ 次月 5)
+```
 
-我這輪會加一支 `debug-order-rls` Edge Function，你可以直接呼叫模擬「當前 session」對 orders 做一次乾式 insert，快速定位是哪個欄位／trigger 擋掉。
+底薪／團隊獎金只在 10 日期發放，資料月＝該發放月的上一個月。25 日期時這兩張卡不顯示金額，改顯示「本期不發放，下次為 X/10」。
 
-## Task 2 — 訂單狀態變更通知（Email + LINE）
+## 資料來源優先序
 
-### 觸發條件
-在 `orders` 表新增 `AFTER UPDATE` trigger，於下列欄位變化時寫入 `order_status_change_events` 隊列：
+1. 先查 `scout_monthly_payouts`（year / month / period / user）— 後端 `calculate-scout-payout` 每日由 cron 重跑，未標記已發放前會持續更新，所以在發放日前就讀得到。有資料 -> 直接使用其欄位（分潤、稀有度、底薪、團隊獎金）。
+2. 查無資料（例如期初尚未跑過）-> 回退目前的前端即時試算，卡片標註「即時試算」。
 
-- `payment_status`：`pending_payment` → `paid` / `deposit_paid` / `refunded`
-- `order_status`：`pending` → `confirmed` / `cancelled`
-- （可選）入住當日 08:00 用 pg_cron 掃描發送「今日入住提醒」
+兩種來源都只顯示原始金額 + 加倍後金額（沿用 `BoostedAmount` 規則，不覆蓋原值）。
 
-### 派送層
-新增 Edge Function `notify-order-status-change`：
-1. 從隊列讀取事件
-2. 撈 order + platform_member + line binding
-3. 依事件類型套用模板（付款完成 / 訂單取消 / 入住提醒）
-4. 有 email → 透過現有 `send-booking-confirmation`／`send-cancellation-email` 或新增 `send-transactional-order-email`
-5. 有 LINE 綁定 → 呼叫現有 `send-line-push`，target 直接指定會員的 `line_user_id`
-6. 寫入 `notifications` 表留站內紀錄
-7. 全部去重（同一事件同一 channel 只送一次）
+## 檔案清單
 
-### DB 變更
-- `order_status_change_events`：`order_id`, `event_type`, `old_value`, `new_value`, `sent_email_at`, `sent_line_at`, `sent_inapp_at`, `created_at`, `error`
-- Trigger：`orders_status_change_notify_trigger`（AFTER UPDATE）
-- Cron：每分鐘掃 pending 事件呼叫 Edge Function
+| 檔案 | 改動 |
+|---|---|
+| `src/pages/team/TeamHome.tsx` | 主要改動：`monthInfo` 增加 `nextPayout`（year/month/period/資料窗/label）；星探系查詢改讀 `scout_monthly_payouts`，查無再回退現有即時計算；卡片 note／標題文案改為期別描述；加倍倍率鍵改用該期的發放月 |
+| `src/lib/scoutPayoutPeriod.ts`（新增） | 純函式：`resolveNextPayoutPeriod(now)` 回傳期別與資料窗，與 `cron-dispatcher-commission` 的 `resolveScoutPeriod()` 同口徑，供前端與測試共用 |
+| `src/lib/__tests__/scoutPayoutPeriod.test.ts`（新增） | 邊界日測試：8/1、8/10、8/11、8/25、8/26、12/26 跨年 |
 
-### 會員偏好
-在 `platform_members` 加 `notify_email boolean default true`, `notify_line boolean default true`；派送時尊重旗標。（若你不需要偏好開關就跳過，直接全發。）
+不改任何 edge function、不改資料表、不動已發放資料。
 
-## Task 3 — RLS 自動化測試
+## 實作步驟
 
-新增 `supabase/functions/_shared/rls_policy_test.ts`（Deno test），covers：
+1. 新增 `scoutPayoutPeriod.ts` 與單元測試，鎖定期別判定。
+2. `TeamHome.tsx` 的 `monthInfo` 接上 `resolveNextPayoutPeriod`，同時保留舊的 `monthStartDate/monthEndDate`（月結系仍在用），並把 `useMemo` 依賴加上當日日期字串，避免跨日不重算。
+3. 星探系資料層：先 `scout_monthly_payouts` 查詢 -> 命中則取值並標記 `source: "payout"`；未命中沿用現有 `periodStart/periodEnd` 即時計算並標記 `source: "live"`。
+4. 加倍倍率：四張卡一律以「該期的發放月」查 `bonus_multiplier_settings`，與發放管理一致。
+5. 文案：卡片副標統一為期別 + 來源狀態；25 日期的底薪／團隊獎金顯示不發放說明。
 
-1. **Members can view their own orders**
-   - Sign in as member A → insert order with `member_id = A.id` → `.select()` 應成功
-   - Sign in as member B → 查 A 的 order → 應為 0 rows
-   - Anon → 查 A 的 order → 應為 0 rows
+## 修改後 TeamHome 預覽（以今天 8/7 為例，下一期＝8/10 期）
 
-2. **同型 policy 巡檢**（同一支測試涵蓋）
-   - `member_favorites`：owner 可讀自己的，別人的讀不到
-   - `member_points` / `member_point_transactions`
-   - `member_coupon_distributions`
-   - `member_recent_views`
-   - `member_saved_cards`
+```text
+┌ KOL訂單星探分潤 ───────────────────────────┐
+│ NT$ 1,229                                  │
+│ 8/10 期（資料窗 7/21–8/5）・已試算，10 日發放 │
+└────────────────────────────────────────────┘
+┌ 星探稀有度獎金 ────────────────────────────┐
+│ NT$ 3,000                                  │
+│ 8/10 期（資料窗 7/21–8/5）・已試算，10 日發放 │
+└────────────────────────────────────────────┘
+┌ 星探底薪 ─────────────────────────────────┐
+│ NT$ 0                                      │
+│ 8/10 期（資料月 2026-07）・未達標，不發放     │
+└────────────────────────────────────────────┘
+┌ 星探團隊獎金 ─────────────────────────────┐
+│ NT$ 0                                      │
+│ 8/10 期（資料月 2026-07）・館別未全數達標     │
+└────────────────────────────────────────────┘
+```
 
-3. **回歸保護**：測試會列出所有 policy 名稱包含 "own" 或 "member" 的 SELECT policy，若任何一項對匿名可見即 fail（防止未來誤開）
+8/11 之後同區塊會切成：
 
-用法：`supabase--test_edge_functions` 可執行；同時放入 CI 建議腳本 `scripts/run-rls-tests.md`。
+```text
+┌ KOL訂單星探分潤 ───────────────────────────┐
+│ NT$ 0（累積中）                             │
+│ 8/25 期（資料窗 8/6–8/20）・即時試算          │
+└────────────────────────────────────────────┘
+┌ 星探底薪 / 星探團隊獎金 ────────────────────┐
+│ —                                          │
+│ 本期（8/25）不發放，下次為 9/10 期            │
+└────────────────────────────────────────────┘
+```
 
-## 執行順序
+月結系卡片維持原樣：
 
-1. 先做 Task 3（純加檔、風險低）→ 立刻能跑，順便二次驗證上一輪的 policy 修復
-2. 再做 Task 2（Migration + Edge Function）
-3. 最後給 Task 1 的手動測試腳本 + `debug-order-rls` helper
+```text
+┌ 成交獎金 ─────────────────────────────────┐
+│ NT$ 6,312                                  │
+│ 當月預估，尚未結算；預計 9 月 10 日發放        │
+└────────────────────────────────────────────┘
+```
 
-## 技術細節
+## 風險
 
-- LINE：沿用 `send-line-push` 的 `targets` 模式，直接把會員 `line_user_id` 傳入，不走 event_type 廣播（避免推給所有訂閱者）。
-- Email：優先呼叫 `send-transactional-email` 內建流；若專案已有 `send-booking-confirmation` 樣板則沿用同一寄件網域。
-- 去重：透過 `sent_*_at` 欄位 + `UNIQUE(order_id, event_type)` 保護重放。
-- Trigger 只在真正的狀態欄位改變時寫入（`OLD.payment_status IS DISTINCT FROM NEW.payment_status`）避免每次備註修改都爆量。
-- RLS 測試會用 `service_role` 建臨時會員 → 各自登入取 JWT → 用該 JWT 呼叫 PostgREST 直接驗結果，測完清理。
+- 期別切換當天（10/11、25/26）畫面金額會跳動，屬預期行為，靠文案說明。
+- 25 日期星探底薪／團隊獎金為空卡，需明確文案避免誤會成「獎金消失」。
+- `scout_monthly_payouts` 若當期尚未跑過 cron，會回退即時試算，數字可能與稍後的正式試算有微小差異（四捨五入層級），卡片會標示來源。
