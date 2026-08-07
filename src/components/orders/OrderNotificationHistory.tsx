@@ -44,6 +44,7 @@ type EmailEvent = {
 
 type DepositAudit = {
   id: string;
+  user_id: string | null;
   user_email: string | null;
   details: Record<string, { from: unknown; to: unknown }> | null;
   created_at: string;
@@ -133,6 +134,8 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
   const [depositCharges, setDepositCharges] = useState<DepositCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [resendingType, setResendingType] = useState<string | null>(null);
@@ -152,7 +155,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
         .order("created_at", { ascending: false }),
       supabase
         .from("audit_logs")
-        .select("id, user_email, details, created_at")
+        .select("id, user_id, user_email, details, created_at")
         .eq("entity_type", "order_deposit")
         .eq("entity_id", orderId)
         .order("created_at", { ascending: false })
@@ -166,7 +169,15 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
     ]);
     setPayments((p.data ?? []) as PaymentEvent[]);
     setEmails((e.data ?? []) as EmailEvent[]);
-    setDepositAudits((d.data ?? []) as unknown as DepositAudit[]);
+    const audits = (d.data ?? []) as unknown as DepositAudit[];
+    setDepositAudits(audits);
+    const auditUserIds = Array.from(new Set(audits.map((a) => a.user_id).filter(Boolean))) as string[];
+    if (auditUserIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, name").in("id", auditUserIds);
+      setUserNames(Object.fromEntries((profs ?? []).map((u: any) => [u.id, u.name])));
+    } else {
+      setUserNames({});
+    }
     setDepositCharges((c.data ?? []) as DepositCharge[]);
     setLoading(false);
   }, [orderId]);
@@ -334,7 +345,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                     ))}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    操作者：{a.user_email || "系統／排程"}
+                    操作者：{(a.user_id && userNames[a.user_id]) || a.user_email || "系統／排程"}
                   </div>
                 </li>
               ))}
