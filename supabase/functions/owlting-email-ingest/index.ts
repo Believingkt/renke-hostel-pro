@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
           obe: fields.obe_number,
         });
         await supabase.from("owlting_email_parsed_staging").update({
-          review_status: "no_action",
+          review_status: "ignored",
           review_notes: "[空修改] 原始訂單與修改後內容完全一致，未通知業主、未建立或更新補單。",
         }).eq("id", stagingRow.id);
       }
