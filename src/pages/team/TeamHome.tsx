@@ -319,21 +319,41 @@ export default function TeamHome() {
         }
 
         // ===== Closer / Video =====
-        // 分潤預估一律改由 preview-closer-commission Edge Function 試算，
-        // 公式與正式快照 closer_commission_snapshots 完全一致（order_date 分月、
-        // 扣加購、排除非台幣 / isExempt / is_excluded）。
-        const needMeta = showCloser || showVideo;
+        // 月結型獎金只在 10 日期發放；25 日期直接不計算、不查詢。
+        // 已有正式快照（closer_commission_snapshots）時以快照為準，與發放管理一致；
+        // 尚未結算則改由 preview-closer-commission Edge Function 試算（公式相同）。
+        const needMeta = (showCloser || showVideo) && isMonthlyPayout;
         let closerSum = 0;
         let videoSum = 0;
+        let monthlySettledFlag = false;
 
         if (needMeta) {
-          const { data: preview } = await supabase.functions.invoke(
-            "preview-closer-commission",
-            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
-          );
-          if (preview?.success) {
-            if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
-            if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+          const { data: snapRows } = await db
+            .from("closer_commission_snapshots")
+            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
+            .eq("payout_month", payoutMonthKey)
+            .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
+
+          const snaps = (snapRows ?? []) as any[];
+          if (snaps.length > 0) {
+            monthlySettledFlag = true;
+            for (const r of snaps) {
+              if (showCloser && r.closer_id === userId) {
+                closerSum += Number(r.closer_commission_amount ?? 0);
+              }
+              if (showVideo && r.video_creator_id === userId) {
+                videoSum += Number(r.video_commission_amount ?? 0);
+              }
+            }
+          } else {
+            const { data: preview } = await supabase.functions.invoke(
+              "preview-closer-commission",
+              { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
+            );
+            if (preview?.success) {
+              if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
+              if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+            }
           }
         }
 
