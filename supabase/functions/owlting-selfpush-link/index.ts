@@ -146,12 +146,15 @@ Deno.serve(async (req) => {
 
       const target = normalizeName(staging.guest_name ?? "");
       const filtered = (candidates ?? []).filter((o: any) => {
-        // Prefer total_price (gross); fall back to final_price if total_price missing.
-        const gross = Number(o.total_price ?? o.final_price ?? 0);
+        // 信件金額可能是 gross（原價）或 net（實收），兩者任一相符即可。
+        const gross = Number(o.total_price ?? 0);
+        const net = Number(o.final_price ?? 0);
+        const inRange = (v: number) => v > 0 && v >= amountLo && v <= amountHi;
         const priceOk = amount === 0
-          || gross === 0 // order not yet priced — allow match on dates/name
-          || (gross >= amountLo && gross <= amountHi);
+          || (gross === 0 && net === 0) // order not yet priced — allow match on dates/name
+          || inRange(gross) || inRange(net);
         if (!priceOk) return false;
+
         // Soft room-type filter: only exclude when we resolved a staging room and the order has a different one.
         if (stagingRoomTypeId && o.room_type_id && o.room_type_id !== stagingRoomTypeId) return false;
         if (!target) return true;
