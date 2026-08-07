@@ -734,6 +734,9 @@ serve(async (req) => {
     ];
     for (const [bt, memberId] of managerBindings) {
       if (!memberId || !profileById.has(memberId)) continue;
+      // 資料月底已離職者不發管理職獎金
+      if (!isActiveAtMonthEnd(profileById.get(memberId))) continue;
+
       const rate = rateOf(bt);
       push({
         bonus_type: bt,
