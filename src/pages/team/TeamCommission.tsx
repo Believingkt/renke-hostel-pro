@@ -207,18 +207,29 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
           <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
           <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
           <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
-          <li><span className="font-medium">AM績效獎金：</span>每月 10 日發放，結算上個月非旅行日管理場館營收，僅計入已勾選的訂單來源。</li>
-          <li><span className="font-medium">AM場域獎金：</span>每月 10 日發放，結算上個月非旅行日管理場館數固定金額。</li>
-          <li><span className="font-medium">成交組績效獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源。</li>
-          <li><span className="font-medium">AM總管獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源。</li>
-          <li><span className="font-medium">成交組主管管理獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源。</li>
+          <li><span className="font-medium">AM績效獎金：</span>每月 10 日發放，結算上個月管理場館營收，僅計入已勾選的訂單來源。</li>
+          <li><span className="font-medium">AM場域獎金：</span>每月 10 日發放，結算上個月管理場館數固定金額。</li>
+          <li><span className="font-medium">成交組績效獎金：</span>每月 10 日發放，結算上個月全公司營收 × 費率，由「資料月底仍在職」的成交組成員均分。</li>
+          <li><span className="font-medium">AM總管獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源；離職生效日之後不再發放。</li>
+          <li><span className="font-medium">成交組主管管理獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源；離職生效日之後不再發放。</li>
           <li><span className="font-medium">網紅營銷專利獎金(抽成)：</span>每月 10 日發放，結算上個月全公司營收，僅計入該獎金專屬已勾選的訂單來源。</li>
           <li><span className="font-medium">網紅營銷專利獎金(月費)：</span>每月 10 日發放，固定金額。</li>
-          <li><span className="font-medium">場域成交獎金：</span>每月 10 日發放，結算上個月簽約場域中已收行銷推廣費者，固定金額。</li>
+          <li><span className="font-medium">場域成交獎金：</span>每月 10 日發放，結算上個月簽約場域中已收行銷推廣費且合作期間有效者，固定金額。</li>
         </ul>
+        <div className="rounded-md border p-3 space-y-1">
+          <div className="font-medium">團隊獎金的營收採計口徑</div>
+          <ul className="pl-6 space-y-1 list-disc text-muted-foreground">
+            <li>採計範圍：各館的「合作期間」（可暫停／重啟）與資料月的交集；沒有有效合作期間、或期間設定為「不發獎金」（含旅行日系列）者一律不採計。</li>
+            <li>2026-09 資料月起，一、團隊獎金（AM績效／AM總管／成交組績效／成交組主管／網紅營銷專利抽成）改以業主月結「本月入住營收」為基準：依入住夜數逐夜攤提、跨月拆分、外幣依匯率快照換算台幣，只扣除該館設定為「不列入抽成」的增值服務，並排除業主自帶與免抽成來源。</li>
+            <li>2026-09 之前的資料月維持舊口徑（下訂日 × 分潤基準金額），已凍結的快照不追溯。</li>
+            <li>入住營收口徑下，取消訂單自然不計入，不再另行產生「取消扣回」補差。</li>
+            <li>二、成交大師個人分潤與三、星探類獎金不適用此口徑，維持原本的下訂日基準。</li>
+          </ul>
+        </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
         </div>
+
       </CardContent>
     </Card>
   );
