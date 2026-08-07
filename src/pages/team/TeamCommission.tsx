@@ -842,6 +842,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           venue_name?: string | null;
           order_number?: string | null;
           base_revenue?: number | null;
+          range_note?: string | null;
         },
       ) => {
         if (!amount || amount === 0) return;
@@ -860,6 +861,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           payout_date: null,
           venue_name: extra?.venue_name ?? null,
           base_revenue: extra?.base_revenue ?? null,
+          range_note: extra?.range_note ?? null,
           order_number: extra?.order_number ?? null,
         });
       };
