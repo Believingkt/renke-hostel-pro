@@ -35,7 +35,7 @@ accommodation_partnership_periods
 - 天送幸福和苑、奧莉薇雅生活小酒店 → 不建 period（待人工確認）。
 - `accommodation_info.partnership_start_date` 保留為相容欄位（唯讀顯示），計算一律走新表。
 
-### 2. 成交組在職狀態
+### 2. 成交組在職狀態（含離職後尾款獎金判定）
 
 ```text
 team_member_profiles 新增
@@ -43,6 +43,17 @@ team_member_profiles 新增
 ```
 
 均分分母 = 資料月月底時仍在職（`resigned_at is null or resigned_at > 資料月底`）且具 closer 角色的人數。
+
+**離職生效日對「成交大師個人歸屬獎金」的影響（需另行判定，不可只看均分分母）**
+
+切換到入住營收後，獎金歸屬時點是「入住月」，因此會出現離職者的訂單在離職後才入住的情況（例：陳豆豆 2026-08 離職，其成交的兩筆訂單 2026-09 入住）。規則：
+
+- **個人歸屬型獎金**（成交大師本人成交的訂單抽成、`kol_commission` 等有明確歸屬人者）：以**訂單成交當下的歸屬人**為準，即使該人已離職，入住月仍照常產生快照並發放。是否實際發放由發放管理人工決定（快照標記 `is_resigned_recipient = true`，Drawer 顯示「離職後入住」提示）。
+- **均分型獎金**（`closer_performance` 等按在職人數均分）：離職者自 `resigned_at` 起不進分母、也不分得，尾款不追溯。
+- **總管型獎金**（`am_manager` / `closer_manager`）：依資料月當時的角色綁定，離職者不再綁定即不計。
+
+因此 `resigned_at` 只影響「均分分母與總管綁定」，不影響已成交訂單的個人歸屬；兩者需在計算層明確分流，避免把離職者的入住月訂單整批漏發或重複均分。
+
 
 ### 3. GRANT / RLS
 
