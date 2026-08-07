@@ -117,7 +117,7 @@ function extractChannelFromSubject(subject: string | null): string | null {
   return ch;
 }
 
-export function parseOwlNestForwardEmail(input: {
+function parseCore(input: {
   subject: string | null;
   text_body: string | null;
   html_body: string | null;
