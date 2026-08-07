@@ -46,6 +46,14 @@ export interface OwlTingParsedFields {
   modification_changes?: ModificationChange[] | null;
   /** 修改通知專用：true = 空修改（內容完全一致，不需補單） */
   is_noop_modification?: boolean | null;
+  /**
+   * 修改通知專用：差異判定狀態
+   * - compared：成功比對原始/修改後兩段
+   * - partial：有比對但部分欄位在任一側缺值（不可視為可靠空修改）
+   * - no_sections：找不到「原始訂單 / 修改後」兩段結構
+   * - unparsable：兩段皆解析不出任何可比對欄位
+   */
+  modification_diff_status?: "compared" | "partial" | "no_sections" | "unparsable" | null;
 }
 
 export interface ModificationChange {
@@ -369,14 +377,19 @@ export function parseOwlNestForwardEmail(input: {
 }): OwlTingParsedFields {
   const full = parseCore(input);
   if (full.message_type !== "modified") {
-    return { ...full, modification_changes: null, is_noop_modification: null };
+    return { ...full, modification_changes: null, is_noop_modification: null, modification_diff_status: null };
   }
 
   const textSec = sliceSections(input.text_body);
   const htmlSec = sliceSections(input.html_body);
   if (!textSec && !htmlSec) {
     // 無法辨識兩段結構 → 無法判定空修改，維持原行為
-    return { ...full, modification_changes: null, is_noop_modification: null };
+    return {
+      ...full,
+      modification_changes: null,
+      is_noop_modification: null,
+      modification_diff_status: "no_sections",
+    };
   }
 
   const before = parseCore({
@@ -391,14 +404,25 @@ export function parseOwlNestForwardEmail(input: {
   });
 
   const changes: ModificationChange[] = [];
+  let comparableCount = 0;   // 兩側皆有值 → 可靠比對
+  let oneSidedCount = 0;     // 只有一側有值 → 無法確定是否真的變更
   for (const f of DIFF_FIELDS) {
     const b = (before as any)[f.key] ?? null;
     const a = (after as any)[f.key] ?? null;
     if (b === null && a === null) continue;
+    if (b !== null && a !== null) comparableCount++;
+    else oneSidedCount++;
     if (String(b ?? "") !== String(a ?? "")) {
       changes.push({ field: String(f.key), label: f.label, before: b, after: a });
     }
   }
+
+  const diffStatus: "compared" | "partial" | "unparsable" =
+    comparableCount === 0
+      ? "unparsable"
+      : oneSidedCount > 0
+      ? "partial"
+      : "compared";
 
   // 以「修改後」的值為準，抓不到就退回整封信的解析值
   const merged: OwlTingParsedFields = { ...full };
@@ -410,6 +434,9 @@ export function parseOwlNestForwardEmail(input: {
   return {
     ...merged,
     modification_changes: changes,
-    is_noop_modification: changes.length === 0,
+    // 只有在「完整可靠比對」且無任何差異時才判定為空修改；
+    // partial / unparsable 一律不可判定為空修改，交由後續與 DB 既有訂單比對。
+    is_noop_modification: diffStatus === "compared" ? changes.length === 0 : null,
+    modification_diff_status: diffStatus,
   };
 }

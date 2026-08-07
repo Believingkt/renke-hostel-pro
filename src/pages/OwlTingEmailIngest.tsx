@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { OwlTingIngestOutcomeBoard } from "@/components/OwlTingIngestOutcomeBoard";
 import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
 import { toast } from "sonner";
 import { Send, Loader2, ClipboardEdit, FileCode } from "lucide-react";
@@ -267,6 +268,11 @@ export default function OwlTingEmailIngest() {
 
       <OwlTingEmailStatsCards
         showDetailLink={false}
+        refreshKey={refreshTick}
+        accommodationId={currentAccommodationId}
+      />
+
+      <OwlTingIngestOutcomeBoard
         refreshKey={refreshTick}
         accommodationId={currentAccommodationId}
       />

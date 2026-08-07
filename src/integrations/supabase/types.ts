@@ -6435,6 +6435,9 @@ export type Database = {
           from_email: string | null
           html_body: string | null
           id: string
+          ingest_outcome: string | null
+          ingest_outcome_at: string | null
+          ingest_outcome_detail: Json | null
           message_type: string | null
           notes: string | null
           obe_number: string | null
@@ -6462,6 +6465,9 @@ export type Database = {
           from_email?: string | null
           html_body?: string | null
           id?: string
+          ingest_outcome?: string | null
+          ingest_outcome_at?: string | null
+          ingest_outcome_detail?: Json | null
           message_type?: string | null
           notes?: string | null
           obe_number?: string | null
@@ -6489,6 +6495,9 @@ export type Database = {
           from_email?: string | null
           html_body?: string | null
           id?: string
+          ingest_outcome?: string | null
+          ingest_outcome_at?: string | null
+          ingest_outcome_detail?: Json | null
           message_type?: string | null
           notes?: string | null
           obe_number?: string | null
@@ -6598,6 +6607,8 @@ export type Database = {
           last_send_message: string | null
           last_send_status: string | null
           message_type: string | null
+          modification_diff: Json | null
+          modification_diff_status: string | null
           nights: number | null
           notified_at: string | null
           obe_number: string | null
@@ -6648,6 +6659,8 @@ export type Database = {
           last_send_message?: string | null
           last_send_status?: string | null
           message_type?: string | null
+          modification_diff?: Json | null
+          modification_diff_status?: string | null
           nights?: number | null
           notified_at?: string | null
           obe_number?: string | null
@@ -6698,6 +6711,8 @@ export type Database = {
           last_send_message?: string | null
           last_send_status?: string | null
           message_type?: string | null
+          modification_diff?: Json | null
+          modification_diff_status?: string | null
           nights?: number | null
           notified_at?: string | null
           obe_number?: string | null

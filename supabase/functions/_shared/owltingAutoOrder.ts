@@ -278,13 +278,28 @@ export async function rebuildOrderRooms(
   }
 }
 
+export interface OrderFieldDiff {
+  field: string;
+  label: string;
+  before: string | number | null;
+  after: string | number | null;
+}
+
 export interface ApplyModificationResult {
   ok: boolean;
   order_id?: string;
   order_number?: string;
   updated_fields?: string[];
+  /** 結構化 diff（欄位、前值、後值），寫入審計欄位方便追查 */
+  diff?: OrderFieldDiff[];
   skipped_reason?: string;
   error?: string;
+}
+
+export function formatOrderDiff(diff: OrderFieldDiff[]): string {
+  return diff
+    .map((d) => `${d.label} ${d.before ?? "—"} → ${d.after ?? "—"}`)
+    .join("；");
 }
 
 /**
@@ -306,6 +321,8 @@ export async function applyModificationToExistingOrder(
     guest_count: number | null;
     total_amount: number | null;
     change_summary?: string | null;
+    /** 信件端的差異判定狀態（compared / partial / no_sections / unparsable） */
+    parser_diff_status?: string | null;
   },
 ): Promise<ApplyModificationResult> {
   try {
@@ -324,20 +341,22 @@ export async function applyModificationToExistingOrder(
 
     const accId = input.accommodation_id ?? order.accommodation_id;
     const patch: Record<string, unknown> = {};
-    const changed: string[] = [];
+    const diff: OrderFieldDiff[] = [];
+    const push = (field: string, label: string, before: any, after: any) =>
+      diff.push({ field, label, before: before ?? null, after: after ?? null });
 
     if (input.check_in_date && input.check_in_date !== order.check_in_date) {
       patch.check_in_date = input.check_in_date;
-      changed.push("入住日期");
+      push("check_in_date", "入住日期", order.check_in_date, input.check_in_date);
     }
     if (input.check_out_date && input.check_out_date !== order.check_out_date) {
       patch.check_out_date = input.check_out_date;
-      changed.push("退房日期");
+      push("check_out_date", "退房日期", order.check_out_date, input.check_out_date);
     }
     const guestCount = Number(input.guest_count ?? 0);
     if (guestCount > 0 && guestCount !== Number(order.guest_count)) {
       patch.guest_count = guestCount;
-      changed.push("人數");
+      push("guest_count", "人數", order.guest_count, guestCount);
     }
 
     let roomTypeId: string | null = order.room_type_id;
@@ -346,7 +365,7 @@ export async function applyModificationToExistingOrder(
       if (matched && matched !== order.room_type_id) {
         roomTypeId = matched;
         patch.room_type_id = matched;
-        changed.push("房型");
+        push("room_type_id", "房型", order.room_type_id, `${input.room_type_name}(${matched})`);
       }
     }
 
@@ -355,25 +374,38 @@ export async function applyModificationToExistingOrder(
       patch.total_price = total;
       patch.final_price = total;
       if (order.payment_status === "paid") patch.paid_amount = total;
-      changed.push("金額");
+      push("final_price", "金額", Number(order.final_price ?? 0), total);
     }
 
+    const changed = diff.map((d) => d.label);
+
     if (changed.length === 0) {
+      // 與 DB 既有訂單完全一致 → 記錄「已比對無差異」到 staging，方便追查
+      await admin
+        .from("owlting_email_parsed_staging")
+        .update({
+          auto_order_id: order.id,
+          modification_diff: [],
+          modification_diff_status: input.parser_diff_status ?? "db_compared",
+          review_notes: `[auto-update] 與既有訂單 ${order.order_number} 逐欄比對後無差異，未更新。`,
+        })
+        .eq("id", input.staging_id);
       return {
         ok: true,
         order_id: order.id,
         order_number: order.order_number,
         updated_fields: [],
+        diff: [],
         skipped_reason: "no_material_change",
       };
     }
 
     const stamp = new Date().toISOString().slice(0, 10);
-    const summary = input.change_summary?.trim();
-    patch.notes = `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary || changed.join("、")}`;
+    const summary = formatOrderDiff(diff);
+    patch.notes = `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary}${input.change_summary ? `\n（信件差異：${input.change_summary}）` : ""}`;
 
     const { error: updErr } = await admin.from("orders").update(patch).eq("id", order.id);
-    if (updErr) return { ok: false, error: updErr.message };
+    if (updErr) return { ok: false, error: updErr.message, diff };
 
     // Rebuild room rows when dates / room type / quantity / price changed.
     const finalCheckIn = (patch.check_in_date as string) ?? order.check_in_date;
@@ -400,11 +432,13 @@ export async function applyModificationToExistingOrder(
       .update({
         auto_order_id: order.id,
         auto_create_error: null,
-        review_notes: `[auto-update] 修改通知已自動更新既有訂單 ${order.order_number}：${changed.join("、")}`,
+        modification_diff: diff,
+        modification_diff_status: input.parser_diff_status ?? "db_compared",
+        review_notes: `[auto-update] 修改通知已自動更新既有訂單 ${order.order_number}：${summary}`,
       })
       .eq("id", input.staging_id);
 
-    return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: changed };
+    return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: changed, diff };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

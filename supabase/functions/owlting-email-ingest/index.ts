@@ -66,6 +66,38 @@ function isTrustedDomain(domain: string | null): boolean {
   );
 }
 
+type IngestOutcome =
+  | "ignored_untrusted"
+  | "parse_failed"
+  | "noop_modification"
+  | "order_updated"
+  | "order_created"
+  | "order_cancelled"
+  | "apply_failed"
+  | "staged";
+
+/** 記錄本封信的處理結果（供後台看板統計 / 依 OBE 追查） */
+async function recordOutcome(
+  supabase: any,
+  rawId: string | null | undefined,
+  outcome: IngestOutcome,
+  detail: Record<string, unknown> = {},
+) {
+  if (!rawId) return;
+  try {
+    await supabase
+      .from("owlting_email_orders_raw")
+      .update({
+        ingest_outcome: outcome,
+        ingest_outcome_detail: detail,
+        ingest_outcome_at: new Date().toISOString(),
+      })
+      .eq("id", rawId);
+  } catch (e) {
+    console.error("[owlting-email-ingest] recordOutcome failed:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -251,6 +283,12 @@ Deno.serve(async (req) => {
       failure_stage: status === "ignored" ? "envelope_check" : "subject_parse",
       raw_payload: rawPayload,
     });
+    await recordOutcome(
+      supabase,
+      inserted?.id,
+      status === "ignored" ? "ignored_untrusted" : "parse_failed",
+      { reason: notes, obe_number: parsed.obe_number, message_type: parsed.message_type },
+    );
   }
 
   // Trigger-only parser (2026-05-29 policy: OwlTing email 不含 PII，僅當 trigger)
@@ -318,12 +356,46 @@ Deno.serve(async (req) => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-      // 修改通知：先判斷是否為「空修改」（原始訂單 vs 修改後完全一致）。
+      // 修改通知差異判定。
+      // 例外分支：
+      //  - 缺少 OBE → 無法對應既有訂單，記為失敗並隔離，絕不視為空修改。
+      //  - 差異解析失敗（no_sections / unparsable）或僅部分欄位可比對（partial）
+      //    → 不可判定為空修改，改以「與 DB 既有訂單逐欄比對」為準。
+      const diffStatus = (fields.modification_diff_status ?? null) as string | null;
+      const parserChanges = fields.modification_changes ?? [];
+      const isModified = fields.message_type === "modified";
+      // 僅在「完整可靠比對且無差異」時才認定空修改
       const isNoopModification =
-        fields.message_type === "modified" && fields.is_noop_modification === true;
-      const changeSummary = (fields.modification_changes ?? [])
+        isModified && fields.is_noop_modification === true && diffStatus === "compared";
+      const diffUnreliable =
+        isModified && (diffStatus === null || diffStatus === "no_sections" || diffStatus === "unparsable" || diffStatus === "partial");
+      const changeSummary = parserChanges
         .map((c) => `${c.label}：${c.before ?? "—"} → ${c.after ?? "—"}`)
         .join("；");
+
+      // 例外分支 A：修改通知但缺少 OBE
+      if (stagingRow?.id && isModified && !fields.obe_number) {
+        await supabase.from("owlting_email_parsed_staging").update({
+          review_status: "pending_review",
+          modification_diff_status: diffStatus ?? "unparsable",
+          modification_diff: parserChanges.length ? parserChanges : null,
+          auto_create_error: "missing_obe_number",
+          review_notes: "[需人工] 修改通知缺少 OBE 編號，無法對應既有訂單（不視為空修改）。",
+        }).eq("id", stagingRow.id);
+        await supabase.from("owlting_email_parse_failures").insert({
+          raw_email_id: inserted.id,
+          from_email: fromEmail,
+          subject,
+          failure_reason: "modified email without OBE number",
+          failure_stage: "subject_parse",
+          raw_payload: rawPayload,
+        });
+        await recordOutcome(supabase, inserted.id, "parse_failed", {
+          reason: "missing_obe_number",
+          message_type: "modified",
+          diff_status: diffStatus,
+        });
+      }
 
       if (stagingRow?.id && isNoopModification) {
         console.log("[owlting-email-ingest] no-op modification, skip notify & order update", {
@@ -331,14 +403,31 @@ Deno.serve(async (req) => {
         });
         await supabase.from("owlting_email_parsed_staging").update({
           review_status: "ignored",
+          modification_diff: [],
+          modification_diff_status: "compared",
           review_notes: "[空修改] 原始訂單與修改後內容完全一致，未通知業主、未建立或更新補單。",
+        }).eq("id", stagingRow.id);
+        await recordOutcome(supabase, inserted.id, "noop_modification", {
+          obe_number: fields.obe_number,
+          diff_status: diffStatus,
+        });
+      }
+
+      if (stagingRow?.id && diffUnreliable) {
+        console.warn("[owlting-email-ingest] modification diff unreliable, fallback to DB compare", {
+          obe: fields.obe_number,
+          diff_status: diffStatus,
+        });
+        await supabase.from("owlting_email_parsed_staging").update({
+          modification_diff: parserChanges.length ? parserChanges : null,
+          modification_diff_status: diffStatus ?? "unparsable",
         }).eq("id", stagingRow.id);
       }
 
-      // 修改通知（有實質差異）：更新既有訂單，不重複建單造成佔位。
+      // 修改通知（有實質差異 or 差異無法可靠判定）：更新既有訂單，不重複建單造成佔位。
       if (
         stagingRow?.id &&
-        fields.message_type === "modified" &&
+        isModified &&
         !isNoopModification &&
         fields.obe_number
       ) {
@@ -353,6 +442,7 @@ Deno.serve(async (req) => {
           guest_count: fields.guest_count,
           total_amount: fields.total_amount,
           change_summary: changeSummary || null,
+          parser_diff_status: diffStatus,
         });
         console.log("[owlting-email-ingest] modification apply result", modRes);
 
@@ -374,10 +464,38 @@ Deno.serve(async (req) => {
             special_requests: fields.special_requests,
           });
           console.log("[owlting-email-ingest] modification fallback create", fallback);
+          await recordOutcome(supabase, inserted.id, fallback.ok ? "order_created" : "apply_failed", {
+            obe_number: fields.obe_number,
+            via: "modification_fallback_create",
+            diff_status: diffStatus,
+            reason: fallback.ok ? null : (fallback.skipped_reason ?? fallback.error ?? "unknown"),
+          });
         } else if (!modRes.ok) {
           await supabase.from("owlting_email_parsed_staging").update({
             auto_create_error: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",
           }).eq("id", stagingRow.id);
+          await recordOutcome(supabase, inserted.id, "apply_failed", {
+            obe_number: fields.obe_number,
+            reason: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",
+            diff_status: diffStatus,
+          });
+        } else if (modRes.skipped_reason === "no_material_change") {
+          // 信件差異不可靠，但與 DB 逐欄比對後確實無變更
+          await recordOutcome(supabase, inserted.id, "noop_modification", {
+            obe_number: fields.obe_number,
+            order_number: modRes.order_number,
+            diff_status: diffStatus,
+            verified_by: "db_compare",
+          });
+        } else {
+          await recordOutcome(supabase, inserted.id, "order_updated", {
+            obe_number: fields.obe_number,
+            order_id: modRes.order_id,
+            order_number: modRes.order_number,
+            diff_status: diffStatus,
+            diff: modRes.diff ?? [],
+            updated_fields: modRes.updated_fields ?? [],
+          });
         }
       }
 
@@ -453,8 +571,19 @@ Deno.serve(async (req) => {
           await supabase.from("owlting_email_parsed_staging").update({
             auto_create_error: autoRes.skipped_reason ?? autoRes.error ?? "unknown",
           }).eq("id", stagingRow.id);
+          await recordOutcome(supabase, inserted.id, "apply_failed", {
+            obe_number: fields.obe_number,
+            reason: autoRes.skipped_reason ?? autoRes.error ?? "unknown",
+            via: "auto_create_pending",
+          });
         } else {
           console.log("[owlting-email-ingest] auto-created pending order", { ...autoRes, is_payment_pending: isPaymentPending });
+          await recordOutcome(supabase, inserted.id, "order_created", {
+            obe_number: fields.obe_number,
+            order_id: (autoRes as any).order_id ?? null,
+            order_number: (autoRes as any).order_number ?? null,
+            is_payment_pending: isPaymentPending,
+          });
         }
 
         // Still issue fillup magic link so owner can backfill PII.
@@ -497,9 +626,33 @@ Deno.serve(async (req) => {
             review_notes: `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`,
           }).eq("id", stagingRow.id);
         }
+        await recordOutcome(supabase, inserted.id, "order_cancelled", {
+          obe_number: fields.obe_number,
+          cancelled_count: cancelled.length,
+        });
       }
     } catch (e) {
       console.error("[owlting-email-ingest] staging insert threw:", e);
+      await recordOutcome(supabase, inserted.id, "apply_failed", {
+        reason: (e as Error).message,
+        stage: "staging_pipeline",
+        obe_number: parsed.obe_number,
+      });
+    }
+  }
+
+  // 尚未被上面任一分支標記結果的信件（例如成功入庫但無自動動作）→ staged
+  if (inserted?.id) {
+    const { data: outcomeRow } = await supabase
+      .from("owlting_email_orders_raw")
+      .select("ingest_outcome")
+      .eq("id", inserted.id)
+      .maybeSingle();
+    if (!(outcomeRow as any)?.ingest_outcome) {
+      await recordOutcome(supabase, inserted.id, "staged", {
+        obe_number: parsed.obe_number,
+        message_type: parsed.message_type,
+      });
     }
   }
 
