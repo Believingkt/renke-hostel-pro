@@ -39,6 +39,7 @@ import {
   getAccommodationRevenueByAcc,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
+  getCountableRangesByAcc,
 } from "@/lib/teamBonusRevenue";
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
@@ -1115,13 +1116,22 @@ export default function TeamHome() {
 
             const sm = rateSettings.kol_monthly;
             if (!sm || sm.fixed_amount == null) missing.kol_monthly = true;
-            // 月費：以「目前合作中館別數」計價（旅行日系列合併只算一館，停用館別不計）
-            const travelDayIds = allAccIds.filter((id) =>
+            // 月費：以「該資料月有合作期間（bonus_policy != none）的館別」計價
+            const monthlyRanges = await getCountableRangesByAcc(
+              client,
+              allAccIds,
+              monthStartDate,
+              monthEndDate,
+            );
+            const partneredIds = allAccIds.filter(
+              (id) => (monthlyRanges[id]?.length ?? 0) > 0,
+            );
+            const travelDayIds = partneredIds.filter((id) =>
               (allAccNameById.get(id) ?? "").startsWith("旅行日"),
             );
             const kolMonthlyAccCount =
-              allAccIds.filter((id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日")).length +
-              (travelDayIds.length > 0 ? 1 : 0);
+              partneredIds.filter((id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日"))
+                .length + (travelDayIds.length > 0 ? 1 : 0);
             kolMonthlySum = Number(sm?.fixed_amount ?? 0) * kolMonthlyAccCount;
           }
 

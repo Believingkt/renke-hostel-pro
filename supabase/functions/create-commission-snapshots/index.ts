@@ -55,6 +55,48 @@ interface MonthResult {
   errors: Array<{ order_id: string; error: string }>;
 }
 
+/** 台北時區日期字串（YYYY-MM-DD） */
+function taipeiDateStr(iso: string): string {
+  const d = new Date(iso);
+  const p = getTaipeiParts(d);
+  return `${p.y}-${pad2(p.m)}-${pad2(p.day)}`;
+}
+
+/**
+ * 合作期間 gate：以 accommodation_partnership_periods 判斷該館別在訂單日是否處於
+ * 可採計的合作期間（bonus_policy = 'none' 或無任何期間 → 不採計）。
+ */
+async function buildPartnershipResolver(
+  client: any,
+  accIds: string[],
+): Promise<(accId: string, orderDateIso: string) => boolean> {
+  const byAcc = new Map<string, Array<{ start: string; end: string | null }>>();
+  const ids = Array.from(new Set((accIds ?? []).filter(Boolean)));
+  if (ids.length > 0) {
+    const { data } = await client
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .in("accommodation_id", ids);
+    for (const row of (data ?? []) as any[]) {
+      if (!row?.accommodation_id || !row?.start_date) continue;
+      if (row?.bonus_policy === "none") continue;
+      const list = byAcc.get(row.accommodation_id) ?? [];
+      list.push({
+        start: String(row.start_date).slice(0, 10),
+        end: row.end_date ? String(row.end_date).slice(0, 10) : null,
+      });
+      byAcc.set(row.accommodation_id, list);
+    }
+  }
+  return (accId: string, orderDateIso: string) => {
+    const list = byAcc.get(accId);
+    if (!list || list.length === 0) return false;
+    const d = taipeiDateStr(orderDateIso);
+    return list.some((p) => d >= p.start && (p.end === null || d <= p.end));
+  };
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -174,6 +216,8 @@ serve(async (req) => {
 
       // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
       const isExempt = await buildExemptResolver(supabase, accIds as string[]);
+      // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
+      const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
 
       // 5) Build snapshot rows
       const toInsert: any[] = [];
@@ -188,6 +232,8 @@ serve(async (req) => {
         if (cur && cur !== "TWD") continue;
         // 免抽成來源訂單不計入獎金
         if (isExempt(o as any)) continue;
+        // 訂單日不在館別合作期間內 → 不計入獎金
+        if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
         result.processed++;
 
         if (existingSet.has(o.id as string)) {
@@ -318,6 +364,7 @@ serve(async (req) => {
       };
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
+      const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
 
       // 已存在的取消扣回補差（避免重複產生）
       const { data: existCancel, error: existCancelErr } = await supabase
@@ -364,6 +411,7 @@ serve(async (req) => {
         const cur = ord.currency_at_booking;
         if (cur && cur !== "TWD") continue;
         if (isExemptR(ord)) continue;
+        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) continue;
 
         out.checked++;
 

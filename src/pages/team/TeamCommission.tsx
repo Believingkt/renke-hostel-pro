@@ -594,7 +594,25 @@ interface MemberGroup {
   display_name: string;
   items: SourceItem[];
   total: number;
+  role_rank: number;
+  role_label: string;
 }
+
+// 發放管理人員排序：比照 TeamMembers 的四大分類
+const ROLE_CATEGORIES: { rank: number; label: string; roles: string[] }[] = [
+  { rank: 0, label: "管理員", roles: ["super_admin", "admin", "finance"] },
+  { rank: 1, label: "AM", roles: ["am_manager", "am"] },
+  { rank: 2, label: "成交組", roles: ["closer_manager", "closer", "video"] },
+  { rank: 3, label: "星探", roles: ["scout_manager", "scout"] },
+];
+
+function roleCategoryOf(roles: string[]): { rank: number; label: string } {
+  for (const c of ROLE_CATEGORIES) {
+    if (roles.some((r) => c.roles.includes(r))) return { rank: c.rank, label: c.label };
+  }
+  return { rank: 4, label: "其他" };
+}
+
 
 const SOURCE_LABEL: Record<string, string> = {
   closer: "成交組分潤",
@@ -1154,22 +1172,55 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         it.multiplied_amount = Math.round(it.amount * mult);
       });
 
-      // 4. 依人分組（合計使用加倍後金額）
+      // 4. 依人分組（合計使用加倍後金額），並取得每人角色分類
+      const memberUserIds = Array.from(
+        new Set(
+          Array.from(profileById.values())
+            .map((p) => p.user_id)
+            .filter(Boolean) as string[],
+        ),
+      );
+      const rolesByUserId = new Map<string, string[]>();
+      if (memberUserIds.length > 0) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", memberUserIds);
+        (roleRows ?? []).forEach((r: any) => {
+          const list = rolesByUserId.get(r.user_id) ?? [];
+          list.push(String(r.role));
+          rolesByUserId.set(r.user_id, list);
+        });
+      }
+
       const groupMap = new Map<string, MemberGroup>();
       items.forEach((it) => {
         const key = it.member_id ?? "__unassigned__";
+        const profile = it.member_id ? profileById.get(it.member_id) : undefined;
         const name = it.member_id
-          ? (profileById.get(it.member_id)?.display_name ?? "未命名成員")
+          ? (profile?.display_name ?? "未命名成員")
           : "（未對應到成員）";
         if (!groupMap.has(key)) {
-          groupMap.set(key, { member_id: key, display_name: name, items: [], total: 0 });
+          const cat = roleCategoryOf(
+            profile?.user_id ? (rolesByUserId.get(profile.user_id) ?? []) : [],
+          );
+          groupMap.set(key, {
+            member_id: key,
+            display_name: name,
+            items: [],
+            total: 0,
+            role_rank: cat.rank,
+            role_label: cat.label,
+          });
         }
         const g = groupMap.get(key)!;
         g.items.push(it);
         g.total += it.multiplied_amount;
       });
 
-      const list = Array.from(groupMap.values()).sort((a, b) => b.total - a.total);
+      const list = Array.from(groupMap.values()).sort(
+        (a, b) => a.role_rank - b.role_rank || b.total - a.total,
+      );
       setGroups(list);
     } catch (e) {
       toast.error((e as Error).message);
@@ -1520,6 +1571,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                       <ChevronDown
                         className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
                       />
+                      <Badge variant="secondary" className="text-xs">{g.role_label}</Badge>
                       <span className="font-medium">{g.display_name}</span>
                       <span className="text-xs text-muted-foreground">{g.items.length} 筆</span>
                       {allPaid ? (
