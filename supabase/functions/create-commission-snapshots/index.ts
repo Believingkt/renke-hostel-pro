@@ -364,6 +364,7 @@ serve(async (req) => {
       };
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
+      const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
 
       // 已存在的取消扣回補差（避免重複產生）
       const { data: existCancel, error: existCancelErr } = await supabase
