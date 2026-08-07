@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2 } from "lucide-react";
 import type { PayoutPeriod } from "@/lib/scoutPayoutPeriod";
 
 interface Props {
@@ -11,6 +11,8 @@ interface Props {
   /** 是否正在看上一期 */
   viewingPrev: boolean;
   onChange: (viewingPrev: boolean) => void;
+  /** 資料讀取中：鎖住切換並顯示提示，避免重複切換 */
+  loading?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ export default function PayoutPeriodBanner({
   prevPeriod,
   viewingPrev,
   onChange,
+  loading,
 }: Props) {
   return (
     <div className="rounded-lg border bg-muted/40 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -36,10 +39,17 @@ export default function PayoutPeriodBanner({
       </div>
 
       <div className="flex items-center gap-1.5 sm:ml-auto">
+        {loading && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground mr-1">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            讀取計算中…
+          </span>
+        )}
         <Button
           size="sm"
           variant={viewingPrev ? "default" : "outline"}
           className="h-7 text-xs"
+          disabled={loading}
           onClick={() => onChange(true)}
         >
           上一期（{prevPeriod.label}）
@@ -48,6 +58,7 @@ export default function PayoutPeriodBanner({
           size="sm"
           variant={viewingPrev ? "outline" : "default"}
           className="h-7 text-xs"
+          disabled={loading}
           onClick={() => onChange(false)}
         >
           本期
@@ -61,3 +72,4 @@ export default function PayoutPeriodBanner({
     </div>
   );
 }
+
