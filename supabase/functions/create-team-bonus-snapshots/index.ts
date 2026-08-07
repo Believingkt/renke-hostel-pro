@@ -140,7 +140,37 @@ async function getRevenueSourceWhitelist(
 
 const CHUNK = 500;
 
-/** 分潤基準營收加總（order_meta.team_commission_price），monthEndDate 為排他 */
+/**
+ * 各館別「合作生效日 P」（accommodation_info.partnership_start_date）。
+ * 未設定者不會出現在回傳物件 —— 代表該館一律不計入任何團隊獎金。
+ */
+async function getPartnershipStartDates(
+  client: any,
+  accommodationIds: string[],
+): Promise<Record<string, string>> {
+  const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+  const out: Record<string, string> = {};
+  if (accIds.length === 0) return out;
+
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const slice = accIds.slice(i, i + CHUNK);
+    const { data } = await client
+      .from("accommodation_info")
+      .select("id, partnership_start_date")
+      .in("id", slice);
+    for (const row of (data ?? []) as any[]) {
+      const p = row?.partnership_start_date;
+      if (!p) continue;
+      out[String(row.id)] = String(p).slice(0, 10);
+    }
+  }
+  return out;
+}
+
+/**
+ * 分潤基準營收加總（order_meta.team_commission_price），monthEndDate 為排他。
+ * 採計起算日：每館 MAX(月初, 合作生效日 P)；未設定 P 的館別略過。
+ */
 async function getAccommodationRevenue(
   client: any,
   accommodationIds: string[],
@@ -152,28 +182,43 @@ async function getAccommodationRevenue(
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
   if (accIds.length === 0 || sources.length === 0) return 0;
 
-  let total = 0;
-  for (let i = 0; i < accIds.length; i += CHUNK) {
-    const slice = accIds.slice(i, i + CHUNK);
-    const { data } = await client
-      .from("orders")
-      .select("id, order_meta(team_commission_price, is_excluded)")
-      .in("accommodation_id", slice)
-      .gte("order_date", monthStartDate)
-      .lt("order_date", monthEndDate)
-      .neq("order_status", "cancelled")
-      .neq("guest_name", "保留單")
-      .in("order_source", sources);
+  const partnership = await getPartnershipStartDates(client, accIds);
+  const byStart = new Map<string, string[]>();
+  for (const accId of accIds) {
+    const p = partnership[accId];
+    if (!p) continue;
+    if (p >= monthEndDate) continue;
+    const start = p > monthStartDate ? p : monthStartDate;
+    const list = byStart.get(start) ?? [];
+    list.push(accId);
+    byStart.set(start, list);
+  }
 
-    for (const row of (data ?? []) as any[]) {
-      const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
-      if (!meta) continue;
-      if (meta.is_excluded === true) continue;
-      total += Number(meta.team_commission_price ?? 0) || 0;
+  let total = 0;
+  for (const [startDate, group] of byStart) {
+    for (let i = 0; i < group.length; i += CHUNK) {
+      const slice = group.slice(i, i + CHUNK);
+      const { data } = await client
+        .from("orders")
+        .select("id, order_meta(team_commission_price, is_excluded)")
+        .in("accommodation_id", slice)
+        .gte("order_date", startDate)
+        .lt("order_date", monthEndDate)
+        .neq("order_status", "cancelled")
+        .neq("guest_name", "保留單")
+        .in("order_source", sources);
+
+      for (const row of (data ?? []) as any[]) {
+        const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
+        if (!meta) continue;
+        if (meta.is_excluded === true) continue;
+        total += Number(meta.team_commission_price ?? 0) || 0;
+      }
     }
   }
   return total;
 }
+
 
 /** 各館別在該月是否約定收取行銷推廣費（append-only，逐館取最新一筆） */
 async function getMarketingFeeFlags(
