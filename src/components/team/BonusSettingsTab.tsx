@@ -958,12 +958,20 @@ function VenueClosingAssignmentSection({
 }) {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
+  const [periods, setPeriods] = useState<PartnershipPeriodRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [dialogAcc, setDialogAcc] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string>("none");
   const [effectiveFrom, setEffectiveFrom] = useState(taipeiToday());
   const [saving, setSaving] = useState(false);
+  const [periodAcc, setPeriodAcc] = useState<string | null>(null);
+  const [pStart, setPStart] = useState(taipeiToday());
+  const [pEnd, setPEnd] = useState("");
+  const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
+  const [pNote, setPNote] = useState("");
+  const [pSaving, setPSaving] = useState(false);
+
 
   const load = useCallback(async () => {
     setLoading(true);
