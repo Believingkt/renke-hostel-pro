@@ -1040,12 +1040,28 @@ function VenueClosingAssignmentSection({
 
   const accName = (id: string) => accs.find((a) => a.id === id)?.name ?? id.slice(0, 8);
 
+  async function savePartnership(accId: string, value: string) {
+    const next = value ? value : null;
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ partnership_start_date: next })
+      .eq("id", accId);
+    if (error) return toast.error("儲存合作生效日失敗：" + error.message);
+    setAccs((prev) =>
+      prev.map((a) => (a.id === accId ? { ...a, partnership_start_date: next } : a)),
+    );
+    toast.success("已更新合作生效日");
+  }
+
+  const today = taipeiToday();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
         <p className="text-sm text-muted-foreground">
-          場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）
+          場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
+          「合作生效日」為該館所有團隊獎金的採計起算日；未設定者一律不計入任何團隊獎金。
         </p>
       </CardHeader>
       <CardContent>
@@ -1055,8 +1071,10 @@ function VenueClosingAssignmentSection({
               <TableRow>
                 <TableHead className="w-10" />
                 <TableHead>館別</TableHead>
+                <TableHead>合作生效日</TableHead>
+                <TableHead>狀態</TableHead>
                 <TableHead>目前簽約人</TableHead>
-                <TableHead>生效日</TableHead>
+                <TableHead>簽約人指派日</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -1065,6 +1083,7 @@ function VenueClosingAssignmentSection({
                 const history = byAcc.get(a.id) ?? [];
                 const cur = pickCurrent(history);
                 const isOpen = expanded.has(a.id);
+                const p = a.partnership_start_date ?? "";
                 return (
                   <Fragment key={a.id}>
                     <TableRow>
@@ -1078,6 +1097,23 @@ function VenueClosingAssignmentSection({
                         </Button>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{a.name}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          className="w-[150px]"
+                          value={p}
+                          onChange={(e) => savePartnership(a.id, e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {!p ? (
+                          <Badge variant="destructive">未設定合作日</Badge>
+                        ) : p > today ? (
+                          <Badge variant="secondary">待生效</Badge>
+                        ) : (
+                          <Badge>已生效</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {cur?.effective_from ?? "—"}
@@ -1089,6 +1125,7 @@ function VenueClosingAssignmentSection({
                         </Button>
                       </TableCell>
                     </TableRow>
+
                     {isOpen && (
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/30">
