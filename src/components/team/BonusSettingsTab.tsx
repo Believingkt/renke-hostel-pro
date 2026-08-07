@@ -1597,6 +1597,7 @@ function OwnerPricingRuleOverviewSection() {
                 <TableHead>收行銷推廣費</TableHead>
                 <TableHead>抽成</TableHead>
                 <TableHead>免抽成來源</TableHead>
+                <TableHead className="w-10 text-right">連結</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
