@@ -299,9 +299,10 @@ async function getStayRevenueByAcc(
       const ranges = rangesByAcc[accId] ?? [];
       let counted = 0;
       for (let n = 0; n < total; n++) {
-        const day = addOneDay(ci).length ? new Date(Date.parse(`${ci}T00:00:00Z`) + n * 86_400_000)
+        const day = new Date(Date.parse(`${ci}T00:00:00Z`) + n * 86_400_000)
           .toISOString()
-          .slice(0, 10) : ci;
+          .slice(0, 10);
+
         if (day < monthStartDate || day >= monthEndDate) continue;
         if (ranges.some((r) => day >= r.start && day < r.end)) counted++;
       }
