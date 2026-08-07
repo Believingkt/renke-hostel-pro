@@ -450,13 +450,18 @@ async function getVenueClosingMap(
     byAcc.set(key, list);
   }
 
-  const partnership = await getPartnershipStartDates(client, Array.from(byAcc.keys()));
+  const closingRanges = await getCountableRangesByAcc(
+    client,
+    Array.from(byAcc.keys()),
+    monthStartDate,
+    addOneDay(monthLastDate),
+  );
 
   const out = new Map<string, string[]>();
   for (const [accId, list] of byAcc) {
-    // 未設定合作生效日、或合作生效日晚於資料月底者不採計
-    const p = partnership[accId];
-    if (!p || p > monthLastDate) continue;
+    // 資料月內沒有有效合作期間（未合作／暫停中／不採計）者不計場域成交獎金
+    if ((closingRanges[accId] ?? []).length === 0) continue;
+
     const latest = pickCurrent(list, monthLastDate);
     const memberId = latest?.member_id as string | undefined;
     if (!memberId) continue;
