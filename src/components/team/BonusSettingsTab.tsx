@@ -281,6 +281,7 @@ export default function BonusSettingsTab() {
       />
       <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} />
       <AmVenueOverviewSection />
+      <OwnerPricingRuleOverviewSection />
     </div>
 
   );
