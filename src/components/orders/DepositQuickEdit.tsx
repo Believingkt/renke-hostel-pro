@@ -52,23 +52,44 @@ export function DepositQuickEdit({
     setRetained(String(Math.max(0, chargedAmount - refundedAmount)));
   }, [open, requiredAmount, status, chargedAmount, refundedAmount]);
 
+  const parsed = Number(amount);
+  const parsedRetained = Number(retained);
+  const MAX_DEPOSIT = 1000000;
+
+  const amountError = (() => {
+    if (amount.trim() === "") return "請輸入押金金額";
+    if (!Number.isFinite(parsed)) return "押金金額必須是數字";
+    if (parsed < 0) return "押金金額不可為負數";
+    if (!Number.isInteger(parsed)) return "押金金額必須為整數（不可有小數）";
+    if (parsed > MAX_DEPOSIT) return `押金金額不可超過 NT$${MAX_DEPOSIT.toLocaleString()}`;
+    return null;
+  })();
+
+  const retainedError = (() => {
+    if (nextStatus !== "partially_refunded") return null;
+    if (retained.trim() === "") return "請輸入扣押金額";
+    if (!Number.isFinite(parsedRetained)) return "扣押金額必須是數字";
+    if (!Number.isInteger(parsedRetained)) return "扣押金額必須為整數（不可有小數）";
+    if (parsedRetained <= 0) return "扣押金額必須大於 0";
+    if (amountError) return null;
+    if (parsedRetained >= parsed)
+      return `扣押金額必須小於已收押金 NT$${parsed.toLocaleString()}（全額扣押請改選「已收押金」）`;
+    return null;
+  })();
+
+  const hasError = Boolean(amountError || retainedError);
+
   const save = async () => {
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt < 0) {
-      toast({ variant: "destructive", title: "請輸入有效的押金金額" });
-      return;
-    }
-    const ret = Number(retained);
-    if (nextStatus === "partially_refunded" && (!Number.isFinite(ret) || ret <= 0 || ret > amt)) {
-      toast({ variant: "destructive", title: `扣押金額需介於 1 ~ ${amt}` });
+    if (hasError) {
+      toast({ variant: "destructive", title: "資料有誤", description: amountError ?? retainedError ?? "" });
       return;
     }
     setSaving(true);
     try {
-      const patch = buildDepositPatch({ amount: amt, status: nextStatus, retainedAmount: ret });
+      const patch = buildDepositPatch({ amount: parsed, status: nextStatus, retainedAmount: parsedRetained });
       const { error } = await supabase.from("orders").update(patch as any).eq("id", orderId);
       if (error) throw error;
-      toast({ title: "押金已更新", description: `${depositStatusLabel(nextStatus)}．NT$${amt.toLocaleString()}` });
+      toast({ title: "押金已更新", description: `${depositStatusLabel(nextStatus)}．NT$${parsed.toLocaleString()}` });
       setOpen(false);
       onSaved?.(patch);
     } catch (e: any) {
@@ -93,11 +114,21 @@ export function DepositQuickEdit({
           <span className="tabular-nums">NT${(requiredAmount ?? 0).toLocaleString()}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 space-y-3" align="start">
+      <PopoverContent className="w-64 space-y-3 z-50" align="start" collisionPadding={12}>
         <div className="text-sm font-medium">押金管理</div>
         <div className="space-y-1.5">
           <Label className="text-xs">押金金額 (NT$)</Label>
-          <Input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            max={MAX_DEPOSIT}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            aria-invalid={Boolean(amountError)}
+            className={amountError ? "border-destructive focus-visible:ring-destructive" : ""}
+          />
+          {amountError && <p className="text-[11px] text-destructive">{amountError}</p>}
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">押金狀態</Label>
@@ -105,7 +136,7 @@ export function DepositQuickEdit({
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[60]">
               {DEPOSIT_STATUS_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
                   {o.label}
@@ -117,15 +148,28 @@ export function DepositQuickEdit({
         {nextStatus === "partially_refunded" && (
           <div className="space-y-1.5">
             <Label className="text-xs">扣押金額 (NT$)</Label>
-            <Input type="number" min={1} value={retained} onChange={(e) => setRetained(e.target.value)} />
-            <p className="text-[11px] text-muted-foreground">其餘金額視為已退還給客人。</p>
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              max={Number.isFinite(parsed) ? Math.max(0, parsed - 1) : undefined}
+              value={retained}
+              onChange={(e) => setRetained(e.target.value)}
+              aria-invalid={Boolean(retainedError)}
+              className={retainedError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {retainedError ? (
+              <p className="text-[11px] text-destructive">{retainedError}</p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">其餘金額視為已退還給客人。</p>
+            )}
           </div>
         )}
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={saving}>
             取消
           </Button>
-          <Button size="sm" onClick={save} disabled={saving}>
+          <Button size="sm" onClick={save} disabled={saving || hasError}>
             {saving ? "儲存中…" : "儲存"}
           </Button>
         </div>
