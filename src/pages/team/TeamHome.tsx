@@ -588,8 +588,10 @@ export default function TeamHome() {
               db
                 .from("scout_team_targets")
                 .select("venue_id, venue_name, personal_min, target_count")
-                .eq("year", prevY)
-                .eq("month", prevM),
+                // 與後端 calculate-scout-payout 一致：門檻用「結算年月（本月）」設定，
+                // 實際邀約數則用 kpi_month = 上月。
+                .eq("year", monthInfo.y)
+                .eq("month", monthInfo.m),
               db
                 .from("kol_profiles")
                 .select("venue_id, venue_name, kpi_month")
