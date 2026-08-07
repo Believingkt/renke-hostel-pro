@@ -288,9 +288,9 @@ async function getStayRevenueByAcc(
     for (const o of (data ?? []) as any[]) {
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
-      // 一、團隊獎金：exempt_order_sources 與共用／獨立白名單各自獨立判斷，
-      // 不再以 exempt 作為第一層過濾；僅 owner_direct 永遠排除。
-      if (o?.owner_direct === true) continue;
+      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，
+      // 不套用 exempt_order_sources，也不排除 owner_direct。
+
       const rule = rules[accId];
 
 
