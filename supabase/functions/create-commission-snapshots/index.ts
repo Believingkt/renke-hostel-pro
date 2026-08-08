@@ -3,6 +3,13 @@ import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
+import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
+
+/** 保留單（hold）不計入分潤 */
+function isHoldOrder(status?: string | null): boolean {
+  return status === "hold" || status === "保留中";
+}
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,46 +63,8 @@ interface MonthResult {
   errors: Array<{ order_id: string; error: string }>;
 }
 
-/** 台北時區日期字串（YYYY-MM-DD） */
-function taipeiDateStr(iso: string): string {
-  const d = new Date(iso);
-  const p = getTaipeiParts(d);
-  return `${p.y}-${pad2(p.m)}-${pad2(p.day)}`;
-}
+// 合作期間 gate 由 ../_shared/partnershipGate.ts 提供（與 preview-closer-commission 共用）
 
-/**
- * 合作期間 gate：以 accommodation_partnership_periods 判斷該館別在訂單日是否處於
- * 可採計的合作期間（bonus_policy = 'none' 或無任何期間 → 不採計）。
- */
-async function buildPartnershipResolver(
-  client: any,
-  accIds: string[],
-): Promise<(accId: string, orderDateIso: string) => boolean> {
-  const byAcc = new Map<string, Array<{ start: string; end: string | null }>>();
-  const ids = Array.from(new Set((accIds ?? []).filter(Boolean)));
-  if (ids.length > 0) {
-    const { data } = await client
-      .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
-      .in("accommodation_id", ids);
-    for (const row of (data ?? []) as any[]) {
-      if (!row?.accommodation_id || !row?.start_date) continue;
-      if (row?.bonus_policy === "none") continue;
-      const list = byAcc.get(row.accommodation_id) ?? [];
-      list.push({
-        start: String(row.start_date).slice(0, 10),
-        end: row.end_date ? String(row.end_date).slice(0, 10) : null,
-      });
-      byAcc.set(row.accommodation_id, list);
-    }
-  }
-  return (accId: string, orderDateIso: string) => {
-    const list = byAcc.get(accId);
-    if (!list || list.length === 0) return false;
-    const d = taipeiDateStr(orderDateIso);
-    return list.some((p) => d >= p.start && (p.end === null || d <= p.end));
-  };
-}
 
 
 serve(async (req) => {
@@ -164,14 +133,17 @@ serve(async (req) => {
       const startUtc = taipeiMidnightUtcISO(y, m, 1);
       const endUtc = taipeiMidnightUtcISO(y, m + 1, 1);
 
-      // 1) Orders in target month, not cancelled
+      // 1) Orders in target month：排除已取消、保留單（hold）與 final_price <= 0
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
         .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .neq("order_status", "cancelled")
+        .neq("order_status", "hold")
+        .gt("final_price", 0)
         .gte("order_date", startUtc)
         .lt("order_date", endUtc);
       if (ordersErr) throw ordersErr;
+
 
       const orderList = orders ?? [];
       if (orderList.length === 0) return result;
@@ -450,11 +422,20 @@ serve(async (req) => {
           continue;
         }
 
+        if (isHoldOrder(ord.order_status as string | null)) {
+          await revokeSnapshot(s, "保留單（hold）不計入分潤");
+          continue;
+        }
+        if (Number(ord.final_price ?? 0) <= 0) {
+          await revokeSnapshot(s, "訂單金額為 0");
+          continue;
+        }
         const cur = ord.currency_at_booking;
         if (cur && cur !== "TWD") {
           await revokeSnapshot(s, "非台幣訂單");
           continue;
         }
+
         if (isExemptR(ord)) {
           await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
           continue;

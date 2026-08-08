@@ -17,6 +17,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
+import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,12 +98,13 @@ serve(async (req) => {
     const startUtc = hasRange ? startIsoOverride! : taipeiMidnightUtcISO(year, month, 1);
     const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
-    // 1) 該月 order_date 落在區間內、未取消的訂單
+    const ORDER_COLS =
+      "id, accommodation_id, final_price, custom_addon_details, check_in_date, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source";
+
+    // 1) 該月 order_date 落在區間內、未取消／非保留、金額 > 0 的訂單
     let ordersQuery = supabase
       .from("orders")
-      .select(
-        "id, accommodation_id, final_price, custom_addon_details, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source",
-      )
+      .select(ORDER_COLS)
       .neq("order_status", "cancelled")
       .neq("order_status", "hold")
       .gt("final_price", 0)
@@ -112,7 +116,28 @@ serve(async (req) => {
     if (ordersErr) throw ordersErr;
 
     const orderList = (orders ?? []) as any[];
-    if (orderList.length === 0) {
+
+    // 1b) 額外指定的訂單（例如已取消訂單），套用完全相同的 gate 與費率口徑
+    const extraIds: string[] = Array.isArray(body?.extra_order_ids)
+      ? (body.extra_order_ids as unknown[]).filter((v): v is string => typeof v === "string")
+      : [];
+    const extraList: any[] = [];
+    if (extraIds.length > 0) {
+      const known = new Set(orderList.map((o) => o.id as string));
+      const wanted = Array.from(new Set(extraIds)).filter((id) => !known.has(id));
+      for (let i = 0; i < wanted.length; i += 300) {
+        const chunk = wanted.slice(i, i + 300);
+        const { data: extras, error: extraErr } = await supabase
+          .from("orders")
+          .select(ORDER_COLS)
+          .in("id", chunk);
+        if (extraErr) throw extraErr;
+        for (const e of extras ?? []) extraList.push(e);
+      }
+    }
+
+    const allOrders = [...orderList, ...extraList];
+    if (allOrders.length === 0) {
       return json({
         success: true,
         scope,
@@ -121,10 +146,12 @@ serve(async (req) => {
         self: { closer_commission: 0, video_commission: 0 },
         team: { closer_commission: 0, video_commission: 0 },
         orders: [],
+        extra_orders: [],
       });
     }
 
-    const orderIds = orderList.map((o) => o.id as string);
+    const orderIds = allOrders.map((o) => o.id as string);
+
 
     // 2) order_meta（分批避免 URL 過長）
     const metaMap = new Map<string, any>();
@@ -139,7 +166,7 @@ serve(async (req) => {
     }
 
     // 3) 費率
-    const accIds = Array.from(new Set(orderList.map((o) => o.accommodation_id).filter(Boolean))) as string[];
+    const accIds = Array.from(new Set(allOrders.map((o) => o.accommodation_id).filter(Boolean))) as string[];
     const { data: rateRows, error: rateErr } = await supabase
       .from("accommodation_commission_settings")
       .select("accommodation_id, effective_from, closer_rate, video_rate")
@@ -156,8 +183,12 @@ serve(async (req) => {
       return Number(hit?.[key] ?? 0) || 0;
     }
 
-    // 4) 免抽成判斷（與正式快照相同）
+    // 4) 與正式快照相同的三道 gate
     const isExempt = await buildExemptResolver(supabase, accIds);
+    // 4b) 合作期間 gate：無合作期間／已暫停（bonus_policy='none'）的館別不採計
+    const inPartnership = await buildPartnershipResolver(supabase, accIds);
+    // 4c) 月營收抽成門檻 gate：未達門檻 → factor = 0（不採計）
+    const thresholdFactor = await buildThresholdFactorResolver(supabase, accIds);
 
     const selfId = targetUserId ?? ctx.userId;
     let selfCloser = 0;
@@ -165,14 +196,21 @@ serve(async (req) => {
     let teamCloser = 0;
     let teamVideo = 0;
     const detail: any[] = [];
+    const extraDetail: any[] = [];
+    const extraIdSet = new Set(extraList.map((o) => o.id as string));
 
-    for (const o of orderList) {
+    for (const o of allOrders) {
       const meta = metaMap.get(o.id as string);
       if (!meta) continue;
       if (meta.is_excluded === true) continue;
       const cur = o.currency_at_booking as string | null;
       if (cur && cur !== "TWD") continue;
       if (isExempt(o)) continue;
+      // 合作期間 gate（對齊 create-commission-snapshots）
+      if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
+      // 月營收抽成門檻 gate（以 check_in_date 所屬月份判斷，對齊快照）
+      const factor = thresholdFactor(o.accommodation_id as string, o.check_in_date as string);
+      if (factor <= 0) continue;
 
       const tcp = meta.team_commission_price;
       const finalPrice = Number(o.final_price ?? 0);
@@ -180,17 +218,12 @@ serve(async (req) => {
         ? commissionBaseFromOrder(o)
         : Number(tcp);
 
-      const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") : 0;
-      const videoRate = meta.video_creator_id ? rateFor(o.accommodation_id, o.order_date, "video_rate") : 0;
+      const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") * factor : 0;
+      const videoRate = meta.video_creator_id ? rateFor(o.accommodation_id, o.order_date, "video_rate") * factor : 0;
       const closerAmt = meta.closer_id ? base * closerRate : 0;
       const videoAmt = meta.video_creator_id ? base * videoRate : 0;
 
-      teamCloser += closerAmt;
-      teamVideo += videoAmt;
-      if (selfId && meta.closer_id === selfId) selfCloser += closerAmt;
-      if (selfId && meta.video_creator_id === selfId) selfVideo += videoAmt;
-
-      detail.push({
+      const row = {
         order_id: o.id,
         accommodation_id: o.accommodation_id,
         closer_id: meta.closer_id ?? null,
@@ -200,8 +233,23 @@ serve(async (req) => {
         video_rate: videoRate,
         closer_commission: closerAmt,
         video_commission: videoAmt,
-      });
+      };
+
+      if (extraIdSet.has(o.id as string)) {
+        // 額外指定訂單（已取消等）不計入本期總額，僅回傳明細供前端顯示
+        extraDetail.push(row);
+        continue;
+      }
+
+      teamCloser += closerAmt;
+      teamVideo += videoAmt;
+      if (selfId && meta.closer_id === selfId) selfCloser += closerAmt;
+      if (selfId && meta.video_creator_id === selfId) selfVideo += videoAmt;
+
+      detail.push(row);
     }
+
+    const mine = (d: any) => d.closer_id === selfId || d.video_creator_id === selfId;
 
     return json({
       success: true,
@@ -212,8 +260,10 @@ serve(async (req) => {
       team: scope === "team"
         ? { closer_commission: teamCloser, video_commission: teamVideo }
         : { closer_commission: 0, video_commission: 0 },
-      orders: scope === "team" ? detail : detail.filter((d) => d.closer_id === selfId || d.video_creator_id === selfId),
+      orders: scope === "team" ? detail : detail.filter(mine),
+      extra_orders: scope === "team" ? extraDetail : extraDetail.filter(mine),
     });
+
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return json({ success: false, error: msg }, 500);

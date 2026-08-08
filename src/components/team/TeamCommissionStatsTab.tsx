@@ -542,6 +542,7 @@ export default function TeamCommissionStatsTab() {
       setCommissionByAcc(csMap);
 
       // 成交組分潤預估（Edge Function 試算，只計算不寫入）
+      // extra_order_ids 讓已取消訂單也套用相同 gate（合作期間／抽成門檻／免抽成／幣別）
       const pMap = new Map<string, { base: number; closer_rate: number; video_rate: number }>();
       try {
         const { data: preview } = await supabase.functions.invoke(
@@ -553,11 +554,12 @@ export default function TeamCommissionStatsTab() {
               month: Number(month),
               start_iso: period.startIso,
               end_iso: period.nextIso,
+              extra_order_ids: cancelRows.map((o: any) => o.id as string),
             },
           },
         );
         if (preview?.success) {
-          (preview.orders ?? []).forEach((d: any) => {
+          [...(preview.orders ?? []), ...(preview.extra_orders ?? [])].forEach((d: any) => {
             pMap.set(d.order_id as string, {
               base: Number(d.base ?? 0),
               closer_rate: Number(d.closer_rate ?? 0),
@@ -569,6 +571,7 @@ export default function TeamCommissionStatsTab() {
         /* 預估失敗時退回空 map，畫面顯示 0，不中斷其他統計 */
       }
       setPreviewMap(pMap);
+
 
       // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
       try {
@@ -663,15 +666,8 @@ export default function TeamCommissionStatsTab() {
   }, [orders, metaMap]);
 
 
-  // 依 order_date 挑當時生效的 rate（對齊 create-commission-snapshots 發放邏輯）
-  function pickRateFor(accId: string, orderDateIso: string | null, rateKey: "closer_rate" | "video_rate"): number {
-    const list = commissionByAcc.get(accId) ?? [];
-    if (!list.length || !orderDateIso) return 0;
-    const day = orderDateIso.slice(0, 10);
-    // list 已 desc 排序，取第一筆 effective_from <= day
-    const hit = list.find((s) => s.effective_from <= day);
-    return Number(hit?.[rateKey] ?? 0);
-  }
+  // 費率一律由 preview-closer-commission 提供（含合作期間／抽成門檻 factor），前端不再自行挑費率
+
 
   // 通用：依成交人/影音 + 館別 + rate 聚合（同館可能拆多列）
   function buildMemberStats(field: "closer_id" | "video_creator_id", rateKey: "closer_rate" | "video_rate"): MemberStats[] {
@@ -723,15 +719,18 @@ export default function TeamCommissionStatsTab() {
       if (!uid) return;
       if (isHoldOrder(o)) return;
       if ((o.final_price || 0) <= 0) return;
-      const rateDate = o.order_date?.slice(0, 10) ?? null;
-      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
-      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
+      // 與有效訂單同口徑：不在預估名單 = 免抽成／非台幣／不在合作期間／未達抽成門檻
+      const pv = previewMap.get(o.id);
+      if (!pv) return;
+      const rate = rateKey === "closer_rate" ? pv.closer_rate : pv.video_rate;
+      const amount = pv.base;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
       b.cancelAmount += amount;
       b.cancelCommission += Math.round(amount * rate);
       b.cancelOrders.push(o);
     });
+
     return Array.from(agg.entries())
       .map(([uid, accMap]) => {
         const byAcc = Array.from(accMap.values()).sort(
