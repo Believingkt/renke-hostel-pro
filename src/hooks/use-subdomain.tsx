@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheAccommodationTheme } from "@/constants/themes";
+import { isNativeApp } from "@/lib/appMode";
 
 interface AccommodationData {
   id: string;
