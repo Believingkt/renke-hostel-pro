@@ -255,6 +255,12 @@ const Headquarters = () => {
   const [removeAccDialogOpen, setRemoveAccDialogOpen] = useState(false);
   const [removeAccId, setRemoveAccId] = useState<string>("");
   const [removingAcc, setRemovingAcc] = useState(false);
+  // 二次確認：影響範圍統計與輸入確認字串
+  const [deleteAccountImpact, setDeleteAccountImpact] = useState<{ roles: number; perms: number; accNames: string[] } | null>(null);
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
+  const [removeAccImpact, setRemoveAccImpact] = useState<{ roles: number; perms: number; users: number } | null>(null);
+  const [removeAccConfirm, setRemoveAccConfirm] = useState("");
+
   const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
 
   const [templatesDialogAccId, setTemplatesDialogAccId] = useState<string | null>(null);
