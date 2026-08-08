@@ -6,7 +6,7 @@ import {
   isBookingDomain,
   isReservedFirstSegment,
 } from "@/lib/route-matcher";
-import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, isNativeApp } from "@/lib/appMode";
 
 /**
  * 判斷目前網址是否為「後台密碼重設」落點：
@@ -37,7 +37,8 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!isBookingDomain(window.location.hostname)) return;
+    // Capacitor 原生 App：hostname 為 localhost，一律比照訂房平台網域
+    if (!isBookingDomain(window.location.hostname) && !isNativeApp()) return;
 
     // 安全網：舊信件／fallback 落在前台網域的後台密碼重設連結
     // → 導回 PMS，完整保留 query 與 hash（token 在 hash 裡）
