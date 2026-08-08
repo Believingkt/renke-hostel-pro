@@ -1201,12 +1201,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       }
 
 
-      // 3.5 加倍活動：查該發放月的所有設定，建立 bonus_type → multiplier map
-      const { data: multRows } = await supabase
-        .from("bonus_multiplier_settings")
-        .select("bonus_type, multiplier, start_month, end_month")
-        .lte("start_month", payoutMonthKey)
-        .gte("end_month", payoutMonthKey);
+      // 3.5 加倍活動：建立 bonus_type → multiplier map
       const multiplierMap = new Map<string, number>();
       (multRows ?? []).forEach((r: any) => {
         multiplierMap.set(r.bonus_type, Number(r.multiplier ?? 1));
