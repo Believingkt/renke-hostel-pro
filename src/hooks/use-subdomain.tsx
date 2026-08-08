@@ -73,7 +73,8 @@ export function useSubdomain() {
 
       // ========== HQ / Booking Portal 專屬網域檢測 ==========
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
-      const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com';
+      // Capacitor 原生 App（hostname = localhost）比照訂房平台網域處理
+      const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com' || isNativeApp();
       if (isHQDomain || isBookingDomain) {
         if (isBookingDomain) {
           // 1. 路徑首段為 alias（/{alias} 或 /{alias}/admin）
