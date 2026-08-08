@@ -127,14 +127,17 @@ serve(async (req) => {
       entity_name: email,
       ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       user_agent: req.headers.get("user-agent") ?? null,
-      details: { deleted_email: email },
+      details: { deleted_email: email, removed_roles: roleCount ?? 0, removed_module_permissions: permCount ?? 0 },
     });
 
     return new Response(
       JSON.stringify({
         success: true,
         message: `已成功刪除用戶 ${email}`,
+        removed_roles: roleCount ?? 0,
+        removed_module_permissions: permCount ?? 0,
       }),
+
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
