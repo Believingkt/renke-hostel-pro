@@ -309,6 +309,8 @@ serve(async (req) => {
         updated: 0,
         skipped_paid: 0,
         cancelled_adjustments: 0,
+        revoked: 0,
+        revoked_details: [] as Array<{ order_id: string; reason: string; amount: number }>,
         details: [] as Array<{
           order_id: string; before: number; after: number;
           closer_amount_before: number; closer_amount_after: number;
