@@ -1205,16 +1205,21 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       );
       const rolesByUserId = new Map<string, string[]>();
       if (memberUserIds.length > 0) {
+        // 只採計「團隊角色」（全域、非館別綁定），避免 hotel_admin 等民宿後台角色影響分類
         const { data: roleRows } = await supabase
           .from("user_roles")
           .select("user_id, role")
-          .in("user_id", memberUserIds);
+          .in("user_id", memberUserIds)
+          .is("accommodation_id", null);
         (roleRows ?? []).forEach((r: any) => {
+          const role = String(r.role);
+          if (!TEAM_ROLES.includes(role as TeamRole)) return;
           const list = rolesByUserId.get(r.user_id) ?? [];
-          list.push(String(r.role));
+          list.push(role);
           rolesByUserId.set(r.user_id, list);
         });
       }
+
 
       const groupMap = new Map<string, MemberGroup>();
       items.forEach((it) => {
