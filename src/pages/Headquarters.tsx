@@ -594,6 +594,11 @@ const Headquarters = () => {
   // 一鍵移除某一家民宿的所有用戶權限（含模組權限設定）
   const handleRemoveAccommodationRoles = async () => {
     if (!removeAccId) return;
+    if (removeAccConfirm.trim() !== getAccommodationName(removeAccId).trim()) {
+      toast.error("請輸入完整民宿名稱以確認移除");
+      return;
+    }
+
     setRemovingAcc(true);
     try {
       const { error: roleError, count } = await supabase
