@@ -495,7 +495,7 @@ const OrderSearch = () => {
       <DevAccommodationSwitcher />
       {/* 手機版底部 Tab（從 AI 訂房進入時顯示） */}
       {fromAiBooking && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 safe-bottom bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
           <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
             {/* 對話 */}
             <button

@@ -1948,3 +1948,14 @@ html {
 html {
   scrollbar-gutter: stable;
 }
+
+/* ── iOS safe-area helpers (env() = 0 in normal browsers) ── */
+.safe-top,
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom,
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

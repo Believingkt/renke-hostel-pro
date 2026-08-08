@@ -924,7 +924,7 @@ const BookingPortal = () => {
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+      <header className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <AtmPaymentBanner />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">

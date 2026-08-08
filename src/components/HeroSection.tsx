@@ -64,7 +64,7 @@ const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
 
 // 空值佔位符元件 - Hero 特製版
 const HeroEmptyPlaceholder = () => (
-  <section id="home" className="pt-16 relative">
+  <section id="home" className="pt-16 relative" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
     <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
       <div className="text-center max-w-lg mx-auto px-4">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
@@ -553,7 +553,7 @@ const HeroSection = ({
   // 載入中狀態
   if (isLoadingPhotos) {
     return (
-      <section id="home" className="pt-16 relative">
+      <section id="home" className="pt-16 relative" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
         <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted/30 to-muted/10 animate-pulse" />
       </section>
     );
@@ -569,7 +569,7 @@ const HeroSection = ({
   const currentSlide = slides[safeCurrentIndex];
 
   return (
-    <section id="home" className="pt-16 relative">
+    <section id="home" className="pt-16 relative" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
       <div className="relative">
         <Carousel
           opts={{ 

@@ -128,7 +128,7 @@ export function Header() {
   const hasMultipleAccommodations = userAccommodations.length > 1;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+    <header className="sticky top-0 z-50 safe-top w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="flex h-16 md:h-16 items-center justify-between px-3 md:px-6 gap-2">
         <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
           <SidebarTrigger className="h-10 w-10 flex-shrink-0" />
