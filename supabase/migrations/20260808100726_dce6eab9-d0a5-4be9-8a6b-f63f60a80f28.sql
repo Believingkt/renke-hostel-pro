@@ -1,0 +1,2 @@
+ALTER TABLE public.team_member_profiles DROP CONSTRAINT team_member_profiles_user_id_fkey;
+ALTER TABLE public.team_member_profiles ADD CONSTRAINT team_member_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
