@@ -1796,10 +1796,21 @@ const Headquarters = () => {
 
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">用戶權限列表</CardTitle>
-                <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1.5">
+                  <CardTitle className="text-lg">用戶權限列表</CardTitle>
+                  <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  className="gap-2 text-destructive hover:text-destructive w-fit"
+                  onClick={() => { setRemoveAccId(""); setRemoveAccDialogOpen(true); }}
+                >
+                  <Building2 className="h-4 w-4" />
+                  一鍵移除民宿權限
+                </Button>
               </CardHeader>
+
               <CardContent>
                 {loading ? (
                   <HQUsersSkeleton />
