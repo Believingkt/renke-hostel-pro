@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,7 +167,7 @@ serve(async (req) => {
       // 1) Orders in target month, not cancelled
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .neq("order_status", "cancelled")
         .gte("order_date", startUtc)
         .lt("order_date", endUtc);
@@ -218,6 +219,8 @@ serve(async (req) => {
       const isExempt = await buildExemptResolver(supabase, accIds as string[]);
       // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
       const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
+      // 4d) 月營收抽成門檻 gate：未達門檻 → factor = 0（不產生分潤）
+      const thresholdFactor = await buildThresholdFactorResolver(supabase, accIds as string[]);
 
       // 5) Build snapshot rows
       const toInsert: any[] = [];
@@ -234,6 +237,9 @@ serve(async (req) => {
         if (isExempt(o as any)) continue;
         // 訂單日不在館別合作期間內 → 不計入獎金
         if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
+        // 當月營收未達抽成門檻 → 不計入獎金
+        const factor = thresholdFactor(o.accommodation_id as string, o.check_in_date as string);
+        if (factor <= 0) continue;
         result.processed++;
 
         if (existingSet.has(o.id as string)) {
@@ -250,8 +256,8 @@ serve(async (req) => {
             ? commissionBaseFromOrder(o as any)
             : Number(tcp);
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
-        const closerAmt = baseAmount * rates.closer;
-        const videoAmt = meta.video_creator_id ? baseAmount * rates.video : 0;
+        const closerAmt = baseAmount * rates.closer * factor;
+        const videoAmt = meta.video_creator_id ? baseAmount * rates.video * factor : 0;
 
         toInsert.push({
           order_id: o.id,
@@ -303,6 +309,8 @@ serve(async (req) => {
         updated: 0,
         skipped_paid: 0,
         cancelled_adjustments: 0,
+        revoked: 0,
+        revoked_details: [] as Array<{ order_id: string; reason: string; amount: number }>,
         details: [] as Array<{
           order_id: string; before: number; after: number;
           closer_amount_before: number; closer_amount_after: number;
@@ -335,7 +343,7 @@ serve(async (req) => {
 
       const { data: orders, error: ordErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .in("id", orderIds);
       if (ordErr) throw ordErr;
       const orderMap = new Map<string, any>();
@@ -365,6 +373,40 @@ serve(async (req) => {
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
       const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
+      const thresholdFactorR = await buildThresholdFactorResolver(supabase, accIds as string[]);
+
+      /**
+       * 撤銷未發放快照：連同其補差與未發放標記一併移除（已發放者永不進入此流程）。
+       */
+      async function revokeSnapshot(s: any, reason: string) {
+        const { error: adjErr } = await supabase
+          .from("closer_commission_adjustments")
+          .delete()
+          .eq("snapshot_id", s.id);
+        if (adjErr) {
+          out.errors.push({ order_id: s.order_id as string, error: adjErr.message });
+          return;
+        }
+        await supabase
+          .from("commission_payout_marks")
+          .delete()
+          .eq("source_table", "closer_commission_snapshots")
+          .eq("source_id", s.id);
+        const { error: delErr } = await supabase
+          .from("closer_commission_snapshots")
+          .delete()
+          .eq("id", s.id);
+        if (delErr) {
+          out.errors.push({ order_id: s.order_id as string, error: delErr.message });
+          return;
+        }
+        out.revoked++;
+        out.revoked_details.push({
+          order_id: s.order_id as string,
+          reason,
+          amount: Number(s.closer_commission_amount ?? 0) + Number(s.video_commission_amount ?? 0),
+        });
+      }
 
       // 已存在的取消扣回補差（避免重複產生）
       const { data: existCancel, error: existCancelErr } = await supabase
@@ -409,9 +451,23 @@ serve(async (req) => {
         }
 
         const cur = ord.currency_at_booking;
-        if (cur && cur !== "TWD") continue;
-        if (isExemptR(ord)) continue;
-        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) continue;
+        if (cur && cur !== "TWD") {
+          await revokeSnapshot(s, "非台幣訂單");
+          continue;
+        }
+        if (isExemptR(ord)) {
+          await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
+          continue;
+        }
+        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) {
+          await revokeSnapshot(s, "訂單日不在館別合作期間內（或合作政策為不採計）");
+          continue;
+        }
+        const factor = thresholdFactorR(ord.accommodation_id as string, ord.check_in_date as string);
+        if (factor <= 0) {
+          await revokeSnapshot(s, "當月營收未達抽成門檻");
+          continue;
+        }
 
         out.checked++;
 
@@ -428,8 +484,8 @@ serve(async (req) => {
         const hasVideo = !!s.video_creator_id;
         const videoRate = hasVideo ? (s.video_rate == null ? rates.video : Number(s.video_rate)) : 0;
 
-        const closerAmt = baseAmount * closerRate;
-        const videoAmt = hasVideo ? baseAmount * videoRate : 0;
+        const closerAmt = baseAmount * closerRate * factor;
+        const videoAmt = hasVideo ? baseAmount * videoRate * factor : 0;
 
         const beforeBase = Number(s.final_price_snapshot ?? 0);
         const beforeCloser = Number(s.closer_commission_amount ?? 0);
@@ -513,6 +569,8 @@ serve(async (req) => {
 
       resync_checked: resync.checked,
       resync_skipped_paid: resync.skipped_paid,
+      resync_revoked: resync.revoked,
+      resync_revoked_details: resync.revoked_details,
       resync_details: resync.details,
       errors,
 
