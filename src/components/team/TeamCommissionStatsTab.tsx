@@ -726,15 +726,18 @@ export default function TeamCommissionStatsTab() {
       if (!uid) return;
       if (isHoldOrder(o)) return;
       if ((o.final_price || 0) <= 0) return;
-      const rateDate = o.order_date?.slice(0, 10) ?? null;
-      const rate = pickRateFor(o.accommodation_id, rateDate, rateKey);
-      const amount = Number(m?.team_commission_price ?? o.final_price) || 0;
+      // 與有效訂單同口徑：不在預估名單 = 免抽成／非台幣／不在合作期間／未達抽成門檻
+      const pv = previewMap.get(o.id);
+      if (!pv) return;
+      const rate = rateKey === "closer_rate" ? pv.closer_rate : pv.video_rate;
+      const amount = pv.base;
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
       b.cancelAmount += amount;
       b.cancelCommission += Math.round(amount * rate);
       b.cancelOrders.push(o);
     });
+
     return Array.from(agg.entries())
       .map(([uid, accMap]) => {
         const byAcc = Array.from(accMap.values()).sort(
