@@ -1221,29 +1221,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       // 4. 依人分組（合計使用加倍後金額），並取得每人角色分類
-      const memberUserIds = Array.from(
-        new Set(
-          Array.from(profileById.values())
-            .map((p) => p.user_id)
-            .filter(Boolean) as string[],
-        ),
-      );
       const rolesByUserId = new Map<string, string[]>();
-      if (memberUserIds.length > 0) {
-        // 只採計「團隊角色」（全域、非館別綁定），避免 hotel_admin 等民宿後台角色影響分類
-        const { data: roleRows } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", memberUserIds)
-          .is("accommodation_id", null);
-        (roleRows ?? []).forEach((r: any) => {
-          const role = String(r.role);
-          if (!TEAM_ROLES.includes(role as TeamRole)) return;
-          const list = rolesByUserId.get(r.user_id) ?? [];
-          list.push(role);
-          rolesByUserId.set(r.user_id, list);
-        });
-      }
+      (roleRows ?? []).forEach((r: any) => {
+        const role = String(r.role);
+        if (!TEAM_ROLES.includes(role as TeamRole)) return;
+        if (!profileByUserId.has(r.user_id)) return;
+        const list = rolesByUserId.get(r.user_id) ?? [];
+        list.push(role);
+        rolesByUserId.set(r.user_id, list);
+      });
 
 
       const groupMap = new Map<string, MemberGroup>();
