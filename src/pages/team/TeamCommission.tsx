@@ -50,6 +50,32 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 
+/**
+ * 首次切到該 Tab 才掛載內容，之後即使切走也保持掛載（以 CSS 隱藏），
+ * 避免每次切換 Tab 都重新 fetch 造成等待。
+ */
+function KeepAliveTab({
+  value,
+  active,
+  children,
+}: {
+  value: string;
+  active: string;
+  children: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(active === value);
+  useEffect(() => {
+    if (active === value) setMounted(true);
+  }, [active, value]);
+
+  if (!mounted) return <TabsContent value={value} />;
+  return (
+    <TabsContent value={value} forceMount className="data-[state=inactive]:hidden">
+      {children}
+    </TabsContent>
+  );
+}
+
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
