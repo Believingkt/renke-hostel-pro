@@ -98,12 +98,13 @@ serve(async (req) => {
     const startUtc = hasRange ? startIsoOverride! : taipeiMidnightUtcISO(year, month, 1);
     const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
-    // 1) 該月 order_date 落在區間內、未取消的訂單
+    const ORDER_COLS =
+      "id, accommodation_id, final_price, custom_addon_details, check_in_date, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source";
+
+    // 1) 該月 order_date 落在區間內、未取消／非保留、金額 > 0 的訂單
     let ordersQuery = supabase
       .from("orders")
-      .select(
-        "id, accommodation_id, final_price, custom_addon_details, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source",
-      )
+      .select(ORDER_COLS)
       .neq("order_status", "cancelled")
       .neq("order_status", "hold")
       .gt("final_price", 0)
@@ -115,7 +116,28 @@ serve(async (req) => {
     if (ordersErr) throw ordersErr;
 
     const orderList = (orders ?? []) as any[];
-    if (orderList.length === 0) {
+
+    // 1b) 額外指定的訂單（例如已取消訂單），套用完全相同的 gate 與費率口徑
+    const extraIds: string[] = Array.isArray(body?.extra_order_ids)
+      ? (body.extra_order_ids as unknown[]).filter((v): v is string => typeof v === "string")
+      : [];
+    const extraList: any[] = [];
+    if (extraIds.length > 0) {
+      const known = new Set(orderList.map((o) => o.id as string));
+      const wanted = Array.from(new Set(extraIds)).filter((id) => !known.has(id));
+      for (let i = 0; i < wanted.length; i += 300) {
+        const chunk = wanted.slice(i, i + 300);
+        const { data: extras, error: extraErr } = await supabase
+          .from("orders")
+          .select(ORDER_COLS)
+          .in("id", chunk);
+        if (extraErr) throw extraErr;
+        for (const e of extras ?? []) extraList.push(e);
+      }
+    }
+
+    const allOrders = [...orderList, ...extraList];
+    if (allOrders.length === 0) {
       return json({
         success: true,
         scope,
@@ -124,10 +146,12 @@ serve(async (req) => {
         self: { closer_commission: 0, video_commission: 0 },
         team: { closer_commission: 0, video_commission: 0 },
         orders: [],
+        extra_orders: [],
       });
     }
 
-    const orderIds = orderList.map((o) => o.id as string);
+    const orderIds = allOrders.map((o) => o.id as string);
+
 
     // 2) order_meta（分批避免 URL 過長）
     const metaMap = new Map<string, any>();
