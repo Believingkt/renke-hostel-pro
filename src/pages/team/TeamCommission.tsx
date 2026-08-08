@@ -739,21 +739,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     try {
       const { start, end, payoutMonthKey } = range;
 
-      // 1. team_member_profiles：建立 id ↔ user_id ↔ display_name 對照
-      const { data: profiles } = await supabase
-        .from("team_member_profiles")
-        .select("id, user_id, display_name");
-      const profileById = new Map<string, { id: string; user_id: string | null; display_name: string }>();
-      const profileByUserId = new Map<string, { id: string; user_id: string | null; display_name: string }>();
-      (profiles ?? []).forEach((p: any) => {
-        profileById.set(p.id, p);
-        if (p.user_id) profileByUserId.set(p.user_id, p);
-      });
-
       const { prevYear, prevMonth } = range;
       const nextMonthStart = `${prevMonth === 12 ? prevYear + 1 : prevYear}-${String(prevMonth === 12 ? 1 : prevMonth + 1).padStart(2, "0")}-01`;
+      const prevMonthFirstDay = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
 
+      // 單輪平行查詢：所有彼此無相依的查詢一次送出（唯一有相依的 commission_payout_marks 留在後面）
       const [
+        { data: profiles },
         { data: closers },
         { data: fInternal },
         { data: fExternal },
@@ -765,7 +757,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: teamBonusSnapshots },
         { data: closerAdjustments },
         { data: accommodations },
+        { data: bonusSetting },
+        { data: multRows },
+        { data: roleRows },
       ] = await Promise.all([
+        supabase
+          .from("team_member_profiles")
+          .select("id, user_id, display_name"),
         supabase
           .from("closer_commission_snapshots")
           .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, accommodation_id, orders!inner(order_number)")
