@@ -666,15 +666,8 @@ export default function TeamCommissionStatsTab() {
   }, [orders, metaMap]);
 
 
-  // 依 order_date 挑當時生效的 rate（對齊 create-commission-snapshots 發放邏輯）
-  function pickRateFor(accId: string, orderDateIso: string | null, rateKey: "closer_rate" | "video_rate"): number {
-    const list = commissionByAcc.get(accId) ?? [];
-    if (!list.length || !orderDateIso) return 0;
-    const day = orderDateIso.slice(0, 10);
-    // list 已 desc 排序，取第一筆 effective_from <= day
-    const hit = list.find((s) => s.effective_from <= day);
-    return Number(hit?.[rateKey] ?? 0);
-  }
+  // 費率一律由 preview-closer-commission 提供（含合作期間／抽成門檻 factor），前端不再自行挑費率
+
 
   // 通用：依成交人/影音 + 館別 + rate 聚合（同館可能拆多列）
   function buildMemberStats(field: "closer_id" | "video_creator_id", rateKey: "closer_rate" | "video_rate"): MemberStats[] {
