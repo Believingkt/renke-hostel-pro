@@ -451,9 +451,23 @@ serve(async (req) => {
         }
 
         const cur = ord.currency_at_booking;
-        if (cur && cur !== "TWD") continue;
-        if (isExemptR(ord)) continue;
-        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) continue;
+        if (cur && cur !== "TWD") {
+          await revokeSnapshot(s, "非台幣訂單");
+          continue;
+        }
+        if (isExemptR(ord)) {
+          await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
+          continue;
+        }
+        if (!inPartnershipR(ord.accommodation_id as string, ord.order_date as string)) {
+          await revokeSnapshot(s, "訂單日不在館別合作期間內（或合作政策為不採計）");
+          continue;
+        }
+        const factor = thresholdFactorR(ord.accommodation_id as string, ord.check_in_date as string);
+        if (factor <= 0) {
+          await revokeSnapshot(s, "當月營收未達抽成門檻");
+          continue;
+        }
 
         out.checked++;
 
@@ -470,8 +484,8 @@ serve(async (req) => {
         const hasVideo = !!s.video_creator_id;
         const videoRate = hasVideo ? (s.video_rate == null ? rates.video : Number(s.video_rate)) : 0;
 
-        const closerAmt = baseAmount * closerRate;
-        const videoAmt = hasVideo ? baseAmount * videoRate : 0;
+        const closerAmt = baseAmount * closerRate * factor;
+        const videoAmt = hasVideo ? baseAmount * videoRate * factor : 0;
 
         const beforeBase = Number(s.final_price_snapshot ?? 0);
         const beforeCloser = Number(s.closer_commission_amount ?? 0);
