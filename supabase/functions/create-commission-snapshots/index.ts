@@ -373,6 +373,40 @@ serve(async (req) => {
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
       const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
+      const thresholdFactorR = await buildThresholdFactorResolver(supabase, accIds as string[]);
+
+      /**
+       * 撤銷未發放快照：連同其補差與未發放標記一併移除（已發放者永不進入此流程）。
+       */
+      async function revokeSnapshot(s: any, reason: string) {
+        const { error: adjErr } = await supabase
+          .from("closer_commission_adjustments")
+          .delete()
+          .eq("snapshot_id", s.id);
+        if (adjErr) {
+          out.errors.push({ order_id: s.order_id as string, error: adjErr.message });
+          return;
+        }
+        await supabase
+          .from("commission_payout_marks")
+          .delete()
+          .eq("source_table", "closer_commission_snapshots")
+          .eq("source_id", s.id);
+        const { error: delErr } = await supabase
+          .from("closer_commission_snapshots")
+          .delete()
+          .eq("id", s.id);
+        if (delErr) {
+          out.errors.push({ order_id: s.order_id as string, error: delErr.message });
+          return;
+        }
+        out.revoked++;
+        out.revoked_details.push({
+          order_id: s.order_id as string,
+          reason,
+          amount: Number(s.closer_commission_amount ?? 0) + Number(s.video_commission_amount ?? 0),
+        });
+      }
 
       // 已存在的取消扣回補差（避免重複產生）
       const { data: existCancel, error: existCancelErr } = await supabase
