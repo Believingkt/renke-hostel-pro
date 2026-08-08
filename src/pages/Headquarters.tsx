@@ -255,6 +255,12 @@ const Headquarters = () => {
   const [removeAccDialogOpen, setRemoveAccDialogOpen] = useState(false);
   const [removeAccId, setRemoveAccId] = useState<string>("");
   const [removingAcc, setRemovingAcc] = useState(false);
+  // 二次確認：影響範圍統計與輸入確認字串
+  const [deleteAccountImpact, setDeleteAccountImpact] = useState<{ roles: number; perms: number; accNames: string[] } | null>(null);
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
+  const [removeAccImpact, setRemoveAccImpact] = useState<{ roles: number; perms: number; users: number } | null>(null);
+  const [removeAccConfirm, setRemoveAccConfirm] = useState("");
+
   const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
 
   const [templatesDialogAccId, setTemplatesDialogAccId] = useState<string | null>(null);
@@ -515,9 +521,54 @@ const Headquarters = () => {
     setDeletingRoleId(null);
   };
 
+  // 開啟刪除帳號對話框：先撈出影響範圍
+  const openDeleteAccountDialog = async (target: { userId: string; email: string; name: string }) => {
+    setDeleteAccountTarget(target);
+    setDeleteAccountConfirm("");
+    setDeleteAccountImpact(null);
+    const [rolesRes, permsRes] = await Promise.all([
+      supabase.from("user_roles").select("role, accommodation_id").eq("user_id", target.userId),
+      supabase
+        .from("staff_module_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", target.userId),
+    ]);
+    const rows = rolesRes.data ?? [];
+    const accNames = Array.from(
+      new Set(rows.map((r: any) => (r.accommodation_id ? getAccommodationName(r.accommodation_id) : "全館別／總部")))
+    );
+    setDeleteAccountImpact({ roles: rows.length, perms: permsRes.count ?? 0, accNames });
+  };
+
+  // 選擇民宿後：先撈出影響範圍
+  const loadRemoveAccImpact = async (accId: string) => {
+    setRemoveAccId(accId);
+    setRemoveAccConfirm("");
+    setRemoveAccImpact(null);
+    if (!accId) return;
+    const [rolesRes, permsRes] = await Promise.all([
+      supabase.from("user_roles").select("user_id").eq("accommodation_id", accId).neq("role", "super_admin"),
+      supabase
+        .from("staff_module_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("accommodation_id", accId),
+    ]);
+    const rows = rolesRes.data ?? [];
+    setRemoveAccImpact({
+      roles: rows.length,
+      perms: permsRes.count ?? 0,
+      users: new Set(rows.map((r: any) => r.user_id)).size,
+    });
+  };
+
   // 刪除整個帳號（含所有民宿權限），透過 delete-user Edge Function（需總部管理員）
   const handleDeleteAccount = async () => {
     if (!deleteAccountTarget) return;
+    if (deleteAccountConfirm.trim().toLowerCase() !== deleteAccountTarget.email.trim().toLowerCase()) {
+      toast.error("請輸入完整 Email 以確認刪除");
+      return;
+    }
+
     setDeletingAccount(true);
     try {
       const { data, error } = await supabase.functions.invoke("delete-user", {
@@ -525,9 +576,14 @@ const Headquarters = () => {
       });
       if (error) throw error;
       if (data && data.success === false) throw new Error(data.error || "刪除帳號失敗");
-      toast.success(`已刪除帳號 ${deleteAccountTarget.email}`);
+      toast.success(
+        `已刪除帳號 ${deleteAccountTarget.email}（移除 ${data?.removed_roles ?? 0} 筆角色、${data?.removed_module_permissions ?? 0} 筆模組權限）`
+      );
       setDeleteAccountTarget(null);
+      setDeleteAccountConfirm("");
+      setDeleteAccountImpact(null);
       loadUserRoles();
+
     } catch (e: any) {
       toast.error(`刪除帳號失敗：${e.message ?? "未知錯誤"}`);
     } finally {
@@ -538,6 +594,11 @@ const Headquarters = () => {
   // 一鍵移除某一家民宿的所有用戶權限（含模組權限設定）
   const handleRemoveAccommodationRoles = async () => {
     if (!removeAccId) return;
+    if (removeAccConfirm.trim() !== getAccommodationName(removeAccId).trim()) {
+      toast.error("請輸入完整民宿名稱以確認移除");
+      return;
+    }
+
     setRemovingAcc(true);
     try {
       const { error: roleError, count } = await supabase
@@ -556,7 +617,10 @@ const Headquarters = () => {
       toast.success(`已移除 ${getAccommodationName(removeAccId)} 的 ${count ?? 0} 筆用戶權限`);
       setRemoveAccDialogOpen(false);
       setRemoveAccId("");
+      setRemoveAccConfirm("");
+      setRemoveAccImpact(null);
       loadUserRoles();
+
     } catch (e: any) {
       toast.error(`移除民宿權限失敗：${e.message ?? "未知錯誤"}`);
     } finally {
@@ -1969,11 +2033,12 @@ const Headquarters = () => {
                                         variant="ghost"
                                         size="sm"
                                         className="gap-1 text-xs w-fit self-center text-destructive hover:text-destructive"
-                                        onClick={() => setDeleteAccountTarget({
+                                        onClick={() => openDeleteAccountDialog({
                                           userId: user.user_id,
                                           email: user.user_email,
                                           name: user.user_name,
                                         })}
+
                                       >
                                         <UserX className="h-3.5 w-3.5" />
                                         刪除帳號
@@ -2249,39 +2314,81 @@ const Headquarters = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!deleteAccountTarget} onOpenChange={(o) => { if (!o) setDeleteAccountTarget(null); }}>
+      <AlertDialog
+        open={!!deleteAccountTarget}
+        onOpenChange={(o) => { if (!o) { setDeleteAccountTarget(null); setDeleteAccountConfirm(""); setDeleteAccountImpact(null); } }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確認刪除帳號</AlertDialogTitle>
             <AlertDialogDescription>
-              確定要刪除「{deleteAccountTarget?.name}」（{deleteAccountTarget?.email}）的帳號嗎？
-              帳號與其所有民宿權限將一併移除，此操作無法復原。
+              即將永久刪除「{deleteAccountTarget?.name}」（{deleteAccountTarget?.email}）的登入帳號，此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-1">
+              <p className="font-medium text-destructive">影響範圍</p>
+              {deleteAccountImpact ? (
+                <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground">
+                  <li>登入帳號與個人資料（profiles）將被刪除，無法再登入任何後台</li>
+                  <li>角色權限 {deleteAccountImpact.roles} 筆</li>
+                  <li>模組權限設定 {deleteAccountImpact.perms} 筆</li>
+                  <li>
+                    涉及館別：
+                    {deleteAccountImpact.accNames.length > 0 ? deleteAccountImpact.accNames.join("、") : "無"}
+                  </li>
+                  <li>既有訂單與歷史紀錄不會被刪除</li>
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">影響範圍計算中…</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm">
+                請輸入該帳號 Email <span className="font-mono font-medium">{deleteAccountTarget?.email}</span> 以確認：
+              </p>
+              <Input
+                value={deleteAccountConfirm}
+                onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                placeholder={deleteAccountTarget?.email}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={deletingAccount}>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
-              disabled={deletingAccount}
+              disabled={
+                deletingAccount ||
+                !deleteAccountImpact ||
+                deleteAccountConfirm.trim().toLowerCase() !== (deleteAccountTarget?.email ?? "").trim().toLowerCase()
+              }
               className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
             >
               {deletingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              刪除帳號
+              我了解，永久刪除帳號
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={removeAccDialogOpen} onOpenChange={setRemoveAccDialogOpen}>
+      <AlertDialog
+        open={removeAccDialogOpen}
+        onOpenChange={(o) => { setRemoveAccDialogOpen(o); if (!o) { setRemoveAccId(""); setRemoveAccConfirm(""); setRemoveAccImpact(null); } }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>一鍵移除民宿權限</AlertDialogTitle>
             <AlertDialogDescription>
-              選擇民宿後，將移除所有用戶在該民宿的角色與模組權限（不影響總部管理員與帳號本身）。此操作無法復原。
+              移除所有用戶在指定民宿的角色與模組權限。帳號本身與總部超級管理員權限不受影響，此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
-            <Select value={removeAccId} onValueChange={setRemoveAccId}>
+
+          <div className="space-y-3">
+            <Select value={removeAccId} onValueChange={loadRemoveAccImpact}>
               <SelectTrigger>
                 <SelectValue placeholder="選擇民宿" />
               </SelectTrigger>
@@ -2291,20 +2398,58 @@ const Headquarters = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {removeAccId && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-1">
+                <p className="font-medium text-destructive">影響範圍</p>
+                {removeAccImpact ? (
+                  <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground">
+                    <li>受影響用戶 {removeAccImpact.users} 位</li>
+                    <li>角色權限 {removeAccImpact.roles} 筆（不含超級管理員）</li>
+                    <li>模組權限設定 {removeAccImpact.perms} 筆</li>
+                    <li>這些用戶將無法再進入「{getAccommodationName(removeAccId)}」後台</li>
+                    <li>帳號、訂單與該民宿資料本身不會被刪除</li>
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">影響範圍計算中…</p>
+                )}
+              </div>
+            )}
+
+            {removeAccId && (
+              <div className="space-y-1.5">
+                <p className="text-sm">
+                  請輸入民宿名稱 <span className="font-medium">{getAccommodationName(removeAccId)}</span> 以確認：
+                </p>
+                <Input
+                  value={removeAccConfirm}
+                  onChange={(e) => setRemoveAccConfirm(e.target.value)}
+                  placeholder={getAccommodationName(removeAccId)}
+                  autoComplete="off"
+                />
+              </div>
+            )}
           </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={removingAcc}>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleRemoveAccommodationRoles(); }}
-              disabled={removingAcc || !removeAccId}
+              disabled={
+                removingAcc ||
+                !removeAccId ||
+                !removeAccImpact ||
+                removeAccConfirm.trim() !== getAccommodationName(removeAccId).trim()
+              }
               className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
             >
               {removingAcc && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              移除權限
+              我了解，移除權限
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
 
 
