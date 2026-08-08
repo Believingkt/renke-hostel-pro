@@ -1159,14 +1159,6 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
 
       // 提醒：上月有成交組分潤快照 + 該月確實有生效的團隊獎金比例設定，但分配尚未定案
-      const prevMonthFirstDay = `${range.prevYear}-${String(range.prevMonth).padStart(2, "0")}-01`;
-      const { data: bonusSetting } = await supabase
-        .from("closer_team_bonus_settings")
-        .select("bonus_rate, effective_from")
-        .lte("effective_from", prevMonthFirstDay)
-        .order("effective_from", { ascending: false })
-        .limit(1)
-        .maybeSingle();
       const hasBonusPool = Number(bonusSetting?.bonus_rate ?? 0) > 0;
       setTeamBonusNotFinalized(
         hasBonusPool && (teamBonusDist ?? []).length === 0 && (closers ?? []).length > 0,
