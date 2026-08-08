@@ -6,7 +6,7 @@ import {
   isBookingDomain,
   isReservedFirstSegment,
 } from "@/lib/route-matcher";
-import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
+import { PMS_RESET_PASSWORD_URL, isNativeApp } from "@/lib/appMode";
 
 /**
  * 判斷目前網址是否為「後台密碼重設」落點：
