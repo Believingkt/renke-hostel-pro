@@ -84,12 +84,15 @@ export function pricingRuleFromRow(
   const sources = Array.isArray(row.exempt_order_sources)
     ? (row.exempt_order_sources as string[])
     : legacyConfig.exempt_order_sources ?? [];
+  const threshold = Number(row.marketing_fee_threshold) || 0;
+  // 門檻 = 0 時未啟用門檻機制：low/high 欄位停用，改用舊制「基本服務費 + 每多一棟加收」
+  const legacyBase = Number(legacyConfig.marketing_fee_base) || 0;
   return {
     commission_rate: Number(row.commission_rate) || 0,
     commission_threshold: Number(row.commission_threshold) || 0,
-    marketing_fee_low: Number(row.marketing_fee_low) || 0,
-    marketing_fee_high: Number(row.marketing_fee_high) || 0,
-    marketing_fee_threshold: Number(row.marketing_fee_threshold) || 0,
+    marketing_fee_low: threshold > 0 ? Number(row.marketing_fee_low) || 0 : legacyBase,
+    marketing_fee_high: threshold > 0 ? Number(row.marketing_fee_high) || 0 : legacyBase,
+    marketing_fee_threshold: threshold,
     tier_rate_enabled: !!row.tier_rate_enabled,
     exempt_order_sources: sources,
     revenue_breakdown_type:

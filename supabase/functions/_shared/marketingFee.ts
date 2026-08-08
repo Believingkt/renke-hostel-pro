@@ -114,10 +114,12 @@ export async function buildMarketingFeeResolver(
     const legacy = legacyRule(legacyByAcc.get(accId) ?? legacyGlobal ?? {});
     const row = rulesByAcc.get(accId)?.[0];
     if (!row) return legacy;
+    const threshold = Number(row.marketing_fee_threshold) || 0;
+    // 門檻 = 0 時未啟用門檻機制：改用舊制「基本服務費 + 每多一棟加收」
     return {
-      marketing_fee_low: Number(row.marketing_fee_low) || 0,
-      marketing_fee_high: Number(row.marketing_fee_high) || 0,
-      marketing_fee_threshold: Number(row.marketing_fee_threshold) || 0,
+      marketing_fee_low: threshold > 0 ? Number(row.marketing_fee_low) || 0 : legacy.marketing_fee_low,
+      marketing_fee_high: threshold > 0 ? Number(row.marketing_fee_high) || 0 : legacy.marketing_fee_high,
+      marketing_fee_threshold: threshold,
       // 「每多一棟加收」僅存在於舊制 config，沿用 legacy 值
       marketing_fee_per_extra_property: legacy.marketing_fee_per_extra_property,
       fromTable: true,
