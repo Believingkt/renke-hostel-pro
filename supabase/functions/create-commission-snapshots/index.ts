@@ -569,6 +569,8 @@ serve(async (req) => {
 
       resync_checked: resync.checked,
       resync_skipped_paid: resync.skipped_paid,
+      resync_revoked: resync.revoked,
+      resync_revoked_details: resync.revoked_details,
       resync_details: resync.details,
       errors,
 
