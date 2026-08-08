@@ -37,7 +37,8 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!isBookingDomain(window.location.hostname)) return;
+    // Capacitor 原生 App：hostname 為 localhost，一律比照訂房平台網域
+    if (!isBookingDomain(window.location.hostname) && !isNativeApp()) return;
 
     // 安全網：舊信件／fallback 落在前台網域的後台密碼重設連結
     // → 導回 PMS，完整保留 query 與 hash（token 在 hash 裡）
