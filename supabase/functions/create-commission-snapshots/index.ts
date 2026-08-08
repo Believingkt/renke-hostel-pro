@@ -341,7 +341,7 @@ serve(async (req) => {
 
       const { data: orders, error: ordErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .in("id", orderIds);
       if (ordErr) throw ordErr;
       const orderMap = new Map<string, any>();
