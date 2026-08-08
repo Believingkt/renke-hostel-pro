@@ -779,6 +779,10 @@ const MemberAuth = () => {
             ← 返回訂房入口
           </a>
         </p>
+        <p className="text-center text-xs text-muted-foreground mt-2">
+          <a href="/privacy" className="hover:underline">隱私權政策</a>
+        </p>
+
       </div>
 
       {/* In-app browser guidance dialog */}

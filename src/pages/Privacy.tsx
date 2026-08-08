@@ -2,7 +2,14 @@ import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
 import lakezeLogo from "@/assets/lakeze-portal-logo.png";
 
-const EFFECTIVE_DATE = "2026 年 5 月 29 日";
+const EFFECTIVE_DATE = "2026 年 8 月 8 日";
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="space-y-2">
+    <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">{title}</h2>
+    {children}
+  </section>
+);
 
 export default function Privacy() {
   return (
@@ -21,91 +28,95 @@ export default function Privacy() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
-        <article className="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 sm:p-10 space-y-6 text-foreground leading-relaxed">
+        <article className="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 sm:p-10 space-y-6 text-[15px] sm:text-base text-foreground leading-relaxed">
           <header className="border-b border-orange-100 pb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[hsl(24,100%,35%)]">隱私政策</h1>
-            <p className="text-sm text-muted-foreground mt-2">生效日：{EFFECTIVE_DATE}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[hsl(24,100%,35%)]">
+              人客多（Lakeze）隱私權政策
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">生效日期：{EFFECTIVE_DATE}</p>
           </header>
 
-          <section className="space-y-3">
-            <p>
-              歡迎使用「人客多（Lakeze）」訂房平台。我們相信信任是住宿體驗的起點，
-              因此我們會用最直接的方式告訴你：我們會收集哪些資料、為什麼需要這些資料，
-              以及你隨時可以怎麼掌握自己的個人資訊。
-            </p>
-          </section>
+          <p>
+            人客多（以下稱「本平台」，網址 booking.lakeze.com 及人客多 App）重視您的隱私。
+            本政策說明我們如何蒐集、使用及保護您的個人資料。使用本平台服務即表示您瞭解並同意本政策內容。
+          </p>
 
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">一、我們會收集的資料</h2>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>基本身分資料：姓名、Email、聯絡電話。</li>
-              <li>會員資料：大頭貼（Avatar）、暱稱、登入方式（Email / LINE / Facebook）。</li>
-              <li>訂房紀錄：所有透過本平台建立的訂單、入住日期、房型、加購項目、金額與付款結果。</li>
-              <li>互動紀錄：你與民宿 AI 管家或客服的對話內容（用於提供服務與品質改善）。</li>
-              <li>技術資訊：登入時間、裝置類型與 IP 位置（用於帳號安全與防止盜用）。</li>
+          <Section title="一、我們蒐集的資料">
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <strong>會員與訂房資料：</strong>
+                姓名、電子郵件、聯絡電話、訂房內容（民宿、日期、人數、金額）與訂單紀錄。
+              </li>
+              <li>
+                <strong>付款資料：</strong>
+                線上刷卡由金流服務商 TapPay 處理，信用卡卡號不會儲存於本平台；ATM 轉帳僅記錄繳費帳號與付款狀態。
+              </li>
+              <li>
+                <strong>客服與 AI 管家對話：</strong>
+                您與客服或 AI 管家的訊息內容，用於回覆您的問題與改善服務品質。
+              </li>
+              <li>
+                <strong>裝置與使用紀錄：</strong>
+                瀏覽器類型、裝置資訊、操作紀錄等，用於維運與安全防護。
+              </li>
             </ul>
-          </section>
+          </Section>
 
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">二、使用這些資料的目的</h2>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>完成你的訂房、付款、入住通知與相關客服聯繫。</li>
-              <li>計算與發放會員紅利點數、優惠券。</li>
-              <li>寄送訂單確認、入住提醒等必要通知信。</li>
-              <li>提供更貼近你需求的住宿建議與民宿資訊。</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">三、第三方分享原則</h2>
+          <Section title="二、資料使用目的">
             <p>
-              我們<strong>不會把你的個人資料販售或租借給任何第三方</strong>。
-              僅在以下必要情境下才會分享：你所預訂的民宿（為了完成入住）、
-              金流服務商（為了處理付款）、以及法律明確要求的政府機關。
+              我們僅在下列目的範圍內使用您的資料：處理與管理訂房、寄送訂單確認與付款通知、
+              提供客服與 AI 管家服務、會員優惠與紅利作業、履行法令義務，以及維護平台安全。
             </p>
-          </section>
+          </Section>
 
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">四、使用 LINE / Facebook 登入時取得的欄位</h2>
-            <p>當你選擇使用社群帳號登入時，我們僅向平台取得最基本的識別資訊：</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><strong>LINE</strong>：使用者識別碼（userId）、顯示名稱（displayName）、大頭貼（pictureUrl）、Email（若你同意提供）。</li>
-              <li><strong>Facebook</strong>：使用者識別碼（id）、姓名（name）、大頭貼（picture）、Email（若你同意提供）。</li>
+          <Section title="三、資料的分享對象">
+            <p>除下列情形外，我們不會將您的個人資料提供給第三人：</p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>為完成訂房，提供必要的訂房資訊（姓名、電話、入住資訊）給您所預訂的民宿業者。</li>
+              <li>為完成付款，透過 TapPay 金流服務處理交易。</li>
+              <li>為寄送通知信件，透過電子郵件服務（Resend）寄出。</li>
+              <li>依法令規定或主管機關要求。</li>
             </ul>
-            <p>我們不會讀取你的好友清單、貼文、訊息或其他社群活動資料。</p>
-          </section>
+          </Section>
 
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">五、你的權利</h2>
+          <Section title="四、資料保存與安全">
             <p>
-              你可以隨時登入「會員中心 → 個人資料」查詢與更新你的資料，
-              也可以要求<strong>刪除帳號</strong>。詳細刪除流程請見
-              <Link to="/data-deletion" className="text-[hsl(24,100%,40%)] underline mx-1">用戶資料刪除說明</Link>
-              頁面。
+              您的資料儲存於具備存取控制與加密傳輸（HTTPS）的雲端服務。
+              訂單與會員資料在會員關係存續期間保存；法令另有規定者，依其規定期間保存。
             </p>
-          </section>
+          </Section>
 
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">六、資料保留期限</h2>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>會員基本資料：自帳號刪除起 30 天內完成清除。</li>
-              <li>訂單與金流交易紀錄：依據稅務與會計法規，最長可能保留 5 至 7 年。</li>
-              <li>系統日誌與安全紀錄：最長保留 12 個月。</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[hsl(24,100%,35%)]">七、聯繫我們</h2>
+          <Section title="五、您的權利">
             <p>
-              對於本隱私政策、個資使用或任何疑問，歡迎來信聯繫我們：
-              <a href="mailto:nokimi@gmail.com" className="text-[hsl(24,100%,40%)] underline mx-1">nokimi@gmail.com</a>
-              。我們會在合理時間內回覆你。
+              依個人資料保護法，您可就您的個人資料行使查詢、閱覽、複製、更正、停止蒐集處理利用及刪除之權利。
+              如欲行使上述權利或刪除帳號，請來信
+              <a href="mailto:service@lakeze.com" className="text-[hsl(24,100%,40%)] underline mx-1">
+                service@lakeze.com
+              </a>
+              ，我們將於合理期間內處理。
             </p>
-          </section>
+          </Section>
 
-          <footer className="pt-4 border-t border-orange-100 text-sm text-muted-foreground">
-            本政策可能不定期更新，最新版本將公告於本頁面。
-          </footer>
+          <Section title="六、Cookie 與類似技術">
+            <p>本平台使用必要的 Cookie 以維持登入狀態與基本功能運作，不用於跨站廣告追蹤。</p>
+          </Section>
+
+          <Section title="七、未成年人">
+            <p>本平台服務對象為成年人。未滿十八歲者，應由法定代理人代為訂房。</p>
+          </Section>
+
+          <Section title="八、政策修訂">
+            <p>本政策如有修訂，將公告於本頁面。重大變更時，我們會以適當方式通知您。</p>
+          </Section>
+
+          <Section title="九、聯絡我們">
+            <p>
+              如對本政策有任何疑問，請來信：
+              <a href="mailto:service@lakeze.com" className="text-[hsl(24,100%,40%)] underline mx-1">
+                service@lakeze.com
+              </a>
+            </p>
+          </Section>
         </article>
       </main>
     </div>
