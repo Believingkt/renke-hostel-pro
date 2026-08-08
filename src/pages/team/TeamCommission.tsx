@@ -138,36 +138,37 @@ export default function TeamCommission() {
             {showAdminTabs && <TabsTrigger value="bonus-settings">獎金設定</TabsTrigger>}
           </TabsList>
         </div>
-        <TabsContent value="payouts">
+        {/* 首次進入才掛載，之後保持掛載（隱藏），切回來不重新載入 */}
+        <KeepAliveTab value="payouts" active={tab}>
           <PayoutsBlock
             readOnly={payoutsReadOnly}
             onOpenRules={showAdminTabs ? () => setTab("payout") : undefined}
           />
-        </TabsContent>
+        </KeepAliveTab>
         {showAdminTabs && (
-          <TabsContent value="payout">
+          <KeepAliveTab value="payout" active={tab}>
             <PayoutRulesBlock readOnly={financeReadOnly} />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="multiplier">
+          <KeepAliveTab value="multiplier" active={tab}>
             <MultiplierBlock readOnly={financeReadOnly} />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="financial-report">
+          <KeepAliveTab value="financial-report" active={tab}>
             <FinancialReportTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="ragic-sync">
+          <KeepAliveTab value="ragic-sync" active={tab}>
             <RagicSyncTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="bonus-settings">
+          <KeepAliveTab value="bonus-settings" active={tab}>
             <BonusSettingsTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
       </Tabs>
     </div>
