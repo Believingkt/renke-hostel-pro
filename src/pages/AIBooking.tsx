@@ -1914,7 +1914,7 @@ export default function AIBooking() {
       </div>
 
       {/* 手機版固定底部：付款表單 + 輸入框 + Tab 列 */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 safe-bottom bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
         {/* 付款表單已移至對話中 */}
         {/* 輸入框 */}
         <div className="px-3 pt-2 pb-1">
