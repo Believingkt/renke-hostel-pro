@@ -63,46 +63,8 @@ interface MonthResult {
   errors: Array<{ order_id: string; error: string }>;
 }
 
-/** 台北時區日期字串（YYYY-MM-DD） */
-function taipeiDateStr(iso: string): string {
-  const d = new Date(iso);
-  const p = getTaipeiParts(d);
-  return `${p.y}-${pad2(p.m)}-${pad2(p.day)}`;
-}
+// 合作期間 gate 由 ../_shared/partnershipGate.ts 提供（與 preview-closer-commission 共用）
 
-/**
- * 合作期間 gate：以 accommodation_partnership_periods 判斷該館別在訂單日是否處於
- * 可採計的合作期間（bonus_policy = 'none' 或無任何期間 → 不採計）。
- */
-async function buildPartnershipResolver(
-  client: any,
-  accIds: string[],
-): Promise<(accId: string, orderDateIso: string) => boolean> {
-  const byAcc = new Map<string, Array<{ start: string; end: string | null }>>();
-  const ids = Array.from(new Set((accIds ?? []).filter(Boolean)));
-  if (ids.length > 0) {
-    const { data } = await client
-      .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
-      .in("accommodation_id", ids);
-    for (const row of (data ?? []) as any[]) {
-      if (!row?.accommodation_id || !row?.start_date) continue;
-      if (row?.bonus_policy === "none") continue;
-      const list = byAcc.get(row.accommodation_id) ?? [];
-      list.push({
-        start: String(row.start_date).slice(0, 10),
-        end: row.end_date ? String(row.end_date).slice(0, 10) : null,
-      });
-      byAcc.set(row.accommodation_id, list);
-    }
-  }
-  return (accId: string, orderDateIso: string) => {
-    const list = byAcc.get(accId);
-    if (!list || list.length === 0) return false;
-    const d = taipeiDateStr(orderDateIso);
-    return list.some((p) => d >= p.start && (p.end === null || d <= p.end));
-  };
-}
 
 
 serve(async (req) => {
