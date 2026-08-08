@@ -50,7 +50,9 @@ import {
   Download,
   Handshake,
   Activity,
+  UserX,
   Plug
+
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -248,7 +250,13 @@ const Headquarters = () => {
   const [selectedBackupAccommodation, setSelectedBackupAccommodation] = useState("");
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [deleteAccountTarget, setDeleteAccountTarget] = useState<{ userId: string; email: string; name: string } | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [removeAccDialogOpen, setRemoveAccDialogOpen] = useState(false);
+  const [removeAccId, setRemoveAccId] = useState<string>("");
+  const [removingAcc, setRemovingAcc] = useState(false);
   const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
+
   const [templatesDialogAccId, setTemplatesDialogAccId] = useState<string | null>(null);
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
@@ -506,6 +514,57 @@ const Headquarters = () => {
     setDeleteRoleDialogOpen(false);
     setDeletingRoleId(null);
   };
+
+  // 刪除整個帳號（含所有民宿權限），透過 delete-user Edge Function（需總部管理員）
+  const handleDeleteAccount = async () => {
+    if (!deleteAccountTarget) return;
+    setDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { email: deleteAccountTarget.email },
+      });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "刪除帳號失敗");
+      toast.success(`已刪除帳號 ${deleteAccountTarget.email}`);
+      setDeleteAccountTarget(null);
+      loadUserRoles();
+    } catch (e: any) {
+      toast.error(`刪除帳號失敗：${e.message ?? "未知錯誤"}`);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  // 一鍵移除某一家民宿的所有用戶權限（含模組權限設定）
+  const handleRemoveAccommodationRoles = async () => {
+    if (!removeAccId) return;
+    setRemovingAcc(true);
+    try {
+      const { error: roleError, count } = await supabase
+        .from("user_roles")
+        .delete({ count: "exact" })
+        .eq("accommodation_id", removeAccId)
+        .neq("role", "super_admin");
+      if (roleError) throw roleError;
+
+      const { error: permError } = await supabase
+        .from("staff_module_permissions")
+        .delete()
+        .eq("accommodation_id", removeAccId);
+      if (permError) throw permError;
+
+      toast.success(`已移除 ${getAccommodationName(removeAccId)} 的 ${count ?? 0} 筆用戶權限`);
+      setRemoveAccDialogOpen(false);
+      setRemoveAccId("");
+      loadUserRoles();
+    } catch (e: any) {
+      toast.error(`移除民宿權限失敗：${e.message ?? "未知錯誤"}`);
+    } finally {
+      setRemovingAcc(false);
+    }
+  };
+
+
 
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
     const { data, error } = await supabase
@@ -1737,10 +1796,21 @@ const Headquarters = () => {
 
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">用戶權限列表</CardTitle>
-                <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1.5">
+                  <CardTitle className="text-lg">用戶權限列表</CardTitle>
+                  <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  className="gap-2 text-destructive hover:text-destructive w-fit"
+                  onClick={() => { setRemoveAccId(""); setRemoveAccDialogOpen(true); }}
+                >
+                  <Building2 className="h-4 w-4" />
+                  一鍵移除民宿權限
+                </Button>
               </CardHeader>
+
               <CardContent>
                 {loading ? (
                   <HQUsersSkeleton />
@@ -1895,7 +1965,21 @@ const Headquarters = () => {
                                           </Button>
                                         </div>
                                       ))}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1 text-xs w-fit self-center text-destructive hover:text-destructive"
+                                        onClick={() => setDeleteAccountTarget({
+                                          userId: user.user_id,
+                                          email: user.user_email,
+                                          name: user.user_name,
+                                        })}
+                                      >
+                                        <UserX className="h-3.5 w-3.5" />
+                                        刪除帳號
+                                      </Button>
                                     </div>
+
                                   </TableCell>
 
                                 </SortableUserRow>
@@ -2164,6 +2248,65 @@ const Headquarters = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!deleteAccountTarget} onOpenChange={(o) => { if (!o) setDeleteAccountTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除帳號</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除「{deleteAccountTarget?.name}」（{deleteAccountTarget?.email}）的帳號嗎？
+              帳號與其所有民宿權限將一併移除，此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={deletingAccount}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+              disabled={deletingAccount}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              {deletingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              刪除帳號
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={removeAccDialogOpen} onOpenChange={setRemoveAccDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>一鍵移除民宿權限</AlertDialogTitle>
+            <AlertDialogDescription>
+              選擇民宿後，將移除所有用戶在該民宿的角色與模組權限（不影響總部管理員與帳號本身）。此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Select value={removeAccId} onValueChange={setRemoveAccId}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇民宿" />
+              </SelectTrigger>
+              <SelectContent>
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={removingAcc}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleRemoveAccommodationRoles(); }}
+              disabled={removingAcc || !removeAccId}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              {removingAcc && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              移除權限
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <AlertDialog open={deleteBackupDialogOpen} onOpenChange={setDeleteBackupDialogOpen}>
         <AlertDialogContent>
