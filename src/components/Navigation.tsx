@@ -73,7 +73,7 @@ const Navigation = ({
   }, [sectionsOrder, sectionVisibility]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
+    <header className="fixed top-0 left-0 right-0 z-50 safe-top bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
           <AccommodationLogo

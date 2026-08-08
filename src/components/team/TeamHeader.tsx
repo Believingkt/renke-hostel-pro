@@ -15,7 +15,7 @@ export function TeamHeader() {
     "行銷團隊後台";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 md:h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
+    <header className="sticky top-0 z-40 safe-top flex h-14 md:h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
       <SidebarTrigger className="h-9 w-9 md:h-10 md:w-10" />
       <h1 className="text-base md:text-lg font-semibold truncate">{title}</h1>
       <div className="flex-1" />

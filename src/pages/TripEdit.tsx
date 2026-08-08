@@ -333,7 +333,7 @@ export default function TripEdit() {
         </DndContext>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 safe-bottom border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground">{t.total}</p>

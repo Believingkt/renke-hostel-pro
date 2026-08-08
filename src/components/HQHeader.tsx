@@ -36,7 +36,7 @@ export function HQHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 md:h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
+    <header className="sticky top-0 z-40 safe-top flex h-14 md:h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="h-9 w-9 md:h-10 md:w-10" />
         {(!open || isMobile) && (
