@@ -219,6 +219,8 @@ serve(async (req) => {
       const isExempt = await buildExemptResolver(supabase, accIds as string[]);
       // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
       const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
+      // 4d) 月營收抽成門檻 gate：未達門檻 → factor = 0（不產生分潤）
+      const thresholdFactor = await buildThresholdFactorResolver(supabase, accIds as string[]);
 
       // 5) Build snapshot rows
       const toInsert: any[] = [];
@@ -235,6 +237,9 @@ serve(async (req) => {
         if (isExempt(o as any)) continue;
         // 訂單日不在館別合作期間內 → 不計入獎金
         if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
+        // 當月營收未達抽成門檻 → 不計入獎金
+        const factor = thresholdFactor(o.accommodation_id as string, o.check_in_date as string);
+        if (factor <= 0) continue;
         result.processed++;
 
         if (existingSet.has(o.id as string)) {
@@ -251,8 +256,8 @@ serve(async (req) => {
             ? commissionBaseFromOrder(o as any)
             : Number(tcp);
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
-        const closerAmt = baseAmount * rates.closer;
-        const videoAmt = meta.video_creator_id ? baseAmount * rates.video : 0;
+        const closerAmt = baseAmount * rates.closer * factor;
+        const videoAmt = meta.video_creator_id ? baseAmount * rates.video * factor : 0;
 
         toInsert.push({
           order_id: o.id,
