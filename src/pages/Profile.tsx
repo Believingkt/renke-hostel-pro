@@ -11,7 +11,7 @@ export default function Profile() {
   const themeClass = getThemeClassByAccommodation(accommodationId);
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col ${themeClass} ${fromAiBooking ? 'pb-28' : ''}`}>
+    <div className={`min-h-screen bg-background flex flex-col ${themeClass} ${fromAiBooking ? 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         <Construction className="h-16 w-16 text-muted-foreground/40 mb-4" />
         <h1 className="text-xl font-semibold text-foreground mb-2">建構中</h1>
@@ -21,7 +21,7 @@ export default function Profile() {
       </div>
 
       {fromAiBooking && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 safe-bottom bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
           <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
             <button
               onClick={() => navigate('/ai-booking')}

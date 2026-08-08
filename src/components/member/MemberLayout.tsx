@@ -155,7 +155,7 @@ const MemberLayout = () => {
       )}
 
       {/* Content — add bottom padding on mobile for the tab bar */}
-      <main className={`max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 ${isMobile ? "pb-24" : ""}`}>
+      <main className={`max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 ${isMobile ? "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]" : ""}`}>
         <Outlet />
       </main>
 

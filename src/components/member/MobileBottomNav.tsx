@@ -67,7 +67,7 @@ const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNav
         visible ? "translate-y-0" : "translate-y-full"
       }`}
     >
-      <div className="flex justify-around items-center h-16 px-1 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom,0px))] px-1 pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const isActive =
             item.path === "/booking"
