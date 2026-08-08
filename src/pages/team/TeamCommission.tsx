@@ -50,6 +50,32 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 
+/**
+ * 首次切到該 Tab 才掛載內容，之後即使切走也保持掛載（以 CSS 隱藏），
+ * 避免每次切換 Tab 都重新 fetch 造成等待。
+ */
+function KeepAliveTab({
+  value,
+  active,
+  children,
+}: {
+  value: string;
+  active: string;
+  children: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(active === value);
+  useEffect(() => {
+    if (active === value) setMounted(true);
+  }, [active, value]);
+
+  if (!mounted) return <TabsContent value={value} />;
+  return (
+    <TabsContent value={value} forceMount className="data-[state=inactive]:hidden">
+      {children}
+    </TabsContent>
+  );
+}
+
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
@@ -138,36 +164,37 @@ export default function TeamCommission() {
             {showAdminTabs && <TabsTrigger value="bonus-settings">獎金設定</TabsTrigger>}
           </TabsList>
         </div>
-        <TabsContent value="payouts">
+        {/* 首次進入才掛載，之後保持掛載（隱藏），切回來不重新載入 */}
+        <KeepAliveTab value="payouts" active={tab}>
           <PayoutsBlock
             readOnly={payoutsReadOnly}
             onOpenRules={showAdminTabs ? () => setTab("payout") : undefined}
           />
-        </TabsContent>
+        </KeepAliveTab>
         {showAdminTabs && (
-          <TabsContent value="payout">
+          <KeepAliveTab value="payout" active={tab}>
             <PayoutRulesBlock readOnly={financeReadOnly} />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="multiplier">
+          <KeepAliveTab value="multiplier" active={tab}>
             <MultiplierBlock readOnly={financeReadOnly} />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="financial-report">
+          <KeepAliveTab value="financial-report" active={tab}>
             <FinancialReportTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="ragic-sync">
+          <KeepAliveTab value="ragic-sync" active={tab}>
             <RagicSyncTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
         {showAdminTabs && (
-          <TabsContent value="bonus-settings">
+          <KeepAliveTab value="bonus-settings" active={tab}>
             <BonusSettingsTab />
-          </TabsContent>
+          </KeepAliveTab>
         )}
       </Tabs>
     </div>
@@ -739,21 +766,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     try {
       const { start, end, payoutMonthKey } = range;
 
-      // 1. team_member_profiles：建立 id ↔ user_id ↔ display_name 對照
-      const { data: profiles } = await supabase
-        .from("team_member_profiles")
-        .select("id, user_id, display_name");
-      const profileById = new Map<string, { id: string; user_id: string | null; display_name: string }>();
-      const profileByUserId = new Map<string, { id: string; user_id: string | null; display_name: string }>();
-      (profiles ?? []).forEach((p: any) => {
-        profileById.set(p.id, p);
-        if (p.user_id) profileByUserId.set(p.user_id, p);
-      });
-
       const { prevYear, prevMonth } = range;
       const nextMonthStart = `${prevMonth === 12 ? prevYear + 1 : prevYear}-${String(prevMonth === 12 ? 1 : prevMonth + 1).padStart(2, "0")}-01`;
+      const prevMonthFirstDay = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
 
+      // 單輪平行查詢：所有彼此無相依的查詢一次送出（唯一有相依的 commission_payout_marks 留在後面）
       const [
+        { data: profiles },
         { data: closers },
         { data: fInternal },
         { data: fExternal },
@@ -765,7 +784,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: teamBonusSnapshots },
         { data: closerAdjustments },
         { data: accommodations },
+        { data: bonusSetting },
+        { data: multRows },
+        { data: roleRows },
       ] = await Promise.all([
+        supabase
+          .from("team_member_profiles")
+          .select("id, user_id, display_name"),
         supabase
           .from("closer_commission_snapshots")
           .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id, accommodation_id, orders!inner(order_number)")
@@ -813,7 +838,32 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month, orders(order_number, accommodation_id)")
           .eq("adjustment_month", payoutMonthKey),
         supabase.from("accommodation_info").select("id, name"),
+        supabase
+          .from("closer_team_bonus_settings")
+          .select("bonus_rate, effective_from")
+          .lte("effective_from", prevMonthFirstDay)
+          .order("effective_from", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("bonus_multiplier_settings")
+          .select("bonus_type, multiplier, start_month, end_month")
+          .lte("start_month", payoutMonthKey)
+          .gte("end_month", payoutMonthKey),
+        // 只採計「團隊角色」（全域、非館別綁定），避免 hotel_admin 等民宿後台角色影響分類
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .is("accommodation_id", null),
       ]);
+
+      // team_member_profiles：建立 id ↔ user_id ↔ display_name 對照
+      const profileById = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      const profileByUserId = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      (profiles ?? []).forEach((p: any) => {
+        profileById.set(p.id, p);
+        if (p.user_id) profileByUserId.set(p.user_id, p);
+      });
 
       const venueNameById = new Map<string, string>();
       (accommodations ?? []).forEach((a: any) => venueNameById.set(a.id, a.name));
@@ -1136,14 +1186,6 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
 
       // 提醒：上月有成交組分潤快照 + 該月確實有生效的團隊獎金比例設定，但分配尚未定案
-      const prevMonthFirstDay = `${range.prevYear}-${String(range.prevMonth).padStart(2, "0")}-01`;
-      const { data: bonusSetting } = await supabase
-        .from("closer_team_bonus_settings")
-        .select("bonus_rate, effective_from")
-        .lte("effective_from", prevMonthFirstDay)
-        .order("effective_from", { ascending: false })
-        .limit(1)
-        .maybeSingle();
       const hasBonusPool = Number(bonusSetting?.bonus_rate ?? 0) > 0;
       setTeamBonusNotFinalized(
         hasBonusPool && (teamBonusDist ?? []).length === 0 && (closers ?? []).length > 0,
@@ -1178,12 +1220,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       }
 
 
-      // 3.5 加倍活動：查該發放月的所有設定，建立 bonus_type → multiplier map
-      const { data: multRows } = await supabase
-        .from("bonus_multiplier_settings")
-        .select("bonus_type, multiplier, start_month, end_month")
-        .lte("start_month", payoutMonthKey)
-        .gte("end_month", payoutMonthKey);
+      // 3.5 加倍活動：建立 bonus_type → multiplier map
       const multiplierMap = new Map<string, number>();
       (multRows ?? []).forEach((r: any) => {
         multiplierMap.set(r.bonus_type, Number(r.multiplier ?? 1));
@@ -1198,29 +1235,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
       // 4. 依人分組（合計使用加倍後金額），並取得每人角色分類
-      const memberUserIds = Array.from(
-        new Set(
-          Array.from(profileById.values())
-            .map((p) => p.user_id)
-            .filter(Boolean) as string[],
-        ),
-      );
       const rolesByUserId = new Map<string, string[]>();
-      if (memberUserIds.length > 0) {
-        // 只採計「團隊角色」（全域、非館別綁定），避免 hotel_admin 等民宿後台角色影響分類
-        const { data: roleRows } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", memberUserIds)
-          .is("accommodation_id", null);
-        (roleRows ?? []).forEach((r: any) => {
-          const role = String(r.role);
-          if (!TEAM_ROLES.includes(role as TeamRole)) return;
-          const list = rolesByUserId.get(r.user_id) ?? [];
-          list.push(role);
-          rolesByUserId.set(r.user_id, list);
-        });
-      }
+      (roleRows ?? []).forEach((r: any) => {
+        const role = String(r.role);
+        if (!TEAM_ROLES.includes(role as TeamRole)) return;
+        if (!profileByUserId.has(r.user_id)) return;
+        const list = rolesByUserId.get(r.user_id) ?? [];
+        list.push(role);
+        rolesByUserId.set(r.user_id, list);
+      });
 
 
       const groupMap = new Map<string, MemberGroup>();
