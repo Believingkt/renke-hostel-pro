@@ -521,9 +521,54 @@ const Headquarters = () => {
     setDeletingRoleId(null);
   };
 
+  // 開啟刪除帳號對話框：先撈出影響範圍
+  const openDeleteAccountDialog = async (target: { userId: string; email: string; name: string }) => {
+    setDeleteAccountTarget(target);
+    setDeleteAccountConfirm("");
+    setDeleteAccountImpact(null);
+    const [rolesRes, permsRes] = await Promise.all([
+      supabase.from("user_roles").select("role, accommodation_id").eq("user_id", target.userId),
+      supabase
+        .from("staff_module_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", target.userId),
+    ]);
+    const rows = rolesRes.data ?? [];
+    const accNames = Array.from(
+      new Set(rows.map((r: any) => (r.accommodation_id ? getAccommodationName(r.accommodation_id) : "全館別／總部")))
+    );
+    setDeleteAccountImpact({ roles: rows.length, perms: permsRes.count ?? 0, accNames });
+  };
+
+  // 選擇民宿後：先撈出影響範圍
+  const loadRemoveAccImpact = async (accId: string) => {
+    setRemoveAccId(accId);
+    setRemoveAccConfirm("");
+    setRemoveAccImpact(null);
+    if (!accId) return;
+    const [rolesRes, permsRes] = await Promise.all([
+      supabase.from("user_roles").select("user_id").eq("accommodation_id", accId).neq("role", "super_admin"),
+      supabase
+        .from("staff_module_permissions")
+        .select("id", { count: "exact", head: true })
+        .eq("accommodation_id", accId),
+    ]);
+    const rows = rolesRes.data ?? [];
+    setRemoveAccImpact({
+      roles: rows.length,
+      perms: permsRes.count ?? 0,
+      users: new Set(rows.map((r: any) => r.user_id)).size,
+    });
+  };
+
   // 刪除整個帳號（含所有民宿權限），透過 delete-user Edge Function（需總部管理員）
   const handleDeleteAccount = async () => {
     if (!deleteAccountTarget) return;
+    if (deleteAccountConfirm.trim().toLowerCase() !== deleteAccountTarget.email.trim().toLowerCase()) {
+      toast.error("請輸入完整 Email 以確認刪除");
+      return;
+    }
+
     setDeletingAccount(true);
     try {
       const { data, error } = await supabase.functions.invoke("delete-user", {
