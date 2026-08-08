@@ -2249,6 +2249,65 @@ const Headquarters = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!deleteAccountTarget} onOpenChange={(o) => { if (!o) setDeleteAccountTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除帳號</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除「{deleteAccountTarget?.name}」（{deleteAccountTarget?.email}）的帳號嗎？
+              帳號與其所有民宿權限將一併移除，此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={deletingAccount}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+              disabled={deletingAccount}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              {deletingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              刪除帳號
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={removeAccDialogOpen} onOpenChange={setRemoveAccDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>一鍵移除民宿權限</AlertDialogTitle>
+            <AlertDialogDescription>
+              選擇民宿後，將移除所有用戶在該民宿的角色與模組權限（不影響總部管理員與帳號本身）。此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Select value={removeAccId} onValueChange={setRemoveAccId}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇民宿" />
+              </SelectTrigger>
+              <SelectContent>
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation" disabled={removingAcc}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleRemoveAccommodationRoles(); }}
+              disabled={removingAcc || !removeAccId}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              {removingAcc && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              移除權限
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       <AlertDialog open={deleteBackupDialogOpen} onOpenChange={setDeleteBackupDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
