@@ -422,11 +422,20 @@ serve(async (req) => {
           continue;
         }
 
+        if (isHoldOrder(ord.order_status as string | null)) {
+          await revokeSnapshot(s, "保留單（hold）不計入分潤");
+          continue;
+        }
+        if (Number(ord.final_price ?? 0) <= 0) {
+          await revokeSnapshot(s, "訂單金額為 0");
+          continue;
+        }
         const cur = ord.currency_at_booking;
         if (cur && cur !== "TWD") {
           await revokeSnapshot(s, "非台幣訂單");
           continue;
         }
+
         if (isExemptR(ord)) {
           await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
           continue;
