@@ -2033,11 +2033,12 @@ const Headquarters = () => {
                                         variant="ghost"
                                         size="sm"
                                         className="gap-1 text-xs w-fit self-center text-destructive hover:text-destructive"
-                                        onClick={() => setDeleteAccountTarget({
+                                        onClick={() => openDeleteAccountDialog({
                                           userId: user.user_id,
                                           email: user.user_email,
                                           name: user.user_name,
                                         })}
+
                                       >
                                         <UserX className="h-3.5 w-3.5" />
                                         刪除帳號
