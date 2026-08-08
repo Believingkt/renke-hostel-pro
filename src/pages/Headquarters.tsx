@@ -50,7 +50,9 @@ import {
   Download,
   Handshake,
   Activity,
+  UserX,
   Plug
+
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -248,7 +250,13 @@ const Headquarters = () => {
   const [selectedBackupAccommodation, setSelectedBackupAccommodation] = useState("");
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [deleteAccountTarget, setDeleteAccountTarget] = useState<{ userId: string; email: string; name: string } | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [removeAccDialogOpen, setRemoveAccDialogOpen] = useState(false);
+  const [removeAccId, setRemoveAccId] = useState<string>("");
+  const [removingAcc, setRemovingAcc] = useState(false);
   const [permissionsTarget, setPermissionsTarget] = useState<{ userId: string; accommodationId: string } | null>(null);
+
   const [templatesDialogAccId, setTemplatesDialogAccId] = useState<string | null>(null);
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
