@@ -133,14 +133,17 @@ serve(async (req) => {
       const startUtc = taipeiMidnightUtcISO(y, m, 1);
       const endUtc = taipeiMidnightUtcISO(y, m + 1, 1);
 
-      // 1) Orders in target month, not cancelled
+      // 1) Orders in target month：排除已取消、保留單（hold）與 final_price <= 0
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
         .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .neq("order_status", "cancelled")
+        .neq("order_status", "hold")
+        .gt("final_price", 0)
         .gte("order_date", startUtc)
         .lt("order_date", endUtc);
       if (ordersErr) throw ordersErr;
+
 
       const orderList = orders ?? [];
       if (orderList.length === 0) return result;
