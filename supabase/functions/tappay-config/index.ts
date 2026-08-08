@@ -17,8 +17,15 @@ serve(async (req) => {
 
   // Reject requests from untrusted origins
   const origin = req.headers.get('origin') || '';
+  // Capacitor/Cordova native WebView origins (iOS/Android app shells)
+  const NATIVE_APP_ORIGINS = new Set([
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost',
+  ]);
   const isTrustedOrigin =
     !origin || // Allow no-origin (server-to-server)
+    NATIVE_APP_ORIGINS.has(origin) ||
     origin.endsWith('.lovable.app') ||
     origin.endsWith('.lovableproject.com') ||
     origin.includes('lakeze.com');

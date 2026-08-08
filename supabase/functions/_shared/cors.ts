@@ -9,9 +9,16 @@
 
 const ALLOWED_HOST_SUFFIXES = [".lakeze.com", ".lovable.app", ".lovableproject.com"];
 const ALLOWED_EXACT_HOSTS = new Set(["lakeze.com", "lovable.app", "lovableproject.com"]);
+// Capacitor/Cordova native WebView origins (iOS/Android app shells)
+const ALLOWED_EXACT_ORIGINS = new Set([
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+]);
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
+  if (ALLOWED_EXACT_ORIGINS.has(origin)) return true;
   try {
     const url = new URL(origin);
     const host = url.hostname.toLowerCase();
