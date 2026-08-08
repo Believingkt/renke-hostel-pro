@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
