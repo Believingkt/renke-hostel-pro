@@ -576,9 +576,14 @@ const Headquarters = () => {
       });
       if (error) throw error;
       if (data && data.success === false) throw new Error(data.error || "刪除帳號失敗");
-      toast.success(`已刪除帳號 ${deleteAccountTarget.email}`);
+      toast.success(
+        `已刪除帳號 ${deleteAccountTarget.email}（移除 ${data?.removed_roles ?? 0} 筆角色、${data?.removed_module_permissions ?? 0} 筆模組權限）`
+      );
       setDeleteAccountTarget(null);
+      setDeleteAccountConfirm("");
+      setDeleteAccountImpact(null);
       loadUserRoles();
+
     } catch (e: any) {
       toast.error(`刪除帳號失敗：${e.message ?? "未知錯誤"}`);
     } finally {
