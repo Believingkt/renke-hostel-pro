@@ -3,6 +3,13 @@ import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
+import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
+
+/** 保留單（hold）不計入分潤 */
+function isHoldOrder(status?: string | null): boolean {
+  return status === "hold" || status === "保留中";
+}
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
