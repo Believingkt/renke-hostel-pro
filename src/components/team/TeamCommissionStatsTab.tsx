@@ -542,6 +542,7 @@ export default function TeamCommissionStatsTab() {
       setCommissionByAcc(csMap);
 
       // 成交組分潤預估（Edge Function 試算，只計算不寫入）
+      // extra_order_ids 讓已取消訂單也套用相同 gate（合作期間／抽成門檻／免抽成／幣別）
       const pMap = new Map<string, { base: number; closer_rate: number; video_rate: number }>();
       try {
         const { data: preview } = await supabase.functions.invoke(
@@ -553,11 +554,12 @@ export default function TeamCommissionStatsTab() {
               month: Number(month),
               start_iso: period.startIso,
               end_iso: period.nextIso,
+              extra_order_ids: cancelRows.map((o: any) => o.id as string),
             },
           },
         );
         if (preview?.success) {
-          (preview.orders ?? []).forEach((d: any) => {
+          [...(preview.orders ?? []), ...(preview.extra_orders ?? [])].forEach((d: any) => {
             pMap.set(d.order_id as string, {
               base: Number(d.base ?? 0),
               closer_rate: Number(d.closer_rate ?? 0),
@@ -569,6 +571,7 @@ export default function TeamCommissionStatsTab() {
         /* 預估失敗時退回空 map，畫面顯示 0，不中斷其他統計 */
       }
       setPreviewMap(pMap);
+
 
       // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
       try {
