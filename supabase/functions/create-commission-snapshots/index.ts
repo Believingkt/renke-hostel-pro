@@ -167,7 +167,7 @@ serve(async (req) => {
       // 1) Orders in target month, not cancelled
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .neq("order_status", "cancelled")
         .gte("order_date", startUtc)
         .lt("order_date", endUtc);
