@@ -617,7 +617,10 @@ const Headquarters = () => {
       toast.success(`已移除 ${getAccommodationName(removeAccId)} 的 ${count ?? 0} 筆用戶權限`);
       setRemoveAccDialogOpen(false);
       setRemoveAccId("");
+      setRemoveAccConfirm("");
+      setRemoveAccImpact(null);
       loadUserRoles();
+
     } catch (e: any) {
       toast.error(`移除民宿權限失敗：${e.message ?? "未知錯誤"}`);
     } finally {
