@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Building2, X, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { isNativeApp } from "@/lib/appMode";
 
 interface Accommodation {
   id: string;
@@ -25,12 +26,11 @@ export function DevAccommodationSwitcher() {
   const [currentAccId, setCurrentAccId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // 只在開發/預覽環境顯示
-  const isDevOrPreview = 
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' || 
-    window.location.hostname.includes('lovableproject.com') || 
-    window.location.hostname.includes('lovable.app');
+  // 只在 Vite 開發模式或 Lovable 編輯器預覽顯示；原生 App(Capacitor)一律隱藏
+  const isNative = isNativeApp();
+  const isDevOrPreview =
+    !isNative &&
+    (import.meta.env.DEV || window.location.hostname.includes('lovableproject.com'));
 
   useEffect(() => {
     if (!isDevOrPreview) return;
