@@ -515,6 +515,57 @@ const Headquarters = () => {
     setDeletingRoleId(null);
   };
 
+  // 刪除整個帳號（含所有民宿權限），透過 delete-user Edge Function（需總部管理員）
+  const handleDeleteAccount = async () => {
+    if (!deleteAccountTarget) return;
+    setDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { email: deleteAccountTarget.email },
+      });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "刪除帳號失敗");
+      toast.success(`已刪除帳號 ${deleteAccountTarget.email}`);
+      setDeleteAccountTarget(null);
+      loadUserRoles();
+    } catch (e: any) {
+      toast.error(`刪除帳號失敗：${e.message ?? "未知錯誤"}`);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  // 一鍵移除某一家民宿的所有用戶權限（含模組權限設定）
+  const handleRemoveAccommodationRoles = async () => {
+    if (!removeAccId) return;
+    setRemovingAcc(true);
+    try {
+      const { error: roleError, count } = await supabase
+        .from("user_roles")
+        .delete({ count: "exact" })
+        .eq("accommodation_id", removeAccId)
+        .neq("role", "super_admin");
+      if (roleError) throw roleError;
+
+      const { error: permError } = await supabase
+        .from("staff_module_permissions")
+        .delete()
+        .eq("accommodation_id", removeAccId);
+      if (permError) throw permError;
+
+      toast.success(`已移除 ${getAccommodationName(removeAccId)} 的 ${count ?? 0} 筆用戶權限`);
+      setRemoveAccDialogOpen(false);
+      setRemoveAccId("");
+      loadUserRoles();
+    } catch (e: any) {
+      toast.error(`移除民宿權限失敗：${e.message ?? "未知錯誤"}`);
+    } finally {
+      setRemovingAcc(false);
+    }
+  };
+
+
+
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
     const { data, error } = await supabase
       .from("user_roles")
