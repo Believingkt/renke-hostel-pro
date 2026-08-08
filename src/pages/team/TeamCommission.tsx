@@ -811,7 +811,32 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .select("id, order_id, closer_id, video_creator_id, adjustment_type, closer_amount, video_amount, reason, adjustment_month, orders(order_number, accommodation_id)")
           .eq("adjustment_month", payoutMonthKey),
         supabase.from("accommodation_info").select("id, name"),
+        supabase
+          .from("closer_team_bonus_settings")
+          .select("bonus_rate, effective_from")
+          .lte("effective_from", prevMonthFirstDay)
+          .order("effective_from", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("bonus_multiplier_settings")
+          .select("bonus_type, multiplier, start_month, end_month")
+          .lte("start_month", payoutMonthKey)
+          .gte("end_month", payoutMonthKey),
+        // 只採計「團隊角色」（全域、非館別綁定），避免 hotel_admin 等民宿後台角色影響分類
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .is("accommodation_id", null),
       ]);
+
+      // team_member_profiles：建立 id ↔ user_id ↔ display_name 對照
+      const profileById = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      const profileByUserId = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      (profiles ?? []).forEach((p: any) => {
+        profileById.set(p.id, p);
+        if (p.user_id) profileByUserId.set(p.user_id, p);
+      });
 
       const venueNameById = new Map<string, string>();
       (accommodations ?? []).forEach((a: any) => venueNameById.set(a.id, a.name));
