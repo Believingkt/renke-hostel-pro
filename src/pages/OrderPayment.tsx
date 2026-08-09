@@ -118,6 +118,11 @@ export default function OrderPayment() {
 
   const startSocialLogin = (provider: "facebook" | "line") => {
     try {
+      console.log("[oauth-launch] source=button", {
+        provider,
+        action: "webview_redirect_attempt",
+        callPoint: "OrderPayment.startSocialLogin",
+      });
       // Encode the current payment URL into OAuth state so the callback
       // (which lives on booking.lakeze.com — possibly a different origin from
       // the accommodation's custom domain) can recover it without
@@ -143,6 +148,11 @@ export default function OrderPayment() {
         u.searchParams.set("redirect_uri", redirectUri);
         u.searchParams.set("state", state);
         u.searchParams.set("scope", "public_profile,email");
+        console.log("[oauth-launch] source=button", {
+          provider,
+          action: "webview_redirect",
+          callPoint: "OrderPayment.startSocialLogin",
+        });
         window.location.href = u.toString();
       } else {
         const nonce = crypto.randomUUID().replace(/-/g, "");
@@ -159,6 +169,11 @@ export default function OrderPayment() {
         u.searchParams.set("state", lineState);
         u.searchParams.set("scope", "openid profile email");
         u.searchParams.set("nonce", nonce);
+        console.log("[oauth-launch] source=button", {
+          provider,
+          action: "webview_redirect",
+          callPoint: "OrderPayment.startSocialLogin",
+        });
         window.location.href = u.toString();
       }
     } catch (e: any) {
