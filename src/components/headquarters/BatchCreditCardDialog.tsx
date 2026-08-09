@@ -68,7 +68,7 @@ export function BatchCreditCardDialog({
 
       selected.forEach((id) => invalidateAccommodationCache(id));
       toast.success(
-        next ? `已開啟 ${selected.length} 間館別的信用卡付款` : `已關閉 ${selected.length} 間館別的信用卡付款`
+        next ? `已開啟 ${selected.length} 間館別的前台信用卡付款` : `已關閉 ${selected.length} 間館別的前台信用卡付款`
       );
       onDone();
       onOpenChange(false);
@@ -85,7 +85,7 @@ export function BatchCreditCardDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            批次設定信用卡付款
+            批次設定前台信用卡付款
           </DialogTitle>
           <DialogDescription>
             勾選館別後，一次開啟或關閉前台結帳頁的信用卡付款選項（關閉後客人只能使用 ATM 虛擬帳號）。
