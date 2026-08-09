@@ -148,37 +148,113 @@ export interface RoomOffer {
   totalPrice: number;
   availableRooms: number;
   coverUrl: string | null;
+  /** 是否貼合人數（非包棟且不會過大） */
+  fitsGuests: boolean;
+  isExclusivePackage: boolean;
 }
 
-export async function findRooms(
+export interface FindRoomsResult {
+  offers: RoomOffer[];
+  /** 使用者有指定館別且成功對應到 accommodation */
+  venueLabel?: string;
+  venueResolved: boolean;
+  /** 指定館別無房時的其他館替代建議 */
+  alternatives: RoomOffer[];
+}
+
+/** 任一包棟被訂走即整天關閉（沿用前台 sensan availability rule） */
+const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
+  "5f764d55-ae11-4631-80fe-2e611853deae", // 森山寫照
+  "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
+  "8e3e8866-3cb0-4654-91f3-d9b09a543301", // 淞湘卉館
+]);
+const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+
+interface AdjRow {
+  date_value?: string;
+  date?: string;
+  available_rooms?: number;
+  is_blocked?: boolean;
+}
+
+async function adjustedRows(
   sb: SupabaseClient,
-  opts: { checkIn: string; checkOut: string; guests?: number; keyword?: string; limit?: number },
+  roomTypeId: string,
+  accommodationId: string,
+  dates: string[],
+): Promise<Map<string, { available_rooms: number; is_blocked: boolean }>> {
+  const map = new Map<string, { available_rooms: number; is_blocked: boolean }>();
+  const { data } = await sb.rpc("get_adjusted_room_inventory_batch", {
+    p_room_type_id: roomTypeId,
+    p_dates: dates,
+    p_accommodation_id: accommodationId,
+  });
+  for (const row of ((data as AdjRow[]) || [])) {
+    const key = row.date_value ?? row.date;
+    if (!key) continue;
+    map.set(key, { available_rooms: row.available_rooms ?? 0, is_blocked: row.is_blocked === true });
+  }
+  return map;
+}
+
+/**
+ * 館別鎖房規則：回傳每個館「整天關閉」的日期集合。
+ * 不自行重算庫存，一律走 get_adjusted_room_inventory_batch。
+ */
+async function computeLockedDates(
+  sb: SupabaseClient,
+  accIds: string[],
+  dates: string[],
+): Promise<Map<string, Set<string>>> {
+  const locked = new Map<string, Set<string>>();
+  const targets = accIds.filter(
+    (id) => STRICT_PACKAGE_ANY_BOOKED_IDS.has(id) || id === HAKUNA_ACCOMMODATION_ID,
+  );
+  if (targets.length === 0) return locked;
+
+  const { data: exclusiveTypes } = await sb
+    .from("room_types")
+    .select("id, accommodation_id")
+    .in("accommodation_id", targets)
+    .eq("is_exclusive_package", true);
+
+  const byAcc = new Map<string, string[]>();
+  for (const rt of exclusiveTypes || []) {
+    const list = byAcc.get(rt.accommodation_id!) || [];
+    list.push(rt.id);
+    byAcc.set(rt.accommodation_id!, list);
+  }
+
+  for (const [accId, ids] of byAcc.entries()) {
+    if (ids.length === 0) continue;
+    const rowsList = await Promise.all(ids.map((id) => adjustedRows(sb, id, accId, dates)));
+    const threshold = accId === HAKUNA_ACCOMMODATION_ID ? 2 : 1;
+    const closed = new Set<string>();
+    for (const date of dates) {
+      let soldOut = 0;
+      for (const rows of rowsList) {
+        const r = rows.get(date);
+        if (!r || r.is_blocked || r.available_rooms <= 0) soldOut += 1;
+      }
+      if (soldOut >= threshold) closed.add(date);
+    }
+    if (closed.size > 0) locked.set(accId, closed);
+  }
+  return locked;
+}
+
+async function buildOffers(
+  sb: SupabaseClient,
+  accList: { id: string; name: string }[],
+  opts: { checkIn: string; checkOut: string; guests?: number; limit?: number },
 ): Promise<RoomOffer[]> {
   const dates = eachDate(opts.checkIn, opts.checkOut);
-  if (dates.length === 0) return [];
-
-  const { data: accs } = await sb
-    .from("accommodation_info")
-    .select("id, name, region_1, region_2, is_active, show_on_portal")
-    .eq("is_active", true);
-  let accList = (accs || []).filter((a) => a.show_on_portal !== false);
-  if (opts.keyword) {
-    const kw = opts.keyword;
-    const matched = accList.filter(
-      (a) =>
-        (a.name && kw.includes(a.name)) ||
-        (a.name && a.name.includes(kw)) ||
-        (a.region_1 && kw.includes(a.region_1)) ||
-        (a.region_2 && kw.includes(a.region_2)),
-    );
-    if (matched.length > 0) accList = matched;
-  }
-  if (accList.length === 0) return [];
+  if (accList.length === 0 || dates.length === 0) return [];
   const accMap = new Map(accList.map((a) => [a.id, a]));
 
   let rtQuery = sb
     .from("room_types")
-    .select("id, name, base_price, capacity, accommodation_id")
+    .select("id, name, base_price, capacity, accommodation_id, is_exclusive_package")
     .in("accommodation_id", accList.map((a) => a.id));
   if (opts.guests) rtQuery = rtQuery.gte("capacity", opts.guests);
   const { data: roomTypes } = await rtQuery;
@@ -201,28 +277,18 @@ export async function findRooms(
     });
   }
 
-  const adjusted = await Promise.all(
-    roomTypes.map(async (rt) => {
-      const { data } = await sb.rpc("get_adjusted_room_inventory_batch", {
-        p_room_type_id: rt.id,
-        p_dates: dates,
-        p_accommodation_id: rt.accommodation_id,
-      });
-      // deno-lint-ignore no-explicit-any
-      return { roomTypeId: rt.id, rows: ((data as any[]) || []) };
-    }),
-  );
+  const [adjusted, lockedDates] = await Promise.all([
+    Promise.all(
+      roomTypes.map(async (rt) => ({
+        roomTypeId: rt.id,
+        rows: await adjustedRows(sb, rt.id, rt.accommodation_id!, dates),
+      })),
+    ),
+    computeLockedDates(sb, accList.map((a) => a.id), dates),
+  ]);
   const adjIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
   for (const { roomTypeId, rows } of adjusted) {
-    for (const row of rows) {
-      // deno-lint-ignore no-explicit-any
-      const key = (row as any).date_value ?? (row as any).date;
-      if (!key) continue;
-      adjIndex.set(`${roomTypeId}:${key}`, {
-        available_rooms: row.available_rooms ?? 0,
-        is_blocked: row.is_blocked === true,
-      });
-    }
+    for (const [date, v] of rows.entries()) adjIndex.set(`${roomTypeId}:${date}`, v);
   }
 
   const { data: photos } = await sb
@@ -237,13 +303,21 @@ export async function findRooms(
 
   const offers: RoomOffer[] = [];
   for (const rt of roomTypes) {
+    const accClosed = lockedDates.get(rt.accommodation_id!);
     let total = 0;
     let minRooms: number | null = null;
     let bookable = true;
     for (const date of dates) {
       const base = baseIndex.get(`${rt.id}:${date}`);
       const adj = adjIndex.get(`${rt.id}:${date}`);
-      if (!base || base.is_available === false || !adj || adj.is_blocked || adj.available_rooms <= 0) {
+      if (
+        accClosed?.has(date) ||
+        !base ||
+        base.is_available === false ||
+        !adj ||
+        adj.is_blocked ||
+        adj.available_rooms <= 0
+      ) {
         bookable = false;
         minRooms = 0;
         break;
@@ -252,20 +326,102 @@ export async function findRooms(
       minRooms = minRooms === null ? adj.available_rooms : Math.min(minRooms, adj.available_rooms);
     }
     if (!bookable) continue;
+    const isExclusive = rt.is_exclusive_package === true;
+    const capacity = Number(rt.capacity ?? 0);
+    const fitsGuests = opts.guests
+      ? !isExclusive && capacity >= opts.guests && capacity <= opts.guests + 1
+      : !isExclusive;
     offers.push({
       roomTypeId: rt.id,
       accommodationId: rt.accommodation_id!,
       accommodationName: accMap.get(rt.accommodation_id!)?.name ?? "",
       name: rt.name,
-      capacity: rt.capacity,
+      capacity,
       totalPrice: total,
       availableRooms: minRooms ?? 0,
       coverUrl: photoIndex.get(rt.id) ?? null,
+      fitsGuests,
+      isExclusivePackage: isExclusive,
     });
   }
-  offers.sort((a, b) => a.totalPrice - b.totalPrice);
+  // 先按適配度分組，組內按價格排序
+  offers.sort((a, b) => {
+    if (a.fitsGuests !== b.fitsGuests) return a.fitsGuests ? -1 : 1;
+    return a.totalPrice - b.totalPrice;
+  });
   return offers.slice(0, opts.limit ?? 5);
 }
+
+async function activeAccommodations(sb: SupabaseClient) {
+  const { data } = await sb
+    .from("accommodation_info")
+    .select("id, name, region_1, region_2, is_active, show_on_portal")
+    .eq("is_active", true);
+  return (data || []).filter((a) => a.show_on_portal !== false);
+}
+
+export async function findRoomsDetailed(
+  sb: SupabaseClient,
+  opts: {
+    checkIn: string;
+    checkOut: string;
+    guests?: number;
+    keyword?: string;
+    venue?: string;
+    limit?: number;
+  },
+): Promise<FindRoomsResult> {
+  const all = await activeAccommodations(sb);
+  if (all.length === 0) return { offers: [], venueResolved: false, alternatives: [] };
+
+  const venueAlias = opts.venue ? VENUE_ALIASES.find((v) => v.canonical === opts.venue) : undefined;
+
+  // 1) 指定館別 → 只查該館
+  if (venueAlias) {
+    const scoped = all.filter((a) => accommodationMatchesVenue(a.name, venueAlias));
+    if (scoped.length > 0) {
+      const offers = await buildOffers(sb, scoped, opts);
+      let alternatives: RoomOffer[] = [];
+      if (offers.length === 0) {
+        const others = all.filter((a) => !scoped.some((s) => s.id === a.id));
+        alternatives = await buildOffers(sb, others, { ...opts, limit: 3 });
+      }
+      return { offers, venueResolved: true, venueLabel: venueAlias.label, alternatives };
+    }
+  }
+
+  // 2) 其他關鍵字（地區）
+  let accList = all;
+  if (opts.keyword) {
+    const kw = opts.keyword;
+    const matched = all.filter(
+      (a) =>
+        (a.name && kw.includes(a.name)) ||
+        (a.name && a.name.includes(kw)) ||
+        (a.region_1 && kw.includes(a.region_1)) ||
+        (a.region_2 && kw.includes(a.region_2)),
+    );
+    if (matched.length > 0) accList = matched;
+  }
+  const offers = await buildOffers(sb, accList, opts);
+  return { offers, venueResolved: false, venueLabel: venueAlias?.label, alternatives: [] };
+}
+
+export async function findRooms(
+  sb: SupabaseClient,
+  opts: {
+    checkIn: string;
+    checkOut: string;
+    guests?: number;
+    keyword?: string;
+    venue?: string;
+    limit?: number;
+  },
+): Promise<RoomOffer[]> {
+  const r = await findRoomsDetailed(sb, opts);
+  return r.offers;
+}
+
 
 /* ---------------- Flex builders ---------------- */
 
