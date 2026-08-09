@@ -368,9 +368,6 @@ const MemberAuth = () => {
         void openNativeAuthBrowser(authorizeUrl.toString(), "facebook", () => {
           setFbLoading(false);
         })
-          .then((opened) => {
-            if (!opened) setFbLoading(false);
-          })
           .catch((e) => {
             toast.error(e?.message || "無法開啟登入視窗");
             setFbLoading(false);
@@ -441,9 +438,6 @@ const MemberAuth = () => {
         void openNativeAuthBrowser(authorizeUrl.toString(), "line", () => {
           setLineLoading(false);
         })
-          .then((opened) => {
-            if (!opened) setLineLoading(false);
-          })
           .catch((e) => {
             toast.error(e?.message || "無法開啟登入視窗");
             setLineLoading(false);
