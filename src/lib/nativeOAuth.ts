@@ -21,13 +21,62 @@ import { supabase } from "@/integrations/supabase/client";
 export const NATIVE_AUTH_CALLBACK = "lakeze://auth-callback";
 
 type NativeAuthProvider = "facebook" | "line" | "google" | "apple";
+export type NativeOAuthLaunchSource = "button" | "resume" | "visibility" | "retry" | "unknown";
 
-let nativeAuthFlight: NativeAuthProvider | null = null;
+type NativeAuthFlight = {
+  provider: NativeAuthProvider;
+  launchedAt: number;
+  source: NativeOAuthLaunchSource;
+};
+
+const NATIVE_AUTH_LOCK_MS = 120_000;
+const NATIVE_AUTH_LOCK_KEY = "native_oauth_launch_lock";
+let nativeAuthFlight: NativeAuthFlight | null = null;
 let browserFinishedHandle: PluginListenerHandle | null = null;
 
+function readPersistedFlight(): NativeAuthFlight | null {
+  try {
+    const raw = localStorage.getItem(NATIVE_AUTH_LOCK_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<NativeAuthFlight>;
+    if (
+      typeof parsed.provider !== "string" ||
+      typeof parsed.launchedAt !== "number" ||
+      typeof parsed.source !== "string"
+    ) return null;
+    return parsed as NativeAuthFlight;
+  } catch {
+    return null;
+  }
+}
+
+function persistFlight(flight: NativeAuthFlight | null): void {
+  try {
+    if (flight) localStorage.setItem(NATIVE_AUTH_LOCK_KEY, JSON.stringify(flight));
+    else localStorage.removeItem(NATIVE_AUTH_LOCK_KEY);
+  } catch {
+    /* localStorage can be unavailable in restricted WebViews */
+  }
+}
+
+function activeFlight(): NativeAuthFlight | null {
+  const flight = nativeAuthFlight ?? readPersistedFlight();
+  if (!flight) return null;
+  if (Date.now() - flight.launchedAt >= NATIVE_AUTH_LOCK_MS) {
+    console.log("[oauth-launch] expired lock cleared", { provider: flight.provider, source: flight.source });
+    nativeAuthFlight = null;
+    persistFlight(null);
+    return null;
+  }
+  nativeAuthFlight = flight;
+  return flight;
+}
+
 function clearNativeAuthFlight(reason: "callback_received" | "browser_closed" | "launch_failed"): void {
-  console.log("[nativeOAuth] single-flight cleared", { provider: nativeAuthFlight, reason });
+  const flight = nativeAuthFlight ?? readPersistedFlight();
+  console.log("[nativeOAuth] single-flight cleared", { provider: flight?.provider ?? null, source: flight?.source ?? null, reason });
   nativeAuthFlight = null;
+  persistFlight(null);
   const handle = browserFinishedHandle;
   browserFinishedHandle = null;
   if (handle) void handle.remove().catch(() => {});
@@ -53,26 +102,31 @@ export function encodeNativeReturnState(prefix: string, suffix?: string): string
 export async function openNativeAuthBrowser(
   url: string,
   provider: NativeAuthProvider,
+  source: NativeOAuthLaunchSource,
   onBrowserFinished?: () => void,
 ): Promise<boolean> {
-  // React loading state updates asynchronously, so it cannot prevent two launch
-  // events in the same render frame. This module-level lock is synchronous and
-  // remains held for the complete browser + callback exchange lifecycle.
-  if (nativeAuthFlight) {
-    console.log("[nativeOAuth] duplicate launch blocked", {
+  console.log(`[oauth-launch] source=${source}`, { provider, action: "attempt" });
+  const existingFlight = activeFlight();
+  if (existingFlight) {
+    console.log(`[oauth-launch] source=${source}`, {
+      action: "blocked",
       requestedProvider: provider,
-      activeProvider: nativeAuthFlight,
+      activeProvider: existingFlight.provider,
+      activeSource: existingFlight.source,
+      ageMs: Date.now() - existingFlight.launchedAt,
     });
     return false;
   }
 
-  nativeAuthFlight = provider;
+  nativeAuthFlight = { provider, launchedAt: Date.now(), source };
+  persistFlight(nativeAuthFlight);
   try {
     browserFinishedHandle = await Browser.addListener("browserFinished", () => {
       clearNativeAuthFlight("browser_closed");
       onBrowserFinished?.();
     });
     await Browser.open({ url, presentationStyle: "popover" });
+    console.log(`[oauth-launch] source=${source}`, { provider, action: "opened" });
     return true;
   } catch (error) {
     clearNativeAuthFlight("launch_failed");
@@ -170,12 +224,15 @@ export function initNativeAuthListener(
 /**
  * Supabase-managed providers (Google / Apple) inside the native app.
  */
-export async function nativeSupabaseOAuth(provider: "google" | "apple"): Promise<void> {
+export async function nativeSupabaseOAuth(
+  provider: "google" | "apple",
+  source: NativeOAuthLaunchSource = "button",
+): Promise<boolean> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: { redirectTo: NATIVE_AUTH_CALLBACK, skipBrowserRedirect: true },
   });
   if (error) throw error;
   if (!data?.url) throw new Error("未取得授權網址");
-  await openNativeAuthBrowser(data.url, provider);
+  return openNativeAuthBrowser(data.url, provider, source);
 }

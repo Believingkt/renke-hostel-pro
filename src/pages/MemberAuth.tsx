@@ -307,7 +307,8 @@ const MemberAuth = () => {
     try {
       // Native app: Supabase OAuth → in-app browser → lakeze://auth-callback
       if (isNativeOAuth()) {
-        await nativeSupabaseOAuth(provider);
+        const launched = await nativeSupabaseOAuth(provider, "button");
+        if (!launched) setLoading(false);
         return; // session arrives via the appUrlOpen listener
       }
 
@@ -365,9 +366,12 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("scope", "public_profile,email");
 
       if (native) {
-        void openNativeAuthBrowser(authorizeUrl.toString(), "facebook", () => {
+        void openNativeAuthBrowser(authorizeUrl.toString(), "facebook", "button", () => {
           setFbLoading(false);
         })
+          .then((launched) => {
+            if (!launched) setFbLoading(false);
+          })
           .catch((e) => {
             toast.error(e?.message || "無法開啟登入視窗");
             setFbLoading(false);
@@ -435,9 +439,12 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("nonce", nonce);
 
       if (native) {
-        void openNativeAuthBrowser(authorizeUrl.toString(), "line", () => {
+        void openNativeAuthBrowser(authorizeUrl.toString(), "line", "button", () => {
           setLineLoading(false);
         })
+          .then((launched) => {
+            if (!launched) setLineLoading(false);
+          })
           .catch((e) => {
             toast.error(e?.message || "無法開啟登入視窗");
             setLineLoading(false);
