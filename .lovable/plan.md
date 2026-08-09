@@ -1,0 +1,91 @@
+# 合作期間狀態說明 ＋ 獎金公式全站可查 ＋ 業主自帶雙軌切換
+
+## 目標
+
+1. 雲岫 8/10 期特例改用「一次性人工調整」資料化，9/10 起走正式邏輯。
+2. 合作期間狀態徽章與旗標全部附說明。
+3. 舊設定頁分兩段搬遷（先導轉、後移除）。
+4. 全站獎金顯示處加「公式」提示 icon，並連到結算規則說明 Tab。
+5. 團隊獎金支援「含／排除業主自帶」雙軌，管理層可即時切換。
+
+---
+
+## 一、雲岫 8/10 手工特例資料化
+
+- period 照事實填：`start_date = 2026-07-27`、`bonus_effective_from = 2026-07-27`。
+- 8/10 期差額改記一筆 `closer_commission_adjustments`，類型 `manual_special`，備註寫明「雲岫簽約前手工補發（僅此期）」。
+- 9/10 起無任何程式特例分支；resync 未付快照不會洗掉人工調整。
+
+## 二、合作期間狀態徽章說明
+
+每張館別卡片的徽章旁加 `?` icon（hover + 點擊皆可觸發），文案：
+
+| 徽章 | 含義 |
+|---|---|
+| 合作中 | 有一段生效中的期間（start ≤ 今天，且無 end 或 end ≥ 今天） |
+| 待生效 | 已建立期間但 start 在未來，尚未開始採計 |
+| 暫停中 | 最後一段已結束且無後續段，期間內訂單不採計 |
+| 已重啟 | 曾中斷後再新增一段且目前生效 |
+| 未設定 | 沒有任何期間，一律不採計任何獎金 |
+
+同一張卡再顯示三個帶說明的小標：`採計成交組`、`採計團隊獎金`、`獎金採計起始日 B`。
+
+## 三、舊頁面兩段搬遷
+
+- 第一段：`OwnerSettlementSettings` 搬進 HQ 整合頁，原路徑保留導轉；`TeamCommission` 獎金設定 Tab 轉唯讀鏡像並提供前往 HQ 連結。
+- 第二段（3 個月後）：移除舊路徑與鏡像。
+
+## 四、獎金公式全站可查
+
+- 新增單一真相來源 `src/lib/bonusFormulas.ts`：每種獎金一筆
+  `{ key, 中文名, formula(公式字串／可代入變數), 口徑說明, gates[], anchorId }`，涵蓋六大類共 18 項
+  （團隊獎金、成交大師、星探、KOL 分潤、加盟、星鏈）。
+- 新增共用元件 `src/components/team/BonusFormulaHint.tsx`：popover 顯示「通用公式 + 本筆實際代入數字」，底部超連結 `→ 結算規則說明`（帶 anchor 直接捲到該項）。
+- 一次到位鋪設位置：
+  - `TeamHome` 卡片標題與館別明細 Drawer
+  - `TeamCommission` 發放管理小計列與明細 Drawer
+  - 業績統計 Tab（成交組／AM／KOL／星探）
+  - `BonusSettingsTab` 各費率／金額設定卡
+- 結算規則說明 Tab 改為由 registry 自動渲染（含 anchor id），不再手寫，避免說明與程式脫節。
+
+## 五、業主自帶雙軌切換
+
+### 資料
+
+- `accommodation_partnership_periods` 新增 `payout_basis text not null default 'exclude_owner_direct'`
+  （`'include_owner_direct'` | `'exclude_owner_direct'`），即「每館可設定哪一軌是實付真值」。
+- 團隊獎金快照新增欄位：`base_incl_owner_direct`、`base_excl_owner_direct`、
+  `amount_incl_owner_direct`、`amount_excl_owner_direct`，`amount`（實付）依該館 `payout_basis` 取其一。
+
+### 計算
+
+- `src/lib/teamBonusStayRevenue.ts` / `teamBonusRevenue.ts` 同時輸出兩組營收；
+  edge function `create-team-bonus-snapshots` 鏡射同一邏輯並兩組都寫入快照。
+- 影響範圍**僅限以館別營收為基準的團隊獎金**：`am_performance`、`closer_performance`、
+  `am_manager`、`closer_manager`、`kol_commission`、`kol_monthly`。
+  訂單型（成交大師分潤、影音分潤）與星探／加盟／星鏈完全不受影響。
+
+### UI
+
+- `TeamHome` 與 `TeamCommission` 頂端各一個切換鈕（含／排除業主自帶），純前端換算不重打 API。
+- 僅管理層可見可用（super_admin / admin / am_manager / closer_manager）；一般成員固定看實付真值。
+- 切換到「非實付軌」時卡片加警示底色與「僅供參考，非實付金額」標示。
+- 偏好記在 localStorage，每人各自記住。
+- 已發放（paid）快照 append-only，兩軌金額都已凍結，切換只是顯示不同欄位。
+
+---
+
+## 上線順序
+
+1. Migration：`payout_basis` 欄位 + 快照雙軌欄位。
+2. 雙軌計算落地 + 未付快照 resync 回填兩軌金額。
+3. `bonusFormulas.ts` registry + `BonusFormulaHint` 鋪設 + 結算規則說明 Tab 改自動渲染。
+4. 狀態徽章說明 + 三個旗標小標。
+5. 雲岫 8/10 人工調整寫入，移除任何殘留特例分支。
+6. 舊設定頁第一段搬遷導轉。
+
+## 技術備註
+
+- 計算邏輯一律留在 `src/lib/`，edge function 鏡射同一份規則。
+- 期別（10 日／25 日）、倍率邏輯不變。
+- 改動後需比對 TeamHome 試算與發放管理實付金額一致，且說明 Tab 描述與實際計算相符。
