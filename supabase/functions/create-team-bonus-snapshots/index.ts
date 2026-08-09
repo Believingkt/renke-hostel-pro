@@ -160,8 +160,8 @@ function nightsBetween(ci: string, co: string): number {
 }
 
 /**
- * 各館別在資料月內「可採計的日期區間」。
- * 來源：accommodation_partnership_periods（可暫停／重啟；bonus_policy = 'none' 不採計）。
+ * 各館別在資料月內「可採計的日期區間」（團隊獎金用途）。
+ * 來源：accommodation_partnership_periods（可暫停／重啟；counts_team_bonus = false 不採計）。
  * 沒有任何有效區間的館別 —— 一律不計入任何團隊獎金。
  */
 async function getCountableRangesByAcc(
@@ -178,12 +178,13 @@ async function getCountableRangesByAcc(
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
       .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .select("accommodation_id, start_date, end_date, bonus_policy, counts_team_bonus")
       .in("accommodation_id", slice);
     for (const row of (data ?? []) as any[]) {
       const accId = String(row?.accommodation_id ?? "");
       if (!accId || !row?.start_date) continue;
       if (row?.bonus_policy === "none") continue;
+      if (row?.counts_team_bonus === false) continue;
       const ps = String(row.start_date).slice(0, 10);
       const pe = row.end_date ? addOneDay(String(row.end_date).slice(0, 10)) : monthEndDate;
       const start = ps > monthStartDate ? ps : monthStartDate;
@@ -196,6 +197,36 @@ async function getCountableRangesByAcc(
   }
   return out;
 }
+
+/** 各館別的團隊獎金實付基準（含／排除業主自帶），未設定預設排除 */
+async function getPayoutBasisByAcc(
+  client: any,
+  accommodationIds: string[],
+): Promise<Record<string, "include_owner_direct" | "exclude_owner_direct">> {
+  const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+  const out: Record<string, "include_owner_direct" | "exclude_owner_direct"> = {};
+  if (accIds.length === 0) return out;
+  const latestStart = new Map<string, string>();
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const { data } = await client
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, payout_basis")
+      .in("accommodation_id", accIds.slice(i, i + CHUNK));
+    for (const row of (data ?? []) as any[]) {
+      const accId = String(row?.accommodation_id ?? "");
+      if (!accId) continue;
+      const start = String(row?.start_date ?? "").slice(0, 10);
+      if ((latestStart.get(accId) ?? "") > start) continue;
+      latestStart.set(accId, start);
+      out[accId] =
+        row?.payout_basis === "include_owner_direct"
+          ? "include_owner_direct"
+          : "exclude_owner_direct";
+    }
+  }
+  return out;
+}
+
 
 /** 只加總「被館別設定為不列入抽成」的增值服務金額 */
 function excludedAddonTotal(
@@ -258,16 +289,29 @@ async function getOwnerRules(
   return out;
 }
 
-/** 入住營收口徑（逐夜攤提、扣除設定的增值服務、排除 exempt、換算台幣） */
-async function getStayRevenueByAcc(
+/** 雙軌營收：含業主自帶 / 排除業主自帶 */
+interface DualRevenue {
+  incl: number;
+  excl: number;
+}
+
+/** 加總後的營收：兩軌 + 依各館 payout_basis 決定的實付基準 */
+interface RevenueTotals {
+  incl: number;
+  excl: number;
+  payout: number;
+}
+
+/** 入住營收口徑（逐夜攤提、扣除設定的增值服務、換算台幣），回傳雙軌 */
+async function getStayRevenueDualByAcc(
   client: any,
   accIds: string[],
   monthStartDate: string,
   monthEndDate: string,
   sources: string[],
   rangesByAcc: Record<string, CountableRange[]>,
-): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
+): Promise<Record<string, DualRevenue>> {
+  const out: Record<string, DualRevenue> = {};
   const ids = accIds.filter((id) => (rangesByAcc[id] ?? []).length > 0);
   if (ids.length === 0) return out;
   const rules = await getOwnerRules(client, ids, monthStartDate);
@@ -288,11 +332,10 @@ async function getStayRevenueByAcc(
     for (const o of (data ?? []) as any[]) {
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
-      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，
-      // 不套用 exempt_order_sources，也不排除 owner_direct。
+      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
+      // 業主自帶（owner_direct）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const rule = rules[accId];
-
 
       const ci = String(o?.check_in_date ?? "").slice(0, 10);
       const co = String(o?.check_out_date ?? "").slice(0, 10);
@@ -328,14 +371,17 @@ async function getStayRevenueByAcc(
           ),
       );
       if (!amount) continue;
-      out[accId] = (out[accId] ?? 0) + amount;
+      const cur = out[accId] ?? { incl: 0, excl: 0 };
+      cur.incl += amount;
+      if (o?.owner_direct !== true) cur.excl += amount;
+      out[accId] = cur;
     }
   }
   return out;
 }
 
 /**
- * 分潤基準營收加總，monthEndDate 為排他。
+ * 分潤基準營收加總（雙軌），monthEndDate 為排他。
  * 採計範圍：各館合作期間 ∩ 資料月。
  * 口徑：資料月 >= STAY_REVENUE_SWITCH_MONTH 用入住營收，之前維持 order_date 舊口徑。
  */
@@ -345,10 +391,11 @@ async function getAccommodationRevenue(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
-): Promise<number> {
+): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  if (accIds.length === 0 || sources.length === 0) return 0;
+  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  if (accIds.length === 0 || sources.length === 0) return empty;
 
   const rangesByAcc = await getCountableRangesByAcc(
     client,
@@ -357,8 +404,10 @@ async function getAccommodationRevenue(
     monthEndDate,
   );
 
+  let byAcc: Record<string, DualRevenue> = {};
+
   if (monthStartDate >= STAY_REVENUE_SWITCH_MONTH) {
-    const byAcc = await getStayRevenueByAcc(
+    byAcc = await getStayRevenueDualByAcc(
       client,
       accIds,
       monthStartDate,
@@ -366,32 +415,44 @@ async function getAccommodationRevenue(
       sources,
       rangesByAcc,
     );
-    return Object.values(byAcc).reduce((s, v) => s + v, 0);
-  }
+  } else {
+    for (const accId of accIds) {
+      for (const range of rangesByAcc[accId] ?? []) {
+        const { data } = await client
+          .from("orders")
+          .select("id, owner_direct, order_meta(team_commission_price, is_excluded)")
+          .eq("accommodation_id", accId)
+          .gte("order_date", range.start)
+          .lt("order_date", range.end)
+          .neq("order_status", "cancelled")
+          .neq("order_status", "hold")
+          .in("order_source", sources);
 
-  let total = 0;
-  for (const accId of accIds) {
-    for (const range of rangesByAcc[accId] ?? []) {
-      const { data } = await client
-        .from("orders")
-        .select("id, order_meta(team_commission_price, is_excluded)")
-        .eq("accommodation_id", accId)
-        .gte("order_date", range.start)
-        .lt("order_date", range.end)
-        .neq("order_status", "cancelled")
-        .neq("order_status", "hold")
-        .in("order_source", sources);
-
-      for (const row of (data ?? []) as any[]) {
-        const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
-        if (!meta) continue;
-        if (meta.is_excluded === true) continue;
-        total += Number(meta.team_commission_price ?? 0) || 0;
+        for (const row of (data ?? []) as any[]) {
+          const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
+          if (!meta) continue;
+          if (meta.is_excluded === true) continue;
+          const amt = Number(meta.team_commission_price ?? 0) || 0;
+          if (!amt) continue;
+          const cur = byAcc[accId] ?? { incl: 0, excl: 0 };
+          cur.incl += amt;
+          if (row?.owner_direct !== true) cur.excl += amt;
+          byAcc[accId] = cur;
+        }
       }
     }
   }
-  return total;
+
+  const basis = await getPayoutBasisByAcc(client, Object.keys(byAcc));
+  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  for (const [accId, v] of Object.entries(byAcc)) {
+    totals.incl += v.incl;
+    totals.excl += v.excl;
+    totals.payout += basis[accId] === "include_owner_direct" ? v.incl : v.excl;
+  }
+  return totals;
 }
+
 
 
 
@@ -610,12 +671,17 @@ serve(async (req) => {
       snapshot_month: string;
       payout_month: string;
       base_revenue: number | null;
+      base_revenue_incl_owner: number | null;
+      base_revenue_excl_owner: number | null;
       rate: number | null;
       fixed_amount: number | null;
       venue_count: number | null;
       amount: number;
+      amount_incl_owner: number | null;
+      amount_excl_owner: number | null;
       settings_snapshot: Record<string, unknown>;
     }
+
     const rows: Row[] = [];
     const push = (r: Row) => {
       if (!r.member_id) return;
@@ -656,11 +722,15 @@ serve(async (req) => {
         member_id: profile.id,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: myRevenue,
+        base_revenue: myRevenue.payout,
+        base_revenue_incl_owner: myRevenue.incl,
+        base_revenue_excl_owner: myRevenue.excl,
         rate: amPerfRate,
         fixed_amount: null,
         venue_count: managedNoTravel.length,
-        amount: myRevenue * Number(amPerfRate ?? 0),
+        amount: myRevenue.payout * Number(amPerfRate ?? 0),
+        amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
+        amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -676,10 +746,14 @@ serve(async (req) => {
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
         base_revenue: null,
+        base_revenue_incl_owner: null,
+        base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: amVenueFixed,
         venue_count: managedNoTravel.length,
         amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
+        amount_incl_owner: null,
+        amount_excl_owner: null,
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: amVenueFixed,
@@ -687,6 +761,7 @@ serve(async (req) => {
           excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
         },
       });
+
     }
 
     // (3) 成交組績效獎金：全公司營收 × rate，由「資料月底仍在職」的成交組成員均分
@@ -704,7 +779,9 @@ serve(async (req) => {
       closerProfiles.push(profile);
     }
 
-    const closerPoolAmount = companyRevenue * Number(closerPerfRate ?? 0);
+    const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
+    const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
+    const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
     const closerHeadcount = closerProfiles.length;
     for (const profile of closerProfiles) {
       push({
@@ -712,11 +789,15 @@ serve(async (req) => {
         member_id: profile.id,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: companyRevenue,
+        base_revenue: companyRevenue.payout,
+        base_revenue_incl_owner: companyRevenue.incl,
+        base_revenue_excl_owner: companyRevenue.excl,
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
         amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
+        amount_incl_owner: closerHeadcount > 0 ? closerPoolIncl / closerHeadcount : 0,
+        amount_excl_owner: closerHeadcount > 0 ? closerPoolExcl / closerHeadcount : 0,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
@@ -745,11 +826,15 @@ serve(async (req) => {
         member_id: memberId,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: companyRevenue,
+        base_revenue: companyRevenue.payout,
+        base_revenue_incl_owner: companyRevenue.incl,
+        base_revenue_excl_owner: companyRevenue.excl,
         rate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue * Number(rate ?? 0),
+        amount: companyRevenue.payout * Number(rate ?? 0),
+        amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
+        amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -768,11 +853,15 @@ serve(async (req) => {
         member_id: kolRecipientId,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: kolRevenue,
+        base_revenue: kolRevenue.payout,
+        base_revenue_incl_owner: kolRevenue.incl,
+        base_revenue_excl_owner: kolRevenue.excl,
         rate: kolRate,
         fixed_amount: null,
         venue_count: null,
-        amount: kolRevenue * Number(kolRate ?? 0),
+        amount: kolRevenue.payout * Number(kolRate ?? 0),
+        amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
+        amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
@@ -781,6 +870,7 @@ serve(async (req) => {
           role_binding: "kol_bonus_recipient",
         },
       });
+
 
       // 月費：以「該資料月有合作期間（bonus_policy != none）的館別」計價
       // （旅行日系列合併只算一館，停用館別／無合作期間不計）
@@ -807,10 +897,15 @@ serve(async (req) => {
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
         base_revenue: null,
+        base_revenue_incl_owner: null,
+        base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: kolMonthlyFixed,
         venue_count: kolMonthlyAccIds.length,
         amount: Number(kolMonthlyFixed ?? 0) * kolMonthlyAccIds.length,
+        amount_incl_owner: null,
+        amount_excl_owner: null,
+
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: kolMonthlyFixed,
@@ -838,10 +933,15 @@ serve(async (req) => {
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
         base_revenue: null,
+        base_revenue_incl_owner: null,
+        base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: venueClosingFixed,
         venue_count: hitIds.length,
         amount: Number(venueClosingFixed ?? 0) * hitIds.length,
+        amount_incl_owner: null,
+        amount_excl_owner: null,
+
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: venueClosingFixed,
@@ -886,11 +986,16 @@ serve(async (req) => {
               .update({
                 payout_month: row.payout_month,
                 base_revenue: row.base_revenue,
+                base_revenue_incl_owner: row.base_revenue_incl_owner,
+                base_revenue_excl_owner: row.base_revenue_excl_owner,
                 rate: row.rate,
                 fixed_amount: row.fixed_amount,
                 venue_count: row.venue_count,
                 amount: row.amount,
+                amount_incl_owner: row.amount_incl_owner,
+                amount_excl_owner: row.amount_excl_owner,
                 settings_snapshot: row.settings_snapshot,
+
               })
               .eq("id", existing.id);
             if (updErr) {
