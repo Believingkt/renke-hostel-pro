@@ -279,6 +279,29 @@ const MemberAuth = () => {
     }
   };
 
+  // Native app only: handle the lakeze://auth-callback deep link.
+  useEffect(() => {
+    const off = initNativeAuthListener(async (result) => {
+      if (result.ok) {
+        try {
+          await ensureMemberProfile();
+        } catch (e) {
+          console.warn("[MemberAuth] ensureMemberProfile after native login failed", e);
+        }
+        toast.success("登入成功");
+        navigate(redirectTo);
+      } else {
+        setFbLoading(false);
+        setLineLoading(false);
+        setLoading(false);
+        toast.error(result.error || "登入失敗，請重試");
+      }
+    });
+    return off;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirectTo]);
+
+
   const handleOAuthLogin = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
