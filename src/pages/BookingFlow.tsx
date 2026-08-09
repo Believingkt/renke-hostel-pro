@@ -257,6 +257,7 @@ const BookingFlow = () => {
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
   const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
+  const [allowCreditCard, setAllowCreditCard] = useState(true);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
@@ -784,7 +785,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url, child_age_rules")
+          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment")
           .eq("id", accommodationId)
           .single();
         
@@ -792,6 +793,7 @@ const BookingFlow = () => {
           setAccommodationName(infoData.name);
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
+          setAllowCreditCard((infoData as any).allow_credit_card_payment !== false);
           setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
@@ -5193,7 +5195,7 @@ const BookingFlow = () => {
                             icon: Building2,
                             desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 20 分鐘）`,
                           },
-                        ] as const).map((opt) => {
+                        ] as const).filter((opt) => opt.key !== "credit_card" || allowCreditCard).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
                           const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(getAtmDepositBreakdown().deposit);
