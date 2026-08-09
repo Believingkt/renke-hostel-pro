@@ -20,6 +20,13 @@ const MemberFacebookCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [message, setMessage] = useState("Facebook 登入處理中…");
+  const [diagnostics, setDiagnostics] = useState(() => {
+    const returnUrl = decodeReturnUrlFromState(searchParams.get("state"));
+    return {
+      nativeMode: isNativeReturnUrl(returnUrl),
+      handoffHasTokens: null as boolean | null,
+    };
+  });
   const [failure, setFailure] = useState<{ msg: string; debug?: unknown } | null>(null);
   const ranRef = useRef(false);
 
@@ -31,7 +38,18 @@ const MemberFacebookCallback = () => {
     const finish = async (path: string, tokens?: { access?: string; refresh?: string }) => {
       console.log(`[${TAG} callback] navigate →`, path);
       if (isExternalReturnUrl(path)) {
+        const handoffHasTokens = !!tokens?.access && !!tokens?.refresh;
+        setDiagnostics((current) => ({ ...current, handoffHasTokens }));
+        console.log(`[${TAG} callback] handoff token keys:`, {
+          access_token: !!tokens?.access,
+          refresh_token: !!tokens?.refresh,
+        });
         const target = await buildRedirectWithSessionHandoff(TAG, path, tokens);
+        // Temporary field diagnostic: leave enough time for the values to be
+        // visible before the custom-scheme deep link returns to the native app.
+        if (isNativeReturnUrl(path)) {
+          await new Promise((resolve) => window.setTimeout(resolve, 600));
+        }
         window.location.replace(target);
       } else {
         navigate(path, { replace: true });
@@ -44,6 +62,9 @@ const MemberFacebookCallback = () => {
       // the payment page may live on a different domain).
       const returnFromState = decodeReturnUrlFromState(state);
       console.log(`[${TAG} callback] returnFromState=`, returnFromState);
+      const nativeFlow = isNativeReturnUrl(returnFromState);
+      setDiagnostics((current) => ({ ...current, nativeMode: nativeFlow }));
+      console.log(`[${TAG} callback] detected native mode:`, nativeFlow);
 
       // 1. Pre-check: if a session already exists, skip everything.
       const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
@@ -115,7 +136,6 @@ const MemberFacebookCallback = () => {
         stateMatches: !!storedState && state === storedState,
         ua: navigator.userAgent.substring(0, 120),
       };
-      const nativeFlow = isNativeReturnUrl(returnFromState);
       if (nativeFlow) {
         console.log(`[${TAG} callback] native flow — validating from state only`);
       } else if (storedState) {
@@ -197,6 +217,13 @@ const MemberFacebookCallback = () => {
         <div className="text-center space-y-3">
           <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "hsl(24, 100%, 50%)" }} />
           <p className="text-sm text-muted-foreground">{message}</p>
+          <div className="text-xs text-muted-foreground" aria-live="polite">
+            <p>偵測到原生模式：{diagnostics.nativeMode ? "是" : "否"}</p>
+            <p>
+              handoff 帶 token：
+              {diagnostics.handoffHasTokens === null ? "等待中" : diagnostics.handoffHasTokens ? "是" : "否"}
+            </p>
+          </div>
         </div>
       )}
     </div>
