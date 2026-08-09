@@ -6,7 +6,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { bookingPath } from "@/lib/frontendUrl";
 import { initLiff, butlerApi, type LiffProfile } from "@/lib/liff";
 import {
   buildCheckoutLines,
@@ -20,12 +19,14 @@ import { toast } from "sonner";
 
 interface CartResponse {
   cart: CartItem[];
+  state?: { guests?: number } | null;
 }
 
 export default function LiffCheckout() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<LiffProfile | null>(null);
   const [items, setItems] = useState<CartItem[]>([]);
+  const [guests, setGuests] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function LiffCheckout() {
       if (p.lineUserId) {
         const res = await butlerApi<CartResponse>({ action: "get_cart", line_user_id: p.lineUserId });
         setItems(res?.cart ?? []);
+        setGuests(res?.state?.guests ?? null);
       }
       setLoading(false);
     })();
@@ -43,31 +45,45 @@ export default function LiffCheckout() {
   const stay = items.find((i): i is Extract<CartItem, { kind: "stay" }> => i.kind === "stay");
 
   const checkout = () => {
-    if (!stay) {
-      toast.error("請先在對話中選擇房型");
-      return;
-    }
-    // 同步寫入既有前台購物車，維持 /cart 與結帳流程一致
-    writeCart({ tripId: null, items });
-    stageTripCheckout({
-      tripId: null,
-      accommodationId: stay.accommodationId,
-      lines: buildCheckoutLines(items),
-    });
-    if (profile?.lineUserId) sessionStorage.setItem("liff_line_user_id", profile.lineUserId);
-    navigate(
-      bookingPath({
+    try {
+      if (!stay) {
+        toast.error("請先在對話中選擇房型");
+        return;
+      }
+      const missing: string[] = [];
+      if (!stay.accommodationId) missing.push("館別");
+      if (!stay.roomTypeId) missing.push("房型");
+      if (!stay.checkIn || !stay.checkOut) missing.push("入住日期");
+      if (missing.length) {
+        toast.error(`購物清單缺少${missing.join("、")}，請回 LINE 重新選擇`);
+        return;
+      }
+
+      // 同步寫入既有前台購物車，維持 /cart 與結帳流程一致
+      writeCart({ tripId: null, items });
+      stageTripCheckout({
+        tripId: null,
         accommodationId: stay.accommodationId,
-        params: {
-          roomId: stay.roomTypeId,
-          checkIn: stay.checkIn,
-          checkOut: stay.checkOut,
-          rooms: stay.qty,
-          step: "payment",
-        },
-      }),
-    );
+        lines: buildCheckoutLines(items),
+      });
+      if (profile?.lineUserId) sessionStorage.setItem("liff_line_user_id", profile.lineUserId);
+
+      // 直接進入既有 BookingFlow 金流頁（/book），不是館別介紹頁
+      const params = new URLSearchParams();
+      params.set("acc", stay.accommodationId);
+      params.set("roomId", stay.roomTypeId);
+      params.set("checkIn", stay.checkIn);
+      params.set("checkOut", stay.checkOut);
+      params.set("adults", String(Math.max(1, guests ?? 2)));
+      if (stay.qty > 1) params.set("rooms", String(stay.qty));
+      params.set("step", "payment");
+      navigate(`/book?${params.toString()}`);
+    } catch (err) {
+      console.error("[LiffCheckout] checkout failed", err);
+      toast.error(`無法進入付款流程：${err instanceof Error ? err.message : "未知錯誤"}`);
+    }
   };
+
 
   if (loading) return null;
 
