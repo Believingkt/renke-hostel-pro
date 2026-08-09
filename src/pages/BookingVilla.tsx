@@ -721,11 +721,27 @@ const BookingVilla = () => {
     if (checkOutStr) params.set("checkOut", checkOutStr);
     const adultsStr = searchParams.get("adults");
     const childrenStr = searchParams.get("children");
-    const roomsStr = searchParams.get("rooms");
     if (adultsStr) params.set("adults", adultsStr);
     if (childrenStr) params.set("children", childrenStr);
-    if (roomsOverride && roomsOverride > 1) params.set("rooms", String(roomsOverride));
-    else if (roomsStr) params.set("rooms", roomsStr);
+    // 房間數一律依「實際人數 ÷ 房型可住人數」推導，不沿用搜尋列殘留的 rooms 參數
+    const roomTypeForCalc: any = (secondaryData?.roomTypes || []).find(
+      (rt: any) => rt.id === opt.roomTypeId,
+    );
+    const isExclusiveForCalc = roomTypeForCalc?.is_exclusive_package === true;
+    const perRoomCapacity = Number(roomTypeForCalc?.capacity ?? 0);
+    const guestsForCalc =
+      (parseInt(adultsStr || "0", 10) || 0) +
+      (parseInt(childrenStr || "0", 10) || 0) +
+      (parseInt(searchParams.get("toddlers") || "0", 10) || 0);
+    let roomsNeeded = 1;
+    if (!isExclusiveForCalc && perRoomCapacity > 0 && guestsForCalc > 0) {
+      roomsNeeded = Math.max(1, Math.ceil(guestsForCalc / perRoomCapacity));
+      const maxUnits = Math.max(1, Number(roomTypeForCalc?.room_count ?? 1));
+      roomsNeeded = Math.min(roomsNeeded, maxUnits);
+    }
+    const finalRooms = Math.max(roomsOverride && roomsOverride > 1 ? roomsOverride : 1, roomsNeeded);
+    if (finalRooms > 1) params.set("rooms", String(finalRooms));
+
     // 帶上住宿型態，讓結帳頁「上一步」能回到正確的（包棟／單間房）方案列表
     const stayForBooking =
       stayMode ?? (exclusiveRoomTypeIds.size > 0
