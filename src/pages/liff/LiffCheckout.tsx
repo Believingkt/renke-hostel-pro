@@ -119,7 +119,8 @@ export default function LiffCheckout() {
                     {item.kind === "stay" ? `${item.checkIn} → ${item.checkOut}・${item.nights} 晚` : item.type}
                   </p>
                   <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-                    NT$ {cartSubtotal(item).toLocaleString()} × {item.qty}
+                    NT$ {cartSubtotal(item).toLocaleString()}
+                    {item.qty > 1 ? <span className="ml-1 text-xs font-normal text-muted-foreground">（×{item.qty}）</span> : null}
                   </p>
                 </div>
               </li>
