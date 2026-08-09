@@ -19,7 +19,14 @@ export interface CallbackParams {
   invokeBody: Record<string, unknown>;
   successLabel: string; // toast label
   returnUrlOverride?: string | null; // takes priority over sessionStorage
+  // Native (Capacitor) deep-link flow: the callback page runs inside an
+  // isolated in-app browser whose storage the app WebView cannot read, so
+  // establishing a session here is pointless and can fail
+  // (AuthSessionMissingError). Skip setSession and hand the raw edge-function
+  // tokens straight to `lakeze://auth-callback`.
+  nativeMode?: boolean;
 }
+
 
 export interface CallbackResult {
   ok: boolean;
