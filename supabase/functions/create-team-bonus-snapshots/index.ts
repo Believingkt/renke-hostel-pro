@@ -671,12 +671,17 @@ serve(async (req) => {
       snapshot_month: string;
       payout_month: string;
       base_revenue: number | null;
+      base_revenue_incl_owner: number | null;
+      base_revenue_excl_owner: number | null;
       rate: number | null;
       fixed_amount: number | null;
       venue_count: number | null;
       amount: number;
+      amount_incl_owner: number | null;
+      amount_excl_owner: number | null;
       settings_snapshot: Record<string, unknown>;
     }
+
     const rows: Row[] = [];
     const push = (r: Row) => {
       if (!r.member_id) return;
