@@ -32,11 +32,13 @@ export async function buildPartnershipResolver(
   if (ids.length > 0) {
     const { data } = await client
       .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .select("accommodation_id, start_date, end_date, bonus_policy, counts_closer_commission")
       .in("accommodation_id", ids);
     for (const row of (data ?? []) as any[]) {
       if (!row?.accommodation_id || !row?.start_date) continue;
       if (row?.bonus_policy === "none") continue;
+      if (row?.counts_closer_commission === false) continue;
+
       const list = byAcc.get(row.accommodation_id) ?? [];
       list.push({
         start: String(row.start_date).slice(0, 10),
