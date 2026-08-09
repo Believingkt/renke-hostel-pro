@@ -115,6 +115,9 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   else if (SEARCH_KEYWORDS.test(t) || dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
 
+  // 館別（常用簡稱）
+  const venueAlias = matchVenueAlias(t);
+
   // 地區 / 館別關鍵字（去除日期人數雜訊後的中文詞）
   const cleaned = t
     .replace(/\d{4}-\d{1,2}-\d{1,2}/g, "")
@@ -123,5 +126,13 @@ export function parseIntent(text: string, today: string): ParsedIntent {
     .trim();
   const keyword = cleaned.length >= 2 ? cleaned.slice(0, 20) : undefined;
 
-  return { intent, ...dates, guests, keyword };
+  return {
+    intent,
+    ...dates,
+    guests,
+    keyword,
+    venue: venueAlias?.canonical,
+    venueLabel: venueAlias?.label,
+  };
 }
+
