@@ -2,6 +2,7 @@
  * 小安（LINE 管家）意圖解析 — 從 portal-ai-chat 抽出的「最小必要」規則式解析。
  * 不改動 portal-ai-chat；此處僅供 line-webhook 使用。
  */
+import { matchVenueAlias } from "./lineVenueAlias.ts";
 
 export type ButlerIntent =
   | "greeting"
@@ -18,6 +19,9 @@ export interface ParsedIntent {
   nights?: number;
   guests?: number;
   keyword?: string; // 地區 / 館別關鍵字
+  venue?: string; // 指定館別 canonical（例：森山）
+  venueLabel?: string; // 指定館別顯示名稱
+
 }
 
 function pad(n: number) {
