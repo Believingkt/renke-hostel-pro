@@ -88,6 +88,7 @@ interface Accommodation {
   footer_logo_url: string | null;
   is_active: boolean;
   show_on_portal?: boolean;
+  allow_credit_card_payment?: boolean;
   building_count?: number | null;
   created_at: string;
 }
@@ -448,6 +449,32 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
       invalidateAccommodationCache(accommodation.id);
       toast.success(next ? "已在前台顯示" : "已從前台隱藏", { description: accommodation.name });
+      onRefresh();
+    } catch (error: any) {
+      toast.error("操作失敗", { description: error.message });
+    }
+  };
+
+  const handleToggleCreditCard = async (accommodation: Accommodation, next: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({ allow_credit_card_payment: next } as any)
+        .eq("id", accommodation.id);
+      if (error) throw error;
+
+      await logAction({
+        actionType: "update",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: accommodation.id,
+        entityName: accommodation.name,
+        accommodationId: accommodation.id,
+        details: { allow_credit_card_payment: next },
+      });
+
+      invalidateAccommodationCache(accommodation.id);
+      toast.success(next ? "已開放信用卡付款" : "已關閉信用卡付款", { description: accommodation.name });
       onRefresh();
     } catch (error: any) {
       toast.error("操作失敗", { description: error.message });
@@ -851,6 +878,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                       <TableHead>訂房連結</TableHead>
                       <TableHead>狀態</TableHead>
                       <TableHead>前台顯示</TableHead>
+                      <TableHead>信用卡付款</TableHead>
                       <TableHead>建立時間</TableHead>
                       <TableHead className="text-center">操作</TableHead>
                     </TableRow>
@@ -870,6 +898,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onDelete={openDeleteDialog}
                           onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
                           onTogglePortal={handleTogglePortal}
+                          onToggleCreditCard={handleToggleCreditCard}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}
