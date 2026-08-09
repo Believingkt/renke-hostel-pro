@@ -167,6 +167,21 @@ export function DraggableAccommodationRow({
         </Badge>
       </TableCell>
 
+      {/* Portal visibility */}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={accommodation.show_on_portal !== false}
+            onCheckedChange={(next) => onTogglePortal?.(accommodation, next)}
+            disabled={!onTogglePortal}
+            aria-label="前台顯示"
+          />
+          <span className="text-xs text-muted-foreground">
+            {accommodation.show_on_portal !== false ? "顯示" : "隱藏"}
+          </span>
+        </div>
+      </TableCell>
+
       {/* Created date */}
       <TableCell>
         {new Date(accommodation.created_at).toLocaleDateString("zh-TW")}
