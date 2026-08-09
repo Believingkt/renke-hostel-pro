@@ -15,9 +15,23 @@
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
+import type { PluginListenerHandle } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 
 export const NATIVE_AUTH_CALLBACK = "lakeze://auth-callback";
+
+type NativeAuthProvider = "facebook" | "line" | "google" | "apple";
+
+let nativeAuthFlight: NativeAuthProvider | null = null;
+let browserFinishedHandle: PluginListenerHandle | null = null;
+
+function clearNativeAuthFlight(reason: "callback_received" | "browser_closed" | "launch_failed"): void {
+  console.log("[nativeOAuth] single-flight cleared", { provider: nativeAuthFlight, reason });
+  nativeAuthFlight = null;
+  const handle = browserFinishedHandle;
+  browserFinishedHandle = null;
+  if (handle) void handle.remove().catch(() => {});
+}
 
 export function isNativeOAuth(): boolean {
   try {
@@ -36,8 +50,34 @@ export function encodeNativeReturnState(prefix: string, suffix?: string): string
   return suffix ? `${prefix}.${b64}.${suffix}` : `${prefix}.${b64}`;
 }
 
-export async function openNativeAuthBrowser(url: string): Promise<void> {
-  await Browser.open({ url, presentationStyle: "popover" });
+export async function openNativeAuthBrowser(
+  url: string,
+  provider: NativeAuthProvider,
+  onBrowserFinished?: () => void,
+): Promise<boolean> {
+  // React loading state updates asynchronously, so it cannot prevent two launch
+  // events in the same render frame. This module-level lock is synchronous and
+  // remains held for the complete browser + callback exchange lifecycle.
+  if (nativeAuthFlight) {
+    console.log("[nativeOAuth] duplicate launch blocked", {
+      requestedProvider: provider,
+      activeProvider: nativeAuthFlight,
+    });
+    return false;
+  }
+
+  nativeAuthFlight = provider;
+  try {
+    browserFinishedHandle = await Browser.addListener("browserFinished", () => {
+      clearNativeAuthFlight("browser_closed");
+      onBrowserFinished?.();
+    });
+    await Browser.open({ url, presentationStyle: "popover" });
+    return true;
+  } catch (error) {
+    clearNativeAuthFlight("launch_failed");
+    throw error;
+  }
 }
 
 export async function closeNativeAuthBrowser(): Promise<void> {
@@ -82,6 +122,12 @@ export function initNativeAuthListener(
     if (!url || !url.toLowerCase().startsWith("lakeze://auth-callback")) return;
     console.log("[nativeOAuth] appUrlOpen", url.split("#")[0]);
 
+    // Receiving the callback is the successful end of the browser flight. Stop
+    // the browser before session hydration so no stale provider consent page can
+    // remain visible or accept another tap while setSession is running.
+    clearNativeAuthFlight("callback_received");
+    await closeNativeAuthBrowser();
+
     const p = parseCallbackParams(url);
     // Diagnostic: which parameter keys arrived (never the values/tokens).
     console.log(
@@ -107,10 +153,8 @@ export function initNativeAuthListener(
       const { data } = await supabase.auth.getSession();
       if (!data?.session?.user) throw new Error("Session 建立失敗，請重試");
 
-      await closeNativeAuthBrowser();
       if (!disposed) onResult?.({ ok: true });
     } catch (e) {
-      await closeNativeAuthBrowser();
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[nativeOAuth] callback failed", msg);
       if (!disposed) onResult?.({ ok: false, error: msg });
@@ -133,5 +177,5 @@ export async function nativeSupabaseOAuth(provider: "google" | "apple"): Promise
   });
   if (error) throw error;
   if (!data?.url) throw new Error("未取得授權網址");
-  await openNativeAuthBrowser(data.url);
+  await openNativeAuthBrowser(data.url, provider);
 }

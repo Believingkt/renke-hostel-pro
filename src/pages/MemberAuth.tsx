@@ -365,10 +365,16 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("scope", "public_profile,email");
 
       if (native) {
-        void openNativeAuthBrowser(authorizeUrl.toString()).catch((e) => {
-          toast.error(e?.message || "無法開啟登入視窗");
+        void openNativeAuthBrowser(authorizeUrl.toString(), "facebook", () => {
           setFbLoading(false);
-        });
+        })
+          .then((opened) => {
+            if (!opened) setFbLoading(false);
+          })
+          .catch((e) => {
+            toast.error(e?.message || "無法開啟登入視窗");
+            setFbLoading(false);
+          });
         return;
       }
 
@@ -432,10 +438,16 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("nonce", nonce);
 
       if (native) {
-        void openNativeAuthBrowser(authorizeUrl.toString()).catch((e) => {
-          toast.error(e?.message || "無法開啟登入視窗");
+        void openNativeAuthBrowser(authorizeUrl.toString(), "line", () => {
           setLineLoading(false);
-        });
+        })
+          .then((opened) => {
+            if (!opened) setLineLoading(false);
+          })
+          .catch((e) => {
+            toast.error(e?.message || "無法開啟登入視窗");
+            setLineLoading(false);
+          });
         return;
       }
 
