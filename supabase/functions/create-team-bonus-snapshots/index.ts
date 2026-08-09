@@ -779,7 +779,9 @@ serve(async (req) => {
       closerProfiles.push(profile);
     }
 
-    const closerPoolAmount = companyRevenue * Number(closerPerfRate ?? 0);
+    const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
+    const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
+    const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
     const closerHeadcount = closerProfiles.length;
     for (const profile of closerProfiles) {
       push({
@@ -787,11 +789,15 @@ serve(async (req) => {
         member_id: profile.id,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: companyRevenue,
+        base_revenue: companyRevenue.payout,
+        base_revenue_incl_owner: companyRevenue.incl,
+        base_revenue_excl_owner: companyRevenue.excl,
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
         amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
+        amount_incl_owner: closerHeadcount > 0 ? closerPoolIncl / closerHeadcount : 0,
+        amount_excl_owner: closerHeadcount > 0 ? closerPoolExcl / closerHeadcount : 0,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
@@ -820,11 +826,15 @@ serve(async (req) => {
         member_id: memberId,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: companyRevenue,
+        base_revenue: companyRevenue.payout,
+        base_revenue_incl_owner: companyRevenue.incl,
+        base_revenue_excl_owner: companyRevenue.excl,
         rate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue * Number(rate ?? 0),
+        amount: companyRevenue.payout * Number(rate ?? 0),
+        amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
+        amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -843,11 +853,15 @@ serve(async (req) => {
         member_id: kolRecipientId,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: kolRevenue,
+        base_revenue: kolRevenue.payout,
+        base_revenue_incl_owner: kolRevenue.incl,
+        base_revenue_excl_owner: kolRevenue.excl,
         rate: kolRate,
         fixed_amount: null,
         venue_count: null,
-        amount: kolRevenue * Number(kolRate ?? 0),
+        amount: kolRevenue.payout * Number(kolRate ?? 0),
+        amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
+        amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
@@ -856,6 +870,7 @@ serve(async (req) => {
           role_binding: "kol_bonus_recipient",
         },
       });
+
 
       // 月費：以「該資料月有合作期間（bonus_policy != none）的館別」計價
       // （旅行日系列合併只算一館，停用館別／無合作期間不計）
