@@ -40,6 +40,7 @@ interface DraggableAccommodationRowProps {
   onToggle: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
   onGoogleReviews?: (acc: Accommodation) => void;
+  onTogglePortal?: (acc: Accommodation, next: boolean) => void;
   isDragDisabled?: boolean;
 }
 
@@ -50,6 +51,7 @@ export function DraggableAccommodationRow({
   onToggle,
   onDelete,
   onGoogleReviews,
+  onTogglePortal,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
   const {
