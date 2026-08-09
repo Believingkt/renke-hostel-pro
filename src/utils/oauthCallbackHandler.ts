@@ -150,7 +150,10 @@ export async function buildRedirectWithSessionHandoff(
       target = u.toString();
       console.log(`[${tag} callback] cross-origin handoff tokens appended`);
     } else {
-      console.warn(`[${tag} callback] cross-origin handoff missing tokens`);
+      console.warn(`[${tag} callback] cross-origin handoff missing tokens`, {
+        hasAccess: !!access,
+        hasRefresh: !!refresh,
+      });
     }
   } catch (e) {
     console.warn(`[${tag} callback] build handoff URL failed`, e);
