@@ -59,10 +59,14 @@ export const usePageAnalytics = ({ accommodationId, enabled = true }: UsePageAna
   
   useEffect(() => {
     if (!enabled || !accommodationId) return;
-    
+
+    // 記錄廣告歸因（首次接觸 + 最後點擊）
+    captureTouch();
+
     // Prevent duplicate tracking for same page
     const currentPath = window.location.pathname + window.location.search;
     if (trackedRef.current === currentPath) return;
+
     
     const trackPageView = async () => {
       try {
