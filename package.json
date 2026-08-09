@@ -13,6 +13,8 @@
     "prebuild": "bunx tsx scripts/generate-sitemap.ts"
   },
   "dependencies": {
+    "@capacitor/app": "^8",
+    "@capacitor/browser": "^8",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
     "@dnd-kit/core": "^6.3.1",

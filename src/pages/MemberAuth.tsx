@@ -32,6 +32,14 @@ import { getPasswordIssues } from "@/utils/passwordPolicy";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
 import { detectInAppBrowser, inAppBrowserLabel, shouldBlockOAuthInApp } from "@/utils/inAppBrowser";
 import { reportFrontendError } from "@/utils/errorReporter";
+import {
+  isNativeOAuth,
+  nativeSupabaseOAuth,
+  openNativeAuthBrowser,
+  encodeNativeReturnState,
+  initNativeAuthListener,
+} from "@/lib/nativeOAuth";
+
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
 
@@ -271,9 +279,38 @@ const MemberAuth = () => {
     }
   };
 
+  // Native app only: handle the lakeze://auth-callback deep link.
+  useEffect(() => {
+    const off = initNativeAuthListener(async (result) => {
+      if (result.ok) {
+        try {
+          await ensureMemberProfile();
+        } catch (e) {
+          console.warn("[MemberAuth] ensureMemberProfile after native login failed", e);
+        }
+        toast.success("登入成功");
+        navigate(redirectTo);
+      } else {
+        setFbLoading(false);
+        setLineLoading(false);
+        setLoading(false);
+        toast.error(result.error || "登入失敗，請重試");
+      }
+    });
+    return off;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirectTo]);
+
+
   const handleOAuthLogin = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
+      // Native app: Supabase OAuth → in-app browser → lakeze://auth-callback
+      if (isNativeOAuth()) {
+        await nativeSupabaseOAuth(provider);
+        return; // session arrives via the appUrlOpen listener
+      }
+
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
@@ -293,10 +330,12 @@ const MemberAuth = () => {
   const handleFacebookLogin = () => {
     if (fbLoading || lineLoading || loading) return;
 
+    const native = isNativeOAuth();
+
     // In-app browser guardrail: cross-provider is blocked (e.g. FB login inside
-    // LINE's in-app browser routinely fails silently).
+    // LINE's in-app browser routinely fails silently). Not applicable natively.
     const current = detectInAppBrowser();
-    if (shouldBlockOAuthInApp("facebook", current) && current) {
+    if (!native && shouldBlockOAuthInApp("facebook", current) && current) {
       setGuide({ target: "facebook", current });
       logLoginAttempt("failure", "facebook", { blocked_in_app: current });
       return;
@@ -307,7 +346,11 @@ const MemberAuth = () => {
     try {
 
       const appId = FACEBOOK_APP_ID;
-      const state = crypto.randomUUID();
+      // Native: carry the deep link inside `state` so the https callback page
+      // forwards the session back into the app.
+      const state = native
+        ? encodeNativeReturnState(crypto.randomUUID())
+        : crypto.randomUUID();
       const redirectUri = `${PROD_ORIGIN}/member/auth/facebook-callback`;
 
       localStorage.setItem("fb_oauth_state", state);
@@ -320,6 +363,14 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("redirect_uri", redirectUri);
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("scope", "public_profile,email");
+
+      if (native) {
+        void openNativeAuthBrowser(authorizeUrl.toString()).catch((e) => {
+          toast.error(e?.message || "無法開啟登入視窗");
+          setFbLoading(false);
+        });
+        return;
+      }
 
       // 15s timeout — if redirect hasn't happened by then, recover button.
       window.setTimeout(() => {
@@ -346,8 +397,10 @@ const MemberAuth = () => {
   const handleLineLogin = () => {
     if (fbLoading || lineLoading || loading) return;
 
+    const native = isNativeOAuth();
+
     const current = detectInAppBrowser();
-    if (shouldBlockOAuthInApp("line", current) && current) {
+    if (!native && shouldBlockOAuthInApp("line", current) && current) {
       setGuide({ target: "line", current });
       logLoginAttempt("failure", "line", { blocked_in_app: current });
       return;
@@ -357,8 +410,10 @@ const MemberAuth = () => {
     setLineLoading(true);
     try {
       const channelId = LINE_CHANNEL_ID;
-      const state = crypto.randomUUID();
       const nonce = crypto.randomUUID();
+      const state = native
+        ? encodeNativeReturnState(crypto.randomUUID(), crypto.randomUUID())
+        : crypto.randomUUID();
       const redirectUri = `${PROD_ORIGIN}/member/auth/line-callback`;
 
       localStorage.setItem("line_oauth_state", state);
@@ -373,6 +428,14 @@ const MemberAuth = () => {
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("scope", "openid profile email");
       authorizeUrl.searchParams.set("nonce", nonce);
+
+      if (native) {
+        void openNativeAuthBrowser(authorizeUrl.toString()).catch((e) => {
+          toast.error(e?.message || "無法開啟登入視窗");
+          setLineLoading(false);
+        });
+        return;
+      }
 
       window.setTimeout(() => {
         toast.error("登入啟動失敗，請檢查網路後重試", {
@@ -392,6 +455,7 @@ const MemberAuth = () => {
       setLineLoading(false);
     }
   };
+
 
   // ----- Email OTP fallback (6-digit code) -----
   const handleSendOtp = async (e: React.FormEvent) => {
