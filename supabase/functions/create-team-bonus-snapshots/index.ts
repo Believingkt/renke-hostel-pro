@@ -160,8 +160,8 @@ function nightsBetween(ci: string, co: string): number {
 }
 
 /**
- * 各館別在資料月內「可採計的日期區間」。
- * 來源：accommodation_partnership_periods（可暫停／重啟；bonus_policy = 'none' 不採計）。
+ * 各館別在資料月內「可採計的日期區間」（團隊獎金用途）。
+ * 來源：accommodation_partnership_periods（可暫停／重啟；counts_team_bonus = false 不採計）。
  * 沒有任何有效區間的館別 —— 一律不計入任何團隊獎金。
  */
 async function getCountableRangesByAcc(
@@ -178,12 +178,13 @@ async function getCountableRangesByAcc(
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
       .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .select("accommodation_id, start_date, end_date, bonus_policy, counts_team_bonus")
       .in("accommodation_id", slice);
     for (const row of (data ?? []) as any[]) {
       const accId = String(row?.accommodation_id ?? "");
       if (!accId || !row?.start_date) continue;
       if (row?.bonus_policy === "none") continue;
+      if (row?.counts_team_bonus === false) continue;
       const ps = String(row.start_date).slice(0, 10);
       const pe = row.end_date ? addOneDay(String(row.end_date).slice(0, 10)) : monthEndDate;
       const start = ps > monthStartDate ? ps : monthStartDate;
@@ -196,6 +197,36 @@ async function getCountableRangesByAcc(
   }
   return out;
 }
+
+/** 各館別的團隊獎金實付基準（含／排除業主自帶），未設定預設排除 */
+async function getPayoutBasisByAcc(
+  client: any,
+  accommodationIds: string[],
+): Promise<Record<string, "include_owner_direct" | "exclude_owner_direct">> {
+  const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+  const out: Record<string, "include_owner_direct" | "exclude_owner_direct"> = {};
+  if (accIds.length === 0) return out;
+  const latestStart = new Map<string, string>();
+  for (let i = 0; i < accIds.length; i += CHUNK) {
+    const { data } = await client
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, payout_basis")
+      .in("accommodation_id", accIds.slice(i, i + CHUNK));
+    for (const row of (data ?? []) as any[]) {
+      const accId = String(row?.accommodation_id ?? "");
+      if (!accId) continue;
+      const start = String(row?.start_date ?? "").slice(0, 10);
+      if ((latestStart.get(accId) ?? "") > start) continue;
+      latestStart.set(accId, start);
+      out[accId] =
+        row?.payout_basis === "include_owner_direct"
+          ? "include_owner_direct"
+          : "exclude_owner_direct";
+    }
+  }
+  return out;
+}
+
 
 /** 只加總「被館別設定為不列入抽成」的增值服務金額 */
 function excludedAddonTotal(
