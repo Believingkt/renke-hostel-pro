@@ -83,6 +83,11 @@ export function initNativeAuthListener(
     console.log("[nativeOAuth] appUrlOpen", url.split("#")[0]);
 
     const p = parseCallbackParams(url);
+    // Diagnostic: which parameter keys arrived (never the values/tokens).
+    console.log(
+      "[nativeOAuth] callback param keys:",
+      (Object.keys(p) as (keyof Params)[]).filter((k) => !!p[k]).join(",") || "(none)",
+    );
     try {
       if (p.error) throw new Error(p.error_description || p.error);
 

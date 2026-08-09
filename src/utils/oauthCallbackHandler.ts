@@ -19,7 +19,14 @@ export interface CallbackParams {
   invokeBody: Record<string, unknown>;
   successLabel: string; // toast label
   returnUrlOverride?: string | null; // takes priority over sessionStorage
+  // Native (Capacitor) deep-link flow: the callback page runs inside an
+  // isolated in-app browser whose storage the app WebView cannot read, so
+  // establishing a session here is pointless and can fail
+  // (AuthSessionMissingError). Skip setSession and hand the raw edge-function
+  // tokens straight to `lakeze://auth-callback`.
+  nativeMode?: boolean;
 }
+
 
 export interface CallbackResult {
   ok: boolean;
@@ -143,7 +150,10 @@ export async function buildRedirectWithSessionHandoff(
       target = u.toString();
       console.log(`[${tag} callback] cross-origin handoff tokens appended`);
     } else {
-      console.warn(`[${tag} callback] cross-origin handoff missing tokens`);
+      console.warn(`[${tag} callback] cross-origin handoff missing tokens`, {
+        hasAccess: !!access,
+        hasRefresh: !!refresh,
+      });
     }
   } catch (e) {
     console.warn(`[${tag} callback] build handoff URL failed`, e);
@@ -153,7 +163,7 @@ export async function buildRedirectWithSessionHandoff(
 }
 
 export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
-  const { tag, functionName, invokeBody, successLabel, returnUrlOverride } = p;
+  const { tag, functionName, invokeBody, successLabel, returnUrlOverride, nativeMode } = p;
 
   // 8-second timeout fallback. Whatever happens, if a session exists when the
   // timer fires, treat as success.
@@ -169,6 +179,8 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
           ok: true,
           redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
         });
       } else {
         resolve({
@@ -181,8 +193,10 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
   });
 
   const exchangePromise: Promise<CallbackResult> = (async () => {
+    let rawAccess: string | undefined;
+    let rawRefresh: string | undefined;
     try {
-      console.log(`[${tag} callback] exchange start →`, functionName);
+      console.log(`[${tag} callback] exchange start →`, functionName, "native=", !!nativeMode);
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: invokeBody,
       });
@@ -194,13 +208,31 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
       if (!data?.access_token || !data?.refresh_token) {
         throw new Error(data?.error || "未收到 Supabase session");
       }
+      rawAccess = data.access_token as string;
+      rawRefresh = data.refresh_token as string;
+
+      // Native deep-link flow: never establish the session in this isolated
+      // in-app browser — hand the raw tokens back to the app instead. Both
+      // access_token and refresh_token are guaranteed present at this point.
+      if (nativeMode) {
+        console.log(`[${tag} callback] native mode — forwarding raw tokens without setSession`);
+        return {
+          ok: true,
+          redirectTo: pickRedirect(returnUrlOverride),
+          successMessage: `${successLabel}登入成功`,
+          accessToken: rawAccess,
+          refreshToken: rawRefresh,
+        };
+      }
+
       console.log(`[${tag} callback] exchange success, calling setSession`);
 
       const { error: setErr } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        access_token: rawAccess,
+        refresh_token: rawRefresh,
       });
       if (setErr) throw setErr;
+
 
       // Confirm session is really there before navigating.
       const { data: confirm } = await supabase.auth.getSession();
@@ -234,6 +266,21 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
           ok: true,
           redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+        };
+      }
+      // We already hold valid tokens from the edge function; only the local
+      // session write failed (common inside isolated in-app browsers). Forward
+      // them so the app / target origin can establish the session itself.
+      if (rawAccess && rawRefresh) {
+        console.warn(`[${tag} callback] setSession failed but raw tokens available — forwarding`);
+        return {
+          ok: true,
+          redirectTo: pickRedirect(returnUrlOverride),
+          successMessage: `${successLabel}登入成功`,
+          accessToken: rawAccess,
+          refreshToken: rawRefresh,
         };
       }
       return {
@@ -241,6 +288,7 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
         redirectTo: "/member/auth",
         errorMessage: err?.message || `${successLabel}登入失敗`,
       };
+
     }
   })();
 

@@ -144,6 +144,7 @@ const MemberFacebookCallback = () => {
         invokeBody: { code, redirectUri },
         successLabel: LABEL,
         returnUrlOverride: returnFromState,
+        nativeMode: nativeFlow,
       });
 
       cleanup();
