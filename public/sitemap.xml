@@ -16,12 +16,17 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://booking.lakeze.com/booking/villa/f8bb11b8-ce45-4226-b3d6-14f3323c94ff</loc>
+    <loc>https://booking.lakeze.com/booking/villa/6b6ac0dc-602b-4dec-9167-7791ac412ba3</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://booking.lakeze.com/booking/villa/6b6ac0dc-602b-4dec-9167-7791ac412ba3</loc>
+    <loc>https://booking.lakeze.com/booking/villa/31630840-4da5-4384-b924-c4a7a19c9eab</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://booking.lakeze.com/booking/villa/f8bb11b8-ce45-4226-b3d6-14f3323c94ff</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -32,11 +37,6 @@
   </url>
   <url>
     <loc>https://oliviaboutiquehotel.lakeze.com/booking/villa/74d064f4-1f8c-47e8-9be0-f0a596bbe6f8</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://booking.lakeze.com/booking/villa/31630840-4da5-4384-b924-c4a7a19c9eab</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
