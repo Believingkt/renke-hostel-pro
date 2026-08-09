@@ -128,10 +128,18 @@ export async function getRevenueSourceWhitelist(
 
 const CHUNK = 500;
 
+export type PayoutBasis = "include_owner_direct" | "exclude_owner_direct";
+
 export interface PartnershipPeriod {
   start_date: string;
   end_date: string | null;
   bonus_policy: "full" | "none";
+  /** 該段是否採計「成交大師獎金」（成交組分潤／影音分潤） */
+  counts_closer_commission: boolean;
+  /** 該段是否採計「團隊獎金」（AM／成交組績效、總管、網紅、場域） */
+  counts_team_bonus: boolean;
+  /** 該館團隊獎金實付基準（含／排除業主自帶） */
+  payout_basis: PayoutBasis;
 }
 
 /** 可採計的日期區間（start 含、end 排他） */
@@ -156,19 +164,42 @@ export async function getPartnershipPeriods(
     const slice = accIds.slice(i, i + CHUNK);
     const { data } = await client
       .from("accommodation_partnership_periods")
-      .select("accommodation_id, start_date, end_date, bonus_policy")
+      .select(
+        "accommodation_id, start_date, end_date, bonus_policy, counts_closer_commission, counts_team_bonus, payout_basis",
+      )
       .in("accommodation_id", slice);
     for (const row of (data ?? []) as any[]) {
       const accId = String(row?.accommodation_id ?? "");
       if (!accId || !row?.start_date) continue;
+      const legacyNone = row.bonus_policy === "none";
       const list = out[accId] ?? [];
       list.push({
         start_date: String(row.start_date).slice(0, 10),
         end_date: row.end_date ? String(row.end_date).slice(0, 10) : null,
-        bonus_policy: row.bonus_policy === "none" ? "none" : "full",
+        bonus_policy: legacyNone ? "none" : "full",
+        counts_closer_commission: row.counts_closer_commission !== false && !legacyNone,
+        counts_team_bonus: row.counts_team_bonus !== false && !legacyNone,
+        payout_basis:
+          row.payout_basis === "include_owner_direct"
+            ? "include_owner_direct"
+            : "exclude_owner_direct",
       });
       out[accId] = list;
     }
+  }
+  return out;
+}
+
+/** 各館別的團隊獎金實付基準（無設定時預設排除業主自帶）。取最新一段的設定。 */
+export async function getPayoutBasisByAcc(
+  client: any,
+  accommodationIds: string[],
+): Promise<Record<string, PayoutBasis>> {
+  const periods = await getPartnershipPeriods(client, accommodationIds);
+  const out: Record<string, PayoutBasis> = {};
+  for (const [accId, list] of Object.entries(periods)) {
+    const latest = [...list].sort((a, b) => a.start_date.localeCompare(b.start_date)).pop();
+    out[accId] = latest?.payout_basis ?? "exclude_owner_direct";
   }
   return out;
 }
@@ -179,15 +210,21 @@ function addOneDay(date: string): string {
   return dt.toISOString().slice(0, 10);
 }
 
-/** 把合作期間與資料月交集，換成可採計區間（bonus_policy = 'none' 的期間直接排除） */
+/** 採計用途：團隊獎金 vs 成交大師獎金（成交組／影音分潤） */
+export type CountablePurpose = "team_bonus" | "closer_commission";
+
+/** 把合作期間與資料月交集，換成可採計區間（不採計該用途的期間直接排除） */
 export function periodsToCountableRanges(
   periods: PartnershipPeriod[] | undefined,
   monthStartDate: string,
   monthEndDate: string,
+  purpose: CountablePurpose = "team_bonus",
 ): CountableRange[] {
   const out: CountableRange[] = [];
   for (const p of periods ?? []) {
-    if (p.bonus_policy !== "full") continue;
+    const counts =
+      purpose === "closer_commission" ? p.counts_closer_commission : p.counts_team_bonus;
+    if (!counts) continue;
     const start = p.start_date > monthStartDate ? p.start_date : monthStartDate;
     const periodEnd = p.end_date ? addOneDay(p.end_date) : monthEndDate;
     const end = periodEnd < monthEndDate ? periodEnd : monthEndDate;
@@ -202,11 +239,17 @@ export async function getCountableRangesByAcc(
   accommodationIds: string[],
   monthStartDate: string,
   monthEndDate: string,
+  purpose: CountablePurpose = "team_bonus",
 ): Promise<Record<string, CountableRange[]>> {
   const periods = await getPartnershipPeriods(client, accommodationIds);
   const out: Record<string, CountableRange[]> = {};
   for (const accId of Object.keys(periods)) {
-    const ranges = periodsToCountableRanges(periods[accId], monthStartDate, monthEndDate);
+    const ranges = periodsToCountableRanges(
+      periods[accId],
+      monthStartDate,
+      monthEndDate,
+      purpose,
+    );
     if (ranges.length > 0) out[accId] = ranges;
   }
   return out;
@@ -234,7 +277,7 @@ export async function getAccommodationRevenue(
 }
 
 /**
- * 同上，但回傳「各館別」的營收明細（只含有營收的館別）。
+ * 雙軌營收：各館別「含業主自帶 / 排除業主自帶」的基準營收。
  *
  * 採計範圍：各館合作期間（可暫停／重啟）與資料月的交集。
  * 沒有任何有效合作期間的館別一律略過（不計入任何團隊獎金）。
@@ -242,16 +285,16 @@ export async function getAccommodationRevenue(
  * 口徑：資料月 >= STAY_REVENUE_SWITCH_MONTH 改用「入住營收」（與業主月結一致），
  * 之前的月份維持舊口徑（order_date + team_commission_price）。
  */
-export async function getAccommodationRevenueByAcc(
+export async function getAccommodationRevenueDualByAcc(
   client: any,
   accommodationIds: string[],
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
-): Promise<Record<string, number>> {
+): Promise<Record<string, DualRevenue>> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  const out: Record<string, number> = {};
+  const out: Record<string, DualRevenue> = {};
   if (accIds.length === 0 || sources.length === 0) return out;
 
   const rangesByAcc = await getCountableRangesByAcc(
@@ -259,10 +302,11 @@ export async function getAccommodationRevenueByAcc(
     accIds,
     monthStartDate,
     monthEndDate,
+    "team_bonus",
   );
 
   if (usesStayRevenue(monthStartDate)) {
-    return await getStayRevenueByAcc(
+    return await getStayRevenueDualByAcc(
       client,
       accIds,
       monthStartDate,
@@ -278,7 +322,9 @@ export async function getAccommodationRevenueByAcc(
     for (const range of ranges) {
       const { data } = await client
         .from("orders")
-        .select("id, accommodation_id, order_meta(team_commission_price, is_excluded)")
+        .select(
+          "id, accommodation_id, owner_direct, order_meta(team_commission_price, is_excluded)",
+        )
         .eq("accommodation_id", accId)
         .gte("order_date", range.start)
         .lt("order_date", range.end)
@@ -292,12 +338,42 @@ export async function getAccommodationRevenueByAcc(
         if (meta.is_excluded === true) continue;
         const amt = Number(meta.team_commission_price ?? 0) || 0;
         if (!amt) continue;
-        out[accId] = (out[accId] ?? 0) + amt;
+        const cur = out[accId] ?? { incl: 0, excl: 0 };
+        cur.incl += amt;
+        if (row?.owner_direct !== true) cur.excl += amt;
+        out[accId] = cur;
       }
     }
   }
   return out;
 }
+
+/**
+ * 各館別營收（單軌）。依各館 payout_basis 決定回傳含／排除業主自帶的金額。
+ * 未設定者預設「排除業主自帶」。
+ */
+export async function getAccommodationRevenueByAcc(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+  allowedSources: string[],
+): Promise<Record<string, number>> {
+  const dual = await getAccommodationRevenueDualByAcc(
+    client,
+    accommodationIds,
+    monthStartDate,
+    monthEndDate,
+    allowedSources,
+  );
+  const basis = await getPayoutBasisByAcc(client, Object.keys(dual));
+  const out: Record<string, number> = {};
+  for (const [accId, v] of Object.entries(dual)) {
+    out[accId] = basis[accId] === "include_owner_direct" ? v.incl : v.excl;
+  }
+  return out;
+}
+
 
 
 
