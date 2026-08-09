@@ -19,7 +19,10 @@ export interface ButlerCartStay {
   checkIn: string;
   checkOut: string;
   nights: number;
+  /** 顯示用每晚均價（僅顯示，不參與加總） */
   unitPrice: number;
+  /** 單一房間整段 stay 的實價（唯一計價來源） */
+  stayTotal?: number;
   qty: number;
   coverUrl?: string | null;
 }
@@ -559,6 +562,16 @@ export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
   };
 }
 
+/** 單一價格來源：住宿用 stayTotal（整段實價），沒有才回退逐晚均價 */
+export function cartLineTotal(i: ButlerCartItem): number {
+  if (i.kind === "stay") {
+    const stayTotal = Number(i.stayTotal ?? 0) ||
+      Math.round(i.unitPrice * Math.max(1, i.nights));
+    return stayTotal * Math.max(1, i.qty);
+  }
+  return i.unitPrice * i.qty;
+}
+
 export function cartSummary(items: ButlerCartItem[], liffUrl: string | null): OutgoingMessage {
   const lines = items.map((i) => ({
     type: "box",
@@ -573,17 +586,14 @@ export function cartSummary(items: ButlerCartItem[], liffUrl: string | null): Ou
       },
       {
         type: "text",
-        text: money(i.kind === "stay" ? i.unitPrice * i.qty * Math.max(1, i.nights) : i.unitPrice * i.qty),
+        text: money(cartLineTotal(i)),
         size: "sm",
         align: "end",
         flex: 3,
       },
     ],
   }));
-  const total = items.reduce(
-    (s, i) => s + (i.kind === "stay" ? i.unitPrice * i.qty * Math.max(1, i.nights) : i.unitPrice * i.qty),
-    0,
-  );
+  const total = items.reduce((s, i) => s + cartLineTotal(i), 0);
   return {
     type: "flex",
     altText: "購物清單",
@@ -853,6 +863,7 @@ async function handlePostback(
         checkOut,
         nights,
         unitPrice: Math.round(picked.totalPrice / nights),
+        stayTotal: picked.totalPrice,
         qty: 1,
         coverUrl: picked.coverUrl,
       },
