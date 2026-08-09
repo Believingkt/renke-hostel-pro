@@ -171,6 +171,30 @@ async function handleEvents(channel: any, events: any[]) {
             is_active: true,
           });
         }
+
+        // 行銷數據分析：記錄加好友事件與來源
+        await supabase.from("line_follow_events").insert({
+          channel_id: channel.id,
+          line_user_id: userId,
+          event_type: "follow",
+          source_param: ev.follow?.source ?? null,
+          occurred_at: ev.timestamp ? new Date(ev.timestamp).toISOString() : new Date().toISOString(),
+          raw_event: ev,
+        });
+      } else if (ev.type === "unfollow" && ev.source?.type === "user") {
+        await supabase.from("line_push_targets")
+          .update({ is_active: false })
+          .eq("target_type", "user")
+          .eq("target_id", ev.source.userId);
+
+        await supabase.from("line_follow_events").insert({
+          channel_id: channel.id,
+          line_user_id: ev.source.userId,
+          event_type: "unfollow",
+          occurred_at: ev.timestamp ? new Date(ev.timestamp).toISOString() : new Date().toISOString(),
+          raw_event: ev,
+        });
+
       } else if (ev.type === "message" && ev.message?.type === "text" && ev.source?.type === "user") {
         const text: string = (ev.message.text ?? "").trim();
         const m = text.match(/(?:text=)?bind:([a-f0-9-]+)/i);
