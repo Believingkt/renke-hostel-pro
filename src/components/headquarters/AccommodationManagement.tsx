@@ -824,6 +824,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                       
                       <TableHead>訂房連結</TableHead>
                       <TableHead>狀態</TableHead>
+                      <TableHead>前台顯示</TableHead>
                       <TableHead>建立時間</TableHead>
                       <TableHead className="text-center">操作</TableHead>
                     </TableRow>
@@ -842,6 +843,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
                           onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
+                          onTogglePortal={handleTogglePortal}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}
