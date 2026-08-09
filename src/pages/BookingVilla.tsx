@@ -1577,7 +1577,7 @@ const BookingVilla = () => {
               }}
             >
               {capacityAlert?.proceed
-                ? `加訂 ${capacityAlert.addRooms?.needed} 間並繼續`
+                ? `共訂 ${capacityAlert.addRooms?.needed} 間並繼續`
                 : "調整搜尋條件"}
             </AlertDialogAction>
           </AlertDialogFooter>
