@@ -55,7 +55,9 @@ export function resolveLiffLanding(
     merged.delete("page");
   }
 
-  if (targetPath === pathname && rawState === null) return null;
+  const pageConsumed = Boolean(page && PAGE_ROUTES[page]);
+  if (rawState === null && !pageConsumed) return null;
+
   if (!targetPath.startsWith("/liff/")) return null;
 
   const qs = merged.toString();
