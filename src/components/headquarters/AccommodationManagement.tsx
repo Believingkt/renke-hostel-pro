@@ -437,7 +437,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       if (error) throw error;
 
       await logAction({
-        action: "update",
+        actionType: "update",
+        actionCategory: "accommodation",
         entityType: "accommodation",
         entityId: accommodation.id,
         entityName: accommodation.name,
