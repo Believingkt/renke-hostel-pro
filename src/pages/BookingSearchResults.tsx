@@ -236,6 +236,7 @@ const BookingSearchResults = () => {
             .from("accommodation_info")
             .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos, child_age_rules")
             .eq("is_active", true)
+            .eq("show_on_portal", true)
             .order("display_order", { ascending: true, nullsFirst: false }),
           supabase
             .from("room_types")
