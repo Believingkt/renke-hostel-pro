@@ -24,6 +24,7 @@ const Analytics = () => {
         <TabsList>
           <TabsTrigger value="traffic">流量總覽</TabsTrigger>
           <TabsTrigger value="performance">成效監控</TabsTrigger>
+          <TabsTrigger value="marketing">行銷數據分析</TabsTrigger>
         </TabsList>
         <TabsContent value="traffic" className="mt-4">
           <AnalyticsDashboard accommodationId={accommodationId} />
@@ -31,7 +32,11 @@ const Analytics = () => {
         <TabsContent value="performance" className="mt-4">
           <SalesServiceAnalyticsTab accommodationId={accommodationId} />
         </TabsContent>
+        <TabsContent value="marketing" className="mt-4">
+          <MarketingAnalyticsTab accommodationId={accommodationId} />
+        </TabsContent>
       </Tabs>
+
     </AdminPageHeader>
   );
 };
