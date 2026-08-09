@@ -148,6 +148,7 @@ interface AccommodationInfo {
   footer_logo_url?: string | null;
   theme_preset?: string | null;
   is_active?: boolean;
+  show_on_portal?: boolean;
   building_count?: number | null;
   display_order?: number | null;
   created_at?: string;
@@ -336,7 +337,7 @@ const Headquarters = () => {
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
-      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, short_name, header_logo_url, footer_logo_url, theme_preset, is_active, created_at, display_order, building_count, bundled_lock_inventory, package_inventory_as_one")
+      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, short_name, header_logo_url, footer_logo_url, theme_preset, is_active, show_on_portal, created_at, display_order, building_count, bundled_lock_inventory, package_inventory_as_one")
       .order("display_order", { ascending: true });
 
 

@@ -87,6 +87,7 @@ interface Accommodation {
   header_logo_url: string | null;
   footer_logo_url: string | null;
   is_active: boolean;
+  show_on_portal?: boolean;
   building_count?: number | null;
   created_at: string;
 }
