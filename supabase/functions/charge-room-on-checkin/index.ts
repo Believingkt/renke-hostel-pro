@@ -139,17 +139,31 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    let performedBy: string | null = null;
-    const authHeader = req.headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const { data } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-      performedBy = data?.user?.id ?? null;
-    }
+    // Authorize caller: service-role (cron) is trusted; everyone else must be
+    // staff/admin with edit rights on the order's accommodation.
+    const auth = await resolveCaller(req);
+    if (!auth.ok) return unauthorizedResponse(corsHeaders, auth.error);
+    const ctx = auth.ctx;
+    const performedBy: string | null = ctx.userId;
 
     if (body?.orderId) {
+      const { data: orderRow } = await supabase
+        .from("orders")
+        .select("accommodation_id")
+        .eq("id", body.orderId)
+        .maybeSingle();
+      if (!orderRow) return json({ success: false, message: "找不到訂單" });
+      if (!(await canEditModule(ctx, orderRow.accommodation_id, "orders"))) {
+        return forbiddenResponse(corsHeaders);
+      }
       const r = await chargeOne(supabase, body.orderId, body.triggerSource ?? "manual", performedBy);
       return json(r);
     }
+
+    // batch path: service-role / super_admin only
+    if (!isSuperAdmin(ctx)) return forbiddenResponse(corsHeaders);
+
+
 
     // batch：處理「今天（含以前遺漏）入住」且已綁卡尚未扣款的訂單
     const today = taipeiToday();
