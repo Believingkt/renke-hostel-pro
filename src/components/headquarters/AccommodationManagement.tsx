@@ -42,10 +42,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Palette, GripVertical, Trash2 } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Palette, GripVertical, Trash2, CreditCard } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
+import { BatchCreditCardDialog } from "./BatchCreditCardDialog";
 import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
@@ -455,6 +456,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
     }
   };
 
+  const [batchCardOpen, setBatchCardOpen] = useState(false);
+
   const handleToggleCreditCard = async (accommodation: Accommodation, next: boolean) => {
     try {
       const { error } = await supabase
@@ -828,6 +831,14 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                   <SelectItem value="inactive">已停用</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                onClick={() => setBatchCardOpen(true)}
+                className="w-full sm:w-auto"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                批次信用卡付款
+              </Button>
             </div>
           )}
 
