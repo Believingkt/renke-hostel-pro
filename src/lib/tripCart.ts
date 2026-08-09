@@ -68,7 +68,11 @@ export function clearCart() {
 }
 
 export function cartSubtotal(item: CartItem): number {
-  if (item.kind === "stay") return item.unitPrice * item.qty * Math.max(1, item.nights);
+  if (item.kind === "stay") {
+    const stayTotal =
+      Number(item.stayTotal ?? 0) || Math.round(item.unitPrice * Math.max(1, item.nights));
+    return stayTotal * Math.max(1, item.qty);
+  }
   return item.unitPrice * item.qty;
 }
 
