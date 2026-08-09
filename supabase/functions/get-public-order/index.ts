@@ -60,7 +60,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const { order_number, accommodation_id } = await req.json();
 
-    if (!order_number) {
+    if (!order_number || typeof order_number !== "string" || !/^[A-Za-z0-9-]{4,32}$/.test(order_number)) {
+      bucket.misses += 1;
       return new Response(
         JSON.stringify({ error: "missing parameters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -85,11 +86,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     if (error) throw error;
     if (!data) {
+      bucket.misses += 1;
       return new Response(
         JSON.stringify({ error: "not_found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     // Fetch accommodation name
     const { data: accData } = await admin
