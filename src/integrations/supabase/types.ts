@@ -5049,6 +5049,39 @@ export type Database = {
           },
         ]
       }
+      line_sessions: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          last_intent: string | null
+          line_user_id: string
+          member_user_id: string | null
+          state: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_intent?: string | null
+          line_user_id: string
+          member_user_id?: string | null
+          state?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_intent?: string | null
+          line_user_id?: string
+          member_user_id?: string | null
+          state?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       location_info: {
         Row: {
           accommodation_id: string | null
@@ -5897,6 +5930,7 @@ export type Database = {
           kol_commission_only: boolean | null
           last_confirmed_commission_price: number | null
           last_confirmed_final_price: number | null
+          line_user_id: string | null
           member_number: string | null
           nickname: string | null
           order_id: string
@@ -5937,6 +5971,7 @@ export type Database = {
           kol_commission_only?: boolean | null
           last_confirmed_commission_price?: number | null
           last_confirmed_final_price?: number | null
+          line_user_id?: string | null
           member_number?: string | null
           nickname?: string | null
           order_id: string
@@ -5977,6 +6012,7 @@ export type Database = {
           kol_commission_only?: boolean | null
           last_confirmed_commission_price?: number | null
           last_confirmed_final_price?: number | null
+          line_user_id?: string | null
           member_number?: string | null
           nickname?: string | null
           order_id?: string
@@ -10873,6 +10909,36 @@ export type Database = {
           last_synced_at?: string | null
           phone?: string | null
           updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      trip_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          line_user_id: string | null
+          meta: Json
+          ref_id: string
+          ref_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_user_id?: string | null
+          meta?: Json
+          ref_id: string
+          ref_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_user_id?: string | null
+          meta?: Json
+          ref_id?: string
+          ref_type?: string
           user_id?: string | null
         }
         Relationships: []
