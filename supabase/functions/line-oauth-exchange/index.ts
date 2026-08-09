@@ -21,6 +21,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { findUserByEmail } from "../_shared/findUserByEmail.ts";
 
 interface ExchangeBody {
   code?: string;
@@ -197,27 +198,12 @@ Deno.serve(async (req) => {
   // getUserByEmail helper).
   let userId: string | null = null;
   let existingMetadata: Record<string, unknown> = {};
-  try {
-    const lookupResp = await fetch(
-      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-      {
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-      },
-    );
-    if (lookupResp.ok) {
-      const lookup = await lookupResp.json();
-      const users = Array.isArray(lookup?.users) ? lookup.users : [];
-      const match = users.find((u: any) => (u.email || "").toLowerCase() === email.toLowerCase());
-      if (match?.id) {
-        userId = match.id;
-        existingMetadata = match.raw_user_meta_data || match.user_metadata || {};
-      }
+  {
+    const found = await findUserByEmail(supabaseUrl, serviceRoleKey, email);
+    if (found) {
+      userId = found.id;
+      existingMetadata = found.metadata;
     }
-  } catch (err) {
-    console.warn("admin user lookup failed", err);
   }
 
   const reactivationMetadata = {
@@ -237,10 +223,21 @@ Deno.serve(async (req) => {
       user_metadata: reactivationMetadata,
     });
     if (createErr || !created?.user?.id) {
-      console.error("createUser failed", createErr);
-      return json({ error: createErr?.message || "建立帳號失敗" }, 500);
+      // Race / stale-lookup safety: the account may already exist.
+      const retry =
+        /already been registered|email_exists/i.test(createErr?.message || "")
+          ? await findUserByEmail(supabaseUrl, serviceRoleKey, email)
+          : null;
+      if (retry) {
+        userId = retry.id;
+        await admin.auth.admin.updateUserById(userId, { user_metadata: reactivationMetadata });
+      } else {
+        console.error("createUser failed", createErr);
+        return json({ error: createErr?.message || "建立帳號失敗" }, 500);
+      }
+    } else {
+      userId = created.user.id;
     }
-    userId = created.user.id;
   } else {
     // Refresh metadata in case display name / avatar changed.
     await admin.auth.admin.updateUserById(userId, {
