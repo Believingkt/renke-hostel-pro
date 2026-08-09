@@ -34,6 +34,12 @@ const NATIVE_AUTH_LOCK_KEY = "native_oauth_launch_lock";
 let nativeAuthFlight: NativeAuthFlight | null = null;
 let browserFinishedHandle: PluginListenerHandle | null = null;
 
+function detachBrowserFinishedListener(): void {
+  const handle = browserFinishedHandle;
+  browserFinishedHandle = null;
+  if (handle) void handle.remove().catch(() => {});
+}
+
 function readPersistedFlight(): NativeAuthFlight | null {
   try {
     const raw = localStorage.getItem(NATIVE_AUTH_LOCK_KEY);
@@ -77,9 +83,7 @@ function clearNativeAuthFlight(reason: "callback_received" | "browser_closed" | 
   console.log("[nativeOAuth] single-flight cleared", { provider: flight?.provider ?? null, source: flight?.source ?? null, reason });
   nativeAuthFlight = null;
   persistFlight(null);
-  const handle = browserFinishedHandle;
-  browserFinishedHandle = null;
-  if (handle) void handle.remove().catch(() => {});
+  detachBrowserFinishedListener();
 }
 
 export function isNativeOAuth(): boolean {
@@ -176,10 +180,10 @@ export function initNativeAuthListener(
     if (!url || !url.toLowerCase().startsWith("lakeze://auth-callback")) return;
     console.log("[nativeOAuth] appUrlOpen", url.split("#")[0]);
 
-    // Receiving the callback is the successful end of the browser flight. Stop
-    // the browser before session hydration so no stale provider consent page can
-    // remain visible or accept another tap while setSession is running.
-    clearNativeAuthFlight("callback_received");
+    // Keep the launch lock through the complete callback/session hydration.
+    // Remove the browserFinished listener first so Browser.close() cannot clear
+    // the lock while setSession is still pending.
+    detachBrowserFinishedListener();
     await closeNativeAuthBrowser();
 
     const p = parseCallbackParams(url);
@@ -212,6 +216,8 @@ export function initNativeAuthListener(
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[nativeOAuth] callback failed", msg);
       if (!disposed) onResult?.({ ok: false, error: msg });
+    } finally {
+      clearNativeAuthFlight("callback_received");
     }
   });
 
