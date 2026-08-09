@@ -17,7 +17,10 @@ export interface CartStayItem {
   checkIn: string;
   checkOut: string;
   nights: number;
+  /** 顯示用每晚均價（僅顯示，不得參與加總） */
   unitPrice: number;
+  /** 單一房間整段 stay 的實價（唯一計價來源） */
+  stayTotal?: number;
   qty: number;
   coverUrl?: string | null;
 }
