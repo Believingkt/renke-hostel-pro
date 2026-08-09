@@ -1,8 +1,12 @@
 // 合作期間 gate：以 accommodation_partnership_periods 判斷該館別在訂單日是否處於
-// 可採計的合作期間（bonus_policy = 'none' 或無任何期間 → 不採計）。
+// 可採計「成交大師獎金」（成交組分潤／影音分潤）的合作期間。
+//
+// 判定依據為 counts_closer_commission（舊資料 bonus_policy='none' 已同步為 false）。
+// 無任何期間 → 不採計。
 //
 // 由 create-commission-snapshots 與 preview-closer-commission 共用，確保
 // 「業績統計」與「發放管理」口徑一致。
+
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
