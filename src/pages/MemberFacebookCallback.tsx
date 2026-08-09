@@ -8,6 +8,7 @@ import {
   runOAuthExchange,
   decodeReturnUrlFromState,
   isExternalReturnUrl,
+  isNativeReturnUrl,
   buildRedirectWithSessionHandoff,
 } from "@/utils/oauthCallbackHandler";
 
@@ -114,7 +115,10 @@ const MemberFacebookCallback = () => {
         stateMatches: !!storedState && state === storedState,
         ua: navigator.userAgent.substring(0, 120),
       };
-      if (storedState) {
+      const nativeFlow = isNativeReturnUrl(returnFromState);
+      if (nativeFlow) {
+        console.log(`[${TAG} callback] native flow — validating from state only`);
+      } else if (storedState) {
         if (state !== storedState) {
           console.warn(`[${TAG} callback] state mismatch`, stateDebug);
           fail("Facebook 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。", stateDebug);
@@ -125,12 +129,14 @@ const MemberFacebookCallback = () => {
         fail("Facebook 登入資訊遺失，請回到登入頁重新登入。", stateDebug);
         return;
       }
-      if (expired) {
+      if (!nativeFlow && expired) {
         fail("Facebook 登入已逾時，請重新登入");
         return;
       }
 
-      const redirectUri = storedRedirect || FALLBACK_REDIRECT_URI;
+      // Must be character-identical to the authorize redirect_uri. Native runs
+      // never have storedRedirect, so always use the canonical constant.
+      const redirectUri = nativeFlow ? FALLBACK_REDIRECT_URI : (storedRedirect || FALLBACK_REDIRECT_URI);
 
       const result = await runOAuthExchange({
         tag: TAG,
