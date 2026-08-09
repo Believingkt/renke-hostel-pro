@@ -108,8 +108,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch (err: any) {
     console.error("get-public-order error:", err);
     return new Response(
-      JSON.stringify({ error: err?.message ?? "internal_error" }),
+      JSON.stringify({ error: "internal_error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   }
 });
