@@ -7,6 +7,7 @@ import {
   preCheckExistingSession,
   runOAuthExchange,
   decodeReturnUrlFromState,
+  isExternalReturnUrl,
   buildRedirectWithSessionHandoff,
 } from "@/utils/oauthCallbackHandler";
 
@@ -28,7 +29,7 @@ const MemberFacebookCallback = () => {
 
     const finish = async (path: string, tokens?: { access?: string; refresh?: string }) => {
       console.log(`[${TAG} callback] navigate →`, path);
-      if (/^https?:\/\//i.test(path)) {
+      if (isExternalReturnUrl(path)) {
         const target = await buildRedirectWithSessionHandoff(TAG, path, tokens);
         window.location.replace(target);
       } else {

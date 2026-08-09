@@ -49,6 +49,15 @@ function pickRedirect(override?: string | null): string {
  * Decode `<random>.<base64url(returnUrl)>` state produced by the payment page.
  * Returns null if the state does not match this format or decoding fails.
  */
+/**
+ * True for absolute return targets we forward to: https(s) pages and the
+ * native app deep link (lakeze://auth-callback, Capacitor iOS/Android).
+ */
+export function isExternalReturnUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url) || /^lakeze:\/\//i.test(url);
+}
+
 export function decodeReturnUrlFromState(state: string | null | undefined): string | null {
   if (!state || !state.includes(".")) return null;
   try {
@@ -59,7 +68,7 @@ export function decodeReturnUrlFromState(state: string | null | undefined): stri
     if (!b64) return null;
     const padded = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
     const decoded = decodeURIComponent(escape(atob(padded)));
-    if (/^https?:\/\//i.test(decoded)) return decoded;
+    if (isExternalReturnUrl(decoded)) return decoded;
     return null;
   } catch {
     return null;
@@ -92,7 +101,7 @@ export async function buildRedirectWithSessionHandoff(
   path: string,
   tokens?: SessionHandoffTokens,
 ): Promise<string> {
-  if (!/^https?:\/\//i.test(path)) return path;
+  if (!isExternalReturnUrl(path)) return path;
 
   let target = path;
   try {
