@@ -24,6 +24,8 @@ vi.mock("@/utils/oauthCallbackHandler", () => ({
   preCheckExistingSession: (...a: unknown[]) => preCheckExistingSessionMock(...a),
   runOAuthExchange: (...a: unknown[]) => runOAuthExchangeMock(...a),
   decodeReturnUrlFromState: () => null,
+  isExternalReturnUrl: () => false,
+  isNativeReturnUrl: () => false,
   buildRedirectWithSessionHandoff: async (_tag: string, p: string) => p,
 }));
 

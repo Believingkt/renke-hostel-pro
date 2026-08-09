@@ -58,6 +58,16 @@ export function isExternalReturnUrl(url: string | null | undefined): boolean {
   return /^https?:\/\//i.test(url) || /^lakeze:\/\//i.test(url);
 }
 
+/**
+ * Native (Capacitor) flows authorize inside an isolated in-app browser that
+ * cannot read the app WebView's localStorage. Everything the callback needs is
+ * therefore encoded into the OAuth `state` itself; when the state carries the
+ * `lakeze://` deep link we validate against the state alone.
+ */
+export function isNativeReturnUrl(url: string | null | undefined): boolean {
+  return !!url && /^lakeze:\/\//i.test(url);
+}
+
 export function decodeReturnUrlFromState(state: string | null | undefined): string | null {
   if (!state || !state.includes(".")) return null;
   try {

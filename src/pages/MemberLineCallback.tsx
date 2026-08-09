@@ -8,6 +8,7 @@ import {
   runOAuthExchange,
   decodeReturnUrlFromState,
   isExternalReturnUrl,
+  isNativeReturnUrl,
   buildRedirectWithSessionHandoff,
 } from "@/utils/oauthCallbackHandler";
 
@@ -110,7 +111,9 @@ const MemberLineCallback = () => {
         return;
       }
 
-      if (expired) {
+      const nativeFlow = isNativeReturnUrl(returnFromState);
+
+      if (!nativeFlow && expired) {
         fail("LINE 登入已逾時，請重新登入");
         return;
       }
@@ -128,7 +131,9 @@ const MemberLineCallback = () => {
         stateMatches: !!storedState && state === storedState,
         ua: navigator.userAgent.substring(0, 120),
       };
-      if (storedState) {
+      if (nativeFlow) {
+        console.log(`[${TAG} callback] native flow — validating from state only`);
+      } else if (storedState) {
         if (state !== storedState) {
           console.warn(`[${TAG} callback] state mismatch`, stateDebug);
           fail("LINE 登入驗證失敗，可能因為分頁被切換。請回到登入頁重新登入。", stateDebug);
@@ -140,8 +145,10 @@ const MemberLineCallback = () => {
         return;
       }
 
-      const redirectUri = storedRedirect || FALLBACK_REDIRECT_URI;
-      const expectedNonce = storedNonce || nonceFromState;
+      // Character-identical to the authorize redirect_uri.
+      const redirectUri = nativeFlow ? FALLBACK_REDIRECT_URI : (storedRedirect || FALLBACK_REDIRECT_URI);
+      // Native: the nonce rides in state segment 3 (storage is unreachable).
+      const expectedNonce = nativeFlow ? nonceFromState : (storedNonce || nonceFromState);
       if (!expectedNonce) {
         fail("LINE 登入資訊已遺失，請重新嘗試");
         return;
