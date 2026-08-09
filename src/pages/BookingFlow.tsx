@@ -546,6 +546,14 @@ const BookingFlow = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
   const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
+
+  // 館別關閉信用卡付款時，強制清除已選的信用卡付款方式
+  useEffect(() => {
+    if (!allowCreditCard && orderPaymentType === "credit_card") {
+      setOrderPaymentType("");
+      setPaymentMethod("");
+    }
+  }, [allowCreditCard, orderPaymentType]);
   // 押金付款方式：僅支援 cash（現場現金），線上綁卡已停用
   const depositPaymentType: "cash" = "cash";
   const [errors, setErrors] = useState<Record<string, string>>({});
