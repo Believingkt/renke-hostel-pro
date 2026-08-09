@@ -4860,6 +4860,63 @@ export type Database = {
         }
         Relationships: []
       }
+      line_follow_events: {
+        Row: {
+          accommodation_id: string | null
+          ad_id: string | null
+          campaign_id: string | null
+          channel_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          line_user_id: string
+          occurred_at: string
+          raw_event: Json | null
+          source_param: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          campaign_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          line_user_id: string
+          occurred_at?: string
+          raw_event?: Json | null
+          source_param?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          campaign_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          line_user_id?: string
+          occurred_at?: string
+          raw_event?: Json | null
+          source_param?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_follow_events_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_follow_events_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "line_oa_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       line_oa_channels: {
         Row: {
           channel_access_token: string
@@ -5333,6 +5390,75 @@ export type Database = {
           },
         ]
       }
+      meta_ad_insights_daily: {
+        Row: {
+          ad_id: string
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          clicks: number
+          cpc: number
+          created_at: string
+          ctr: number
+          currency: string | null
+          id: string
+          impressions: number
+          link_clicks: number
+          messaging_started: number
+          reach: number
+          spend: number
+          stat_date: string
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          ad_id: string
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          cpc?: number
+          created_at?: string
+          ctr?: number
+          currency?: string | null
+          id?: string
+          impressions?: number
+          link_clicks?: number
+          messaging_started?: number
+          reach?: number
+          spend?: number
+          stat_date: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          cpc?: number
+          created_at?: string
+          ctr?: number
+          currency?: string | null
+          id?: string
+          impressions?: number
+          link_clicks?: number
+          messaging_started?: number
+          reach?: number
+          spend?: number
+          stat_date?: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meta_ad_weekly: {
         Row: {
           campaign_id: string
@@ -5463,6 +5589,96 @@ export type Database = {
             foreignKeyName: "fk_order"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_attributions: {
+        Row: {
+          accommodation_id: string | null
+          ad_id: string | null
+          campaign_id: string | null
+          created_at: string
+          fbclid: string | null
+          first_touch_at: string | null
+          first_utm_campaign: string | null
+          first_utm_content: string | null
+          first_utm_medium: string | null
+          first_utm_source: string | null
+          id: string
+          landing_path: string | null
+          last_touch_at: string | null
+          last_utm_campaign: string | null
+          last_utm_content: string | null
+          last_utm_medium: string | null
+          last_utm_source: string | null
+          line_source_param: string | null
+          order_id: string | null
+          referrer_domain: string | null
+          session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          fbclid?: string | null
+          first_touch_at?: string | null
+          first_utm_campaign?: string | null
+          first_utm_content?: string | null
+          first_utm_medium?: string | null
+          first_utm_source?: string | null
+          id?: string
+          landing_path?: string | null
+          last_touch_at?: string | null
+          last_utm_campaign?: string | null
+          last_utm_content?: string | null
+          last_utm_medium?: string | null
+          last_utm_source?: string | null
+          line_source_param?: string | null
+          order_id?: string | null
+          referrer_domain?: string | null
+          session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          fbclid?: string | null
+          first_touch_at?: string | null
+          first_utm_campaign?: string | null
+          first_utm_content?: string | null
+          first_utm_medium?: string | null
+          first_utm_source?: string | null
+          id?: string
+          landing_path?: string | null
+          last_touch_at?: string | null
+          last_utm_campaign?: string | null
+          last_utm_content?: string | null
+          last_utm_medium?: string | null
+          last_utm_source?: string | null
+          line_source_param?: string | null
+          order_id?: string | null
+          referrer_domain?: string | null
+          session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_attributions_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_attributions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
