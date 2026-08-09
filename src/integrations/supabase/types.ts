@@ -948,30 +948,39 @@ export type Database = {
         Row: {
           accommodation_id: string
           bonus_policy: string
+          counts_closer_commission: boolean
+          counts_team_bonus: boolean
           created_at: string
           end_date: string | null
           id: string
           note: string | null
+          payout_basis: string
           start_date: string
           updated_at: string
         }
         Insert: {
           accommodation_id: string
           bonus_policy?: string
+          counts_closer_commission?: boolean
+          counts_team_bonus?: boolean
           created_at?: string
           end_date?: string | null
           id?: string
           note?: string | null
+          payout_basis?: string
           start_date: string
           updated_at?: string
         }
         Update: {
           accommodation_id?: string
           bonus_policy?: string
+          counts_closer_commission?: boolean
+          counts_team_bonus?: boolean
           created_at?: string
           end_date?: string | null
           id?: string
           note?: string | null
+          payout_basis?: string
           start_date?: string
           updated_at?: string
         }
@@ -10546,7 +10555,11 @@ export type Database = {
       teamcommission_bonus_snapshots: {
         Row: {
           amount: number
+          amount_excl_owner: number | null
+          amount_incl_owner: number | null
           base_revenue: number | null
+          base_revenue_excl_owner: number | null
+          base_revenue_incl_owner: number | null
           bonus_type: string
           created_at: string
           fixed_amount: number | null
@@ -10560,7 +10573,11 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_excl_owner?: number | null
+          amount_incl_owner?: number | null
           base_revenue?: number | null
+          base_revenue_excl_owner?: number | null
+          base_revenue_incl_owner?: number | null
           bonus_type: string
           created_at?: string
           fixed_amount?: number | null
@@ -10574,7 +10591,11 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_excl_owner?: number | null
+          amount_incl_owner?: number | null
           base_revenue?: number | null
+          base_revenue_excl_owner?: number | null
+          base_revenue_incl_owner?: number | null
           bonus_type?: string
           created_at?: string
           fixed_amount?: number | null
