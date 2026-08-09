@@ -17,7 +17,10 @@ export interface CartStayItem {
   checkIn: string;
   checkOut: string;
   nights: number;
+  /** 顯示用每晚均價（僅顯示，不得參與加總） */
   unitPrice: number;
+  /** 單一房間整段 stay 的實價（唯一計價來源） */
+  stayTotal?: number;
   qty: number;
   coverUrl?: string | null;
 }
@@ -65,7 +68,11 @@ export function clearCart() {
 }
 
 export function cartSubtotal(item: CartItem): number {
-  if (item.kind === "stay") return item.unitPrice * item.qty * Math.max(1, item.nights);
+  if (item.kind === "stay") {
+    const stayTotal =
+      Number(item.stayTotal ?? 0) || Math.round(item.unitPrice * Math.max(1, item.nights));
+    return stayTotal * Math.max(1, item.qty);
+  }
   return item.unitPrice * item.qty;
 }
 
