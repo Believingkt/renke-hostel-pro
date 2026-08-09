@@ -110,6 +110,8 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { reportFrontendError } from "@/utils/errorReporter";
+import { recordOrderAttribution } from "@/lib/attribution";
+
 
 // TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
 interface TPDirectSDK {
@@ -3551,6 +3553,12 @@ const BookingFlow = () => {
             console.error("寫入多間房資料失敗:", orderRoomsError);
           }
         }
+      }
+
+
+      // 廣告歸因：記錄此訂單的首次接觸 / 最後點擊來源（失敗不影響訂單流程）
+      if (orderData?.id) {
+        await recordOrderAttribution(orderData.id, accommodationId ?? null);
       }
 
 
