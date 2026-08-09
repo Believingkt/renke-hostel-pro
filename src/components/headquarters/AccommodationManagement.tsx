@@ -428,6 +428,31 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
     }
   };
 
+  const handleTogglePortal = async (accommodation: Accommodation, next: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({ show_on_portal: next })
+        .eq("id", accommodation.id);
+      if (error) throw error;
+
+      await logAction({
+        action: "update",
+        entityType: "accommodation",
+        entityId: accommodation.id,
+        entityName: accommodation.name,
+        accommodationId: accommodation.id,
+        details: { show_on_portal: next },
+      });
+
+      invalidateAccommodationCache(accommodation.id);
+      toast.success(next ? "已在前台顯示" : "已從前台隱藏", { description: accommodation.name });
+      onRefresh();
+    } catch (error: any) {
+      toast.error("操作失敗", { description: error.message });
+    }
+  };
+
   const openEditDialog = (accommodation: Accommodation) => {
     setEditingAccommodation(accommodation);
     setDialogOpen(true);
