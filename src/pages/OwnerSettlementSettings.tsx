@@ -13,7 +13,24 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@/utils/orderHelpers";
+import { FALLBACK_ORDER_SOURCES } from "@/hooks/use-order-sources";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+
+/** 中文標籤 → raw key，避免「官網訂房」與 website 重複出現 */
+const LABEL_TO_KEY: Record<string, string> = FALLBACK_ORDER_SOURCES.reduce(
+  (acc, o) => {
+    acc[o.label] = o.value;
+    return acc;
+  },
+  { 住宿票卷: "accommodation_voucher" } as Record<string, string>,
+);
+
+function normalizeOrderSourceKey(raw: string | null | undefined): string {
+  const v = String(raw ?? "").trim();
+  if (!v) return "";
+  return LABEL_TO_KEY[v] ?? v;
+}
+
 
 interface SettlementConfig {
   commission_rate: number;
@@ -271,20 +288,23 @@ export default function OwnerSettlementSettings() {
         setAccName("");
       }
 
+      // 訂單來源字典統一：系統預設 ∪ 館別自訂下拉 ∪ 訂單實際出現過，
+      // 一律正規化成 raw key（中文標籤會被反查回英文 key）後去重。
       const sourcesByAcc = new Map<string, Set<string>>();
+      const addSource = (accId: string, raw: string | null | undefined) => {
+        const key = normalizeOrderSourceKey(raw);
+        if (!accId || !key) return;
+        if (!sourcesByAcc.has(accId)) sourcesByAcc.set(accId, new Set());
+        sourcesByAcc.get(accId)!.add(key);
+      };
+      for (const a of accList) {
+        for (const opt of FALLBACK_ORDER_SOURCES) addSource(a.id, opt.value);
+      }
       for (const row of (ordersRes.data ?? []) as Array<{ accommodation_id: string | null; order_source: string | null }>) {
-        if (!row.accommodation_id || !row.order_source) continue;
-        const src = row.order_source.trim();
-        if (!src) continue;
-        if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
-        sourcesByAcc.get(row.accommodation_id)!.add(src);
+        addSource(row.accommodation_id ?? "", row.order_source);
       }
       for (const row of (configuredRes.data ?? []) as Array<{ accommodation_id: string | null; name: string | null }>) {
-        if (!row.accommodation_id || !row.name) continue;
-        const src = row.name.trim();
-        if (!src) continue;
-        if (!sourcesByAcc.has(row.accommodation_id)) sourcesByAcc.set(row.accommodation_id, new Set());
-        sourcesByAcc.get(row.accommodation_id)!.add(src);
+        addSource(row.accommodation_id ?? "", row.name);
       }
       const nextGroups: AccommodationGroup[] = accList
         .map((a) => ({
@@ -294,6 +314,7 @@ export default function OwnerSettlementSettings() {
         }))
         .filter((g) => g.sources.length > 0);
       setGroups(nextGroups);
+
 
       setLoading(false);
     })();
