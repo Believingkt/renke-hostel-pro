@@ -7,6 +7,7 @@
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { parseIntent, type ParsedIntent } from "./lineIntent.ts";
+import { VENUE_ALIASES, accommodationMatchesVenue } from "./lineVenueAlias.ts";
 import { taipeiToday } from "./taipeiDate.ts";
 
 export interface ButlerCartStay {
@@ -41,6 +42,8 @@ export interface ButlerState {
   checkOut?: string;
   guests?: number;
   keyword?: string;
+  venue?: string;
+  venueLabel?: string;
   cart?: ButlerCartItem[];
 }
 
@@ -449,6 +452,9 @@ export function roomCarousel(offers: RoomOffer[], checkIn: string, checkOut: str
             { type: "text", text: o.accommodationName, size: "xs", color: "#999999" },
             { type: "text", text: o.name, weight: "bold", size: "md", wrap: true },
             { type: "text", text: `${checkIn} → ${checkOut}・${nights} 晚`, size: "xs", color: "#888888" },
+            ...(o.fitsGuests
+              ? []
+              : [{ type: "text", text: "適合多人", size: "xs", color: "#8A6FCF" }]),
             {
               type: "text",
               text: o.availableRooms > 0 ? `餘 ${o.availableRooms} 間` : "已滿",
@@ -674,6 +680,8 @@ async function handleText(
     checkOut: parsed.checkOut ?? state.checkOut,
     guests: parsed.guests ?? state.guests,
     keyword: parsed.keyword ?? state.keyword,
+    venue: parsed.venue ?? state.venue,
+    venueLabel: parsed.venueLabel ?? state.venueLabel,
   };
 
   let messages: OutgoingMessage[] = [];
@@ -701,15 +709,33 @@ async function handleText(
             new Date(`${next.checkIn}T00:00:00Z`).getTime()) / 86400000,
         ),
       );
-      const offers = await findRooms(sb, {
+      const result = await findRoomsDetailed(sb, {
         checkIn: next.checkIn,
         checkOut: next.checkOut,
         guests: next.guests,
         keyword: next.keyword,
+        venue: next.venue,
       });
-      messages = offers.length
-        ? [textMsg(`找到 ${offers.length} 間有空的房型 ✨ 幫你按價格排好了`), roomCarousel(offers, next.checkIn, next.checkOut, nights)]
-        : [textMsg("這幾天剛好都被訂滿了 😢 換個日期或人數，我再幫你找找！")];
+      const scope = result.venueResolved && result.venueLabel ? `${result.venueLabel} ` : "";
+      if (result.offers.length > 0) {
+        const guestNote = next.guests ? `（${next.guests} 人適合的優先）` : "";
+        messages = [
+          textMsg(`${scope}找到 ${result.offers.length} 間有空的房型 ✨ 幫你按價格排好了${guestNote}`),
+          roomCarousel(result.offers, next.checkIn, next.checkOut, nights),
+        ];
+      } else if (result.venueResolved && result.venueLabel) {
+        messages = [
+          textMsg(`${result.venueLabel} ${next.checkIn}–${next.checkOut} 目前沒有可訂房型 😢`),
+        ];
+        if (result.alternatives.length > 0) {
+          messages.push(textMsg("這幾間同期間還有空房，要不要看看？"));
+          messages.push(roomCarousel(result.alternatives, next.checkIn, next.checkOut, nights));
+        } else {
+          messages.push(textMsg("換個日期我再幫你找找！"));
+        }
+      } else {
+        messages = [textMsg("這幾天剛好都被訂滿了 😢 換個日期或人數，我再幫你找找！")];
+      }
     }
   } else if (parsed.intent === "greeting") {
     messages = welcomeMessages();
