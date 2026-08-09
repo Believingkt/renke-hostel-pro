@@ -139,16 +139,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Identify caller (for manual triggers)
-    let performedBy: string | null = null;
-    const authHeader = req.headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const { data } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-      performedBy = data?.user?.id ?? null;
-    }
+    // Authorize caller. Service-role (cron/server) is trusted; every other
+    // caller must be staff/admin with edit rights on the order's accommodation.
+    const auth = await resolveCaller(req);
+    if (!auth.ok) return unauthorizedResponse(corsHeaders, auth.error);
+    const ctx = auth.ctx;
+    const performedBy: string | null = ctx.userId;
 
-    // Batch mode: scheduled D-1 charge run
+    // Batch mode: scheduled D-1 charge run (service-role / super_admin only)
     if (body.batch) {
+      if (!isSuperAdmin(ctx)) return forbiddenResponse(corsHeaders);
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dateStr = tomorrow.toISOString().slice(0, 10);
