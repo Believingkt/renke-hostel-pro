@@ -181,6 +181,24 @@ serve(async (req) => {
       );
     }
 
+    // Manual single-order path: must have edit rights on that accommodation.
+    const { data: orderRow } = await supabase
+      .from("orders")
+      .select("accommodation_id")
+      .eq("id", body.orderId)
+      .maybeSingle();
+    if (!orderRow) {
+      return new Response(
+        JSON.stringify({ success: false, message: "找不到訂單" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!(await canEditModule(ctx, orderRow.accommodation_id, "orders"))) {
+      return forbiddenResponse(corsHeaders);
+    }
+
+
+
     const result = await chargeOne(
       supabase,
       body.orderId,
