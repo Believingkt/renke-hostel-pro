@@ -6,7 +6,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { bookingPath } from "@/lib/frontendUrl";
 import { initLiff, butlerApi, type LiffProfile } from "@/lib/liff";
 import {
   buildCheckoutLines,
