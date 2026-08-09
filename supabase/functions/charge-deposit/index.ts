@@ -3,6 +3,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import {
+  resolveCaller,
+  canEditModule,
+  isSuperAdmin,
+  forbiddenResponse,
+  unauthorizedResponse,
+} from "../_shared/authz.ts";
 
 function getPayByTokenEndpoint(): string {
   const env = Deno.env.get("TAPPAY_ENV") === "sandbox" ? "sandbox" : "production";
