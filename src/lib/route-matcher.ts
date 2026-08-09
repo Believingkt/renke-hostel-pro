@@ -54,6 +54,8 @@ export const BOOKING_ALLOWED_PREFIXES = [
   "/data-deletion",
   "/docs",
   "/api-docs",
+  "/liff",
+
 ] as const;
 
 /**
