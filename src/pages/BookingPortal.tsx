@@ -175,7 +175,7 @@ const BookingPortal = () => {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [toddlers, setToddlers] = useState(0);
-  const [rooms, setRooms] = useState(4);
+  const [rooms, setRooms] = useState(1);
   const [hasSearched, setHasSearched] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
