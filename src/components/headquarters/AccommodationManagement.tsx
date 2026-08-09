@@ -87,6 +87,7 @@ interface Accommodation {
   header_logo_url: string | null;
   footer_logo_url: string | null;
   is_active: boolean;
+  show_on_portal?: boolean;
   building_count?: number | null;
   created_at: string;
 }
@@ -424,6 +425,32 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       toast.error("操作失敗", { description: error.message });
     } finally {
       setIsToggling(false);
+    }
+  };
+
+  const handleTogglePortal = async (accommodation: Accommodation, next: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({ show_on_portal: next })
+        .eq("id", accommodation.id);
+      if (error) throw error;
+
+      await logAction({
+        actionType: "update",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: accommodation.id,
+        entityName: accommodation.name,
+        accommodationId: accommodation.id,
+        details: { show_on_portal: next },
+      });
+
+      invalidateAccommodationCache(accommodation.id);
+      toast.success(next ? "已在前台顯示" : "已從前台隱藏", { description: accommodation.name });
+      onRefresh();
+    } catch (error: any) {
+      toast.error("操作失敗", { description: error.message });
     }
   };
 
@@ -823,6 +850,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                       
                       <TableHead>訂房連結</TableHead>
                       <TableHead>狀態</TableHead>
+                      <TableHead>前台顯示</TableHead>
                       <TableHead>建立時間</TableHead>
                       <TableHead className="text-center">操作</TableHead>
                     </TableRow>
@@ -841,6 +869,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
                           onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
+                          onTogglePortal={handleTogglePortal}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}

@@ -377,6 +377,7 @@ export type Database = {
           show_faq_section: boolean
           show_gallery_section: boolean
           show_location_section: boolean
+          show_on_portal: boolean
           show_reviews_section: boolean
           show_room_facilities_single: boolean
           show_room_facilities_whole: boolean
@@ -479,6 +480,7 @@ export type Database = {
           show_faq_section?: boolean
           show_gallery_section?: boolean
           show_location_section?: boolean
+          show_on_portal?: boolean
           show_reviews_section?: boolean
           show_room_facilities_single?: boolean
           show_room_facilities_whole?: boolean
@@ -581,6 +583,7 @@ export type Database = {
           show_faq_section?: boolean
           show_gallery_section?: boolean
           show_location_section?: boolean
+          show_on_portal?: boolean
           show_reviews_section?: boolean
           show_room_facilities_single?: boolean
           show_room_facilities_whole?: boolean

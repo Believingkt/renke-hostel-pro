@@ -230,6 +230,7 @@ const BookingPortal = () => {
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
           .eq("is_active", true)
+          .eq("show_on_portal", true)
           .order("display_order", { ascending: true, nullsFirst: false }),
         supabase
           .from("room_types")

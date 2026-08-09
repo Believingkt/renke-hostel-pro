@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { GripVertical, Pencil, Copy, Check, Power, PowerOff, Trash2, Star } from "lucide-react";
 
@@ -28,6 +29,7 @@ interface Accommodation {
   header_logo_url: string | null;
   footer_logo_url: string | null;
   is_active: boolean;
+  show_on_portal?: boolean;
   building_count?: number | null;
   created_at: string;
 }
@@ -39,6 +41,7 @@ interface DraggableAccommodationRowProps {
   onToggle: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
   onGoogleReviews?: (acc: Accommodation) => void;
+  onTogglePortal?: (acc: Accommodation, next: boolean) => void;
   isDragDisabled?: boolean;
 }
 
@@ -49,6 +52,7 @@ export function DraggableAccommodationRow({
   onToggle,
   onDelete,
   onGoogleReviews,
+  onTogglePortal,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
   const {
@@ -162,6 +166,21 @@ export function DraggableAccommodationRow({
         <Badge variant={accommodation.is_active ? "default" : "secondary"}>
           {accommodation.is_active ? "營運中" : "已停用"}
         </Badge>
+      </TableCell>
+
+      {/* Portal visibility */}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={accommodation.show_on_portal !== false}
+            onCheckedChange={(next) => onTogglePortal?.(accommodation, next)}
+            disabled={!onTogglePortal}
+            aria-label="前台顯示"
+          />
+          <span className="text-xs text-muted-foreground">
+            {accommodation.show_on_portal !== false ? "顯示" : "隱藏"}
+          </span>
+        </div>
       </TableCell>
 
       {/* Created date */}
