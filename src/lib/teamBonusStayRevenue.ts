@@ -94,23 +94,33 @@ function toTwd(amount: number, rate: number | null): number {
   return amount / rate;
 }
 
+/** 雙軌營收：含業主自帶 / 排除業主自帶 */
+export interface DualRevenue {
+  incl: number;
+  excl: number;
+}
+
 /**
- * 各館別在指定資料月的「入住營收」基準金額（已扣除設定的增值服務、排除 exempt、換算台幣）。
+ * 各館別在指定資料月的「入住營收」基準金額（已扣除設定的增值服務、換算台幣）。
  * rangesByAcc：各館可採計的日期區間（含合作期間／白名單／行銷費裁切）。
+ *
+ * 回傳雙軌：
+ *  - incl：含業主自帶（owner_direct = true）的訂單
+ *  - excl：排除業主自帶的訂單
  */
-export async function getStayRevenueByAcc(
+export async function getStayRevenueDualByAcc(
   client: any,
   accommodationIds: string[],
   monthStartDate: string,
   monthEndDate: string, // 排他
   allowedSources: string[],
   rangesByAcc: Record<string, CountableRange[]>,
-): Promise<Record<string, number>> {
+): Promise<Record<string, DualRevenue>> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean))).filter(
     (id) => (rangesByAcc[id] ?? []).length > 0,
   );
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  const out: Record<string, number> = {};
+  const out: Record<string, DualRevenue> = {};
   if (accIds.length === 0 || sources.length === 0) return out;
 
   const rules = await getPricingRules(client, accIds, monthStartDate);
@@ -134,10 +144,8 @@ export async function getStayRevenueByAcc(
       if (!accId) continue;
       const rule = rules[accId];
       // 一、團隊獎金（AM 共用／成交共用／網紅營銷專利獨立）：
-      // 完全以各自的共用／獨立訂單來源白名單篩選，
-      // 不套用 exempt_order_sources，也不排除 owner_direct。
-
-
+      // 完全以各自的共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
+      // 業主自帶（owner_direct）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const ci = String(o?.check_in_date ?? "").slice(0, 10);
       const co = String(o?.check_out_date ?? "").slice(0, 10);
@@ -172,8 +180,35 @@ export async function getStayRevenueByAcc(
       );
       const amount = Math.max(0, gross - excludedAddon);
       if (!amount) continue;
-      out[accId] = (out[accId] ?? 0) + amount;
+
+      const cur = out[accId] ?? { incl: 0, excl: 0 };
+      cur.incl += amount;
+      if (o?.owner_direct !== true) cur.excl += amount;
+      out[accId] = cur;
     }
   }
   return out;
 }
+
+/** 相容包裝：只取「含業主自帶」那一軌（歷史行為） */
+export async function getStayRevenueByAcc(
+  client: any,
+  accommodationIds: string[],
+  monthStartDate: string,
+  monthEndDate: string,
+  allowedSources: string[],
+  rangesByAcc: Record<string, CountableRange[]>,
+): Promise<Record<string, number>> {
+  const dual = await getStayRevenueDualByAcc(
+    client,
+    accommodationIds,
+    monthStartDate,
+    monthEndDate,
+    allowedSources,
+    rangesByAcc,
+  );
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(dual)) out[k] = v.incl;
+  return out;
+}
+
