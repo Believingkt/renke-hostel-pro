@@ -4,9 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
 
+// LIFF 轉址參數還原（必須在 Router 掛載前執行）
+import { applyLiffStateRewrite } from "./lib/liffState";
+applyLiffStateRewrite();
+
 // 在應用啟動時初始化圖片格式偵測
 import { initFormatDetection } from "./utils/imageFormatHelper";
 initFormatDetection();
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

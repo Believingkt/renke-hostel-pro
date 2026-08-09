@@ -54,6 +54,8 @@ export const BOOKING_ALLOWED_PREFIXES = [
   "/data-deletion",
   "/docs",
   "/api-docs",
+  "/liff",
+
 ] as const;
 
 /**
@@ -101,7 +103,9 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "__cb",
   "privacy",
   "data-deletion",
+  "liff",
 ]);
+
 
 // ============= 匹配工具 =============
 
