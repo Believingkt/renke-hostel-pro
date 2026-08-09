@@ -19,7 +19,7 @@ import { OWLTING_OTA_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
-import { accrueOrderAmount, accrueOrderNightlyShares, isRevenueOrder } from "@/lib/revenueAccrual";
+import { accrueOrderNightlyShares, inRangeNightFraction, isRevenueOrder } from "@/lib/revenueAccrual";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,6 +35,15 @@ interface Props {
 
 
 type RangeMode = "month" | "last3" | "last6" | "year" | "custom";
+type StatBasis = "nightly" | "checkin";
+
+const BASIS_NOTE: Record<StatBasis, string> = {
+  nightly: "統計基準：夜次均攤（排除取消／KOL）",
+  checkin: "統計基準：以入住日計（整筆金額計入入住當天，排除取消／KOL）",
+};
+
+const isoDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 interface OrderRow {
   id: string;
@@ -90,6 +99,7 @@ export function OrderSourceAnalyticsTab({
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [basis, setBasis] = useState<StatBasis>("nightly");
 
   // Traveldays 專屬：檢視模式與匯率（未受控時使用內部 state）
   const [innerViewMode, setInnerViewMode] = useState<"separate" | "consolidated">("separate");
@@ -243,16 +253,28 @@ export function OrderSourceAnalyticsTab({
   // Revenue caliber: nightly accrual within [rangeStart, rangeEnd], excluding
   // cancelled + KOL. `total` is the accrued in-range revenue; paid/deposit/
   // pending are pro-rated by the same nightly fraction to keep 收款率一致.
-  const aggregate = (rows: OrderRow[], winStart: Date, winEnd: Date) => {
+  const aggregate = (rows: OrderRow[], winStart: Date, winEnd: Date, statBasis: StatBasis) => {
     const map = new Map<string, SourceStat>();
     const subMap = new Map<string, Map<string, SourceStat>>();
+    const winFrom = isoDay(winStart);
+    const winTo = isoDay(winEnd);
     for (const o of rows) {
       // Query already filters cancelled/KOL, but guard defensively so the
       // caliber matches OccupancyRevenueTable even for mutated data.
       if (!isRevenueOrder(o)) continue;
-      const total = accrueOrderAmount(o, o.final_price, winStart, winEnd);
-      if (total === 0) continue; // no in-range nights
-      const paid = accrueOrderAmount(o, o.paid_amount, winStart, winEnd);
+      let total: number;
+      let paid: number;
+      if (statBasis === "checkin") {
+        const day = (o.check_in_date || "").slice(0, 10);
+        if (!day || day < winFrom || day > winTo) continue;
+        total = Number(o.final_price) || 0;
+        paid = Number(o.paid_amount) || 0;
+      } else {
+        const frac = inRangeNightFraction(o, winStart, winEnd);
+        if (frac === 0) continue; // no in-range nights
+        total = (Number(o.final_price) || 0) * frac;
+        paid = (Number(o.paid_amount) || 0) * frac;
+      }
       const isFullPaid = o.payment_status === "paid";
 
       const key = o.order_source || "unknown";
@@ -362,7 +384,7 @@ export function OrderSourceAnalyticsTab({
   const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
   const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
 
-  const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd), [activeRows, rangeStart, rangeEnd]);
+  const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd, basis), [activeRows, rangeStart, rangeEnd, basis]);
   const stats = activeAggregate.stats;
   const totals = activeAggregate.totals;
 
@@ -395,14 +417,27 @@ export function OrderSourceAnalyticsTab({
           if (ota !== otaFilter) continue;
         }
       }
-      const shares = accrueOrderNightlyShares(o, rangeStart, rangeEnd);
-      if (shares.length === 0) continue;
       // total nights of the whole stay
       const inD = new Date(o.check_in_date);
       const outD = o.check_out_date ? new Date(o.check_out_date) : inD;
       const totalNights = Math.max(1, Math.round((outD.getTime() - inD.getTime()) / 86400000));
-      const perNight = shares[0]?.amount ?? 0;
-      const accrued = shares.reduce((s, x) => s + x.amount, 0);
+      let nightsInRange: number;
+      let perNight: number;
+      let accrued: number;
+      if (basis === "checkin") {
+        const day = (o.check_in_date || "").slice(0, 10);
+        if (!day || day < isoDay(rangeStart) || day > isoDay(rangeEnd)) continue;
+        nightsInRange = totalNights;
+        accrued = Number(o.final_price) || 0;
+        perNight = accrued / totalNights;
+      } else {
+        const shares = accrueOrderNightlyShares(o, rangeStart, rangeEnd);
+        const frac = inRangeNightFraction(o, rangeStart, rangeEnd);
+        if (frac === 0) continue;
+        nightsInRange = Math.max(shares.length, Math.round(frac * totalNights));
+        perNight = (Number(o.final_price) || 0) / totalNights;
+        accrued = (Number(o.final_price) || 0) * frac;
+      }
       list.push({
         id: o.id,
         order_number: o.order_number || o.id.slice(0, 8),
@@ -410,7 +445,7 @@ export function OrderSourceAnalyticsTab({
         check_in_date: o.check_in_date,
         check_out_date: o.check_out_date,
         nights: totalNights,
-        nightsInRange: shares.length,
+        nightsInRange,
         final_price: Number(o.final_price) || 0,
         share: perNight,
         accrued,
@@ -420,7 +455,7 @@ export function OrderSourceAnalyticsTab({
     }
     list.sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
     return list;
-  }, [detailKey, activeRows, rangeStart, rangeEnd]);
+  }, [detailKey, activeRows, rangeStart, rangeEnd, basis]);
 
   const detailTitle = useMemo(() => {
     if (!detailKey) return "";
@@ -466,7 +501,7 @@ export function OrderSourceAnalyticsTab({
 
   // Monthly trend helper — accrues each order's revenue nightly, then buckets
   // per calendar month. Same caliber as `aggregate` above.
-  const buildTrend = (rows: OrderRow[]) => {
+  const buildTrend = (rows: OrderRow[], statBasis: StatBasis) => {
     const today = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) months.push(format(subMonths(today, i), "yyyy-MM"));
@@ -477,8 +512,10 @@ export function OrderSourceAnalyticsTab({
     const totalsBySource = new Map<string, number>();
     for (const o of rows) {
       if (!isRevenueOrder(o)) continue;
-      const t = accrueOrderAmount(o, o.final_price, trendStart, trendEnd);
-      if (t === 0) continue;
+      const t = statBasis === "checkin"
+        ? ((o.check_in_date || "").slice(0, 10) >= isoDay(trendStart) && (o.check_in_date || "").slice(0, 10) <= isoDay(trendEnd) ? Number(o.final_price) || 0 : -1)
+        : (Number(o.final_price) || 0) * inRangeNightFraction(o, trendStart, trendEnd);
+      if (t < 0) continue;
       const src = o.order_source || "unknown";
       totalsBySource.set(src, (totalsBySource.get(src) ?? 0) + t);
     }
@@ -492,7 +529,9 @@ export function OrderSourceAnalyticsTab({
     for (const o of rows) {
       const src = o.order_source || "unknown";
       if (!topSources.includes(src)) continue;
-      const shares = accrueOrderNightlyShares(o, trendStart, trendEnd);
+      const shares = statBasis === "checkin"
+        ? [{ date: (o.check_in_date || "").slice(0, 10), amount: isRevenueOrder(o) ? Number(o.final_price) || 0 : 0 }]
+        : accrueOrderNightlyShares(o, trendStart, trendEnd);
       for (const s of shares) {
         const m = s.date.slice(0, 7);
         if (!byMonth.has(m)) continue;
@@ -509,7 +548,7 @@ export function OrderSourceAnalyticsTab({
     return { data, keys };
   };
 
-  const activeTrend = useMemo(() => buildTrend(activeTrendRows), [activeTrendRows]);
+  const activeTrend = useMemo(() => buildTrend(activeTrendRows, basis), [activeTrendRows, basis]);
   const trendData = activeTrend.data;
   const trendKeys = activeTrend.keys;
 
@@ -697,7 +736,25 @@ export function OrderSourceAnalyticsTab({
             />
           )}
         </div>
-        <span className="text-xs text-muted-foreground">統計基準：夜次均攤（排除取消／KOL）</span>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-muted rounded-lg p-1">
+            {([
+              { k: "nightly", label: "夜次均攤" },
+              { k: "checkin", label: "以入住日計" },
+            ] as { k: StatBasis; label: string }[]).map((b) => (
+              <Button
+                key={b.k}
+                variant={basis === b.k ? "default" : "ghost"}
+                size="sm"
+                className={`px-3 ${basis === b.k ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" : "text-muted-foreground hover:bg-background"}`}
+                onClick={() => setBasis(b.k)}
+              >
+                {b.label}
+              </Button>
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground">{BASIS_NOTE[basis]}</span>
+        </div>
       </div>
 
       {/* KPI card + Pie charts */}
@@ -763,7 +820,7 @@ export function OrderSourceAnalyticsTab({
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">來源明細</CardTitle>
-          <CardDescription className="text-xs">點擊「查看」可展開該來源的訂單夜次貢獻明細</CardDescription>
+          <CardDescription className="text-xs">{basis === "checkin" ? "點擊「查看」可展開該來源以入住日計的訂單明細" : "點擊「查看」可展開該來源的訂單夜次貢獻明細"}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -914,7 +971,9 @@ export function OrderSourceAnalyticsTab({
             </DialogTitle>
             <DialogDescription className="text-xs">
               區間 {rangeLabel}：共 {detailRows.length} 筆訂單，累計 {f(detailAccruedTotal)}
-              <span className="text-muted-foreground/70"> · 每晚金額 = 總價 ÷ 總晚數</span>
+              <span className="text-muted-foreground/70">
+                {basis === "checkin" ? " · 整筆金額計入入住當天" : " · 每晚金額 = 總價 ÷ 總晚數"}
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="overflow-auto flex-1 -mx-6 px-6">
