@@ -3554,6 +3554,12 @@ const BookingFlow = () => {
       }
 
 
+      // 廣告歸因：記錄此訂單的首次接觸 / 最後點擊來源（失敗不影響訂單流程）
+      if (orderData?.id) {
+        await recordOrderAttribution(orderData.id, accommodationId ?? null);
+      }
+
+
       // 觸發 KOL Webhook（如果使用了折扣碼）
       if (appliedDiscount && orderData?.id) {
         try {
