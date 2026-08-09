@@ -160,7 +160,7 @@ export async function buildRedirectWithSessionHandoff(
 }
 
 export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
-  const { tag, functionName, invokeBody, successLabel, returnUrlOverride } = p;
+  const { tag, functionName, invokeBody, successLabel, returnUrlOverride, nativeMode } = p;
 
   // 8-second timeout fallback. Whatever happens, if a session exists when the
   // timer fires, treat as success.
@@ -176,6 +176,8 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
           ok: true,
           redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
         });
       } else {
         resolve({
@@ -188,8 +190,10 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
   });
 
   const exchangePromise: Promise<CallbackResult> = (async () => {
+    let rawAccess: string | undefined;
+    let rawRefresh: string | undefined;
     try {
-      console.log(`[${tag} callback] exchange start →`, functionName);
+      console.log(`[${tag} callback] exchange start →`, functionName, "native=", !!nativeMode);
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: invokeBody,
       });
@@ -201,13 +205,31 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
       if (!data?.access_token || !data?.refresh_token) {
         throw new Error(data?.error || "未收到 Supabase session");
       }
+      rawAccess = data.access_token as string;
+      rawRefresh = data.refresh_token as string;
+
+      // Native deep-link flow: never establish the session in this isolated
+      // in-app browser — hand the raw tokens back to the app instead. Both
+      // access_token and refresh_token are guaranteed present at this point.
+      if (nativeMode) {
+        console.log(`[${tag} callback] native mode — forwarding raw tokens without setSession`);
+        return {
+          ok: true,
+          redirectTo: pickRedirect(returnUrlOverride),
+          successMessage: `${successLabel}登入成功`,
+          accessToken: rawAccess,
+          refreshToken: rawRefresh,
+        };
+      }
+
       console.log(`[${tag} callback] exchange success, calling setSession`);
 
       const { error: setErr } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        access_token: rawAccess,
+        refresh_token: rawRefresh,
       });
       if (setErr) throw setErr;
+
 
       // Confirm session is really there before navigating.
       const { data: confirm } = await supabase.auth.getSession();
