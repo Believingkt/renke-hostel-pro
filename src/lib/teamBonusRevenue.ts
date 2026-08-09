@@ -6,7 +6,15 @@
  * - teamcommission_* 系列表尚未進 types.ts，查詢一律用 (client as any)
  */
 
-import { getStayRevenueByAcc, usesStayRevenue } from "./teamBonusStayRevenue";
+import {
+  getStayRevenueByAcc,
+  getStayRevenueDualByAcc,
+  usesStayRevenue,
+  type DualRevenue,
+} from "./teamBonusStayRevenue";
+
+export type { DualRevenue };
+
 
 export type BonusType =
   | "am_performance"
