@@ -32,6 +32,14 @@ import { getPasswordIssues } from "@/utils/passwordPolicy";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
 import { detectInAppBrowser, inAppBrowserLabel, shouldBlockOAuthInApp } from "@/utils/inAppBrowser";
 import { reportFrontendError } from "@/utils/errorReporter";
+import {
+  isNativeOAuth,
+  nativeSupabaseOAuth,
+  openNativeAuthBrowser,
+  encodeNativeReturnState,
+  initNativeAuthListener,
+} from "@/lib/nativeOAuth";
+
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
 
