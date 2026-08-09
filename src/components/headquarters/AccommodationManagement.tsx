@@ -1110,6 +1110,13 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BatchCreditCardDialog
+        open={batchCardOpen}
+        onOpenChange={setBatchCardOpen}
+        accommodations={accommodations}
+        onDone={onRefresh}
+      />
     </>
   );
 });
