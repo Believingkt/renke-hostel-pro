@@ -263,6 +263,21 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
           ok: true,
           redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+        };
+      }
+      // We already hold valid tokens from the edge function; only the local
+      // session write failed (common inside isolated in-app browsers). Forward
+      // them so the app / target origin can establish the session itself.
+      if (rawAccess && rawRefresh) {
+        console.warn(`[${tag} callback] setSession failed but raw tokens available — forwarding`);
+        return {
+          ok: true,
+          redirectTo: pickRedirect(returnUrlOverride),
+          successMessage: `${successLabel}登入成功`,
+          accessToken: rawAccess,
+          refreshToken: rawRefresh,
         };
       }
       return {
@@ -270,6 +285,7 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
         redirectTo: "/member/auth",
         errorMessage: err?.message || `${successLabel}登入失敗`,
       };
+
     }
   })();
 
