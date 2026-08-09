@@ -1,9 +1,11 @@
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
 import SalesServiceAnalyticsTab from "@/components/analytics/SalesServiceAnalyticsTab";
+import MarketingAnalyticsTab from "@/components/analytics/MarketingAnalyticsTab";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3 } from "lucide-react";
+
 
 const Analytics = () => {
   const { currentAccommodationId: accommodationId } = useAccommodation();
