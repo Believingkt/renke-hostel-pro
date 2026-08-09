@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS allow_credit_card_payment boolean NOT NULL DEFAULT true;

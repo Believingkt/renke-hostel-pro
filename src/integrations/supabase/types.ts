@@ -305,6 +305,7 @@ export type Database = {
       accommodation_info: {
         Row: {
           address: string | null
+          allow_credit_card_payment: boolean
           booking_type: string
           building_count: number
           bundled_lock_inventory: boolean
@@ -408,6 +409,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_credit_card_payment?: boolean
           booking_type?: string
           building_count?: number
           bundled_lock_inventory?: boolean
@@ -511,6 +513,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_credit_card_payment?: boolean
           booking_type?: string
           building_count?: number
           bundled_lock_inventory?: boolean
