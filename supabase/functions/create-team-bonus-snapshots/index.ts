@@ -933,10 +933,15 @@ serve(async (req) => {
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
         base_revenue: null,
+        base_revenue_incl_owner: null,
+        base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: venueClosingFixed,
         venue_count: hitIds.length,
         amount: Number(venueClosingFixed ?? 0) * hitIds.length,
+        amount_incl_owner: null,
+        amount_excl_owner: null,
+
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: venueClosingFixed,
