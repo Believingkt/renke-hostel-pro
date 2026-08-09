@@ -187,7 +187,10 @@ export default function OwnerSettlementSettings() {
         baseConfig = {
           ...DEFAULT_CONFIG,
           ...raw,
-          exempt_order_sources: Array.isArray(raw.exempt_order_sources) ? raw.exempt_order_sources : [],
+          exempt_order_sources: Array.isArray(raw.exempt_order_sources)
+            ? Array.from(new Set(raw.exempt_order_sources.map(normalizeOrderSourceKey).filter(Boolean)))
+            : [],
+
           revenue_breakdown_type: raw.revenue_breakdown_type === "guestcount" ? "guestcount" : "standard",
           // 舊制沒有門檻概念，門檻相關欄位一律預設 0（未啟用門檻機制）
           commission_threshold: 0,
@@ -226,8 +229,9 @@ export default function OwnerSettlementSettings() {
           marketing_fee_threshold: Number(ruleRow.marketing_fee_threshold) || 0,
           charges_marketing_fee: ruleRow.charges_marketing_fee === true,
           exempt_order_sources: Array.isArray(ruleRow.exempt_order_sources)
-            ? ruleRow.exempt_order_sources
+            ? Array.from(new Set(ruleRow.exempt_order_sources.map(normalizeOrderSourceKey).filter(Boolean)))
             : baseConfig.exempt_order_sources,
+
           revenue_breakdown_type:
             ruleRow.revenue_breakdown_type === "guestcount"
               ? "guestcount"
