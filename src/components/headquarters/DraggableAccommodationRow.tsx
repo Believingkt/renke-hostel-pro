@@ -193,7 +193,7 @@ export function DraggableAccommodationRow({
             checked={accommodation.allow_credit_card_payment !== false}
             onCheckedChange={(next) => onToggleCreditCard?.(accommodation, next)}
             disabled={!onToggleCreditCard}
-            aria-label="信用卡付款"
+            aria-label="前台信用卡付款"
           />
           <span className="text-xs text-muted-foreground">
             {accommodation.allow_credit_card_payment !== false ? "開放" : "關閉"}
