@@ -6,6 +6,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { payByCardToken } from "../_shared/tappay.ts";
 import { taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import {
+  resolveCaller,
+  canEditModule,
+  isSuperAdmin,
+  forbiddenResponse,
+  unauthorizedResponse,
+} from "../_shared/authz.ts";
 
 async function chargeOne(supabase: any, orderId: string, triggerSource: string, performedBy: string | null) {
   const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
