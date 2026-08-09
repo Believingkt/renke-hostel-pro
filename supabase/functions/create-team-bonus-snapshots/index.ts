@@ -289,16 +289,29 @@ async function getOwnerRules(
   return out;
 }
 
-/** 入住營收口徑（逐夜攤提、扣除設定的增值服務、排除 exempt、換算台幣） */
-async function getStayRevenueByAcc(
+/** 雙軌營收：含業主自帶 / 排除業主自帶 */
+interface DualRevenue {
+  incl: number;
+  excl: number;
+}
+
+/** 加總後的營收：兩軌 + 依各館 payout_basis 決定的實付基準 */
+interface RevenueTotals {
+  incl: number;
+  excl: number;
+  payout: number;
+}
+
+/** 入住營收口徑（逐夜攤提、扣除設定的增值服務、換算台幣），回傳雙軌 */
+async function getStayRevenueDualByAcc(
   client: any,
   accIds: string[],
   monthStartDate: string,
   monthEndDate: string,
   sources: string[],
   rangesByAcc: Record<string, CountableRange[]>,
-): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
+): Promise<Record<string, DualRevenue>> {
+  const out: Record<string, DualRevenue> = {};
   const ids = accIds.filter((id) => (rangesByAcc[id] ?? []).length > 0);
   if (ids.length === 0) return out;
   const rules = await getOwnerRules(client, ids, monthStartDate);
@@ -319,11 +332,10 @@ async function getStayRevenueByAcc(
     for (const o of (data ?? []) as any[]) {
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
-      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，
-      // 不套用 exempt_order_sources，也不排除 owner_direct。
+      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
+      // 業主自帶（owner_direct）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const rule = rules[accId];
-
 
       const ci = String(o?.check_in_date ?? "").slice(0, 10);
       const co = String(o?.check_out_date ?? "").slice(0, 10);
@@ -359,14 +371,17 @@ async function getStayRevenueByAcc(
           ),
       );
       if (!amount) continue;
-      out[accId] = (out[accId] ?? 0) + amount;
+      const cur = out[accId] ?? { incl: 0, excl: 0 };
+      cur.incl += amount;
+      if (o?.owner_direct !== true) cur.excl += amount;
+      out[accId] = cur;
     }
   }
   return out;
 }
 
 /**
- * 分潤基準營收加總，monthEndDate 為排他。
+ * 分潤基準營收加總（雙軌），monthEndDate 為排他。
  * 採計範圍：各館合作期間 ∩ 資料月。
  * 口徑：資料月 >= STAY_REVENUE_SWITCH_MONTH 用入住營收，之前維持 order_date 舊口徑。
  */
@@ -376,10 +391,11 @@ async function getAccommodationRevenue(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
-): Promise<number> {
+): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  if (accIds.length === 0 || sources.length === 0) return 0;
+  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  if (accIds.length === 0 || sources.length === 0) return empty;
 
   const rangesByAcc = await getCountableRangesByAcc(
     client,
@@ -388,8 +404,10 @@ async function getAccommodationRevenue(
     monthEndDate,
   );
 
+  let byAcc: Record<string, DualRevenue> = {};
+
   if (monthStartDate >= STAY_REVENUE_SWITCH_MONTH) {
-    const byAcc = await getStayRevenueByAcc(
+    byAcc = await getStayRevenueDualByAcc(
       client,
       accIds,
       monthStartDate,
@@ -397,32 +415,44 @@ async function getAccommodationRevenue(
       sources,
       rangesByAcc,
     );
-    return Object.values(byAcc).reduce((s, v) => s + v, 0);
-  }
+  } else {
+    for (const accId of accIds) {
+      for (const range of rangesByAcc[accId] ?? []) {
+        const { data } = await client
+          .from("orders")
+          .select("id, owner_direct, order_meta(team_commission_price, is_excluded)")
+          .eq("accommodation_id", accId)
+          .gte("order_date", range.start)
+          .lt("order_date", range.end)
+          .neq("order_status", "cancelled")
+          .neq("order_status", "hold")
+          .in("order_source", sources);
 
-  let total = 0;
-  for (const accId of accIds) {
-    for (const range of rangesByAcc[accId] ?? []) {
-      const { data } = await client
-        .from("orders")
-        .select("id, order_meta(team_commission_price, is_excluded)")
-        .eq("accommodation_id", accId)
-        .gte("order_date", range.start)
-        .lt("order_date", range.end)
-        .neq("order_status", "cancelled")
-        .neq("order_status", "hold")
-        .in("order_source", sources);
-
-      for (const row of (data ?? []) as any[]) {
-        const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
-        if (!meta) continue;
-        if (meta.is_excluded === true) continue;
-        total += Number(meta.team_commission_price ?? 0) || 0;
+        for (const row of (data ?? []) as any[]) {
+          const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
+          if (!meta) continue;
+          if (meta.is_excluded === true) continue;
+          const amt = Number(meta.team_commission_price ?? 0) || 0;
+          if (!amt) continue;
+          const cur = byAcc[accId] ?? { incl: 0, excl: 0 };
+          cur.incl += amt;
+          if (row?.owner_direct !== true) cur.excl += amt;
+          byAcc[accId] = cur;
+        }
       }
     }
   }
-  return total;
+
+  const basis = await getPayoutBasisByAcc(client, Object.keys(byAcc));
+  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  for (const [accId, v] of Object.entries(byAcc)) {
+    totals.incl += v.incl;
+    totals.excl += v.excl;
+    totals.payout += basis[accId] === "include_owner_direct" ? v.incl : v.excl;
+  }
+  return totals;
 }
+
 
 
 
