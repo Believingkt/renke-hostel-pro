@@ -986,11 +986,16 @@ serve(async (req) => {
               .update({
                 payout_month: row.payout_month,
                 base_revenue: row.base_revenue,
+                base_revenue_incl_owner: row.base_revenue_incl_owner,
+                base_revenue_excl_owner: row.base_revenue_excl_owner,
                 rate: row.rate,
                 fixed_amount: row.fixed_amount,
                 venue_count: row.venue_count,
                 amount: row.amount,
+                amount_incl_owner: row.amount_incl_owner,
+                amount_excl_owner: row.amount_excl_owner,
                 settings_snapshot: row.settings_snapshot,
+
               })
               .eq("id", existing.id);
             if (updErr) {
