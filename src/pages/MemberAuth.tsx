@@ -411,8 +411,10 @@ const MemberAuth = () => {
     try {
       const channelId = LINE_CHANNEL_ID;
       const nonce = crypto.randomUUID();
+      // Native: the in-app browser (SFSafariViewController) cannot read the
+      // app WebView's storage, so the nonce must travel inside `state`.
       const state = native
-        ? encodeNativeReturnState(crypto.randomUUID(), crypto.randomUUID())
+        ? encodeNativeReturnState(crypto.randomUUID(), nonce)
         : crypto.randomUUID();
       const redirectUri = `${PROD_ORIGIN}/member/auth/line-callback`;
 
