@@ -3,3 +3,4 @@
 - [Package Date Price](mem://features/admin/package-date-price.md) — 方案單日價格覆寫優先序（覆寫→tier→預設）、/admin/package-price-calendar 批次改價。
 - [PMS 後台網域入口](mem://features/platform/pms-domain-entry.md) — pms.lakeze.com 模式判斷、/login 三欄登入、舊網域搬家轉址、重設密碼 redirect。
 - [Hold Order Detection](mem://features/admin/hold-order-detection.md) — 保留單一律以 order_status = 'hold' 判斷；禁用 guest_name = '保留單'。
+- [Marketing Analytics Tab](mem://features/admin/marketing-analytics.md) — 行銷數據分析頁籤：歸因口徑、Meta 每日同步排程、UTM 規範、預算建議規則。
