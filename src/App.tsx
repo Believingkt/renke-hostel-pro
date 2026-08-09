@@ -91,6 +91,10 @@ const TripDetail = lazy(() => import("./pages/TripDetail"));
 const TripEdit = lazy(() => import("./pages/TripEdit"));
 const TripShare = lazy(() => import("./pages/TripShare"));
 const Cart = lazy(() => import("./pages/Cart"));
+const LiffCheckout = lazy(() => import("./pages/liff/LiffCheckout"));
+const LiffFavorites = lazy(() => import("./pages/liff/LiffFavorites"));
+const LineButler = lazy(() => import("./pages/admin/LineButler"));
+
 
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
@@ -383,9 +387,16 @@ function App() {
                     <Route path="cart" element={
                       <Suspense fallback={<FrontendSkeleton />}><Cart /></Suspense>
                     } />
+                    <Route path="liff/checkout" element={
+                      <Suspense fallback={<FrontendSkeleton />}><LiffCheckout /></Suspense>
+                    } />
+                    <Route path="liff/favorites" element={
+                      <Suspense fallback={<FrontendSkeleton />}><LiffFavorites /></Suspense>
+                    } />
                     <Route path="legal/:slug" element={
                       <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
                     } />
+
 
 
 
@@ -417,9 +428,13 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/line-butler" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                    } />
                     <Route path="admin/traveler-attributes" element={
                       <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
                     } />
+
                     <Route path="admin/deploy-status" element={
                       <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
                     } />

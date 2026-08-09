@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { handleButlerEvent } from "../_shared/lineButler.ts";
+
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -208,6 +210,22 @@ async function handleEvents(channel: any, events: any[]) {
   }
 }
 
+/** C4：小安旅宿管家頻道（LINE_CHANNEL_SECRET / LINE_CHANNEL_ACCESS_TOKEN） */
+async function handleButlerEvents(events: any[], accessToken: string | null) {
+  const sb = supabase;
+  const results: any[] = [];
+  for (const ev of events) {
+    try {
+      const msgs = await handleButlerEvent(sb, accessToken, ev);
+      results.push({ event: ev.type, messages: msgs });
+    } catch (e) {
+      console.error("[butler] event error", e);
+      results.push({ event: ev.type, error: String(e) });
+    }
+  }
+  return results;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -219,10 +237,25 @@ Deno.serve(async (req) => {
   const signature = req.headers.get("x-line-signature") ?? "";
   const rawBody = await req.text();
 
-  const channel = await findMatchingChannel(rawBody, signature);
+  const butlerSecret = Deno.env.get("LINE_BUTLER_CHANNEL_SECRET") ?? Deno.env.get("LINE_CHANNEL_SECRET") ?? "";
+  const butlerToken = Deno.env.get("LINE_BUTLER_ACCESS_TOKEN") ?? Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? null;
+  const testMode = req.headers.get("x-line-test-mode") === "1";
+
+  const channel = signature ? await findMatchingChannel(rawBody, signature) : null;
+
+  let isButler = false;
   if (!channel) {
-    console.warn("LINE webhook signature mismatch");
-    return new Response("invalid signature", { status: 401, headers: corsHeaders });
+    if (butlerSecret && signature) {
+      const expected = await hmacSha256Base64(butlerSecret, rawBody);
+      isButler = expected === signature;
+    }
+    // 測試模式：無簽章時允許 mock payload（供本地/模擬器驗證邏輯）
+    if (!isButler && testMode && !signature) isButler = true;
+
+    if (!isButler) {
+      console.warn("LINE webhook signature mismatch");
+      return new Response("invalid signature", { status: 401, headers: corsHeaders });
+    }
   }
 
   let payload: any = {};
@@ -233,6 +266,20 @@ Deno.serve(async (req) => {
   }
 
   const events = Array.isArray(payload.events) ? payload.events : [];
+
+  if (isButler) {
+    // 測試模式同步回傳將發送的訊息，方便驗證
+    if (testMode) {
+      const results = await handleButlerEvents(events, null);
+      return new Response(JSON.stringify({ mock: true, results }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    handleButlerEvents(events, butlerToken).catch((e) => console.error(e));
+    return new Response("ok", { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain" } });
+  }
+
   // Process asynchronously to respond fast (<1s)
   handleEvents(channel, events).catch((e) => console.error(e));
 
@@ -241,3 +288,4 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, "Content-Type": "text/plain" },
   });
 });
+

@@ -1,0 +1,734 @@
+/**
+ * 小安 LINE 管家核心邏輯（C4）
+ * - 對話狀態機存於 line_sessions.state
+ * - 房況判讀沿用 get_adjusted_room_inventory_batch + room_inventory_pricing 鎖房規則
+ * - 回覆一律以 LINE Messaging API reply/push 發送
+ * 不改動既有金流與 portal-ai-chat。
+ */
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { parseIntent, type ParsedIntent } from "./lineIntent.ts";
+import { taipeiToday } from "./taipeiDate.ts";
+
+export interface ButlerCartStay {
+  kind: "stay";
+  roomTypeId: string;
+  accommodationId: string;
+  roomName: string;
+  accommodationName: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  unitPrice: number;
+  qty: number;
+  coverUrl?: string | null;
+}
+
+export interface ButlerCartProduct {
+  kind: "product";
+  productId: string;
+  name: string;
+  type: string;
+  unitPrice: number;
+  qty: number;
+  coverUrl?: string | null;
+}
+
+export type ButlerCartItem = ButlerCartStay | ButlerCartProduct;
+
+export interface ButlerState {
+  intent?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  keyword?: string;
+  cart?: ButlerCartItem[];
+}
+
+export function serviceClient(): SupabaseClient {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+/* ---------------- LINE messaging ---------------- */
+
+export interface OutgoingMessage {
+  // deno-lint-ignore no-explicit-any
+  [k: string]: any;
+}
+
+export async function lineReply(token: string, replyToken: string, messages: OutgoingMessage[]) {
+  const r = await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ replyToken, messages: messages.slice(0, 5) }),
+  });
+  if (!r.ok) console.error("[butler] reply failed", r.status, await r.text());
+}
+
+export async function linePush(token: string, to: string, messages: OutgoingMessage[]) {
+  const r = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ to, messages: messages.slice(0, 5) }),
+  });
+  if (!r.ok) console.error("[butler] push failed", r.status, await r.text());
+}
+
+export function textMsg(text: string): OutgoingMessage {
+  return { type: "text", text };
+}
+
+function quickMenu(): OutgoingMessage {
+  return {
+    type: "text",
+    text: "想先看哪一個呢？😊",
+    quickReply: {
+      items: [
+        { type: "action", action: { type: "message", label: "🔍 找房", text: "我想找房" } },
+        { type: "action", action: { type: "message", label: "🎁 加購", text: "有什麼加購體驗" } },
+        { type: "action", action: { type: "message", label: "❤️ 我的收藏", text: "我的收藏" } },
+        { type: "action", action: { type: "message", label: "🛒 結帳", text: "我要結帳" } },
+      ],
+    },
+  };
+}
+
+export function welcomeMessages(): OutgoingMessage[] {
+  return [
+    textMsg("嗨嗨～我是小安 🧸 人客多的 AI 旅宿管家！\n告訴我日期跟人數，我馬上幫你找有空的房 ✨"),
+    quickMenu(),
+  ];
+}
+
+/* ---------------- Session ---------------- */
+
+export async function loadSession(sb: SupabaseClient, lineUserId: string) {
+  const { data } = await sb
+    .from("line_sessions")
+    .select("id, line_user_id, member_user_id, state, last_intent")
+    .eq("line_user_id", lineUserId)
+    .maybeSingle();
+  if (data) return data;
+  const { data: created } = await sb
+    .from("line_sessions")
+    .insert({ line_user_id: lineUserId, state: {} })
+    .select("id, line_user_id, member_user_id, state, last_intent")
+    .single();
+  return created!;
+}
+
+export async function saveSession(sb: SupabaseClient, lineUserId: string, state: ButlerState, intent?: string) {
+  await sb
+    .from("line_sessions")
+    .update({ state, last_intent: intent ?? null, updated_at: new Date().toISOString() })
+    .eq("line_user_id", lineUserId);
+}
+
+/* ---------------- Availability（沿用既有鎖房規則） ---------------- */
+
+function eachDate(checkIn: string, checkOut: string): string[] {
+  const out: string[] = [];
+  const d = new Date(`${checkIn}T00:00:00Z`);
+  const end = new Date(`${checkOut}T00:00:00Z`);
+  while (d < end) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
+export interface RoomOffer {
+  roomTypeId: string;
+  accommodationId: string;
+  accommodationName: string;
+  name: string;
+  capacity: number;
+  totalPrice: number;
+  availableRooms: number;
+  coverUrl: string | null;
+}
+
+export async function findRooms(
+  sb: SupabaseClient,
+  opts: { checkIn: string; checkOut: string; guests?: number; keyword?: string; limit?: number },
+): Promise<RoomOffer[]> {
+  const dates = eachDate(opts.checkIn, opts.checkOut);
+  if (dates.length === 0) return [];
+
+  const { data: accs } = await sb
+    .from("accommodation_info")
+    .select("id, name, region_1, region_2, is_active, show_on_portal")
+    .eq("is_active", true);
+  let accList = (accs || []).filter((a) => a.show_on_portal !== false);
+  if (opts.keyword) {
+    const kw = opts.keyword;
+    const matched = accList.filter(
+      (a) =>
+        (a.name && kw.includes(a.name)) ||
+        (a.name && a.name.includes(kw)) ||
+        (a.region_1 && kw.includes(a.region_1)) ||
+        (a.region_2 && kw.includes(a.region_2)),
+    );
+    if (matched.length > 0) accList = matched;
+  }
+  if (accList.length === 0) return [];
+  const accMap = new Map(accList.map((a) => [a.id, a]));
+
+  let rtQuery = sb
+    .from("room_types")
+    .select("id, name, base_price, capacity, accommodation_id")
+    .in("accommodation_id", accList.map((a) => a.id));
+  if (opts.guests) rtQuery = rtQuery.gte("capacity", opts.guests);
+  const { data: roomTypes } = await rtQuery;
+  if (!roomTypes || roomTypes.length === 0) return [];
+  const roomTypeIds = roomTypes.map((r) => r.id);
+
+  const { data: inventory } = await sb
+    .from("room_inventory_pricing")
+    .select("room_type_id, date, price, is_available")
+    .in("room_type_id", roomTypeIds)
+    .is("pricing_template_id", null)
+    .gte("date", opts.checkIn)
+    .lt("date", opts.checkOut);
+
+  const baseIndex = new Map<string, { is_available: boolean; price: number | null }>();
+  for (const inv of inventory || []) {
+    baseIndex.set(`${inv.room_type_id}:${inv.date}`, {
+      is_available: inv.is_available !== false,
+      price: inv.price && Number(inv.price) > 0 ? Number(inv.price) : null,
+    });
+  }
+
+  const adjusted = await Promise.all(
+    roomTypes.map(async (rt) => {
+      const { data } = await sb.rpc("get_adjusted_room_inventory_batch", {
+        p_room_type_id: rt.id,
+        p_dates: dates,
+        p_accommodation_id: rt.accommodation_id,
+      });
+      // deno-lint-ignore no-explicit-any
+      return { roomTypeId: rt.id, rows: ((data as any[]) || []) };
+    }),
+  );
+  const adjIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
+  for (const { roomTypeId, rows } of adjusted) {
+    for (const row of rows) {
+      // deno-lint-ignore no-explicit-any
+      const key = (row as any).date_value ?? (row as any).date;
+      if (!key) continue;
+      adjIndex.set(`${roomTypeId}:${key}`, {
+        available_rooms: row.available_rooms ?? 0,
+        is_blocked: row.is_blocked === true,
+      });
+    }
+  }
+
+  const { data: photos } = await sb
+    .from("room_photos")
+    .select("room_type_id, photo_url, display_order")
+    .in("room_type_id", roomTypeIds)
+    .order("display_order", { ascending: true, nullsFirst: false });
+  const photoIndex = new Map<string, string>();
+  for (const p of photos || []) {
+    if (p.room_type_id && !photoIndex.has(p.room_type_id)) photoIndex.set(p.room_type_id, p.photo_url);
+  }
+
+  const offers: RoomOffer[] = [];
+  for (const rt of roomTypes) {
+    let total = 0;
+    let minRooms: number | null = null;
+    let bookable = true;
+    for (const date of dates) {
+      const base = baseIndex.get(`${rt.id}:${date}`);
+      const adj = adjIndex.get(`${rt.id}:${date}`);
+      if (!base || base.is_available === false || !adj || adj.is_blocked || adj.available_rooms <= 0) {
+        bookable = false;
+        minRooms = 0;
+        break;
+      }
+      total += base.price ?? Number(rt.base_price ?? 0);
+      minRooms = minRooms === null ? adj.available_rooms : Math.min(minRooms, adj.available_rooms);
+    }
+    if (!bookable) continue;
+    offers.push({
+      roomTypeId: rt.id,
+      accommodationId: rt.accommodation_id!,
+      accommodationName: accMap.get(rt.accommodation_id!)?.name ?? "",
+      name: rt.name,
+      capacity: rt.capacity,
+      totalPrice: total,
+      availableRooms: minRooms ?? 0,
+      coverUrl: photoIndex.get(rt.id) ?? null,
+    });
+  }
+  offers.sort((a, b) => a.totalPrice - b.totalPrice);
+  return offers.slice(0, opts.limit ?? 5);
+}
+
+/* ---------------- Flex builders ---------------- */
+
+function money(n: number) {
+  return `NT$ ${Math.round(n).toLocaleString("en-US")}`;
+}
+
+export function roomCarousel(offers: RoomOffer[], checkIn: string, checkOut: string, nights: number): OutgoingMessage {
+  return {
+    type: "flex",
+    altText: `找到 ${offers.length} 間有空的房型`,
+    contents: {
+      type: "carousel",
+      contents: offers.map((o) => ({
+        type: "bubble",
+        size: "kilo",
+        ...(o.coverUrl
+          ? { hero: { type: "image", url: o.coverUrl, size: "full", aspectRatio: "20:13", aspectMode: "cover" } }
+          : {}),
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: o.accommodationName, size: "xs", color: "#999999" },
+            { type: "text", text: o.name, weight: "bold", size: "md", wrap: true },
+            { type: "text", text: `${checkIn} → ${checkOut}・${nights} 晚`, size: "xs", color: "#888888" },
+            {
+              type: "text",
+              text: o.availableRooms > 0 ? `餘 ${o.availableRooms} 間` : "已滿",
+              size: "xs",
+              color: o.availableRooms > 0 ? "#E8792B" : "#B00020",
+            },
+            { type: "text", text: money(o.totalPrice), weight: "bold", size: "lg", color: "#E8792B" },
+          ],
+        },
+        footer: {
+          type: "box",
+          layout: "horizontal",
+          spacing: "sm",
+          contents: [
+            {
+              type: "button",
+              style: "primary",
+              height: "sm",
+              color: "#E8792B",
+              action: {
+                type: "postback",
+                label: "選這間",
+                data: `action=pick_room&room=${o.roomTypeId}&ci=${checkIn}&co=${checkOut}`,
+                displayText: `我選 ${o.name}`,
+              },
+            },
+            {
+              type: "button",
+              style: "secondary",
+              height: "sm",
+              action: {
+                type: "postback",
+                label: "❤️",
+                data: `action=fav&type=room&id=${o.roomTypeId}`,
+                displayText: "收藏這間",
+              },
+            },
+          ],
+        },
+      })),
+    },
+  };
+}
+
+export interface AddonProduct {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  cover_url: string | null;
+}
+
+export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
+  return {
+    type: "flex",
+    altText: "加購推薦",
+    contents: {
+      type: "carousel",
+      contents: products.map((p) => ({
+        type: "bubble",
+        size: "kilo",
+        ...(p.cover_url
+          ? { hero: { type: "image", url: p.cover_url, size: "full", aspectRatio: "20:13", aspectMode: "cover" } }
+          : {}),
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: p.type, size: "xs", color: "#999999" },
+            { type: "text", text: p.name, weight: "bold", wrap: true },
+            { type: "text", text: money(p.price), weight: "bold", color: "#E8792B" },
+          ],
+        },
+        footer: {
+          type: "box",
+          layout: "horizontal",
+          spacing: "sm",
+          contents: [
+            {
+              type: "button",
+              style: "primary",
+              height: "sm",
+              color: "#E8792B",
+              action: {
+                type: "postback",
+                label: "加入",
+                data: `action=add_product&id=${p.id}`,
+                displayText: `加購 ${p.name}`,
+              },
+            },
+            {
+              type: "button",
+              style: "secondary",
+              height: "sm",
+              action: { type: "postback", label: "❤️", data: `action=fav&type=product&id=${p.id}` },
+            },
+          ],
+        },
+      })),
+    },
+  };
+}
+
+export function cartSummary(items: ButlerCartItem[], liffUrl: string | null): OutgoingMessage {
+  const lines = items.map((i) => ({
+    type: "box",
+    layout: "horizontal",
+    contents: [
+      {
+        type: "text",
+        text: i.kind === "stay" ? `${i.accommodationName}・${i.roomName}` : i.name,
+        size: "sm",
+        wrap: true,
+        flex: 5,
+      },
+      {
+        type: "text",
+        text: money(i.kind === "stay" ? i.unitPrice * i.qty * Math.max(1, i.nights) : i.unitPrice * i.qty),
+        size: "sm",
+        align: "end",
+        flex: 3,
+      },
+    ],
+  }));
+  const total = items.reduce(
+    (s, i) => s + (i.kind === "stay" ? i.unitPrice * i.qty * Math.max(1, i.nights) : i.unitPrice * i.qty),
+    0,
+  );
+  return {
+    type: "flex",
+    altText: "購物清單",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: "🛒 你的購物清單", weight: "bold", size: "md" },
+          ...(lines.length ? lines : [{ type: "text", text: "目前是空的喔", size: "sm", color: "#999999" }]),
+          { type: "separator", margin: "md" },
+          {
+            type: "box",
+            layout: "horizontal",
+            margin: "md",
+            contents: [
+              { type: "text", text: "合計", weight: "bold", size: "sm" },
+              { type: "text", text: money(total), weight: "bold", size: "sm", align: "end", color: "#E8792B" },
+            ],
+          },
+        ],
+      },
+      footer: liffUrl
+        ? {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                color: "#E8792B",
+                action: { type: "uri", label: "前往結帳", uri: liffUrl },
+              },
+            ],
+          }
+        : undefined,
+    },
+  };
+}
+
+export function liffCheckoutUrl(lineUserId: string): string | null {
+  const liffId = Deno.env.get("LIFF_ID");
+  if (!liffId) return null;
+  return `https://liff.line.me/${liffId}?page=checkout&u=${encodeURIComponent(lineUserId)}`;
+}
+
+export function liffFavoritesUrl(lineUserId: string): string | null {
+  const liffId = Deno.env.get("LIFF_ID");
+  if (!liffId) return null;
+  return `https://liff.line.me/${liffId}?page=favorites&u=${encodeURIComponent(lineUserId)}`;
+}
+
+/* ---------------- Main event handling ---------------- */
+
+// deno-lint-ignore no-explicit-any
+export async function handleButlerEvent(sb: SupabaseClient, accessToken: string | null, ev: any): Promise<OutgoingMessage[]> {
+  const lineUserId: string | undefined = ev?.source?.userId;
+  if (!lineUserId) return [];
+  const session = await loadSession(sb, lineUserId);
+  const state: ButlerState = (session.state as ButlerState) || {};
+  const today = taipeiToday();
+  let out: OutgoingMessage[] = [];
+
+  if (ev.type === "follow") {
+    out = welcomeMessages();
+    await saveSession(sb, lineUserId, state, "greeting");
+  } else if (ev.type === "postback") {
+    out = await handlePostback(sb, lineUserId, state, String(ev.postback?.data || ""));
+  } else if (ev.type === "message" && ev.message?.type === "text") {
+    out = await handleText(sb, lineUserId, state, String(ev.message.text || ""), today);
+  }
+
+  if (accessToken && out.length > 0) {
+    if (ev.replyToken) await lineReply(accessToken, ev.replyToken, out);
+    else await linePush(accessToken, lineUserId, out);
+  }
+  return out;
+}
+
+async function handleText(
+  sb: SupabaseClient,
+  lineUserId: string,
+  state: ButlerState,
+  text: string,
+  today: string,
+): Promise<OutgoingMessage[]> {
+  const parsed: ParsedIntent = parseIntent(text, today);
+  const next: ButlerState = {
+    ...state,
+    intent: parsed.intent,
+    checkIn: parsed.checkIn ?? state.checkIn,
+    checkOut: parsed.checkOut ?? state.checkOut,
+    guests: parsed.guests ?? state.guests,
+    keyword: parsed.keyword ?? state.keyword,
+  };
+
+  let messages: OutgoingMessage[] = [];
+
+  if (parsed.intent === "favorites") {
+    messages = await favoriteListMessages(sb, lineUserId);
+  } else if (parsed.intent === "checkout") {
+    const items = next.cart || [];
+    messages = items.length
+      ? [textMsg("幫你整理好囉，確認後就能結帳 💳"), cartSummary(items, liffCheckoutUrl(lineUserId))]
+      : [textMsg("購物車還是空的耶 😅 先跟我說日期跟人數，我幫你找房！")];
+  } else if (parsed.intent === "addon") {
+    const products = await fetchAddons(sb, next.keyword);
+    messages = products.length
+      ? [textMsg("這些是最受歡迎的加購 🎁 想要哪個？"), addonCarousel(products)]
+      : [textMsg("目前這區還沒有加購品項耶 🙈 先幫你看房好嗎？")];
+  } else if (parsed.intent === "search_rooms") {
+    if (!next.checkIn || !next.checkOut) {
+      messages = [textMsg("好的 😊 想住哪幾天呢？（例如：8/20 住 2 晚、4 人）")];
+    } else {
+      const nights = Math.max(
+        1,
+        Math.round(
+          (new Date(`${next.checkOut}T00:00:00Z`).getTime() -
+            new Date(`${next.checkIn}T00:00:00Z`).getTime()) / 86400000,
+        ),
+      );
+      const offers = await findRooms(sb, {
+        checkIn: next.checkIn,
+        checkOut: next.checkOut,
+        guests: next.guests,
+        keyword: next.keyword,
+      });
+      messages = offers.length
+        ? [textMsg(`找到 ${offers.length} 間有空的房型 ✨ 幫你按價格排好了`), roomCarousel(offers, next.checkIn, next.checkOut, nights)]
+        : [textMsg("這幾天剛好都被訂滿了 😢 換個日期或人數，我再幫你找找！")];
+    }
+  } else if (parsed.intent === "greeting") {
+    messages = welcomeMessages();
+  } else {
+    messages = [
+      textMsg("我可以幫你找房、加購體驗、管理收藏喔 🧸"),
+      quickMenu(),
+    ];
+  }
+
+  await saveSession(sb, lineUserId, next, parsed.intent);
+  return messages;
+}
+
+async function fetchAddons(sb: SupabaseClient, _keyword?: string): Promise<AddonProduct[]> {
+  const { data } = await sb
+    .from("trip_products")
+    .select("id, name, type, price, cover_url, is_active")
+    .eq("is_active", true)
+    .limit(8);
+  return (data || []).map((p) => ({
+    id: p.id,
+    // deno-lint-ignore no-explicit-any
+    name: typeof p.name === "string" ? p.name : ((p.name as any)?.["zh-TW"] ?? (p.name as any)?.zh ?? "加購項目"),
+    type: p.type ?? "加購",
+    price: Number(p.price ?? 0),
+    cover_url: p.cover_url ?? null,
+  }));
+}
+
+async function favoriteListMessages(sb: SupabaseClient, lineUserId: string): Promise<OutgoingMessage[]> {
+  const { data } = await sb
+    .from("trip_favorites")
+    .select("id, ref_type, ref_id, meta, created_at")
+    .eq("line_user_id", lineUserId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (!data || data.length === 0) {
+    return [textMsg("你還沒有收藏喔 ❤️ 看到喜歡的房型按下愛心，我幫你記起來！")];
+  }
+  const url = liffFavoritesUrl(lineUserId);
+  const lines = data
+    // deno-lint-ignore no-explicit-any
+    .map((f, i) => `${i + 1}. ${((f.meta as any)?.name) ?? f.ref_type}`)
+    .join("\n");
+  const msgs: OutgoingMessage[] = [textMsg(`你的收藏 ❤️\n${lines}`)];
+  if (url) {
+    msgs.push({
+      type: "template",
+      altText: "管理收藏",
+      template: { type: "buttons", text: "要開啟收藏清單管理嗎？", actions: [{ type: "uri", label: "打開收藏清單", uri: url }] },
+    });
+  }
+  return msgs;
+}
+
+async function handlePostback(
+  sb: SupabaseClient,
+  lineUserId: string,
+  state: ButlerState,
+  data: string,
+): Promise<OutgoingMessage[]> {
+  const params = new URLSearchParams(data);
+  const action = params.get("action");
+  const next: ButlerState = { ...state, cart: state.cart ? [...state.cart] : [] };
+
+  if (action === "fav") {
+    const refType = params.get("type") || "room";
+    const refId = params.get("id");
+    if (!refId) return [textMsg("收藏失敗了 😅 再試一次好嗎？")];
+    const meta = await favoriteMeta(sb, refType, refId);
+    // 唯一索引為 partial index，PostgREST 的 upsert(onConflict) 不適用 → 先查再寫
+    const { data: existingFav } = await sb
+      .from("trip_favorites")
+      .select("id")
+      .eq("line_user_id", lineUserId)
+      .eq("ref_type", refType)
+      .eq("ref_id", refId)
+      .maybeSingle();
+    if (!existingFav) {
+      const { error: favErr } = await sb
+        .from("trip_favorites")
+        .insert({ line_user_id: lineUserId, ref_type: refType, ref_id: refId, meta });
+      if (favErr) {
+        console.error("[butler] favorite insert failed", favErr);
+        return [textMsg("收藏沒存成功耶 😢 等等再試一次好嗎？")];
+      }
+    }
+    return [textMsg("已收藏 ❤️ 隨時說「我的收藏」就能看到！")];
+  }
+
+  if (action === "pick_room") {
+    const roomTypeId = params.get("room");
+    const checkIn = params.get("ci") || state.checkIn;
+    const checkOut = params.get("co") || state.checkOut;
+    if (!roomTypeId || !checkIn || !checkOut) return [textMsg("資訊不齊全，再跟我說一次日期好嗎？😊")];
+    const offers = await findRooms(sb, { checkIn, checkOut, limit: 50 });
+    const picked = offers.find((o) => o.roomTypeId === roomTypeId);
+    if (!picked) return [textMsg("這間剛剛被訂走了 😢 我再幫你找其他的！")];
+    const nights = Math.max(
+      1,
+      Math.round(
+        (new Date(`${checkOut}T00:00:00Z`).getTime() - new Date(`${checkIn}T00:00:00Z`).getTime()) / 86400000,
+      ),
+    );
+    next.cart = [
+      ...(next.cart || []).filter((i) => i.kind !== "stay"),
+      {
+        kind: "stay",
+        roomTypeId: picked.roomTypeId,
+        accommodationId: picked.accommodationId,
+        roomName: picked.name,
+        accommodationName: picked.accommodationName,
+        checkIn,
+        checkOut,
+        nights,
+        unitPrice: Math.round(picked.totalPrice / nights),
+        qty: 1,
+        coverUrl: picked.coverUrl,
+      },
+    ];
+    next.checkIn = checkIn;
+    next.checkOut = checkOut;
+    await saveSession(sb, lineUserId, next, "pick_room");
+    const products = await fetchAddons(sb);
+    const msgs: OutgoingMessage[] = [textMsg(`收到！${picked.name} 已放進購物車 🛒`)];
+    if (products.length) msgs.push(textMsg("要不要順便加購體驗？🎁"), addonCarousel(products));
+    msgs.push(cartSummary(next.cart, liffCheckoutUrl(lineUserId)));
+    return msgs;
+  }
+
+  if (action === "add_product") {
+    const id = params.get("id");
+    if (!id) return [textMsg("加購失敗了 😅")];
+    const { data: p } = await sb
+      .from("trip_products")
+      .select("id, name, type, price, cover_url")
+      .eq("id", id)
+      .maybeSingle();
+    if (!p) return [textMsg("這個品項目前無法加購 🙈")];
+    // deno-lint-ignore no-explicit-any
+    const name = typeof p.name === "string" ? p.name : ((p.name as any)?.["zh-TW"] ?? "加購項目");
+    const existing = (next.cart || []).find((i) => i.kind === "product" && i.productId === id) as
+      | ButlerCartProduct
+      | undefined;
+    if (existing) existing.qty += 1;
+    else
+      next.cart!.push({
+        kind: "product",
+        productId: p.id,
+        name,
+        type: p.type ?? "加購",
+        unitPrice: Number(p.price ?? 0),
+        qty: 1,
+        coverUrl: p.cover_url ?? null,
+      });
+    await saveSession(sb, lineUserId, next, "addon");
+    return [textMsg(`已加入「${name}」🎁`), cartSummary(next.cart!, liffCheckoutUrl(lineUserId))];
+  }
+
+  if (action === "favorites") return await favoriteListMessages(sb, lineUserId);
+
+  return [textMsg("我沒聽懂這個動作 😅 再點一次好嗎？")];
+}
+
+async function favoriteMeta(sb: SupabaseClient, refType: string, refId: string) {
+  if (refType === "room") {
+    const { data } = await sb.from("room_types").select("name, accommodation_id").eq("id", refId).maybeSingle();
+    return { name: data?.name ?? "房型", accommodation_id: data?.accommodation_id ?? null };
+  }
+  if (refType === "product") {
+    const { data } = await sb.from("trip_products").select("name, price").eq("id", refId).maybeSingle();
+    // deno-lint-ignore no-explicit-any
+    const name = typeof data?.name === "string" ? data.name : ((data?.name as any)?.["zh-TW"] ?? "加購項目");
+    return { name, price: data?.price ?? 0 };
+  }
+  return {};
+}
