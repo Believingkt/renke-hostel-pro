@@ -722,11 +722,15 @@ serve(async (req) => {
         member_id: profile.id,
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
-        base_revenue: myRevenue,
+        base_revenue: myRevenue.payout,
+        base_revenue_incl_owner: myRevenue.incl,
+        base_revenue_excl_owner: myRevenue.excl,
         rate: amPerfRate,
         fixed_amount: null,
         venue_count: managedNoTravel.length,
-        amount: myRevenue * Number(amPerfRate ?? 0),
+        amount: myRevenue.payout * Number(amPerfRate ?? 0),
+        amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
+        amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -742,10 +746,14 @@ serve(async (req) => {
         snapshot_month: snapshotMonthStr,
         payout_month: payoutMonthStr,
         base_revenue: null,
+        base_revenue_incl_owner: null,
+        base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: amVenueFixed,
         venue_count: managedNoTravel.length,
         amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
+        amount_incl_owner: null,
+        amount_excl_owner: null,
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: amVenueFixed,
@@ -753,6 +761,7 @@ serve(async (req) => {
           excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
         },
       });
+
     }
 
     // (3) 成交組績效獎金：全公司營收 × rate，由「資料月底仍在職」的成交組成員均分
