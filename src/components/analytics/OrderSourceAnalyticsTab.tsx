@@ -99,7 +99,7 @@ export function OrderSourceAnalyticsTab({
   const [trendOrders, setTrendOrders] = useState<OrderRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  const [basis, setBasis] = useState<StatBasis>("nightly");
+  const [basis, setBasis] = useState<StatBasis>("checkin");
 
   // Traveldays 專屬：檢視模式與匯率（未受控時使用內部 state）
   const [innerViewMode, setInnerViewMode] = useState<"separate" | "consolidated">("separate");
