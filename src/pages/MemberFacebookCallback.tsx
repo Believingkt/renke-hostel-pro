@@ -66,8 +66,13 @@ const MemberFacebookCallback = () => {
       setDiagnostics((current) => ({ ...current, nativeMode: nativeFlow }));
       console.log(`[${TAG} callback] detected native mode:`, nativeFlow);
 
-      // 1. Pre-check: if a session already exists, skip everything.
-      const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
+      // Native callbacks run in an isolated browser. A session found there can
+      // contain a refresh token that was already consumed and is not proof that
+      // the app WebView is signed in. Native FB must always exchange the fresh
+      // authorization code and hand those fresh tokens to the app.
+      const existingRedirect = nativeFlow
+        ? null
+        : await preCheckExistingSession(TAG, returnFromState);
       if (existingRedirect) {
         localStorage.removeItem("fb_oauth_state");
         localStorage.removeItem("fb_oauth_redirect_uri");
