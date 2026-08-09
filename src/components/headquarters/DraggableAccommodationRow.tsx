@@ -30,6 +30,7 @@ interface Accommodation {
   footer_logo_url: string | null;
   is_active: boolean;
   show_on_portal?: boolean;
+  allow_credit_card_payment?: boolean;
   building_count?: number | null;
   created_at: string;
 }
@@ -42,6 +43,7 @@ interface DraggableAccommodationRowProps {
   onDelete: (acc: Accommodation) => void;
   onGoogleReviews?: (acc: Accommodation) => void;
   onTogglePortal?: (acc: Accommodation, next: boolean) => void;
+  onToggleCreditCard?: (acc: Accommodation, next: boolean) => void;
   isDragDisabled?: boolean;
 }
 
@@ -53,6 +55,7 @@ export function DraggableAccommodationRow({
   onDelete,
   onGoogleReviews,
   onTogglePortal,
+  onToggleCreditCard,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
   const {
@@ -179,6 +182,21 @@ export function DraggableAccommodationRow({
           />
           <span className="text-xs text-muted-foreground">
             {accommodation.show_on_portal !== false ? "顯示" : "隱藏"}
+          </span>
+        </div>
+      </TableCell>
+
+      {/* Credit card payment */}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={accommodation.allow_credit_card_payment !== false}
+            onCheckedChange={(next) => onToggleCreditCard?.(accommodation, next)}
+            disabled={!onToggleCreditCard}
+            aria-label="信用卡付款"
+          />
+          <span className="text-xs text-muted-foreground">
+            {accommodation.allow_credit_card_payment !== false ? "開放" : "關閉"}
           </span>
         </div>
       </TableCell>
