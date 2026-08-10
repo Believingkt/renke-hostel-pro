@@ -120,10 +120,12 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
   monthly_late: [25],
 };
 
+import { roundBonus } from "@/lib/bonusRounding";
+
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const formatMoney = (n: number | null | undefined) =>
-  `NT$ ${Math.round(Number(n ?? 0)).toLocaleString()}`;
+  `NT$ ${roundBonus(n).toLocaleString()}`;
 
 
 export default function TeamCommission() {
