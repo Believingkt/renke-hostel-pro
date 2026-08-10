@@ -231,6 +231,12 @@ export default function TeamCommissionStatsTab() {
   const [accSheet, setAccSheet] = useState<{
     title: string;
     breakdown: AccBreakdown;
+    backfillList?: {
+      id: string;
+      snapshot_month: string;
+      order_number: string | null;
+      amount: number;
+    }[];
     adjList?: {
       id: string;
       adjustment_type: string;
@@ -256,6 +262,20 @@ export default function TeamCommissionStatsTab() {
       closer_amount: number;
       video_amount: number;
       reason: string | null;
+      order_number: string | null;
+      accommodation_id: string | null;
+    }[]
+  >([]);
+
+  // 回溯補建（本期發放月的快照中，資料月不等於本期資料月者＝前期漏建、本期才補上）
+  const [backfills, setBackfills] = useState<
+    {
+      id: string;
+      snapshot_month: string;
+      closer_id: string | null;
+      video_creator_id: string | null;
+      closer_amount: number;
+      video_amount: number;
       order_number: string | null;
       accommodation_id: string | null;
     }[]
@@ -352,6 +372,63 @@ export default function TeamCommissionStatsTab() {
       cancelled = true;
     };
   }, [mode, payoutMonthKey, period.startIso, period.nextIso]);
+
+  // 回溯補建：本期發放月的快照中，資料月 ≠ 本期資料月者
+  useEffect(() => {
+    if (mode !== "period") {
+      setBackfills([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("closer_commission_snapshots")
+        .select(
+          "id, snapshot_month, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, accommodation_id, orders(order_number)",
+        )
+        .eq("payout_month", payoutMonthKey)
+        .neq("snapshot_month", dataMonthKey);
+      if (cancelled) return;
+      setBackfills(
+        ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          snapshot_month: String(r.snapshot_month ?? ""),
+          closer_id: r.closer_id,
+          video_creator_id: r.video_creator_id,
+          closer_amount: Number(r.closer_commission_amount ?? 0),
+          video_amount: Number(r.video_commission_amount ?? 0),
+          order_number: r.orders?.order_number ?? null,
+          accommodation_id: r.accommodation_id ?? null,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, payoutMonthKey, dataMonthKey]);
+
+  // 回溯補建彙總：成員層級 / 成員+館別層級
+  const backfillMaps = useMemo(() => {
+    const closerByUid = new Map<string, number>();
+    const closerByUidAcc = new Map<string, number>();
+    const videoByUid = new Map<string, number>();
+    const videoByUidAcc = new Map<string, number>();
+    const add = (m: Map<string, number>, k: string, v: number) =>
+      m.set(k, (m.get(k) ?? 0) + v);
+    for (const b of backfills) {
+      if (b.closer_id && b.closer_amount !== 0) {
+        add(closerByUid, b.closer_id, b.closer_amount);
+        if (b.accommodation_id)
+          add(closerByUidAcc, `${b.closer_id}|${b.accommodation_id}`, b.closer_amount);
+      }
+      if (b.video_creator_id && b.video_amount !== 0) {
+        add(videoByUid, b.video_creator_id, b.video_amount);
+        if (b.accommodation_id)
+          add(videoByUidAcc, `${b.video_creator_id}|${b.accommodation_id}`, b.video_amount);
+      }
+    }
+    return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
+  }, [backfills]);
 
   // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
   const adjMaps = useMemo(() => {
@@ -840,6 +917,10 @@ export default function TeamCommissionStatsTab() {
     const showAdj = mode === "period";
     const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
     const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
+    const bfByUid = role === "closer" ? backfillMaps.closerByUid : backfillMaps.videoByUid;
+    const bfByUidAcc =
+      role === "closer" ? backfillMaps.closerByUidAcc : backfillMaps.videoByUidAcc;
+    const hasBackfill = showAdj && backfills.length > 0;
     const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
     const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
     const renderCommissionCell = (amount: number) => {
@@ -883,6 +964,13 @@ export default function TeamCommissionStatsTab() {
     <Card>
       <CardContent className="p-4 space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
+        {hasBackfill && (
+          <p className="text-[11px] leading-relaxed text-muted-foreground rounded-md border border-border bg-muted/40 p-2">
+            本期（{payoutMonthKey} 發放月）另有<strong className="text-foreground">回溯補建</strong>快照
+            {backfills.length} 筆：前期漏建、於本期才產生的訂單，資料月不屬於 {dataMonthKey}。
+            分潤金額欄僅計 {dataMonthKey} 資料月，「發放總計」已含回溯補建與分潤補差，與發放管理／首頁卡片一致。
+          </p>
+        )}
         <div className="overflow-x-auto">
           <Table className="fixed-table">
             <TableHeader>
@@ -902,6 +990,14 @@ export default function TeamCommissionStatsTab() {
                     </span>
                   )}
                 </TableHead>
+                {hasBackfill && (
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    回溯補建
+                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                      （前期訂單）
+                    </span>
+                  </TableHead>
+                )}
                 {showAdj && (
                   <>
                     <TableHead className="whitespace-nowrap tabular-nums">
@@ -922,17 +1018,22 @@ export default function TeamCommissionStatsTab() {
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={showAdj ? 11 : 9} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={(showAdj ? 11 : 9) + (hasBackfill ? 1 : 0)} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
+
               ) : (
 
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
                   const memberAdj = byUid.get(r.uid) ?? 0;
-                  const memberTotal = netCommission(r.commission) + memberAdj;
-                  const memberTotalBoosted = boostedAmount(netCommission(r.commission), bonusMultiplier) + boostedAmount(memberAdj, bonusMultiplier);
+                  const memberBf = bfByUid.get(r.uid) ?? 0;
+                  const memberTotal = netCommission(r.commission) + memberAdj + memberBf;
+                  const memberTotalBoosted =
+                    boostedAmount(netCommission(r.commission), bonusMultiplier) +
+                    boostedAmount(memberAdj, bonusMultiplier) +
+                    boostedAmount(memberBf, bonusMultiplier);
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -950,9 +1051,13 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
                         <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        {hasBackfill && (
+                          <TableCell className="tabular-nums">{renderAdjCell(memberBf)}</TableCell>
+                        )}
                         {showAdj && (
                           <>
                             <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
+
                             <TableCell className="tabular-nums font-semibold">
                               {bonusMultiplier > 1 ? (
                                 <div className="flex flex-col leading-tight items-end">
@@ -988,6 +1093,9 @@ export default function TeamCommissionStatsTab() {
                           const accAdj = firstOfAcc
                             ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
+                          const accBf = firstOfAcc
+                            ? (bfByUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
+                            : 0;
                           const adjList =
                             showAdj && firstOfAcc
                               ? adjustments
@@ -1005,11 +1113,28 @@ export default function TeamCommissionStatsTab() {
                                     amount: role === "closer" ? a.closer_amount : a.video_amount,
                                   }))
                               : [];
+                          const backfillList =
+                            hasBackfill && firstOfAcc
+                              ? backfills
+                                  .filter((x) =>
+                                    role === "closer"
+                                      ? x.closer_id === r.uid && x.closer_amount !== 0
+                                      : x.video_creator_id === r.uid && x.video_amount !== 0,
+                                  )
+                                  .filter((x) => x.accommodation_id === b.accId)
+                                  .map((x) => ({
+                                    id: x.id,
+                                    snapshot_month: x.snapshot_month,
+                                    order_number: x.order_number,
+                                    amount: role === "closer" ? x.closer_amount : x.video_amount,
+                                  }))
+                              : [];
                           const openSheet = () =>
                             setAccSheet({
                               title: `${r.name} ・ ${b.accName}`,
                               breakdown: b,
                               adjList,
+                              backfillList,
                             });
                           return (
                             <TableRow
@@ -1024,6 +1149,9 @@ export default function TeamCommissionStatsTab() {
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
                               <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              {hasBackfill && (
+                                <TableCell className="tabular-nums">{renderAdjCell(accBf)}</TableCell>
+                              )}
                               {showAdj && (
                                 <>
                                   <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
@@ -1031,21 +1159,23 @@ export default function TeamCommissionStatsTab() {
                                     {bonusMultiplier > 1 ? (
                                       <div className="flex flex-col leading-tight items-end">
                                         <span className="text-muted-foreground line-through text-xs font-normal">
-                                          {fmtMoney(netCommission(b.commission) + accAdj)}
+                                          {fmtMoney(netCommission(b.commission) + accAdj + accBf)}
                                         </span>
                                         <span className="text-primary">
                                           {fmtMoney(
                                             boostedAmount(netCommission(b.commission), bonusMultiplier) +
-                                              boostedAmount(accAdj, bonusMultiplier),
+                                              boostedAmount(accAdj, bonusMultiplier) +
+                                              boostedAmount(accBf, bonusMultiplier),
                                           )}
                                         </span>
                                       </div>
                                     ) : (
-                                      fmtMoney(netCommission(b.commission) + accAdj)
+                                      fmtMoney(netCommission(b.commission) + accAdj + accBf)
                                     )}
                                   </TableCell>
                                 </>
                               )}
+
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
 
                               <TableCell className="tabular-nums text-muted-foreground">
@@ -1377,6 +1507,33 @@ export default function TeamCommissionStatsTab() {
                           </TableRow>
                         );
                       })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              {!!accSheet.backfillList?.length && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">
+                    回溯補建（前期訂單，歸入 {payoutMonthKey} 發放月）
+                  </h3>
+                  <Table className="fixed-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>原資料月</TableHead>
+                        <TableHead className="tabular-nums">分潤金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {accSheet.backfillList.map((x) => (
+                        <TableRow key={x.id}>
+                          <TableCell className="font-mono">{x.order_number ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{x.snapshot_month || "—"}</TableCell>
+                          <TableCell className="tabular-nums text-emerald-600">
+                            {fmtMoney(x.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
