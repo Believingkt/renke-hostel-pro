@@ -61,7 +61,8 @@ const menuItems = [
     tab: "bonus-settings",
     subItems: [
       { title: "獎金設定", url: "/hq/bonus-settings", icon: DollarSign },
-      { title: "業主月結設定", url: "/hq/owner-settlement-settings", icon: FileText },
+      { title: "業主月結設定", url: "/hq/bonus-settings?tab=owner-settlement", icon: FileText },
+
     ],
   },
   { title: "AI 訓練中心", url: "/hq/ai-training", icon: Bot, tab: "ai-training" },
