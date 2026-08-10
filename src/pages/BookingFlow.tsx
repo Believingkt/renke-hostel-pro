@@ -5645,11 +5645,9 @@ const BookingFlow = () => {
             </Card>
             {/* Navigation Buttons（跟隨頁面內容，位於結帳頁最下方） */}
             <div
-              className="flex gap-3 sm:gap-4 mt-4 sm:mt-6"
-              style={{
-                paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)",
-              }}
+              className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] lg:pb-[calc(env(safe-area-inset-bottom)+1rem)]"
             >
+
 
 
               {(
