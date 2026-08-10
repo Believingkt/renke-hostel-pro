@@ -3414,11 +3414,12 @@ const BookingFlow = () => {
           console.log('Card-bound order created:', paidOrderResult?.order_number);
 
           toast({
-            title: chargeCardImmediately ? "信用卡付款成功" : "信用卡綁定成功",
-            description: chargeCardImmediately
-              ? `訂房已成立，已完成付款 NT$ ${finalPrice.toLocaleString()}`
-              : `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
+            title: "信用卡綁定成功",
+            description: `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
           });
+          }
+
+
 
         } catch (error) {
           console.error('Payment error:', error);
