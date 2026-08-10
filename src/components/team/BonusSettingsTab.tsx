@@ -694,7 +694,10 @@ function SourceSection({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div>
-          <CardTitle className="text-base">{title}</CardTitle>
+          <CardTitle className="flex items-center gap-1.5 text-base">
+            {title}
+            {impactKey && <SettingImpactHint settingKey={impactKey} />}
+          </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         {canEdit ? (
