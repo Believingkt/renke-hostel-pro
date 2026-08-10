@@ -490,7 +490,7 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             <div>
               <div className="font-medium">{STEP_LABELS.s4}</div>
               <div className="text-xs font-normal text-muted-foreground">
-                費率版本、固定金額；發放期別為資料月 +1 的 10 號
+                費率版本、固定金額；發放期別為資料月 +1 的 10 號（EX：生效日 2026-07-01 → 發放期別 8 月 10 日）
               </div>
             </div>
           </AccordionTrigger>
@@ -602,6 +602,12 @@ function RateSection({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">獎金費率／金額設定<SettingImpactHint settingKey="rate_version" /></CardTitle>
+        <p className="mt-1 text-xs text-muted-foreground">
+          費率以「生效日」分版本，計算時取該資料月 1 日之前（含）最新的一版。
+          EX：生效日 2026-07-01 → 2026 年 7 月資料月適用，於 8 月 10 日期別發放；
+          若生效日填 2026-08-01，7 月資料月會抓不到費率（金額為 0），要補一版 2026-07-01。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -848,6 +854,10 @@ function SourceSection({
             <div className="text-xs text-muted-foreground">
               僅作用於已設定「合作生效日」的館別；採計起算日 = MAX(月初, 該館合作生效日)。
             </div>
+            <div className="text-xs text-muted-foreground">
+              EX：生效日 2026-07-01 → 2026 年 7 月資料月的訂單即依此版白名單採計，於 8 月 10 日期別發放。
+            </div>
+
 
             <div className="flex flex-wrap gap-2">
               {(cur?.included_order_sources ?? []).length === 0 ? (
@@ -1032,6 +1042,12 @@ function BindingSection({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">角色綁定<SettingImpactHint settingKey="role_binding" /></CardTitle>
+        <p className="mt-1 text-xs text-muted-foreground">
+          綁定以「生效日」分版本，計算時取該資料月 1 日之前（含）最新的一版。
+          EX：生效日 2026-07-01 → 2026 年 7 月資料月即採用此人選，於 8 月 10 日期別發放；
+          若生效日填 2026-08-01，7 月資料月不會採計，要等 9 月 10 日期別。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -1459,6 +1475,11 @@ function VenueClosingAssignmentSection({
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
           「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
         </p>
+        <p className="text-xs text-muted-foreground">
+          EX：合作期間起日 2026-07-01 → 2026 年 7 月起的訂單才採計，該資料月的獎金在 8 月 10 日期別發放；
+          若在 2026-07-15 才生效，7/1～7/14 的訂單一律不算。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
