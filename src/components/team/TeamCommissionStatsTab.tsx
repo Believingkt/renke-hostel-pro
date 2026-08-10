@@ -138,7 +138,7 @@ interface ScoutCode {
   accommodation_id: string | null;
 }
 
-const fmtMoney = (n: number) => `NT$ ${Math.round(n).toLocaleString()}`;
+const fmtMoney = (n: number) => `NT$ ${roundBonus(n).toLocaleString()}`;
 const pct = (r: number | null | undefined) =>
   r == null ? "—" : `${(Number(r) * 100).toFixed(1)}%`;
 
@@ -787,7 +787,7 @@ export default function TeamCommissionStatsTab() {
       b.validCount += 1;
       b.validAmount += amount;
       // 對齊發放管理：每筆訂單先四捨五入再加總，避免尾差
-      b.commission += Math.round(amount * rate);
+      b.commission += roundBonus(amount * rate);
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
@@ -804,7 +804,7 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id, rate);
       b.cancelCount += 1;
       b.cancelAmount += amount;
-      b.cancelCommission += Math.round(amount * rate);
+      b.cancelCommission += roundBonus(amount * rate);
       b.cancelOrders.push(o);
     });
 
