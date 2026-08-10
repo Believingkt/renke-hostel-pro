@@ -83,6 +83,30 @@ function StepNav({
   );
 }
 
+/** ①（閘門）與 ②（金額）的對照條：講清楚「筆數 × 金額」的分工 */
+function GateVsAmountBar() {
+  return (
+    <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <div className="text-sm">
+        <div className="font-medium">① 閘門：決定「哪些訂單算數」</div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          合作期間 + 採計旗標 + 訂單來源白名單。沒通過的訂單，金額再高也不會產生任何獎金。
+        </p>
+      </div>
+      <div className="flex items-center justify-center text-muted-foreground">
+        <span className="rounded-full border bg-background px-2 py-0.5 text-xs">×</span>
+      </div>
+      <div className="text-sm">
+        <div className="font-medium">② 金額：決定「一筆算多少錢」</div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          業主月結規則扣除不列入抽成的增值服務後，得到分潤基準金額。改這裡不會改變筆數。
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
 /* ------------------------------ 共用工具 ------------------------------ */
 
 
@@ -344,12 +368,26 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pb-4">
+            <div className="rounded-md border-l-4 border-primary/60 bg-muted/30 px-3 py-2 text-sm">
+              <div className="font-medium">1-A 哪些訂單算數（閘門）</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                合作期間決定「這館這段期間的訂單要不要進獎金」，並可分別關閉成交大師獎金與團隊獎金；
+                業主自帶口徑則決定館別營收要不要含業主自帶訂單。
+              </p>
+            </div>
             <VenueClosingAssignmentSection
               members={members}
               memberName={memberName}
               uid={uid}
               readOnly={readOnly}
             />
+            <div className="rounded-md border-l-4 border-primary/60 bg-muted/30 px-3 py-2 text-sm">
+              <div className="font-medium">1-B 哪些營收算數（訂單來源白名單）</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                通過閘門後，只有在白名單內的訂單來源會被加總成「館別營收」。
+                共用白名單給 AM／成交組使用，獨立白名單只給網紅營銷專利獎金使用。
+              </p>
+            </div>
             <SourceSection
               title="共用訂單來源 (AM、成交)"
               description="AM績效、成交組績效等共用獎金採計的訂單來源"
@@ -382,6 +420,8 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
           </AccordionContent>
         </AccordionItem>
 
+        <GateVsAmountBar />
+
         <AccordionItem value="s2" id="bonus-step-s2" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
@@ -402,6 +442,10 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
                 </Link>
               </Button>
             </div>
+            <div className="rounded-md border border-dashed px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              反向提醒：業主月結的「免抽成訂單來源」<strong>不會</strong>讓訂單從第 ① 步的館別營收消失。
+              它只影響業主月結的抽成計算與收益拆解；要讓某個來源不計入團隊獎金營收，請到第 ① 步把它移出白名單。
+            </div>
             <OwnerPricingRuleOverviewSection />
             <StepNav
               hint="基準金額由「哪些訂單算數」決定範圍，接著再決定發放對象。"
@@ -410,6 +454,7 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             />
           </AccordionContent>
         </AccordionItem>
+
 
         <AccordionItem value="s3" id="bonus-step-s3" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
@@ -1214,6 +1259,57 @@ function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string 
   );
 }
 
+/**
+ * 業主自帶口徑的即時金額預覽：以「本月入住」的有效訂單，
+ * 同時顯示「含業主自帶」與「排除業主自帶」兩個館別營收數字，避免選錯口徑。
+ * 唯讀查詢。
+ */
+function OwnerDirectPreview({ accommodationId }: { accommodationId: string }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ incl: number; excl: number } | null>(null);
+
+  const run = async () => {
+    setLoading(true);
+    try {
+      const month = taipeiToday().slice(0, 7);
+      const start = `${month}-01`;
+      const end = `${month}-31`;
+      const { data } = await (supabase as any)
+        .from("orders")
+        .select("final_price, owner_direct, order_status, check_in_date")
+        .eq("accommodation_id", accommodationId)
+        .gte("check_in_date", start)
+        .lte("check_in_date", end);
+      const rows = ((data ?? []) as any[]).filter(
+        (o) => o.order_status !== "cancelled" && o.order_status !== "hold",
+      );
+      const incl = rows.reduce((s, o) => s + (Number(o.final_price) || 0), 0);
+      const excl = rows
+        .filter((o) => o.owner_direct !== true)
+        .reduce((s, o) => s + (Number(o.final_price) || 0), 0);
+      setResult({ incl, excl });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (result) {
+    return (
+      <span className="text-[11px] tabular-nums text-muted-foreground">
+        本月：含 {Math.round(result.incl).toLocaleString("zh-TW")} ／ 排除{" "}
+        {Math.round(result.excl).toLocaleString("zh-TW")}
+      </span>
+    );
+  }
+
+  return (
+    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={run} disabled={loading}>
+      {loading ? "試算中…" : "預覽兩種口徑金額"}
+    </Button>
+  );
+}
+
+
 function VenueClosingAssignmentSection({
   members,
   memberName,
@@ -1396,6 +1492,22 @@ function VenueClosingAssignmentSection({
     load();
   }
 
+  /** 切換該期間的採計旗標（成交大師獎金／團隊獎金） */
+  async function updateFlag(
+    period: PartnershipPeriodRow,
+    field: "counts_closer_commission" | "counts_team_bonus",
+    value: boolean,
+  ) {
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .update({ [field]: value })
+      .eq("id", period.id);
+    if (error) return toast.error("更新採計範圍失敗：" + error.message);
+    toast.success("已更新採計範圍（需重新試算未付快照才會生效）");
+    load();
+  }
+
+
   async function endPeriod(period: PartnershipPeriodRow) {
     const { error } = await (supabase as any)
       .from("accommodation_partnership_periods")
@@ -1503,26 +1615,64 @@ function VenueClosingAssignmentSection({
                           />
                         </div>
                         {!readOnly && curPeriod && (
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">業主自帶口徑</span>
-                            <Select
-                              value={
-                                curPeriod.payout_basis === "exclude_owner_direct"
-                                  ? "exclude_owner_direct"
-                                  : "include_owner_direct"
-                              }
-                              onValueChange={(v) => updateBasis(curPeriod, v)}
-                            >
-                              <SelectTrigger className="h-7 w-[190px] text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
-                                <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div className="mt-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">業主自帶口徑</span>
+                              <Select
+                                value={
+                                  curPeriod.payout_basis === "exclude_owner_direct"
+                                    ? "exclude_owner_direct"
+                                    : "include_owner_direct"
+                                }
+                                onValueChange={(v) => updateBasis(curPeriod, v)}
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
+                                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <OwnerDirectPreview accommodationId={a.id} />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs text-muted-foreground">採計範圍</span>
+                              <Select
+                                value={curPeriod.counts_closer_commission === false ? "off" : "on"}
+                                onValueChange={(v) =>
+                                  updateFlag(curPeriod, "counts_closer_commission", v === "on")
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="on">採計成交大師獎金</SelectItem>
+                                  <SelectItem value="off">不採計成交大師獎金</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={curPeriod.counts_team_bonus === false ? "off" : "on"}
+                                onValueChange={(v) =>
+                                  updateFlag(curPeriod, "counts_team_bonus", v === "on")
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="on">採計團隊獎金</SelectItem>
+                                  <SelectItem value="off">不採計團隊獎金</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-muted-foreground">
+                              關閉「團隊獎金」＝該期間營收完全不計入 AM／成交組／網紅營銷；成交大師獎金仍由左側開關決定。
+                            </p>
                           </div>
                         )}
+
                       </TableCell>
 
 
