@@ -83,6 +83,7 @@ export default function PaymentResult() {
     let detectedSource: PaymentSource = 'unknown';
     let pending: PendingPayment | null = null;
     let pendingBooking: PendingBookingData | null = null;
+    let pendingPaidOrder: any = null;
 
     if (source === 'admin') {
       detectedSource = 'admin';
@@ -95,8 +96,16 @@ export default function PaymentResult() {
         }
       }
     } else {
+      const paidOrderData = sessionStorage.getItem('pending_paid_order_3ds');
       const bookingData = sessionStorage.getItem('pending_booking_3ds');
-      if (bookingData) {
+      if (paidOrderData) {
+        detectedSource = 'booking';
+        try {
+          pendingPaidOrder = JSON.parse(paidOrderData);
+        } catch (e) {
+          console.error('Failed to parse pending_paid_order_3ds:', e);
+        }
+      } else if (bookingData) {
         detectedSource = 'booking';
         try {
           pendingBooking = JSON.parse(bookingData);
@@ -110,6 +119,7 @@ export default function PaymentResult() {
 
     setPaymentSource(detectedSource);
     setPendingPayment(pending);
+
 
     const processPaymentResult = async () => {
       if (!recTradeId) {
