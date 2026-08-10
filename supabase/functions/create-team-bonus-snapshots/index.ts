@@ -219,9 +219,8 @@ async function getPayoutBasisByAcc(
       if ((latestStart.get(accId) ?? "") > start) continue;
       latestStart.set(accId, start);
       out[accId] =
-        row?.payout_basis === "include_owner_direct"
-          ? "include_owner_direct"
-          : "exclude_owner_direct";
+        // 業主自帶口徑功能暫時停用：一律採「含業主自帶」單軌
+        row?.payout_basis ? "include_owner_direct" : "include_owner_direct";
     }
   }
   return out;

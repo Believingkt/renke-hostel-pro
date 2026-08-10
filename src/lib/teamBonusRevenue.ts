@@ -207,7 +207,9 @@ export async function getPayoutBasisByAcc(
   const out: Record<string, PayoutBasis> = {};
   for (const [accId, list] of Object.entries(periods)) {
     const latest = [...list].sort((a, b) => a.start_date.localeCompare(b.start_date)).pop();
-    out[accId] = latest?.payout_basis ?? "exclude_owner_direct";
+    // 業主自帶口徑功能暫時停用：一律採「含業主自帶」單軌
+    void latest;
+    out[accId] = "include_owner_direct";
   }
   return out;
 }
@@ -379,16 +381,11 @@ export async function getAccommodationRevenueByAcc(
     monthEndDate,
     allowedSources,
   );
+  // 業主自帶口徑功能暫時停用：一律回傳「含業主自帶」單軌
+  void basisOverride;
   const out: Record<string, number> = {};
-  if (basisOverride) {
-    for (const [accId, v] of Object.entries(dual)) {
-      out[accId] = basisOverride === "include_owner_direct" ? v.incl : v.excl;
-    }
-    return out;
-  }
-  const basis = await getPayoutBasisByAcc(client, Object.keys(dual));
   for (const [accId, v] of Object.entries(dual)) {
-    out[accId] = basis[accId] === "include_owner_direct" ? v.incl : v.excl;
+    out[accId] = v.incl;
   }
   return out;
 }

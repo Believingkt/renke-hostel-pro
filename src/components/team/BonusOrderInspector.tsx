@@ -79,7 +79,7 @@ export default function BonusOrderInspector() {
       const [periodsRes, sharedRes, kolRes, ruleRes] = await Promise.all([
         (supabase as any)
           .from("accommodation_partnership_periods")
-          .select("start_date, end_date, counts_closer_commission, counts_team_bonus, payout_basis")
+          .select("start_date, end_date, counts_closer_commission, counts_team_bonus")
           .eq("accommodation_id", accId),
         (supabase as any)
           .from("teamcommission_shared_revenue_source_whitelist")
@@ -159,8 +159,6 @@ export default function BonusOrderInspector() {
       const inShared = shared.includes(source);
       const inKol = kolWl.includes(source);
       const ownerDirect = order.owner_direct === true;
-      const basis = String(activePeriod?.payout_basis ?? "include_owner_direct");
-      const excludedByBasis = basis === "exclude_owner_direct" && ownerDirect;
       const exemptSource = (rule?.exempt_order_sources ?? []).includes(source);
 
       const result: StepResult[] = [
@@ -203,15 +201,6 @@ export default function BonusOrderInspector() {
             {
               label: "業主自帶（owner_direct）",
               value: ownerDirect ? "是" : "否",
-            },
-            {
-              label: "館別實付口徑",
-              value:
-                basis === "exclude_owner_direct" ? "排除業主自帶" : "含業主自帶",
-            },
-            {
-              label: "雙軌判定",
-              value: excludedByBasis ? "✗ 本筆不計入實付真值" : "✓ 計入實付真值",
             },
             { label: "訂單總額（台幣）", value: money(gross) },
             { label: "扣除不列入抽成的增值服務", value: `- ${money(excludedAddon)}` },
