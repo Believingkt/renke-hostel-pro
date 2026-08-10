@@ -19,6 +19,7 @@ interface StepResult {
   step: string;
   title: string;
   verdict: Verdict;
+  verdictLabel?: string;
   lines: Array<{ label: string; value: string; field?: BonusFieldKey }>;
   note?: string;
 }
@@ -66,7 +67,7 @@ export default function BonusOrderInspector() {
       const { data: order, error: oErr } = await (supabase as any)
         .from("orders")
         .select(
-          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded)",
+          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded, closer_id, closer_assisted)",
         )
         .eq("order_number", kw)
         .maybeSingle();
@@ -150,6 +151,53 @@ export default function BonusOrderInspector() {
       const basePrice = Math.max(0, gross - excludedAddon);
       const meta = Array.isArray(order.order_meta) ? order.order_meta[0] : order.order_meta;
       const teamPrice = Number(meta?.team_commission_price ?? 0) || 0;
+
+      // ── 實際受領人解析（③ 分給誰）──
+      const [closerRes, amRes, bindRes, venueRes] = await Promise.all([
+        meta?.closer_id
+          ? (supabase as any)
+              .from("team_member_profiles")
+              .select("display_name")
+              .eq("id", meta.closer_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        (supabase as any)
+          .from("team_member_profiles")
+          .select("display_name, am_managed_accommodation_ids, is_active")
+          .contains("am_managed_accommodation_ids", [accId]),
+        (supabase as any)
+          .from("teamcommission_role_bindings")
+          .select("role_type, member_id, effective_from, team_member_profiles(display_name)")
+          .lte("effective_from", `${monthStart}`),
+        (supabase as any)
+          .from("teamcommission_venue_closing_assignments")
+          .select("member_id, effective_from, team_member_profiles(display_name)")
+          .eq("accommodation_id", accId)
+          .lte("effective_from", `${monthStart}`),
+      ]);
+
+      const closerName: string | null = closerRes?.data?.display_name ?? null;
+      const amNames: string[] = ((amRes?.data ?? []) as any[]).map((r) => String(r.display_name));
+      const pickLatest = (rows: any[]) =>
+        rows.length
+          ? rows.reduce((b, r) =>
+              String(r.effective_from ?? "") > String(b.effective_from ?? "") ? r : b,
+            )
+          : null;
+      const bindRows = (bindRes?.data ?? []) as any[];
+      const nameOf = (r: any) =>
+        (Array.isArray(r?.team_member_profiles)
+          ? r.team_member_profiles[0]?.display_name
+          : r?.team_member_profiles?.display_name) ?? null;
+      const kolRecipient = nameOf(
+        pickLatest(bindRows.filter((r) => r.role_type === "kol_bonus_recipient")),
+      );
+      const amManager = nameOf(pickLatest(bindRows.filter((r) => r.role_type === "am_manager")));
+      const closerManager = nameOf(
+        pickLatest(bindRows.filter((r) => r.role_type === "closer_manager")),
+      );
+      const venueCloser = nameOf(pickLatest((venueRes?.data ?? []) as any[]));
+
 
       setHeader([
         { label: "訂單編號", value: String(order.order_number ?? "") },
@@ -246,18 +294,36 @@ export default function BonusOrderInspector() {
           step: "③",
           title: "分給誰？",
           verdict: "info",
+          verdictLabel: "受領名單",
           lines: [
             {
               label: "成交大師（成交組／影音）",
-              value: closerGate ? "依訂單歸屬的成交人／影音人員" : "不採計",
+              value: !closerGate ? "不採計" : closerName ?? "訂單未指定成交人（order_meta.closer_id 空白）",
+            },
+            {
+              label: "成交組主管",
+              value: !closerGate ? "不採計" : closerManager ?? "未綁定",
             },
             {
               label: "AM 績效／場域",
-              value: teamGate && inShared ? "依該館別所轄 AM" : "不採計",
+              value:
+                teamGate && inShared
+                  ? amNames.length
+                    ? amNames.join("、")
+                    : "此館別未指派 AM"
+                  : "不採計",
+            },
+            {
+              label: "AM 總管",
+              value: teamGate && inShared ? amManager ?? "未綁定" : "不採計",
+            },
+            {
+              label: "場域成交人",
+              value: teamGate ? venueCloser ?? "此館別未指派" : "不採計",
             },
             {
               label: "網紅營銷專利",
-              value: teamGate && inKol ? "依專利獎金角色綁定" : "不採計",
+              value: teamGate && inKol ? kolRecipient ?? "未綁定受領人" : "不採計",
             },
             {
               label: "月結免抽成來源",
@@ -265,12 +331,13 @@ export default function BonusOrderInspector() {
               field: "exempt_order_sources",
             },
           ],
-          note: "此步只影響「發給誰」，不改變基準金額。",
+          note: "名單依「該資料月當時生效」的角色綁定與館別指派解析；此步只影響發給誰，不改變基準金額。",
         },
         {
           step: "④",
           title: "分多少、何時發？",
           verdict: "info",
+          verdictLabel: "費率與期別",
           lines: [
             {
               label: "適用抽成費率（月結規則）",
@@ -372,7 +439,7 @@ export default function BonusOrderInspector() {
                 variant={s.verdict === "fail" ? "destructive" : "outline"}
                 className="text-[11px] font-normal"
               >
-                {s.verdict === "pass" ? "通過" : s.verdict === "fail" ? "不採計" : "參考"}
+                {s.verdict === "pass" ? "通過" : s.verdict === "fail" ? "不採計" : s.verdictLabel ?? "參考"}
               </Badge>
             </div>
             <Separator className="mb-2" />

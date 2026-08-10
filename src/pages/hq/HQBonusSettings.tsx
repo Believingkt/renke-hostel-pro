@@ -84,10 +84,14 @@ export default function HQBonusSettings() {
 
   return (
     <div className="container mx-auto space-y-4 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="outline" size="sm" onClick={() => navigate("/hq")}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
           <ArrowLeft className="mr-1 h-4 w-4" />
-          回總部
+          回團隊獎金頁
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          回業主月結
         </Button>
       </div>
 
