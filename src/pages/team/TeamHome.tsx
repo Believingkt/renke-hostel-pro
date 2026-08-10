@@ -466,7 +466,8 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             for (const r of snaps) {
               if (showCloser && r.closer_id === userId) {
-                const amt = Number(r.closer_commission_amount ?? 0);
+                // 單一取整點：與發放管理／成交統計相同，逐筆訂單先取整再加總
+                const amt = roundBonus(r.closer_commission_amount);
                 closerSum += amt;
                 const sm = String(r.snapshot_month ?? "");
                 if (sm && sm !== currentMonthKey) {
@@ -476,7 +477,7 @@ export default function TeamHome() {
                 }
               }
               if (showVideo && r.video_creator_id === userId) {
-                videoSum += Number(r.video_commission_amount ?? 0);
+                videoSum += roundBonus(r.video_commission_amount);
               }
             }
           } else {
