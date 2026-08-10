@@ -82,7 +82,7 @@ export default function BonusOrderInspector() {
       const dataMonth = (checkIn || orderDate).slice(0, 7);
       const monthStart = `${dataMonth}-01`;
 
-      const [periodsRes, sharedRes, kolRes, ruleRes] = await Promise.all([
+      const [periodsRes, sharedRes, kolRes, ruleRes, accRes] = await Promise.all([
         (supabase as any)
           .from("accommodation_partnership_periods")
           .select("start_date, end_date, counts_closer_commission, counts_team_bonus")
@@ -103,7 +103,13 @@ export default function BonusOrderInspector() {
           .order("effective_from", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        (supabase as any)
+          .from("accommodation_info")
+          .select("name")
+          .eq("id", accId)
+          .maybeSingle(),
       ]);
+      const accName = accRes?.data?.name ?? null;
 
       const periods = (periodsRes.data ?? []) as any[];
       const inPeriod = (d: string, flag: "counts_team_bonus" | "counts_closer_commission") =>
