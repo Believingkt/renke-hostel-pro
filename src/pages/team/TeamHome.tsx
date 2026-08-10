@@ -67,6 +67,9 @@ interface TeamHomePayload {
   closerTeamBonusRateVal: number;
   closerTeamBonusNoSet: boolean;
   closerTeamBonusFinalizedFlag: boolean;
+  closerCancelAdjSum: number;
+  closerOtherAdjSum: number;
+
   videoSum: number;
   scoutSum: number;
   raritySum: number;
@@ -228,6 +231,9 @@ export default function TeamHome() {
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
   const [closerTeamBonusFinalized, setCloserTeamBonusFinalized] = useState(false);
+  const [closerCancelAdj, setCloserCancelAdj] = useState(0);
+  const [closerOtherAdj, setCloserOtherAdj] = useState(0);
+
   const [videoAmt, setVideoAmt] = useState(0);
   const [scoutAmt, setScoutAmt] = useState(0);
   const [rarityAmt, setRarityAmt] = useState(0);
@@ -325,6 +331,9 @@ export default function TeamHome() {
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
     setCloserTeamBonusNoSetting(p.closerTeamBonusNoSet);
     setCloserTeamBonusFinalized(p.closerTeamBonusFinalizedFlag);
+    setCloserCancelAdj(p.closerCancelAdjSum ?? 0);
+    setCloserOtherAdj(p.closerOtherAdjSum ?? 0);
+
     setVideoAmt(p.videoSum);
     setScoutAmt(p.scoutSum);
     setRarityAmt(p.raritySum);
@@ -572,6 +581,27 @@ export default function TeamHome() {
             }
           }
         }
+
+        // ===== 成交組分潤補差（含訂單取消扣回）=====
+        // 依「發放期別」抓 closer_commission_adjustments，與發放管理口徑一致。
+        let closerCancelAdjSum = 0;
+        let closerOtherAdjSum = 0;
+        if (showCloser && isMonthlyPayout) {
+          const { data: adjRows } = await db
+            .from("closer_commission_adjustments")
+            .select("adjustment_type, closer_amount")
+            .eq("adjustment_month", monthInfo.payoutMonthKey)
+            .eq("closer_id", userId);
+          for (const r of (adjRows ?? []) as any[]) {
+            const amt = Number(r.closer_amount ?? 0);
+            if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
+            else closerOtherAdjSum += amt;
+          }
+          closerCancelAdjSum = Math.round(closerCancelAdjSum);
+          closerOtherAdjSum = Math.round(closerOtherAdjSum);
+        }
+
+
 
 
 
@@ -1267,6 +1297,9 @@ export default function TeamHome() {
           closerTeamBonusRateVal,
           closerTeamBonusNoSet,
           closerTeamBonusFinalizedFlag,
+          closerCancelAdjSum,
+          closerOtherAdjSum,
+
           videoSum,
           scoutSum,
           raritySum,
@@ -1366,15 +1399,22 @@ export default function TeamHome() {
     const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
     const lines = [{ label: "訂房成交獎金", amount: closerBoosted, multiplier: closerMult }];
     if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
+    // 分潤補差（依發放期別的快照 adjustment），取消扣回為負數
+    const cancelAdj = Math.round(closerCancelAdj * closerMult);
+    const otherAdj = Math.round(closerOtherAdj * closerMult);
+    if (cancelAdj !== 0) lines.push({ label: "訂單取消扣回", amount: cancelAdj, multiplier: closerMult });
+    if (otherAdj !== 0) lines.push({ label: "分潤補差（金額調整）", amount: otherAdj, multiplier: closerMult });
     cards.push({
       key: "closer",
       title: "成交獎金",
-      amount: closerBoosted + scoutCloserBoosted,
-      baseAmount: closerAmt + scoutCloserAmt,
+      amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
+      baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
-      note: monthlyNote(),
+      note: monthlyNote(cancelAdj !== 0 || otherAdj !== 0 ? "已含本期分潤補差（取消扣回）" : undefined),
       lines,
+      alwaysShowLines: cancelAdj !== 0 || otherAdj !== 0,
     });
+
   }
 
   if (showCloser && isMonthly) {
