@@ -251,8 +251,20 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
     return groups;
   }, [sourceOptions, sourceOwners]);
 
+  const [openSteps, setOpenSteps] = useState<string[]>(["s1"]);
+  const jumpToStep = useCallback((step: StepKey) => {
+    setOpenSteps((prev) => (prev.includes(step) ? prev : [...prev, step]));
+    setTimeout(() => {
+      document.getElementById(`bonus-step-${step}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 60);
+  }, []);
+
   return (
     <div className="space-y-6 pt-4">
+
       {readOnly && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
           <span>
