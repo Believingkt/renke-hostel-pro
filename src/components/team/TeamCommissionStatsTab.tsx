@@ -1086,6 +1086,9 @@ export default function TeamCommissionStatsTab() {
                           const accAdj = firstOfAcc
                             ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
+                          const accBf = firstOfAcc
+                            ? (bfByUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
+                            : 0;
                           const adjList =
                             showAdj && firstOfAcc
                               ? adjustments
@@ -1103,11 +1106,28 @@ export default function TeamCommissionStatsTab() {
                                     amount: role === "closer" ? a.closer_amount : a.video_amount,
                                   }))
                               : [];
+                          const backfillList =
+                            hasBackfill && firstOfAcc
+                              ? backfills
+                                  .filter((x) =>
+                                    role === "closer"
+                                      ? x.closer_id === r.uid && x.closer_amount !== 0
+                                      : x.video_creator_id === r.uid && x.video_amount !== 0,
+                                  )
+                                  .filter((x) => x.accommodation_id === b.accId)
+                                  .map((x) => ({
+                                    id: x.id,
+                                    snapshot_month: x.snapshot_month,
+                                    order_number: x.order_number,
+                                    amount: role === "closer" ? x.closer_amount : x.video_amount,
+                                  }))
+                              : [];
                           const openSheet = () =>
                             setAccSheet({
                               title: `${r.name} ・ ${b.accName}`,
                               breakdown: b,
                               adjList,
+                              backfillList,
                             });
                           return (
                             <TableRow
@@ -1122,6 +1142,9 @@ export default function TeamCommissionStatsTab() {
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
                               <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              {hasBackfill && (
+                                <TableCell className="tabular-nums">{renderAdjCell(accBf)}</TableCell>
+                              )}
                               {showAdj && (
                                 <>
                                   <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
@@ -1129,21 +1152,23 @@ export default function TeamCommissionStatsTab() {
                                     {bonusMultiplier > 1 ? (
                                       <div className="flex flex-col leading-tight items-end">
                                         <span className="text-muted-foreground line-through text-xs font-normal">
-                                          {fmtMoney(netCommission(b.commission) + accAdj)}
+                                          {fmtMoney(netCommission(b.commission) + accAdj + accBf)}
                                         </span>
                                         <span className="text-primary">
                                           {fmtMoney(
                                             boostedAmount(netCommission(b.commission), bonusMultiplier) +
-                                              boostedAmount(accAdj, bonusMultiplier),
+                                              boostedAmount(accAdj, bonusMultiplier) +
+                                              boostedAmount(accBf, bonusMultiplier),
                                           )}
                                         </span>
                                       </div>
                                     ) : (
-                                      fmtMoney(netCommission(b.commission) + accAdj)
+                                      fmtMoney(netCommission(b.commission) + accAdj + accBf)
                                     )}
                                   </TableCell>
                                 </>
                               )}
+
                               <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
 
                               <TableCell className="tabular-nums text-muted-foreground">
