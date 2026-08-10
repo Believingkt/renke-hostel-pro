@@ -278,11 +278,14 @@ export function getBonusFormula(key: string | null | undefined): BonusFormula | 
   const alias: Record<string, string> = {
     scout_discount_scout: "scout_discount_code",
     scout_discount_closer: "scout_discount_code",
+    franchise: "franchise_internal",
     franchise_internal_sales: "franchise_internal",
     franchise_internal_leader: "franchise_internal",
     franchise_external_sales: "franchise_external",
     franchise_external_co1: "franchise_external",
     franchise_external_co2: "franchise_external",
+    kol_order: "kol_order_commission",
+    kol: "kol_order_commission",
   };
   return BY_KEY[alias[k] ?? ""] ?? null;
 }
