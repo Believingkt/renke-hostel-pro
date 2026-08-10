@@ -244,10 +244,24 @@ export default function BonusSettingsTab() {
 
   return (
     <div className="space-y-6 pt-4">
+      {readOnly && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          <span>
+            此頁為<strong>唯讀鏡像</strong>，獎金設定已集中至總部（HQ）管理，請前往 HQ 編輯。
+          </span>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/hq/bonus-settings">
+              前往 HQ 獎金設定
+              <ExternalLink className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
       <RateSection
         rows={rates}
         loading={loading}
         uid={uid}
+        readOnly={readOnly}
         onSaved={loadAll}
       />
       <SourceSection
@@ -258,7 +272,7 @@ export default function BonusSettingsTab() {
         uid={uid}
         table="teamcommission_shared_revenue_source_whitelist"
         sourceGroups={sourceGroups}
-        canEdit
+        canEdit={!readOnly}
         onSaved={loadAll}
       />
       <SourceSection
@@ -269,7 +283,7 @@ export default function BonusSettingsTab() {
         uid={uid}
         table="teamcommission_kol_revenue_source_whitelist"
         sourceGroups={sourceGroups}
-        canEdit={isKolEditor}
+        canEdit={isKolEditor && !readOnly}
         onSaved={loadAll}
       />
       <BindingSection
@@ -278,13 +292,18 @@ export default function BonusSettingsTab() {
         memberName={memberName}
         loading={loading}
         uid={uid}
+        readOnly={readOnly}
         onSaved={loadAll}
       />
-      <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} />
+      <VenueClosingAssignmentSection
+        members={members}
+        memberName={memberName}
+        uid={uid}
+        readOnly={readOnly}
+      />
       <AmVenueOverviewSection />
       <OwnerPricingRuleOverviewSection />
     </div>
-
   );
 }
 
