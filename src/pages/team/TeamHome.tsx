@@ -1377,9 +1377,19 @@ export default function TeamHome() {
     });
   }
 
-  if (showCloser && isMonthly && closerTeamBonusRate > 0) {
+  if (showCloser && isMonthly) {
     const m = multOf("closer");
-    if (closerTeamBonusFinalized) {
+    if (closerTeamBonusRate <= 0) {
+      cards.push({
+        key: "closer_team_bonus",
+        title: "成交組團隊獎金",
+        amount: 0,
+        baseAmount: 0,
+        multiplier: m,
+        note: monthlyNote("本期尚未設定成交組團隊獎金比例（比例為 0）"),
+        excludeFromTotal: true,
+      });
+    } else if (closerTeamBonusFinalized) {
       cards.push({
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
@@ -1406,6 +1416,7 @@ export default function TeamHome() {
       });
     }
   }
+
   if (showVideo && isMonthly) {
     const m = multOf("video");
     cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
