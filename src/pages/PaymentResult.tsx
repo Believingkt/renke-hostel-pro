@@ -79,6 +79,16 @@ export default function PaymentResult() {
   const source = searchParams.get('source');
 
   useEffect(() => {
+    // App 3DS 回程：本頁只負責把結果以深層連結交回 App（不建立訂單）
+    if (searchParams.get('native') === '1') {
+      handoffPaymentResultToApp({
+        rec_trade_id: recTradeId || undefined,
+        order_number: orderNumber || undefined,
+        status: searchParams.get('status') || (recTradeId ? 'success' : 'failed'),
+        error: recTradeId ? undefined : 'missing_rec_trade_id',
+      });
+      return;
+    }
     // Determine payment source and load pending data
     let detectedSource: PaymentSource = 'unknown';
     let pending: PendingPayment | null = null;
