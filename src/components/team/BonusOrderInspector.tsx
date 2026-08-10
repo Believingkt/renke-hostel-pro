@@ -153,7 +153,7 @@ export default function BonusOrderInspector() {
 
       setHeader([
         { label: "訂單編號", value: String(order.order_number ?? "") },
-        { label: "館別", value: String(order.accommodation_info?.name ?? accId.slice(0, 8)) },
+        { label: "館別", value: String(accName ?? accId.slice(0, 8)) },
         { label: "訂單日 / 入住日", value: `${orderDate || "—"} / ${checkIn || "—"}` },
         { label: "訂單來源", value: source || "—" },
         { label: "訂單狀態", value: status || "—" },
