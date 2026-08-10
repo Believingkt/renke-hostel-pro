@@ -310,6 +310,7 @@ export type Database = {
           building_count: number
           bundled_lock_inventory: boolean
           channel_manager: string
+          charge_card_immediately: boolean
           check_in_notice: string | null
           child_age_rules: Json
           country: string | null
@@ -414,6 +415,7 @@ export type Database = {
           building_count?: number
           bundled_lock_inventory?: boolean
           channel_manager?: string
+          charge_card_immediately?: boolean
           check_in_notice?: string | null
           child_age_rules?: Json
           country?: string | null
@@ -518,6 +520,7 @@ export type Database = {
           building_count?: number
           bundled_lock_inventory?: boolean
           channel_manager?: string
+          charge_card_immediately?: boolean
           check_in_notice?: string | null
           child_age_rules?: Json
           country?: string | null

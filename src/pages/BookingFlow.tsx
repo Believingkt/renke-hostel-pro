@@ -260,6 +260,7 @@ const BookingFlow = () => {
   const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [allowCreditCard, setAllowCreditCard] = useState(true);
+  const [chargeCardImmediately, setChargeCardImmediately] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
@@ -795,7 +796,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment")
+          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately")
           .eq("id", accommodationId)
           .single();
         
@@ -804,6 +805,7 @@ const BookingFlow = () => {
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
           setAllowCreditCard((infoData as any).allow_credit_card_payment !== false);
+          setChargeCardImmediately((infoData as any).charge_card_immediately === true);
           setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
@@ -3257,7 +3259,7 @@ const BookingFlow = () => {
 
           // 信用卡流程：結帳當下「只綁卡不扣款」，入住當天由排程自動扣款
           const { data: opResult, error: opError } = await supabase.functions.invoke(
-            'create-card-bound-order',
+            chargeCardImmediately ? 'create-paid-order' : 'create-card-bound-order',
             {
               body: {
                 idempotencyKey,
@@ -3300,7 +3302,7 @@ const BookingFlow = () => {
             const parsed = opError ? await parseFunctionInvokeError(opError) : null;
             const errorInfo = {
               type: 'card' as const,
-              message: opResult?.message || parsed?.backendError || parsed?.message || opError?.message || '信用卡綁定失敗',
+              message: opResult?.message || parsed?.backendError || parsed?.message || opError?.message || (chargeCardImmediately ? '信用卡付款失敗' : '信用卡綁定失敗'),
               suggestion: opResult?.suggestion || '請確認卡片資訊是否正確，或更換其他卡片',
               errorCode: opResult?.errorCode,
               technicalMessage: opResult?.technicalMessage,
@@ -3325,8 +3327,10 @@ const BookingFlow = () => {
           console.log('Card-bound order created:', paidOrderResult?.order_number);
 
           toast({
-            title: "信用卡綁定成功",
-            description: `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
+            title: chargeCardImmediately ? "信用卡付款成功" : "信用卡綁定成功",
+            description: chargeCardImmediately
+              ? `訂房已成立，已完成付款 NT$ ${finalPrice.toLocaleString()}`
+              : `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
           });
 
         } catch (error) {
@@ -5204,7 +5208,14 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
-                          { key: "credit_card", label: "信用卡（入住當天扣款）", icon: CreditCard, desc: "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費" },
+                          {
+                            key: "credit_card",
+                            label: chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）",
+                            icon: CreditCard,
+                            desc: chargeCardImmediately
+                              ? "送出訂單時即完成全額刷卡付款"
+                              : "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費",
+                          },
                           {
                             key: "atm",
                             label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
@@ -5252,17 +5263,25 @@ const BookingFlow = () => {
                         {orderPaymentType === "credit_card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊（現在不會扣款）</p>
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊{chargeCardImmediately ? "" : "（現在不會扣款）"}</p>
                               <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理，本站不會保存完整卡號</p>
                             </div>
                             <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
                               <p className="text-xs text-foreground font-medium">扣款與取消說明</p>
+                              {chargeCardImmediately ? (
+                                <p className="text-xs text-muted-foreground">
+                                  ・ 送出訂單時將<span className="font-medium text-foreground">立即扣取 NT$ {calculateFinalTotal().toLocaleString()}</span>。
+                                </p>
+                              ) : (
                               <p className="text-xs text-muted-foreground">
                                 ・ 現在僅完成信用卡綁定驗證，<span className="font-medium text-foreground">不會扣款</span>。
                               </p>
+                              )}
+                              {!chargeCardImmediately && (
                               <p className="text-xs text-muted-foreground">
                                 ・ 入住當天（{checkInDate ? format(checkInDate, "yyyy/MM/dd") : "入住日"}）系統將自動扣取 NT$ {calculateFinalTotal().toLocaleString()}。
                               </p>
+                              )}
                               <p className="text-xs text-muted-foreground">
                                 ・ 入住日前 14 日（含）以前取消：<span className="font-medium text-foreground">免費，不扣任何款項</span>。
                               </p>
@@ -5534,7 +5553,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡（入住當天扣款）" : "ATM 虛擬帳號"}
+                              {orderPaymentType === "credit_card" ? (chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）") : "ATM 虛擬帳號"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -5547,14 +5566,18 @@ const BookingFlow = () => {
                             <div className="pt-2 mt-1 border-t space-y-1.5">
                               <div className="flex justify-between items-center text-sm font-semibold text-primary">
                                 <span>本次線上扣款</span>
-                                <span>NT$ 0（僅綁卡）</span>
+                                <span>{chargeCardImmediately ? `NT$ ${calculateFinalTotal().toLocaleString()}` : "NT$ 0（僅綁卡）"}</span>
                               </div>
+                              {!chargeCardImmediately && (
                               <div className="flex justify-between items-center text-xs text-muted-foreground">
                                 <span>入住當天自動扣款</span>
                                 <span>NT$ {calculateFinalTotal().toLocaleString()}</span>
                               </div>
+                              )}
                               <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                                送出訂單後僅完成信用卡綁定，不會立即扣款；入住當天系統自動扣取全額。入住日前 14 日（含）以前取消完全免費，14 日內取消將依取消政策比例自動收取手續費。
+                                {chargeCardImmediately
+                                  ? "送出訂單時即完成全額刷卡付款；取消將依取消政策比例辦理退款。"
+                                  : "送出訂單後僅完成信用卡綁定，不會立即扣款；入住當天系統自動扣取全額。入住日前 14 日（含）以前取消完全免費，14 日內取消將依取消政策比例自動收取手續費。"}
                               </p>
                             </div>
                           )}

@@ -1,0 +1,2 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS charge_card_immediately boolean NOT NULL DEFAULT false;
+UPDATE public.accommodation_info SET charge_card_immediately = true WHERE id = '5f764d55-ae11-4631-80fe-2e611853deae';
