@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import BonusRulesReference from "@/components/team/BonusRulesReference";
+import BonusFormulaHint from "@/components/team/BonusFormulaHint";
+import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
+import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
   Dialog,
@@ -713,6 +716,7 @@ function commissionPeriodRange(year: number, month: number, period: "10" | "25")
 
 function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false, onOpenRules }: { scoutManagerOnly?: boolean; readOnly?: boolean; onOpenRules?: () => void }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+  const { basis, setBasis, canSwitch } = useOwnerDirectBasis();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [groups, setGroups] = useState<MemberGroup[]>([]);
@@ -1520,6 +1524,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           )}
         </div>
 
+        <OwnerDirectBasisToggle basis={basis} setBasis={setBasis} canSwitch={canSwitch} />
+
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
@@ -1712,8 +1718,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                   )}
                                 </button>
                                 <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                  <span className="text-sm font-medium tabular-nums whitespace-nowrap">
+                                  <span className="flex items-center gap-1 text-sm font-medium tabular-nums whitespace-nowrap">
                                     小計 {formatMoney(src.subtotal)}
+                                    {(() => {
+                                      const it = src.items[0];
+                                      const key = it
+                                        ? bonusTypeOf(it.source_table, it.role_key)
+                                        : null;
+                                      if (!key) return null;
+                                      return (
+                                        <BonusFormulaHint
+                                          bonusKey={key}
+                                          frozen={src.allPaid}
+                                          values={[
+                                            { label: "筆數", value: src.items.length },
+                                            { label: "小計", value: src.subtotal },
+                                            {
+                                              label: "倍率",
+                                              value: it?.multiplier ?? 1,
+                                            },
+                                            {
+                                              label: "基準營收",
+                                              value: it?.base_revenue ?? undefined,
+                                            },
+                                          ]}
+                                        />
+                                      );
+                                    })()}
                                   </span>
                                   {!readOnly && !src.allPaid && (
                                     <Button
