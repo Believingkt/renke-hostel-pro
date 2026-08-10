@@ -44,6 +44,7 @@ export async function validateOrderPrices(
         accommodationId: input.accommodationId,
         roomTypeId: input.roomTypeId,
         packageId: input.packageId || null,
+        roomQuantity: input.roomQuantity ?? 1,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,
         totalPrice: input.totalPrice,
@@ -55,6 +56,11 @@ export async function validateOrderPrices(
         mealPlanTotal: input.mealPlanTotal || 0,
         petCount: input.petCount || 0,
         petPlanPrice: input.petPlanPrice || 0,
+        customAddonDetails: input.customAddonDetails ?? null,
+        childSelection: input.childSelection ?? null,
+        childExtraTotal: input.childExtraTotal ?? 0,
+        tripId: input.tripId ?? null,
+        guestEmail: input.guestEmail ?? null,
       }),
     });
 
