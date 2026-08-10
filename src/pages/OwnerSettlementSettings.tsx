@@ -576,7 +576,9 @@ export default function OwnerSettlementSettings({
           )}
           {groups.map((g) => (
             <div key={g.id} className="space-y-2">
-              <div className="text-sm font-medium">{g.name}</div>
+              <div className="text-base md:text-lg font-bold text-foreground border-l-4 border-primary pl-2">
+                {g.name}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {g.sources.map((src) => {
                   const checked = config.exempt_order_sources.includes(src);
