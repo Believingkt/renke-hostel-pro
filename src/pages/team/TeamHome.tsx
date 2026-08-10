@@ -1399,15 +1399,22 @@ export default function TeamHome() {
     const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
     const lines = [{ label: "訂房成交獎金", amount: closerBoosted, multiplier: closerMult }];
     if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
+    // 分潤補差（依發放期別的快照 adjustment），取消扣回為負數
+    const cancelAdj = Math.round(closerCancelAdj * closerMult);
+    const otherAdj = Math.round(closerOtherAdj * closerMult);
+    if (cancelAdj !== 0) lines.push({ label: "訂單取消扣回", amount: cancelAdj, multiplier: closerMult });
+    if (otherAdj !== 0) lines.push({ label: "分潤補差（金額調整）", amount: otherAdj, multiplier: closerMult });
     cards.push({
       key: "closer",
       title: "成交獎金",
-      amount: closerBoosted + scoutCloserBoosted,
-      baseAmount: closerAmt + scoutCloserAmt,
+      amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
+      baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
-      note: monthlyNote(),
+      note: monthlyNote(cancelAdj !== 0 || otherAdj !== 0 ? "已含本期分潤補差（取消扣回）" : undefined),
       lines,
+      alwaysShowLines: cancelAdj !== 0 || otherAdj !== 0,
     });
+
   }
 
   if (showCloser && isMonthly) {
