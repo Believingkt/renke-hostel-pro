@@ -87,7 +87,10 @@ function validateRequestBody(body: RequestBody): string | null {
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
+  const jsonResponse = (body: unknown, status = 200) =>
+    buildJsonResponse(body, status, corsHeaders);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
