@@ -66,7 +66,7 @@ interface AccommodationGroup {
   sources: string[];
 }
 
-const GLOBAL_SETTING_KEY = "owner_settlement_config";
+
 const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
 
 /** 當月月初（Asia/Taipei），格式 YYYY-MM-01 */
@@ -169,15 +169,15 @@ export default function OwnerSettlementSettings({
         .select("accommodation_id, name");
       if (currentAccommodationId) configuredQuery.eq("accommodation_id", currentAccommodationId);
 
-      const settingKeys = currentAccommodationId
-        ? [perAccKey(currentAccommodationId), GLOBAL_SETTING_KEY]
-        : [GLOBAL_SETTING_KEY];
+      const settingKeys = currentAccommodationId ? [perAccKey(currentAccommodationId)] : [];
 
       const [settingRes, accRes, ordersRes, configuredRes] = await Promise.all([
-        supabase
-          .from("system_settings")
-          .select("setting_key, setting_value")
-          .in("setting_key", settingKeys),
+        settingKeys.length
+          ? supabase
+              .from("system_settings")
+              .select("setting_key, setting_value")
+              .in("setting_key", settingKeys)
+          : Promise.resolve({ data: [] as any[] } as any),
         accQuery.order("name", { ascending: true }),
         ordersQuery,
         configuredQuery,
@@ -187,8 +187,7 @@ export default function OwnerSettlementSettings({
       const perAcc = currentAccommodationId
         ? rows.find((r) => r.setting_key === perAccKey(currentAccommodationId))
         : undefined;
-      const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
-      const picked = perAcc ?? global;
+      const picked = perAcc;
       setUsingFallback(!!currentAccommodationId && !perAcc);
       let baseConfig: SettlementConfig = DEFAULT_CONFIG;
       if (picked?.setting_value) {
@@ -372,9 +371,11 @@ export default function OwnerSettlementSettings({
       toast.error("門檻與行銷推廣費不可為負數");
       return;
     }
-    const settingKey = currentAccommodationId
-      ? perAccKey(currentAccommodationId)
-      : GLOBAL_SETTING_KEY;
+    if (!currentAccommodationId) {
+      toast.error("請先選擇民宿，本設定不再提供全站預設值");
+      return;
+    }
+    const settingKey = perAccKey(currentAccommodationId);
     setSaving(true);
     const { data: existing } = await supabase
       .from("system_settings")
@@ -435,7 +436,7 @@ export default function OwnerSettlementSettings({
 
     setSaving(false);
     setUsingFallback(false);
-    toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
+    toast.success(`已儲存「${accName}」的設定`);
   };
 
 
@@ -449,7 +450,7 @@ export default function OwnerSettlementSettings({
         description={
           currentAccommodationId
             ? `目前編輯：${accName || "此民宿"}（每間民宿獨立設定，不影響其他民宿）`
-            : "尚未選擇民宿，此處編輯的是全站預設值（僅套用於尚未設定的民宿）"
+            : "請先選擇民宿；本設定已改為純各館獨立，不再提供全站預設值"
         }
         icon={Settings}
         action={
@@ -474,7 +475,7 @@ export default function OwnerSettlementSettings({
       )}
       {currentAccommodationId && usingFallback && (
         <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
-          此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
+          此民宿尚未建立設定，目前顯示系統初始值（未套用任何全站預設）。儲存後將建立「{accName || "此民宿"}」的專屬設定。
         </div>
       )}
 

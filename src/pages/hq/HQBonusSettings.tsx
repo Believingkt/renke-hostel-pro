@@ -125,16 +125,15 @@ export default function HQBonusSettings() {
               <CardDescription>
                 這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務，
                 就是獎金四步流程中「② 用多少金額當基準」的來源，會直接影響成交大師獎金與團隊獎金的基準金額。
-                選擇館別後編輯該館設定；選「全站預設值」時僅套用於尚未建立獨立設定的館別。
+                每間民宿獨立設定，沒有全站預設值：請先選擇館別再編輯。
               </CardDescription>
             </CardHeader>
             <CardContent className="max-w-sm space-y-3">
-              <Select value={accId} onValueChange={setAcc}>
+              <Select value={override ?? ""} onValueChange={setAcc}>
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="global">全站預設值</SelectItem>
                   {accs.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
@@ -145,7 +144,15 @@ export default function HQBonusSettings() {
             </CardContent>
           </Card>
 
-          <OwnerSettlementSettings key={accId} accommodationIdOverride={override} hideBackButton />
+          {override ? (
+            <OwnerSettlementSettings key={accId} accommodationIdOverride={override} hideBackButton />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                請先於上方選擇要設定的館別。
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
