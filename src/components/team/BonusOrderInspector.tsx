@@ -66,7 +66,7 @@ export default function BonusOrderInspector() {
       const { data: order, error: oErr } = await (supabase as any)
         .from("orders")
         .select(
-          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, accommodation_info(name), order_meta(team_commission_price, is_excluded)",
+          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded)",
         )
         .eq("order_number", kw)
         .maybeSingle();
@@ -82,7 +82,7 @@ export default function BonusOrderInspector() {
       const dataMonth = (checkIn || orderDate).slice(0, 7);
       const monthStart = `${dataMonth}-01`;
 
-      const [periodsRes, sharedRes, kolRes, ruleRes] = await Promise.all([
+      const [periodsRes, sharedRes, kolRes, ruleRes, accRes] = await Promise.all([
         (supabase as any)
           .from("accommodation_partnership_periods")
           .select("start_date, end_date, counts_closer_commission, counts_team_bonus")
@@ -103,7 +103,13 @@ export default function BonusOrderInspector() {
           .order("effective_from", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        (supabase as any)
+          .from("accommodation_info")
+          .select("name")
+          .eq("id", accId)
+          .maybeSingle(),
       ]);
+      const accName = accRes?.data?.name ?? null;
 
       const periods = (periodsRes.data ?? []) as any[];
       const inPeriod = (d: string, flag: "counts_team_bonus" | "counts_closer_commission") =>
@@ -147,7 +153,7 @@ export default function BonusOrderInspector() {
 
       setHeader([
         { label: "訂單編號", value: String(order.order_number ?? "") },
-        { label: "館別", value: String(order.accommodation_info?.name ?? accId.slice(0, 8)) },
+        { label: "館別", value: String(accName ?? accId.slice(0, 8)) },
         { label: "訂單日 / 入住日", value: `${orderDate || "—"} / ${checkIn || "—"}` },
         { label: "訂單來源", value: source || "—" },
         { label: "訂單狀態", value: status || "—" },
