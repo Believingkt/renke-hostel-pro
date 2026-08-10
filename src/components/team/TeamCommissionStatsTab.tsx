@@ -983,6 +983,14 @@ export default function TeamCommissionStatsTab() {
                     </span>
                   )}
                 </TableHead>
+                {hasBackfill && (
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    回溯補建
+                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                      （前期訂單）
+                    </span>
+                  </TableHead>
+                )}
                 {showAdj && (
                   <>
                     <TableHead className="whitespace-nowrap tabular-nums">
@@ -1003,10 +1011,11 @@ export default function TeamCommissionStatsTab() {
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={showAdj ? 11 : 9} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={(showAdj ? 11 : 9) + (hasBackfill ? 1 : 0)} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
+
               ) : (
 
                 stats.map((r) => {
