@@ -153,14 +153,19 @@ export default function BonusOrderInspector() {
       const teamPrice = Number(meta?.team_commission_price ?? 0) || 0;
 
       // ── 實際受領人解析（③ 分給誰）──
-      const [closerRes, amRes, bindRes, venueRes] = await Promise.all([
-        meta?.closer_id
+      const memberByAnyId = (id?: string | null) =>
+        id
           ? (supabase as any)
               .from("team_member_profiles")
               .select("display_name")
-              .eq("id", meta.closer_id)
+              .or(`id.eq.${id},user_id.eq.${id}`)
+              .limit(1)
               .maybeSingle()
-          : Promise.resolve({ data: null }),
+          : Promise.resolve({ data: null });
+
+      const [closerRes, videoRes, amRes, bindRes, venueRes] = await Promise.all([
+        memberByAnyId(meta?.closer_id),
+        memberByAnyId(meta?.video_creator_id),
         (supabase as any)
           .from("team_member_profiles")
           .select("display_name, am_managed_accommodation_ids, is_active")
@@ -177,6 +182,7 @@ export default function BonusOrderInspector() {
       ]);
 
       const closerName: string | null = closerRes?.data?.display_name ?? null;
+      const videoName: string | null = videoRes?.data?.display_name ?? null;
       const amNames: string[] = ((amRes?.data ?? []) as any[]).map((r) => String(r.display_name));
       const pickLatest = (rows: any[]) =>
         rows.length
