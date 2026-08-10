@@ -66,7 +66,7 @@ export default function BonusOrderInspector() {
       const { data: order, error: oErr } = await (supabase as any)
         .from("orders")
         .select(
-          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, accommodation_info(name), order_meta(team_commission_price, is_excluded)",
+          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded)",
         )
         .eq("order_number", kw)
         .maybeSingle();
