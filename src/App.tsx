@@ -151,6 +151,8 @@ const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettings"));
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
 const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
+const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
+
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
 
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
