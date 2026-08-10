@@ -2073,6 +2073,7 @@ export type Database = {
       closer_commission_snapshots: {
         Row: {
           accommodation_id: string
+          active_days: number | null
           check_out_date: string | null
           closer_commission_amount: number | null
           closer_id: string | null
@@ -2080,8 +2081,12 @@ export type Database = {
           created_at: string | null
           final_price_snapshot: number
           id: string
+          multiplier_source: string | null
+          multiplier_used: number | null
           order_id: string
           payout_month: string | null
+          period_days: number | null
+          prorate_ratio: number | null
           snapshot_month: string
           video_commission_amount: number | null
           video_creator_id: string | null
@@ -2089,6 +2094,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          active_days?: number | null
           check_out_date?: string | null
           closer_commission_amount?: number | null
           closer_id?: string | null
@@ -2096,8 +2102,12 @@ export type Database = {
           created_at?: string | null
           final_price_snapshot: number
           id?: string
+          multiplier_source?: string | null
+          multiplier_used?: number | null
           order_id: string
           payout_month?: string | null
+          period_days?: number | null
+          prorate_ratio?: number | null
           snapshot_month: string
           video_commission_amount?: number | null
           video_creator_id?: string | null
@@ -2105,6 +2115,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          active_days?: number | null
           check_out_date?: string | null
           closer_commission_amount?: number | null
           closer_id?: string | null
@@ -2112,8 +2123,12 @@ export type Database = {
           created_at?: string | null
           final_price_snapshot?: number
           id?: string
+          multiplier_source?: string | null
+          multiplier_used?: number | null
           order_id?: string
           payout_month?: string | null
+          period_days?: number | null
+          prorate_ratio?: number | null
           snapshot_month?: string
           video_commission_amount?: number | null
           video_creator_id?: string | null
@@ -10590,6 +10605,7 @@ export type Database = {
       }
       teamcommission_bonus_snapshots: {
         Row: {
+          active_days: number | null
           amount: number
           amount_excl_owner: number | null
           amount_incl_owner: number | null
@@ -10601,13 +10617,19 @@ export type Database = {
           fixed_amount: number | null
           id: string
           member_id: string
+          multiplier_source: string | null
+          multiplier_used: number | null
+          payout_basis_used: string | null
           payout_month: string
+          period_days: number | null
+          prorate_ratio: number | null
           rate: number | null
           settings_snapshot: Json | null
           snapshot_month: string
           venue_count: number | null
         }
         Insert: {
+          active_days?: number | null
           amount: number
           amount_excl_owner?: number | null
           amount_incl_owner?: number | null
@@ -10619,13 +10641,19 @@ export type Database = {
           fixed_amount?: number | null
           id?: string
           member_id: string
+          multiplier_source?: string | null
+          multiplier_used?: number | null
+          payout_basis_used?: string | null
           payout_month: string
+          period_days?: number | null
+          prorate_ratio?: number | null
           rate?: number | null
           settings_snapshot?: Json | null
           snapshot_month: string
           venue_count?: number | null
         }
         Update: {
+          active_days?: number | null
           amount?: number
           amount_excl_owner?: number | null
           amount_incl_owner?: number | null
@@ -10637,7 +10665,12 @@ export type Database = {
           fixed_amount?: number | null
           id?: string
           member_id?: string
+          multiplier_source?: string | null
+          multiplier_used?: number | null
+          payout_basis_used?: string | null
           payout_month?: string
+          period_days?: number | null
+          prorate_ratio?: number | null
           rate?: number | null
           settings_snapshot?: Json | null
           snapshot_month?: string
