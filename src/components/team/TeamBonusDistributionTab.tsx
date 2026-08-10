@@ -684,13 +684,13 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           <div className="space-y-1">
             <CardTitle className="text-base">成交組團隊獎金 - 抽成比例設定</CardTitle>
             <p className="text-xs text-muted-foreground">
-              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增版本）
+              生效日起，往後沿用該比例直到下個新版本建立。（可由管理員新增生效版本）
             </p>
           </div>
           {isAdmin && (
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <Button size="sm" onClick={() => setAddOpen(true)}>
-                新增版本
+                新增生效版本
               </Button>
               <DialogContent>
                 <DialogHeader>

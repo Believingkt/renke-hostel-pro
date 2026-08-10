@@ -1320,8 +1320,8 @@ function VenueClosingAssignmentSection({
         created_by: uid,
       });
     setSaving(false);
-    if (error) return toast.error("新增生效版本失敗：" + error.message);
-    toast.success("已新增生效版本");
+    if (error) return toast.error("修改簽約人失敗：" + error.message);
+    toast.success("已更新簽約人");
     setDialogAcc(null);
     load();
   }

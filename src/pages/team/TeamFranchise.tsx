@@ -1576,7 +1576,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
     if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增版本");
+    toast.success("已新增生效版本");
     setInternalDialogOpen(false);
     void load();
   };
@@ -1595,7 +1595,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
     if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增版本");
+    toast.success("已新增生效版本");
     setExternalDialogOpen(false);
     void load();
   };
@@ -1650,7 +1650,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
           <CardTitle className="text-base">內部分潤設定</CardTitle>
           {canManage && (
             <Button size="sm" onClick={openInternalDialog}>
-              <Plus className="h-4 w-4 mr-1" /> 新增版本
+              <Plus className="h-4 w-4 mr-1" /> 新增生效版本
             </Button>
           )}
         </CardHeader>
@@ -1725,7 +1725,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                     <div className="font-medium">{project}</div>
                     {canManage && (
                       <Button size="sm" variant="outline" onClick={() => openExternalDialog(project)}>
-                        <Plus className="h-4 w-4 mr-1" /> 新增版本
+                        <Plus className="h-4 w-4 mr-1" /> 新增生效版本
                       </Button>
                     )}
                   </div>
@@ -1816,7 +1816,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
             <div>・帶 1 人比例：有 1 位直屬下線時的個人分潤比例</div>
             <div>・帶 2 人以上：有 2 位以上直屬下線時的個人分潤比例</div>
             <div>・隊長獎金比例：業務有直屬隊長時，固定發放給隊長的比例（與業務階梯無關）</div>
-            <div>・新增版本後，舊版本會保留為歷史記錄，新版本立即生效</div>
+            <div>・新增生效版本後，舊版本會保留為歷史記錄，新版本立即生效</div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInternalDialogOpen(false)}>取消</Button>
@@ -1829,7 +1829,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>
-              {externalEditingProject ? `新增版本：${externalEditingProject}` : "新增外部分潤專案"}
+              {externalEditingProject ? `新增生效版本：${externalEditingProject}` : "新增外部分潤專案"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">

@@ -104,7 +104,7 @@ export default function HQBonusSettings() {
               <CardDescription>
                 依「一筆訂單實際被計算的順序」分成四步：① 這筆訂單算不算數 → ② 用多少金額當基準 → ③
                 分給誰 → ④ 分多少、何時發。最上方的試算檢查器可輸入訂單編號，直接看到該筆訂單在每一步的判定結果。
-                所有設定皆為 append-only 版本制，新增版本不會覆寫歷史期別的已算金額；
+                所有設定皆為 append-only 版本制，新增生效版本不會覆寫歷史期別的已算金額；
                 /team/commission 的「獎金設定」分頁為唯讀鏡像。
               </CardDescription>
             </CardHeader>
