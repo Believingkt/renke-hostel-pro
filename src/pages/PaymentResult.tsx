@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw, ClipboardList, Calendar, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { handoffPaymentResultToApp } from "@/lib/nativePayment";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
@@ -79,6 +80,16 @@ export default function PaymentResult() {
   const source = searchParams.get('source');
 
   useEffect(() => {
+    // App 3DS 回程：本頁只負責把結果以深層連結交回 App（不建立訂單）
+    if (searchParams.get('native') === '1') {
+      handoffPaymentResultToApp({
+        rec_trade_id: recTradeId || undefined,
+        order_number: orderNumber || undefined,
+        status: searchParams.get('status') || (recTradeId ? 'success' : 'failed'),
+        error: recTradeId ? undefined : 'missing_rec_trade_id',
+      });
+      return;
+    }
     // Determine payment source and load pending data
     let detectedSource: PaymentSource = 'unknown';
     let pending: PendingPayment | null = null;

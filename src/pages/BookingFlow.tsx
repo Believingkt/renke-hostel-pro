@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
+import {
+  isNativeApp,
+  openNativePaymentBrowser,
+  initNativePaymentListener,
+  NATIVE_3DS_RETURN_URL,
+} from "@/lib/nativePayment";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
 import { qualifyReferral } from "@/lib/referral";
 
@@ -217,6 +223,25 @@ function classifyPaymentFailure(message?: string | null): {
 
 const BookingFlow = () => {
   const navigate = useNavigate();
+
+  // App：3DS 完成後由 lakeze://payment-result 深層連結交回結果
+  useEffect(() => {
+    return initNativePaymentListener((result) => {
+      if (!result.success || !result.recTradeId) {
+        setIsProcessingPayment(false);
+        setIsSubmitting(false);
+        toast({
+          title: "付款未完成",
+          description: result.error || "3D 驗證失敗或已取消，請重新嘗試",
+          variant: "destructive",
+        });
+        return;
+      }
+      navigate(
+        `/payment-result?source=booking-paid&rec_trade_id=${encodeURIComponent(result.recTradeId)}`,
+      );
+    });
+  }, [navigate]);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
@@ -3298,7 +3323,9 @@ const BookingFlow = () => {
                     email: guestInfo.email || '',
                   },
                   details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
-                  frontendRedirectUrl: `${window.location.origin}/payment-result?source=booking-paid`,
+                  frontendRedirectUrl: isNativeApp()
+                    ? NATIVE_3DS_RETURN_URL
+                    : `${window.location.origin}/payment-result?source=booking-paid`,
                 },
               }
             );
@@ -3331,6 +3358,11 @@ const BookingFlow = () => {
             if (payResult.requires3DSecure && payResult.paymentUrl) {
               // 導向 3D 驗證，回來後由 /payment-result 以 post-charge 模式建立訂單
               sessionStorage.setItem('pending_paid_order_3ds', JSON.stringify(orderPayload));
+              if (isNativeApp()) {
+                // App：用 in-app browser 開驗證頁，結果經 lakeze://payment-result 交回
+                await openNativePaymentBrowser(payResult.paymentUrl);
+                return;
+              }
               window.location.href = payResult.paymentUrl;
               return;
             }
