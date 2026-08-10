@@ -1,26 +1,17 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
-import HQOwnerSettlementSettings from "@/pages/hq/HQOwnerSettlementSettings";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 /**
- * HQ 整合頁：獎金與月結設定（總部集中管理）。
- * 兩個 Tab：獎金設定（與 /team/commission 同源元件，HQ 為唯一可編輯入口）、業主月結設定。
+ * HQ 整合頁：獎金設定（總部集中管理）。
+ * 內容與 /team/commission →「獎金設定」完全同源（同一元件），
+ * 差別在於 HQ 為唯一可編輯入口，Team 端改為唯讀鏡像。
  */
 export default function HQBonusSettings() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") === "owner-settlement" ? "owner-settlement" : "bonus";
-
-  const handleTabChange = (value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value === "bonus") next.delete("tab");
-    else next.set("tab", value);
-    setSearchParams(next);
-  };
 
   return (
     <div className="container mx-auto space-y-4 py-6">
@@ -29,33 +20,27 @@ export default function HQBonusSettings() {
           <ArrowLeft className="mr-1 h-4 w-4" />
           回總部
         </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/hq/owner-settlement-settings">
+            業主月結設定
+            <ExternalLink className="ml-1 h-4 w-4" />
+          </Link>
+        </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>獎金與月結設定（總部集中管理）</CardTitle>
+          <CardTitle>獎金設定（總部集中管理）</CardTitle>
           <CardDescription>
-            費率版本、訂單來源白名單、角色綁定、場域簽約人與館別合作期間，以及業主月結抽成規則，全部集中在此編輯；
+            費率版本、訂單來源白名單、角色綁定、場域簽約人與館別合作期間，全部集中在此編輯；
             /team/commission 的「獎金設定」分頁已改為唯讀鏡像。所有設定皆為 append-only 版本制，
             新增版本不會覆寫歷史期別的已算金額。
           </CardDescription>
         </CardHeader>
+        <CardContent className="pt-0" />
       </Card>
 
-      <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="bonus">獎金設定</TabsTrigger>
-          <TabsTrigger value="owner-settlement">業主月結設定</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="bonus" className="mt-0">
-          <BonusSettingsTab />
-        </TabsContent>
-
-        <TabsContent value="owner-settlement" className="mt-0">
-          <HQOwnerSettlementSettings embedded />
-        </TabsContent>
-      </Tabs>
+      <BonusSettingsTab />
     </div>
   );
 }

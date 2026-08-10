@@ -16,7 +16,7 @@ interface AccOption {
  * HQ 整合頁：業主月結設定（跨館別集中管理）。
  * 由此頁選擇館別後，重用 OwnerSettlementSettings（以 prop 覆寫館別，不吃 admin 的 AccommodationContext）。
  */
-export default function HQOwnerSettlementSettings({ embedded = false }: { embedded?: boolean }) {
+export default function HQOwnerSettlementSettings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [accs, setAccs] = useState<AccOption[]>([]);
@@ -35,24 +35,14 @@ export default function HQOwnerSettlementSettings({ embedded = false }: { embedd
 
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
-  const setAcc = (v: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (v === "global") next.delete("acc");
-    else next.set("acc", v);
-    setSearchParams(next);
-  };
-
   return (
-    <div className={embedded ? "space-y-4" : "container mx-auto py-6 space-y-4"}>
-      {!embedded && (
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="outline" size="sm" onClick={() => navigate("/hq")}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            回總部
-          </Button>
-        </div>
-      )}
-
+    <div className="container mx-auto py-6 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="outline" size="sm" onClick={() => navigate("/hq")}>
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          回總部
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
