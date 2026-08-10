@@ -970,7 +970,35 @@ serve(async (req) => {
       });
     }
 
+    /* ---------- 凍結加倍倍率（以發放月為準，all 與個別類型相乘） ---------- */
+    {
+      const { data: multRows } = await supabase
+        .from("bonus_multiplier_settings")
+        .select("bonus_type, multiplier, start_month, end_month, reason");
+      const active = ((multRows ?? []) as any[]).filter(
+        (r) => String(r.start_month) <= payoutMonthStr && String(r.end_month) >= payoutMonthStr,
+      );
+      const hitOf = (bt: string) => active.find((r) => String(r.bonus_type) === bt);
+      for (const row of rows) {
+        const own = hitOf(row.bonus_type);
+        const all = hitOf("all");
+        const v = (x: any) => {
+          const n = Number(x?.multiplier ?? 1);
+          return Number.isFinite(n) && n > 0 ? n : 1;
+        };
+        const m = v(own) * v(all);
+        row.multiplier_used = m;
+        row.multiplier_source =
+          m === 1
+            ? null
+            : [own ? `${row.bonus_type}:${v(own)}` : null, all ? `all:${v(all)}` : null]
+                .filter(Boolean)
+                .join(" × ");
+      }
+    }
+
     /* ---------- 逐筆寫入（衝突時：未發放則覆寫更新，已發放則 skip） ---------- */
+
     const errors: Array<{ bonus_type: string; member_id: string; error: string }> = [];
     let created = 0;
     let skipped = 0;
