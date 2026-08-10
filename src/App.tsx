@@ -735,11 +735,16 @@ function App() {
 
                       </Route>
                       <Route path="/hq/owner-settlement-settings" element={
-                        <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/bonus-settings" element={
-                        <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        </RequireHQRole>
                       } />
+
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
                       } />
