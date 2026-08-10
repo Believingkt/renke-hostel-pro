@@ -955,6 +955,9 @@ interface PartnershipPeriodRow {
   start_date: string;
   end_date: string | null;
   bonus_policy: "full" | "none";
+  counts_closer_commission?: boolean | null;
+  counts_team_bonus?: boolean | null;
+  payout_basis?: string | null;
   note: string | null;
 }
 
@@ -1002,7 +1005,7 @@ function VenueClosingAssignmentSection({
 
         (supabase as any)
           .from("accommodation_partnership_periods")
-          .select("id, accommodation_id, start_date, end_date, bonus_policy, note")
+          .select("id, accommodation_id, start_date, end_date, bonus_policy, counts_closer_commission, counts_team_bonus, payout_basis, note")
           .order("start_date", { ascending: false }),
       ]);
       setAccs(
