@@ -54,6 +54,16 @@ const menuItems = [
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
+  {
+    title: "獎金與月結設定",
+    url: "/hq/bonus-settings",
+    icon: DollarSign,
+    tab: "bonus-settings",
+    subItems: [
+      { title: "獎金設定", url: "/hq/bonus-settings", icon: DollarSign },
+      { title: "業主月結設定", url: "/hq/owner-settlement-settings", icon: FileText },
+    ],
+  },
   { title: "AI 訓練中心", url: "/hq/ai-training", icon: Bot, tab: "ai-training" },
   {
     title: "系統管理",
