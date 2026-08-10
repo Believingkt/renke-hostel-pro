@@ -3298,7 +3298,9 @@ const BookingFlow = () => {
                     email: guestInfo.email || '',
                   },
                   details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
-                  frontendRedirectUrl: `${window.location.origin}/payment-result?source=booking-paid`,
+                  frontendRedirectUrl: isNativeApp()
+                    ? NATIVE_3DS_RETURN_URL
+                    : `${window.location.origin}/payment-result?source=booking-paid`,
                 },
               }
             );
