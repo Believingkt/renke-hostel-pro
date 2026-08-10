@@ -1291,19 +1291,25 @@ function VenueClosingAssignmentSection({
                         {cur?.effective_from ?? "—"}
                       </TableCell>
                       <TableCell className="space-x-2 text-right whitespace-nowrap">
-                        <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          合作期間
-                        </Button>
-                        {curPeriod && !curPeriod.end_date && (
-                          <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
-                            結束合作
-                          </Button>
+                        {readOnly ? (
+                          <span className="text-xs text-muted-foreground">唯讀</span>
+                        ) : (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
+                              <Plus className="mr-1 h-4 w-4" />
+                              合作期間
+                            </Button>
+                            {curPeriod && !curPeriod.end_date && (
+                              <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
+                                結束合作
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
+                              <Plus className="mr-1 h-4 w-4" />
+                              新增版本
+                            </Button>
+                          </>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          新增版本
-                        </Button>
                       </TableCell>
                     </TableRow>
 
