@@ -1603,27 +1603,10 @@ function VenueClosingAssignmentSection({
                             label={`獎金採計起始日 ${a.partnership_start_date ?? "—"}`}
                             on={!!a.partnership_start_date}
                             tip="此日期之前的訂單一律不採計任何獎金，即使合作期間更早開始。"
+                          />
+                        </div>
+                        {!readOnly && curPeriod && (
                           <div className="mt-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">業主自帶口徑</span>
-                              <Select
-                                value={
-                                  curPeriod.payout_basis === "exclude_owner_direct"
-                                    ? "exclude_owner_direct"
-                                    : "include_owner_direct"
-                                }
-                                onValueChange={(v) => updateBasis(curPeriod, v)}
-                              >
-                                <SelectTrigger className="h-7 w-[190px] text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
-                                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <OwnerDirectPreview accommodationId={a.id} />
-                            </div>
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xs text-muted-foreground">採計範圍</span>
                               <Select
