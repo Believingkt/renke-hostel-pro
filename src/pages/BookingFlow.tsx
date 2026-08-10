@@ -260,6 +260,7 @@ const BookingFlow = () => {
   const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [allowCreditCard, setAllowCreditCard] = useState(true);
+  const [chargeCardImmediately, setChargeCardImmediately] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
@@ -795,7 +796,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment")
+          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately")
           .eq("id", accommodationId)
           .single();
         
@@ -804,6 +805,7 @@ const BookingFlow = () => {
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
           setAllowCreditCard((infoData as any).allow_credit_card_payment !== false);
+          setChargeCardImmediately((infoData as any).charge_card_immediately === true);
           setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
@@ -3257,7 +3259,7 @@ const BookingFlow = () => {
 
           // 信用卡流程：結帳當下「只綁卡不扣款」，入住當天由排程自動扣款
           const { data: opResult, error: opError } = await supabase.functions.invoke(
-            'create-card-bound-order',
+            chargeCardImmediately ? 'create-paid-order' : 'create-card-bound-order',
             {
               body: {
                 idempotencyKey,
@@ -3300,7 +3302,7 @@ const BookingFlow = () => {
             const parsed = opError ? await parseFunctionInvokeError(opError) : null;
             const errorInfo = {
               type: 'card' as const,
-              message: opResult?.message || parsed?.backendError || parsed?.message || opError?.message || '信用卡綁定失敗',
+              message: opResult?.message || parsed?.backendError || parsed?.message || opError?.message || (chargeCardImmediately ? '信用卡付款失敗' : '信用卡綁定失敗'),
               suggestion: opResult?.suggestion || '請確認卡片資訊是否正確，或更換其他卡片',
               errorCode: opResult?.errorCode,
               technicalMessage: opResult?.technicalMessage,
@@ -3325,8 +3327,10 @@ const BookingFlow = () => {
           console.log('Card-bound order created:', paidOrderResult?.order_number);
 
           toast({
-            title: "信用卡綁定成功",
-            description: `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
+            title: chargeCardImmediately ? "信用卡付款成功" : "信用卡綁定成功",
+            description: chargeCardImmediately
+              ? `訂房已成立，已完成付款 NT$ ${finalPrice.toLocaleString()}`
+              : `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
           });
 
         } catch (error) {
