@@ -1,6 +1,8 @@
 import * as React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import { RequireHQRole } from "@/components/hq/RequireHQRole";
+
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
