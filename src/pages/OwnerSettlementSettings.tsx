@@ -453,10 +453,12 @@ export default function OwnerSettlementSettings({
         }
         icon={Settings}
         action={
-          <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            回月結報表
-          </Button>
+          hideBackButton ? undefined : (
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              回月結報表
+            </Button>
+          )
         }
       />
       {currentAccommodationId && usingFallback && (
