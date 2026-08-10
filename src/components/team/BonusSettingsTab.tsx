@@ -730,6 +730,7 @@ function BindingSection({
   memberName,
   loading,
   uid,
+  readOnly,
   onSaved,
 }: {
   rows: BindingRow[];
@@ -737,6 +738,7 @@ function BindingSection({
   memberName: (id: string) => string;
   loading: boolean;
   uid: string | null;
+  readOnly?: boolean;
   onSaved: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
