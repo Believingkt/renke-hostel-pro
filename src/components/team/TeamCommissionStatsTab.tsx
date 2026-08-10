@@ -1021,8 +1021,12 @@ export default function TeamCommissionStatsTab() {
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
                   const memberAdj = byUid.get(r.uid) ?? 0;
-                  const memberTotal = netCommission(r.commission) + memberAdj;
-                  const memberTotalBoosted = boostedAmount(netCommission(r.commission), bonusMultiplier) + boostedAmount(memberAdj, bonusMultiplier);
+                  const memberBf = bfByUid.get(r.uid) ?? 0;
+                  const memberTotal = netCommission(r.commission) + memberAdj + memberBf;
+                  const memberTotalBoosted =
+                    boostedAmount(netCommission(r.commission), bonusMultiplier) +
+                    boostedAmount(memberAdj, bonusMultiplier) +
+                    boostedAmount(memberBf, bonusMultiplier);
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -1040,9 +1044,13 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
                         <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        {hasBackfill && (
+                          <TableCell className="tabular-nums">{renderAdjCell(memberBf)}</TableCell>
+                        )}
                         {showAdj && (
                           <>
                             <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
+
                             <TableCell className="tabular-nums font-semibold">
                               {bonusMultiplier > 1 ? (
                                 <div className="flex flex-col leading-tight items-end">
