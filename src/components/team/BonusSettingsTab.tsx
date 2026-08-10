@@ -125,7 +125,7 @@ const money = (n: number | null | undefined) =>
 
 /* ------------------------------ 主元件 ------------------------------ */
 
-export default function BonusSettingsTab() {
+export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = {}) {
   const [uid, setUid] = useState<string | null>(null);
   const [isKolEditor, setIsKolEditor] = useState(false);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
@@ -244,10 +244,24 @@ export default function BonusSettingsTab() {
 
   return (
     <div className="space-y-6 pt-4">
+      {readOnly && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          <span>
+            此頁為<strong>唯讀鏡像</strong>，獎金設定已集中至總部（HQ）管理，請前往 HQ 編輯。
+          </span>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/hq/bonus-settings">
+              前往 HQ 獎金設定
+              <ExternalLink className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
       <RateSection
         rows={rates}
         loading={loading}
         uid={uid}
+        readOnly={readOnly}
         onSaved={loadAll}
       />
       <SourceSection
@@ -258,7 +272,7 @@ export default function BonusSettingsTab() {
         uid={uid}
         table="teamcommission_shared_revenue_source_whitelist"
         sourceGroups={sourceGroups}
-        canEdit
+        canEdit={!readOnly}
         onSaved={loadAll}
       />
       <SourceSection
@@ -269,7 +283,7 @@ export default function BonusSettingsTab() {
         uid={uid}
         table="teamcommission_kol_revenue_source_whitelist"
         sourceGroups={sourceGroups}
-        canEdit={isKolEditor}
+        canEdit={isKolEditor && !readOnly}
         onSaved={loadAll}
       />
       <BindingSection
@@ -278,13 +292,18 @@ export default function BonusSettingsTab() {
         memberName={memberName}
         loading={loading}
         uid={uid}
+        readOnly={readOnly}
         onSaved={loadAll}
       />
-      <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} />
+      <VenueClosingAssignmentSection
+        members={members}
+        memberName={memberName}
+        uid={uid}
+        readOnly={readOnly}
+      />
       <AmVenueOverviewSection />
       <OwnerPricingRuleOverviewSection />
     </div>
-
   );
 }
 
@@ -294,11 +313,13 @@ function RateSection({
   rows,
   loading,
   uid,
+  readOnly,
   onSaved,
 }: {
   rows: RateRow[];
   loading: boolean;
   uid: string | null;
+  readOnly?: boolean;
   onSaved: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -420,10 +441,12 @@ function RateSection({
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{cur?.effective_from ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          新增版本
-                        </Button>
+                        {readOnly ? null : (
+                          <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            新增版本
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                     {isOpen && (
@@ -726,6 +749,7 @@ function BindingSection({
   memberName,
   loading,
   uid,
+  readOnly,
   onSaved,
 }: {
   rows: BindingRow[];
@@ -733,6 +757,7 @@ function BindingSection({
   memberName: (id: string) => string;
   loading: boolean;
   uid: string | null;
+  readOnly?: boolean;
   onSaved: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -832,7 +857,7 @@ function BindingSection({
                               <ExternalLink className="h-4 w-4" />
                             </Link>
                           </Button>
-                        ) : (
+                        ) : readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
                             <Plus className="mr-1 h-4 w-4" />
                             新增版本
@@ -1024,10 +1049,12 @@ function VenueClosingAssignmentSection({
   members,
   memberName,
   uid,
+  readOnly,
 }: {
   members: MemberOption[];
   memberName: (id: string) => string;
   uid: string | null;
+  readOnly?: boolean;
 }) {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
@@ -1283,19 +1310,25 @@ function VenueClosingAssignmentSection({
                         {cur?.effective_from ?? "—"}
                       </TableCell>
                       <TableCell className="space-x-2 text-right whitespace-nowrap">
-                        <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          合作期間
-                        </Button>
-                        {curPeriod && !curPeriod.end_date && (
-                          <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
-                            結束合作
-                          </Button>
+                        {readOnly ? (
+                          <span className="text-xs text-muted-foreground">唯讀</span>
+                        ) : (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
+                              <Plus className="mr-1 h-4 w-4" />
+                              合作期間
+                            </Button>
+                            {curPeriod && !curPeriod.end_date && (
+                              <Button variant="ghost" size="sm" onClick={() => endPeriod(curPeriod)}>
+                                結束合作
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
+                              <Plus className="mr-1 h-4 w-4" />
+                              新增版本
+                            </Button>
+                          </>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          新增版本
-                        </Button>
                       </TableCell>
                     </TableRow>
 

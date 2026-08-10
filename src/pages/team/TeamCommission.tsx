@@ -201,7 +201,7 @@ export default function TeamCommission() {
         )}
         {showAdminTabs && (
           <KeepAliveTab value="bonus-settings" active={tab}>
-            <BonusSettingsTab />
+            <BonusSettingsTab readOnly />
           </KeepAliveTab>
         )}
       </Tabs>

@@ -150,6 +150,7 @@ const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettings"));
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
+const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
 
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
@@ -735,6 +736,9 @@ function App() {
                       </Route>
                       <Route path="/hq/owner-settlement-settings" element={
                         <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                      } />
+                      <Route path="/hq/bonus-settings" element={
+                        <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
                       } />
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
