@@ -422,10 +422,12 @@ function RateSection({
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{cur?.effective_from ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
-                          <Plus className="mr-1 h-4 w-4" />
-                          新增版本
-                        </Button>
+                        {readOnly ? null : (
+                          <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            新增版本
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                     {isOpen && (
