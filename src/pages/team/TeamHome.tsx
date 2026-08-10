@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
-import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
 import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import BonusRulesReference from "@/components/team/BonusRulesReference";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
-import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
 import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
