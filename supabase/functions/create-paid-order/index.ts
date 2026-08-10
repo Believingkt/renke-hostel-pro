@@ -15,6 +15,7 @@ import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
+import { queryTapPayRecord } from "../_shared/tappay.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
@@ -181,6 +182,14 @@ Deno.serve(async (req) => {
     if (isPostCharge) {
       recTradeId = body.alreadyChargedRecTradeId!;
       console.log("[create-paid-order] Post-charge mode, recTradeId:", recTradeId);
+      const verified = await queryTapPayRecord({ partnerKey, recTradeId });
+      if (!verified.success || !verified.record || ![0, 1].includes(Number(verified.record.record_status))) {
+        return jsonResponse({ success: false, message: "無法確認付款成功，訂單尚未建立" }, 409);
+      }
+      if (Number(verified.record.amount) !== body.finalPrice) {
+        return jsonResponse({ success: false, message: "付款金額與訂單金額不符" }, 409);
+      }
+      authCode = verified.record.auth_code;
     } else {
       // Charge mode: pay-by-prime (non-3DS)
       const charge = await chargeByPrime({
@@ -308,6 +317,11 @@ Deno.serve(async (req) => {
     }
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
+    await supabase.from("pending_paid_order_drafts").update({
+      status: "order_created",
+      order_id: orderData.id,
+      last_error: null,
+    }).eq("idempotency_key", body.idempotencyKey);
 
     // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
     try {

@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 1: 確認此 rec_trade_id 屬於我方訂單，避免外部濫用查詢任意交易
+    // Step 1: transaction must belong to an existing order OR a server-side 3DS draft.
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -73,7 +73,13 @@ Deno.serve(async (req) => {
       .ilike("notes", `%${recTradeId}%`)
       .maybeSingle();
 
-    if (!matchedOrder) {
+    const { data: matchedDraft } = matchedOrder ? { data: null } : await supabase
+      .from("pending_paid_order_drafts")
+      .select("id, expected_amount")
+      .eq("rec_trade_id", recTradeId)
+      .maybeSingle();
+
+    if (!matchedOrder && !matchedDraft) {
       // 不洩漏「找不到訂單」與「未授權」的差異
       return new Response(
         JSON.stringify({ success: false, message: "查無此交易" }),
@@ -122,6 +128,12 @@ Deno.serve(async (req) => {
     }
 
     const isSuccess = record.record_status === 0 || record.record_status === 1;
+    if (matchedDraft && Number(record.amount) !== Number(matchedDraft.expected_amount)) {
+      return new Response(
+        JSON.stringify({ success: false, message: "交易金額不符" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Step 3: 回傳必要欄位（recTradeId/authCode 為下游 complete-3ds-booking 所需）
     // 已綁定我方訂單，且 rec_trade_id 是用戶自己傳入的，不算新增資訊洩漏
@@ -131,7 +143,7 @@ Deno.serve(async (req) => {
         paymentSuccess: isSuccess,
         recTradeId: record.rec_trade_id,
         bankTransactionId: record.bank_transaction_id,
-        orderNumber: matchedOrder.order_number,
+        orderNumber: matchedOrder?.order_number ?? null,
         amount: record.amount,
         status: record.record_status,
         authCode: record.auth_code,

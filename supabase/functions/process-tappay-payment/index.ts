@@ -94,7 +94,7 @@ serve(async (req) => {
       );
     }
 
-    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl, bindCard } = requestData;
+    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl, bindCard, orderPayload } = requestData;
 
     console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl, bindCard: !!bindCard });
 
@@ -109,6 +109,34 @@ serve(async (req) => {
     if (!partnerKey || !merchantId) {
       console.error('Missing TapPay credentials:', { hasPartnerKey: !!partnerKey, hasMerchantId: !!merchantId });
       throw new Error('TapPay credentials not configured');
+    }
+
+    const supaUrl = Deno.env.get('SUPABASE_URL');
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (orderPayload && supaUrl && svcKey) {
+      const payload = orderPayload as Record<string, unknown>;
+      if (payload.idempotencyKey !== orderId || payload.finalPrice !== amount) {
+        return new Response(JSON.stringify({ success: false, message: '訂房草稿與付款資料不一致' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const admin = createClient(supaUrl, svcKey);
+      const { error: draftError } = await admin.from('pending_paid_order_drafts').upsert({
+        idempotency_key: orderId,
+        expected_amount: amount,
+        order_payload: payload,
+        status: 'pending_3ds',
+        last_error: null,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      }, { onConflict: 'idempotency_key' });
+      if (draftError) {
+        console.error('[process-tappay-payment] draft persistence failed', draftError);
+        return new Response(JSON.stringify({ success: false, message: '無法保存付款訂單，請稍後再試' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Normalize phone to E.164 format
@@ -221,6 +249,13 @@ serve(async (req) => {
 
       // Check if 3D Secure redirect is required
       if (result.payment_url) {
+        if (supaUrl && svcKey && orderPayload && result.rec_trade_id) {
+          const admin = createClient(supaUrl, svcKey);
+          const { error: linkError } = await admin.from('pending_paid_order_drafts').update({
+            rec_trade_id: result.rec_trade_id,
+          }).eq('idempotency_key', orderId);
+          if (linkError) console.error('[process-tappay-payment] draft trade link failed', linkError);
+        }
         console.log('3D Secure redirect required:', { 
           recTradeId: result.rec_trade_id,
           paymentUrl: result.payment_url.substring(0, 50) + '...'

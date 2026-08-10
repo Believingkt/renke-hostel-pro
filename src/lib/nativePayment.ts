@@ -20,6 +20,7 @@ import { App as CapApp } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 
 export const NATIVE_PAYMENT_CALLBACK = "lakeze://payment-result";
+export const NATIVE_PAYMENT_DRAFT_KEY = "pending_paid_order_3ds";
 
 /** Fixed https 3DS return page used as TapPay frontend_redirect_url in the app. */
 export const NATIVE_3DS_RETURN_URL =
@@ -31,6 +32,24 @@ export function isNativeApp(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Persist the order draft in the app WebView, never in the isolated 3DS browser. */
+export function saveNativePaymentDraft(payload: unknown): void {
+  localStorage.setItem(NATIVE_PAYMENT_DRAFT_KEY, JSON.stringify(payload));
+}
+
+export function loadNativePaymentDraft<T = unknown>(): T | null {
+  try {
+    const raw = localStorage.getItem(NATIVE_PAYMENT_DRAFT_KEY);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearNativePaymentDraft(): void {
+  localStorage.removeItem(NATIVE_PAYMENT_DRAFT_KEY);
 }
 
 export async function openNativePaymentBrowser(url: string): Promise<void> {
