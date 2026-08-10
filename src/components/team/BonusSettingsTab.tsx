@@ -1695,6 +1695,21 @@ function VenueClosingAssignmentSection({
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>業主自帶口徑（實付真值採哪一軌）</Label>
+              <Select value={pBasis} onValueChange={(v) => setPBasis(v as any)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="include_owner_direct">含業主自帶（預設）</SelectItem>
+                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                只影響以館別營收為基準的團隊獎金（AM／成交組場域／網紅營銷）；成交大師分潤與業主月結不受影響。
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>備註</Label>
               <Input
                 value={pNote}
