@@ -142,11 +142,6 @@ export default function HQBonusSettings() {
                   ))}
                 </SelectContent>
               </Select>
-              {canSeeBonus && (
-                <Button variant="outline" size="sm" onClick={() => setTab("bonus")}>
-                  回到獎金發放規則（4 步流程）
-                </Button>
-              )}
             </CardContent>
           </Card>
 
