@@ -54,7 +54,7 @@ interface RequestBody {
   nights: number;
 }
 
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
+function buildJsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...headers, "Content-Type": "application/json" },
