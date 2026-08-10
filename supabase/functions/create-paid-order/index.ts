@@ -98,7 +98,28 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const body = (await req.json()) as RequestBody;
+    let body = (await req.json()) as RequestBody;
+
+    // Post-charge creation must use the immutable server-side draft. Never trust
+    // booking details sent back by the browser after a successful charge.
+    if (body.alreadyChargedRecTradeId && body.idempotencyKey) {
+      const { data: draft } = await supabase
+        .from("pending_paid_order_drafts")
+        .select("order_payload, expected_amount")
+        .eq("idempotency_key", body.idempotencyKey)
+        .eq("rec_trade_id", body.alreadyChargedRecTradeId)
+        .maybeSingle();
+      if (!draft) {
+        return jsonResponse({ success: false, message: "查無此付款對應的訂房草稿" }, 409);
+      }
+      body = {
+        ...(draft.order_payload as RequestBody),
+        alreadyChargedRecTradeId: body.alreadyChargedRecTradeId,
+      };
+      if (Number(draft.expected_amount) !== Number(body.finalPrice)) {
+        return jsonResponse({ success: false, message: "訂房草稿金額不一致" }, 409);
+      }
+    }
 
     const validationError = validateRequestBody(body);
     if (validationError) return jsonResponse({ success: false, message: validationError }, 400);
