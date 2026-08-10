@@ -169,15 +169,15 @@ export default function OwnerSettlementSettings({
         .select("accommodation_id, name");
       if (currentAccommodationId) configuredQuery.eq("accommodation_id", currentAccommodationId);
 
-      const settingKeys = currentAccommodationId
-        ? [perAccKey(currentAccommodationId), GLOBAL_SETTING_KEY]
-        : [GLOBAL_SETTING_KEY];
+      const settingKeys = currentAccommodationId ? [perAccKey(currentAccommodationId)] : [];
 
       const [settingRes, accRes, ordersRes, configuredRes] = await Promise.all([
-        supabase
-          .from("system_settings")
-          .select("setting_key, setting_value")
-          .in("setting_key", settingKeys),
+        settingKeys.length
+          ? supabase
+              .from("system_settings")
+              .select("setting_key, setting_value")
+              .in("setting_key", settingKeys)
+          : Promise.resolve({ data: [] as any[] } as any),
         accQuery.order("name", { ascending: true }),
         ordersQuery,
         configuredQuery,
@@ -187,8 +187,7 @@ export default function OwnerSettlementSettings({
       const perAcc = currentAccommodationId
         ? rows.find((r) => r.setting_key === perAccKey(currentAccommodationId))
         : undefined;
-      const global = rows.find((r) => r.setting_key === GLOBAL_SETTING_KEY);
-      const picked = perAcc ?? global;
+      const picked = perAcc;
       setUsingFallback(!!currentAccommodationId && !perAcc);
       let baseConfig: SettlementConfig = DEFAULT_CONFIG;
       if (picked?.setting_value) {
