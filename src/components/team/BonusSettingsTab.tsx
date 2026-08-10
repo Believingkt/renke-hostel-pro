@@ -1415,8 +1415,9 @@ function VenueClosingAssignmentSection({
                             )}
                             <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
                               <Plus className="mr-1 h-4 w-4" />
-                              新增版本
+                              修改簽約人
                             </Button>
+
                           </>
                         )}
                       </TableCell>
@@ -1806,7 +1807,7 @@ function OwnerPricingRuleOverviewSection() {
                 <TableHead>收行銷推廣費</TableHead>
                 <TableHead>抽成</TableHead>
                 <TableHead>免抽成來源</TableHead>
-                <TableHead className="w-10 text-right">連結</TableHead>
+                
               </TableRow>
             </TableHeader>
             <TableBody>
