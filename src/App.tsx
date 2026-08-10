@@ -732,6 +732,9 @@ function App() {
                         } />
 
                       </Route>
+                      <Route path="/hq/owner-settlement-settings" element={
+                        <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                      } />
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
                       } />
