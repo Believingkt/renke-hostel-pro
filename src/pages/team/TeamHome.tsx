@@ -1013,13 +1013,20 @@ export default function TeamHome() {
 
         {
           const client = db as any;
+          // 版本切點一律取「資料月當時生效版本」（BONUS_RULES_SPEC §0），
+          // 與發放管理快照相同，避免 TeamHome 用「今天」而與快照對不上。
+          const versionAsOf = monthStartDate;
           const [rateSettings, sharedSources, amManagerId, closerManagerId, kolRecipientId] =
             await Promise.all([
-              getBonusRateSettings(client),
-              getRevenueSourceWhitelist(client, "teamcommission_shared_revenue_source_whitelist"),
-              getRoleBinding(client, "am_manager"),
-              getRoleBinding(client, "closer_manager"),
-              getRoleBinding(client, "kol_bonus_recipient"),
+              getBonusRateSettings(client, versionAsOf),
+              getRevenueSourceWhitelist(
+                client,
+                "teamcommission_shared_revenue_source_whitelist",
+                versionAsOf,
+              ),
+              getRoleBinding(client, "am_manager", versionAsOf),
+              getRoleBinding(client, "closer_manager", versionAsOf),
+              getRoleBinding(client, "kol_bonus_recipient", versionAsOf),
             ]);
 
           amManagerFlag = !!profileId && amManagerId === profileId;
