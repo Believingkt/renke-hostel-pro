@@ -1459,6 +1459,11 @@ function VenueClosingAssignmentSection({
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
           「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
         </p>
+        <p className="text-xs text-muted-foreground">
+          EX：合作期間起日 2026-07-01 → 2026 年 7 月起的訂單才採計，該資料月的獎金在 8 月 10 日期別發放；
+          若在 2026-07-15 才生效，7/1～7/14 的訂單一律不算。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
