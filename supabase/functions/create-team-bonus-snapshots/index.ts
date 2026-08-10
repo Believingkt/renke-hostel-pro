@@ -687,8 +687,14 @@ serve(async (req) => {
       amount: number;
       amount_incl_owner: number | null;
       amount_excl_owner: number | null;
+      /** 凍結：計算當下採用的實付基準（含／排除業主自帶；各館不一致為 mixed） */
+      payout_basis_used?: string | null;
+      /** 凍結：計算當下的加倍倍率與來源 */
+      multiplier_used?: number | null;
+      multiplier_source?: string | null;
       settings_snapshot: Record<string, unknown>;
     }
+
 
     const rows: Row[] = [];
     const push = (r: Row) => {
