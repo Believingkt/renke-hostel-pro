@@ -5213,7 +5213,7 @@ const BookingFlow = () => {
                             label: chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）",
                             icon: CreditCard,
                             desc: chargeCardImmediately
-                              ? "送出訂單時即完成全額刷卡付款"
+                              ? `送出訂單時即以信用卡扣取全額 NT$ ${calculateFinalTotal().toLocaleString()}，付款成功即完成訂房；如需取消依館別取消政策辦理退款`
                               : "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費",
                           },
                           {
