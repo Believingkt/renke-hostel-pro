@@ -1032,6 +1032,12 @@ function BindingSection({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">角色綁定<SettingImpactHint settingKey="role_binding" /></CardTitle>
+        <p className="mt-1 text-xs text-muted-foreground">
+          綁定以「生效日」分版本，計算時取該資料月 1 日之前（含）最新的一版。
+          EX：生效日 2026-07-01 → 2026 年 7 月資料月即採用此人選，於 8 月 10 日期別發放；
+          若生效日填 2026-08-01，7 月資料月不會採計，要等 9 月 10 日期別。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
