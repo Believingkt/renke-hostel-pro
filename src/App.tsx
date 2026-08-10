@@ -1,6 +1,8 @@
 import * as React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import { RequireHQRole } from "@/components/hq/RequireHQRole";
+
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
@@ -151,6 +153,8 @@ const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettings"));
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
 const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
+const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
+
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
 
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
@@ -735,11 +739,16 @@ function App() {
 
                       </Route>
                       <Route path="/hq/owner-settlement-settings" element={
-                        <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/bonus-settings" element={
-                        <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        </RequireHQRole>
                       } />
+
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
                       } />
