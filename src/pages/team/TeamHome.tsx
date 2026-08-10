@@ -37,6 +37,7 @@ import {
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
   getAccommodationRevenueByAcc,
+  type PayoutBasis,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
   getCountableRangesByAcc,
@@ -297,7 +298,10 @@ export default function TeamHome() {
 
   // ===== 期別資料快取：避免「上一期／本期」來回切換時重複讀取 =====
   const cacheRef = useRef<Map<string, TeamHomePayload>>(new Map());
-  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
+  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
+  /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
+  const basisOverride =
+    ownerDirectBasis === "payout" ? null : (ownerDirectBasis as PayoutBasis);
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
