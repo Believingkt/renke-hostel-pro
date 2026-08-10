@@ -62,6 +62,9 @@ interface VenueRevenueLine {
 // 單一期別計算完成後的結果快照（用於期別切換快取）
 interface TeamHomePayload {
   closerSum: number;
+  closerBackfillSum: number;
+  closerBackfillCount: number;
+  closerBackfillMonths: string[];
   scoutCloserSum: number;
   closerTeamBonusSum: number;
   closerTeamBonusRateVal: number;
@@ -226,6 +229,9 @@ export default function TeamHome() {
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
+  const [closerBackfill, setCloserBackfill] = useState(0);
+  const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
+  const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
@@ -1303,6 +1309,9 @@ export default function TeamHome() {
         if (cancelled) return;
         const payload: TeamHomePayload = {
           closerSum,
+          closerBackfillSum,
+          closerBackfillCount,
+          closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
           scoutCloserSum,
           closerTeamBonusSum,
           closerTeamBonusRateVal,
