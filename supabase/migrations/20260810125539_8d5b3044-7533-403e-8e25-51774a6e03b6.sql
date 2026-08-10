@@ -1,0 +1,2 @@
+ALTER TABLE public.accommodation_info ALTER COLUMN charge_card_immediately SET DEFAULT true;
+UPDATE public.accommodation_info SET charge_card_immediately = true WHERE charge_card_immediately IS DISTINCT FROM true;
