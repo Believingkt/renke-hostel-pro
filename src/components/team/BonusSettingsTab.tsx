@@ -500,6 +500,8 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               readOnly={readOnly}
               onSaved={loadAll}
             />
+            <BonusMultiplierSection readOnly={readOnly} showHqHint={readOnly} />
+
             <StepNav
               hint="費率乘上的基準金額來自第 ② 步；發放對象來自第 ③ 步。"
               targets={["s2", "s3"]}
