@@ -93,18 +93,19 @@ export default function HQBonusSettings() {
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
-          {canSeeBonus && <TabsTrigger value="bonus">獎金設定</TabsTrigger>}
-          <TabsTrigger value="owner-settlement">業主月結設定</TabsTrigger>
+          {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
+          <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bonus" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>獎金設定（總部集中管理）</CardTitle>
+              <CardTitle>獎金發放規則（總部集中管理）</CardTitle>
               <CardDescription>
-                費率版本、訂單來源白名單、角色綁定、場域簽約人與館別合作期間，全部集中在此編輯；
-                /team/commission 的「獎金設定」分頁已改為唯讀鏡像。所有設定皆為 append-only 版本制，
-                新增版本不會覆寫歷史期別的已算金額。
+                依「一筆訂單實際被計算的順序」分成四步：① 這筆訂單算不算數 → ② 用多少金額當基準 → ③
+                分給誰 → ④ 分多少、何時發。最上方的試算檢查器可輸入訂單編號，直接看到該筆訂單在每一步的判定結果。
+                所有設定皆為 append-only 版本制，新增版本不會覆寫歷史期別的已算金額；
+                /team/commission 的「獎金設定」分頁為唯讀鏡像。
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0" />
@@ -116,12 +117,14 @@ export default function HQBonusSettings() {
         <TabsContent value="owner-settlement" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>業主月結設定（總部集中管理）</CardTitle>
+              <CardTitle>基準金額規則 ｜ 業主月結設定（總部集中管理）</CardTitle>
               <CardDescription>
+                這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務，
+                就是獎金四步流程中「② 用多少金額當基準」的來源，會直接影響成交大師獎金與團隊獎金的基準金額。
                 選擇館別後編輯該館設定；選「全站預設值」時僅套用於尚未建立獨立設定的館別。
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-w-sm">
+            <CardContent className="max-w-sm space-y-3">
               <Select value={accId} onValueChange={setAcc}>
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
@@ -135,12 +138,18 @@ export default function HQBonusSettings() {
                   ))}
                 </SelectContent>
               </Select>
+              {canSeeBonus && (
+                <Button variant="outline" size="sm" onClick={() => setTab("bonus")}>
+                  回到獎金發放規則（4 步流程）
+                </Button>
+              )}
             </CardContent>
           </Card>
 
           <OwnerSettlementSettings key={accId} accommodationIdOverride={override} hideBackButton />
         </TabsContent>
       </Tabs>
+
     </div>
   );
 }

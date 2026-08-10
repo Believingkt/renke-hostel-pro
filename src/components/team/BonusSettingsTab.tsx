@@ -29,10 +29,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
+import BonusOrderInspector from "@/components/team/BonusOrderInspector";
+import SettingImpactHint from "@/components/team/SettingImpactHint";
+import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
 
 /* ------------------------------ 共用工具 ------------------------------ */
 
@@ -257,55 +266,130 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
           </Button>
         </div>
       )}
-      <RateSection
-        rows={rates}
-        loading={loading}
-        uid={uid}
-        readOnly={readOnly}
-        onSaved={loadAll}
-      />
-      <SourceSection
-        title="共用訂單來源 (AM、成交)"
-        description="AM績效、成交組績效等共用獎金採計的訂單來源"
-        rows={sharedSources}
-        loading={loading}
-        uid={uid}
-        table="teamcommission_shared_revenue_source_whitelist"
-        sourceGroups={sourceGroups}
-        canEdit={!readOnly}
-        onSaved={loadAll}
-      />
-      <SourceSection
-        title="獨立訂單來源 (專利獎金)"
-        description="網紅營銷專利獎金採計的訂單來源（僅指定人員可編輯）"
-        rows={kolSources}
-        loading={loading}
-        uid={uid}
-        table="teamcommission_kol_revenue_source_whitelist"
-        sourceGroups={sourceGroups}
-        canEdit={isKolEditor && !readOnly}
-        onSaved={loadAll}
-      />
-      <BindingSection
-        rows={bindings}
-        members={members}
-        memberName={memberName}
-        loading={loading}
-        uid={uid}
-        readOnly={readOnly}
-        onSaved={loadAll}
-      />
-      <VenueClosingAssignmentSection
-        members={members}
-        memberName={memberName}
-        uid={uid}
-        readOnly={readOnly}
-      />
-      <AmVenueOverviewSection />
-      <OwnerPricingRuleOverviewSection />
+
+      <BonusOrderInspector />
+
+      <p className="text-sm text-muted-foreground">
+        以下設定依「一筆訂單實際被計算的順序」排列，共四步；每個設定旁的
+        <Info className="mx-1 inline h-3.5 w-3.5" />
+        會說明它影響哪些獎金。
+      </p>
+
+      <Accordion type="multiple" defaultValue={["s1"]} className="space-y-3">
+        <AccordionItem value="s1" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">① 這筆訂單算不算數？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                合作期間、業主自帶口徑、訂單來源白名單
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <VenueClosingAssignmentSection
+              members={members}
+              memberName={memberName}
+              uid={uid}
+              readOnly={readOnly}
+            />
+            <SourceSection
+              title="共用訂單來源 (AM、成交)"
+              description="AM績效、成交組績效等共用獎金採計的訂單來源"
+              rows={sharedSources}
+              loading={loading}
+              uid={uid}
+              table="teamcommission_shared_revenue_source_whitelist"
+              sourceGroups={sourceGroups}
+              canEdit={!readOnly}
+              onSaved={loadAll}
+              impactKey="shared_sources"
+            />
+            <SourceSection
+              title="獨立訂單來源 (專利獎金)"
+              description="網紅營銷專利獎金採計的訂單來源（僅指定人員可編輯）"
+              rows={kolSources}
+              loading={loading}
+              uid={uid}
+              table="teamcommission_kol_revenue_source_whitelist"
+              sourceGroups={sourceGroups}
+              canEdit={isKolEditor && !readOnly}
+              onSaved={loadAll}
+              impactKey="kol_sources"
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s2" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">② 用多少金額當基準？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                業主月結抽成規則、免抽成來源、不列入抽成的增值服務
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+              <span>此頁設定會直接決定團隊獎金與成交大師獎金的「基準金額」。</span>
+              <SettingImpactHint settingKey="owner_pricing_rule" />
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/hq/bonus-settings?tab=owner-settlement">
+                  前往業主月結設定
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <OwnerPricingRuleOverviewSection />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s3" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">③ 分給誰？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                角色綁定、AM 所轄館別（場域簽約人在第 ① 步的合作期間卡片內）
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <BindingSection
+              rows={bindings}
+              members={members}
+              memberName={memberName}
+              loading={loading}
+              uid={uid}
+              readOnly={readOnly}
+              onSaved={loadAll}
+            />
+            <AmVenueOverviewSection />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s4" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">④ 分多少、何時發？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                費率版本、固定金額；發放期別為資料月 +1 的 10 號
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <RateSection
+              rows={rates}
+              loading={loading}
+              uid={uid}
+              readOnly={readOnly}
+              onSaved={loadAll}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
+
 
 /* ------------------------------ (a) 費率設定 ------------------------------ */
 
@@ -390,7 +474,7 @@ function RateSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">獎金費率／金額設定</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">獎金費率／金額設定<SettingImpactHint settingKey="rate_version" /></CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -563,6 +647,7 @@ function SourceSection({
   sourceGroups,
   canEdit,
   onSaved,
+  impactKey,
 }: {
   title: string;
   description: string;
@@ -573,7 +658,9 @@ function SourceSection({
   sourceGroups: { title: string; sources: string[] }[];
   canEdit: boolean;
   onSaved: () => void;
+  impactKey?: BonusSettingKey;
 }) {
+
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -607,7 +694,10 @@ function SourceSection({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div>
-          <CardTitle className="text-base">{title}</CardTitle>
+          <CardTitle className="flex items-center gap-1.5 text-base">
+            {title}
+            {impactKey && <SettingImpactHint settingKey={impactKey} />}
+          </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         {canEdit ? (
@@ -814,7 +904,7 @@ function BindingSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">角色綁定</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">角色綁定<SettingImpactHint settingKey="role_binding" /></CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -1218,7 +1308,7 @@ function VenueClosingAssignmentSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">場域成交人(Closer)<SettingImpactHint settingKey="venue_closing_assignment" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
           「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
@@ -1559,7 +1649,7 @@ function AmVenueOverviewSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">AM 場域總覽</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">AM 場域總覽<SettingImpactHint settingKey="am_venue_scope" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           逐館顯示目前負責的 AM（唯讀），如需調整請至成員管理設定
         </p>
@@ -1698,7 +1788,7 @@ function OwnerPricingRuleOverviewSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">業主月結抽成規則（唯讀同步）</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">業主月結抽成規則（唯讀同步）<SettingImpactHint settingKey="owner_pricing_rule" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           此為獎金採計的<strong>第一層過濾條件</strong>：訂單須先通過該館別的「免抽成來源／業主自帶」判斷，
           才會進入上方「共用訂單來源 (AM、成交)」與「獨立訂單來源 (專利獎金)」白名單比對。
