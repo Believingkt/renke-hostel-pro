@@ -294,11 +294,13 @@ function RateSection({
   rows,
   loading,
   uid,
+  readOnly,
   onSaved,
 }: {
   rows: RateRow[];
   loading: boolean;
   uid: string | null;
+  readOnly?: boolean;
   onSaved: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
