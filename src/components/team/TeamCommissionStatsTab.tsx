@@ -231,6 +231,12 @@ export default function TeamCommissionStatsTab() {
   const [accSheet, setAccSheet] = useState<{
     title: string;
     breakdown: AccBreakdown;
+    backfillList?: {
+      id: string;
+      snapshot_month: string;
+      order_number: string | null;
+      amount: number;
+    }[];
     adjList?: {
       id: string;
       adjustment_type: string;
@@ -911,6 +917,10 @@ export default function TeamCommissionStatsTab() {
     const showAdj = mode === "period";
     const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
     const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
+    const bfByUid = role === "closer" ? backfillMaps.closerByUid : backfillMaps.videoByUid;
+    const bfByUidAcc =
+      role === "closer" ? backfillMaps.closerByUidAcc : backfillMaps.videoByUidAcc;
+    const hasBackfill = showAdj && backfills.length > 0;
     const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
     const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
     const renderCommissionCell = (amount: number) => {
