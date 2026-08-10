@@ -43,7 +43,48 @@ import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
 import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
 
+/* ------------------------------ 四步流程導引 ------------------------------ */
+
+type StepKey = "s1" | "s2" | "s3" | "s4";
+
+const STEP_LABELS: Record<StepKey, string> = {
+  s1: "① 這筆訂單算不算數？",
+  s2: "② 用多少金額當基準？",
+  s3: "③ 分給誰？",
+  s4: "④ 分多少、何時發？",
+};
+
+/** 步驟間的上下文導引：點擊直接展開並捲動到對應設定區塊 */
+function StepNav({
+  hint,
+  targets,
+  onJump,
+}: {
+  hint: string;
+  targets: StepKey[];
+  onJump: (step: StepKey) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+      <span>{hint}</span>
+      {targets.map((t) => (
+        <Button
+          key={t}
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={() => onJump(t)}
+        >
+          {STEP_LABELS[t]}
+          <ArrowRight className="ml-1 h-3.5 w-3.5" />
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------ 共用工具 ------------------------------ */
+
 
 /** 今天（Asia/Taipei）的 yyyy-MM-dd */
 function taipeiToday(): string {
