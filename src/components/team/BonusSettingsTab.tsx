@@ -836,7 +836,7 @@ function BindingSection({
                               <ExternalLink className="h-4 w-4" />
                             </Link>
                           </Button>
-                        ) : (
+                        ) : readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
                             <Plus className="mr-1 h-4 w-4" />
                             新增版本
