@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw, ClipboardList, Calendar, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { handoffPaymentResultToApp } from "@/lib/nativePayment";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
