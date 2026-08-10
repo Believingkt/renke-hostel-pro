@@ -1441,6 +1441,22 @@ function VenueClosingAssignmentSection({
     load();
   }
 
+  /** 切換該期間的採計旗標（成交大師獎金／團隊獎金） */
+  async function updateFlag(
+    period: PartnershipPeriodRow,
+    field: "counts_closer_commission" | "counts_team_bonus",
+    value: boolean,
+  ) {
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .update({ [field]: value })
+      .eq("id", period.id);
+    if (error) return toast.error("更新採計範圍失敗：" + error.message);
+    toast.success("已更新採計範圍（需重新試算未付快照才會生效）");
+    load();
+  }
+
+
   async function endPeriod(period: PartnershipPeriodRow) {
     const { error } = await (supabase as any)
       .from("accommodation_partnership_periods")
