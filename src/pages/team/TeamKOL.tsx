@@ -5287,7 +5287,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
       toast.error(error.message);
       return;
     }
-    toast.success("已新增版本");
+    toast.success("已新增生效版本");
     setDialogOpen(false);
     loadVersions();
   };
@@ -5308,7 +5308,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
             {isManager && (
               <Button onClick={openCreate}>
                 <Plus className="mr-1 h-4 w-4" />
-                新增版本
+                新增生效版本
               </Button>
             )}
           </div>
@@ -6485,7 +6485,7 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
     const { error } = await supabase.from("scout_tier_settings").insert(payload);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("已新增版本");
+    toast.success("已新增生效版本");
     setOpen(false);
     fetchRows();
   };
@@ -6500,7 +6500,7 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
           </div>
           {isManager && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" /> 新增版本
+              <Plus className="h-4 w-4 mr-1" /> 新增生效版本
             </Button>
           )}
         </div>
@@ -6706,7 +6706,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("已新增版本");
+    toast.success("已新增生效版本");
     setOpen(false);
     fetchRows();
   };

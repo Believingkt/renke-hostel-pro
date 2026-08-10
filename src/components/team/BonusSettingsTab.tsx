@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info, ArrowRight, UserCog } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Accordion,
@@ -43,7 +43,48 @@ import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
 import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
 
+/* ------------------------------ 四步流程導引 ------------------------------ */
+
+type StepKey = "s1" | "s2" | "s3" | "s4";
+
+const STEP_LABELS: Record<StepKey, string> = {
+  s1: "① 這筆訂單算不算數？",
+  s2: "② 用多少金額當基準？",
+  s3: "③ 分給誰？",
+  s4: "④ 分多少、何時發？",
+};
+
+/** 步驟間的上下文導引：點擊直接展開並捲動到對應設定區塊 */
+function StepNav({
+  hint,
+  targets,
+  onJump,
+}: {
+  hint: string;
+  targets: StepKey[];
+  onJump: (step: StepKey) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+      <span>{hint}</span>
+      {targets.map((t) => (
+        <Button
+          key={t}
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={() => onJump(t)}
+        >
+          {STEP_LABELS[t]}
+          <ArrowRight className="ml-1 h-3.5 w-3.5" />
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------ 共用工具 ------------------------------ */
+
 
 /** 今天（Asia/Taipei）的 yyyy-MM-dd */
 function taipeiToday(): string {
@@ -251,8 +292,20 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
     return groups;
   }, [sourceOptions, sourceOwners]);
 
+  const [openSteps, setOpenSteps] = useState<string[]>(["s1"]);
+  const jumpToStep = useCallback((step: StepKey) => {
+    setOpenSteps((prev) => (prev.includes(step) ? prev : [...prev, step]));
+    setTimeout(() => {
+      document.getElementById(`bonus-step-${step}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 60);
+  }, []);
+
   return (
     <div className="space-y-6 pt-4">
+
       {readOnly && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
           <span>
@@ -275,11 +328,16 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
         會說明它影響哪些獎金。
       </p>
 
-      <Accordion type="multiple" defaultValue={["s1"]} className="space-y-3">
-        <AccordionItem value="s1" className="rounded-md border px-4">
+      <Accordion
+        type="multiple"
+        value={openSteps}
+        onValueChange={setOpenSteps}
+        className="space-y-3"
+      >
+        <AccordionItem value="s1" id="bonus-step-s1" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">① 這筆訂單算不算數？</div>
+              <div className="font-medium">{STEP_LABELS.s1}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 合作期間、業主自帶口徑、訂單來源白名單
               </div>
@@ -316,13 +374,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               onSaved={loadAll}
               impactKey="kol_sources"
             />
+            <StepNav
+              hint="訂單通過採計後，下一步是決定要用多少金額當基準。"
+              targets={["s2"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s2" className="rounded-md border px-4">
+        <AccordionItem value="s2" id="bonus-step-s2" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">② 用多少金額當基準？</div>
+              <div className="font-medium">{STEP_LABELS.s2}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 業主月結抽成規則、免抽成來源、不列入抽成的增值服務
               </div>
@@ -340,13 +403,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               </Button>
             </div>
             <OwnerPricingRuleOverviewSection />
+            <StepNav
+              hint="基準金額由「哪些訂單算數」決定範圍，接著再決定發放對象。"
+              targets={["s1", "s3"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s3" className="rounded-md border px-4">
+        <AccordionItem value="s3" id="bonus-step-s3" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">③ 分給誰？</div>
+              <div className="font-medium">{STEP_LABELS.s3}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 角色綁定、AM 所轄館別（場域簽約人在第 ① 步的合作期間卡片內）
               </div>
@@ -363,13 +431,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               onSaved={loadAll}
             />
             <AmVenueOverviewSection />
+            <StepNav
+              hint="場域簽約人設定在第 ① 步；確定發放對象後，再設定金額與期別。"
+              targets={["s1", "s4"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s4" className="rounded-md border px-4">
+        <AccordionItem value="s4" id="bonus-step-s4" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">④ 分多少、何時發？</div>
+              <div className="font-medium">{STEP_LABELS.s4}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 費率版本、固定金額；發放期別為資料月 +1 的 10 號
               </div>
@@ -383,9 +456,15 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               readOnly={readOnly}
               onSaved={loadAll}
             />
+            <StepNav
+              hint="費率乘上的基準金額來自第 ② 步；發放對象來自第 ③ 步。"
+              targets={["s2", "s3"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
     </div>
   );
 }
@@ -457,8 +536,8 @@ function RateSection({
       .from("teamcommission_bonus_rate_settings")
       .insert(payload);
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setDialogType(null);
     onSaved();
   }
@@ -528,7 +607,7 @@ function RateSection({
                         {readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
                             <Plus className="mr-1 h-4 w-4" />
-                            新增版本
+                            新增生效版本
                           </Button>
                         )}
                       </TableCell>
@@ -537,7 +616,7 @@ function RateSection({
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/40">
                           {history.length === 0 ? (
-                            <div className="py-2 text-sm text-muted-foreground">尚無版本紀錄</div>
+                            <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
                             <Table>
                               <TableHeader>
@@ -586,7 +665,7 @@ function RateSection({
       <Dialog open={dialogType != null} onOpenChange={(o) => !o && setDialogType(null)}>
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{def?.label}</DialogTitle>
+            <DialogTitle>新增生效版本：{def?.label}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {def?.field === "rate" ? (
@@ -684,8 +763,8 @@ function SourceSection({
       created_by: uid,
     });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setOpen(false);
     onSaved();
   }
@@ -703,7 +782,7 @@ function SourceSection({
         {canEdit ? (
           <Button variant="outline" size="sm" onClick={openDialog}>
             <Plus className="mr-1 h-4 w-4" />
-            新增版本
+            新增生效版本
           </Button>
         ) : (
           <Badge variant="secondary" className="gap-1">
@@ -780,7 +859,7 @@ function SourceSection({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{title}</DialogTitle>
+            <DialogTitle>新增生效版本：{title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-4">
@@ -885,8 +964,8 @@ function BindingSection({
       created_by: uid,
     });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setDialogRole(null);
     onSaved();
   }
@@ -950,7 +1029,7 @@ function BindingSection({
                         ) : readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
                             <Plus className="mr-1 h-4 w-4" />
-                            新增版本
+                            新增生效版本
                           </Button>
                         )}
                       </TableCell>
@@ -959,7 +1038,7 @@ function BindingSection({
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/40">
                           {history.length === 0 ? (
-                            <div className="py-2 text-sm text-muted-foreground">尚無版本紀錄</div>
+                            <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
                             <Table>
                               <TableHeader>
@@ -1004,7 +1083,7 @@ function BindingSection({
       <Dialog open={dialogRole != null} onOpenChange={(o) => !o && setDialogRole(null)}>
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{roleLabel}</DialogTitle>
+            <DialogTitle>新增生效版本：{roleLabel}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1241,8 +1320,8 @@ function VenueClosingAssignmentSection({
         created_by: uid,
       });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("修改簽約人失敗：" + error.message);
+    toast.success("已更新簽約人");
     setDialogAcc(null);
     load();
   }
@@ -1414,7 +1493,7 @@ function VenueClosingAssignmentSection({
                               </Button>
                             )}
                             <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
-                              <Plus className="mr-1 h-4 w-4" />
+                              <UserCog className="mr-1 h-4 w-4" />
                               修改簽約人
                             </Button>
 
@@ -1497,7 +1576,7 @@ function VenueClosingAssignmentSection({
       <Dialog open={!!dialogAcc} onOpenChange={(o) => !o && setDialogAcc(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增版本：{dialogAcc ? accName(dialogAcc) : ""}</DialogTitle>
+            <DialogTitle>修改簽約人：{dialogAcc ? accName(dialogAcc) : ""}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
