@@ -83,6 +83,30 @@ function StepNav({
   );
 }
 
+/** ①（閘門）與 ②（金額）的對照條：講清楚「筆數 × 金額」的分工 */
+function GateVsAmountBar() {
+  return (
+    <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <div className="text-sm">
+        <div className="font-medium">① 閘門：決定「哪些訂單算數」</div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          合作期間 + 採計旗標 + 訂單來源白名單。沒通過的訂單，金額再高也不會產生任何獎金。
+        </p>
+      </div>
+      <div className="flex items-center justify-center text-muted-foreground">
+        <span className="rounded-full border bg-background px-2 py-0.5 text-xs">×</span>
+      </div>
+      <div className="text-sm">
+        <div className="font-medium">② 金額：決定「一筆算多少錢」</div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          業主月結規則扣除不列入抽成的增值服務後，得到分潤基準金額。改這裡不會改變筆數。
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
 /* ------------------------------ 共用工具 ------------------------------ */
 
 
