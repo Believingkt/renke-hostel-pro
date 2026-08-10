@@ -1182,18 +1182,43 @@ function VenueClosingAssignmentSection({
                             : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {curPeriod && curPeriod.bonus_policy === "full" ? (
-                          <Badge>合作中</Badge>
-                        ) : curPeriod ? (
-                          <Badge variant="secondary">合作中（不採計）</Badge>
-                        ) : upcoming ? (
-                          <Badge variant="secondary">待生效</Badge>
-                        ) : accPeriods.length > 0 ? (
-                          <Badge variant="outline">已暫停</Badge>
-                        ) : (
-                          <Badge variant="destructive">未設定合作期間</Badge>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {curPeriod && curPeriod.bonus_policy === "full" ? (
+                            accPeriods.length > 1 ? (
+                              <Badge>已重啟</Badge>
+                            ) : (
+                              <Badge>合作中</Badge>
+                            )
+                          ) : curPeriod ? (
+                            <Badge variant="secondary">合作中（不採計）</Badge>
+                          ) : upcoming ? (
+                            <Badge variant="secondary">待生效</Badge>
+                          ) : accPeriods.length > 0 ? (
+                            <Badge variant="outline">暫停中</Badge>
+                          ) : (
+                            <Badge variant="destructive">未設定合作期間</Badge>
+                          )}
+                          <PartnershipStatusHint />
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <FlagChip
+                            label="採計成交組"
+                            on={curPeriod?.counts_closer_commission !== false && !!curPeriod}
+                            tip="該期間內的訂單是否計入成交組分潤／影音分潤（成交大師獎金）。"
+                          />
+                          <FlagChip
+                            label="採計團隊獎金"
+                            on={curPeriod?.counts_team_bonus !== false && !!curPeriod}
+                            tip="該期間內的營收是否計入 AM／成交組／網紅營銷等以館別營收為基準的團隊獎金。"
+                          />
+                          <FlagChip
+                            label={`獎金採計起始日 ${a.partnership_start_date ?? "—"}`}
+                            on={!!a.partnership_start_date}
+                            tip="此日期之前的訂單一律不採計任何獎金，即使合作期間更早開始。"
+                          />
+                        </div>
                       </TableCell>
+
 
                       <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
                       <TableCell className="whitespace-nowrap">
