@@ -367,6 +367,63 @@ export default function TeamCommissionStatsTab() {
     };
   }, [mode, payoutMonthKey, period.startIso, period.nextIso]);
 
+  // 回溯補建：本期發放月的快照中，資料月 ≠ 本期資料月者
+  useEffect(() => {
+    if (mode !== "period") {
+      setBackfills([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("closer_commission_snapshots")
+        .select(
+          "id, snapshot_month, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, accommodation_id, orders(order_number)",
+        )
+        .eq("payout_month", payoutMonthKey)
+        .neq("snapshot_month", dataMonthKey);
+      if (cancelled) return;
+      setBackfills(
+        ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          snapshot_month: String(r.snapshot_month ?? ""),
+          closer_id: r.closer_id,
+          video_creator_id: r.video_creator_id,
+          closer_amount: Number(r.closer_commission_amount ?? 0),
+          video_amount: Number(r.video_commission_amount ?? 0),
+          order_number: r.orders?.order_number ?? null,
+          accommodation_id: r.accommodation_id ?? null,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, payoutMonthKey, dataMonthKey]);
+
+  // 回溯補建彙總：成員層級 / 成員+館別層級
+  const backfillMaps = useMemo(() => {
+    const closerByUid = new Map<string, number>();
+    const closerByUidAcc = new Map<string, number>();
+    const videoByUid = new Map<string, number>();
+    const videoByUidAcc = new Map<string, number>();
+    const add = (m: Map<string, number>, k: string, v: number) =>
+      m.set(k, (m.get(k) ?? 0) + v);
+    for (const b of backfills) {
+      if (b.closer_id && b.closer_amount !== 0) {
+        add(closerByUid, b.closer_id, b.closer_amount);
+        if (b.accommodation_id)
+          add(closerByUidAcc, `${b.closer_id}|${b.accommodation_id}`, b.closer_amount);
+      }
+      if (b.video_creator_id && b.video_amount !== 0) {
+        add(videoByUid, b.video_creator_id, b.video_amount);
+        if (b.accommodation_id)
+          add(videoByUidAcc, `${b.video_creator_id}|${b.accommodation_id}`, b.video_amount);
+      }
+    }
+    return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
+  }, [backfills]);
+
   // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
   const adjMaps = useMemo(() => {
     const closerByUid = new Map<string, number>();
