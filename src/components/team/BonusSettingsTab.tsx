@@ -490,7 +490,7 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             <div>
               <div className="font-medium">{STEP_LABELS.s4}</div>
               <div className="text-xs font-normal text-muted-foreground">
-                費率版本、固定金額；發放期別為資料月 +1 的 10 號
+                費率版本、固定金額；發放期別為資料月 +1 的 10 號（EX：生效日 2026-07-01 → 發放期別 8 月 10 日）
               </div>
             </div>
           </AccordionTrigger>
