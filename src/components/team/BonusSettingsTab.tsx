@@ -1548,26 +1548,64 @@ function VenueClosingAssignmentSection({
                           />
                         </div>
                         {!readOnly && curPeriod && (
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">業主自帶口徑</span>
-                            <Select
-                              value={
-                                curPeriod.payout_basis === "exclude_owner_direct"
-                                  ? "exclude_owner_direct"
-                                  : "include_owner_direct"
-                              }
-                              onValueChange={(v) => updateBasis(curPeriod, v)}
-                            >
-                              <SelectTrigger className="h-7 w-[190px] text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
-                                <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div className="mt-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">業主自帶口徑</span>
+                              <Select
+                                value={
+                                  curPeriod.payout_basis === "exclude_owner_direct"
+                                    ? "exclude_owner_direct"
+                                    : "include_owner_direct"
+                                }
+                                onValueChange={(v) => updateBasis(curPeriod, v)}
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
+                                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <OwnerDirectPreview accommodationId={a.id} />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs text-muted-foreground">採計範圍</span>
+                              <Select
+                                value={curPeriod.counts_closer_commission === false ? "off" : "on"}
+                                onValueChange={(v) =>
+                                  updateFlag(curPeriod, "counts_closer_commission", v === "on")
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="on">採計成交大師獎金</SelectItem>
+                                  <SelectItem value="off">不採計成交大師獎金</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={curPeriod.counts_team_bonus === false ? "off" : "on"}
+                                onValueChange={(v) =>
+                                  updateFlag(curPeriod, "counts_team_bonus", v === "on")
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[190px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="on">採計團隊獎金</SelectItem>
+                                  <SelectItem value="off">不採計團隊獎金</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-muted-foreground">
+                              關閉「團隊獎金」＝該期間營收完全不計入 AM／成交組／網紅營銷；成交大師獎金仍由左側開關決定。
+                            </p>
                           </div>
                         )}
+
                       </TableCell>
 
 
