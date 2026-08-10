@@ -602,6 +602,12 @@ function RateSection({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">獎金費率／金額設定<SettingImpactHint settingKey="rate_version" /></CardTitle>
+        <p className="mt-1 text-xs text-muted-foreground">
+          費率以「生效日」分版本，計算時取該資料月 1 日之前（含）最新的一版。
+          EX：生效日 2026-07-01 → 2026 年 7 月資料月適用，於 8 月 10 日期別發放；
+          若生效日填 2026-08-01，7 月資料月會抓不到費率（金額為 0），要補一版 2026-07-01。
+        </p>
+
       </CardHeader>
       <CardContent>
         {loading ? null : (
