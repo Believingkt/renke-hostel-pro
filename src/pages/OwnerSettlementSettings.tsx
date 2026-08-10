@@ -82,9 +82,18 @@ function currentMonthStartTaipei(): string {
 }
 
 
-export default function OwnerSettlementSettings() {
+export default function OwnerSettlementSettings({
+  accommodationIdOverride,
+  hideBackButton,
+}: {
+  /** HQ 整合頁使用：由外層選擇館別，不吃 admin 的 AccommodationContext */
+  accommodationIdOverride?: string | null;
+  hideBackButton?: boolean;
+} = {}) {
   const navigate = useNavigate();
-  const { currentAccommodationId } = useAccommodation();
+  const { currentAccommodationId: ctxAccommodationId } = useAccommodation();
+  const currentAccommodationId =
+    accommodationIdOverride !== undefined ? accommodationIdOverride : ctxAccommodationId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
