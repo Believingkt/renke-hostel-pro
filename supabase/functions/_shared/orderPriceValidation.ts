@@ -4,6 +4,7 @@ export interface PriceValidationInput {
   accommodationId: string;
   roomTypeId: string;
   packageId?: string | null;
+  roomQuantity?: number;
   checkInDate: string;
   checkOutDate: string;
   totalPrice: number;
@@ -15,6 +16,11 @@ export interface PriceValidationInput {
   mealPlanTotal?: number;
   petCount?: number;
   petPlanPrice?: number;
+  customAddonDetails?: unknown;
+  childSelection?: unknown;
+  childExtraTotal?: number;
+  tripId?: string | null;
+  guestEmail?: string | null;
 }
 
 export type PriceValidationOutcome =
