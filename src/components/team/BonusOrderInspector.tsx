@@ -152,6 +152,53 @@ export default function BonusOrderInspector() {
       const meta = Array.isArray(order.order_meta) ? order.order_meta[0] : order.order_meta;
       const teamPrice = Number(meta?.team_commission_price ?? 0) || 0;
 
+      // ── 實際受領人解析（③ 分給誰）──
+      const [closerRes, amRes, bindRes, venueRes] = await Promise.all([
+        meta?.closer_id
+          ? (supabase as any)
+              .from("team_member_profiles")
+              .select("display_name")
+              .eq("id", meta.closer_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        (supabase as any)
+          .from("team_member_profiles")
+          .select("display_name, am_managed_accommodation_ids, is_active")
+          .contains("am_managed_accommodation_ids", [accId]),
+        (supabase as any)
+          .from("teamcommission_role_bindings")
+          .select("role_type, member_id, effective_from, team_member_profiles(display_name)")
+          .lte("effective_from", `${monthStart}`),
+        (supabase as any)
+          .from("teamcommission_venue_closing_assignments")
+          .select("member_id, effective_from, team_member_profiles(display_name)")
+          .eq("accommodation_id", accId)
+          .lte("effective_from", `${monthStart}`),
+      ]);
+
+      const closerName: string | null = closerRes?.data?.display_name ?? null;
+      const amNames: string[] = ((amRes?.data ?? []) as any[]).map((r) => String(r.display_name));
+      const pickLatest = (rows: any[]) =>
+        rows.length
+          ? rows.reduce((b, r) =>
+              String(r.effective_from ?? "") > String(b.effective_from ?? "") ? r : b,
+            )
+          : null;
+      const bindRows = (bindRes?.data ?? []) as any[];
+      const nameOf = (r: any) =>
+        (Array.isArray(r?.team_member_profiles)
+          ? r.team_member_profiles[0]?.display_name
+          : r?.team_member_profiles?.display_name) ?? null;
+      const kolRecipient = nameOf(
+        pickLatest(bindRows.filter((r) => r.role_type === "kol_bonus_recipient")),
+      );
+      const amManager = nameOf(pickLatest(bindRows.filter((r) => r.role_type === "am_manager")));
+      const closerManager = nameOf(
+        pickLatest(bindRows.filter((r) => r.role_type === "closer_manager")),
+      );
+      const venueCloser = nameOf(pickLatest((venueRes?.data ?? []) as any[]));
+
+
       setHeader([
         { label: "訂單編號", value: String(order.order_number ?? "") },
         { label: "館別", value: String(accName ?? accId.slice(0, 8)) },
