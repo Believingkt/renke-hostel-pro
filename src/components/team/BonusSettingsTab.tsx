@@ -1030,10 +1030,12 @@ function VenueClosingAssignmentSection({
   members,
   memberName,
   uid,
+  readOnly,
 }: {
   members: MemberOption[];
   memberName: (id: string) => string;
   uid: string | null;
+  readOnly?: boolean;
 }) {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
