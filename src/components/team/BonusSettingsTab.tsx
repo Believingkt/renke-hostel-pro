@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info, ArrowRight, UserCog } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Accordion,
@@ -536,8 +536,8 @@ function RateSection({
       .from("teamcommission_bonus_rate_settings")
       .insert(payload);
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setDialogType(null);
     onSaved();
   }
@@ -607,7 +607,7 @@ function RateSection({
                         {readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
                             <Plus className="mr-1 h-4 w-4" />
-                            新增版本
+                            新增生效版本
                           </Button>
                         )}
                       </TableCell>
@@ -616,7 +616,7 @@ function RateSection({
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/40">
                           {history.length === 0 ? (
-                            <div className="py-2 text-sm text-muted-foreground">尚無版本紀錄</div>
+                            <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
                             <Table>
                               <TableHeader>
@@ -665,7 +665,7 @@ function RateSection({
       <Dialog open={dialogType != null} onOpenChange={(o) => !o && setDialogType(null)}>
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{def?.label}</DialogTitle>
+            <DialogTitle>新增生效版本：{def?.label}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {def?.field === "rate" ? (
@@ -763,8 +763,8 @@ function SourceSection({
       created_by: uid,
     });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setOpen(false);
     onSaved();
   }
@@ -782,7 +782,7 @@ function SourceSection({
         {canEdit ? (
           <Button variant="outline" size="sm" onClick={openDialog}>
             <Plus className="mr-1 h-4 w-4" />
-            新增版本
+            新增生效版本
           </Button>
         ) : (
           <Badge variant="secondary" className="gap-1">
@@ -859,7 +859,7 @@ function SourceSection({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{title}</DialogTitle>
+            <DialogTitle>新增生效版本：{title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-4">
@@ -964,8 +964,8 @@ function BindingSection({
       created_by: uid,
     });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setDialogRole(null);
     onSaved();
   }
@@ -1029,7 +1029,7 @@ function BindingSection({
                         ) : readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(r.type)}>
                             <Plus className="mr-1 h-4 w-4" />
-                            新增版本
+                            新增生效版本
                           </Button>
                         )}
                       </TableCell>
@@ -1038,7 +1038,7 @@ function BindingSection({
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/40">
                           {history.length === 0 ? (
-                            <div className="py-2 text-sm text-muted-foreground">尚無版本紀錄</div>
+                            <div className="py-2 text-sm text-muted-foreground">尚無歷史版本</div>
                           ) : (
                             <Table>
                               <TableHeader>
@@ -1083,7 +1083,7 @@ function BindingSection({
       <Dialog open={dialogRole != null} onOpenChange={(o) => !o && setDialogRole(null)}>
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增版本：{roleLabel}</DialogTitle>
+            <DialogTitle>新增生效版本：{roleLabel}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1320,8 +1320,8 @@ function VenueClosingAssignmentSection({
         created_by: uid,
       });
     setSaving(false);
-    if (error) return toast.error("新增版本失敗：" + error.message);
-    toast.success("已新增版本");
+    if (error) return toast.error("新增生效版本失敗：" + error.message);
+    toast.success("已新增生效版本");
     setDialogAcc(null);
     load();
   }
@@ -1493,7 +1493,7 @@ function VenueClosingAssignmentSection({
                               </Button>
                             )}
                             <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
-                              <Plus className="mr-1 h-4 w-4" />
+                              <UserCog className="mr-1 h-4 w-4" />
                               修改簽約人
                             </Button>
 
@@ -1576,7 +1576,7 @@ function VenueClosingAssignmentSection({
       <Dialog open={!!dialogAcc} onOpenChange={(o) => !o && setDialogAcc(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增版本：{dialogAcc ? accName(dialogAcc) : ""}</DialogTitle>
+            <DialogTitle>修改簽約人：{dialogAcc ? accName(dialogAcc) : ""}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
