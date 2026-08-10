@@ -964,6 +964,13 @@ export default function TeamCommissionStatsTab() {
     <Card>
       <CardContent className="p-4 space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
+        {hasBackfill && (
+          <p className="text-[11px] leading-relaxed text-muted-foreground rounded-md border border-border bg-muted/40 p-2">
+            本期（{payoutMonthKey} 發放月）另有<strong className="text-foreground">回溯補建</strong>快照
+            {backfills.length} 筆：前期漏建、於本期才產生的訂單，資料月不屬於 {dataMonthKey}。
+            分潤金額欄僅計 {dataMonthKey} 資料月，「發放總計」已含回溯補建與分潤補差，與發放管理／首頁卡片一致。
+          </p>
+        )}
         <div className="overflow-x-auto">
           <Table className="fixed-table">
             <TableHeader>
