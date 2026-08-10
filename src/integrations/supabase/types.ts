@@ -7982,6 +7982,56 @@ export type Database = {
           },
         ]
       }
+      pending_paid_order_drafts: {
+        Row: {
+          created_at: string
+          expected_amount: number
+          expires_at: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          order_id: string | null
+          order_payload: Json
+          rec_trade_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_amount: number
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          order_id?: string | null
+          order_payload: Json
+          rec_trade_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          order_id?: string | null
+          order_payload?: Json
+          rec_trade_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_paid_order_drafts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_notification_sent_log: {
         Row: {
           accommodation_id: string
