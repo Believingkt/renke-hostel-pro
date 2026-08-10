@@ -19,6 +19,7 @@ interface StepResult {
   step: string;
   title: string;
   verdict: Verdict;
+  verdictLabel?: string;
   lines: Array<{ label: string; value: string; field?: BonusFieldKey }>;
   note?: string;
 }
