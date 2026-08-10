@@ -125,7 +125,7 @@ const money = (n: number | null | undefined) =>
 
 /* ------------------------------ 主元件 ------------------------------ */
 
-export default function BonusSettingsTab() {
+export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = {}) {
   const [uid, setUid] = useState<string | null>(null);
   const [isKolEditor, setIsKolEditor] = useState(false);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
