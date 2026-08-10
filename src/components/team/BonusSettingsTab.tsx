@@ -647,6 +647,7 @@ function SourceSection({
   sourceGroups,
   canEdit,
   onSaved,
+  impactKey,
 }: {
   title: string;
   description: string;
@@ -657,7 +658,9 @@ function SourceSection({
   sourceGroups: { title: string; sources: string[] }[];
   canEdit: boolean;
   onSaved: () => void;
+  impactKey?: BonusSettingKey;
 }) {
+
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
