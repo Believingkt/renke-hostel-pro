@@ -397,7 +397,7 @@ async function getAccommodationRevenue(
 ): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
   if (accIds.length === 0 || sources.length === 0) return empty;
 
   const rangesByAcc = await getCountableRangesByAcc(
