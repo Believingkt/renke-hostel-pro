@@ -66,7 +66,7 @@ interface AccommodationGroup {
   sources: string[];
 }
 
-const GLOBAL_SETTING_KEY = "owner_settlement_config";
+
 const perAccKey = (accId: string) => `owner_settlement_config:${accId}`;
 
 /** 當月月初（Asia/Taipei），格式 YYYY-MM-01 */
