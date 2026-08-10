@@ -299,7 +299,7 @@ export default function PaymentStatus() {
 
               {canCancel && (
                 <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-                  信用卡於下單時僅先完成綁卡授權，實際扣款會在入住當天由系統自動執行；在扣款完成前取消，將立即釋放保留的房間且不會產生任何款項。
+                  信用卡付款於送出訂單時即完成全額扣款，付款成功即確認訂房；如需取消，將依館別取消政策辦理退款。
                 </p>
               )}
 
