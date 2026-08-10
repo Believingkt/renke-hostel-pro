@@ -692,6 +692,10 @@ serve(async (req) => {
       /** 凍結：計算當下的加倍倍率與來源 */
       multiplier_used?: number | null;
       multiplier_source?: string | null;
+      /** 凍結：在職天數 / 期間天數 / 在職比例（分潤均分用） */
+      active_days?: number | null;
+      period_days?: number | null;
+      prorate_ratio?: number | null;
       settings_snapshot: Record<string, unknown>;
     }
 
@@ -785,20 +789,43 @@ serve(async (req) => {
     const isActiveAtMonthEnd = (profile: any) =>
       !profile?.resigned_at || String(profile.resigned_at).slice(0, 10) > monthLastDateStr;
 
-    const closerProfiles: any[] = [];
+    // 期間天數與各成員在職天數（離職者按在職比例分潤）
+    const periodDays = Math.round(
+      (Date.parse(`${monthEndDate}T00:00:00Z`) - Date.parse(`${monthStartDate}T00:00:00Z`)) /
+        86_400_000,
+    );
+    const activeDaysOf = (profile: any) => {
+      const r = profile?.resigned_at ? String(profile.resigned_at).slice(0, 10) : null;
+      if (!r) return periodDays;
+      if (r < monthStartDate) return 0;
+      if (r >= monthEndDate) return periodDays;
+      // 離職當日仍算在職
+      return Math.min(
+        periodDays,
+        Math.round((Date.parse(`${r}T00:00:00Z`) - Date.parse(`${monthStartDate}T00:00:00Z`)) /
+          86_400_000) + 1,
+      );
+    };
+
+    const closerProfiles: Array<{ profile: any; activeDays: number; ratio: number }> = [];
     for (const [userId, roleSet] of rolesByUser) {
       if (!roleSet.has("closer") && !roleSet.has("closer_manager")) continue;
       const profile = profileByUserId.get(userId);
       if (!profile) continue;
-      if (!isActiveAtMonthEnd(profile)) continue; // 離職者不參與均分
-      closerProfiles.push(profile);
+      const activeDays = activeDaysOf(profile);
+      if (activeDays <= 0) continue; // 整月都不在職者不參與
+      closerProfiles.push({
+        profile,
+        activeDays,
+        ratio: periodDays > 0 ? activeDays / periodDays : 0,
+      });
     }
 
     const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
     const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
     const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
     const closerHeadcount = closerProfiles.length;
-    for (const profile of closerProfiles) {
+    for (const { profile, activeDays, ratio } of closerProfiles) {
       push({
         bonus_type: "closer_performance",
         member_id: profile.id,
@@ -810,10 +837,13 @@ serve(async (req) => {
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
-        amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
-        amount_incl_owner: closerHeadcount > 0 ? closerPoolIncl / closerHeadcount : 0,
-        amount_excl_owner: closerHeadcount > 0 ? closerPoolExcl / closerHeadcount : 0,
+        amount: closerHeadcount > 0 ? (closerPoolAmount / closerHeadcount) * ratio : 0,
+        amount_incl_owner: closerHeadcount > 0 ? (closerPoolIncl / closerHeadcount) * ratio : 0,
+        amount_excl_owner: closerHeadcount > 0 ? (closerPoolExcl / closerHeadcount) * ratio : 0,
         payout_basis_used: companyRevenue.basis,
+        active_days: activeDays,
+        period_days: periodDays,
+        prorate_ratio: ratio,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
@@ -821,6 +851,9 @@ serve(async (req) => {
           accommodation_ids: activeAccIds,
           pool_amount: closerPoolAmount,
           split_headcount: closerHeadcount,
+          active_days: activeDays,
+          period_days: periodDays,
+          prorate_ratio: ratio,
         },
       });
     }
@@ -1043,6 +1076,9 @@ serve(async (req) => {
                 payout_basis_used: row.payout_basis_used ?? null,
                 multiplier_used: row.multiplier_used ?? null,
                 multiplier_source: row.multiplier_source ?? null,
+                active_days: row.active_days ?? null,
+                period_days: row.period_days ?? null,
+                prorate_ratio: row.prorate_ratio ?? null,
                 settings_snapshot: row.settings_snapshot,
 
 
