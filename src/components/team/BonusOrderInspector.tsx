@@ -439,7 +439,7 @@ export default function BonusOrderInspector() {
                 variant={s.verdict === "fail" ? "destructive" : "outline"}
                 className="text-[11px] font-normal"
               >
-                {s.verdict === "pass" ? "通過" : s.verdict === "fail" ? "不採計" : "參考"}
+                {s.verdict === "pass" ? "通過" : s.verdict === "fail" ? "不採計" : s.verdictLabel ?? "參考"}
               </Badge>
             </div>
             <Separator className="mb-2" />
