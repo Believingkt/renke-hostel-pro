@@ -82,9 +82,18 @@ function currentMonthStartTaipei(): string {
 }
 
 
-export default function OwnerSettlementSettings() {
+export default function OwnerSettlementSettings({
+  accommodationIdOverride,
+  hideBackButton,
+}: {
+  /** HQ 整合頁使用：由外層選擇館別，不吃 admin 的 AccommodationContext */
+  accommodationIdOverride?: string | null;
+  hideBackButton?: boolean;
+} = {}) {
   const navigate = useNavigate();
-  const { currentAccommodationId } = useAccommodation();
+  const { currentAccommodationId: ctxAccommodationId } = useAccommodation();
+  const currentAccommodationId =
+    accommodationIdOverride !== undefined ? accommodationIdOverride : ctxAccommodationId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -444,12 +453,25 @@ export default function OwnerSettlementSettings() {
         }
         icon={Settings}
         action={
-          <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            回月結報表
-          </Button>
+          hideBackButton ? undefined : (
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              回月結報表
+            </Button>
+          )
         }
       />
+      {!hideBackButton && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          此設定已搬遷至總部集中管理頁，本頁未來將移除。
+          <a
+            className="ml-2 underline font-medium"
+            href={`/hq/owner-settlement-settings${currentAccommodationId ? `?acc=${currentAccommodationId}` : ""}`}
+          >
+            前往總部設定頁 →
+          </a>
+        </div>
+      )}
       {currentAccommodationId && usingFallback && (
         <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
           此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
