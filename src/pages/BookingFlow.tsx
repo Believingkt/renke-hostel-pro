@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
+import {
+  isNativeApp,
+  openNativePaymentBrowser,
+  initNativePaymentListener,
+  NATIVE_3DS_RETURN_URL,
+} from "@/lib/nativePayment";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
 import { qualifyReferral } from "@/lib/referral";
 
