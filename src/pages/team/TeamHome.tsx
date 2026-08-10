@@ -1421,17 +1421,17 @@ export default function TeamHome() {
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
       label: d.name,
       revenue: Math.round(d.revenue),
-      amount: Math.round(d.amount * m),
+      amount: roundBoosted(d.amount, m),
       multiplier: m,
       rangeNote: d.rangeNote,
     }));
 
   if (showCloser && isMonthly) {
     const closerMult = multOf("closer");
-    const closerBoosted = Math.round(closerAmt * closerMult);
-    const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
+    const closerBoosted = roundBoosted(closerAmt, closerMult);
+    const scoutCloserBoosted = roundBoosted(scoutCloserAmt, closerMult);
     // 回溯補建：本期快照中資料月不屬於本期資料月者（前期漏建、於本期補上）
-    const backfillBoosted = Math.round(closerBackfill * closerMult);
+    const backfillBoosted = roundBoosted(closerBackfill, closerMult);
     const currentBoosted = closerBoosted - backfillBoosted;
     const backfillMonthNote = closerBackfillMonthList.length
       ? closerBackfillMonthList.join("、")
@@ -1452,8 +1452,8 @@ export default function TeamHome() {
     }
     if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
     // 分潤補差（依發放期別的快照 adjustment），取消扣回為負數
-    const cancelAdj = Math.round(closerCancelAdj * closerMult);
-    const otherAdj = Math.round(closerOtherAdj * closerMult);
+    const cancelAdj = roundBoosted(closerCancelAdj, closerMult);
+    const otherAdj = roundBoosted(closerOtherAdj, closerMult);
     if (cancelAdj !== 0) lines.push({ label: "訂單取消扣回", amount: cancelAdj, multiplier: closerMult });
     if (otherAdj !== 0) lines.push({ label: "分潤補差（金額調整）", amount: otherAdj, multiplier: closerMult });
     cards.push({
@@ -1491,7 +1491,7 @@ export default function TeamHome() {
       cards.push({
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
-        amount: Math.round(closerTeamBonusAmt * m),
+        amount: roundBoosted(closerTeamBonusAmt, m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: monthlyNote("已定案分配金額"),
@@ -1506,7 +1506,7 @@ export default function TeamHome() {
       cards.push({
         key: "closer_team_bonus",
         title: "成交組團隊獎金",
-        amount: Math.round(closerTeamBonusAmt * m),
+        amount: roundBoosted(closerTeamBonusAmt, m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
         note: noteParts.join("；"),
@@ -1517,19 +1517,19 @@ export default function TeamHome() {
 
   if (showVideo && isMonthly) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: Math.round(videoAmt * m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
+    cards.push({ key: "video", title: "影音獎金", amount: roundBoosted(videoAmt, m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
   }
   if (showScout) {
     const kolM = multOf("scout_kol", scoutPeriodPayoutKey);
     const rarityM = multOf("scout_rarity", scoutPeriodPayoutKey);
     const baseM = multOf("scout_base", scoutSalaryPayoutKey);
     const teamM = multOf("scout_team", scoutSalaryPayoutKey);
-    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: Math.round(scoutAmt * kolM), baseAmount: scoutAmt, multiplier: kolM, note: scoutNote() });
-    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: Math.round(rarityAmt * rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: scoutNote() });
+    cards.push({ key: "scout_kol", title: "KOL訂單星探分潤", amount: roundBoosted(scoutAmt, kolM), baseAmount: scoutAmt, multiplier: kolM, note: scoutNote() });
+    cards.push({ key: "scout_rarity", title: "星探稀有度獎金", amount: roundBoosted(rarityAmt, rarityM), baseAmount: rarityAmt, multiplier: rarityM, note: scoutNote() });
     cards.push({
       key: "scout_base",
       title: "兼職星探底薪",
-      amount: Math.round(baseSalaryAmt * baseM),
+      amount: roundBoosted(baseSalaryAmt, baseM),
       baseAmount: baseSalaryAmt,
       multiplier: baseM,
       note: !isMonthly
@@ -1541,7 +1541,7 @@ export default function TeamHome() {
     cards.push({
       key: "scout_team",
       title: "星探團隊獎金",
-      amount: Math.round(teamBonusAmt * teamM),
+      amount: roundBoosted(teamBonusAmt, teamM),
       baseAmount: teamBonusAmt,
       multiplier: teamM,
       note: !isMonthly
@@ -1554,8 +1554,8 @@ export default function TeamHome() {
   if (showFranchise && isMonthly) {
     const intM = multOf("franchise_internal");
     const extM = multOf("franchise_external");
-    const intBoosted = Math.round(franchiseInternalAmt * intM);
-    const extBoosted = Math.round(franchiseExternalAmt * extM);
+    const intBoosted = roundBoosted(franchiseInternalAmt, intM);
+    const extBoosted = roundBoosted(franchiseExternalAmt, extM);
     // 內外兩者若倍率一致 → 用單一 badge；否則顯示最大倍率作標示
     const combinedMult = intM === extM ? intM : Math.max(intM, extM);
     const lines: Array<{ label: string; amount: number; multiplier: number }> = [];
@@ -1578,7 +1578,7 @@ export default function TeamHome() {
   }
   if (showStarlink && isMonthly) {
     const m = multOf("starlink");
-    cards.push({ key: "starlink", title: "星鏈", amount: Math.round(starlinkAmt * m), baseAmount: starlinkAmt, multiplier: m, note: monthlyNote() });
+    cards.push({ key: "starlink", title: "星鏈", amount: roundBoosted(starlinkAmt, m), baseAmount: starlinkAmt, multiplier: m, note: monthlyNote() });
   }
 
   // ===== 七種團隊獎金卡片 =====
@@ -1589,7 +1589,7 @@ export default function TeamHome() {
     cards.push({
       key: "am_performance",
       title: "AM績效獎金",
-      amount: Math.round(amPerformanceAmt * m),
+      amount: roundBoosted(amPerformanceAmt, m),
       baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
@@ -1600,7 +1600,7 @@ export default function TeamHome() {
     cards.push({
       key: "am_venue_bonus",
       title: "AM場域獎金",
-      amount: Math.round(amVenueBonusAmt * mv),
+      amount: roundBoosted(amVenueBonusAmt, mv),
       baseAmount: amVenueBonusAmt,
       multiplier: mv,
       note: rateNote("am_venue_bonus"),
@@ -1611,7 +1611,7 @@ export default function TeamHome() {
     cards.push({
       key: "closer_performance",
       title: "成交組績效獎金",
-      amount: Math.round(closerPerformanceAmt * m),
+      amount: roundBoosted(closerPerformanceAmt, m),
       baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
@@ -1624,7 +1624,7 @@ export default function TeamHome() {
     cards.push({
       key: "am_manager",
       title: "AM總管獎金",
-      amount: Math.round(amManagerAmt * m),
+      amount: roundBoosted(amManagerAmt, m),
       baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
@@ -1637,7 +1637,7 @@ export default function TeamHome() {
     cards.push({
       key: "closer_manager",
       title: "成交大師管理獎金",
-      amount: Math.round(closerManagerAmt * m),
+      amount: roundBoosted(closerManagerAmt, m),
       baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
@@ -1650,7 +1650,7 @@ export default function TeamHome() {
     cards.push({
       key: "kol_commission",
       title: "網紅營銷專利獎金",
-      amount: Math.round(kolCommissionAmt * mc),
+      amount: roundBoosted(kolCommissionAmt, mc),
       baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
@@ -1661,7 +1661,7 @@ export default function TeamHome() {
     cards.push({
       key: "kol_monthly",
       title: "網紅營銷月獎金",
-      amount: Math.round(kolMonthlyAmt * mm),
+      amount: roundBoosted(kolMonthlyAmt, mm),
       baseAmount: kolMonthlyAmt,
       multiplier: mm,
       note: rateNote("kol_monthly"),
@@ -1672,13 +1672,13 @@ export default function TeamHome() {
     cards.push({
       key: "venue_closing",
       title: "場域成交獎金",
-      amount: Math.round(venueClosingAmt * m),
+      amount: roundBoosted(venueClosingAmt, m),
       baseAmount: venueClosingAmt,
       multiplier: m,
       note: rateNote("venue_closing"),
       lines: venueClosingDetail.map((d) => ({
         label: d.name,
-        amount: Math.round(d.amount * m),
+        amount: roundBoosted(d.amount, m),
         multiplier: m,
       })),
     });
