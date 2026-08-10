@@ -29,7 +29,7 @@ export function BonusFormulaHint({
   bonusKey,
   frozen = false,
   values = [],
-  rulesPath = "/team/commission?tab=rules",
+  rulesPath = "/team/commission?tab=payout",
   className,
 }: Props) {
   const formula = getBonusFormula(bonusKey);

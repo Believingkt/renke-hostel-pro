@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { groupedBonusFormulas } from "@/lib/bonusFormulas";
@@ -8,6 +9,14 @@ import { groupedBonusFormulas } from "@/lib/bonusFormulas";
  */
 export function BonusRulesReference() {
   const groups = groupedBonusFormulas();
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, []);
   return (
     <div className="space-y-6">
       {groups.map((g) => (
