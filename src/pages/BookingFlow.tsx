@@ -3331,6 +3331,11 @@ const BookingFlow = () => {
             if (payResult.requires3DSecure && payResult.paymentUrl) {
               // 導向 3D 驗證，回來後由 /payment-result 以 post-charge 模式建立訂單
               sessionStorage.setItem('pending_paid_order_3ds', JSON.stringify(orderPayload));
+              if (isNativeApp()) {
+                // App：用 in-app browser 開驗證頁，結果經 lakeze://payment-result 交回
+                await openNativePaymentBrowser(payResult.paymentUrl);
+                return;
+              }
               window.location.href = payResult.paymentUrl;
               return;
             }
