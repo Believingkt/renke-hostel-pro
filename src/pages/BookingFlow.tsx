@@ -3257,43 +3257,130 @@ const BookingFlow = () => {
           const idempotencyKey =
             (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
+          const orderPayload = {
+            idempotencyKey,
+            accommodationId,
+            selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
+            checkInDate: checkInDateStr,
+            checkOutDate: checkOutDateStr,
+            guestInfo,
+            mealPlan: selectedMealPlan,
+            mealPlanDetails: mealPlanDetailsData,
+            mealPlanTotal: mealPlanTotalPrice,
+            packageId: selectedPackageId,
+            roomQuantity,
+            petCount,
+            petPlanPrice,
+            finalPrice,
+            totalPrice,
+            discountCode: appliedDiscount?.code || null,
+            discountAmount,
+            totalGuests,
+            customerId,
+            memberId: effectiveMemberId,
+            customAddonDetails: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
+            tripId: tripCheckoutTripId,
+            nights,
+          };
+
+          // 立即請款：走 TapPay 3D 驗證（正式商店代號不接受免 3DS 直接請款，會回 10023）
+          if (chargeCardImmediately) {
+            const { data: payResult, error: payError } = await supabase.functions.invoke(
+              'process-tappay-payment',
+              {
+                body: {
+                  prime,
+                  amount: finalPrice,
+                  orderId: idempotencyKey.substring(0, 50),
+                  cardholder: {
+                    phoneNumber: guestInfo.phone,
+                    name: guestInfo.name,
+                    email: guestInfo.email || '',
+                  },
+                  details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
+                  frontendRedirectUrl: `${window.location.origin}/payment-result?source=booking-paid`,
+                },
+              }
+            );
+
+            if (payError || !payResult?.success) {
+              const parsed = payError ? await parseFunctionInvokeError(payError) : null;
+              const errorInfo = {
+                type: 'card' as const,
+                message: payResult?.message || parsed?.backendError || parsed?.message || payError?.message || '信用卡付款失敗',
+                suggestion: payResult?.suggestion || '請確認卡片資訊是否正確，或更換其他卡片',
+                errorCode: payResult?.errorCode,
+                technicalMessage: payResult?.technicalMessage,
+              };
+              reportFrontendError({
+                category: "booking_flow",
+                step: "process_tappay_payment_3ds",
+                errorMessage: errorInfo.message,
+                accommodationId,
+                idempotencyKey,
+                context: { finalPrice, paymentMethod },
+              });
+              setLastPaymentError(errorInfo);
+              setPaymentFailed(true);
+              setShowRetryDialog(true);
+              setIsProcessingPayment(false);
+              setIsSubmitting(false);
+              return;
+            }
+
+            if (payResult.requires3DSecure && payResult.paymentUrl) {
+              // 導向 3D 驗證，回來後由 /payment-result 以 post-charge 模式建立訂單
+              sessionStorage.setItem('pending_paid_order_3ds', JSON.stringify(orderPayload));
+              window.location.href = payResult.paymentUrl;
+              return;
+            }
+
+            // 少數情況免 3D 直接成功：以 post-charge 模式建單
+            const { data: pcResult, error: pcError } = await supabase.functions.invoke(
+              'create-paid-order',
+              { body: { ...orderPayload, alreadyChargedRecTradeId: payResult.transactionId } }
+            );
+
+            if (pcError || !pcResult?.success) {
+              const parsed = pcError ? await parseFunctionInvokeError(pcError) : null;
+              const errorInfo = {
+                type: 'system' as const,
+                message: pcResult?.message || parsed?.backendError || parsed?.message || '付款成功但訂單建立失敗，請聯繫客服',
+                suggestion: '請聯繫客服協助處理，並提供交易編號',
+                technicalMessage: payResult.transactionId,
+              };
+              setLastPaymentError(errorInfo);
+              setPaymentFailed(true);
+              setShowRetryDialog(true);
+              setIsProcessingPayment(false);
+              setIsSubmitting(false);
+              return;
+            }
+
+            paidOrderResult = pcResult.order;
+            toast({
+              title: "信用卡付款成功",
+              description: `訂房已成立，已完成付款 NT$ ${finalPrice.toLocaleString()}`,
+            });
+            setIsProcessingPayment(false);
+          } else {
+
           // 信用卡流程：結帳當下「只綁卡不扣款」，入住當天由排程自動扣款
           const { data: opResult, error: opError } = await supabase.functions.invoke(
-            chargeCardImmediately ? 'create-paid-order' : 'create-card-bound-order',
+            'create-card-bound-order',
             {
               body: {
-                idempotencyKey,
+                ...orderPayload,
                 prime,
                 cardholder: {
                   phoneNumber: guestInfo.phone,
                   name: guestInfo.name,
                   email: guestInfo.email || '',
                 },
-                accommodationId,
-                selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
-                checkInDate: checkInDateStr,
-                checkOutDate: checkOutDateStr,
-                guestInfo,
-                mealPlan: selectedMealPlan,
-                mealPlanDetails: mealPlanDetailsData,
-                mealPlanTotal: mealPlanTotalPrice,
-                packageId: selectedPackageId,
-                roomQuantity,
-                petCount,
-                petPlanPrice,
-                finalPrice,
-                totalPrice,
-                discountCode: appliedDiscount?.code || null,
-                discountAmount,
-                totalGuests,
-                customerId,
-                memberId: effectiveMemberId,
-                customAddonDetails: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
-                tripId: tripCheckoutTripId,
-                nights,
               },
             }
           );
+
 
           if (opError || !opResult?.success) {
             console.error('Card binding / order creation failed:', opError, opResult);
@@ -3327,11 +3414,12 @@ const BookingFlow = () => {
           console.log('Card-bound order created:', paidOrderResult?.order_number);
 
           toast({
-            title: chargeCardImmediately ? "信用卡付款成功" : "信用卡綁定成功",
-            description: chargeCardImmediately
-              ? `訂房已成立，已完成付款 NT$ ${finalPrice.toLocaleString()}`
-              : `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
+            title: "信用卡綁定成功",
+            description: `訂房已成立，現在不會扣款；系統將於入住當天 ${checkInDateStr} 自動扣款 NT$ ${finalPrice.toLocaleString()}`,
           });
+          }
+
+
 
         } catch (error) {
           console.error('Payment error:', error);

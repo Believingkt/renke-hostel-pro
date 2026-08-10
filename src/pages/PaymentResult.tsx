@@ -83,6 +83,7 @@ export default function PaymentResult() {
     let detectedSource: PaymentSource = 'unknown';
     let pending: PendingPayment | null = null;
     let pendingBooking: PendingBookingData | null = null;
+    let pendingPaidOrder: any = null;
 
     if (source === 'admin') {
       detectedSource = 'admin';
@@ -95,8 +96,16 @@ export default function PaymentResult() {
         }
       }
     } else {
+      const paidOrderData = sessionStorage.getItem('pending_paid_order_3ds');
       const bookingData = sessionStorage.getItem('pending_booking_3ds');
-      if (bookingData) {
+      if (paidOrderData) {
+        detectedSource = 'booking';
+        try {
+          pendingPaidOrder = JSON.parse(paidOrderData);
+        } catch (e) {
+          console.error('Failed to parse pending_paid_order_3ds:', e);
+        }
+      } else if (bookingData) {
         detectedSource = 'booking';
         try {
           pendingBooking = JSON.parse(bookingData);
@@ -110,6 +119,7 @@ export default function PaymentResult() {
 
     setPaymentSource(detectedSource);
     setPendingPayment(pending);
+
 
     const processPaymentResult = async () => {
       if (!recTradeId) {
@@ -137,7 +147,41 @@ export default function PaymentResult() {
           setTransaction(txInfo);
 
           // Handle based on source
-          if (detectedSource === 'booking' && pendingBooking) {
+          if (detectedSource === 'booking' && pendingPaidOrder) {
+            // 立即請款 3DS 回程：以 post-charge 模式建立訂單
+            setStatus('creating_order');
+            try {
+              const { data: orderResult, error: orderError } = await supabase.functions.invoke(
+                'create-paid-order',
+                {
+                  body: {
+                    ...pendingPaidOrder,
+                    alreadyChargedRecTradeId: data.recTradeId,
+                  },
+                }
+              );
+
+              if (orderError) throw orderError;
+              if (!orderResult?.success) throw new Error(orderResult?.message || '訂單建立失敗');
+
+              setBookingResult({
+                orderNumber: orderResult.order.order_number,
+                roomName: pendingPaidOrder.selectedRoom?.name || '',
+                checkInDate: orderResult.order.check_in_date || pendingPaidOrder.checkInDate,
+                checkOutDate: orderResult.order.check_out_date || pendingPaidOrder.checkOutDate,
+                nights: pendingPaidOrder.nights,
+                finalPrice: orderResult.order.final_price || pendingPaidOrder.finalPrice,
+                emailSent: orderResult.emailSent ?? true,
+              });
+              setStatus('success');
+              sessionStorage.removeItem('pending_paid_order_3ds');
+            } catch (orderErr: any) {
+              console.error('Paid order creation failed:', orderErr);
+              setStatus('error');
+              setErrorMessage(orderErr.message || '付款成功但訂單建立失敗，請聯繫客服');
+            }
+          } else if (detectedSource === 'booking' && pendingBooking) {
+
             // Create order via edge function
             setStatus('creating_order');
             
