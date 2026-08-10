@@ -1504,6 +1504,33 @@ export default function TeamCommissionStatsTab() {
                   </Table>
                 </div>
               )}
+              {!!accSheet.backfillList?.length && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">
+                    回溯補建（前期訂單，歸入 {payoutMonthKey} 發放月）
+                  </h3>
+                  <Table className="fixed-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>原資料月</TableHead>
+                        <TableHead className="tabular-nums">分潤金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {accSheet.backfillList.map((x) => (
+                        <TableRow key={x.id}>
+                          <TableCell className="font-mono">{x.order_number ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{x.snapshot_month || "—"}</TableCell>
+                          <TableCell className="tabular-nums text-emerald-600">
+                            {fmtMoney(x.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
               {!!accSheet.adjList?.length && (
                 <div>
                   <h3 className="text-sm font-semibold mb-2">
