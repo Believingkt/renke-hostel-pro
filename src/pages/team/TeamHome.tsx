@@ -62,6 +62,9 @@ interface VenueRevenueLine {
 // 單一期別計算完成後的結果快照（用於期別切換快取）
 interface TeamHomePayload {
   closerSum: number;
+  closerBackfillSum: number;
+  closerBackfillCount: number;
+  closerBackfillMonths: string[];
   scoutCloserSum: number;
   closerTeamBonusSum: number;
   closerTeamBonusRateVal: number;
@@ -226,6 +229,9 @@ export default function TeamHome() {
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
+  const [closerBackfill, setCloserBackfill] = useState(0);
+  const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
+  const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
@@ -326,6 +332,9 @@ export default function TeamHome() {
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
+    setCloserBackfill(p.closerBackfillSum ?? 0);
+    setCloserBackfillCnt(p.closerBackfillCount ?? 0);
+    setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
     setScoutCloserAmt(p.scoutCloserSum);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
@@ -440,11 +449,15 @@ export default function TeamHome() {
         let closerSum = 0;
         let videoSum = 0;
         let monthlySettledFlag = false;
+        // 回溯補建：快照的資料月不等於本期資料月（前期漏建、於本期才補上）
+        let closerBackfillSum = 0;
+        let closerBackfillCount = 0;
+        const closerBackfillMonthSet = new Set<string>();
 
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
+            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -453,7 +466,14 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             for (const r of snaps) {
               if (showCloser && r.closer_id === userId) {
-                closerSum += Number(r.closer_commission_amount ?? 0);
+                const amt = Number(r.closer_commission_amount ?? 0);
+                closerSum += amt;
+                const sm = String(r.snapshot_month ?? "");
+                if (sm && sm !== currentMonthKey) {
+                  closerBackfillSum += amt;
+                  closerBackfillCount += 1;
+                  closerBackfillMonthSet.add(sm);
+                }
               }
               if (showVideo && r.video_creator_id === userId) {
                 videoSum += Number(r.video_commission_amount ?? 0);
@@ -1292,6 +1312,9 @@ export default function TeamHome() {
         if (cancelled) return;
         const payload: TeamHomePayload = {
           closerSum,
+          closerBackfillSum,
+          closerBackfillCount,
+          closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
           scoutCloserSum,
           closerTeamBonusSum,
           closerTeamBonusRateVal,
@@ -1397,7 +1420,26 @@ export default function TeamHome() {
     const closerMult = multOf("closer");
     const closerBoosted = Math.round(closerAmt * closerMult);
     const scoutCloserBoosted = Math.round(scoutCloserAmt * closerMult);
-    const lines = [{ label: "訂房成交獎金", amount: closerBoosted, multiplier: closerMult }];
+    // 回溯補建：本期快照中資料月不屬於本期資料月者（前期漏建、於本期補上）
+    const backfillBoosted = Math.round(closerBackfill * closerMult);
+    const currentBoosted = closerBoosted - backfillBoosted;
+    const backfillMonthNote = closerBackfillMonthList.length
+      ? closerBackfillMonthList.join("、")
+      : "前期";
+    const lines = [
+      {
+        label: backfillBoosted !== 0 ? `訂房成交獎金（本期資料月）` : "訂房成交獎金",
+        amount: backfillBoosted !== 0 ? currentBoosted : closerBoosted,
+        multiplier: closerMult,
+      },
+    ];
+    if (backfillBoosted !== 0) {
+      lines.push({
+        label: `回溯補建（前期訂單 ${backfillMonthNote}${closerBackfillCnt ? ` · ${closerBackfillCnt} 筆` : ""}）`,
+        amount: backfillBoosted,
+        multiplier: closerMult,
+      });
+    }
     if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
     // 分潤補差（依發放期別的快照 adjustment），取消扣回為負數
     const cancelAdj = Math.round(closerCancelAdj * closerMult);
@@ -1410,9 +1452,15 @@ export default function TeamHome() {
       amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
       baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
-      note: monthlyNote(cancelAdj !== 0 || otherAdj !== 0 ? "已含本期分潤補差（取消扣回）" : undefined),
+      note: monthlyNote(
+        backfillBoosted !== 0
+          ? "含回溯補建（前期漏建訂單），故與「成交統計」的資料月口徑不同"
+          : cancelAdj !== 0 || otherAdj !== 0
+            ? "已含本期分潤補差（取消扣回）"
+            : undefined,
+      ),
       lines,
-      alwaysShowLines: cancelAdj !== 0 || otherAdj !== 0,
+      alwaysShowLines: backfillBoosted !== 0 || cancelAdj !== 0 || otherAdj !== 0,
     });
 
   }
