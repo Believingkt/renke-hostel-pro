@@ -1259,6 +1259,57 @@ function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string 
   );
 }
 
+/**
+ * 業主自帶口徑的即時金額預覽：以「本月入住」的有效訂單，
+ * 同時顯示「含業主自帶」與「排除業主自帶」兩個館別營收數字，避免選錯口徑。
+ * 唯讀查詢。
+ */
+function OwnerDirectPreview({ accommodationId }: { accommodationId: string }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ incl: number; excl: number } | null>(null);
+
+  const run = async () => {
+    setLoading(true);
+    try {
+      const month = taipeiToday().slice(0, 7);
+      const start = `${month}-01`;
+      const end = `${month}-31`;
+      const { data } = await (supabase as any)
+        .from("orders")
+        .select("final_price, owner_direct, order_status, check_in_date")
+        .eq("accommodation_id", accommodationId)
+        .gte("check_in_date", start)
+        .lte("check_in_date", end);
+      const rows = ((data ?? []) as any[]).filter(
+        (o) => o.order_status !== "cancelled" && o.order_status !== "hold",
+      );
+      const incl = rows.reduce((s, o) => s + (Number(o.final_price) || 0), 0);
+      const excl = rows
+        .filter((o) => o.owner_direct !== true)
+        .reduce((s, o) => s + (Number(o.final_price) || 0), 0);
+      setResult({ incl, excl });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (result) {
+    return (
+      <span className="text-[11px] tabular-nums text-muted-foreground">
+        本月：含 {Math.round(result.incl).toLocaleString("zh-TW")} ／ 排除{" "}
+        {Math.round(result.excl).toLocaleString("zh-TW")}
+      </span>
+    );
+  }
+
+  return (
+    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={run} disabled={loading}>
+      {loading ? "試算中…" : "預覽兩種口徑金額"}
+    </Button>
+  );
+}
+
+
 function VenueClosingAssignmentSection({
   members,
   memberName,
