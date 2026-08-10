@@ -231,6 +231,9 @@ export default function TeamHome() {
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
   const [closerTeamBonusFinalized, setCloserTeamBonusFinalized] = useState(false);
+  const [closerCancelAdj, setCloserCancelAdj] = useState(0);
+  const [closerOtherAdj, setCloserOtherAdj] = useState(0);
+
   const [videoAmt, setVideoAmt] = useState(0);
   const [scoutAmt, setScoutAmt] = useState(0);
   const [rarityAmt, setRarityAmt] = useState(0);
@@ -328,6 +331,9 @@ export default function TeamHome() {
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
     setCloserTeamBonusNoSetting(p.closerTeamBonusNoSet);
     setCloserTeamBonusFinalized(p.closerTeamBonusFinalizedFlag);
+    setCloserCancelAdj(p.closerCancelAdjSum ?? 0);
+    setCloserOtherAdj(p.closerOtherAdjSum ?? 0);
+
     setVideoAmt(p.videoSum);
     setScoutAmt(p.scoutSum);
     setRarityAmt(p.raritySum);
