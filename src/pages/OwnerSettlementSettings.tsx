@@ -371,9 +371,11 @@ export default function OwnerSettlementSettings({
       toast.error("門檻與行銷推廣費不可為負數");
       return;
     }
-    const settingKey = currentAccommodationId
-      ? perAccKey(currentAccommodationId)
-      : GLOBAL_SETTING_KEY;
+    if (!currentAccommodationId) {
+      toast.error("請先選擇民宿，本設定不再提供全站預設值");
+      return;
+    }
+    const settingKey = perAccKey(currentAccommodationId);
     setSaving(true);
     const { data: existing } = await supabase
       .from("system_settings")
