@@ -206,7 +206,54 @@ Deno.serve(async (req) => {
 
     // Strategy 3: Check for pending 3DS booking that needs order creation
     if (!order && isSuccess && rec_trade_id) {
-      console.log('[tappay-notify] No existing order found. Creating notification for manual follow-up...');
+      const { data: draft } = await supabase
+        .from('pending_paid_order_drafts')
+        .select('id, idempotency_key, expected_amount, order_payload, status, order_id')
+        .or(`rec_trade_id.eq.${rec_trade_id},idempotency_key.eq.${order_number || '__none__'}`)
+        .maybeSingle();
+
+      if (draft) {
+        if (Number(draft.expected_amount) !== Number(amount)) {
+          await supabase.from('pending_paid_order_drafts').update({
+            status: 'manual_review',
+            last_error: `TapPay amount mismatch: expected ${draft.expected_amount}, got ${amount}`,
+          }).eq('id', draft.id);
+        } else if (draft.status !== 'order_created') {
+          await supabase.from('pending_paid_order_drafts').update({
+            rec_trade_id,
+            status: 'payment_succeeded',
+            last_error: null,
+          }).eq('id', draft.id);
+          const createResponse = await fetch(`${supabaseUrl}/functions/v1/create-paid-order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              ...(draft.order_payload as Record<string, unknown>),
+              alreadyChargedRecTradeId: rec_trade_id,
+            }),
+          });
+          const createResult = await createResponse.json().catch(() => ({}));
+          if (createResponse.ok && createResult?.success) {
+            console.log('[tappay-notify] Recovered paid order from draft', {
+              rec_trade_id,
+              order_number: createResult.order?.order_number,
+            });
+            return new Response(JSON.stringify({ status: 'ok', recovered: true }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          await supabase.from('pending_paid_order_drafts').update({
+            status: 'manual_review',
+            last_error: createResult?.message || `create-paid-order HTTP ${createResponse.status}`,
+          }).eq('id', draft.id);
+          console.error('[tappay-notify] Paid draft recovery failed', createResult);
+        }
+      }
+
+      console.log('[tappay-notify] No recoverable draft found. Creating notification for manual follow-up...');
       
       const { error: notifError } = await supabase
         .from('notifications')

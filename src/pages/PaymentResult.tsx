@@ -4,7 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw, ClipboardList, Calendar, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { handoffPaymentResultToApp } from "@/lib/nativePayment";
+import {
+  clearNativePaymentDraft,
+  handoffPaymentResultToApp,
+  isNativeApp,
+  loadNativePaymentDraft,
+} from "@/lib/nativePayment";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
@@ -107,15 +112,19 @@ export default function PaymentResult() {
         }
       }
     } else {
-      const paidOrderData = sessionStorage.getItem('pending_paid_order_3ds');
+      const paidOrderData = isNativeApp()
+        ? loadNativePaymentDraft<PendingBookingData & Record<string, unknown>>()
+        : sessionStorage.getItem('pending_paid_order_3ds');
       const bookingData = sessionStorage.getItem('pending_booking_3ds');
       if (paidOrderData) {
         detectedSource = 'booking';
-        try {
-          pendingPaidOrder = JSON.parse(paidOrderData);
-        } catch (e) {
-          console.error('Failed to parse pending_paid_order_3ds:', e);
-        }
+        if (typeof paidOrderData === 'string') {
+          try {
+            pendingPaidOrder = JSON.parse(paidOrderData);
+          } catch (e) {
+            console.error('Failed to parse pending_paid_order_3ds:', e);
+          }
+        } else pendingPaidOrder = paidOrderData;
       } else if (bookingData) {
         detectedSource = 'booking';
         try {
@@ -186,6 +195,7 @@ export default function PaymentResult() {
               });
               setStatus('success');
               sessionStorage.removeItem('pending_paid_order_3ds');
+              clearNativePaymentDraft();
             } catch (orderErr: any) {
               console.error('Paid order creation failed:', orderErr);
               setStatus('error');

@@ -15,6 +15,7 @@ import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
+import { queryTapPayRecord } from "../_shared/tappay.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
@@ -97,7 +98,28 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const body = (await req.json()) as RequestBody;
+    let body = (await req.json()) as RequestBody;
+
+    // Post-charge creation must use the immutable server-side draft. Never trust
+    // booking details sent back by the browser after a successful charge.
+    if (body.alreadyChargedRecTradeId && body.idempotencyKey) {
+      const { data: draft } = await supabase
+        .from("pending_paid_order_drafts")
+        .select("order_payload, expected_amount")
+        .eq("idempotency_key", body.idempotencyKey)
+        .eq("rec_trade_id", body.alreadyChargedRecTradeId)
+        .maybeSingle();
+      if (!draft) {
+        return jsonResponse({ success: false, message: "查無此付款對應的訂房草稿" }, 409);
+      }
+      body = {
+        ...(draft.order_payload as RequestBody),
+        alreadyChargedRecTradeId: body.alreadyChargedRecTradeId,
+      };
+      if (Number(draft.expected_amount) !== Number(body.finalPrice)) {
+        return jsonResponse({ success: false, message: "訂房草稿金額不一致" }, 409);
+      }
+    }
 
     const validationError = validateRequestBody(body);
     if (validationError) return jsonResponse({ success: false, message: validationError }, 400);
@@ -181,6 +203,13 @@ Deno.serve(async (req) => {
     if (isPostCharge) {
       recTradeId = body.alreadyChargedRecTradeId!;
       console.log("[create-paid-order] Post-charge mode, recTradeId:", recTradeId);
+      const verified = await queryTapPayRecord({ partnerKey, recTradeId });
+      if (!verified.found || ![0, 1].includes(Number(verified.recordStatus))) {
+        return jsonResponse({ success: false, message: "無法確認付款成功，訂單尚未建立" }, 409);
+      }
+      if (Number(verified.amount) !== body.finalPrice) {
+        return jsonResponse({ success: false, message: "付款金額與訂單金額不符" }, 409);
+      }
     } else {
       // Charge mode: pay-by-prime (non-3DS)
       const charge = await chargeByPrime({
@@ -308,6 +337,11 @@ Deno.serve(async (req) => {
     }
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
+    await supabase.from("pending_paid_order_drafts").update({
+      status: "order_created",
+      order_id: orderData.id,
+      last_error: null,
+    }).eq("idempotency_key", body.idempotencyKey);
 
     // 行程模組收尾：扣行程商品名額 + 標記 order_meta.trip_id + 行程上架（非致命）
     try {

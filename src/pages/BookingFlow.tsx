@@ -6,6 +6,7 @@ import {
   openNativePaymentBrowser,
   initNativePaymentListener,
   NATIVE_3DS_RETURN_URL,
+  saveNativePaymentDraft,
 } from "@/lib/nativePayment";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
 import { qualifyReferral } from "@/lib/referral";
@@ -3310,6 +3311,9 @@ const BookingFlow = () => {
 
           // 立即請款：走 TapPay 3D 驗證（正式商店代號不接受免 3DS 直接請款，會回 10023）
           if (chargeCardImmediately) {
+            // Native WebView keeps its own durable copy. The backend also receives the
+            // same draft before TapPay is called, so its notify can recover without UI.
+            if (isNativeApp()) saveNativePaymentDraft(orderPayload);
             const { data: payResult, error: payError } = await supabase.functions.invoke(
               'process-tappay-payment',
               {
@@ -3323,6 +3327,7 @@ const BookingFlow = () => {
                     email: guestInfo.email || '',
                   },
                   details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
+                  orderPayload,
                   frontendRedirectUrl: isNativeApp()
                     ? NATIVE_3DS_RETURN_URL
                     : `${window.location.origin}/payment-result?source=booking-paid`,
