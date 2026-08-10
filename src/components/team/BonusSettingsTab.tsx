@@ -275,11 +275,16 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
         會說明它影響哪些獎金。
       </p>
 
-      <Accordion type="multiple" defaultValue={["s1"]} className="space-y-3">
-        <AccordionItem value="s1" className="rounded-md border px-4">
+      <Accordion
+        type="multiple"
+        value={openSteps}
+        onValueChange={setOpenSteps}
+        className="space-y-3"
+      >
+        <AccordionItem value="s1" id="bonus-step-s1" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">① 這筆訂單算不算數？</div>
+              <div className="font-medium">{STEP_LABELS.s1}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 合作期間、業主自帶口徑、訂單來源白名單
               </div>
@@ -316,13 +321,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               onSaved={loadAll}
               impactKey="kol_sources"
             />
+            <StepNav
+              hint="訂單通過採計後，下一步是決定要用多少金額當基準。"
+              targets={["s2"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s2" className="rounded-md border px-4">
+        <AccordionItem value="s2" id="bonus-step-s2" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">② 用多少金額當基準？</div>
+              <div className="font-medium">{STEP_LABELS.s2}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 業主月結抽成規則、免抽成來源、不列入抽成的增值服務
               </div>
@@ -340,13 +350,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               </Button>
             </div>
             <OwnerPricingRuleOverviewSection />
+            <StepNav
+              hint="基準金額由「哪些訂單算數」決定範圍，接著再決定發放對象。"
+              targets={["s1", "s3"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s3" className="rounded-md border px-4">
+        <AccordionItem value="s3" id="bonus-step-s3" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">③ 分給誰？</div>
+              <div className="font-medium">{STEP_LABELS.s3}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 角色綁定、AM 所轄館別（場域簽約人在第 ① 步的合作期間卡片內）
               </div>
@@ -363,13 +378,18 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               onSaved={loadAll}
             />
             <AmVenueOverviewSection />
+            <StepNav
+              hint="場域簽約人設定在第 ① 步；確定發放對象後，再設定金額與期別。"
+              targets={["s1", "s4"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="s4" className="rounded-md border px-4">
+        <AccordionItem value="s4" id="bonus-step-s4" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
-              <div className="font-medium">④ 分多少、何時發？</div>
+              <div className="font-medium">{STEP_LABELS.s4}</div>
               <div className="text-xs font-normal text-muted-foreground">
                 費率版本、固定金額；發放期別為資料月 +1 的 10 號
               </div>
@@ -383,9 +403,15 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               readOnly={readOnly}
               onSaved={loadAll}
             />
+            <StepNav
+              hint="費率乘上的基準金額來自第 ② 步；發放對象來自第 ③ 步。"
+              targets={["s2", "s3"]}
+              onJump={jumpToStep}
+            />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
     </div>
   );
 }
