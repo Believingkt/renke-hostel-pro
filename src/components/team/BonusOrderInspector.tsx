@@ -294,18 +294,36 @@ export default function BonusOrderInspector() {
           step: "③",
           title: "分給誰？",
           verdict: "info",
+          verdictLabel: "受領名單",
           lines: [
             {
               label: "成交大師（成交組／影音）",
-              value: closerGate ? "依訂單歸屬的成交人／影音人員" : "不採計",
+              value: !closerGate ? "不採計" : closerName ?? "訂單未指定成交人（order_meta.closer_id 空白）",
+            },
+            {
+              label: "成交組主管",
+              value: !closerGate ? "不採計" : closerManager ?? "未綁定",
             },
             {
               label: "AM 績效／場域",
-              value: teamGate && inShared ? "依該館別所轄 AM" : "不採計",
+              value:
+                teamGate && inShared
+                  ? amNames.length
+                    ? amNames.join("、")
+                    : "此館別未指派 AM"
+                  : "不採計",
+            },
+            {
+              label: "AM 總管",
+              value: teamGate && inShared ? amManager ?? "未綁定" : "不採計",
+            },
+            {
+              label: "場域成交人",
+              value: teamGate ? venueCloser ?? "此館別未指派" : "不採計",
             },
             {
               label: "網紅營銷專利",
-              value: teamGate && inKol ? "依專利獎金角色綁定" : "不採計",
+              value: teamGate && inKol ? kolRecipient ?? "未綁定受領人" : "不採計",
             },
             {
               label: "月結免抽成來源",
@@ -313,12 +331,13 @@ export default function BonusOrderInspector() {
               field: "exempt_order_sources",
             },
           ],
-          note: "此步只影響「發給誰」，不改變基準金額。",
+          note: "名單依「該資料月當時生效」的角色綁定與館別指派解析；此步只影響發給誰，不改變基準金額。",
         },
         {
           step: "④",
           title: "分多少、何時發？",
           verdict: "info",
+          verdictLabel: "費率與期別",
           lines: [
             {
               label: "適用抽成費率（月結規則）",
