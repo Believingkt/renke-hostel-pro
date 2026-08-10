@@ -332,6 +332,9 @@ export default function TeamHome() {
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
+    setCloserBackfill(p.closerBackfillSum ?? 0);
+    setCloserBackfillCnt(p.closerBackfillCount ?? 0);
+    setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
     setScoutCloserAmt(p.scoutCloserSum);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
