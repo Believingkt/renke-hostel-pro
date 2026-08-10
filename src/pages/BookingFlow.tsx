@@ -223,6 +223,25 @@ function classifyPaymentFailure(message?: string | null): {
 
 const BookingFlow = () => {
   const navigate = useNavigate();
+
+  // App：3DS 完成後由 lakeze://payment-result 深層連結交回結果
+  useEffect(() => {
+    return initNativePaymentListener((result) => {
+      if (!result.success || !result.recTradeId) {
+        setIsProcessingPayment(false);
+        setIsSubmitting(false);
+        toast({
+          title: "付款未完成",
+          description: result.error || "3D 驗證失敗或已取消，請重新嘗試",
+          variant: "destructive",
+        });
+        return;
+      }
+      navigate(
+        `/payment-result?source=booking-paid&rec_trade_id=${encodeURIComponent(result.recTradeId)}`,
+      );
+    });
+  }, [navigate]);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
