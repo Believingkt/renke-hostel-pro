@@ -848,6 +848,10 @@ function SourceSection({
             <div className="text-xs text-muted-foreground">
               僅作用於已設定「合作生效日」的館別；採計起算日 = MAX(月初, 該館合作生效日)。
             </div>
+            <div className="text-xs text-muted-foreground">
+              EX：生效日 2026-07-01 → 2026 年 7 月資料月的訂單即依此版白名單採計，於 8 月 10 日期別發放。
+            </div>
+
 
             <div className="flex flex-wrap gap-2">
               {(cur?.included_order_sources ?? []).length === 0 ? (
