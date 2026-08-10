@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 
@@ -961,6 +962,63 @@ interface PartnershipPeriodRow {
   note: string | null;
 }
 
+
+/* --- 合作期間狀態說明與旗標 --- */
+
+const PARTNERSHIP_STATUS_DESC: Array<[string, string]> = [
+  ["合作中", "有一段生效中的期間（開始日 ≤ 今天，且無結束日或結束日 ≥ 今天）。"],
+  ["待生效", "已建立期間但開始日在未來，尚未開始採計。"],
+  ["暫停中", "最後一段已結束且無後續段，期間外的訂單不採計。"],
+  ["已重啟", "曾中斷後再新增一段且目前生效。"],
+  ["未設定合作期間", "沒有任何期間，一律不採計任何獎金。"],
+];
+
+function PartnershipStatusHint() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="合作期間狀態說明"
+          className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 space-y-2 text-sm">
+        <div className="font-medium">合作期間狀態說明</div>
+        {PARTNERSHIP_STATUS_DESC.map(([k, v]) => (
+          <div key={k}>
+            <Badge variant="outline" className="mb-1 text-[11px] font-normal">
+              {k}
+            </Badge>
+            <p className="text-xs leading-relaxed text-muted-foreground">{v}</p>
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className="inline-flex">
+          <Badge
+            variant={on ? "secondary" : "outline"}
+            className={`cursor-help text-[11px] font-normal ${on ? "" : "text-muted-foreground line-through"}`}
+          >
+            {label}
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 text-xs leading-relaxed">
+        {tip}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function VenueClosingAssignmentSection({
   members,
