@@ -29,10 +29,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
+import BonusOrderInspector from "@/components/team/BonusOrderInspector";
+import SettingImpactHint from "@/components/team/SettingImpactHint";
+import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
 
 /* ------------------------------ 共用工具 ------------------------------ */
 
