@@ -257,55 +257,130 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
           </Button>
         </div>
       )}
-      <RateSection
-        rows={rates}
-        loading={loading}
-        uid={uid}
-        readOnly={readOnly}
-        onSaved={loadAll}
-      />
-      <SourceSection
-        title="共用訂單來源 (AM、成交)"
-        description="AM績效、成交組績效等共用獎金採計的訂單來源"
-        rows={sharedSources}
-        loading={loading}
-        uid={uid}
-        table="teamcommission_shared_revenue_source_whitelist"
-        sourceGroups={sourceGroups}
-        canEdit={!readOnly}
-        onSaved={loadAll}
-      />
-      <SourceSection
-        title="獨立訂單來源 (專利獎金)"
-        description="網紅營銷專利獎金採計的訂單來源（僅指定人員可編輯）"
-        rows={kolSources}
-        loading={loading}
-        uid={uid}
-        table="teamcommission_kol_revenue_source_whitelist"
-        sourceGroups={sourceGroups}
-        canEdit={isKolEditor && !readOnly}
-        onSaved={loadAll}
-      />
-      <BindingSection
-        rows={bindings}
-        members={members}
-        memberName={memberName}
-        loading={loading}
-        uid={uid}
-        readOnly={readOnly}
-        onSaved={loadAll}
-      />
-      <VenueClosingAssignmentSection
-        members={members}
-        memberName={memberName}
-        uid={uid}
-        readOnly={readOnly}
-      />
-      <AmVenueOverviewSection />
-      <OwnerPricingRuleOverviewSection />
+
+      <BonusOrderInspector />
+
+      <p className="text-sm text-muted-foreground">
+        以下設定依「一筆訂單實際被計算的順序」排列，共四步；每個設定旁的
+        <Info className="mx-1 inline h-3.5 w-3.5" />
+        會說明它影響哪些獎金。
+      </p>
+
+      <Accordion type="multiple" defaultValue={["s1"]} className="space-y-3">
+        <AccordionItem value="s1" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">① 這筆訂單算不算數？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                合作期間、業主自帶口徑、訂單來源白名單
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <VenueClosingAssignmentSection
+              members={members}
+              memberName={memberName}
+              uid={uid}
+              readOnly={readOnly}
+            />
+            <SourceSection
+              title="共用訂單來源 (AM、成交)"
+              description="AM績效、成交組績效等共用獎金採計的訂單來源"
+              rows={sharedSources}
+              loading={loading}
+              uid={uid}
+              table="teamcommission_shared_revenue_source_whitelist"
+              sourceGroups={sourceGroups}
+              canEdit={!readOnly}
+              onSaved={loadAll}
+              impactKey="shared_sources"
+            />
+            <SourceSection
+              title="獨立訂單來源 (專利獎金)"
+              description="網紅營銷專利獎金採計的訂單來源（僅指定人員可編輯）"
+              rows={kolSources}
+              loading={loading}
+              uid={uid}
+              table="teamcommission_kol_revenue_source_whitelist"
+              sourceGroups={sourceGroups}
+              canEdit={isKolEditor && !readOnly}
+              onSaved={loadAll}
+              impactKey="kol_sources"
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s2" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">② 用多少金額當基準？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                業主月結抽成規則、免抽成來源、不列入抽成的增值服務
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+              <span>此頁設定會直接決定團隊獎金與成交大師獎金的「基準金額」。</span>
+              <SettingImpactHint settingKey="owner_pricing_rule" />
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/hq/bonus-settings?tab=owner-settlement">
+                  前往業主月結設定
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <OwnerPricingRuleOverviewSection />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s3" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">③ 分給誰？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                角色綁定、AM 所轄館別（場域簽約人在第 ① 步的合作期間卡片內）
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <BindingSection
+              rows={bindings}
+              members={members}
+              memberName={memberName}
+              loading={loading}
+              uid={uid}
+              readOnly={readOnly}
+              onSaved={loadAll}
+            />
+            <AmVenueOverviewSection />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="s4" className="rounded-md border px-4">
+          <AccordionTrigger className="text-left">
+            <div>
+              <div className="font-medium">④ 分多少、何時發？</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                費率版本、固定金額；發放期別為資料月 +1 的 10 號
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <RateSection
+              rows={rates}
+              loading={loading}
+              uid={uid}
+              readOnly={readOnly}
+              onSaved={loadAll}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
+
 
 /* ------------------------------ (a) 費率設定 ------------------------------ */
 
