@@ -16,14 +16,17 @@
 | 分潤基準金額 | `final_price` 扣除加購後的金額，扣除範圍依各獎金線口徑（見 §5） |
 | 免抽成來源 | `owner_settlement_pricing_rules.exempt_order_sources` ＋ `orders.owner_direct`，**與 PMS 業主月結平台抽成費同一份設定** |
 | 合作期間旗標 | `counts_team_bonus`（團隊獎金線）／`counts_closer_commission`（成交大師線），兩者**完全獨立可任意組合** |
+| 在職檢查（定版） | **資料月內有在職即發，並按在職天數比例計算**（例：8/14 離職 → 14/31；8/16 到職 → 16/31）。全線統一此口徑 |
 
 ### 合作期間旗標舉例
 雲岫 7/1–7/26：`counts_closer_commission = 開`、`counts_team_bonus = 關`
 → 7 月訂單的成交組分潤／影音分潤**照發**；7 月營收**完全不計入**任何團隊獎金。
 7/27 起兩者皆開 → 兩線都計。
 
-### 業主自帶口徑（payout_basis）
-目前**全面停用**，一律以「含業主自帶」單軌計算。DB 欄位保留但計算引擎忽略。
+### 業主自帶口徑（payout_basis）— 已定案：永久廢除
+不再有雙軌概念，一律以「含業主自帶」單軌計算。
+**待辦**：移除 `accommodation_partnership_periods.payout_basis` 與 `teamcommission_bonus_snapshots` 的雙軌欄位、清除 `use-owner-direct-basis` 等殘留程式與 UI。
+
 
 ---
 
