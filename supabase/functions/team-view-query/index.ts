@@ -53,6 +53,11 @@ const ALLOWED_TABLES = new Set<string>([
   "teamcommission_kol_revenue_source_whitelist",
   "teamcommission_venue_closing_assignments",
   "owner_settlement_pricing_rules",
+  "closer_commission_snapshots",
+  "closer_commission_adjustments",
+  "teamcommission_bonus_snapshots",
+  "accommodation_partnership_periods",
+  "scout_discount_code_payouts",
 ]);
 
 /** 只允許 PostgREST 唯讀的鏈式方法 */
