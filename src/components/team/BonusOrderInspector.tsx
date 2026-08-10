@@ -322,7 +322,35 @@ export default function BonusOrderInspector() {
           </div>
         )}
 
+        {steps && (
+          (() => {
+            const blocked = steps.find((s) => s.verdict === "fail");
+            return (
+              <div
+                className={`rounded-md border px-3 py-2 text-sm ${
+                  blocked ? "border-destructive/50 bg-destructive/10" : "border-emerald-600/40 bg-emerald-600/10"
+                }`}
+              >
+                {blocked ? (
+                  <>
+                    <span className="font-medium">被擋在「{blocked.step} {blocked.title}」</span>
+                    <span className="text-muted-foreground">
+                      　這一步未通過，後續步驟只作參考，不會產生獎金。
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">四步皆通過</span>
+                    <span className="text-muted-foreground">　這筆訂單會進入獎金計算。</span>
+                  </>
+                )}
+              </div>
+            );
+          })()
+        )}
+
         {steps?.map((s) => (
+
           <div key={s.step} className="rounded-md border p-3">
             <div className="mb-2 flex items-center gap-2">
               <VerdictIcon v={s.verdict} />
