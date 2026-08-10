@@ -466,7 +466,7 @@ export default function OwnerSettlementSettings({
           此設定已搬遷至總部集中管理頁，本頁未來將移除。
           <a
             className="ml-2 underline font-medium"
-            href={`/hq/owner-settlement-settings${currentAccommodationId ? `?acc=${currentAccommodationId}` : ""}`}
+            href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
           >
             前往總部設定頁 →
           </a>
