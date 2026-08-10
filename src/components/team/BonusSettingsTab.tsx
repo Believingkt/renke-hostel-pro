@@ -1239,6 +1239,9 @@ function VenueClosingAssignmentSection({
   const [pEnd, setPEnd] = useState("");
   const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
   const [pNote, setPNote] = useState("");
+  const [pBasis, setPBasis] = useState<"include_owner_direct" | "exclude_owner_direct">(
+    "include_owner_direct",
+  );
   const [pSaving, setPSaving] = useState(false);
 
 
@@ -1351,6 +1354,13 @@ function VenueClosingAssignmentSection({
     setPEnd("");
     setPPolicy("full");
     setPNote("");
+    setPBasis(
+      (currentPeriod(accId)?.payout_basis as any) === "include_owner_direct"
+        ? "include_owner_direct"
+        : (currentPeriod(accId)?.payout_basis as any) === "exclude_owner_direct"
+          ? "exclude_owner_direct"
+          : "include_owner_direct",
+    );
     setPeriodAcc(accId);
   }
 
@@ -1365,12 +1375,24 @@ function VenueClosingAssignmentSection({
         start_date: pStart,
         end_date: pEnd || null,
         bonus_policy: pPolicy,
+        payout_basis: pBasis,
         note: pNote || null,
       });
     setPSaving(false);
     if (error) return toast.error("新增合作期間失敗：" + error.message);
     toast.success("已新增合作期間");
     setPeriodAcc(null);
+    load();
+  }
+
+  /** 直接調整某段期間的業主自帶口徑（實付真值採哪一軌） */
+  async function updateBasis(period: PartnershipPeriodRow, basis: string) {
+    const { error } = await (supabase as any)
+      .from("accommodation_partnership_periods")
+      .update({ payout_basis: basis })
+      .eq("id", period.id);
+    if (error) return toast.error("更新業主自帶口徑失敗：" + error.message);
+    toast.success("已更新業主自帶口徑（需重新試算未付快照才會生效）");
     load();
   }
 
