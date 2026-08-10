@@ -989,6 +989,7 @@ export default function TeamHome() {
                   monthStartDate,
                   monthEndDate,
                   sharedSources,
+                  basisOverride,
                 )
               : {};
           const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
@@ -1042,6 +1043,7 @@ export default function TeamHome() {
                     monthStartDate,
                     monthEndDate,
                     sharedSources,
+                    basisOverride,
                   )
                 : {};
             const myRevenue = Object.values(myByAcc).reduce((sum, v) => sum + v, 0);
@@ -1117,6 +1119,7 @@ export default function TeamHome() {
                     monthStartDate,
                     monthEndDate,
                     kolSources,
+                    basisOverride,
                   )
                 : {};
             const kolRevenue = Object.values(kolByAcc).reduce((sum, v) => sum + v, 0);
@@ -1284,7 +1287,7 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload]);
+  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, basisOverride]);
 
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
