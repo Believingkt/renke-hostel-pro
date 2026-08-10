@@ -1524,8 +1524,6 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           )}
         </div>
 
-        <OwnerDirectBasisToggle basis={basis} setBasis={setBasis} canSwitch={canSwitch} />
-
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
