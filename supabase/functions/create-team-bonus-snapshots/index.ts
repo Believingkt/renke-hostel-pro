@@ -1040,7 +1040,11 @@ serve(async (req) => {
                 amount: row.amount,
                 amount_incl_owner: row.amount_incl_owner,
                 amount_excl_owner: row.amount_excl_owner,
+                payout_basis_used: row.payout_basis_used ?? null,
+                multiplier_used: row.multiplier_used ?? null,
+                multiplier_source: row.multiplier_source ?? null,
                 settings_snapshot: row.settings_snapshot,
+
 
               })
               .eq("id", existing.id);
