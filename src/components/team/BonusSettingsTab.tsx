@@ -344,12 +344,26 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pb-4">
+            <div className="rounded-md border-l-4 border-primary/60 bg-muted/30 px-3 py-2 text-sm">
+              <div className="font-medium">1-A 哪些訂單算數（閘門）</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                合作期間決定「這館這段期間的訂單要不要進獎金」，並可分別關閉成交大師獎金與團隊獎金；
+                業主自帶口徑則決定館別營收要不要含業主自帶訂單。
+              </p>
+            </div>
             <VenueClosingAssignmentSection
               members={members}
               memberName={memberName}
               uid={uid}
               readOnly={readOnly}
             />
+            <div className="rounded-md border-l-4 border-primary/60 bg-muted/30 px-3 py-2 text-sm">
+              <div className="font-medium">1-B 哪些營收算數（訂單來源白名單）</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                通過閘門後，只有在白名單內的訂單來源會被加總成「館別營收」。
+                共用白名單給 AM／成交組使用，獨立白名單只給網紅營銷專利獎金使用。
+              </p>
+            </div>
             <SourceSection
               title="共用訂單來源 (AM、成交)"
               description="AM績效、成交組績效等共用獎金採計的訂單來源"
@@ -382,6 +396,8 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
           </AccordionContent>
         </AccordionItem>
 
+        <GateVsAmountBar />
+
         <AccordionItem value="s2" id="bonus-step-s2" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
             <div>
@@ -402,6 +418,10 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
                 </Link>
               </Button>
             </div>
+            <div className="rounded-md border border-dashed px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              反向提醒：業主月結的「免抽成訂單來源」<strong>不會</strong>讓訂單從第 ① 步的館別營收消失。
+              它只影響業主月結的抽成計算與收益拆解；要讓某個來源不計入團隊獎金營收，請到第 ① 步把它移出白名單。
+            </div>
             <OwnerPricingRuleOverviewSection />
             <StepNav
               hint="基準金額由「哪些訂單算數」決定範圍，接著再決定發放對象。"
@@ -410,6 +430,7 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             />
           </AccordionContent>
         </AccordionItem>
+
 
         <AccordionItem value="s3" id="bonus-step-s3" className="scroll-mt-24 rounded-md border px-4">
           <AccordionTrigger className="text-left">
