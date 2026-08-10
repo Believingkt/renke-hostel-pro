@@ -1603,18 +1603,6 @@ function VenueClosingAssignmentSection({
                             label={`獎金採計起始日 ${a.partnership_start_date ?? "—"}`}
                             on={!!a.partnership_start_date}
                             tip="此日期之前的訂單一律不採計任何獎金，即使合作期間更早開始。"
-                          />
-                          <FlagChip
-                            label={
-                              curPeriod?.payout_basis === "exclude_owner_direct"
-                                ? "實付真值：排除業主自帶"
-                                : "實付真值：含業主自帶"
-                            }
-                            on={curPeriod?.payout_basis !== "exclude_owner_direct" && !!curPeriod}
-                            tip="決定該館「實付真值」採哪一軌營收：含業主自帶＝業主自帶訂單也計入館別營收；排除業主自帶＝業主自帶訂單不列入。只影響以館別營收為基準的團隊獎金（AM／成交組場域／網紅營銷），不影響成交大師分潤與業主月結。"
-                          />
-                        </div>
-                        {!readOnly && curPeriod && (
                           <div className="mt-1 space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">業主自帶口徑</span>
@@ -1843,21 +1831,6 @@ function VenueClosingAssignmentSection({
                   <SelectItem value="none">合作中但不發獎金</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>業主自帶口徑（實付真值採哪一軌）</Label>
-              <Select value={pBasis} onValueChange={(v) => setPBasis(v as any)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="include_owner_direct">含業主自帶（預設）</SelectItem>
-                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                只影響以館別營收為基準的團隊獎金（AM／成交組場域／網紅營銷）；成交大師分潤與業主月結不受影響。
-              </p>
             </div>
             <div className="space-y-2">
               <Label>備註</Label>
