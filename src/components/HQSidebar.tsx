@@ -103,6 +103,11 @@ export function HQSidebar() {
   };
 
   const isActiveRoute = (tab: string) => {
+    if (tab === 'bonus-settings') {
+      return location.pathname.startsWith('/hq/bonus-settings')
+        || location.pathname.startsWith('/hq/owner-settlement-settings');
+    }
+    if (location.pathname !== '/hq') return false;
     if (tab === 'overview') {
       return currentTab === 'overview' || !searchParams.has('tab');
     }
@@ -110,11 +115,16 @@ export function HQSidebar() {
   };
 
   const isActiveSubItem = (url: string) => {
-    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const [urlPath, urlQuery] = url.split('?');
+    const urlParams = new URLSearchParams(urlQuery || '');
+    if (urlPath !== '/hq') {
+      return location.pathname === urlPath && (searchParams.get('tab') || '') === (urlParams.get('tab') || '');
+    }
     const urlTab = urlParams.get('tab');
     const urlSection = urlParams.get('section');
-    return currentTab === urlTab && currentSection === urlSection;
+    return location.pathname === '/hq' && currentTab === urlTab && currentSection === urlSection;
   };
+
 
   return (
     <Sidebar collapsible="icon" className="admin-theme border-r">
