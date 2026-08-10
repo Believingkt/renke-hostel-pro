@@ -300,7 +300,10 @@ interface RevenueTotals {
   incl: number;
   excl: number;
   payout: number;
+  /** 本次加總實際採用的實付基準；各館不一致時為 "mixed" */
+  basis: string | null;
 }
+
 
 /** 入住營收口徑（逐夜攤提、扣除設定的增值服務、換算台幣），回傳雙軌 */
 async function getStayRevenueDualByAcc(
