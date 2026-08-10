@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
+import ZeroBonusReason from "@/components/team/ZeroBonusReason";
+import {
+  BONUS_CATEGORY_LABEL,
+  getBonusFormula,
+  type BonusCategory,
+} from "@/lib/bonusFormulas";
 import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1650,77 +1656,98 @@ export default function TeamHome() {
             </CardContent>
           </Card>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-3">各來源獎金</h3>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {cards.map((c) => (
-                <Card key={c.key} className="relative">
-                  {c.multiplier > 1 && !loading && (
-                    <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
-                      × {Number(c.multiplier).toFixed(2)} 倍
-                    </Badge>
-                  )}
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                      {c.title}
-                      <BonusFormulaHint
-                        bonusKey={c.key}
-                        values={[
-                          { label: "金額", value: c.amount },
-                          { label: "倍率", value: c.multiplier },
-                          { label: "加倍前", value: c.baseAmount ?? undefined },
-                        ]}
-                      />
-                    </CardTitle>
-                    {c.note ? (
-                      <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
-                    ) : null}
-                  </CardHeader>
-                  <CardContent>
-                    {!loading && c.multiplier > 1 ? (
-                      <p className="text-sm text-muted-foreground line-through tabular-nums">
-                        {fmt(c.baseAmount ?? Math.round(c.amount / c.multiplier))}
-                      </p>
-                    ) : null}
-                    <p className="text-2xl font-semibold">
-                      {loading ? "—" : fmt(c.amount)}
+          {(() => {
+            const renderCard = (c: (typeof cards)[number]) => (
+              <Card key={c.key} className="relative">
+                {c.multiplier > 1 && !loading && (
+                  <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
+                    × {Number(c.multiplier).toFixed(2)} 倍
+                  </Badge>
+                )}
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
+                    {c.title}
+                    <BonusFormulaHint
+                      bonusKey={c.key}
+                      values={[
+                        { label: "金額", value: c.amount },
+                        { label: "倍率", value: c.multiplier },
+                        { label: "加倍前", value: c.baseAmount ?? undefined },
+                      ]}
+                    />
+                  </CardTitle>
+                  {c.note ? (
+                    <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
+                  ) : null}
+                </CardHeader>
+                <CardContent>
+                  {!loading && c.multiplier > 1 ? (
+                    <p className="text-sm text-muted-foreground line-through tabular-nums">
+                      {fmt(c.baseAmount ?? Math.round(c.amount / c.multiplier))}
                     </p>
+                  ) : null}
+                  <p className="text-2xl font-semibold">
+                    {loading ? "—" : fmt(c.amount)}
+                  </p>
 
-                    {!loading && c.lines && c.lines.length > 0
-                      ? c.lines.some((ln) => ln.revenue !== undefined)
+                  {!loading && c.amount === 0 ? (
+                    <ZeroBonusReason bonusKey={c.key} roles={roles} />
+                  ) : null}
+
+                  {!loading && c.lines && c.lines.length > 0
+                    ? c.lines.some((ln) => ln.revenue !== undefined)
+                      ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 h-7 text-xs"
+                          onClick={() => setDetailCardKey(c.key)}
+                        >
+                          各館別明細（{c.lines.length} 館）
+                        </Button>
+                      )
+                      : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
                         ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2 h-7 text-xs"
-                            onClick={() => setDetailCardKey(c.key)}
-                          >
-                            各館別明細（{c.lines.length} 館）
-                          </Button>
+                          <div className="mt-2 space-y-0.5">
+                            {c.lines.map((ln, i) => (
+                              <div
+                                key={i}
+                                className="flex justify-between gap-2 text-xs text-muted-foreground"
+                              >
+                                <span className="truncate">{ln.label}</span>
+                                <span className="tabular-nums whitespace-nowrap">
+                                  {fmt(ln.amount)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         )
-                        : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
-                          ? (
-                            <div className="mt-2 space-y-0.5">
-                              {c.lines.map((ln, i) => (
-                                <div
-                                  key={i}
-                                  className="flex justify-between gap-2 text-xs text-muted-foreground"
-                                >
-                                  <span className="truncate">{ln.label}</span>
-                                  <span className="tabular-nums whitespace-nowrap">
-                                    {fmt(ln.amount)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )
-                          : null
-                      : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+                        : null
+                    : null}
+                </CardContent>
+              </Card>
+            );
+
+            const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink"];
+            const byCat = new Map<BonusCategory, typeof cards>();
+            cards.forEach((c) => {
+              const cat = (getBonusFormula(c.key)?.category ?? "team") as BonusCategory;
+              if (!byCat.has(cat)) byCat.set(cat, [] as typeof cards);
+              byCat.get(cat)!.push(c);
+            });
+
+            return order
+              .filter((cat) => (byCat.get(cat)?.length ?? 0) > 0)
+              .map((cat) => (
+                <div key={cat} className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">{BONUS_CATEGORY_LABEL[cat]}</h3>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {byCat.get(cat)!.map(renderCard)}
+                  </div>
+                </div>
+              ));
+          })()}
+
         </>
       )}
 

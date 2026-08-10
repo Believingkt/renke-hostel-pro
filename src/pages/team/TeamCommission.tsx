@@ -729,6 +729,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const [recalcPeriod, setRecalcPeriod] = useState<"10" | "25">("10");
   const [recalcRunning, setRecalcRunning] = useState(false);
+  /** 單段式重算：執行完成後顯示的結果摘要（不做事前預覽） */
+  const [recalcResult, setRecalcResult] = useState<{
+    title: string;
+    rows: Array<{ label: string; value: number }>;
+  } | null>(null);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
   const [venueDetail, setVenueDetail] = useState<{
     member: string;
@@ -1338,16 +1343,25 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       const revokedCount = Number(snapBody?.resync_revoked ?? 0);
       const detail = `本期新增 ${createdCurrent} 筆，回溯補建 ${createdBackfill} 筆，略過 ${skippedCount} 筆（已存在），金額重算 ${resyncedCount} 筆（未發放），撤銷 ${revokedCount} 筆（不符門檻／合作期間），取消扣回補差 ${cancelAdjCount} 筆`;
 
-
       if (failed.length > 0) {
         toast.error(`部分步驟失敗：${failed.join("、")}`);
       } else {
-        toast.success(`已重新試算 ${year}/${String(month).padStart(2, "0")} 期別 ${recalcPeriod}`, {
-          description: detail,
+        setRecalcResult({
+          title: `已重新試算 ${year}/${String(month).padStart(2, "0")}・期別 ${recalcPeriod}`,
+          rows: [
+            { label: "本期新增快照", value: createdCurrent },
+            { label: "回溯補建（最近 1 個月）", value: createdBackfill },
+            { label: "金額重算（未發放）", value: resyncedCount },
+            { label: "撤銷（不符門檻／合作期間）", value: revokedCount },
+            { label: "取消扣回補差", value: cancelAdjCount },
+            { label: "略過（已存在且無異動）", value: skippedCount },
+          ],
         });
+        toast.success("重新試算完成", { description: detail });
       }
       setRecalcOpen(false);
       await fetchData();
+
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -1508,6 +1522,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </Select>
           </div>
 
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs text-foreground self-end">
+            資料月 <strong>{prevMonthKey}</strong> → 發放月{" "}
+            <strong>{year}-{String(month).padStart(2, "0")}-10</strong>
+          </div>
 
 
           {!readOnly && (
@@ -1609,6 +1627,39 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* 單段式：執行完成後的結果摘要（不做事前預覽，已發放快照永不變動） */}
+        <AlertDialog open={!!recalcResult} onOpenChange={(o) => !o && setRecalcResult(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{recalcResult?.title}</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  <div className="rounded-md border border-border divide-y divide-border">
+                    {(recalcResult?.rows ?? []).map((r) => (
+                      <div key={r.label} className="flex justify-between px-3 py-1.5">
+                        <span className="text-muted-foreground">{r.label}</span>
+                        <span
+                          className={`tabular-nums font-medium ${r.value > 0 ? "text-foreground" : "text-muted-foreground"}`}
+                        >
+                          {r.value} 筆
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    僅重算<strong>尚未發放</strong>的快照；已標記發放者一律不動，差額會於下期以調整項補回。
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button onClick={() => setRecalcResult(null)}>知道了</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+
 
 
         {!loading && groups.length > 0 && (
