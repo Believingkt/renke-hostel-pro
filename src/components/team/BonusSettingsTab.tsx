@@ -1415,8 +1415,9 @@ function VenueClosingAssignmentSection({
                             )}
                             <Button variant="outline" size="sm" onClick={() => openDialog(a.id)}>
                               <Plus className="mr-1 h-4 w-4" />
-                              新增版本
+                              修改簽約人
                             </Button>
+
                           </>
                         )}
                       </TableCell>
@@ -1806,7 +1807,7 @@ function OwnerPricingRuleOverviewSection() {
                 <TableHead>收行銷推廣費</TableHead>
                 <TableHead>抽成</TableHead>
                 <TableHead>免抽成來源</TableHead>
-                <TableHead className="w-10 text-right">連結</TableHead>
+                
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1861,27 +1862,13 @@ function OwnerPricingRuleOverviewSection() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="w-10 text-right" onClick={(e) => e.stopPropagation()}>
-                        {a.short_url_alias ? (
-                          <a
-                            href={`https://pms.lakeze.com/${a.short_url_alias}/admin/owner-settlement`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`前往 ${a.name} 的業主月結`}
-                            className="inline-flex text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
                     </TableRow>
                     {isOpen &&
                       list.map((r) => (
                         <TableRow key={r.id} className="bg-muted/40">
                           <TableCell />
-                          <TableCell colSpan={6} className="text-sm">
+                          <TableCell colSpan={5} className="text-sm">
+
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                               <span className="font-medium">{r.effective_from} 起</span>
                               {cur?.id === r.id && <Badge variant="default">目前生效</Badge>}
