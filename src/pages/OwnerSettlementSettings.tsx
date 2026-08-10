@@ -461,6 +461,17 @@ export default function OwnerSettlementSettings({
           )
         }
       />
+      {!hideBackButton && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          此設定已搬遷至總部集中管理頁，本頁未來將移除。
+          <a
+            className="ml-2 underline font-medium"
+            href={`/hq/owner-settlement-settings${currentAccommodationId ? `?acc=${currentAccommodationId}` : ""}`}
+          >
+            前往總部設定頁 →
+          </a>
+        </div>
+      )}
       {currentAccommodationId && usingFallback && (
         <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
           此民宿尚未有獨立設定，目前顯示全站預設值。儲存後將建立「{accName || "此民宿"}」的專屬設定，不影響其他民宿。
