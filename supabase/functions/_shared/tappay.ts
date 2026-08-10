@@ -8,35 +8,7 @@ export function getTapPayEndpoints() {
     env,
     payByPrime: `${base}/tpc/payment/pay-by-prime`,
     refund: `${base}/tpc/transaction/refund`,
-    query: `${base}/tpc/transaction/query`,
   };
-}
-
-export async function queryTapPayRecord(args: {
-  partnerKey: string;
-  recTradeId: string;
-}): Promise<{ success: boolean; record?: any; status?: number; msg?: string }> {
-  const { query } = getTapPayEndpoints();
-  try {
-    const response = await fetch(query, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": args.partnerKey },
-      body: JSON.stringify({
-        partner_key: args.partnerKey,
-        filters: { rec_trade_id: args.recTradeId },
-      }),
-    });
-    const result = await response.json();
-    const record = result.trade_records?.[0];
-    return {
-      success: (result.status === 0 || result.status === 2) && !!record,
-      record,
-      status: result.status,
-      msg: result.msg,
-    };
-  } catch (error) {
-    return { success: false, msg: error instanceof Error ? error.message : String(error) };
-  }
 }
 
 export function normalizePhoneE164(phone: string): string {

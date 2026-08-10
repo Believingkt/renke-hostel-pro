@@ -204,13 +204,12 @@ Deno.serve(async (req) => {
       recTradeId = body.alreadyChargedRecTradeId!;
       console.log("[create-paid-order] Post-charge mode, recTradeId:", recTradeId);
       const verified = await queryTapPayRecord({ partnerKey, recTradeId });
-      if (!verified.success || !verified.record || ![0, 1].includes(Number(verified.record.record_status))) {
+      if (!verified.found || ![0, 1].includes(Number(verified.recordStatus))) {
         return jsonResponse({ success: false, message: "無法確認付款成功，訂單尚未建立" }, 409);
       }
-      if (Number(verified.record.amount) !== body.finalPrice) {
+      if (Number(verified.amount) !== body.finalPrice) {
         return jsonResponse({ success: false, message: "付款金額與訂單金額不符" }, 409);
       }
-      authCode = verified.record.auth_code;
     } else {
       // Charge mode: pay-by-prime (non-3DS)
       const charge = await chargeByPrime({
