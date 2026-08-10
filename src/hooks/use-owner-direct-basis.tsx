@@ -15,10 +15,12 @@ const MANAGER_ROLES = ["super_admin", "admin", "am_manager", "closer_manager"];
 
 export function useOwnerDirectBasis() {
   const { roles } = useTeam();
-  const canSwitch = useMemo(
-    () => (roles ?? []).some((r) => MANAGER_ROLES.includes(String(r))),
-    [roles],
-  );
+  // 業主自帶口徑功能暫時停用（待重新討論後再開放切換）
+  const canSwitch = useMemo(() => {
+    void roles;
+    void MANAGER_ROLES;
+    return false;
+  }, [roles]);
 
   const [basis, setBasisState] = useState<OwnerDirectBasis>("payout");
 

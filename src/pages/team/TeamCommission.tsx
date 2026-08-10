@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import BonusRulesReference from "@/components/team/BonusRulesReference";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
-import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
 import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
@@ -1523,8 +1522,6 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </Button>
           )}
         </div>
-
-        <OwnerDirectBasisToggle basis={basis} setBasis={setBasis} canSwitch={canSwitch} />
 
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <p className="text-[11px] leading-relaxed text-muted-foreground">

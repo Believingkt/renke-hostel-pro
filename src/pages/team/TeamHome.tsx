@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
-import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
 import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -311,7 +310,7 @@ export default function TeamHome() {
   const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
   /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
   const basisOverride =
-    ownerDirectBasis === "payout" ? null : (ownerDirectBasis as PayoutBasis);
+    null;
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
@@ -1617,12 +1616,6 @@ export default function TeamHome() {
           目前顯示：{monthInfo.periodLabel}
         </p>
       </div>
-
-      <OwnerDirectBasisToggle
-        basis={ownerDirectBasis}
-        setBasis={setOwnerDirectBasis}
-        canSwitch={canSwitchBasis}
-      />
 
       <PayoutPeriodBanner
         periods={periodOptions}

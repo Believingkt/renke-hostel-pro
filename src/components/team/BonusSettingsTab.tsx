@@ -363,7 +363,7 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
             <div>
               <div className="font-medium">{STEP_LABELS.s1}</div>
               <div className="text-xs font-normal text-muted-foreground">
-                合作期間、業主自帶口徑、訂單來源白名單
+                合作期間、訂單來源白名單
               </div>
             </div>
           </AccordionTrigger>
@@ -372,7 +372,6 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
               <div className="font-medium">1-A 哪些訂單算數（閘門）</div>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 合作期間決定「這館這段期間的訂單要不要進獎金」，並可分別關閉成交大師獎金與團隊獎金；
-                業主自帶口徑則決定館別營收要不要含業主自帶訂單。
               </p>
             </div>
             <VenueClosingAssignmentSection
@@ -1259,55 +1258,6 @@ function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string 
   );
 }
 
-/**
- * 業主自帶口徑的即時金額預覽：以「本月入住」的有效訂單，
- * 同時顯示「含業主自帶」與「排除業主自帶」兩個館別營收數字，避免選錯口徑。
- * 唯讀查詢。
- */
-function OwnerDirectPreview({ accommodationId }: { accommodationId: string }) {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ incl: number; excl: number } | null>(null);
-
-  const run = async () => {
-    setLoading(true);
-    try {
-      const month = taipeiToday().slice(0, 7);
-      const start = `${month}-01`;
-      const end = `${month}-31`;
-      const { data } = await (supabase as any)
-        .from("orders")
-        .select("final_price, owner_direct, order_status, check_in_date")
-        .eq("accommodation_id", accommodationId)
-        .gte("check_in_date", start)
-        .lte("check_in_date", end);
-      const rows = ((data ?? []) as any[]).filter(
-        (o) => o.order_status !== "cancelled" && o.order_status !== "hold",
-      );
-      const incl = rows.reduce((s, o) => s + (Number(o.final_price) || 0), 0);
-      const excl = rows
-        .filter((o) => o.owner_direct !== true)
-        .reduce((s, o) => s + (Number(o.final_price) || 0), 0);
-      setResult({ incl, excl });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (result) {
-    return (
-      <span className="text-[11px] tabular-nums text-muted-foreground">
-        本月：含 {Math.round(result.incl).toLocaleString("zh-TW")} ／ 排除{" "}
-        {Math.round(result.excl).toLocaleString("zh-TW")}
-      </span>
-    );
-  }
-
-  return (
-    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={run} disabled={loading}>
-      {loading ? "試算中…" : "預覽兩種口徑金額"}
-    </Button>
-  );
-}
 
 
 function VenueClosingAssignmentSection({
@@ -1335,9 +1285,6 @@ function VenueClosingAssignmentSection({
   const [pEnd, setPEnd] = useState("");
   const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
   const [pNote, setPNote] = useState("");
-  const [pBasis, setPBasis] = useState<"include_owner_direct" | "exclude_owner_direct">(
-    "include_owner_direct",
-  );
   const [pSaving, setPSaving] = useState(false);
 
 
@@ -1450,13 +1397,6 @@ function VenueClosingAssignmentSection({
     setPEnd("");
     setPPolicy("full");
     setPNote("");
-    setPBasis(
-      (currentPeriod(accId)?.payout_basis as any) === "include_owner_direct"
-        ? "include_owner_direct"
-        : (currentPeriod(accId)?.payout_basis as any) === "exclude_owner_direct"
-          ? "exclude_owner_direct"
-          : "include_owner_direct",
-    );
     setPeriodAcc(accId);
   }
 
@@ -1471,7 +1411,6 @@ function VenueClosingAssignmentSection({
         start_date: pStart,
         end_date: pEnd || null,
         bonus_policy: pPolicy,
-        payout_basis: pBasis,
         note: pNote || null,
       });
     setPSaving(false);
@@ -1481,16 +1420,6 @@ function VenueClosingAssignmentSection({
     load();
   }
 
-  /** 直接調整某段期間的業主自帶口徑（實付真值採哪一軌） */
-  async function updateBasis(period: PartnershipPeriodRow, basis: string) {
-    const { error } = await (supabase as any)
-      .from("accommodation_partnership_periods")
-      .update({ payout_basis: basis })
-      .eq("id", period.id);
-    if (error) return toast.error("更新業主自帶口徑失敗：" + error.message);
-    toast.success("已更新業主自帶口徑（需重新試算未付快照才會生效）");
-    load();
-  }
 
   /** 切換該期間的採計旗標（成交大師獎金／團隊獎金） */
   async function updateFlag(
@@ -1604,38 +1533,9 @@ function VenueClosingAssignmentSection({
                             on={!!a.partnership_start_date}
                             tip="此日期之前的訂單一律不採計任何獎金，即使合作期間更早開始。"
                           />
-                          <FlagChip
-                            label={
-                              curPeriod?.payout_basis === "exclude_owner_direct"
-                                ? "實付真值：排除業主自帶"
-                                : "實付真值：含業主自帶"
-                            }
-                            on={curPeriod?.payout_basis !== "exclude_owner_direct" && !!curPeriod}
-                            tip="決定該館「實付真值」採哪一軌營收：含業主自帶＝業主自帶訂單也計入館別營收；排除業主自帶＝業主自帶訂單不列入。只影響以館別營收為基準的團隊獎金（AM／成交組場域／網紅營銷），不影響成交大師分潤與業主月結。"
-                          />
                         </div>
                         {!readOnly && curPeriod && (
                           <div className="mt-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">業主自帶口徑</span>
-                              <Select
-                                value={
-                                  curPeriod.payout_basis === "exclude_owner_direct"
-                                    ? "exclude_owner_direct"
-                                    : "include_owner_direct"
-                                }
-                                onValueChange={(v) => updateBasis(curPeriod, v)}
-                              >
-                                <SelectTrigger className="h-7 w-[190px] text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="include_owner_direct">含業主自帶</SelectItem>
-                                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <OwnerDirectPreview accommodationId={a.id} />
-                            </div>
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xs text-muted-foreground">採計範圍</span>
                               <Select
@@ -1843,21 +1743,6 @@ function VenueClosingAssignmentSection({
                   <SelectItem value="none">合作中但不發獎金</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>業主自帶口徑（實付真值採哪一軌）</Label>
-              <Select value={pBasis} onValueChange={(v) => setPBasis(v as any)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="include_owner_direct">含業主自帶（預設）</SelectItem>
-                  <SelectItem value="exclude_owner_direct">排除業主自帶</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                只影響以館別營收為基準的團隊獎金（AM／成交組場域／網紅營銷）；成交大師分潤與業主月結不受影響。
-              </p>
             </div>
             <div className="space-y-2">
               <Label>備註</Label>
