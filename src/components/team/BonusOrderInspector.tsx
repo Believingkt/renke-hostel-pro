@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { CheckCircle2, XCircle, MinusCircle, Search } from "lucide-react";
 import { extractExcludedAddonTotal } from "@/lib/ownerSettlement";
 import { payoutMonthKeyFromDataMonth } from "@/lib/bonusMultiplier";
 import { usesStayRevenue } from "@/lib/teamBonusStayRevenue";
+import BonusFieldRef from "./BonusFieldRef";
+import { TeamContext } from "./TeamContext";
+import type { BonusFieldKey } from "@/lib/bonusFieldGlossary";
 
 type Verdict = "pass" | "fail" | "info";
 
@@ -16,7 +19,7 @@ interface StepResult {
   step: string;
   title: string;
   verdict: Verdict;
-  lines: Array<{ label: string; value: string }>;
+  lines: Array<{ label: string; value: string; field?: BonusFieldKey }>;
   note?: string;
 }
 
@@ -43,6 +46,9 @@ function pickCurrentWhitelist(rows: any[], onDate: string): string[] {
  * 全部為唯讀查詢，不寫入任何資料。
  */
 export default function BonusOrderInspector() {
+  // /hq 頁面不在 TeamLayout 內，該情境視為 HQ 管理員（該路由本身已限管理員）
+  const teamCtx = useContext(TeamContext);
+  const roles: string[] = teamCtx?.roles ?? ["super_admin"];
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,20 +173,23 @@ export default function BonusOrderInspector() {
           title: "這筆訂單算不算數？",
           verdict: teamGate || closerGate ? "pass" : "fail",
           lines: [
-            { label: "訂單狀態可採計", value: statusOk ? "✓ 是" : `✗ 否（${status}）` },
+            { label: "訂單狀態可採計", value: statusOk ? "✓ 是" : `✗ 否（${status}）`, field: statusOk ? undefined : "order_status" },
             {
               label: "合作期間（團隊獎金）",
               value: teamGate ? "✓ 採計" : "✗ 不採計",
+              field: teamGate ? undefined : "counts_team_bonus",
             },
             {
               label: "合作期間（成交大師）",
               value: closerGate ? "✓ 採計" : "✗ 不採計",
+              field: closerGate ? undefined : "counts_closer_commission",
             },
             {
               label: "生效期間",
               value: activePeriod
                 ? `${String(activePeriod.start_date).slice(0, 10)} ~ ${activePeriod.end_date ? String(activePeriod.end_date).slice(0, 10) : "無結束日"}`
                 : "未設定合作期間",
+              field: activePeriod ? undefined : "partnership_period",
             },
           ],
           note: activePeriod ? undefined : "此館別在該日期沒有任何合作期間，所有獎金一律不採計。",
@@ -193,17 +202,23 @@ export default function BonusOrderInspector() {
             {
               label: "共用來源白名單",
               value: inShared ? "✓ 在清單內" : "✗ 不在清單內（AM／成交組績效不計）",
+              field: inShared ? undefined : "shared_sources",
             },
             {
               label: "獨立來源白名單（專利）",
               value: inKol ? "✓ 在清單內" : "✗ 不在清單內",
+              field: inKol ? undefined : "kol_sources",
             },
             {
               label: "業主自帶（owner_direct）",
               value: ownerDirect ? "是" : "否",
             },
             { label: "訂單總額（台幣）", value: money(gross) },
-            { label: "扣除不列入抽成的增值服務", value: `- ${money(excludedAddon)}` },
+            {
+              label: "扣除不列入抽成的增值服務",
+              value: `- ${money(excludedAddon)}`,
+              field: "excluded_addons",
+            },
             { label: "計算後基準金額", value: money(basePrice) },
             {
               label: "系統寫入的分潤基準金額",
@@ -241,6 +256,7 @@ export default function BonusOrderInspector() {
             {
               label: "月結免抽成來源",
               value: exemptSource ? "✓ 此來源在免抽成清單內" : "✗ 不在免抽成清單",
+              field: "exempt_order_sources",
             },
           ],
           note: "此步只影響「發給誰」，不改變基準金額。",
@@ -356,9 +372,14 @@ export default function BonusOrderInspector() {
             <Separator className="mb-2" />
             <div className="space-y-1 text-sm">
               {s.lines.map((l) => (
-                <div key={l.label} className="flex justify-between gap-3">
+                <div key={l.label} className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                   <span className="text-muted-foreground">{l.label}</span>
                   <span className="text-right tabular-nums">{l.value}</span>
+                  {l.field ? (
+                    <span className="w-full text-[11px] text-muted-foreground">
+                      <BonusFieldRef field={l.field} roles={roles} />
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>
