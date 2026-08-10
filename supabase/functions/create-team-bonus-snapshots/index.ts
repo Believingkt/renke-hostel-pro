@@ -745,6 +745,7 @@ serve(async (req) => {
         amount: myRevenue.payout * Number(amPerfRate ?? 0),
         amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
         amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
+        payout_basis_used: myRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -812,6 +813,7 @@ serve(async (req) => {
         amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
         amount_incl_owner: closerHeadcount > 0 ? closerPoolIncl / closerHeadcount : 0,
         amount_excl_owner: closerHeadcount > 0 ? closerPoolExcl / closerHeadcount : 0,
+        payout_basis_used: companyRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
@@ -849,6 +851,7 @@ serve(async (req) => {
         amount: companyRevenue.payout * Number(rate ?? 0),
         amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
         amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
+        payout_basis_used: companyRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -876,6 +879,7 @@ serve(async (req) => {
         amount: kolRevenue.payout * Number(kolRate ?? 0),
         amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
         amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
+        payout_basis_used: kolRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
