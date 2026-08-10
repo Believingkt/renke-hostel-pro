@@ -366,6 +366,11 @@ export async function getAccommodationRevenueByAcc(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
+  /**
+   * 顯示用雙軌覆寫（僅管理層切換「含／排除業主自帶」時傳入）。
+   * 不傳（或傳 null）時一律依各館 payout_basis 回傳實付真值。
+   */
+  basisOverride?: PayoutBasis | null,
 ): Promise<Record<string, number>> {
   const dual = await getAccommodationRevenueDualByAcc(
     client,
@@ -374,8 +379,14 @@ export async function getAccommodationRevenueByAcc(
     monthEndDate,
     allowedSources,
   );
-  const basis = await getPayoutBasisByAcc(client, Object.keys(dual));
   const out: Record<string, number> = {};
+  if (basisOverride) {
+    for (const [accId, v] of Object.entries(dual)) {
+      out[accId] = basisOverride === "include_owner_direct" ? v.incl : v.excl;
+    }
+    return out;
+  }
+  const basis = await getPayoutBasisByAcc(client, Object.keys(dual));
   for (const [accId, v] of Object.entries(dual)) {
     out[accId] = basis[accId] === "include_owner_direct" ? v.incl : v.excl;
   }
