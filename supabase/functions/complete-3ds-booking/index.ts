@@ -178,6 +178,7 @@ Deno.serve(async (req) => {
         accommodationId: body.accommodationId,
         roomTypeId: body.selectedRoom.id,
         packageId: (body as any).packageId || null,
+        roomQuantity: (body as any).roomQuantity ?? 1,
         checkInDate: body.checkInDate,
         checkOutDate: body.checkOutDate,
         totalPrice: totalPrice,
@@ -190,6 +191,8 @@ Deno.serve(async (req) => {
         petCount: body.petCount || 0,
         petPlanPrice: body.petPlanPrice || 0,
         customAddonDetails: (body as any).customAddonDetails ?? null,
+        childSelection: (body as any).childSelection ?? null,
+        childExtraTotal: (body as any).childExtraTotal ?? 0,
       };
 
       const validateResponse = await fetch(
