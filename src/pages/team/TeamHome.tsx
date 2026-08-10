@@ -67,6 +67,9 @@ interface TeamHomePayload {
   closerTeamBonusRateVal: number;
   closerTeamBonusNoSet: boolean;
   closerTeamBonusFinalizedFlag: boolean;
+  closerCancelAdjSum: number;
+  closerOtherAdjSum: number;
+
   videoSum: number;
   scoutSum: number;
   raritySum: number;
@@ -1288,6 +1291,9 @@ export default function TeamHome() {
           closerTeamBonusRateVal,
           closerTeamBonusNoSet,
           closerTeamBonusFinalizedFlag,
+          closerCancelAdjSum,
+          closerOtherAdjSum,
+
           videoSum,
           scoutSum,
           raritySum,
