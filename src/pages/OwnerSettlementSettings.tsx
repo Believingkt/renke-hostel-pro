@@ -436,7 +436,7 @@ export default function OwnerSettlementSettings({
 
     setSaving(false);
     setUsingFallback(false);
-    toast.success(currentAccommodationId ? `已儲存「${accName}」的設定` : "已儲存全站預設設定");
+    toast.success(`已儲存「${accName}」的設定`);
   };
 
 
