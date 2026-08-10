@@ -440,11 +440,15 @@ export default function TeamHome() {
         let closerSum = 0;
         let videoSum = 0;
         let monthlySettledFlag = false;
+        // 回溯補建：快照的資料月不等於本期資料月（前期漏建、於本期才補上）
+        let closerBackfillSum = 0;
+        let closerBackfillCount = 0;
+        const closerBackfillMonthSet = new Set<string>();
 
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
+            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -453,7 +457,14 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             for (const r of snaps) {
               if (showCloser && r.closer_id === userId) {
-                closerSum += Number(r.closer_commission_amount ?? 0);
+                const amt = Number(r.closer_commission_amount ?? 0);
+                closerSum += amt;
+                const sm = String(r.snapshot_month ?? "");
+                if (sm && sm !== currentMonthKey) {
+                  closerBackfillSum += amt;
+                  closerBackfillCount += 1;
+                  closerBackfillMonthSet.add(sm);
+                }
               }
               if (showVideo && r.video_creator_id === userId) {
                 videoSum += Number(r.video_commission_amount ?? 0);
