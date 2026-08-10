@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import BonusRulesReference from "@/components/team/BonusRulesReference";
+import BonusFormulaHint from "@/components/team/BonusFormulaHint";
+import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
+import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
   Dialog,
@@ -131,7 +135,11 @@ export default function TeamCommission() {
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
   const payoutsReadOnly = false;
-  const [tab, setTab] = useState("payouts");
+  const initialTab =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("tab") || "payouts"
+      : "payouts";
+  const [tab, setTab] = useState(initialTab);
 
   if (!canAccess) {
     return (
@@ -258,6 +266,10 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
             <li>入住營收口徑下，取消訂單自然不計入，不再另行產生「取消扣回」補差。</li>
             <li>二、成交大師個人分潤與三、星探類獎金不適用此口徑，維持原本的下訂日基準。</li>
           </ul>
+        </div>
+        <div className="space-y-3">
+          <div className="font-medium">各獎金項目公式（由系統 registry 自動產生，與實際計算同源）</div>
+          <BonusRulesReference />
         </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
@@ -704,6 +716,7 @@ function commissionPeriodRange(year: number, month: number, period: "10" | "25")
 
 function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false, onOpenRules }: { scoutManagerOnly?: boolean; readOnly?: boolean; onOpenRules?: () => void }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+  const { basis, setBasis, canSwitch } = useOwnerDirectBasis();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [groups, setGroups] = useState<MemberGroup[]>([]);
@@ -1511,6 +1524,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           )}
         </div>
 
+        <OwnerDirectBasisToggle basis={basis} setBasis={setBasis} canSwitch={canSwitch} />
+
         <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
@@ -1703,8 +1718,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                   )}
                                 </button>
                                 <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                  <span className="text-sm font-medium tabular-nums whitespace-nowrap">
+                                  <span className="flex items-center gap-1 text-sm font-medium tabular-nums whitespace-nowrap">
                                     小計 {formatMoney(src.subtotal)}
+                                    {(() => {
+                                      const it = src.items[0];
+                                      const key = it
+                                        ? bonusTypeOf(it.source_table, it.role_key)
+                                        : null;
+                                      if (!key) return null;
+                                      return (
+                                        <BonusFormulaHint
+                                          bonusKey={key}
+                                          frozen={src.allPaid}
+                                          values={[
+                                            { label: "筆數", value: src.items.length },
+                                            { label: "小計", value: src.subtotal },
+                                            {
+                                              label: "倍率",
+                                              value: it?.multiplier ?? 1,
+                                            },
+                                            {
+                                              label: "基準營收",
+                                              value: it?.base_revenue ?? undefined,
+                                            },
+                                          ]}
+                                        />
+                                      );
+                                    })()}
                                   </span>
                                   {!readOnly && !src.allPaid && (
                                     <Button

@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Lock, ExternalLink, HelpCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Link } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 
@@ -955,9 +956,69 @@ interface PartnershipPeriodRow {
   start_date: string;
   end_date: string | null;
   bonus_policy: "full" | "none";
+  counts_closer_commission?: boolean | null;
+  counts_team_bonus?: boolean | null;
+  payout_basis?: string | null;
   note: string | null;
 }
 
+
+/* --- 合作期間狀態說明與旗標 --- */
+
+const PARTNERSHIP_STATUS_DESC: Array<[string, string]> = [
+  ["合作中", "有一段生效中的期間（開始日 ≤ 今天，且無結束日或結束日 ≥ 今天）。"],
+  ["待生效", "已建立期間但開始日在未來，尚未開始採計。"],
+  ["暫停中", "最後一段已結束且無後續段，期間外的訂單不採計。"],
+  ["已重啟", "曾中斷後再新增一段且目前生效。"],
+  ["未設定合作期間", "沒有任何期間，一律不採計任何獎金。"],
+];
+
+function PartnershipStatusHint() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="合作期間狀態說明"
+          className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 space-y-2 text-sm">
+        <div className="font-medium">合作期間狀態說明</div>
+        {PARTNERSHIP_STATUS_DESC.map(([k, v]) => (
+          <div key={k}>
+            <Badge variant="outline" className="mb-1 text-[11px] font-normal">
+              {k}
+            </Badge>
+            <p className="text-xs leading-relaxed text-muted-foreground">{v}</p>
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className="inline-flex">
+          <Badge
+            variant={on ? "secondary" : "outline"}
+            className={`cursor-help text-[11px] font-normal ${on ? "" : "text-muted-foreground line-through"}`}
+          >
+            {label}
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 text-xs leading-relaxed">
+        {tip}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function VenueClosingAssignmentSection({
   members,
@@ -1002,7 +1063,7 @@ function VenueClosingAssignmentSection({
 
         (supabase as any)
           .from("accommodation_partnership_periods")
-          .select("id, accommodation_id, start_date, end_date, bonus_policy, note")
+          .select("id, accommodation_id, start_date, end_date, bonus_policy, counts_closer_commission, counts_team_bonus, payout_basis, note")
           .order("start_date", { ascending: false }),
       ]);
       setAccs(
@@ -1179,18 +1240,43 @@ function VenueClosingAssignmentSection({
                             : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {curPeriod && curPeriod.bonus_policy === "full" ? (
-                          <Badge>合作中</Badge>
-                        ) : curPeriod ? (
-                          <Badge variant="secondary">合作中（不採計）</Badge>
-                        ) : upcoming ? (
-                          <Badge variant="secondary">待生效</Badge>
-                        ) : accPeriods.length > 0 ? (
-                          <Badge variant="outline">已暫停</Badge>
-                        ) : (
-                          <Badge variant="destructive">未設定合作期間</Badge>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {curPeriod && curPeriod.bonus_policy === "full" ? (
+                            accPeriods.length > 1 ? (
+                              <Badge>已重啟</Badge>
+                            ) : (
+                              <Badge>合作中</Badge>
+                            )
+                          ) : curPeriod ? (
+                            <Badge variant="secondary">合作中（不採計）</Badge>
+                          ) : upcoming ? (
+                            <Badge variant="secondary">待生效</Badge>
+                          ) : accPeriods.length > 0 ? (
+                            <Badge variant="outline">暫停中</Badge>
+                          ) : (
+                            <Badge variant="destructive">未設定合作期間</Badge>
+                          )}
+                          <PartnershipStatusHint />
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <FlagChip
+                            label="採計成交組"
+                            on={curPeriod?.counts_closer_commission !== false && !!curPeriod}
+                            tip="該期間內的訂單是否計入成交組分潤／影音分潤（成交大師獎金）。"
+                          />
+                          <FlagChip
+                            label="採計團隊獎金"
+                            on={curPeriod?.counts_team_bonus !== false && !!curPeriod}
+                            tip="該期間內的營收是否計入 AM／成交組／網紅營銷等以館別營收為基準的團隊獎金。"
+                          />
+                          <FlagChip
+                            label={`獎金採計起始日 ${a.partnership_start_date ?? "—"}`}
+                            on={!!a.partnership_start_date}
+                            tip="此日期之前的訂單一律不採計任何獎金，即使合作期間更早開始。"
+                          />
+                        </div>
                       </TableCell>
+
 
                       <TableCell>{cur ? memberName(cur.member_id) : "尚無"}</TableCell>
                       <TableCell className="whitespace-nowrap">

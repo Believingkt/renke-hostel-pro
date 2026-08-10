@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import BonusFormulaHint from "@/components/team/BonusFormulaHint";
+import OwnerDirectBasisToggle from "@/components/team/OwnerDirectBasisToggle";
+import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +40,7 @@ import {
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
   getAccommodationRevenueByAcc,
+  type PayoutBasis,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
   getCountableRangesByAcc,
@@ -128,6 +132,13 @@ export default function TeamHome() {
   // 預設一律先看自己；切換後資料改由 team-view-query Edge Function（service role）取得，
   // 計算邏輯完全沿用同一份程式碼。
   const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
+
+  // ===== 業主自帶雙軌顯示口徑 =====
+  const {
+    basis: ownerDirectBasis,
+    setBasis: setOwnerDirectBasis,
+    canSwitch: canSwitchBasis,
+  } = useOwnerDirectBasis();
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const [viewAsRoles, setViewAsRoles] = useState<TeamRole[]>([]);
   const [members, setMembers] = useState<
@@ -297,7 +308,10 @@ export default function TeamHome() {
 
   // ===== 期別資料快取：避免「上一期／本期」來回切換時重複讀取 =====
   const cacheRef = useRef<Map<string, TeamHomePayload>>(new Map());
-  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
+  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
+  /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
+  const basisOverride =
+    ownerDirectBasis === "payout" ? null : (ownerDirectBasis as PayoutBasis);
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
@@ -989,6 +1003,7 @@ export default function TeamHome() {
                   monthStartDate,
                   monthEndDate,
                   sharedSources,
+                  basisOverride,
                 )
               : {};
           const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
@@ -1042,6 +1057,7 @@ export default function TeamHome() {
                     monthStartDate,
                     monthEndDate,
                     sharedSources,
+                    basisOverride,
                   )
                 : {};
             const myRevenue = Object.values(myByAcc).reduce((sum, v) => sum + v, 0);
@@ -1117,6 +1133,7 @@ export default function TeamHome() {
                     monthStartDate,
                     monthEndDate,
                     kolSources,
+                    basisOverride,
                   )
                 : {};
             const kolRevenue = Object.values(kolByAcc).reduce((sum, v) => sum + v, 0);
@@ -1284,7 +1301,7 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload]);
+  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, basisOverride]);
 
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
@@ -1601,6 +1618,12 @@ export default function TeamHome() {
         </p>
       </div>
 
+      <OwnerDirectBasisToggle
+        basis={ownerDirectBasis}
+        setBasis={setOwnerDirectBasis}
+        canSwitch={canSwitchBasis}
+      />
+
       <PayoutPeriodBanner
         periods={periodOptions}
         index={periodIndex}
@@ -1645,8 +1668,16 @@ export default function TeamHome() {
                     </Badge>
                   )}
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground font-medium">
+                    <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
                       {c.title}
+                      <BonusFormulaHint
+                        bonusKey={c.key}
+                        values={[
+                          { label: "金額", value: c.amount },
+                          { label: "倍率", value: c.multiplier },
+                          { label: "加倍前", value: c.baseAmount ?? undefined },
+                        ]}
+                      />
                     </CardTitle>
                     {c.note ? (
                       <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
@@ -1714,7 +1745,17 @@ export default function TeamHome() {
             return (
               <div className="mx-auto w-full max-w-2xl">
                 <DrawerHeader>
-                  <DrawerTitle>{c.title}－各館別明細</DrawerTitle>
+                  <DrawerTitle className="flex items-center gap-1">
+                    {c.title}－各館別明細
+                    <BonusFormulaHint
+                      bonusKey={c.key}
+                      values={[
+                        { label: "營收合計", value: totalRevenue },
+                        { label: "獎金合計", value: totalAmount },
+                        { label: "館數", value: lines.length },
+                      ]}
+                    />
+                  </DrawerTitle>
                   <DrawerDescription>
                     營收合計 {fmt(totalRevenue)}　獎金合計 {fmt(totalAmount)}
                   </DrawerDescription>

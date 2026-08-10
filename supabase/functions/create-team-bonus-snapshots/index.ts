@@ -300,7 +300,10 @@ interface RevenueTotals {
   incl: number;
   excl: number;
   payout: number;
+  /** 本次加總實際採用的實付基準；各館不一致時為 "mixed" */
+  basis: string | null;
 }
+
 
 /** 入住營收口徑（逐夜攤提、扣除設定的增值服務、換算台幣），回傳雙軌 */
 async function getStayRevenueDualByAcc(
@@ -394,7 +397,7 @@ async function getAccommodationRevenue(
 ): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
   if (accIds.length === 0 || sources.length === 0) return empty;
 
   const rangesByAcc = await getCountableRangesByAcc(
@@ -444,13 +447,18 @@ async function getAccommodationRevenue(
   }
 
   const basis = await getPayoutBasisByAcc(client, Object.keys(byAcc));
-  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0 };
+  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
+  const usedBasis = new Set<string>();
   for (const [accId, v] of Object.entries(byAcc)) {
     totals.incl += v.incl;
     totals.excl += v.excl;
-    totals.payout += basis[accId] === "include_owner_direct" ? v.incl : v.excl;
+    const b = basis[accId] === "include_owner_direct" ? "include_owner_direct" : "exclude_owner_direct";
+    usedBasis.add(b);
+    totals.payout += b === "include_owner_direct" ? v.incl : v.excl;
   }
+  totals.basis = usedBasis.size === 0 ? null : usedBasis.size === 1 ? [...usedBasis][0] : "mixed";
   return totals;
+
 }
 
 
@@ -679,8 +687,18 @@ serve(async (req) => {
       amount: number;
       amount_incl_owner: number | null;
       amount_excl_owner: number | null;
+      /** 凍結：計算當下採用的實付基準（含／排除業主自帶；各館不一致為 mixed） */
+      payout_basis_used?: string | null;
+      /** 凍結：計算當下的加倍倍率與來源 */
+      multiplier_used?: number | null;
+      multiplier_source?: string | null;
+      /** 凍結：在職天數 / 期間天數 / 在職比例（分潤均分用） */
+      active_days?: number | null;
+      period_days?: number | null;
+      prorate_ratio?: number | null;
       settings_snapshot: Record<string, unknown>;
     }
+
 
     const rows: Row[] = [];
     const push = (r: Row) => {
@@ -731,6 +749,7 @@ serve(async (req) => {
         amount: myRevenue.payout * Number(amPerfRate ?? 0),
         amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
         amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
+        payout_basis_used: myRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -770,20 +789,43 @@ serve(async (req) => {
     const isActiveAtMonthEnd = (profile: any) =>
       !profile?.resigned_at || String(profile.resigned_at).slice(0, 10) > monthLastDateStr;
 
-    const closerProfiles: any[] = [];
+    // 期間天數與各成員在職天數（離職者按在職比例分潤）
+    const periodDays = Math.round(
+      (Date.parse(`${monthEndDate}T00:00:00Z`) - Date.parse(`${monthStartDate}T00:00:00Z`)) /
+        86_400_000,
+    );
+    const activeDaysOf = (profile: any) => {
+      const r = profile?.resigned_at ? String(profile.resigned_at).slice(0, 10) : null;
+      if (!r) return periodDays;
+      if (r < monthStartDate) return 0;
+      if (r >= monthEndDate) return periodDays;
+      // 離職當日仍算在職
+      return Math.min(
+        periodDays,
+        Math.round((Date.parse(`${r}T00:00:00Z`) - Date.parse(`${monthStartDate}T00:00:00Z`)) /
+          86_400_000) + 1,
+      );
+    };
+
+    const closerProfiles: Array<{ profile: any; activeDays: number; ratio: number }> = [];
     for (const [userId, roleSet] of rolesByUser) {
       if (!roleSet.has("closer") && !roleSet.has("closer_manager")) continue;
       const profile = profileByUserId.get(userId);
       if (!profile) continue;
-      if (!isActiveAtMonthEnd(profile)) continue; // 離職者不參與均分
-      closerProfiles.push(profile);
+      const activeDays = activeDaysOf(profile);
+      if (activeDays <= 0) continue; // 整月都不在職者不參與
+      closerProfiles.push({
+        profile,
+        activeDays,
+        ratio: periodDays > 0 ? activeDays / periodDays : 0,
+      });
     }
 
     const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
     const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
     const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
     const closerHeadcount = closerProfiles.length;
-    for (const profile of closerProfiles) {
+    for (const { profile, activeDays, ratio } of closerProfiles) {
       push({
         bonus_type: "closer_performance",
         member_id: profile.id,
@@ -795,9 +837,13 @@ serve(async (req) => {
         rate: closerPerfRate,
         fixed_amount: null,
         venue_count: null,
-        amount: closerHeadcount > 0 ? closerPoolAmount / closerHeadcount : 0,
-        amount_incl_owner: closerHeadcount > 0 ? closerPoolIncl / closerHeadcount : 0,
-        amount_excl_owner: closerHeadcount > 0 ? closerPoolExcl / closerHeadcount : 0,
+        amount: closerHeadcount > 0 ? (closerPoolAmount / closerHeadcount) * ratio : 0,
+        amount_incl_owner: closerHeadcount > 0 ? (closerPoolIncl / closerHeadcount) * ratio : 0,
+        amount_excl_owner: closerHeadcount > 0 ? (closerPoolExcl / closerHeadcount) * ratio : 0,
+        payout_basis_used: companyRevenue.basis,
+        active_days: activeDays,
+        period_days: periodDays,
+        prorate_ratio: ratio,
         settings_snapshot: {
           as_of: asOf,
           rate: closerPerfRate,
@@ -805,6 +851,9 @@ serve(async (req) => {
           accommodation_ids: activeAccIds,
           pool_amount: closerPoolAmount,
           split_headcount: closerHeadcount,
+          active_days: activeDays,
+          period_days: periodDays,
+          prorate_ratio: ratio,
         },
       });
     }
@@ -835,6 +884,7 @@ serve(async (req) => {
         amount: companyRevenue.payout * Number(rate ?? 0),
         amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
         amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
+        payout_basis_used: companyRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -862,6 +912,7 @@ serve(async (req) => {
         amount: kolRevenue.payout * Number(kolRate ?? 0),
         amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
         amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
+        payout_basis_used: kolRevenue.basis,
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
@@ -952,7 +1003,35 @@ serve(async (req) => {
       });
     }
 
+    /* ---------- 凍結加倍倍率（以發放月為準，all 與個別類型相乘） ---------- */
+    {
+      const { data: multRows } = await supabase
+        .from("bonus_multiplier_settings")
+        .select("bonus_type, multiplier, start_month, end_month, reason");
+      const active = ((multRows ?? []) as any[]).filter(
+        (r) => String(r.start_month) <= payoutMonthStr && String(r.end_month) >= payoutMonthStr,
+      );
+      const hitOf = (bt: string) => active.find((r) => String(r.bonus_type) === bt);
+      for (const row of rows) {
+        const own = hitOf(row.bonus_type);
+        const all = hitOf("all");
+        const v = (x: any) => {
+          const n = Number(x?.multiplier ?? 1);
+          return Number.isFinite(n) && n > 0 ? n : 1;
+        };
+        const m = v(own) * v(all);
+        row.multiplier_used = m;
+        row.multiplier_source =
+          m === 1
+            ? null
+            : [own ? `${row.bonus_type}:${v(own)}` : null, all ? `all:${v(all)}` : null]
+                .filter(Boolean)
+                .join(" × ");
+      }
+    }
+
     /* ---------- 逐筆寫入（衝突時：未發放則覆寫更新，已發放則 skip） ---------- */
+
     const errors: Array<{ bonus_type: string; member_id: string; error: string }> = [];
     let created = 0;
     let skipped = 0;
@@ -994,7 +1073,14 @@ serve(async (req) => {
                 amount: row.amount,
                 amount_incl_owner: row.amount_incl_owner,
                 amount_excl_owner: row.amount_excl_owner,
+                payout_basis_used: row.payout_basis_used ?? null,
+                multiplier_used: row.multiplier_used ?? null,
+                multiplier_source: row.multiplier_source ?? null,
+                active_days: row.active_days ?? null,
+                period_days: row.period_days ?? null,
+                prorate_ratio: row.prorate_ratio ?? null,
                 settings_snapshot: row.settings_snapshot,
+
 
               })
               .eq("id", existing.id);
