@@ -1186,6 +1186,7 @@ export default function TeamHome() {
             const kolSources = await getRevenueSourceWhitelist(
               client,
               "teamcommission_kol_revenue_source_whitelist",
+              versionAsOf,
             );
             const kolByAcc =
               kolSources.length > 0
