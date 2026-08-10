@@ -573,6 +573,27 @@ export default function TeamHome() {
           }
         }
 
+        // ===== 成交組分潤補差（含訂單取消扣回）=====
+        // 依「發放期別」抓 closer_commission_adjustments，與發放管理口徑一致。
+        let closerCancelAdjSum = 0;
+        let closerOtherAdjSum = 0;
+        if (showCloser && isMonthlyPayout) {
+          const { data: adjRows } = await db
+            .from("closer_commission_adjustments")
+            .select("adjustment_type, closer_amount")
+            .eq("adjustment_month", monthInfo.payoutMonthKey)
+            .eq("closer_id", userId);
+          for (const r of (adjRows ?? []) as any[]) {
+            const amt = Number(r.closer_amount ?? 0);
+            if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
+            else closerOtherAdjSum += amt;
+          }
+          closerCancelAdjSum = Math.round(closerCancelAdjSum);
+          closerOtherAdjSum = Math.round(closerOtherAdjSum);
+        }
+
+
+
 
 
         // ===== Scout: KOL 分潤 / 稀有度 / 底薪 / 團隊獎金 =====
