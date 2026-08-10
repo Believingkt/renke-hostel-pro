@@ -261,6 +261,20 @@ export default function TeamCommissionStatsTab() {
     }[]
   >([]);
 
+  // 回溯補建（本期發放月的快照中，資料月不等於本期資料月者＝前期漏建、本期才補上）
+  const [backfills, setBackfills] = useState<
+    {
+      id: string;
+      snapshot_month: string;
+      closer_id: string | null;
+      video_creator_id: string | null;
+      closer_amount: number;
+      video_amount: number;
+      order_number: string | null;
+      accommodation_id: string | null;
+    }[]
+  >([]);
+
 
 
   const period = useMemo(() => {
