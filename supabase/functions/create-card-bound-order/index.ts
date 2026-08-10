@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
     const priceCheck = await validateOrderPrices(supabaseUrl, supabaseServiceKey, {
       accommodationId: body.accommodationId,
       roomTypeId: body.selectedRoom.id,
+      packageId: body.packageId ?? null,
+      roomQuantity: (body as any).roomQuantity ?? 1,
       checkInDate: body.checkInDate,
       checkOutDate: body.checkOutDate,
       totalPrice,
@@ -114,6 +116,11 @@ Deno.serve(async (req) => {
       mealPlanTotal: body.mealPlanTotal,
       petCount: body.petCount,
       petPlanPrice: body.petPlanPrice,
+      customAddonDetails: body.customAddonDetails ?? null,
+      childSelection: (body as any).childSelection ?? null,
+      childExtraTotal: (body as any).childExtraTotal ?? 0,
+      tripId: (body as any).tripId ?? null,
+      guestEmail: body.guestInfo?.email ?? null,
     });
 
     if (!priceCheck.ok) {
