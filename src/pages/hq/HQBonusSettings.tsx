@@ -26,8 +26,30 @@ export default function HQBonusSettings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [accs, setAccs] = useState<AccOption[]>([]);
+  const [roles, setRoles] = useState<string[] | null>(null);
 
-  const tab: SettingsTab = searchParams.get("tab") === "owner-settlement" ? "owner-settlement" : "bonus";
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) {
+        if (!cancelled) setRoles([]);
+        return;
+      }
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      if (!cancelled) setRoles((data ?? []).map((r: { role: string }) => r.role));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isHQAdmin = !!roles?.some((r) => r === "super_admin" || r === "admin");
+  const canSeeBonus = !!roles?.some((r) => ["super_admin", "admin", "finance"].includes(r));
+
+  const rawTab: SettingsTab = searchParams.get("tab") === "owner-settlement" ? "owner-settlement" : "bonus";
+  const tab: SettingsTab = canSeeBonus ? rawTab : "owner-settlement";
   const accId = searchParams.get("acc") ?? "global";
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
@@ -71,7 +93,7 @@ export default function HQBonusSettings() {
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="bonus">獎金設定</TabsTrigger>
+          {canSeeBonus && <TabsTrigger value="bonus">獎金設定</TabsTrigger>}
           <TabsTrigger value="owner-settlement">業主月結設定</TabsTrigger>
         </TabsList>
 
@@ -88,7 +110,7 @@ export default function HQBonusSettings() {
             <CardContent className="pt-0" />
           </Card>
 
-          <BonusSettingsTab />
+          <BonusSettingsTab readOnly={!isHQAdmin} />
         </TabsContent>
 
         <TabsContent value="owner-settlement" className="space-y-4">
