@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import BonusRulesReference from "@/components/team/BonusRulesReference";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
   Dialog,
@@ -131,7 +132,11 @@ export default function TeamCommission() {
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
   const payoutsReadOnly = false;
-  const [tab, setTab] = useState("payouts");
+  const initialTab =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("tab") || "payouts"
+      : "payouts";
+  const [tab, setTab] = useState(initialTab);
 
   if (!canAccess) {
     return (
@@ -258,6 +263,10 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
             <li>入住營收口徑下，取消訂單自然不計入，不再另行產生「取消扣回」補差。</li>
             <li>二、成交大師個人分潤與三、星探類獎金不適用此口徑，維持原本的下訂日基準。</li>
           </ul>
+        </div>
+        <div className="space-y-3">
+          <div className="font-medium">各獎金項目公式（由系統 registry 自動產生，與實際計算同源）</div>
+          <BonusRulesReference />
         </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
