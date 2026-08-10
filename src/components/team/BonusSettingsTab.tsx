@@ -474,7 +474,7 @@ function RateSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">獎金費率／金額設定</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">獎金費率／金額設定<SettingImpactHint settingKey="rate_version" /></CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -904,7 +904,7 @@ function BindingSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">角色綁定</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">角色綁定<SettingImpactHint settingKey="role_binding" /></CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -1308,7 +1308,7 @@ function VenueClosingAssignmentSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">場域成交人(Closer)</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">場域成交人(Closer)<SettingImpactHint settingKey="venue_closing_assignment" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           場域成交獎金以此指定的簽約人為發放對象（另需該館「收取行銷推廣費」為發放判斷基準）。
           「合作期間」為該館所有團隊獎金的採計範圍，可暫停與重啟；沒有任何有效期間（或期間設為不採計）的館別，一律不計入任何團隊獎金。
@@ -1649,7 +1649,7 @@ function AmVenueOverviewSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">AM 場域總覽</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">AM 場域總覽<SettingImpactHint settingKey="am_venue_scope" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           逐館顯示目前負責的 AM（唯讀），如需調整請至成員管理設定
         </p>
@@ -1788,7 +1788,7 @@ function OwnerPricingRuleOverviewSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">業主月結抽成規則（唯讀同步）</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">業主月結抽成規則（唯讀同步）<SettingImpactHint settingKey="owner_pricing_rule" /></CardTitle>
         <p className="text-sm text-muted-foreground">
           此為獎金採計的<strong>第一層過濾條件</strong>：訂單須先通過該館別的「免抽成來源／業主自帶」判斷，
           才會進入上方「共用訂單來源 (AM、成交)」與「獨立訂單來源 (專利獎金)」白名單比對。
