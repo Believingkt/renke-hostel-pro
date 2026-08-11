@@ -21,7 +21,8 @@ const PushNotificationCard = () => {
   if (!isNativeApp() || state === "unsupported") return null;
 
   const enable = async () => {
-    const next = await initPushNotifications();
+    // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
+    const next = await initPushNotifications({ force: true });
     setState(next);
   };
 
@@ -32,22 +33,25 @@ const PushNotificationCard = () => {
           <Bell className="h-5 w-5 text-[hsl(24,100%,50%)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium">推播通知</div>
+          <div className="text-sm font-medium">開啟訂單通知</div>
           {state === "granted" ? (
             <div className="text-xs text-muted-foreground mt-0.5">
               已開啟，訂房成功、付款確認、退款與入住提醒都會通知您。
             </div>
           ) : state === "denied" ? (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              目前為關閉狀態。請至 iPhone「設定 → 通知 → 人客多」開啟「允許通知」，
-              即可收到訂房成功、付款確認與入住提醒。
-            </div>
+            <>
+              <div className="text-xs text-muted-foreground mt-0.5 mb-2">
+                目前為關閉狀態。請至 iPhone「設定 → 通知 → 人客多」開啟「允許通知」，
+                即可收到訂房成功、付款確認與入住提醒。
+              </div>
+              <Button size="sm" variant="outline" onClick={enable}>再試一次</Button>
+            </>
           ) : (
             <>
               <div className="text-xs text-muted-foreground mt-0.5 mb-2">
                 開啟後可即時收到訂房成功、付款確認、退款與明日入住提醒。
               </div>
-              <Button size="sm" onClick={enable}>開啟通知</Button>
+              <Button size="sm" onClick={enable}>開啟訂單通知</Button>
             </>
           )}
         </div>
@@ -55,5 +59,6 @@ const PushNotificationCard = () => {
     </Card>
   );
 };
+
 
 export default PushNotificationCard;
