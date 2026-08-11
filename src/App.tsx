@@ -18,6 +18,7 @@ import { AliasResolver } from "@/components/AliasResolver";
 import { PmsDomainGuard } from "@/components/PmsDomainGuard";
 import { RequireModule } from "@/components/RequireModule";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
+import { usePushBootstrap } from "@/hooks/use-push-bootstrap";
 
 const { Suspense, lazy } = React;
 
