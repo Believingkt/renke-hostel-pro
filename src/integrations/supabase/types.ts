@@ -6288,7 +6288,10 @@ export type Database = {
           payment_status: string
           pet_count: number | null
           pet_plan_price: number | null
+          refund_rec_trade_id: string | null
+          refund_status: string
           refunded_amount: number
+          refunded_at: string | null
           requires_owner_review: boolean
           room_assigned: boolean | null
           room_charge_at: string | null
@@ -6373,7 +6376,10 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refund_rec_trade_id?: string | null
+          refund_status?: string
           refunded_amount?: number
+          refunded_at?: string | null
           requires_owner_review?: boolean
           room_assigned?: boolean | null
           room_charge_at?: string | null
@@ -6458,7 +6464,10 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refund_rec_trade_id?: string | null
+          refund_status?: string
           refunded_amount?: number
+          refunded_at?: string | null
           requires_owner_review?: boolean
           room_assigned?: boolean | null
           room_charge_at?: string | null
