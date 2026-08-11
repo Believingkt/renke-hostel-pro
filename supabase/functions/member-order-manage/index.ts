@@ -148,6 +148,7 @@ serve(async (req) => {
       let chargedFee = 0;
       let refunded = 0;
       let needManual = false;
+      let refundOutcome: RefundOutcome | null = null;
 
       // 情境 A：尚未扣款、卡片已綁定 → 依級距即時收取手續費，其餘不收
       if (order.room_charge_status === "card_bound" && Number(order.paid_amount || 0) === 0) {
