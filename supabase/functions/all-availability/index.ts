@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
       wantPackages
         ? supabase
             .from("accommodation_packages")
-            .select("id, accommodation_id, name, numeric_code, base_price, room_type_ids, room_type_allocation, is_active, display_order")
+            .select("id, accommodation_id, name, numeric_code, sale_price, original_price, room_type_ids, room_type_allocation, enabled, display_order")
             .in("accommodation_id", accIds)
             .order("display_order", { ascending: true, nullsFirst: false })
         : Promise.resolve({ data: [], error: null } as any),
