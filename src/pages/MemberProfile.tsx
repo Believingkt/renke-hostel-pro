@@ -258,6 +258,11 @@ const MemberProfile = () => {
         <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} last />
       </MenuGroup>
 
+      {/* App 推播通知（僅原生 App 顯示） */}
+      <PushNotificationCard />
+
+
+
       {/* 福利 */}
       <div>
         <div className="px-1 pb-2 text-sm font-medium text-muted-foreground">福利</div>
