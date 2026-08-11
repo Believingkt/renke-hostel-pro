@@ -398,6 +398,11 @@ Deno.serve(async (req) => {
       console.error("[create-paid-order] booking email failed (non-fatal):", e);
     }
 
+    // App 推播：訂房成功 + 付款成功
+    await pushOrderEvent(orderData.id, "order_created");
+    await pushOrderEvent(orderData.id, "payment_success");
+
+
     return jsonResponse({
       success: true,
       order: {
