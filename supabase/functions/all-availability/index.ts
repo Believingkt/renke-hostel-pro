@@ -283,7 +283,20 @@ Deno.serve(async (req) => {
         id: acc.id,
         name: acc.name,
         ...(wantRoomTypes ? { room_types: roomTypesResult } : {}),
-        ...(wantPackages ? { packages: pkgByAcc.get(acc.id) || [] } : {}),
+        ...(wantPackages
+          ? {
+              packages: (pkgByAcc.get(acc.id) || []).map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                numeric_code: p.numeric_code,
+                base_price: p.sale_price ?? p.original_price ?? null,
+                room_type_ids: p.room_type_ids ?? [],
+                room_type_allocation: p.room_type_allocation ?? null,
+                is_active: p.enabled ?? false,
+                display_order: p.display_order ?? null,
+              })),
+            }
+          : {}),
       };
     });
 
