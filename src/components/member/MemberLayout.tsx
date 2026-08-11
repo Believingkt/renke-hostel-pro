@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
+import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/pushNotifications";
+
 
 const navItems = [
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
