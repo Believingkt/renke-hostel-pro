@@ -66,6 +66,8 @@ const MemberLayout = () => {
       } else {
         setMemberName(existing.name);
       }
+      // 原生 App：登入後請求推播權限並註冊 device token（網頁版會直接略過）
+      initPushNotifications().catch(() => {});
     };
 
     const checkAuth = async () => {
@@ -87,10 +89,12 @@ const MemberLayout = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
+    await deactivateCurrentDeviceTokens();
     await supabase.auth.signOut();
     toast.success("已登出");
     navigate("/booking");
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
