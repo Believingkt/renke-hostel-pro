@@ -169,5 +169,19 @@ export async function processTapPayEvent(
     if (updErr) throw new Error(updErr.message);
   }
 
+  // App 推播：付款成功／退款完成（ATM 入帳、3DS 補回呼皆走這裡）
+  if (ok) {
+    if (eventType === "refund") {
+      await pushOrderEvent(order.id, "order_cancelled", {
+        amount: Number(orderPatch.refunded_amount ?? 0),
+      });
+    } else {
+      await pushOrderEvent(order.id, "payment_success", {
+        amount: Number(orderPatch.paid_amount ?? order.paid_amount ?? 0),
+      });
+    }
+  }
+
   return { matched: true, ok, orderId: order.id, orderNumber: order.order_number, eventType };
 }
+
