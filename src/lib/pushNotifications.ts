@@ -143,6 +143,7 @@ export async function bootstrapPushForExistingSession(): Promise<void> {
     await initPushNotifications();
   } catch (e) {
     console.error("[push] bootstrap failed", e);
+    debugToast("推播啟動檢查失敗", e);
   }
 }
 
