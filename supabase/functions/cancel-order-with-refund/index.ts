@@ -274,6 +274,13 @@ serve(async (req) => {
       console.error("[cancel-order-with-refund] email failed", mailErr);
     }
 
+    // App 推播：訂單取消／退款
+    await pushOrderEvent(order.id, "order_cancelled", {
+      amount: refundSucceeded ? refundAmount : 0,
+    });
+
+
+
     return new Response(
       JSON.stringify({
         success: true,
