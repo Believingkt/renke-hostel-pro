@@ -2,6 +2,22 @@
 // 網頁版完全不受影響：所有動作都會先檢查是否在原生 App 環境。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
+import { toast } from "sonner";
+
+/** 暫時除錯用：把 catch 到的錯誤完整顯示出來（同時保留 console log） */
+function debugToast(label: string, e: unknown) {
+  let detail = "";
+  try {
+    detail =
+      (e as any)?.message ??
+      (e as any)?.errorMessage ??
+      (e as any)?.error ??
+      (typeof e === "string" ? e : JSON.stringify(e));
+  } catch {
+    detail = String(e);
+  }
+  toast.error(`${label}: ${detail || "unknown error"}`, { duration: 15000 });
+}
 
 const DENIED_KEY = "push_permission_denied";
 
@@ -32,6 +48,7 @@ async function loadPlugin() {
     return mod.PushNotifications;
   } catch (e) {
     console.warn("[push] plugin unavailable", e);
+    debugToast("推播外掛載入失敗", e);
     return null;
   }
 }
@@ -93,7 +110,10 @@ export async function initPushNotifications(
       listenersBound = true;
       PushNotifications.addListener("registration", (t) => {
         console.log("[push] APNs token received (len)", t.value?.length);
-        saveToken(t.value).catch((e) => console.error("[push] save token failed", e));
+        saveToken(t.value).catch((e) => {
+          console.error("[push] save token failed", e);
+          debugToast("儲存 device token 失敗", e);
+        });
       });
       PushNotifications.addListener("registrationError", (err) => {
         console.error(
@@ -101,6 +121,7 @@ export async function initPushNotifications(
           (err as any)?.error ?? err,
           JSON.stringify(err ?? {}),
         );
+        debugToast("APNs 註冊失敗", (err as any)?.error ?? err);
       });
     }
     await PushNotifications.register();
@@ -108,6 +129,7 @@ export async function initPushNotifications(
     return "granted";
   } catch (e) {
     console.error("[push] init failed", e);
+    debugToast("推播初始化失敗", e);
     return "unsupported";
   }
 }
@@ -121,6 +143,7 @@ export async function bootstrapPushForExistingSession(): Promise<void> {
     await initPushNotifications();
   } catch (e) {
     console.error("[push] bootstrap failed", e);
+    debugToast("推播啟動檢查失敗", e);
   }
 }
 
@@ -133,7 +156,9 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
     if (perm.receive === "granted") return "granted";
     if (perm.receive === "denied") return "denied";
     return "prompt";
-  } catch {
+  } catch (e) {
+    console.error("[push] checkPermissions failed", e);
+    debugToast("查詢通知權限失敗", e);
     return "unsupported";
   }
 }
