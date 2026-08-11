@@ -156,6 +156,7 @@ export default function ManualReviewTasks() {
                 <SelectItem value="all">全部類型</SelectItem>
                 <SelectItem value="date_change_request">申請改期</SelectItem>
                 <SelectItem value="guest_count_repricing">變更人數</SelectItem>
+                <SelectItem value="refund_failed">退款待處理</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
