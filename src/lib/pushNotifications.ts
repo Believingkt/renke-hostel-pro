@@ -156,7 +156,9 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
     if (perm.receive === "granted") return "granted";
     if (perm.receive === "denied") return "denied";
     return "prompt";
-  } catch {
+  } catch (e) {
+    console.error("[push] checkPermissions failed", e);
+    debugToast("查詢通知權限失敗", e);
     return "unsupported";
   }
 }
