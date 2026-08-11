@@ -197,6 +197,7 @@ const KnowledgeSearchPage = lazy(() => import("./pages/admin/knowledge/Knowledge
 function App() {
   useVersionCheck();
   usePushBootstrap();
+  return (
     <BrowserRouter>
       <AccommodationProvider>
         <HQDomainRedirect>
