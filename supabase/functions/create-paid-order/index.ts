@@ -14,6 +14,8 @@ import {
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
+import { pushOrderEvent } from "../_shared/push.ts";
+
 import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
 import { queryTapPayRecord } from "../_shared/tappay.ts";
 
