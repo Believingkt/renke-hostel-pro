@@ -218,18 +218,66 @@ Deno.serve(async (req) => {
 
     const output = accs.map((acc: any) => {
       const rtList = rtByAcc.get(acc.id) || [];
-      const roomTypesResult = wantRoomTypes
-        ? buildAvailability({
-            from,
-            to,
-            roomTypes: rtList as any,
-            inventory: rtList.flatMap((r) => invByRt.get(r.id) || []) as any,
-            orders: (ordersByAcc.get(acc.id) || []) as any,
-            orderRooms: orderRoomsData as any,
-            templates: (tmplByAcc.get(acc.id) || []) as any,
-            holidays: (holByAcc.get(acc.id) || []) as any,
-          })
-        : undefined;
+      const holidaySet = new Set(
+        (holByAcc.get(acc.id) || [])
+          .filter((h: any) => h.holiday_type !== "work_on_weekend")
+          .map((h: any) => h.holiday_date),
+      );
+
+      let roomTypesResult: any[] | undefined;
+      if (wantRoomTypes) {
+        const computed = buildAvailability({
+          from,
+          to,
+          roomTypes: rtList as any,
+          inventory: rtList.flatMap((r) => invByRt.get(r.id) || []) as any,
+          orders: (ordersByAcc.get(acc.id) || []) as any,
+          orderRooms: orderRoomsData as any,
+          templates: (tmplByAcc.get(acc.id) || []) as any,
+          holidays: (holByAcc.get(acc.id) || []) as any,
+        });
+
+        roomTypesResult = computed.map((rtRes: any) => {
+          const rt = rtList.find((r) => r.id === rtRes.room_type_id);
+          const invRows = invByRt.get(rtRes.room_type_id) || [];
+          const invByDate = new Map(invRows.map((i: any) => [i.date, i]));
+          return {
+            id: rtRes.room_type_id,
+            name: rtRes.name,
+            capacity: rtRes.capacity,
+            room_count: rt?.room_count ?? null,
+            is_exclusive_package: rt?.is_exclusive_package ?? false,
+            days: rtRes.days.map((d: any) => {
+              const inv: any = invByDate.get(d.date);
+              const capacity = inv?.available_rooms ?? rt?.room_count ?? 0;
+              const sold = d.closed ? 0 : Math.max(0, capacity - d.remaining);
+              const closedReason = d.is_available
+                ? undefined
+                : inv?.is_available === false
+                  ? "manual_close"
+                  : d.remaining === 0 && !d.closed
+                    ? "sold_out"
+                    : "blocked";
+              return {
+                date: d.date,
+                weekday: new Date(d.date + "T00:00:00Z").getUTCDay(),
+                is_holiday: holidaySet.has(d.date),
+                price: d.price,
+                ...(inv?.price_2_meals != null && inv.price_2_meals > 0
+                  ? { price_2_meals: inv.price_2_meals }
+                  : {}),
+                ...(inv?.price_3_meals != null && inv.price_3_meals > 0
+                  ? { price_3_meals: inv.price_3_meals }
+                  : {}),
+                is_available: d.is_available && d.remaining > 0,
+                remaining: d.remaining,
+                sold,
+                ...(closedReason ? { closed_reason: closedReason } : {}),
+              };
+            }),
+          };
+        });
+      }
 
       return {
         id: acc.id,
@@ -238,6 +286,7 @@ Deno.serve(async (req) => {
         ...(wantPackages ? { packages: pkgByAcc.get(acc.id) || [] } : {}),
       };
     });
+
 
     return jsonResponse({
       from,
