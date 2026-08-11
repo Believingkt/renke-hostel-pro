@@ -119,18 +119,10 @@ serve(async (req) => {
         );
       }
 
-      // Locate rec_trade_id: prefer deposit_charges latest success, then parse from notes
-      const { data: lastCharge } = await supabase
-        .from("deposit_charges")
-        .select("rec_trade_id")
-        .eq("order_id", order.id)
-        .eq("action", "charge")
-        .eq("status", "success")
-        .not("rec_trade_id", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      recTradeIdUsed = lastCharge?.rec_trade_id || extractRecTradeId(order.notes);
+      // Locate rec_trade_id: orders 欄位 → deposit_charges 最新成功扣款 → notes 解析
+      recTradeIdUsed = (await resolveCardRecTradeId(supabase, order as any)) ||
+        extractRecTradeId(order.notes);
+
 
       if (!recTradeIdUsed) {
         return new Response(
