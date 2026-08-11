@@ -197,48 +197,25 @@ serve(async (req) => {
           await supabase.from("deposit_card_tokens").update({ is_active: false }).eq("id", tokenRow.id);
         }
       }
-      // 情境 B：已扣款 → 退還（已收金額 - 手續費）
+      // 情境 B：已扣款 → 退還（已收金額 - 手續費）；信用卡自動退刷，ATM／現金／轉帳走人工
       else if (Number(order.paid_amount || 0) > 0) {
         const refundAmount = quote.refundAmount;
         chargedFee = Math.min(Number(order.paid_amount || 0), quote.feeAmount);
-        if (refundAmount > 0 && partnerKey && order.room_charge_rec_trade_id) {
-          const r = await refundTapPay(partnerKey, order.room_charge_rec_trade_id, refundAmount);
-          await supabase.from("deposit_charges").insert({
-            order_id: order.id,
-            accommodation_id: order.accommodation_id,
-            action: "refund",
-            amount: refundAmount,
-            status: r.success ? "success" : "failed",
-            trigger_source: "member_cancel",
-            rec_trade_id: order.room_charge_rec_trade_id,
-            webhook_status: r.success ? "pending" : "failed",
-            needs_manual_review: !r.success,
-            error_message: r.success ? null : (r.msg || `TapPay error ${r.status}`),
-          });
-          if (r.success) {
-            refunded = refundAmount;
-            lines.push(
-              `🔒 已自動退刷 NT$${refunded.toLocaleString()}（保留手續費 NT$${chargedFee.toLocaleString()}）`,
-            );
-          } else {
-            needManual = true;
-            lines.push(`🔒 自動退刷失敗（${r.msg || r.status}），應退 NT$${refundAmount.toLocaleString()}，待人工處理`);
-          }
-        } else if (refundAmount > 0) {
-          needManual = true;
-          await supabase.from("deposit_charges").insert({
-            order_id: order.id,
-            accommodation_id: order.accommodation_id,
-            action: "refund",
-            amount: refundAmount,
-            status: "failed",
-            trigger_source: "member_cancel",
-            needs_manual_review: true,
-            error_message: "無可退刷交易編號，需人工退款",
-          });
-          lines.push(`🔒 應退款 NT$${refundAmount.toLocaleString()}，無可退刷交易編號，待人工退款`);
-        } else {
-          lines.push("🔒 依取消政策不予退款");
+        refundOutcome = await refundOrderCard(
+          supabase,
+          order as any,
+          refundAmount,
+          "member_cancel",
+        );
+        refunded = refundOutcome.refunded;
+        needManual = refundAmount > 0 && !refundOutcome.success;
+        lines.push(
+          refundOutcome.success
+            ? `🔒 ${refundOutcome.note}（保留手續費 NT$${chargedFee.toLocaleString()}）`
+            : `🔒 ${refundOutcome.note}`,
+        );
+        if (needManual) {
+          await flagRefundNeedsManual(supabase, order as any, refundAmount, refundOutcome);
         }
       } else {
         lines.push("🔒 訂單尚未收款，取消不產生退款");
@@ -252,13 +229,15 @@ serve(async (req) => {
           cancelled_at: new Date().toISOString(),
           cancellation_fee_amount: chargedFee,
           cancellation_fee_percent: quote.percent,
-          refunded_amount: refunded,
           paid_amount: Math.max(0, Number(order.paid_amount || 0) - refunded) + (chargedFee && Number(order.paid_amount || 0) === 0 ? chargedFee : 0),
           payment_status: refunded > 0 || Number(order.paid_amount || 0) === 0 ? "refunded" : order.payment_status,
           room_charge_status: order.room_charge_status ? "cancelled" : null,
           notes: appendNote(lines.join("\n")),
+          refunded_amount: refunded,
+          ...(refundOutcome ? buildRefundPatch(refundOutcome, Number(order.paid_amount || 0)) : {}),
         })
         .eq("id", order.id);
+
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
 
       // 客人自行取消 → 寄取消通知信（後台人員取消不會走這裡，因此不寄信）
