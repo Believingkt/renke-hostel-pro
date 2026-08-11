@@ -6,6 +6,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { refundTapPay } from "../_shared/tappay.ts";
+import {
+  extractRecTradeIdFromNotes,
+  flagRefundNeedsManual,
+  resolveCardRecTradeId,
+} from "../_shared/orderRefund.ts";
 import { canEditModule, resolveCaller } from "../_shared/authz.ts";
 
 
@@ -18,17 +23,7 @@ interface Body {
   refundAmount?: number; // optional override; defaults to paid_amount
 }
 
-function extractRecTradeId(notes: string | null): string | null {
-  if (!notes) return null;
-  // 優先比對 tappay-notify / atm-create 寫入的 "(rec_trade_id: XXX)" 格式，取最後一筆（最新）
-  const matches = [...notes.matchAll(/rec_trade_id[:\s]+([A-Za-z0-9_\-]+)/gi)];
-  if (matches.length > 0) {
-    return matches[matches.length - 1][1];
-  }
-  // Fallback：舊版 "TapPay 交易：XXX" 格式
-  const m = notes.match(/TapPay(?:\s+3DS)?\s*交易[:：]\s*([A-Za-z0-9_\-]+)/);
-  return m ? m[1] : null;
-}
+const extractRecTradeId = (notes: string | null) => extractRecTradeIdFromNotes(notes);
 
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
@@ -68,7 +63,7 @@ serve(async (req) => {
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, notes")
+      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, room_charge_rec_trade_id, notes")
       .eq("id", body.orderId)
       .maybeSingle();
     if (orderErr || !order) {
@@ -124,18 +119,10 @@ serve(async (req) => {
         );
       }
 
-      // Locate rec_trade_id: prefer deposit_charges latest success, then parse from notes
-      const { data: lastCharge } = await supabase
-        .from("deposit_charges")
-        .select("rec_trade_id")
-        .eq("order_id", order.id)
-        .eq("action", "charge")
-        .eq("status", "success")
-        .not("rec_trade_id", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      recTradeIdUsed = lastCharge?.rec_trade_id || extractRecTradeId(order.notes);
+      // Locate rec_trade_id: orders 欄位 → deposit_charges 最新成功扣款 → notes 解析
+      recTradeIdUsed = (await resolveCardRecTradeId(supabase, order as any)) ||
+        extractRecTradeId(order.notes);
+
 
       if (!recTradeIdUsed) {
         return new Response(
@@ -157,6 +144,18 @@ serve(async (req) => {
 
       const refundResult = await refundTapPay(partnerKey, recTradeIdUsed, refundAmount);
       refundSucceeded = refundResult.success;
+      await supabase.from("deposit_charges").insert({
+        order_id: order.id,
+        accommodation_id: order.accommodation_id,
+        action: "refund",
+        amount: refundAmount,
+        status: refundSucceeded ? "success" : "failed",
+        trigger_source: "admin_cancel",
+        rec_trade_id: recTradeIdUsed,
+        webhook_status: refundSucceeded ? "pending" : "failed",
+        needs_manual_review: !refundSucceeded,
+        error_message: refundSucceeded ? null : (refundResult.msg || `TapPay error ${refundResult.status}`),
+      });
       if (!refundSucceeded) {
         // Do NOT cancel the order if refund failed — keep money + order in sync
         const msgLower = typeof refundResult.msg === "string" ? refundResult.msg.toLowerCase() : "";
@@ -169,6 +168,20 @@ serve(async (req) => {
           : isRisky
             ? "此筆退款被 TapPay 風控暫時拒絕（代碼 10016），訂單未取消。請改用「手動退款」，或聯絡 TapPay 客服了解原因。"
             : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
+        await supabase
+          .from("orders")
+          .update({ refund_status: "failed", refund_rec_trade_id: recTradeIdUsed })
+          .eq("id", order.id);
+        await flagRefundNeedsManual(supabase, order as any, refundAmount, {
+          attempted: true,
+          success: false,
+          refunded: 0,
+          recTradeId: recTradeIdUsed,
+          status: refundResult.status,
+          msg: refundResult.msg,
+          reason: "tappay_error",
+          note: failMessage,
+        });
         return new Response(
           JSON.stringify({
             success: false,
@@ -207,6 +220,13 @@ serve(async (req) => {
       const newPaid = Math.max(0, paidAmount - refundAmount);
       patch.paid_amount = newPaid;
       patch.payment_status = newPaid === 0 ? "refunded" : "partial_refunded";
+      patch.refunded_amount = refundAmount;
+      patch.refund_rec_trade_id = recTradeIdUsed;
+      patch.refunded_at = nowIso;
+      patch.refund_status = newPaid === 0 ? "refunded" : "partial_refunded";
+    }
+    if (body.refundAction === "mark_manual_refund" && refundAmount > 0) {
+      patch.refund_status = "pending_manual";
     }
 
     const { error: upErr } = await supabase.from("orders").update(patch).eq("id", order.id);
@@ -223,6 +243,37 @@ serve(async (req) => {
       );
     }
 
+    if (body.refundAction === "mark_manual_refund" && refundAmount > 0) {
+      await flagRefundNeedsManual(supabase, order as any, refundAmount, {
+        attempted: false,
+        success: false,
+        refunded: 0,
+        recTradeId: null,
+        reason: "not_card",
+        note: "後台標記手動退款",
+      });
+    }
+
+    // 取消通知信（含退款資訊，best-effort）
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-cancelled-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          chargedFee: Math.max(0, paidAmount - (refundSucceeded ? refundAmount : 0)),
+          refunded: refundSucceeded ? refundAmount : 0,
+          needManual: body.refundAction === "mark_manual_refund" && refundAmount > 0,
+          triggerSource: "admin_cancel",
+        }),
+      });
+    } catch (mailErr) {
+      console.error("[cancel-order-with-refund] email failed", mailErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -236,6 +287,7 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("[cancel-order-with-refund] error", e);
     const msg = e instanceof Error ? e.message : "Unknown error";

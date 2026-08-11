@@ -64,7 +64,11 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 };
 
 const typeLabel = (t: string) =>
-  t === "date_change_request" ? "申請改期" : "變更人數需重新計價";
+  t === "date_change_request"
+    ? "申請改期"
+    : t === "refund_failed"
+      ? "退款待處理"
+      : "變更人數需重新計價";
 
 const fmtDate = (v: string | null) => (v ? v.slice(0, 10) : "-");
 
@@ -152,6 +156,7 @@ export default function ManualReviewTasks() {
                 <SelectItem value="all">全部類型</SelectItem>
                 <SelectItem value="date_change_request">申請改期</SelectItem>
                 <SelectItem value="guest_count_repricing">變更人數</SelectItem>
+                <SelectItem value="refund_failed">退款待處理</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -202,7 +207,9 @@ export default function ManualReviewTasks() {
                       <TableCell className="text-sm">
                         {r.task_type === "date_change_request"
                           ? `${fmtDate(r.requested_check_in)} ~ ${fmtDate(r.requested_check_out)}`
-                          : `${r.requested_guest_count ?? "-"} 人`}
+                          : r.task_type === "refund_failed"
+                            ? "取消退款"
+                            : `${r.requested_guest_count ?? "-"} 人`}
                         {r.requester_note && (
                           <div className="text-xs text-muted-foreground truncate">
                             {r.requester_note}

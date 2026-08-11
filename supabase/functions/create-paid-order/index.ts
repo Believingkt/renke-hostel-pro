@@ -286,6 +286,7 @@ Deno.serve(async (req) => {
         paid_amount: body.finalPrice,
         order_status: "pending",
         notes: orderNotes,
+        room_charge_rec_trade_id: recTradeId,
         pet_count: body.petCount || 0,
         pet_plan_price: body.petPlanPrice || 0,
         meal_plan_details: body.mealPlanDetails || [],
