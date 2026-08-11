@@ -110,7 +110,10 @@ export async function initPushNotifications(
       listenersBound = true;
       PushNotifications.addListener("registration", (t) => {
         console.log("[push] APNs token received (len)", t.value?.length);
-        saveToken(t.value).catch((e) => console.error("[push] save token failed", e));
+        saveToken(t.value).catch((e) => {
+          console.error("[push] save token failed", e);
+          debugToast("儲存 device token 失敗", e);
+        });
       });
       PushNotifications.addListener("registrationError", (err) => {
         console.error(
@@ -118,6 +121,7 @@ export async function initPushNotifications(
           (err as any)?.error ?? err,
           JSON.stringify(err ?? {}),
         );
+        debugToast("APNs 註冊失敗", (err as any)?.error ?? err);
       });
     }
     await PushNotifications.register();
@@ -125,6 +129,7 @@ export async function initPushNotifications(
     return "granted";
   } catch (e) {
     console.error("[push] init failed", e);
+    debugToast("推播初始化失敗", e);
     return "unsupported";
   }
 }
