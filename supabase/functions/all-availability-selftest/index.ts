@@ -6,12 +6,14 @@ Deno.serve(async () => {
   const withKey = await fetch(base, {
     headers: { "x-api-key": Deno.env.get("PLATFORM_MASTER_API_KEY") ?? "" },
   });
-  const body = await withKey.json().catch(() => null);
+  const raw = await withKey.text();
+  const body = (() => { try { return JSON.parse(raw); } catch { return null; } })();
   return new Response(
     JSON.stringify({
       no_key: { status: noKey.status, body: noKeyBody.slice(0, 200) },
       with_key: {
         status: withKey.status,
+        error: body?.error ?? raw.slice(0, 300),
         accommodations: Array.isArray(body?.accommodations) ? body.accommodations.length : null,
         sample: body?.accommodations?.[0]
           ? {
