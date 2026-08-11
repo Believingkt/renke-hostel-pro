@@ -95,8 +95,13 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = true
   [functions.push-ragic-revenue]
     verify_jwt = true
+  [functions.push-checkin-reminders]
+    verify_jwt = false
   [functions.register-member-guest]
     verify_jwt = false
+  [functions.send-push]
+    verify_jwt = false
+
   [functions.report-frontend-error]
     verify_jwt = false
   [functions.resend-invite]

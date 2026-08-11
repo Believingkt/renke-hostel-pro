@@ -14,6 +14,8 @@ import {
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
+import { pushOrderEvent } from "../_shared/push.ts";
+
 import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
 import { queryTapPayRecord } from "../_shared/tappay.ts";
 
@@ -397,6 +399,11 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error("[create-paid-order] booking email failed (non-fatal):", e);
     }
+
+    // App 推播：訂房成功 + 付款成功
+    await pushOrderEvent(orderData.id, "order_created");
+    await pushOrderEvent(orderData.id, "payment_success");
+
 
     return jsonResponse({
       success: true,

@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
+import PushNotificationCard from "@/components/member/PushNotificationCard";
+
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
 
@@ -257,6 +259,11 @@ const MemberProfile = () => {
         <MenuRow icon={ClipboardList} label="常用資訊" onClick={() => navigate("/member/common-info")} />
         <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} last />
       </MenuGroup>
+
+      {/* App 推播通知（僅原生 App 顯示） */}
+      <PushNotificationCard />
+
+
 
       {/* 福利 */}
       <div>

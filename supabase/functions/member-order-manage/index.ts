@@ -5,6 +5,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
+import { pushOrderEvent } from "../_shared/push.ts";
+
 import { payByCardToken } from "../_shared/tappay.ts";
 import {
   buildRefundPatch,
@@ -267,6 +269,11 @@ serve(async (req) => {
       } catch (mailErr) {
         console.error("[member-order-manage] cancellation email failed", mailErr);
       }
+
+      // App 推播：訂單取消／退款
+      await pushOrderEvent(order.id, "order_cancelled", { amount: refunded });
+
+
 
       return json(
         {

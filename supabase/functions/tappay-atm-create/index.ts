@@ -5,6 +5,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { pushOrderEvent } from "../_shared/push.ts";
+
 
 interface AtmCreatePayload {
   prime: string;
@@ -323,6 +325,11 @@ serve(async (req) => {
       notes: newNotes,
       updated_at: new Date().toISOString(),
     }).eq("id", order.id);
+
+    // App 推播：訂房成功（含 ATM 繳費資訊）
+    await pushOrderEvent(order.id, "order_created");
+
+
 
     return new Response(JSON.stringify({
       success: true,
