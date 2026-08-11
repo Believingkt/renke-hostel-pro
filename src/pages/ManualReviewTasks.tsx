@@ -206,7 +206,9 @@ export default function ManualReviewTasks() {
                       <TableCell className="text-sm">
                         {r.task_type === "date_change_request"
                           ? `${fmtDate(r.requested_check_in)} ~ ${fmtDate(r.requested_check_out)}`
-                          : `${r.requested_guest_count ?? "-"} 人`}
+                          : r.task_type === "refund_failed"
+                            ? "取消退款"
+                            : `${r.requested_guest_count ?? "-"} 人`}
                         {r.requester_note && (
                           <div className="text-xs text-muted-foreground truncate">
                             {r.requester_note}
