@@ -4,7 +4,9 @@
     "title": "Accommodation API",
     "version": "1.0.0",
     "description": "供外部系統（Bot、Channel Manager、旅遊平台）串接民宿房型、房價、庫存的唯讀 API。一把 API Key 綁定單一民宿，僅回傳該館資料。",
-    "contact": { "name": "Lakeze Hostel Platform" }
+    "contact": {
+      "name": "Lakeze Hostel Platform"
+    }
   },
   "servers": [
     {
@@ -13,18 +15,33 @@
     }
   ],
   "security": [
-    { "ApiKeyHeader": [] },
-    { "BearerAuth": [] }
+    {
+      "ApiKeyHeader": []
+    },
+    {
+      "BearerAuth": []
+    }
   ],
   "tags": [
-    { "name": "Meta", "description": "服務中繼資訊（版本、健康檢查）" },
-    { "name": "Availability", "description": "查詢每日剩餘可售房量、房價與開關房狀態" },
-    { "name": "Room Types", "description": "房型列表與詳情" }
+    {
+      "name": "Meta",
+      "description": "服務中繼資訊（版本、健康檢查）"
+    },
+    {
+      "name": "Availability",
+      "description": "查詢每日剩餘可售房量、房價與開關房狀態"
+    },
+    {
+      "name": "Room Types",
+      "description": "房型列表與詳情"
+    }
   ],
   "paths": {
     "/version": {
       "get": {
-        "tags": ["Meta"],
+        "tags": [
+          "Meta"
+        ],
         "summary": "服務版本資訊（公開，免 API Key）",
         "description": "回傳 API 版本、建置日期、支援端點清單與伺服器時間。此端點不需要驗證，可用於健康檢查與版本比對。",
         "operationId": "getVersion",
@@ -34,7 +51,9 @@
             "description": "版本資訊",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/VersionResponse" },
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                },
                 "example": {
                   "name": "accommodation-api",
                   "version": "1.1.0",
@@ -58,7 +77,9 @@
     },
     "/availability": {
       "get": {
-        "tags": ["Availability"],
+        "tags": [
+          "Availability"
+        ],
         "summary": "查詢日期區間內每日的剩餘可售房量、房價、開關房狀態",
         "description": "回傳 from ~ to 每一天的 remaining、price、is_available、closed。可訂判斷：`closed === false && remaining > 0 && price !== null`。房量、房價、關房規則與官網訂房、點數訂房共用同一套邏輯。",
         "operationId": "getAvailability",
@@ -68,21 +89,32 @@
             "in": "query",
             "required": true,
             "description": "起始日期（含當日）YYYY-MM-DD",
-            "schema": { "type": "string", "format": "date", "example": "2026-07-01" }
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-07-01"
+            }
           },
           {
             "name": "to",
             "in": "query",
             "required": true,
             "description": "結束日期（含當日）YYYY-MM-DD。需 ≥ from，區間最多 60 天。",
-            "schema": { "type": "string", "format": "date", "example": "2026-07-07" }
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-07-07"
+            }
           },
           {
             "name": "room_type_id",
             "in": "query",
             "required": false,
             "description": "房型 ID，可用逗號分隔多個；未帶則回本館全部房型。不屬於本館的 ID 會被忽略。",
-            "schema": { "type": "string", "example": "uuid-1,uuid-2" }
+            "schema": {
+              "type": "string",
+              "example": "uuid-1,uuid-2"
+            }
           }
         ],
         "responses": {
@@ -90,7 +122,9 @@
             "description": "查詢成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AvailabilityResponse" },
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                },
                 "example": {
                   "accommodation_id": "acc-uuid",
                   "from": "2026-07-01",
@@ -102,9 +136,27 @@
                       "name": "海景雙人房",
                       "capacity": 2,
                       "days": [
-                        { "date": "2026-07-01", "remaining": 2, "price": 3800, "is_available": true, "closed": false },
-                        { "date": "2026-07-02", "remaining": 3, "price": 3800, "is_available": true, "closed": false },
-                        { "date": "2026-07-03", "remaining": 0, "price": null, "is_available": false, "closed": true }
+                        {
+                          "date": "2026-07-01",
+                          "remaining": 2,
+                          "price": 3800,
+                          "is_available": true,
+                          "closed": false
+                        },
+                        {
+                          "date": "2026-07-02",
+                          "remaining": 3,
+                          "price": 3800,
+                          "is_available": true,
+                          "closed": false
+                        },
+                        {
+                          "date": "2026-07-03",
+                          "remaining": 0,
+                          "price": null,
+                          "is_available": false,
+                          "closed": true
+                        }
                       ]
                     }
                   ]
@@ -112,15 +164,23 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/ServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
         }
       }
     },
     "/room-types": {
       "get": {
-        "tags": ["Room Types"],
+        "tags": [
+          "Room Types"
+        ],
         "summary": "列出此民宿全部房型（含 amenities 與 photos）",
         "description": "建議先呼叫此端點取得房型 ID，再帶入 /availability 查價量。",
         "operationId": "listRoomTypes",
@@ -134,21 +194,29 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/RoomType" }
+                      "items": {
+                        "$ref": "#/components/schemas/RoomType"
+                      }
                     }
                   }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/ServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
         }
       }
     },
     "/room-types/{id}": {
       "get": {
-        "tags": ["Room Types"],
+        "tags": [
+          "Room Types"
+        ],
         "summary": "取得單一房型詳情",
         "operationId": "getRoomType",
         "parameters": [
@@ -157,7 +225,10 @@
             "in": "path",
             "required": true,
             "description": "房型 ID（UUID）",
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -167,14 +238,111 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/RoomType" } }
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RoomType"
+                    }
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/ServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/all-availability": {
+      "servers": [
+        {
+          "url": "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1",
+          "description": "Platform (master key)"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "全平台庫存 / 房價 / 包棟方案（Master Key）",
+        "description": "以 Platform Master Key 一次取得多間民宿的房型逐日庫存房價與包棟方案。唯讀。區間最多 60 天。",
+        "security": [
+          {
+            "MasterKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "含當日；與 from 相距最多 60 天"
+          },
+          {
+            "name": "accommodation_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "逗號分隔 UUID；不填=全部民宿"
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "room_types,packages"
+            },
+            "description": "逗號分隔，可選 room_types、packages"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllAvailabilityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "參數錯誤（缺 from/to、格式錯誤、區間超過 60 天）"
+          },
+          "401": {
+            "description": "Master API key 缺失或無效"
+          },
+          "405": {
+            "description": "僅支援 GET"
+          },
+          "500": {
+            "description": "伺服器錯誤"
+          }
         }
       }
     }
@@ -191,86 +359,203 @@
         "type": "http",
         "scheme": "bearer",
         "description": "亦可使用 Authorization: Bearer <API_KEY>"
+      },
+      "MasterKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Platform Master Key（PLATFORM_MASTER_API_KEY）。可讀全平台庫存，僅供內部後端 / BI 使用。"
       }
     },
     "schemas": {
       "VersionResponse": {
         "type": "object",
-        "required": ["name", "version", "endpoints", "server_time"],
+        "required": [
+          "name",
+          "version",
+          "endpoints",
+          "server_time"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "version": { "type": "string" },
-          "build_date": { "type": "string", "format": "date" },
-          "runtime": { "type": "string" },
-          "endpoints": { "type": "array", "items": { "type": "string" } },
-          "docs_url": { "type": "string", "format": "uri" },
-          "server_time": { "type": "string", "format": "date-time" }
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "build_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "docs_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "server_time": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "AvailabilityResponse": {
         "type": "object",
-        "required": ["accommodation_id", "from", "to", "currency", "room_types"],
+        "required": [
+          "accommodation_id",
+          "from",
+          "to",
+          "currency",
+          "room_types"
+        ],
         "properties": {
-          "accommodation_id": { "type": "string", "format": "uuid" },
-          "from": { "type": "string", "format": "date" },
-          "to": { "type": "string", "format": "date" },
-          "currency": { "type": "string", "example": "TWD" },
+          "accommodation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "example": "TWD"
+          },
           "room_types": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/RoomTypeAvailability" }
+            "items": {
+              "$ref": "#/components/schemas/RoomTypeAvailability"
+            }
           }
         }
       },
       "RoomTypeAvailability": {
         "type": "object",
-        "required": ["room_type_id", "name", "capacity", "days"],
+        "required": [
+          "room_type_id",
+          "name",
+          "capacity",
+          "days"
+        ],
         "properties": {
-          "room_type_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "capacity": { "type": "integer", "minimum": 1 },
+          "room_type_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1
+          },
           "days": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/DayAvailability" }
+            "items": {
+              "$ref": "#/components/schemas/DayAvailability"
+            }
           }
         }
       },
       "DayAvailability": {
         "type": "object",
-        "required": ["date", "remaining", "price", "is_available", "closed"],
+        "required": [
+          "date",
+          "remaining",
+          "price",
+          "is_available",
+          "closed"
+        ],
         "properties": {
-          "date": { "type": "string", "format": "date" },
-          "remaining": { "type": "integer", "minimum": 0, "description": "當日剩餘可售房量" },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "當日剩餘可售房量"
+          },
           "price": {
             "type": "integer",
             "nullable": true,
             "description": "當日房價（整數 TWD）；關房或未設定價格為 null"
           },
-          "is_available": { "type": "boolean" },
-          "closed": { "type": "boolean", "description": "true 表因庫存關房、整棟保留或包棟互斥而不可銷售" }
+          "is_available": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean",
+            "description": "true 表因庫存關房、整棟保留或包棟互斥而不可銷售"
+          }
         }
       },
       "RoomType": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "accommodation_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "name_en": { "type": "string", "nullable": true },
-          "description": { "type": "string", "nullable": true },
-          "capacity": { "type": "integer" },
-          "base_price": { "type": "number" },
-          "room_count": { "type": "integer" },
-          "size_sqm": { "type": "number", "nullable": true },
-          "display_order": { "type": "integer" },
-          "is_exclusive_package": { "type": "boolean" },
-          "is_bound_to_exclusive": { "type": "boolean" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accommodation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacity": {
+            "type": "integer"
+          },
+          "base_price": {
+            "type": "number"
+          },
+          "room_count": {
+            "type": "integer"
+          },
+          "size_sqm": {
+            "type": "number",
+            "nullable": true
+          },
+          "display_order": {
+            "type": "integer"
+          },
+          "is_exclusive_package": {
+            "type": "boolean"
+          },
+          "is_bound_to_exclusive": {
+            "type": "boolean"
+          },
           "room_amenities": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "category": { "type": "string" },
-                "amenity_name": { "type": "string" }
+                "category": {
+                  "type": "string"
+                },
+                "amenity_name": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -279,8 +564,13 @@
             "items": {
               "type": "object",
               "properties": {
-                "photo_url": { "type": "string", "format": "uri" },
-                "display_order": { "type": "integer" }
+                "photo_url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "display_order": {
+                  "type": "integer"
+                }
               }
             }
           }
@@ -288,8 +578,163 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
-        "properties": { "error": { "type": "string" } }
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "AllAvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "example": "TWD"
+          },
+          "accommodations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "room_types": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "capacity": {
+                        "type": "integer"
+                      },
+                      "room_count": {
+                        "type": "integer",
+                        "nullable": true
+                      },
+                      "is_exclusive_package": {
+                        "type": "boolean"
+                      },
+                      "days": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "date": {
+                              "type": "string",
+                              "format": "date"
+                            },
+                            "weekday": {
+                              "type": "integer",
+                              "description": "0=週日 … 6=週六"
+                            },
+                            "is_holiday": {
+                              "type": "boolean"
+                            },
+                            "price": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "price_2_meals": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "price_3_meals": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "is_available": {
+                              "type": "boolean"
+                            },
+                            "remaining": {
+                              "type": "integer"
+                            },
+                            "sold": {
+                              "type": "integer"
+                            },
+                            "closed_reason": {
+                              "type": "string",
+                              "enum": [
+                                "manual_close",
+                                "sold_out",
+                                "blocked"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "packages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "numeric_code": {
+                        "type": "integer",
+                        "nullable": true
+                      },
+                      "base_price": {
+                        "type": "integer",
+                        "nullable": true
+                      },
+                      "room_type_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "room_type_allocation": {
+                        "type": "object",
+                        "nullable": true,
+                        "additionalProperties": {
+                          "type": "integer"
+                        }
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "display_order": {
+                        "type": "integer",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "responses": {
@@ -297,12 +742,30 @@
         "description": "參數錯誤",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
             "examples": {
-              "missing": { "value": { "error": "from and to are required" } },
-              "format": { "value": { "error": "Invalid date format, expected YYYY-MM-DD" } },
-              "order": { "value": { "error": "to must be greater than or equal to from" } },
-              "range": { "value": { "error": "Date range too large (max 60 days)" } }
+              "missing": {
+                "value": {
+                  "error": "from and to are required"
+                }
+              },
+              "format": {
+                "value": {
+                  "error": "Invalid date format, expected YYYY-MM-DD"
+                }
+              },
+              "order": {
+                "value": {
+                  "error": "to must be greater than or equal to from"
+                }
+              },
+              "range": {
+                "value": {
+                  "error": "Date range too large (max 60 days)"
+                }
+              }
             }
           }
         }
@@ -311,10 +774,20 @@
         "description": "未帶 API Key 或金鑰無效",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
             "examples": {
-              "missing": { "value": { "error": "Missing API key" } },
-              "invalid": { "value": { "error": "Invalid API key" } }
+              "missing": {
+                "value": {
+                  "error": "Missing API key"
+                }
+              },
+              "invalid": {
+                "value": {
+                  "error": "Invalid API key"
+                }
+              }
             }
           }
         }
@@ -323,8 +796,12 @@
         "description": "資源不存在",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Room type not found" }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Room type not found"
+            }
           }
         }
       },
@@ -332,8 +809,12 @@
         "description": "伺服器錯誤",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Internal server error" }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Internal server error"
+            }
           }
         }
       }
