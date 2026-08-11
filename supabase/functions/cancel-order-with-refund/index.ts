@@ -63,7 +63,7 @@ serve(async (req) => {
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, notes")
+      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, room_charge_rec_trade_id, notes")
       .eq("id", body.orderId)
       .maybeSingle();
     if (orderErr || !order) {
