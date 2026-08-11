@@ -24,7 +24,7 @@ import {
   enumerateDates,
   isValidDateStr,
   MAX_RANGE_DAYS,
-} from "../accommodation-api/availability.ts";
+} from "../_shared/availability.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
