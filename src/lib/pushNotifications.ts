@@ -48,6 +48,7 @@ async function loadPlugin() {
     return mod.PushNotifications;
   } catch (e) {
     console.warn("[push] plugin unavailable", e);
+    debugToast("推播外掛載入失敗", e);
     return null;
   }
 }
