@@ -324,6 +324,11 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("id", order.id);
 
+    // App 推播：訂房成功（含 ATM 繳費資訊）
+    await pushOrderEvent(order.id, "order_created");
+
+
+
     return new Response(JSON.stringify({
       success: true,
       vaccNo,
