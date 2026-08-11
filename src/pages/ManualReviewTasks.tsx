@@ -64,7 +64,11 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 };
 
 const typeLabel = (t: string) =>
-  t === "date_change_request" ? "申請改期" : "變更人數需重新計價";
+  t === "date_change_request"
+    ? "申請改期"
+    : t === "refund_failed"
+      ? "退款待處理"
+      : "變更人數需重新計價";
 
 const fmtDate = (v: string | null) => (v ? v.slice(0, 10) : "-");
 
