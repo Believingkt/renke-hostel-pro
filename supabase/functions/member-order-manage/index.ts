@@ -268,6 +268,11 @@ serve(async (req) => {
         console.error("[member-order-manage] cancellation email failed", mailErr);
       }
 
+      // App 推播：訂單取消／退款
+      await pushOrderEvent(order.id, "order_cancelled", { amount: refunded });
+
+
+
       return json(
         {
           success: true,
