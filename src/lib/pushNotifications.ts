@@ -55,42 +55,72 @@ async function saveToken(token: string) {
     );
 }
 
-let registered = false;
+let listenersBound = false;
 
 /**
- * 會員登入成功後呼叫：請求通知權限 → register() → 取得 APNs token 存入 device_tokens。
- * 被拒絕過就直接跳過，不再重複跳窗。
+ * App 啟動或會員登入後呼叫：
+ * - 已允許 → 直接 register()，每次啟動都 upsert token（token 可能輪替）
+ * - 尚未詢問過 → requestPermissions() 跳出系統詢問
+ * - 曾被拒絕 → 跳過（除非 force，由「開啟訂單通知」按鈕觸發）
  */
-export async function initPushNotifications(): Promise<PushPermissionState> {
+export async function initPushNotifications(
+  options?: { force?: boolean },
+): Promise<PushPermissionState> {
   const PushNotifications = await loadPlugin();
   if (!PushNotifications) return "unsupported";
-  if (isPushDenied()) return "denied";
 
   try {
     let perm = await PushNotifications.checkPermissions();
-    if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
+    console.log("[push] current permission:", perm.receive);
+
+    if (perm.receive !== "granted") {
+      if (isPushDenied() && !options?.force) return "denied";
+      if (perm.receive === "denied" && !options?.force) {
+        markDenied(true);
+        return "denied";
+      }
       perm = await PushNotifications.requestPermissions();
+      console.log("[push] permission after request:", perm.receive);
     }
+
     if (perm.receive !== "granted") {
       markDenied(true);
       return "denied";
     }
     markDenied(false);
 
-    if (!registered) {
-      registered = true;
+    if (!listenersBound) {
+      listenersBound = true;
       PushNotifications.addListener("registration", (t) => {
+        console.log("[push] APNs token received (len)", t.value?.length);
         saveToken(t.value).catch((e) => console.error("[push] save token failed", e));
       });
       PushNotifications.addListener("registrationError", (err) => {
-        console.error("[push] registration error", err);
+        console.error(
+          "[push] registration error",
+          (err as any)?.error ?? err,
+          JSON.stringify(err ?? {}),
+        );
       });
     }
     await PushNotifications.register();
+    console.log("[push] register() called");
     return "granted";
   } catch (e) {
     console.error("[push] init failed", e);
     return "unsupported";
+  }
+}
+
+/** App 啟動時：偵測到既有會員 session 就初始化推播（不限剛登入） */
+export async function bootstrapPushForExistingSession(): Promise<void> {
+  if (!isNativeApp()) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    await initPushNotifications();
+  } catch (e) {
+    console.error("[push] bootstrap failed", e);
   }
 }
 
