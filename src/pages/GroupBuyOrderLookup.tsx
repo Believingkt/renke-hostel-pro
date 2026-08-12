@@ -67,9 +67,34 @@ export default function GroupBuyOrderLookup() {
     }
   };
 
+  const submitCancelRequest = async () => {
+    setCancelSubmitting(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
+        body: { orderNumber, phoneLast4, action: "request_cancel", reason: cancelReason },
+      });
+      const payload: any = res;
+      if (error || payload?.error) {
+        toast({ title: "取消申請失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "已收到您的取消申請",
+        description: "民宿確認後會處理退款，退款將於當月月底前完成。",
+      });
+      setCancelOpen(false);
+      setCancelReason("");
+      await lookup();
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
+
   const order = data?.order;
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
+  const cancelRequest = data?.cancelRequest ?? null;
+
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 pb-20">
