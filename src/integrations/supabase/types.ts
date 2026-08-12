@@ -4293,6 +4293,53 @@ export type Database = {
           },
         ]
       }
+      group_buy_venue_intros: {
+        Row: {
+          accommodation_id: string
+          address: string | null
+          check_in_notice: string | null
+          created_at: string
+          description: string | null
+          facilities: string[]
+          gallery_urls: string[]
+          is_visible: boolean
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          address?: string | null
+          check_in_notice?: string | null
+          created_at?: string
+          description?: string | null
+          facilities?: string[]
+          gallery_urls?: string[]
+          is_visible?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          address?: string | null
+          check_in_notice?: string | null
+          created_at?: string
+          description?: string | null
+          facilities?: string[]
+          gallery_urls?: string[]
+          is_visible?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_venue_intros_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotelnabe_ari_push_log: {
         Row: {
           accommodation_id: string
