@@ -207,6 +207,10 @@ Deno.serve(async (req) => {
         return bankToInfo(data);
       })(),
       events: events ?? [],
+      cancelRequest: cancelRequestedEvent
+        ? { requestedAt: (cancelRequestedEvent as any).created_at, note: (cancelRequestedEvent as any).note }
+        : null,
+
       emails: emailEvents.map((e: any) => ({
         status: e.event_type === "email_sent" ? "sent" : "failed",
         note: e.note,
