@@ -356,11 +356,19 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
     });
 
     const guides = parsed?.guides && typeof parsed.guides === "object" ? parsed.guides : {};
-    const tri = (v: any) => ({
-      zh: typeof v?.zh === "string" ? v.zh.slice(0, 300) : "",
-      ja: typeof v?.ja === "string" ? v.ja.slice(0, 300) : "",
-      en: typeof v?.en === "string" ? v.en.slice(0, 300) : "",
-    });
+    const tri = (v: any) => {
+      // fast 模式只生中文（字串），其餘語系先以中文帶入，之後可 lazy 補生成
+      if (typeof v === "string") {
+        const zh = v.slice(0, 300);
+        return { zh, ja: "", en: "" };
+      }
+      return {
+        zh: typeof v?.zh === "string" ? v.zh.slice(0, 300) : "",
+        ja: typeof v?.ja === "string" ? v.ja.slice(0, 300) : "",
+        en: typeof v?.en === "string" ? v.en.slice(0, 300) : "",
+      };
+    };
+
 
     const items = result.map((r, idx) => ({
       ref_type: "product" as const,
