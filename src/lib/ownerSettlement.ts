@@ -331,12 +331,42 @@ export interface OwnerSettlementRow<T extends OwnerSettlementOrderInput = OwnerS
  * rule：門檻式收費規則（可省略 → 由 config 組出等義的舊制規則，threshold = 0，
  * 計算結果與修改前完全一致）。
  */
+export type RevenueStatBasis = "nightly" | "checkin";
+
+/**
+ * 依統計口徑計算訂單當月佔比。
+ * - nightly（夜次均攤）：ratio = 當月夜數 / 總夜數
+ * - checkin（以入住日計）：入住日落在當月才計入，整筆金額計入當月（ratio = 1）
+ */
+export function resolveMonthShare(
+  checkInDate: string,
+  checkOutDate: string,
+  monthStart: Date,
+  monthEnd: Date,
+  basis: RevenueStatBasis = "nightly",
+): { include: boolean; ratio: number; nightsInMonth: number; totalNights: number } {
+  const ci = parseISO(checkInDate);
+  const co = parseISO(checkOutDate);
+  const totalNights = Math.max(1, differenceInDays(co, ci));
+  let nightsInMonth = 0;
+  for (let i = 0; i < totalNights; i++) {
+    const d = addDays(ci, i);
+    if (d >= monthStart && d <= monthEnd) nightsInMonth++;
+  }
+  if (basis === "checkin") {
+    const include = ci >= monthStart && ci <= monthEnd;
+    return { include, ratio: 1, nightsInMonth: include ? totalNights : 0, totalNights };
+  }
+  return { include: nightsInMonth > 0, ratio: nightsInMonth / totalNights, nightsInMonth, totalNights };
+}
+
 export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   orders: T[],
   config: OwnerSettlementConfig,
   month: Date,
   currencyFallback?: AccommodationCurrencyFallback | null,
   rule?: OwnerPricingRule | null,
+  basis: RevenueStatBasis = "nightly",
 ): OwnerSettlementRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -348,18 +378,12 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
   }
   const drafts: Draft[] = [];
   for (const o of orders) {
-    const ci = parseISO(o.check_in_date);
-    const co = parseISO(o.check_out_date);
-    const totalNights = Math.max(1, differenceInDays(co, ci));
-    let nightsInMonth = 0;
-    for (let i = 0; i < totalNights; i++) {
-      const d = addDays(ci, i);
-      if (d >= monthStart && d <= monthEnd) nightsInMonth++;
-    }
-    if (nightsInMonth === 0) continue;
+    const share = resolveMonthShare(o.check_in_date, o.check_out_date, monthStart, monthEnd, basis);
+    if (!share.include) continue;
+    const { nightsInMonth, totalNights, ratio } = share;
 
     const resolved = resolveOrderCurrency(o, currencyFallback);
-    const ratio = nightsInMonth / totalNights;
+
     const monthFinalOriginal = Number(o.final_price || 0) * ratio;
     const monthFinal = convertToTwd(monthFinalOriginal, resolved);
     const monthDiscount = convertToTwd(Number(o.discount_amount || 0) * ratio, resolved);
