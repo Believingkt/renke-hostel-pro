@@ -355,7 +355,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       }
 
       // Initialize manual overrides from saved order values
-      setManualTotalPriceStr(String(order.total_price));
+      // orders.total_price 已含加購金額，此欄位為「房費金額」，需扣除加購避免重複計算
+      setManualTotalPriceStr(String(Math.max(0, (order.total_price || 0) - existingAddonTotal)));
       setManualDiscountStr(String(order.discount_amount));
     };
 
