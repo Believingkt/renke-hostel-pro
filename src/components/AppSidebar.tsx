@@ -79,6 +79,7 @@ const menuItems = [
       { title: "預訂管理", url: "/admin/room-inventory", icon: Package },
       { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
       { title: "客服待辦", url: "/admin/manual-review", icon: Headset },
+      { title: "網紅團購", url: "/admin/group-buy", icon: Megaphone },
     ]
   },
   { title: "KOL 互惠額度", url: "/admin/kol-reciprocal-quota", icon: Sparkles, moduleKey: "kol_quota" },
