@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle2, Loader2, MapPin, Undo2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
+
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -23,6 +25,10 @@ export default function GroupBuyOrderLookup() {
   const [accountLast5, setAccountLast5] = useState("");
   const [transferredAt, setTransferredAt] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
 
   useEffect(() => {
     if (routeOrderNumber) setOrderNumber(routeOrderNumber);
@@ -63,9 +69,34 @@ export default function GroupBuyOrderLookup() {
     }
   };
 
+  const submitCancelRequest = async () => {
+    setCancelSubmitting(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
+        body: { orderNumber, phoneLast4, action: "request_cancel", reason: cancelReason },
+      });
+      const payload: any = res;
+      if (error || payload?.error) {
+        toast({ title: "取消申請失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "已收到您的取消申請",
+        description: "民宿確認後會處理退款，退款將於當月月底前完成。",
+      });
+      setCancelOpen(false);
+      setCancelReason("");
+      await lookup();
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
+
   const order = data?.order;
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
+  const cancelRequest = data?.cancelRequest ?? null;
+
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 pb-20">
@@ -227,7 +258,62 @@ export default function GroupBuyOrderLookup() {
               </Accordion>
             )}
 
+            {order.orderStatus !== "cancelled" && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
+                  <XCircle className="h-4 w-4" /> 取消訂單
+                </p>
+                {cancelRequest ? (
+                  <div className="space-y-1 text-muted-foreground">
+                    <p>已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。</p>
+                    <p className="font-medium text-foreground">若符合退款條件，退款將於當月月底前完成處理。</p>
+                  </div>
+                ) : cancelOpen ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核，
+                      <span className="font-medium text-foreground">退款會在當月月底前處理完成</span>。
+                    </p>
+                    <div>
+                      <Label htmlFor="cancel-reason">取消原因（選填）</Label>
+                      <Textarea
+                        id="cancel-reason"
+                        rows={3}
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value.slice(0, 300))}
+                        placeholder="例如：行程有變動"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={submitCancelRequest}
+                        disabled={cancelSubmitting}
+                      >
+                        {cancelSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        送出取消申請
+                      </Button>
+                      <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelSubmitting}>
+                        返回
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      需要取消這筆訂房嗎？送出申請後由民宿審核，退款將於當月月底前處理完成。
+                    </p>
+                    <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
+                      我要申請取消訂單
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {data.refund && (data.refund.amount > 0 || (data.refund.status && data.refund.status !== "none")) && (
+
               <div className="rounded-lg border p-4">
                 <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
                   <Undo2 className="h-4 w-4" /> 退款狀態

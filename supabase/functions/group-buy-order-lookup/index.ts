@@ -114,6 +114,31 @@ Deno.serve(async (req) => {
       return json({ success: true, reported: true });
     }
 
+    const cancelRequestedEvent = (events ?? []).find((e: any) => e.event_type === "cancel_requested") ?? null;
+
+    // ── 旅客提交取消訂單（退款）申請 ──
+    if (action === "request_cancel") {
+      if (order.order_status === "cancelled") return json({ error: "此訂單已取消" }, 400);
+      if (cancelRequestedEvent) return json({ error: "您已送出取消申請，我們正在處理中" }, 400);
+
+      const reason = String(body.reason ?? "").trim().slice(0, 300);
+      await admin.from("group_buy_payment_events").insert({
+        campaign_id: campaign?.id ?? null,
+        order_id: order.id,
+        event_type: "cancel_requested",
+        actor_label: order.guest_name,
+        note: reason ? `旅客申請取消訂單：${reason}` : "旅客申請取消訂單",
+      });
+
+      return json({
+        success: true,
+        cancelRequested: true,
+        message: "已收到您的取消申請，退款將於當月月底前完成處理。",
+      });
+    }
+
+
+
     // ── 民宿基本資料／入住須知／方案內容 ──
     const accommodationId = (order as any).accommodation_id ?? campaign?.accommodation_id ?? null;
     const [{ data: acc }, { data: intro }] = await Promise.all([
@@ -148,6 +173,7 @@ Deno.serve(async (req) => {
       e.event_type === "email_sent" || e.event_type === "email_failed"
     );
 
+
     return json({
       order: {
         orderNumber: order.order_number,
@@ -181,6 +207,10 @@ Deno.serve(async (req) => {
         return bankToInfo(data);
       })(),
       events: events ?? [],
+      cancelRequest: cancelRequestedEvent
+        ? { requestedAt: (cancelRequestedEvent as any).created_at, note: (cancelRequestedEvent as any).note }
+        : null,
+
       emails: emailEvents.map((e: any) => ({
         status: e.event_type === "email_sent" ? "sent" : "failed",
         note: e.note,

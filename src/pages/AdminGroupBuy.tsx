@@ -27,7 +27,9 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Link } from "react-router-dom";
+
 
 interface EventRow {
   id: string;
@@ -52,7 +54,10 @@ const EVENT_LABEL: Record<string, string> = {
   refund_failed: "退款失敗",
   email_sent: "通知信已寄出",
   email_failed: "通知信寄送失敗",
+  cancel_requested: "旅客申請取消",
+  cancel_request_rejected: "取消申請未通過",
   note: "備註",
+
 };
 
 const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -65,7 +70,10 @@ const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destr
   refund_failed: "destructive",
   email_sent: "outline",
   email_failed: "destructive",
+  cancel_requested: "destructive",
+  cancel_request_rejected: "outline",
   note: "outline",
+
 };
 
 const fmtTime = (iso: string | null) =>
@@ -153,6 +161,8 @@ interface OrderRow {
   campaign_id?: string | null;
   reported?: boolean;
   confirmed?: boolean;
+  cancelRequested?: boolean;
+
 }
 
 const emptyCampaign = (accommodationId: string): Partial<Campaign> => ({
@@ -258,13 +268,18 @@ export default function AdminGroupBuy() {
     const confirmedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "admin_confirmed").map((e: any) => e.order_id),
     );
+    const cancelRequestedSet = new Set(
+      (events ?? []).filter((e: any) => e.event_type === "cancel_requested").map((e: any) => e.order_id),
+    );
     setOrders(
       ((orderRows ?? []) as unknown as OrderRow[]).map((o) => ({
         ...o,
         reported: reportedSet.has(o.id),
         confirmed: confirmedSet.has(o.id),
+        cancelRequested: cancelRequestedSet.has(o.id),
       })),
     );
+
   }, [activeId]);
 
   useEffect(() => {
@@ -410,7 +425,9 @@ export default function AdminGroupBuy() {
     setCancelTarget(o);
     setCancelRefundAction(refundable > 0 ? "mark_refunded" : "no_refund");
     setCancelRefundAmount(String(refundable));
-    setCancelReason("");
+    const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
+    setCancelReason(req?.note ?? "");
+
   };
 
   const cancelWithRefund = async () => {
@@ -541,7 +558,16 @@ export default function AdminGroupBuy() {
                   <TableBody>
                     {orders.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell className="whitespace-nowrap font-medium">{o.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">
+                          <Link
+                            to={`/admin/orders/${o.id}`}
+                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+                          >
+                            {o.order_number}
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </TableCell>
+
                         <TableCell className="whitespace-nowrap">
                           {o.guest_name}
                           <div className="text-xs text-muted-foreground">{o.guest_phone}</div>
@@ -563,12 +589,18 @@ export default function AdminGroupBuy() {
                                 <Badge variant="outline">未退款</Badge>
                               )}
                             </div>
+                          ) : o.cancelRequested ? (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <Badge variant="destructive">旅客申請取消</Badge>
+                              {o.confirmed ? <Badge variant="secondary">已收訂金</Badge> : null}
+                            </div>
                           ) : o.confirmed ? (
                             <Badge className="bg-primary">已收訂金</Badge>
                           ) : o.reported ? (
                             <Badge variant="secondary">旅客已回報</Badge>
                           ) : (
                             <Badge variant="outline">待匯款</Badge>
+
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
