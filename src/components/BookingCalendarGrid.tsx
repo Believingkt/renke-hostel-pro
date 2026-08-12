@@ -461,22 +461,27 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       setCalendarEntries(entries);
 
       const holidayMap = new Map<string, PublicHoliday>();
-      holidaysRes.data?.forEach(h => holidayMap.set(h.holiday_date, h));
+      ((holidaysRes.data || []) as PublicHoliday[]).forEach(h => holidayMap.set(h.holiday_date, h));
       setHolidays(holidayMap);
 
       const invMap = new Map<string, InventoryRecord>();
-      inventoryRes.data?.forEach(inv => {
+      ((inventoryRes.data || []) as InventoryRecord[]).forEach(inv => {
         invMap.set(`${inv.room_type_id}_${inv.date}`, inv);
       });
-      setInventory(invMap);
-      setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
-    } catch (error) {
+      // 庫存讀取失敗時保留舊資料，避免整張日曆變空白
+      if (!inventoryRes.error) setInventory(invMap);
+      if (!templatesRes.error) setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
+      setLoadError(null);
+    } catch (error: any) {
+      if (isStale()) return;
       console.error("載入資料失敗:", error);
-      toast.error("載入資料失敗");
+      setLoadError(error?.message || "載入資料失敗，請重新整理");
+      toast.error("日曆載入失敗，請點「重新載入」再試一次");
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
+
 
   // Get available rooms for a room type on a date
   // 以「庫存設定」為主：取 base 與所有 active 專案 override 中的最大值
