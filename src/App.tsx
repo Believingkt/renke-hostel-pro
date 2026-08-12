@@ -568,7 +568,13 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={4} />}><PermissionTemplates /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/kol-overview" element={
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/discount-codes" element={
+
                       <RequireModule module="discount_codes">
                         <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
                       </RequireModule>
