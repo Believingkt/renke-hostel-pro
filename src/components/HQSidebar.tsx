@@ -15,6 +15,14 @@ import {
   Activity,
   Bot,
   Inbox,
+  MessageSquareText,
+  Brain,
+  KeyRound,
+  MessagesSquare,
+  BookOpen,
+  Search,
+  Route,
+  Compass,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -65,7 +73,32 @@ const menuItems = [
 
     ],
   },
-  { title: "AI 訓練中心", url: "/hq/ai-training", icon: Bot, tab: "ai-training" },
+  {
+    title: "AI 管家",
+    url: "/hq/ai-training",
+    icon: Bot,
+    tab: "ai-training",
+    subItems: [
+      { title: "訓練中心", url: "/hq/ai-training", icon: Bot },
+      { title: "回覆樣板", url: "/hq/ai-training/reply-templates", icon: MessageSquareText },
+      { title: "模型訓練", url: "/hq/ai-training/model-training", icon: Brain },
+      { title: "API 金鑰", url: "/hq/ai-training/api-keys", icon: KeyRound },
+      { title: "API 文件", url: "/hq/ai-training/api-docs", icon: FileText },
+      { title: "LINE 管家監看", url: "/hq/line-butler", icon: MessagesSquare },
+      { title: "知識庫索引", url: "/hq/knowledge/index", icon: BookOpen },
+      { title: "知識庫檢索", url: "/hq/knowledge/search", icon: Search },
+    ],
+  },
+  {
+    title: "行程引擎",
+    url: "/hq/traveler-attributes",
+    icon: Route,
+    tab: "trip-engine",
+    subItems: [
+      { title: "旅遊屬性", url: "/hq/traveler-attributes", icon: Compass },
+      { title: "部署佐證", url: "/hq/deploy-status", icon: Activity },
+    ],
+  },
   {
     title: "系統管理",
     url: "/hq?tab=system&section=settings",
@@ -106,6 +139,15 @@ export function HQSidebar() {
     if (tab === 'bonus-settings') {
       return location.pathname.startsWith('/hq/bonus-settings')
         || location.pathname.startsWith('/hq/owner-settlement-settings');
+    }
+    if (tab === 'ai-training') {
+      return location.pathname.startsWith('/hq/ai-training')
+        || location.pathname.startsWith('/hq/line-butler')
+        || location.pathname.startsWith('/hq/knowledge');
+    }
+    if (tab === 'trip-engine') {
+      return location.pathname.startsWith('/hq/traveler-attributes')
+        || location.pathname.startsWith('/hq/deploy-status');
     }
     if (location.pathname !== '/hq') return false;
     if (tab === 'overview') {

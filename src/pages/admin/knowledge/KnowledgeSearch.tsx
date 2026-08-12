@@ -110,7 +110,7 @@ const KnowledgeSearch = () => {
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/knowledge/index">
+              <Link to="/hq/knowledge/index">
                 <Database className="h-4 w-4 mr-1" />
                 索引管理
               </Link>

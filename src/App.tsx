@@ -2,6 +2,7 @@ import * as React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
+import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
@@ -183,16 +184,9 @@ const AiTrainingExamples = lazy(() => import("./pages/ai-training/AiTrainingExam
 const AiTrainingConversations = lazy(() => import("./pages/ai-training/AiTrainingConversations"));
 const AiTrainingPlayground = lazy(() => import("./pages/ai-training/AiTrainingPlayground"));
 const AiTrainingVersions = lazy(() => import("./pages/ai-training/AiTrainingVersions"));
+const AiTrainingApiKeys = lazy(() => import("./pages/ai-training/AiTrainingApiKeys"));
 
-// 民宿後台 AI 管家訓練中心
-const AdminAiTrainingLayout = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingLayout"));
-const AdminAiTrainingDashboard = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingDashboard"));
-const AdminAiTrainingPrompt = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPrompt"));
-const AdminAiTrainingKnowledge = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingKnowledge"));
-const AdminAiTrainingExamples = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingExamples"));
-const AdminAiTrainingConversations = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingConversations"));
-const AdminAiTrainingPlayground = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPlayground"));
-const AdminAiTrainingApiKeys = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiKeys"));
+// 已由 PMS 搬遷至總部後台（HQ）的 AI 管家相關頁面
 const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiDocs"));
 const KnowledgeIndexPage = lazy(() => import("./pages/admin/knowledge/KnowledgeIndex"));
 const AdminAiReplyTemplatesPage = lazy(() => import("./pages/admin/ai-training/AdminAiReplyTemplates"));
@@ -458,35 +452,27 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
                     } />
+                    {/* 以下 AI 管家相關頁面已搬遷至總部後台 hq.lakeze.com */}
                     <Route path="admin/line-butler" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                      <MovedToHQCard hqPath="/hq/line-butler" title="LINE AI 管家監看已移至總部後台" />
                     } />
                     <Route path="admin/traveler-attributes" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                      <MovedToHQCard hqPath="/hq/traveler-attributes" title="旅遊屬性已移至總部後台" />
                     } />
-
                     <Route path="admin/deploy-status" element={
-                      <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      <MovedToHQCard hqPath="/hq/deploy-status" title="部署佐證已移至總部後台" />
                     } />
                     <Route path="admin/knowledge/index" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/knowledge/index" title="知識庫索引已移至總部後台" />
                     } />
                     <Route path="admin/knowledge/search" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/knowledge/search" title="知識庫檢索已移至總部後台" />
                     } />
                     <Route path="admin/reply-templates" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><AdminAiReplyTemplatesPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/ai-training/reply-templates" title="回覆樣板已移至總部後台" />
                     } />
                     <Route path="admin/model-training" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><AdminAiModelTrainingPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/ai-training/model-training" title="模型訓練已移至總部後台" />
                     } />
 
 
@@ -701,20 +687,8 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/ai-training" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><AdminAiTrainingLayout /></Suspense>
-                      </RequireModule>
-                    }>
-                      <Route index element={<Suspense fallback={null}><AdminAiTrainingDashboard /></Suspense>} />
-                      <Route path="prompt" element={<Suspense fallback={null}><AdminAiTrainingPrompt /></Suspense>} />
-                      <Route path="knowledge" element={<Suspense fallback={null}><AdminAiTrainingKnowledge /></Suspense>} />
-                      <Route path="examples" element={<Suspense fallback={null}><AdminAiTrainingExamples /></Suspense>} />
-                      <Route path="conversations" element={<Suspense fallback={null}><AdminAiTrainingConversations /></Suspense>} />
-                      <Route path="playground" element={<Suspense fallback={null}><AdminAiTrainingPlayground /></Suspense>} />
-                      <Route path="api-keys" element={<Suspense fallback={null}><AdminAiTrainingApiKeys /></Suspense>} />
-                      <Route path="api-docs" element={<Suspense fallback={null}><AdminAiTrainingApiDocs /></Suspense>} />
-                    </Route>
+                    {/* AI 管家訓練中心已搬遷至總部後台 hq.lakeze.com */}
+                    <Route path="admin/ai-training/*" element={<MovedToHQCard />} />
 
                     {/* 其他頁面 */}
                     <Route path="og-preview" element={
@@ -778,8 +752,37 @@ function App() {
                         <Route path="versions" element={
                           <Suspense fallback={null}><AiTrainingVersions /></Suspense>
                         } />
-
+                        <Route path="reply-templates" element={
+                          <Suspense fallback={null}><AdminAiReplyTemplatesPage /></Suspense>
+                        } />
+                        <Route path="model-training" element={
+                          <Suspense fallback={null}><AdminAiModelTrainingPage /></Suspense>
+                        } />
+                        <Route path="api-keys" element={
+                          <Suspense fallback={null}><AiTrainingApiKeys /></Suspense>
+                        } />
+                        <Route path="api-docs" element={
+                          <Suspense fallback={null}><AdminAiTrainingApiDocs /></Suspense>
+                        } />
                       </Route>
+
+                      {/* AI 管家／行程引擎（總部全平台視角） */}
+                      <Route path="/hq/line-butler" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                      } />
+                      <Route path="/hq/knowledge/index" element={
+                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                      } />
+                      <Route path="/hq/knowledge/search" element={
+                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                      } />
+                      <Route path="/hq/traveler-attributes" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                      } />
+                      <Route path="/hq/deploy-status" element={
+                        <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      } />
+
                       <Route path="/hq/owner-settlement-settings" element={
                         <RequireHQRole allow={HQ_SETTINGS_ROLES}>
                           <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>

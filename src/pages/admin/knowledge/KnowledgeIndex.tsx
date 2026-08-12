@@ -44,7 +44,7 @@ const KnowledgeIndex = () => {
           重新整理
         </Button>
         <Button size="sm" asChild>
-          <Link to="/admin/knowledge/search">
+          <Link to="/hq/knowledge/search">
             <Search className="h-4 w-4 mr-1" />
             前往快速檢索
           </Link>
