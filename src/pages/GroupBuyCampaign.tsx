@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { AccommodationIntro, PackageRoomTypes } from "@/components/groupbuy/AccommodationIntro";
+
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
@@ -127,6 +129,16 @@ export default function GroupBuyCampaign() {
     () => packages.find((p) => p.id === selectedPkgId) ?? null,
     [packages, selectedPkgId],
   );
+  const selectedRoomTypeIds = useMemo(
+    () =>
+      selectedPkg?.room_type_ids && selectedPkg.room_type_ids.length > 0
+        ? selectedPkg.room_type_ids
+        : selectedPkg?.room_type_id
+          ? [selectedPkg.room_type_id]
+          : [],
+    [selectedPkg],
+  );
+
   const nights = nightsBetween(checkIn, checkOut);
   const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
   const depositPct = campaign?.deposit_percentage ?? 30;
@@ -352,6 +364,10 @@ export default function GroupBuyCampaign() {
 
       <Separator className="my-6" />
 
+      <AccommodationIntro accommodationId={campaign.accommodation_id} />
+
+      <Separator className="my-6" />
+
       <h2 className="mb-3 text-lg font-semibold text-foreground">選擇專屬方案</h2>
       <div className="space-y-3">
         {packages.map((p) => {
@@ -384,6 +400,11 @@ export default function GroupBuyCampaign() {
         })}
         {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
       </div>
+
+      {selectedRoomTypeIds.length > 0 && (
+        <PackageRoomTypes accommodationId={campaign.accommodation_id} roomTypeIds={selectedRoomTypeIds} />
+      )}
+
 
       <Separator className="my-6" />
 
