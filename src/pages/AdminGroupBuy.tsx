@@ -785,36 +785,56 @@ export default function AdminGroupBuy() {
               </div>
               <div>
                 <Label>開賣時間</Label>
-                <Input
-                  type="datetime-local"
-                  value={editing.sale_start ? String(editing.sale_start).slice(0, 16) : ""}
-                  onChange={(e) => setEditing({ ...editing, sale_start: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                <DateTimeField
+                  value={editing.sale_start ?? null}
+                  onChange={(iso) =>
+                    setEditing({
+                      ...editing,
+                      sale_start: iso,
+                      // 結束時間不可早於開賣時間
+                      sale_end:
+                        iso && editing.sale_end && new Date(editing.sale_end) < new Date(iso)
+                          ? iso
+                          : editing.sale_end,
+                    })
+                  }
+                  placeholder="選擇開賣時間"
                 />
               </div>
               <div>
                 <Label>結束時間</Label>
-                <Input
-                  type="datetime-local"
-                  value={editing.sale_end ? String(editing.sale_end).slice(0, 16) : ""}
-                  onChange={(e) => setEditing({ ...editing, sale_end: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                <DateTimeField
+                  value={editing.sale_end ?? null}
+                  onChange={(iso) => setEditing({ ...editing, sale_end: iso })}
+                  minDateTime={editing.sale_start ?? null}
+                  placeholder="選擇結束時間"
                 />
               </div>
               <div>
                 <Label>可入住起日</Label>
-                <Input
-                  type="date"
-                  value={editing.stay_start_date ?? ""}
-                  onChange={(e) => setEditing({ ...editing, stay_start_date: e.target.value || null })}
+                <DateField
+                  value={editing.stay_start_date ?? null}
+                  onChange={(d) =>
+                    setEditing({
+                      ...editing,
+                      stay_start_date: d,
+                      stay_end_date:
+                        d && editing.stay_end_date && editing.stay_end_date < d ? d : editing.stay_end_date,
+                    })
+                  }
+                  placeholder="選擇起始日"
                 />
               </div>
               <div>
                 <Label>可入住迄日</Label>
-                <Input
-                  type="date"
-                  value={editing.stay_end_date ?? ""}
-                  onChange={(e) => setEditing({ ...editing, stay_end_date: e.target.value || null })}
+                <DateField
+                  value={editing.stay_end_date ?? null}
+                  onChange={(d) => setEditing({ ...editing, stay_end_date: d })}
+                  minDate={editing.stay_start_date ?? null}
+                  placeholder="選擇結束日"
                 />
               </div>
+
               <div>
                 <Label>訂金比例（%）</Label>
                 <Input
