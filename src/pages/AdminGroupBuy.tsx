@@ -466,6 +466,7 @@ export default function AdminGroupBuy() {
             <TabsTrigger value="packages">方案設定</TabsTrigger>
             <TabsTrigger value="bank">匯款帳戶</TabsTrigger>
             <TabsTrigger value="analytics">銷售分析</TabsTrigger>
+            <TabsTrigger value="venue">民宿介紹</TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="space-y-3">
