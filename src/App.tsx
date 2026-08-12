@@ -752,8 +752,37 @@ function App() {
                         <Route path="versions" element={
                           <Suspense fallback={null}><AiTrainingVersions /></Suspense>
                         } />
-
+                        <Route path="reply-templates" element={
+                          <Suspense fallback={null}><AdminAiReplyTemplatesPage /></Suspense>
+                        } />
+                        <Route path="model-training" element={
+                          <Suspense fallback={null}><AdminAiModelTrainingPage /></Suspense>
+                        } />
+                        <Route path="api-keys" element={
+                          <Suspense fallback={null}><AiTrainingApiKeys /></Suspense>
+                        } />
+                        <Route path="api-docs" element={
+                          <Suspense fallback={null}><AdminAiTrainingApiDocs /></Suspense>
+                        } />
                       </Route>
+
+                      {/* AI 管家／行程引擎（總部全平台視角） */}
+                      <Route path="/hq/line-butler" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                      } />
+                      <Route path="/hq/knowledge/index" element={
+                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                      } />
+                      <Route path="/hq/knowledge/search" element={
+                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                      } />
+                      <Route path="/hq/traveler-attributes" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                      } />
+                      <Route path="/hq/deploy-status" element={
+                        <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      } />
+
                       <Route path="/hq/owner-settlement-settings" element={
                         <RequireHQRole allow={HQ_SETTINGS_ROLES}>
                           <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
