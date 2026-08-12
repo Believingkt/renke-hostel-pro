@@ -155,7 +155,7 @@ export default function TripGenerate() {
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      const trip = data?.payload as GenTrip | undefined;
+      const trip = data?.payload as unknown as GenTrip | undefined;
       if (trip?.items?.length) {
         setTrips([trip]);
         setLoading(false);
