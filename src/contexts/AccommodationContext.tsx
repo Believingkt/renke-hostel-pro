@@ -192,17 +192,23 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   const isAdminPath = useCallback(() => {
     const segments = location.pathname.split("/").filter(Boolean);
     const first = segments[0];
-    const normalizedFirst = first && ![
-      "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+    if (!first) return false;
+
+    // /admin、/admin/orders… 直接視為後台
+    if (first === "admin") return true;
+
+    const reservedFirst = [
+      "auth", "hq", "hq-auth", "headquarters", "booking", "book",
       "member", "ai-booking", "order-search", "profile", "payment-test",
       "kol-api-docs", "points-api-docs", "pay", "payment-result",
       "reset-password", "change-password", "og-preview", "__cb", "team", "team-auth",
-    ].includes(first)
-      ? segments[1]
-      : first;
+    ];
+    if (reservedFirst.includes(first)) return false;
 
-    return normalizedFirst === "admin";
+    // 首段為民宿 alias 時，看第二段是否為 admin（/sensaninn/admin/orders）
+    return segments[1] === "admin";
   }, [location.pathname]);
+
 
   useEffect(() => {
     loadUserAccommodations(true);
