@@ -70,7 +70,10 @@ const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destr
   refund_failed: "destructive",
   email_sent: "outline",
   email_failed: "destructive",
+  cancel_requested: "destructive",
+  cancel_request_rejected: "outline",
   note: "outline",
+
 };
 
 const fmtTime = (iso: string | null) =>
