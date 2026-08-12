@@ -42,6 +42,8 @@ interface GenTrip {
   items: GenItem[];
   total_price: number;
   total_distance_km: number;
+  snapshot_id?: string | null;
+  translation_status?: "pending" | "ready" | "failed";
 }
 
 const PAGE_TEXT = {
@@ -57,6 +59,9 @@ const PAGE_TEXT = {
     outOfHours: "超出營業時間，建議調整",
     empty: "目前沒有可推薦的行程，請稍後再試",
     failed: "生成失敗，請再試一次",
+    translating: "翻譯準備中，完成後會自動更新（先顯示中文）",
+    translateFailed: "翻譯失敗",
+    retry: "重試",
   },
   ja: {
     title: "おすすめ旅程",
@@ -70,6 +75,9 @@ const PAGE_TEXT = {
     outOfHours: "営業時間外の可能性があります",
     empty: "現在おすすめできる旅程がありません",
     failed: "生成に失敗しました",
+    translating: "翻訳を準備中です（完了後に自動で切り替わります）",
+    translateFailed: "翻訳に失敗しました",
+    retry: "再試行",
   },
   en: {
     title: "Recommended itinerary",
@@ -83,6 +91,9 @@ const PAGE_TEXT = {
     outOfHours: "Outside opening hours",
     empty: "No itinerary available right now",
     failed: "Generation failed, please try again",
+    translating: "Preparing translation — it will update automatically",
+    translateFailed: "Translation failed",
+    retry: "Retry",
   },
 } as const;
 
