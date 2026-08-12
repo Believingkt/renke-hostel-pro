@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ export default function TravelerCdp() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { withPrefix } = useAliasPrefix();
+  const location = useLocation();
+  const isHQ = location.pathname.startsWith("/hq");
   const [rows, setRows] = useState<TravelerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -170,7 +172,7 @@ export default function TravelerCdp() {
                     <TableRow
                       key={r.id}
                       className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => navigate(withPrefix(`/admin/cdp/${r.id}`))}
+                      onClick={() => navigate(isHQ ? `/hq/cdp/${r.id}` : withPrefix(`/admin/cdp/${r.id}`))}
                     >
                       <TableCell className="truncate">
                         <div className="font-medium truncate">{r.display_name || "－"}</div>
