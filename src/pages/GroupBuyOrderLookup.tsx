@@ -258,7 +258,62 @@ export default function GroupBuyOrderLookup() {
               </Accordion>
             )}
 
+            {order.orderStatus !== "cancelled" && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
+                  <XCircle className="h-4 w-4" /> 取消訂單
+                </p>
+                {cancelRequest ? (
+                  <div className="space-y-1 text-muted-foreground">
+                    <p>已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。</p>
+                    <p className="font-medium text-foreground">若符合退款條件，退款將於當月月底前完成處理。</p>
+                  </div>
+                ) : cancelOpen ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核，
+                      <span className="font-medium text-foreground">退款會在當月月底前處理完成</span>。
+                    </p>
+                    <div>
+                      <Label htmlFor="cancel-reason">取消原因（選填）</Label>
+                      <Textarea
+                        id="cancel-reason"
+                        rows={3}
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value.slice(0, 300))}
+                        placeholder="例如：行程有變動"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={submitCancelRequest}
+                        disabled={cancelSubmitting}
+                      >
+                        {cancelSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        送出取消申請
+                      </Button>
+                      <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelSubmitting}>
+                        返回
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      需要取消這筆訂房嗎？送出申請後由民宿審核，退款將於當月月底前處理完成。
+                    </p>
+                    <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
+                      我要申請取消訂單
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {data.refund && (data.refund.amount > 0 || (data.refund.status && data.refund.status !== "none")) && (
+
               <div className="rounded-lg border p-4">
                 <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
                   <Undo2 className="h-4 w-4" /> 退款狀態
