@@ -646,6 +646,33 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       })),
       exclusiveConfigs: JSON.parse(JSON.stringify(parsedConfigs)),
     };
+    const savedCustomAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+    const savedPetFromCustom = savedCustomAddons
+      .filter(d => d.addon_type === 'pet')
+      .reduce((sum, d) => sum + d.total, 0);
+    const savedMealFromCustom = savedCustomAddons
+      .filter(d => d.addon_type === 'meal')
+      .reduce((sum, d) => sum + d.total, 0);
+    const savedOtherCustom = savedCustomAddons
+      .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq')
+      .reduce((sum, d) => sum + d.total, 0);
+    const savedExtraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+    const savedExtraAddon = savedExtraMatch ? parseInt(savedExtraMatch[1], 10) || 0 : 0;
+    const savedAddonTotal =
+      ((order.pet_plan_price || 0) > 0 ? order.pet_plan_price : savedPetFromCustom) +
+      ((order.meal_plan_total || 0) > 0 ? order.meal_plan_total : savedMealFromCustom) +
+      savedOtherCustom +
+      savedExtraAddon;
+    // 新訂單的 total_price 已含加購；舊訂單則可能未含。以已存 final_price 判斷，
+    // 編輯欄位一律轉成「純房費」，避免畫面再次把同一筆加購加上去。
+    const totalAlreadyIncludesAddons = Math.abs(
+      Number(order.final_price || 0) - (Number(order.total_price || 0) - Number(order.discount_amount || 0)),
+    ) <= 1;
+    const editableRoomPrice = Math.max(
+      0,
+      Number(order.total_price || 0) - (totalAlreadyIncludesAddons ? savedAddonTotal : 0),
+    );
+
     setEditForm({
       guest_name: order.guest_name || "",
       guest_phone: order.guest_phone || "",
@@ -675,7 +702,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
         .trim(),
       room_type_id: order.room_type_id || "",
-      total_price: order.total_price || 0,
+      total_price: editableRoomPrice,
       discount_amount: order.discount_amount || 0,
       discount_code: order.discount_code || "",
       deposit_amount: order.deposit_amount || 0,
@@ -696,26 +723,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // otherwise legacy entries would be double-counted (invisible in UI but added to total).
       custom_addon_details: ((order.custom_addon_details as CustomAddonDetail[]) || [])
         .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq'),
-      addon_total: (() => {
-        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
-        const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + d.total, 0);
-        const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + d.total, 0);
-        const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
-        const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
-        const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
-        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
-        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
-        return petTotal + mealTotal + otherCustom + extra;
-      })(),
+      addon_total: savedAddonTotal,
       addon_note: extractAddonNote(order.notes),
       extra_addon_amount: extractExtraAddonAmount(order.notes),
     });
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
       const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-      const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotal !== Number(order.total_price || 0);
+      const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && editableRoomPrice > 0 && savedRoomsTotal !== editableRoomPrice;
       const normalizedRooms = orderRooms.map((or) => {
-        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : Number(or.room_price || 0);
+        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? editableRoomPrice : Number(or.room_price || 0);
         const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
         return {
           id: or.id,
@@ -752,9 +769,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     }
     // Store deposit ratio based on original final price
     const savedRoomsTotalForRatio = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-    const effectiveTotal = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotalForRatio !== Number(order.total_price || 0)
-      ? Number(order.total_price || 0)
-      : (orderRooms.length > 0 ? savedRoomsTotalForRatio : (order.total_price || 0));
+    const effectiveTotal = orderRooms.length === 1 && editableRoomPrice > 0 && savedRoomsTotalForRatio !== editableRoomPrice
+      ? editableRoomPrice
+      : (orderRooms.length > 0 ? savedRoomsTotalForRatio : editableRoomPrice);
     // 訂金比例僅以「房費 - 折扣」為基準，加購方案不影響訂金
     const originalBase = Math.max(0, effectiveTotal - (order.discount_amount || 0));
     const existingRatio = originalBase > 0 ? (order.deposit_amount || 0) / originalBase : 0;
@@ -956,7 +973,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
     setIsSavingEdit(true);
     try {
-      const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
+      const savedTotalPrice = editForm.total_price + editForm.addon_total;
+      const editFinalPriceCalc = savedTotalPrice - editForm.discount_amount;
 
       // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
       const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
@@ -1035,7 +1053,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           updateData[key] = newVal;
         }
       };
-      addIfChanged("total_price", editForm.total_price, order.total_price);
+      addIfChanged("total_price", savedTotalPrice, order.total_price);
       if (!isPaidOrDeposit || canUnlockPaidOrderDiscount) {
         addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
         updateData.discount_code = editForm.discount_code.trim() || null;
@@ -1061,7 +1079,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         return petTotal + mealTotal + otherCustom + extra;
       })();
       const pricingUnchanged =
-        Number(editForm.total_price) === Number(order.total_price ?? 0) &&
+        Number(savedTotalPrice) === Number(order.total_price ?? 0) &&
         Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
         Number(editForm.addon_total) === Number(originalAddonTotal);
       if (!pricingUnchanged) {
@@ -1070,7 +1088,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       // Block disallowed financial edits with friendly toast
       const blocked: string[] = [];
-      if (isPaidOrDeposit && Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
+      if (isPaidOrDeposit && Number(savedTotalPrice) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
       if (blocked.length > 0) {
         toast({
