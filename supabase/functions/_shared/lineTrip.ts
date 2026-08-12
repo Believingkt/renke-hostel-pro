@@ -46,7 +46,9 @@ export async function archiveTripAttributes(
 
 export function tripFullUrl(scenario: TripScenario, tripId?: string | null) {
   const base = `${SITE_ORIGIN}/trips/generate?scenario=${scenario}&lang=zh`;
-  return tripId ? `${base}&trip=${tripId}` : base;
+  const uri = tripId ? `${base}&trip=${tripId}` : base;
+  console.log("[butler-trip] full trip uri", uri);
+  return uri;
 }
 
 /** 把 LINE 端已生成的行程落地保存，回傳快照 id（失敗回 null，不影響回覆） */
@@ -71,6 +73,7 @@ export async function saveTripSnapshot(
       .select("id")
       .single();
     if (error) throw error;
+    console.log("[butler-trip] snapshot saved", data?.id);
     return data?.id ?? null;
   } catch (e) {
     console.error("[butler-trip] save snapshot failed", e);
