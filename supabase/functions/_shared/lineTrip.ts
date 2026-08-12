@@ -69,17 +69,31 @@ export async function saveTripSnapshot(
         line_user_id: lineUserId,
         attributes: attrs ?? {},
         payload: trip,
+        // LINE 端 fast 模式只生中文，ja/en 由 trip-translate 背景補齊
+        translation_status: "pending",
       })
       .select("id")
       .single();
     if (error) throw error;
     console.log("[butler-trip] snapshot saved", data?.id);
+    if (data?.id) {
+      const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const kick = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/trip-translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, apikey: key },
+        body: JSON.stringify({ id: data.id }),
+      }).catch((e) => console.error("[butler-trip] translate kick failed", e));
+      // deno-lint-ignore no-explicit-any
+      const rt = (globalThis as any).EdgeRuntime;
+      if (rt?.waitUntil) rt.waitUntil(kick);
+    }
     return data?.id ?? null;
   } catch (e) {
     console.error("[butler-trip] save snapshot failed", e);
     return null;
   }
 }
+
 
 function money(n: number) {
   return `NT$ ${Math.round(n).toLocaleString("en-US")}`;
