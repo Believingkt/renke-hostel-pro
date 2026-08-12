@@ -239,7 +239,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [accommodationId]);
+  }, [accommodationId, startDate, dayCount]);
 
   // Auto-expand all room types on first load
   useEffect(() => {
@@ -401,19 +401,6 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       }
       setOrderRooms(fetchedOrderRooms);
 
-      // Fetch room units for this accommodation
-      const unitRes = await runWithRetry(() =>
-        supabase
-          .from("room_units")
-          .select("id, room_type_id, unit_number, nickname, display_order, is_active")
-          .eq("accommodation_id", accommodationId)
-          .eq("is_active", true)
-          .order("display_order")
-      );
-      if (isStale()) return;
-      setRoomUnits((unitRes.data || []) as RoomUnit[]);
-
-
       // Build calendar entries: expand multi-room orders
       const entries: CalendarEntry[] = [];
       const ordersWithRooms = new Set(fetchedOrderRooms.map(or => or.order_id));
@@ -463,6 +450,20 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
         }
       }
       setCalendarEntries(entries);
+      // 訂單與房型配置完成後即可標記目前範圍可顯示，不必等待次要的房號資料。
+      setLoadedRangeKey(`${accommodationId}_${startStr}_${endStr}`);
+
+      // Fetch room units for this accommodation
+      const unitRes = await runWithRetry(() =>
+        supabase
+          .from("room_units")
+          .select("id, room_type_id, unit_number, nickname, display_order, is_active")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_active", true)
+          .order("display_order")
+      );
+      if (isStale()) return;
+      if (!unitRes.error) setRoomUnits((unitRes.data || []) as RoomUnit[]);
 
       const holidayMap = new Map<string, PublicHoliday>();
       ((holidaysRes.data || []) as PublicHoliday[]).forEach(h => holidayMap.set(h.holiday_date, h));
@@ -475,7 +476,6 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       // 庫存讀取失敗時保留舊資料，避免整張日曆變空白
       if (!inventoryRes.error) setInventory(invMap);
       if (!templatesRes.error) setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
-      setLoadedRangeKey(`${accommodationId}_${startStr}_${endStr}`);
       setLoadError(null);
     } catch (error: any) {
       if (isStale()) return;
