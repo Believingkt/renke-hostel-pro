@@ -132,49 +132,59 @@ export default function GroupBuyCampaign() {
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
   const balance = Math.max(0, total - deposit);
+  /** 前台日期限制（可入住起迄）＋ 販售狀態 */
+  const stayErrors = useMemo(
+    () => (campaign ? validateStayRange(campaign, checkIn, checkOut) : {}),
+    [campaign, checkIn, checkOut],
+  );
+  const sale = campaign ? saleState(campaign) : "on_sale";
+  const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
 
   const checkAvailability = useCallback(async () => {
-    if (!campaign || !selectedPkg?.room_type_id || nights <= 0) {
+    const roomTypeIds =
+      selectedPkg?.room_type_ids && selectedPkg.room_type_ids.length > 0
+        ? selectedPkg.room_type_ids
+        : selectedPkg?.room_type_id
+          ? [selectedPkg.room_type_id]
+          : [];
+    if (!campaign || roomTypeIds.length === 0 || nights <= 0 || dateBlocked) {
       setAvailability({ checking: false, ok: null, message: "" });
       return;
     }
     setAvailability({ checking: true, ok: null, message: "" });
-    const { data, error } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-      p_room_type_id: selectedPkg.room_type_id,
-      p_dates: dateList(checkIn, nights),
-      p_accommodation_id: campaign.accommodation_id,
-    });
-    if (error) {
-      setAvailability({ checking: false, ok: null, message: "" });
-      return;
-    }
-    const rows = (data ?? []) as any[];
-    const blocked = rows.find((r) => r?.is_blocked === true);
-    if (blocked) {
-      setAvailability({
-        checking: false,
-        ok: false,
-        message: blocked.blocked_by_room_name
+    const dates = dateList(checkIn, nights);
+    let lastMessage = "此區間目前無足夠空房";
+
+    for (const rtId of roomTypeIds) {
+      const { data, error } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+        p_room_type_id: rtId,
+        p_dates: dates,
+        p_accommodation_id: campaign.accommodation_id,
+      });
+      if (error) continue;
+      const rows = (data ?? []) as any[];
+      const blocked = rows.find((r) => r?.is_blocked === true);
+      if (blocked) {
+        lastMessage = blocked.blocked_by_room_name
           ? `${blocked.date_value} 已被「${blocked.blocked_by_room_name}」預訂`
-          : `${blocked.date_value} 已滿房`,
-      });
+          : `${blocked.date_value} 已滿房`;
+        continue;
+      }
+      const short = rows.find((r) => Number(r?.available_rooms ?? 0) < roomQuantity);
+      if (short) {
+        lastMessage = `${short.date_value} 僅剩 ${Math.max(0, Number(short.available_rooms))} 間`;
+        continue;
+      }
+      setAvailability({ checking: false, ok: true, message: "此區間有空房，可立即預訂" });
       return;
     }
-    const short = rows.find((r) => Number(r?.available_rooms ?? 0) < roomQuantity);
-    if (short) {
-      setAvailability({
-        checking: false,
-        ok: false,
-        message: `${short.date_value} 僅剩 ${Math.max(0, Number(short.available_rooms))} 間`,
-      });
-      return;
-    }
-    setAvailability({ checking: false, ok: true, message: "此區間有空房，可立即預訂" });
-  }, [campaign, selectedPkg, checkIn, nights, roomQuantity]);
+    setAvailability({ checking: false, ok: false, message: lastMessage });
+  }, [campaign, selectedPkg, checkIn, nights, roomQuantity, dateBlocked]);
 
   useEffect(() => {
     void checkAvailability();
   }, [checkAvailability]);
+
 
   const submit = async () => {
     if (!campaign || !selectedPkg) return;
