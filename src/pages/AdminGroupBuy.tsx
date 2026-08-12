@@ -581,12 +581,18 @@ export default function AdminGroupBuy() {
                                 <Badge variant="outline">未退款</Badge>
                               )}
                             </div>
+                          ) : o.cancelRequested ? (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <Badge variant="destructive">旅客申請取消</Badge>
+                              {o.confirmed ? <Badge variant="secondary">已收訂金</Badge> : null}
+                            </div>
                           ) : o.confirmed ? (
                             <Badge className="bg-primary">已收訂金</Badge>
                           ) : o.reported ? (
                             <Badge variant="secondary">旅客已回報</Badge>
                           ) : (
                             <Badge variant="outline">待匯款</Badge>
+
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
