@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     const expectedDeposit = Number(order.deposit_amount) || 0;
     const received = Math.max(0, Math.round(Number(receivedAmountRaw ?? expectedDeposit) || 0));
     const finalPrice = Number(order.final_price ?? order.total_price ?? 0);
-    const paymentStatus = received >= finalPrice ? "paid" : "partial";
+    const paymentStatus = received >= finalPrice ? "paid" : "deposit_paid";
 
     const { error: uErr } = await admin
       .from("orders")
