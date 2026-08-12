@@ -362,13 +362,34 @@ export default function TripGenerate() {
         {trips.map((trip, index) => {
           const spots = trip.items.filter((i) => i.ref_type !== "room");
           const totalMin = trip.items.reduce((s, i) => s + (i.duration_min || 0), 0);
+          const translating = needsTranslation(trip) && trip.translation_status !== "failed";
+          const translateFailed = needsTranslation(trip) && trip.translation_status === "failed";
+          const txt = (v: unknown) => pickLang(v, lang) || pickLang(v, "zh");
           return (
             <article key={index} className="rounded-2xl border border-border bg-card p-4">
+              {(translating || translateFailed) && (
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    {translating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                    )}
+                    {translating ? p.translating : p.translateFailed}
+                  </span>
+                  {translateFailed && (
+                    <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => void retryTranslate(trip)}>
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      {p.retry}
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-foreground">{pickLang(trip.title, lang)}</h2>
+                  <h2 className="text-base font-semibold text-foreground">{txt(trip.title)}</h2>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {pickLang(trip.guide, lang)}
+                    {txt(trip.guide)}
                   </p>
                 </div>
                 <MatchBadge score={trip.match_score} label={t.match} />
@@ -394,8 +415,9 @@ export default function TripGenerate() {
                     key={`${item.ref_id}-${i}`}
                     type={TYPE_MAP[item.type] ?? "attraction"}
                     time={item.start_time ? `${item.start_time}${item.end_time ? `–${item.end_time}` : ""}` : null}
-                    title={pickLang(item.name, lang) || t.stayLabel}
-                    subtitle={pickLang(item.guide, lang)}
+                    title={txt(item.name) || t.stayLabel}
+                    subtitle={txt(item.guide)}
+
                     durationMin={item.duration_min}
                     price={item.price}
                     isLast={i === trip.items.length - 1}
