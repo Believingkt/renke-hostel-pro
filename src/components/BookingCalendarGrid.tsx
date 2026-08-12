@@ -184,6 +184,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const [customRows, setCustomRows] = useState<Array<{ id: string; name: string; count: number; capacity: number }>>([]);
   const [packageRowsByRt, setPackageRowsByRt] = useState<Map<string, Array<{ id: string; name: string; count: number }>>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // 避免快速切換日期／即時事件造成「舊回應覆蓋新資料」
+  const loadSeqRef = useRef(0);
+
+
   
 
   // Generate date columns
