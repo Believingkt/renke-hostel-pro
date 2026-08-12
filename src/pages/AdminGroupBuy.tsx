@@ -425,7 +425,9 @@ export default function AdminGroupBuy() {
     setCancelTarget(o);
     setCancelRefundAction(refundable > 0 ? "mark_refunded" : "no_refund");
     setCancelRefundAmount(String(refundable));
-    setCancelReason("");
+    const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
+    setCancelReason(req?.note ?? "");
+
   };
 
   const cancelWithRefund = async () => {
