@@ -920,14 +920,18 @@ export default function AdminGroupBuy() {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {editHasDateError && (
+              <p className="mr-auto text-xs text-destructive">日期設定不正確，請修正後才能儲存</p>
+            )}
             <Button variant="outline" onClick={() => setEditing(null)}>
               取消
             </Button>
-            <Button onClick={saveCampaign} disabled={saving}>
+            <Button onClick={saveCampaign} disabled={saving || editHasDateError}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}儲存
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
