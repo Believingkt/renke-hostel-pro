@@ -1785,47 +1785,9 @@ const BookingFlow = () => {
             }
           }
 
-        // 互斥邏輯檢查（合併 N 次 RPC → 單次查詢）
-        // 一次抓出該日是否有「包棟房型」被預訂；若有，標記其他綁定包棟的房型為 blocked
-        const { data: exclusiveBooking } = await supabase
-          .rpc('check_exclusive_room_booking', {
-            p_accommodation_id: accommodationId,
-            p_date: checkInDateStr,
-          });
-
-        const hasExclusiveBooking = exclusiveBooking?.[0]?.has_booking === true;
-        const bookedRoomTypeId = exclusiveBooking?.[0]?.booked_room_type_id || null;
-        const bookedRoomTypeName = exclusiveBooking?.[0]?.booked_room_type_name || '';
-
-        // 判斷「被預訂的房型」是否為包棟
-        const bookedRoom = bookedRoomTypeId ? roomTypes.find(r => r.id === bookedRoomTypeId) : null;
-        const bookedIsExclusive = bookedRoom?.is_exclusive_package === true;
-
+        // 互斥邏輯 + 調整後庫存：一律以 get_adjusted_room_inventory_batch 為準
+        // （該 RPC 以「綁定關係」判斷互斥：不同棟的包區互不封鎖）
         const blockIndex: Record<string, { isBlocked: boolean; blockedByRoomName: string; adjustedAvailable: number | null }> = {};
-        for (const room of roomTypes) {
-          const isExclusive = room.is_exclusive_package === true;
-          const isBoundToExclusive = room.is_bound_to_exclusive === true;
-
-          // 互斥規則：
-          //  - 若已有「包棟」被預訂：所有同群組房型(包含散客 is_bound_to_exclusive)都 blocked。
-          //  - 若已有「散客」被預訂：只有「包棟」被 blocked，其他散客不互鎖。
-          let isBlocked = false;
-          if (hasExclusiveBooking && bookedRoomTypeId !== room.id) {
-            if (bookedIsExclusive) {
-              isBlocked = isExclusive || isBoundToExclusive;
-            } else {
-              isBlocked = isExclusive;
-            }
-          }
-
-          blockIndex[room.id] = {
-            isBlocked,
-            blockedByRoomName: isBlocked ? bookedRoomTypeName : '',
-            adjustedAvailable: null, // 詳細扣減量由 pricingIndex.available_rooms 處理
-          };
-        }
-
-        // 並行取得每個房型在日期範圍內的「調整後庫存」（已扣除既有訂單佔用）
         const adjustedIndex: Record<string, Record<string, number | null>> = {};
         try {
           const adjustedResults = await Promise.all(
@@ -1841,14 +1803,22 @@ const BookingFlow = () => {
           for (const r of adjustedResults) {
             if (!r.data) continue;
             adjustedIndex[r.roomId] = {};
+            let blockedByRoomName = '';
+            let isBlocked = false;
             for (const row of r.data as any[]) {
               const dateKey = typeof row.date_value === 'string' ? row.date_value : new Date(row.date_value).toISOString().split('T')[0];
               adjustedIndex[r.roomId][dateKey] = row.available_rooms;
+              if (row.is_blocked === true && !isBlocked) {
+                isBlocked = true;
+                blockedByRoomName = row.blocked_by_room_name || '';
+              }
             }
+            blockIndex[r.roomId] = { isBlocked, blockedByRoomName, adjustedAvailable: null };
           }
         } catch (e) {
           if (import.meta.env.DEV) console.error('adjusted inventory batch error', e);
         }
+
 
         // 處理每個房型的可用性
         for (const room of roomTypes) {
@@ -3223,34 +3193,39 @@ const BookingFlow = () => {
         return;
       }
 
-      // 檢查包棟互斥邏輯（使用資料庫欄位而非硬編碼名稱）
+      // 檢查包棟互斥邏輯：改用「綁定關係」判斷（不同棟的包區互不封鎖）
       const isExclusiveRoom = selectedRoom.is_exclusive_package === true || selectedRoom.is_bound_to_exclusive === true;
       if (isExclusiveRoom) {
         const nights = calculateNights();
         const start = new Date(checkInDateStr);
-        
+        const nightDates: string[] = [];
         for (let i = 0; i < nights; i++) {
           const currentDate = new Date(start);
           currentDate.setDate(start.getDate() + i);
-          const dateStr = currentDate.toISOString().split('T')[0];
+          nightDates.push(currentDate.toISOString().split('T')[0]);
+        }
 
-          const { data: bookingCheck } = await supabase
-            .rpc('check_exclusive_room_booking', {
-              p_accommodation_id: accommodationId,
-              p_date: dateStr
-            });
+        const { data: adjRows } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+          p_room_type_id: selectedRoom.id,
+          p_dates: nightDates,
+          p_accommodation_id: accommodationId,
+        });
 
-          if (bookingCheck && bookingCheck[0]?.has_booking) {
-            toast({
-              title: "預訂失敗",
-              description: `${dateStr} 已被 ${bookingCheck[0].booked_room_type_name} 預訂，包棟互斥無法重複預訂`,
-              variant: "destructive",
-            });
-            setIsSubmitting(false);
-            return;
-          }
+        const blockedRow = ((adjRows as any[]) || []).find((r) => r?.is_blocked === true);
+        if (blockedRow) {
+          const dateStr = typeof blockedRow.date_value === 'string'
+            ? blockedRow.date_value
+            : new Date(blockedRow.date_value).toISOString().split('T')[0];
+          toast({
+            title: "預訂失敗",
+            description: `${dateStr} 已被 ${blockedRow.blocked_by_room_name || '其他訂單'} 預訂，包棟互斥無法重複預訂`,
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
         }
       }
+
 
       // 處理在線支付（信用卡或 LINE Pay）
       let paymentTransactionId = null;
