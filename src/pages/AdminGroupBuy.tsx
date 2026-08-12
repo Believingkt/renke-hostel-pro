@@ -450,7 +450,10 @@ export default function AdminGroupBuy() {
           </CardContent>
         </Card>
       ) : (
+        <>
+        <CampaignWindowSummary campaign={activeCampaign} />
         <Tabs defaultValue="orders">
+
           <TabsList>
             <TabsTrigger value="orders">訂單對帳</TabsTrigger>
             <TabsTrigger value="packages">方案設定</TabsTrigger>
