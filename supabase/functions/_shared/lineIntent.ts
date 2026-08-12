@@ -34,7 +34,8 @@ export interface ParsedIntent {
   keyword?: string; // 地區 / 館別關鍵字
   venue?: string; // 指定館別 canonical（例：森山）
   venueLabel?: string; // 指定館別顯示名稱
-
+  scenario?: TripScenario; // 行程情境（包棟 → villa）
+  tripAttributes?: TripAttributes;
 }
 
 function pad(n: number) {
