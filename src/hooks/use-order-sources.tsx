@@ -19,6 +19,7 @@ export const FALLBACK_ORDER_SOURCES: OrderSourceOption[] = [
   { value: "official_use", label: "公務使用" },
   { value: "franchise_diff", label: "加盟價差" },
   { value: "owner_provided", label: "業主自帶" },
+  { value: "group_buy", label: "網紅團購" },
 ];
 
 // 對於舊的英文 raw 值提供顯示 mapping；查無則直接顯示原值
@@ -36,6 +37,7 @@ const RAW_LABEL_MAP: Record<string, string> = {
   official_use: "公務使用",
   franchise_diff: "加盟價差",
   accommodation_voucher: "住宿票卷",
+  group_buy: "網紅團購",
 };
 
 /**

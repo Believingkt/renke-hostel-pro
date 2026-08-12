@@ -3907,6 +3907,389 @@ export type Database = {
         }
         Relationships: []
       }
+      group_buy_bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string | null
+          bank_name: string
+          branch_name: string | null
+          campaign_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code?: string | null
+          bank_name: string
+          branch_name?: string | null
+          campaign_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string | null
+          bank_name?: string
+          branch_name?: string | null
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_bank_accounts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buy_campaign_packages: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          description: string | null
+          display_name: string
+          group_buy_price: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          max_quantity: number | null
+          original_price: number | null
+          package_id: string | null
+          room_type_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          group_buy_price: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_quantity?: number | null
+          original_price?: number | null
+          package_id?: string | null
+          room_type_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          group_buy_price?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_quantity?: number | null
+          original_price?: number | null
+          package_id?: string | null
+          room_type_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_campaign_packages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaign_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaign_packages_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buy_campaigns: {
+        Row: {
+          accommodation_id: string
+          commission_note: string | null
+          commission_rate: number
+          contact_note: string | null
+          counts_owner_settlement: boolean
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          deposit_percentage: number
+          description_html: string | null
+          discount_code: string | null
+          discount_code_id: string | null
+          gallery_urls: string[]
+          id: string
+          kol_display_name: string | null
+          kol_profile_id: string | null
+          payment_deadline_hours: number
+          public_token: string
+          sale_end: string | null
+          sale_start: string | null
+          slug: string
+          status: string
+          stay_end_date: string | null
+          stay_start_date: string | null
+          subtitle: string | null
+          terms_html: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          commission_note?: string | null
+          commission_rate?: number
+          contact_note?: string | null
+          counts_owner_settlement?: boolean
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit_percentage?: number
+          description_html?: string | null
+          discount_code?: string | null
+          discount_code_id?: string | null
+          gallery_urls?: string[]
+          id?: string
+          kol_display_name?: string | null
+          kol_profile_id?: string | null
+          payment_deadline_hours?: number
+          public_token?: string
+          sale_end?: string | null
+          sale_start?: string | null
+          slug: string
+          status?: string
+          stay_end_date?: string | null
+          stay_start_date?: string | null
+          subtitle?: string | null
+          terms_html?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          commission_note?: string | null
+          commission_rate?: number
+          contact_note?: string | null
+          counts_owner_settlement?: boolean
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit_percentage?: number
+          description_html?: string | null
+          discount_code?: string | null
+          discount_code_id?: string | null
+          gallery_urls?: string[]
+          id?: string
+          kol_display_name?: string | null
+          kol_profile_id?: string | null
+          payment_deadline_hours?: number
+          public_token?: string
+          sale_end?: string | null
+          sale_start?: string | null
+          slug?: string
+          status?: string
+          stay_end_date?: string | null
+          stay_start_date?: string | null
+          subtitle?: string | null
+          terms_html?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_campaigns_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaigns_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaigns_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaigns_kol_profile_id_fkey"
+            columns: ["kol_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_campaigns_kol_profile_id_fkey"
+            columns: ["kol_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buy_commissions: {
+        Row: {
+          campaign_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          id: string
+          kol_profile_id: string | null
+          note: string | null
+          order_id: string
+          revenue_base: number
+          settled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          kol_profile_id?: string | null
+          note?: string | null
+          order_id: string
+          revenue_base?: number
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          kol_profile_id?: string | null
+          note?: string | null
+          order_id?: string
+          revenue_base?: number
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_commissions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_commissions_kol_profile_id_fkey"
+            columns: ["kol_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_commissions_kol_profile_id_fkey"
+            columns: ["kol_profile_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_commissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buy_payment_events: {
+        Row: {
+          account_last5: string | null
+          actor_label: string | null
+          actor_user_id: string | null
+          amount: number | null
+          campaign_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          note: string | null
+          order_id: string
+          transferred_at: string | null
+        }
+        Insert: {
+          account_last5?: string | null
+          actor_label?: string | null
+          actor_user_id?: string | null
+          amount?: number | null
+          campaign_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          note?: string | null
+          order_id: string
+          transferred_at?: string | null
+        }
+        Update: {
+          account_last5?: string | null
+          actor_label?: string | null
+          actor_user_id?: string | null
+          amount?: number | null
+          campaign_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          order_id?: string
+          transferred_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_payment_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotelnabe_ari_push_log: {
         Row: {
           accommodation_id: string

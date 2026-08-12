@@ -140,3 +140,11 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.validate-reset-token]
     verify_jwt = false
+  [functions.group-buy-create-order]
+    verify_jwt = false
+  [functions.group-buy-order-lookup]
+    verify_jwt = false
+  [functions.group-buy-confirm-deposit]
+    verify_jwt = false
+  [functions.group-buy-expire-orders]
+    verify_jwt = false

@@ -113,6 +113,9 @@ const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const ManualReviewTasks = lazy(() => import("./pages/ManualReviewTasks"));
+const GroupBuyCampaign = lazy(() => import("./pages/GroupBuyCampaign"));
+const GroupBuyOrderLookup = lazy(() => import("./pages/GroupBuyOrderLookup"));
+const AdminGroupBuy = lazy(() => import("./pages/AdminGroupBuy"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
@@ -405,6 +408,17 @@ function App() {
                       <Suspense fallback={<FrontendSkeleton />}><LegalDocument /></Suspense>
                     } />
 
+                    {/* 網紅團購 */}
+                    <Route path="g/order" element={
+                      <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
+                    } />
+                    <Route path="g/order/:orderNumber" element={
+                      <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
+                    } />
+                    <Route path="g/:slug" element={
+                      <Suspense fallback={<FrontendSkeleton />}><GroupBuyCampaign /></Suspense>
+                    } />
+
 
 
 
@@ -472,6 +486,11 @@ function App() {
                     <Route path="admin/manual-review" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><ManualReviewTasks /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/group-buy" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminGroupBuy /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/orders" element={
