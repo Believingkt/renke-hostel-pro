@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
@@ -384,6 +385,11 @@ export default function GroupBuyCampaign() {
         })}
         {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
       </div>
+
+      <GroupBuyVenueIntro
+        accommodationId={campaign.accommodation_id}
+        hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
+      />
 
       <Separator className="my-6" />
 
