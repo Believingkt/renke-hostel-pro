@@ -98,15 +98,50 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all active accommodations
-    const { data: allAccommodations } = await supabase
+    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單一次並行取回（原為序列查詢）
+    const t0 = Date.now();
+    const accommodationsPromise = supabase
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
       .order('display_order', { ascending: true, nullsFirst: false });
+    const knowledgePromise = supabase
+      .from('ai_knowledge')
+      .select('title, content, priority')
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
+      .limit(80);
+    const examplesPromise = supabase
+      .from('ai_examples')
+      .select('scenario, user_message, ideal_response')
+      .eq('is_active', true)
+      .limit(40);
+    const templatesPromise = supabase
+      .from('ai_reply_templates')
+      .select('name, scenario, template')
+      .eq('is_active', true)
+      .order('sort', { ascending: true })
+      .limit(20);
+    const abTestPromise = supabase
+      .from('ai_ab_tests')
+      .select('version_a, version_b, traffic_split')
+      .eq('is_active', true)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const publishedPromptPromise = supabase
+      .from('ai_prompts')
+      .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
+      .eq('status', 'published')
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: allAccommodations } = await accommodationsPromise;
 
     const accommodationList = allAccommodations || [];
     const accommodationMap = new Map(accommodationList.map(a => [a.id, a]));
+
 
     // Tools
     const tools = [
