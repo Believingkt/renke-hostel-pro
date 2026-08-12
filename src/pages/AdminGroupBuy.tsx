@@ -624,14 +624,17 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
-                    <Label>方案圖片網址</Label>
-                    <Input
-                      value={p.image_url ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, image_url: e.target.value } : x)))
+                    <Label>方案圖片</Label>
+                    <ImageUploadField
+                      value={p.image_url}
+                      onChange={(url) =>
+                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, image_url: url } : x)))
                       }
+                      pathPrefix={`${accommodationId}/group-buy/package`}
+                      aspect="aspect-[4/3]"
                     />
                   </div>
+
                   <div className="md:col-span-2">
                     <Label>方案說明</Label>
                     <Textarea
