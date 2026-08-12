@@ -104,6 +104,7 @@ function quickMenu(): OutgoingMessage {
       items: [
         { type: "action", action: { type: "message", label: "🔍 找房", text: "我想找房" } },
         { type: "action", action: { type: "message", label: "🎁 加購", text: "有什麼加購體驗" } },
+        { type: "action", action: { type: "message", label: "🗺️ 排行程", text: "幫我排行程" } },
         { type: "action", action: { type: "message", label: "❤️ 我的收藏", text: "我的收藏" } },
         { type: "action", action: { type: "message", label: "🛒 結帳", text: "我要結帳" } },
       ],
