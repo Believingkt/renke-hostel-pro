@@ -119,8 +119,14 @@ const ADDON_KEYWORDS = /票券|門票|加購|體驗|餐券|早餐|晚餐|燒烤|
 const FAVORITE_KEYWORDS = /收藏|願望|口袋/;
 const CHECKOUT_KEYWORDS = /結帳|付款|下訂|訂房確認|去結帳|買單/;
 const GREETING_KEYWORDS = /^(hi|hello|你好|哈囉|嗨|安安|在嗎)/i;
-const SEARCH_KEYWORDS = /房|訂|住|空房|入住|包棟|民宿|飯店|旅宿/;
+/** 知識／政策類（優先攔截，交給 LLM 知識問答） */
+const POLICY_KEYWORDS =
+  /退訂|退款|退費|退錢|訂金.{0,4}退|取消|違約金|手續費|政策|規定|條款|須知|發票|收據|統編|注意事項|保險|寵物規定|禁菸|門禁/;
+/** 明確訂房訊號（不含單字「訂」「住」，避免「退訂」「住宿規定」誤判） */
+const SEARCH_KEYWORDS =
+  /我要訂|想訂|要訂|訂房|訂一間|預訂|預約住|想住|要住|住一晚|有沒有房|還有房|有房嗎|有空房|空房|查房|看房|房型|包棟|入住日|訂位/;
 const TRIP_KEYWORDS = /排行程|安排行程|規劃行程|行程規劃|推薦行程|行程推薦|幫我排|玩什麼|怎麼玩|有什麼好玩|景點推薦|一日遊|兩天一夜|三天兩夜|旅遊建議/;
+
 
 /** 情境模板 key（與 trip-recommend 的 SCENARIOS 對齊；包棟 → villa） */
 export function detectScenario(text: string): TripScenario | undefined {
@@ -183,8 +189,13 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   const guests = extractGuests(t);
   const venueAliasEarly = matchVenueAlias(t);
 
+  // 明確訂房訊號：新日期 / 人數 / 房型館別 / 明確查訂房措辭
+  const bookingSignal = Boolean(dates.checkIn) || Boolean(guests) || SEARCH_KEYWORDS.test(t);
+  const policyOnly = POLICY_KEYWORDS.test(t) && !bookingSignal;
+
   let intent: ButlerIntent = "unknown";
-  if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
+  if (policyOnly) intent = "unknown"; // 知識／政策問答一律交給 LLM
+  else if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
   else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
   else if (ADDON_KEYWORDS.test(t)) intent = "addon";
@@ -193,6 +204,7 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
   else if (dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
+
 
   // 館別（常用簡稱）
   const venueAlias = matchVenueAlias(t);
