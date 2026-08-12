@@ -18,9 +18,13 @@ const NAV = [
   { to: "/hq/ai-training/prompt", label: "系統提示詞", icon: FileText },
   { to: "/hq/ai-training/knowledge", label: "知識庫", icon: BookOpen },
   { to: "/hq/ai-training/examples", label: "對話範例", icon: MessagesSquare },
+  { to: "/hq/ai-training/reply-templates", label: "回覆樣板", icon: MessageSquareText },
+  { to: "/hq/ai-training/model-training", label: "模型訓練", icon: Brain },
   { to: "/hq/ai-training/conversations", label: "對話紀錄", icon: History },
   { to: "/hq/ai-training/playground", label: "即時測試", icon: FlaskConical },
   { to: "/hq/ai-training/versions", label: "版本管理", icon: GitBranch },
+  { to: "/hq/ai-training/api-keys", label: "API 金鑰", icon: KeyRound },
+  { to: "/hq/ai-training/api-docs", label: "API 文件", icon: Code },
 ];
 
 export default function AiTrainingLayout() {
