@@ -27,7 +27,7 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 
 interface EventRow {
   id: string;
@@ -48,6 +48,11 @@ const EVENT_LABEL: Record<string, string> = {
   admin_confirmed: "後台確認收到訂金",
   expired: "逾期自動取消",
   cancelled: "訂單取消",
+  refunded: "已退款",
+  refund_failed: "退款失敗",
+  email_sent: "通知信已寄出",
+  email_failed: "通知信寄送失敗",
+  note: "備註",
 };
 
 const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -56,6 +61,11 @@ const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destr
   admin_confirmed: "default",
   expired: "destructive",
   cancelled: "destructive",
+  refunded: "secondary",
+  refund_failed: "destructive",
+  email_sent: "outline",
+  email_failed: "destructive",
+  note: "outline",
 };
 
 const fmtTime = (iso: string | null) =>
@@ -137,6 +147,9 @@ interface OrderRow {
   order_status: string;
   payment_status: string;
   order_date: string;
+  refund_status: string | null;
+  refunded_amount: number | null;
+  refunded_at: string | null;
   campaign_id?: string | null;
   reported?: boolean;
   confirmed?: boolean;
@@ -172,6 +185,11 @@ export default function AdminGroupBuy() {
   const [confirmAmount, setConfirmAmount] = useState("");
   const [confirmNote, setConfirmNote] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
+  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "no_refund">("mark_refunded");
+  const [cancelRefundAmount, setCancelRefundAmount] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
@@ -223,7 +241,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
@@ -387,6 +405,42 @@ export default function AdminGroupBuy() {
     }
   };
 
+  const openCancel = (o: OrderRow) => {
+    const refundable = Math.max(0, Number(o.paid_amount || 0) - Number(o.refunded_amount || 0));
+    setCancelTarget(o);
+    setCancelRefundAction(refundable > 0 ? "mark_refunded" : "no_refund");
+    setCancelRefundAmount(String(refundable));
+    setCancelReason("");
+  };
+
+  const cancelWithRefund = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
+        body: {
+          orderId: cancelTarget.id,
+          refundAction: cancelRefundAction,
+          refundAmount: cancelRefundAction === "no_refund" ? 0 : Number(cancelRefundAmount) || 0,
+          reason: cancelReason,
+        },
+      });
+      const payload: any = data;
+      if (error || payload?.error) {
+        toast({ title: "取消失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "訂單已取消",
+        description: payload?.refundAmount > 0 ? `已記錄退款 ${twd(payload.refundAmount)}` : "未退款，已寫入稽核紀錄",
+      });
+      setCancelTarget(null);
+      await loadDetails();
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const valid = orders.filter((o) => o.order_status !== "cancelled");
     const paid = valid.filter((o) => o.confirmed);
@@ -499,7 +553,16 @@ export default function AdminGroupBuy() {
                         <TableCell className="text-right tabular-nums">{twd(o.deposit_amount)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           {o.order_status === "cancelled" ? (
-                            <Badge variant="destructive">已取消</Badge>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <Badge variant="destructive">已取消</Badge>
+                              {Number(o.refunded_amount || 0) > 0 ? (
+                                <Badge variant="secondary">
+                                  {o.refund_status === "partial_refunded" ? "部分退款" : "已退款"} {twd(o.refunded_amount || 0)}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">未退款</Badge>
+                              )}
+                            </div>
                           ) : o.confirmed ? (
                             <Badge className="bg-primary">已收訂金</Badge>
                           ) : o.reported ? (
@@ -518,6 +581,12 @@ export default function AdminGroupBuy() {
                               }}
                             >
                               確認收到訂金
+                            </Button>
+                          )}
+                          {o.order_status !== "cancelled" && (
+                            <Button size="sm" variant="outline" className="ml-1" onClick={() => openCancel(o)}>
+                              <Undo2 className="mr-1 h-4 w-4" />
+                              取消／退款
                             </Button>
                           )}
                           <Button
@@ -992,6 +1061,64 @@ export default function AdminGroupBuy() {
             </Button>
             <Button onClick={confirmDeposit} disabled={confirming}>
               {confirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認收款並寄信
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 取消訂單並手動退款 */}
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>取消訂單並處理退款</DialogTitle>
+            <DialogDescription>
+              {cancelTarget
+                ? `訂單 ${cancelTarget.order_number}（${cancelTarget.guest_name}）已收款 ${twd(cancelTarget.paid_amount || 0)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {cancelTarget && (
+            <div className="space-y-3 text-sm">
+              <div>
+                <Label>退款方式</Label>
+                <Select value={cancelRefundAction} onValueChange={(v) => setCancelRefundAction(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mark_refunded">已手動退款（銀行匯回）</SelectItem>
+                    <SelectItem value="no_refund">不退款（違約金／不可退方案）</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {cancelRefundAction === "mark_refunded" && (
+                <div>
+                  <Label>退款金額</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={Math.max(0, Number(cancelTarget.paid_amount || 0) - Number(cancelTarget.refunded_amount || 0))}
+                    value={cancelRefundAmount}
+                    onChange={(e) => setCancelRefundAmount(e.target.value)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    最高可退 {twd(Math.max(0, Number(cancelTarget.paid_amount || 0) - Number(cancelTarget.refunded_amount || 0)))}
+                    （團購為銀行匯款，需自行匯回旅客帳戶）
+                  </p>
+                </div>
+              )}
+              <div>
+                <Label>取消原因（會寫入稽核紀錄）</Label>
+                <Textarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)}>
+              返回
+            </Button>
+            <Button variant="destructive" onClick={cancelWithRefund} disabled={cancelling}>
+              {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認取消
             </Button>
           </DialogFooter>
         </DialogContent>
