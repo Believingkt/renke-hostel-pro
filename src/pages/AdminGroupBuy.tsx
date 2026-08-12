@@ -97,6 +97,7 @@ interface PackageRow {
   id: string;
   campaign_id: string;
   room_type_id: string | null;
+  room_type_ids: string[] | null;
   display_name: string;
   description: string | null;
   image_url: string | null;
