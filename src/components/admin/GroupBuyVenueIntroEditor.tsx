@@ -131,29 +131,45 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("group_buy_venue_intros").upsert(
-      {
-        accommodation_id: accommodationId,
-        description: form.description || null,
-        facilities: form.facilities
-          .split(/[、,，\n]/)
-          .map((s) => s.trim())
-          .filter(Boolean),
-        check_in_notice: form.check_in_notice || null,
-        phone: form.phone || null,
-        address: form.address || null,
-        gallery_urls: form.gallery_urls,
-        is_visible: form.is_visible,
-      } as any,
-      { onConflict: "accommodation_id" },
-    );
+    const snapshot = form;
+    const { data, error } = await supabase
+      .from("group_buy_venue_intros")
+      .upsert(
+        {
+          accommodation_id: accommodationId,
+          description: snapshot.description || null,
+          facilities: snapshot.facilities
+            .split(/[、,，\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+          check_in_notice: snapshot.check_in_notice || null,
+          phone: snapshot.phone || null,
+          address: snapshot.address || null,
+          gallery_urls: snapshot.gallery_urls,
+          is_visible: snapshot.is_visible,
+        } as any,
+        { onConflict: "accommodation_id" },
+      )
+      .select("gallery_urls")
+      .maybeSingle();
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "已儲存團購頁民宿介紹" });
+    const stored = ((data as any)?.gallery_urls ?? []) as string[];
+    if (JSON.stringify(stored) !== JSON.stringify(snapshot.gallery_urls)) {
+      toast({
+        title: "相簿順序寫入異常",
+        description: "資料庫回傳的順序與畫面不一致，請重新整理確認。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavedForm(snapshot);
+    toast({ title: "已儲存團購頁民宿介紹", description: `相簿順序已寫入（${stored.length} 張）` });
   };
+
 
   if (loading) {
     return (
