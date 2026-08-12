@@ -276,6 +276,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
     const loadOrderAddons = async () => {
       let selectedAddons: { addon_id: string; quantity: number }[] = [];
+      let existingAddonTotal = 0;
 
       // Always prefer custom_addon_details as the source of truth (updated by both EditOrder and PriceEdit dialogs)
       const { data } = await supabase
@@ -285,6 +286,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         .single();
 
       if (data?.custom_addon_details && Array.isArray(data.custom_addon_details) && (data.custom_addon_details as any[]).length > 0) {
+        existingAddonTotal = (data.custom_addon_details as any[]).reduce(
+          (sum: number, d: any) => sum + (Number(d?.total ?? 0) || 0),
+          0,
+        );
         // Fetch addon settings to match by addon_type
         const { data: addons } = await supabase
           .from("addon_settings")
@@ -305,6 +310,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         // Fallback to meal_plan_details for legacy data
         selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
       }
+
 
       // Determine deposit_paid and balance_paid from existing payment_status and paid_amount
       const depositAmount = Math.round((order.final_price || 0) * 0.3);
