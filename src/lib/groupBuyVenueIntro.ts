@@ -112,3 +112,28 @@ export async function ensureGroupBuyVenueIntroDefaults(accommodationId: string):
     is_visible: true,
   } as any);
 }
+
+/** 將富文字 HTML 轉為純文字（保留段落換行），供團購頁與後台編輯器顯示 */
+export function htmlToPlainText(input?: string | null): string {
+  if (!input) return "";
+  if (!/<[a-z][\s\S]*>/i.test(input)) return input;
+  const withBreaks = input
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "・");
+  const el = typeof document !== "undefined" ? document.createElement("div") : null;
+  let text: string;
+  if (el) {
+    el.innerHTML = withBreaks;
+    text = el.textContent || "";
+  } else {
+    text = withBreaks.replace(/<[^>]+>/g, "");
+  }
+  return text
+    .replace(/&nbsp;/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l, i, arr) => l || (i > 0 && arr[i - 1]))
+    .join("\n")
+    .trim();
+}
