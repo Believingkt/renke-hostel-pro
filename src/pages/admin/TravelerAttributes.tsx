@@ -71,10 +71,11 @@ const TravelerAttributes = () => {
   }, [rows, search]);
 
   const exportCsv = () => {
-    const header = ["建立時間", "會員", "期程", "節日", "人數", "夥伴", "目的", "每人預算", "遊玩重點"];
+    const header = ["建立時間", "來源", "身分", "期程", "節日", "人數", "夥伴", "目的", "每人預算", "遊玩重點"];
     const lines = filtered.map((r) =>
       [
         new Date(r.created_at).toLocaleString("zh-TW"),
+        (r.session_id || "").startsWith("line:") ? "LINE" : "官網",
         r.user_id ? "會員" : "訪客",
         r.trip_duration ?? "",
         r.festival ?? "",
@@ -126,6 +127,7 @@ const TravelerAttributes = () => {
               <TableRow>
                 <TableHead className="w-[150px] whitespace-nowrap">建立時間</TableHead>
                 <TableHead className="w-[80px]">來源</TableHead>
+                <TableHead className="w-[80px]">身分</TableHead>
                 <TableHead className="w-[90px]">期程</TableHead>
                 <TableHead className="w-[110px]">節日</TableHead>
                 <TableHead className="w-[80px] text-right tabular-nums">人數</TableHead>
@@ -140,6 +142,11 @@ const TravelerAttributes = () => {
                 <TableRow key={r.id}>
                   <TableCell className="whitespace-nowrap text-sm">
                     {new Date(r.created_at).toLocaleString("zh-TW", { hour12: false })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={(r.session_id || "").startsWith("line:") ? "default" : "secondary"}>
+                      {(r.session_id || "").startsWith("line:") ? "LINE" : "官網"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={r.user_id ? "default" : "outline"}>{r.user_id ? "會員" : "訪客"}</Badge>
@@ -166,7 +173,7 @@ const TravelerAttributes = () => {
               ))}
               {!loading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                     尚無旅遊屬性紀錄
                   </TableCell>
                 </TableRow>
