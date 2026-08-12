@@ -21,6 +21,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 interface EventRow {
