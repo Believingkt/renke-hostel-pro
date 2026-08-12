@@ -551,28 +551,38 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
-                    <Label>對應房型（庫存依據）</Label>
-                    <Select
-                      value={p.room_type_id ?? "none"}
-                      onValueChange={(v) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, room_type_id: v === "none" ? null : v } : x)),
-                        )
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">未設定</SelectItem>
-                        {roomTypes.map((rt) => (
-                          <SelectItem key={rt.id} value={rt.id}>
-                            {rt.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>對應房型（可複選，庫存依據）</Label>
+                    <div className="mt-1 max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-2">
+                      {roomTypes.length === 0 && (
+                        <p className="text-sm text-muted-foreground">此館別尚未建立房型</p>
+                      )}
+                      {roomTypes.map((rt) => {
+                        const selected = (p.room_type_ids ?? []).includes(rt.id);
+                        return (
+                          <label key={rt.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={selected}
+                              onCheckedChange={(v) =>
+                                setPackages((prev) =>
+                                  prev.map((x, i) => {
+                                    if (i !== idx) return x;
+                                    const cur = x.room_type_ids ?? [];
+                                    const next = v === true ? [...cur, rt.id] : cur.filter((id) => id !== rt.id);
+                                    return { ...x, room_type_ids: next, room_type_id: next[0] ?? null };
+                                  }),
+                                )
+                              }
+                            />
+                            <span>{rt.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      勾選多個房型時，系統會逐一比對真實庫存，指派第一個有空房的房型。
+                    </p>
                   </div>
+
                   <div>
                     <Label>團購價（每晚）</Label>
                     <Input
