@@ -262,13 +262,18 @@ export default function AdminGroupBuy() {
     const confirmedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "admin_confirmed").map((e: any) => e.order_id),
     );
+    const cancelRequestedSet = new Set(
+      (events ?? []).filter((e: any) => e.event_type === "cancel_requested").map((e: any) => e.order_id),
+    );
     setOrders(
       ((orderRows ?? []) as unknown as OrderRow[]).map((o) => ({
         ...o,
         reported: reportedSet.has(o.id),
         confirmed: confirmedSet.has(o.id),
+        cancelRequested: cancelRequestedSet.has(o.id),
       })),
     );
+
   }, [activeId]);
 
   useEffect(() => {
