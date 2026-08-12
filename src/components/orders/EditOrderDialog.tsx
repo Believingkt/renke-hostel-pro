@@ -739,7 +739,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         check_out_date: editForm.check_out_date,
         room_type_id: editForm.room_type_id,
         guest_count: editForm.guest_count,
-        total_price: effectiveTotal,
+        total_price: savedTotalPrice,
         discount_amount: effectiveDiscount,
         final_price: totalFinal,
         discount_code: appliedDiscount?.code || null,
