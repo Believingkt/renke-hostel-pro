@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
       e.event_type === "email_sent" || e.event_type === "email_failed"
     );
 
+
     return json({
       order: {
         orderNumber: order.order_number,
