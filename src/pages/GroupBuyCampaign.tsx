@@ -43,7 +43,6 @@ interface CampaignPackage {
   original_price: number | null;
   max_quantity: number | null;
   room_type_id: string | null;
-  room_type_id: string | null;
   room_type_ids: string[] | null;
   package_id: string | null;
   sort_order: number;
