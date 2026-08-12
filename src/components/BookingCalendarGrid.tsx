@@ -187,9 +187,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const [loadError, setLoadError] = useState<string | null>(null);
   // 避免快速切換日期／即時事件造成「舊回應覆蓋新資料」
   const loadSeqRef = useRef(0);
-
-
-  
+  // 目前畫面資料實際對應的「民宿 + 日期區間」，用來擋掉切換期間的舊資料
+  const [loadedRangeKey, setLoadedRangeKey] = useState<string | null>(null);
 
   // Generate date columns
   const dates = useMemo(() => {
@@ -197,6 +196,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   }, [startDate, dayCount]);
 
   const dateStrings = useMemo(() => dates.map(d => format(d, "yyyy-MM-dd")), [dates]);
+
+  const currentRangeKey = `${accommodationId}_${dateStrings[0]}_${dateStrings[dateStrings.length - 1]}`;
+  const rangeReady = loadedRangeKey === currentRangeKey;
+  const visibleEntries = useMemo(() => (rangeReady ? calendarEntries : []), [rangeReady, calendarEntries]);
+
 
   // Load data
   useEffect(() => {
@@ -471,6 +475,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       // 庫存讀取失敗時保留舊資料，避免整張日曆變空白
       if (!inventoryRes.error) setInventory(invMap);
       if (!templatesRes.error) setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
+      setLoadedRangeKey(`${accommodationId}_${startStr}_${endStr}`);
       setLoadError(null);
     } catch (error: any) {
       if (isStale()) return;
@@ -505,7 +510,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
   // Get booked count for a room type on a date (using calendar entries for accurate multi-room counting)
   const getBookedCount = (roomTypeId: string, dateStr: string): number => {
-    return calendarEntries.filter(e => {
+    return visibleEntries.filter(e => {
       if (e.room_type_id !== roomTypeId) return false;
       return e.check_in_date <= dateStr && e.check_out_date > dateStr;
     }).length;
@@ -518,12 +523,12 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     const sharedExclusiveTypes = roomTypes.filter(r => r.is_exclusive_package && r.is_bound_to_exclusive);
     for (const dateStr of dateStrings) {
       const hasBooking = sharedExclusiveTypes.some(et =>
-        calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr)
+        visibleEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr)
       );
       if (hasBooking) blockedDates.add(dateStr);
     }
     return blockedDates;
-  }, [roomTypes, calendarEntries, dateStrings]);
+  }, [roomTypes, visibleEntries, dateStrings]);
 
   // 反向：散客房型 (is_bound_to_exclusive && !is_exclusive_package) 有訂單時，
   // 會鎖定它所綁定的包棟房型。bound_exclusive_ids 為 null/空 → 視為綁定全部共用包棟。
@@ -538,7 +543,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
         ? room.bound_exclusive_ids
         : allSharedExclusiveIds;
       for (const dateStr of dateStrings) {
-        const hasBooking = calendarEntries.some(e =>
+        const hasBooking = visibleEntries.some(e =>
           e.room_type_id === room.id && e.check_in_date <= dateStr && e.check_out_date > dateStr
         );
         if (!hasBooking) continue;
@@ -549,7 +554,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       }
     }
     return map;
-  }, [roomTypes, calendarEntries, dateStrings]);
+  }, [roomTypes, visibleEntries, dateStrings]);
 
   // 整棟保留/包棟旗標：任何訂單 lock_whole_building = true → 該日所有房型整列鎖（不分包棟/散客）
   const wholeBuildingLockedDates = useMemo(() => {
@@ -587,16 +592,16 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     for (const et of exclusiveTypes) {
       const bookedDates = new Set<string>();
       for (const dateStr of dateStrings) {
-        const hasBooking = calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr);
+        const hasBooking = visibleEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr);
         if (hasBooking) bookedDates.add(dateStr);
       }
       if (bookedDates.size > 0) map.set(et.id, bookedDates);
     }
     return map;
-  }, [roomTypes, calendarEntries, dateStrings]);
+  }, [roomTypes, visibleEntries, dateStrings]);
 
   // 解析「包棟訂單」notes 內【包棟/包區房間配置】。
-  // 必須依房型 + 日期對齊，資料來源與上方房型日曆同樣使用 calendarEntries，避免房間配置列錯抓到其他包棟房型的日期。
+  // 必須依房型 + 日期對齊，資料來源與上方房型日曆同樣使用 visibleEntries，避免房間配置列錯抓到其他包棟房型的日期。
   const exclusiveConfigByRoomTypeDate = useMemo(() => {
     const result = new Map<string, Map<string, Map<string, number>>>();
     const exclusiveTypeIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
@@ -623,7 +628,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       for (const dateStr of dateStrings) {
         const cfg = new Map<string, number>();
         const parsedOrderIds = new Set<string>();
-        for (const entry of calendarEntries) {
+        for (const entry of visibleEntries) {
           if (entry.room_type_id !== roomTypeId) continue;
           if (entry.check_in_date > dateStr || entry.check_out_date <= dateStr) continue;
           if (parsedOrderIds.has(entry.orderId)) continue;
@@ -636,7 +641,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     }
 
     return result;
-  }, [calendarEntries, roomTypes, dateStrings]);
+  }, [visibleEntries, roomTypes, dateStrings]);
 
   const exclusiveConfigByDate = useMemo(() => {
     const result = new Map<string, Map<string, number>>();
@@ -948,7 +953,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
             const roomCount = roomType.room_count || 0;
 
             // Get all calendar entries for this room type in the date range
-            const rtEntries = calendarEntries.filter(e => e.room_type_id === roomType.id);
+            const rtEntries = visibleEntries.filter(e => e.room_type_id === roomType.id);
 
             return (
               <div key={roomType.id}>
