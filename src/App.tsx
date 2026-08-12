@@ -733,6 +733,13 @@ function App() {
                       <Route path="/team/kol/bonus/:token" element={
                         <Suspense fallback={null}><KolBonusPublic /></Suspense>
                       } />
+                      <Route path="/kol/d/:token" element={
+                        <Suspense fallback={null}><KolDashboardPublic /></Suspense>
+                      } />
+                      <Route path="/kol/join/:code" element={
+                        <Suspense fallback={null}><KolReferralJoin /></Suspense>
+                      } />
+
                       <Route path="/hq/ai-training" element={
                         <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
                       }>
