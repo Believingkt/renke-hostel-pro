@@ -10,7 +10,20 @@ export type ButlerIntent =
   | "addon"
   | "favorites"
   | "checkout"
+  | "trip_plan"
   | "unknown";
+
+export type TripScenario = "family" | "couple" | "friends" | "villa" | "outdoor";
+
+export interface TripAttributes {
+  trip_duration?: string;
+  festival?: string;
+  party_size?: number;
+  companion_type?: string;
+  purpose?: string;
+  budget?: number;
+  highlights?: string[];
+}
 
 export interface ParsedIntent {
   intent: ButlerIntent;
