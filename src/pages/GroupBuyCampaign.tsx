@@ -223,9 +223,21 @@ export default function GroupBuyCampaign() {
       });
       const payload: any = data;
       if (error || payload?.error) {
+        // supabase.functions.invoke 在非 2xx 時只給「non-2xx status code」，
+        // 真正的訊息在 error.context 的 response body，需要另外讀出來
+        let message: string | null = payload?.error ?? null;
+        const ctx: any = (error as any)?.context;
+        if (!message && ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.clone().json();
+            message = body?.error ?? null;
+          } catch {
+            /* ignore */
+          }
+        }
         toast({
           title: "預訂失敗",
-          description: payload?.error ?? error?.message ?? "請稍後再試",
+          description: message ?? error?.message ?? "請稍後再試",
           variant: "destructive",
         });
         void checkAvailability();
