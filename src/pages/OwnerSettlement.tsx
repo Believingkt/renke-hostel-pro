@@ -24,6 +24,7 @@ import { getOrderStatusLabel, getOrderSourceConfig, getHotelnabeOtaCode, getOrde
 import {
   computeOwnerSettlementRows,
   computeGuestCountRows,
+  type RevenueStatBasis,
   computeGuestCountTotals,
   getRevenueBreakdownType,
   resolvePricingRule,
@@ -160,6 +161,8 @@ export default function OwnerSettlement() {
   const [rateEdit, setRateEdit] = useState<{ orderId: string; value: string } | null>(null);
   const [rateConfirmOrderId, setRateConfirmOrderId] = useState<string | null>(null);
   const [savingRate, setSavingRate] = useState(false);
+  // 入住營收統計口徑：預設以入住日計（與營運分析一致）
+  const [basis, setBasis] = useState<RevenueStatBasis>("checkin");
 
 
 
@@ -308,7 +311,7 @@ export default function OwnerSettlement() {
   );
 
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency, effectiveRule);
+    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency, effectiveRule, basis);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -361,7 +364,7 @@ export default function OwnerSettlement() {
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap) : []),
+    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap, basis) : []),
     [isGuestCount, orders, config, month, accCurrency, effectiveRule, roomCapacityMap]
 
   );
