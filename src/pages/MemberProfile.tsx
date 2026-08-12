@@ -26,6 +26,7 @@ import {
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import PushNotificationCard from "@/components/member/PushNotificationCard";
+import PushDiagnosticsCard from "@/components/member/PushDiagnosticsCard";
 
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
@@ -262,6 +263,8 @@ const MemberProfile = () => {
 
       {/* App 推播通知（僅原生 App 顯示） */}
       <PushNotificationCard />
+      <PushDiagnosticsCard />
+
 
 
 
