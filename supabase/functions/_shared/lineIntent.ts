@@ -212,6 +212,8 @@ export function parseIntent(text: string, today: string): ParsedIntent {
     keyword,
     venue: venueAlias?.canonical,
     venueLabel: venueAlias?.label,
+    scenario: detectScenario(t),
+    tripAttributes: extractTripAttributes(t, today),
   };
 }
 
