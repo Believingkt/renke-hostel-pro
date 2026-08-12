@@ -54,7 +54,10 @@ const EVENT_LABEL: Record<string, string> = {
   refund_failed: "退款失敗",
   email_sent: "通知信已寄出",
   email_failed: "通知信寄送失敗",
+  cancel_requested: "旅客申請取消",
+  cancel_request_rejected: "取消申請未通過",
   note: "備註",
+
 };
 
 const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
