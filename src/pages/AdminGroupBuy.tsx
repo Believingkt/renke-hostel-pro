@@ -784,11 +784,12 @@ export default function AdminGroupBuy() {
                   onChange={(e) => setEditing({ ...editing, discount_code: e.target.value.toUpperCase() })}
                 />
               </div>
-              <div>
-                <Label>封面圖網址</Label>
-                <Input
-                  value={editing.cover_image_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, cover_image_url: e.target.value })}
+              <div className="md:col-span-2">
+                <Label>封面圖片</Label>
+                <ImageUploadField
+                  value={editing.cover_image_url ?? null}
+                  onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
+                  pathPrefix={`${accommodationId}/group-buy/cover`}
                 />
               </div>
               <div>
@@ -803,6 +804,9 @@ export default function AdminGroupBuy() {
                     <SelectItem value="ended">已結束</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="md:col-span-2">
+                <CampaignWindowSummary campaign={editing} />
               </div>
               <div>
                 <Label>開賣時間</Label>
@@ -821,6 +825,9 @@ export default function AdminGroupBuy() {
                   }
                   placeholder="選擇開賣時間"
                 />
+                {editErrors.sale_start && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.sale_start}</p>
+                )}
               </div>
               <div>
                 <Label>結束時間</Label>
@@ -830,6 +837,7 @@ export default function AdminGroupBuy() {
                   minDateTime={editing.sale_start ?? null}
                   placeholder="選擇結束時間"
                 />
+                {editErrors.sale_end && <p className="mt-1 text-xs text-destructive">{editErrors.sale_end}</p>}
               </div>
               <div>
                 <Label>可入住起日</Label>
@@ -845,6 +853,9 @@ export default function AdminGroupBuy() {
                   }
                   placeholder="選擇起始日"
                 />
+                {editErrors.stay_start_date && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.stay_start_date}</p>
+                )}
               </div>
               <div>
                 <Label>可入住迄日</Label>
@@ -854,7 +865,11 @@ export default function AdminGroupBuy() {
                   minDate={editing.stay_start_date ?? null}
                   placeholder="選擇結束日"
                 />
+                {editErrors.stay_end_date && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.stay_end_date}</p>
+                )}
               </div>
+
 
               <div>
                 <Label>訂金比例（%）</Label>
