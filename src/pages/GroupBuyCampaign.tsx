@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,7 @@ function dateList(checkIn: string, n: number) {
 export default function GroupBuyCampaign() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -245,6 +246,9 @@ export default function GroupBuyCampaign() {
       }
       setResult(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      navigate(`/g/order/${payload.orderNumber}/confirmed`, {
+        state: { phoneLast4: guestPhone.replace(/\D/g, "").slice(-4), result: payload },
+      });
     } catch (e) {
       toast({ title: "預訂失敗", description: e instanceof Error ? e.message : "請稍後再試", variant: "destructive" });
     } finally {
