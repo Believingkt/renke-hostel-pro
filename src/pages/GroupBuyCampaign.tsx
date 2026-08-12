@@ -397,8 +397,11 @@ export default function GroupBuyCampaign() {
             value={checkIn}
             min={campaign.stay_start_date ?? undefined}
             max={campaign.stay_end_date ?? undefined}
+            aria-invalid={!!stayErrors.checkIn}
+            className={stayErrors.checkIn ? "border-destructive" : undefined}
             onChange={(e) => setCheckIn(e.target.value)}
           />
+          {stayErrors.checkIn && <p className="mt-1 text-xs text-destructive">{stayErrors.checkIn}</p>}
         </div>
         <div>
           <Label htmlFor="gb-checkout">退房日</Label>
@@ -408,9 +411,13 @@ export default function GroupBuyCampaign() {
             value={checkOut}
             min={checkIn || campaign.stay_start_date || undefined}
             max={campaign.stay_end_date ?? undefined}
+            aria-invalid={!!stayErrors.checkOut}
+            className={stayErrors.checkOut ? "border-destructive" : undefined}
             onChange={(e) => setCheckOut(e.target.value)}
           />
+          {stayErrors.checkOut && <p className="mt-1 text-xs text-destructive">{stayErrors.checkOut}</p>}
         </div>
+
         <div>
           <Label htmlFor="gb-rooms">間數</Label>
           <Input
