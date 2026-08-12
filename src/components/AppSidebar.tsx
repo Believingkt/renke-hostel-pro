@@ -149,7 +149,7 @@ const menuItems = [
 
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
-  { title: "AI 管家", url: "/admin/ai-training", icon: Sparkles, moduleKey: "ai_training" },
+  // AI 管家相關頁面已搬遷至總部後台（hq.lakeze.com）
   // { title: "流量分析", url: "/admin/analytics", icon: TrendingUp },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },
 ];
