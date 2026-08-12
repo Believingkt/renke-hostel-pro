@@ -162,7 +162,7 @@ export default function OwnerSettlement() {
   const [rateConfirmOrderId, setRateConfirmOrderId] = useState<string | null>(null);
   const [savingRate, setSavingRate] = useState(false);
   // 入住營收統計口徑：預設以入住日計（與營運分析一致）
-  const [basis, setBasis] = useState<RevenueStatBasis>("checkin");
+  const [basis, setBasis] = useState<RevenueStatBasis>("nightly");
 
 
 
@@ -365,7 +365,7 @@ export default function OwnerSettlement() {
 
   const gcRows = useMemo(
     () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap, basis) : []),
-    [isGuestCount, orders, config, month, accCurrency, effectiveRule, roomCapacityMap]
+    [isGuestCount, orders, config, month, accCurrency, effectiveRule, roomCapacityMap, basis]
 
   );
 
