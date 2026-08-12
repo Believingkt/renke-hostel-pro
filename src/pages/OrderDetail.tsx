@@ -3144,8 +3144,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <>
                 {orderRooms.map((or) => {
                   const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-                  const displayRoomPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
-                    ? order.total_price
+                  const savedAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+                  const customAddonTotal = savedAddons.reduce((sum, item) => sum + Number(item.total || 0), 0);
+                  const dedicatedAddonTotal = Number(order.pet_plan_price || 0) + Number(order.meal_plan_total || 0);
+                  const addonTotal = dedicatedAddonTotal > 0 ? dedicatedAddonTotal : customAddonTotal;
+                  const totalIncludesAddons = Math.abs(
+                    Number(order.final_price || 0) - (Number(order.total_price || 0) - Number(order.discount_amount || 0)),
+                  ) <= 1;
+                  const roomOnlyTotal = Math.max(0, Number(order.total_price || 0) - (totalIncludesAddons ? addonTotal : 0));
+                  const displayRoomPrice = orderRooms.length === 1 && roomOnlyTotal > 0 && savedRoomsTotal !== roomOnlyTotal
+                    ? roomOnlyTotal
                     : or.room_price;
                   return (
                     <div key={or.id} className="flex justify-between items-center gap-2">
@@ -3160,9 +3168,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             )}
             {(() => {
               const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-              const displayTotal = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
-                ? order.total_price
-                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
+              const savedAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+              const customAddonTotal = savedAddons.reduce((sum, item) => sum + Number(item.total || 0), 0);
+              const dedicatedAddonTotal = Number(order.pet_plan_price || 0) + Number(order.meal_plan_total || 0);
+              const addonTotal = dedicatedAddonTotal > 0 ? dedicatedAddonTotal : customAddonTotal;
+              const totalIncludesAddons = Math.abs(
+                Number(order.final_price || 0) - (Number(order.total_price || 0) - Number(order.discount_amount || 0)),
+              ) <= 1;
+              const roomOnlyTotal = Math.max(0, Number(order.total_price || 0) - (totalIncludesAddons ? addonTotal : 0));
+              const displayTotal = orderRooms.length === 1 && roomOnlyTotal > 0 && savedRoomsTotal !== roomOnlyTotal
+                ? roomOnlyTotal
+                : (orderRooms.length > 0 ? savedRoomsTotal : roomOnlyTotal);
               // 編輯模式始終顯示；檢視模式下僅在無 orderRooms 或多房型時顯示原始金額
               const showInViewMode = orderRooms.length !== 1;
               if (!isEditing && !showInViewMode) return null;
