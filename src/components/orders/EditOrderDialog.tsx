@@ -276,6 +276,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
     const loadOrderAddons = async () => {
       let selectedAddons: { addon_id: string; quantity: number }[] = [];
+      let existingAddonTotal = 0;
 
       // Always prefer custom_addon_details as the source of truth (updated by both EditOrder and PriceEdit dialogs)
       const { data } = await supabase
@@ -285,6 +286,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         .single();
 
       if (data?.custom_addon_details && Array.isArray(data.custom_addon_details) && (data.custom_addon_details as any[]).length > 0) {
+        existingAddonTotal = (data.custom_addon_details as any[]).reduce(
+          (sum: number, d: any) => sum + (Number(d?.total ?? 0) || 0),
+          0,
+        );
         // Fetch addon settings to match by addon_type
         const { data: addons } = await supabase
           .from("addon_settings")
@@ -305,6 +310,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         // Fallback to meal_plan_details for legacy data
         selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
       }
+
 
       // Determine deposit_paid and balance_paid from existing payment_status and paid_amount
       const depositAmount = Math.round((order.final_price || 0) * 0.3);
@@ -349,7 +355,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       }
 
       // Initialize manual overrides from saved order values
-      setManualTotalPriceStr(String(order.total_price));
+      // orders.total_price 已含加購金額，此欄位為「房費金額」，需扣除加購避免重複計算
+      setManualTotalPriceStr(String(Math.max(0, (order.total_price || 0) - existingAddonTotal)));
       setManualDiscountStr(String(order.discount_amount));
     };
 
@@ -665,7 +672,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       }, 0);
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
-      const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
+      // orders.total_price 口徑：房費 + 加購
+      const savedTotalPrice = effectiveTotal + addonTotal;
+      const totalFinal = Math.max(0, savedTotalPrice - effectiveDiscount);
       const isBankTransfer = editForm.balance_payment_method === "bank_transfer";
 
       // 訂金邏輯：只有匯款才使用訂金/尾款拆分
@@ -730,7 +739,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         check_out_date: editForm.check_out_date,
         room_type_id: editForm.room_type_id,
         guest_count: editForm.guest_count,
-        total_price: effectiveTotal,
+        total_price: savedTotalPrice,
         discount_amount: effectiveDiscount,
         final_price: totalFinal,
         discount_code: appliedDiscount?.code || null,
