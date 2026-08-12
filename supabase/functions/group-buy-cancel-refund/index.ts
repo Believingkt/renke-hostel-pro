@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (commission?.id) {
-      await admin.from("group_buy_commissions").update({ status: "cancelled" }).eq("id", commission.id);
+      await admin.from("group_buy_commissions").update({ status: "void" }).eq("id", commission.id);
     }
 
     await admin.from("group_buy_payment_events").insert([
