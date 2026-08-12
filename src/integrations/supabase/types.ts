@@ -3971,6 +3971,7 @@ export type Database = {
           original_price: number | null
           package_id: string | null
           room_type_id: string | null
+          room_type_ids: string[]
           sort_order: number
           updated_at: string
         }
@@ -3987,6 +3988,7 @@ export type Database = {
           original_price?: number | null
           package_id?: string | null
           room_type_id?: string | null
+          room_type_ids?: string[]
           sort_order?: number
           updated_at?: string
         }
@@ -4003,6 +4005,7 @@ export type Database = {
           original_price?: number | null
           package_id?: string | null
           room_type_id?: string | null
+          room_type_ids?: string[]
           sort_order?: number
           updated_at?: string
         }
