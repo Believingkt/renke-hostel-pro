@@ -734,7 +734,7 @@ function tripReply(
   attrs: TripAttributes = {},
 ): ButlerReply {
   return {
-    messages: [textMsg(`好的！我用「${SCENARIO_LABEL[scenario]}」的調性排行程，稍等我 30 秒 🧸✨`)],
+    messages: [textMsg(`好的！我用「${SCENARIO_LABEL[scenario]}」的調性排行程，請稍等 🧸✨`)],
     deferred: async () => {
       const merged: TripAttributes = { ...(state.tripAttributes || {}), ...attrs };
       try {
