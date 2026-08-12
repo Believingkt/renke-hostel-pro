@@ -325,13 +325,15 @@ export default function GroupBuyCampaign() {
         {campaign.kol_display_name && <Badge variant="secondary">{campaign.kol_display_name} 專屬團購</Badge>}
         <h1 className="text-2xl font-bold text-foreground">{campaign.title}</h1>
         {campaign.subtitle && <p className="text-muted-foreground">{campaign.subtitle}</p>}
-        {(campaign.stay_start_date || campaign.stay_end_date) && (
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            可入住期間：{campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
-          </p>
-        )}
       </div>
+
+      <CampaignWindowSummary campaign={campaign} className="mt-4" />
+      {sale !== "on_sale" && (
+        <p className="mt-2 text-sm text-destructive">
+          此活動目前{SALE_STATE_LABEL[sale]}，暫時無法下訂。
+        </p>
+      )}
+
 
       {campaign.description_html && (
         <div
