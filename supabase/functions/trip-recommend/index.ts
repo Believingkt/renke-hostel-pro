@@ -222,7 +222,7 @@ serve(async (req) => {
     }
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    if (!ANTHROPIC_API_KEY && body?.fast !== true) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const catalog = products.map((p) => ({
       id: p.id,
