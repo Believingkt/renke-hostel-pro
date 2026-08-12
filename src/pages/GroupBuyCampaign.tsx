@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { AccommodationIntro, PackageRoomTypes } from "@/components/groupbuy/AccommodationIntro";
+
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
@@ -127,6 +129,16 @@ export default function GroupBuyCampaign() {
     () => packages.find((p) => p.id === selectedPkgId) ?? null,
     [packages, selectedPkgId],
   );
+  const selectedRoomTypeIds = useMemo(
+    () =>
+      selectedPkg?.room_type_ids && selectedPkg.room_type_ids.length > 0
+        ? selectedPkg.room_type_ids
+        : selectedPkg?.room_type_id
+          ? [selectedPkg.room_type_id]
+          : [],
+    [selectedPkg],
+  );
+
   const nights = nightsBetween(checkIn, checkOut);
   const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
   const depositPct = campaign?.deposit_percentage ?? 30;
