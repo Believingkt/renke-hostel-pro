@@ -492,7 +492,15 @@ export default function GroupBuyCampaign() {
       <Button
         className="mt-5 w-full"
         size="lg"
-        disabled={submitting || availability.checking || availability.ok === false || nights <= 0 || !selectedPkg}
+        disabled={
+          submitting ||
+          availability.checking ||
+          availability.ok === false ||
+          nights <= 0 ||
+          !selectedPkg ||
+          dateBlocked ||
+          sale !== "on_sale"
+        }
         onClick={submit}
       >
         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
