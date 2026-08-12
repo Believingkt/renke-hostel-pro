@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { GroupBuyVenueIntroEditor } from "@/components/admin/GroupBuyVenueIntroEditor";
+import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -289,7 +291,12 @@ export default function AdminGroupBuy() {
         ? await supabase.from("group_buy_campaigns").update(payload).eq("id", editing.id)
         : await supabase.from("group_buy_campaigns").insert(payload);
       if (error) throw error;
+      if (!editing.id) {
+        // 新活動：預設帶入官網介紹內容，之後可於「民宿介紹」分頁編輯
+        await ensureGroupBuyVenueIntroDefaults(accommodationId);
+      }
       toast({ title: "已儲存團購活動" });
+
       setEditing(null);
       await loadCampaigns();
     } catch (e) {
@@ -459,6 +466,7 @@ export default function AdminGroupBuy() {
             <TabsTrigger value="packages">方案設定</TabsTrigger>
             <TabsTrigger value="bank">匯款帳戶</TabsTrigger>
             <TabsTrigger value="analytics">銷售分析</TabsTrigger>
+            <TabsTrigger value="venue">民宿介紹</TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="space-y-3">
@@ -759,6 +767,10 @@ export default function AdminGroupBuy() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="venue">
+            {accommodationId && <GroupBuyVenueIntroEditor accommodationId={accommodationId} />}
           </TabsContent>
         </Tabs>
         </>
