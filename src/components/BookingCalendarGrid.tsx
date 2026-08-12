@@ -811,7 +811,14 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
   return (
     <div className="space-y-4">
+      {loadError && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+          <span className="text-destructive">部分資料載入失敗，畫面可能不是最新：{loadError}</span>
+          <Button variant="outline" size="sm" onClick={() => loadData()}>重新載入</Button>
+        </div>
+      )}
       {/* Controls */}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={goToToday} className="h-9">
           今日
