@@ -23,6 +23,10 @@ export default function GroupBuyOrderLookup() {
   const [accountLast5, setAccountLast5] = useState("");
   const [transferredAt, setTransferredAt] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
 
   useEffect(() => {
     if (routeOrderNumber) setOrderNumber(routeOrderNumber);
