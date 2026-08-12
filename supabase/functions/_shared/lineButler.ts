@@ -6,9 +6,17 @@
  * 不改動既有金流與 portal-ai-chat。
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { parseIntent, type ParsedIntent } from "./lineIntent.ts";
+import { parseIntent, type ParsedIntent, type TripAttributes, type TripScenario } from "./lineIntent.ts";
 import { VENUE_ALIASES, accommodationMatchesVenue } from "./lineVenueAlias.ts";
 import { taipeiToday } from "./taipeiDate.ts";
+import { askLlm, logLineConversation } from "./lineLlm.ts";
+import {
+  archiveTripAttributes,
+  recommendTrip,
+  scenarioQuickReply,
+  SCENARIO_LABEL,
+  tripFlex,
+} from "./lineTrip.ts";
 
 export interface ButlerCartStay {
   kind: "stay";
