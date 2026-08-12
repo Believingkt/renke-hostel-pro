@@ -46,11 +46,11 @@ export async function fetchOfficialVenueIntro(accommodationId: string): Promise<
   return {
     name: info.name,
     region: [info.region_1, info.region_2].filter(Boolean).join("・"),
-    description: info.description ?? null,
+    description: htmlToPlainText(info.description) || null,
     facilities: expandFacilitiesForAccommodations((facRes.data ?? []) as any[], [accommodationId])
       .map((f: any) => f.facility_name)
       .filter(Boolean),
-    check_in_notice: info.check_in_notice ?? null,
+    check_in_notice: htmlToPlainText(info.check_in_notice) || null,
     phone: info.phone ?? null,
     address: info.address ?? null,
     gallery_urls: (photoRes.data ?? [])
@@ -78,9 +78,9 @@ export async function fetchGroupBuyVenueIntro(accommodationId: string): Promise<
 
   return {
     ...official,
-    description: row.description ?? official.description,
+    description: htmlToPlainText(row.description) || official.description,
     facilities: row.facilities?.length ? row.facilities : official.facilities,
-    check_in_notice: row.check_in_notice ?? official.check_in_notice,
+    check_in_notice: htmlToPlainText(row.check_in_notice) || official.check_in_notice,
     phone: row.phone ?? official.phone,
     address: row.address ?? official.address,
     gallery_urls: row.gallery_urls?.length ? row.gallery_urls : official.gallery_urls,
@@ -111,4 +111,29 @@ export async function ensureGroupBuyVenueIntroDefaults(accommodationId: string):
     gallery_urls: official.gallery_urls.slice(0, 12),
     is_visible: true,
   } as any);
+}
+
+/** 將富文字 HTML 轉為純文字（保留段落換行），供團購頁與後台編輯器顯示 */
+export function htmlToPlainText(input?: string | null): string {
+  if (!input) return "";
+  if (!/<[a-z][\s\S]*>/i.test(input)) return input;
+  const withBreaks = input
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "・");
+  const el = typeof document !== "undefined" ? document.createElement("div") : null;
+  let text: string;
+  if (el) {
+    el.innerHTML = withBreaks;
+    text = el.textContent || "";
+  } else {
+    text = withBreaks.replace(/<[^>]+>/g, "");
+  }
+  return text
+    .replace(/&nbsp;/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l, i, arr) => l || (i > 0 && arr[i - 1]))
+    .join("\n")
+    .trim();
 }
