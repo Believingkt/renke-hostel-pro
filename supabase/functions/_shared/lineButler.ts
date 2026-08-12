@@ -89,7 +89,11 @@ export async function linePush(token: string, to: string, messages: OutgoingMess
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ to, messages: messages.slice(0, 5) }),
   });
-  if (!r.ok) console.error("[butler] push failed", r.status, await r.text());
+  if (!r.ok) {
+    const body = await r.text();
+    console.error("[butler] push failed", r.status, body);
+    throw new Error(`LINE push failed ${r.status}: ${body}`);
+  }
 }
 
 export function textMsg(text: string): OutgoingMessage {
@@ -698,8 +702,20 @@ export async function handleButlerEvent(sb: SupabaseClient, accessToken: string 
 
   let all = reply.messages;
   if (reply.deferred) {
-    // 先回覆佔位訊息，正式回覆改走 push，避免 reply token 逾時
-    const later = await reply.deferred();
+    // 先回覆佔位訊息，正式回覆改走 push（整段 pipeline 由 webhook await 完成，不用 fire-and-forget）
+    let later: OutgoingMessage[] = [];
+    try {
+      later = await reply.deferred();
+    } catch (e) {
+      console.error("[butler] deferred failed", e);
+      await logLineConversation(sb, {
+        lineUserId,
+        userText: `[deferred:${ev?.type}]`,
+        assistantText: `error: ${String(e)}`,
+        promptVersion: null,
+      });
+      later = [textMsg("排行程時出了點狀況，請再試一次 🙏")];
+    }
     if (later.length > 0) {
       if (accessToken) await linePush(accessToken, lineUserId, later);
       all = [...all, ...later];
@@ -720,12 +736,25 @@ function tripReply(
     messages: [textMsg(`好的！我用「${SCENARIO_LABEL[scenario]}」的調性排行程，稍等我 30 秒 🧸✨`)],
     deferred: async () => {
       const merged: TripAttributes = { ...(state.tripAttributes || {}), ...attrs };
-      await archiveTripAttributes(sb, lineUserId, merged);
-      const trip = await recommendTrip(scenario, merged);
-      if (!trip) {
-        return [textMsg("行程排到一半卡住了 😢 等等再跟我說一次好嗎？")];
+      try {
+        await archiveTripAttributes(sb, lineUserId, merged);
+      } catch (e) {
+        console.error("[butler-trip] archive failed", e);
       }
-      return [tripFlex(scenario, trip)];
+      try {
+        const trip = await recommendTrip(scenario, merged);
+        if (!trip) throw new Error("trip-recommend returned null");
+        return [tripFlex(scenario, trip)];
+      } catch (e) {
+        console.error("[butler-trip] plan failed", scenario, e);
+        await logLineConversation(sb, {
+          lineUserId,
+          userText: `[trip:${scenario}]`,
+          assistantText: `error: ${String(e)}`,
+          promptVersion: null,
+        });
+        return [textMsg("排行程時出了點狀況，請再試一次 🙏")];
+      }
     },
   };
 }

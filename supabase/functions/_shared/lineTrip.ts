@@ -75,7 +75,7 @@ export function scenarioQuickReply(): OutgoingMessage {
 /** 呼叫 trip-recommend 取得行程 */
 // deno-lint-ignore no-explicit-any
 export async function recommendTrip(scenario: TripScenario, attributes: TripAttributes): Promise<any | null> {
-  try {
+  {
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/trip-recommend`;
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const r = await fetch(url, {
@@ -84,13 +84,13 @@ export async function recommendTrip(scenario: TripScenario, attributes: TripAttr
       body: JSON.stringify({ scenario, attributes }),
     });
     if (!r.ok) {
-      console.error("[butler-trip] trip-recommend failed", r.status, await r.text());
-      return null;
+      const body = await r.text();
+      console.error("[butler-trip] trip-recommend failed", r.status, body);
+      throw new Error(`trip-recommend ${r.status}: ${body.slice(0, 300)}`);
     }
-    return await r.json();
-  } catch (e) {
-    console.error("[butler-trip] trip-recommend error", e);
-    return null;
+    const json = await r.json();
+    if (json?.error) throw new Error(String(json.error));
+    return json;
   }
 }
 
