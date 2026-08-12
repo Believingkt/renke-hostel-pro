@@ -102,21 +102,82 @@ export function extractGuests(text: string): number | undefined {
 }
 
 const ADDON_KEYWORDS = /票券|門票|加購|體驗|餐券|早餐|晚餐|燒烤|BBQ|下午茶|接送|導覽|活動|景點/i;
-const FAVORITE_KEYWORDS = /收藏|我的行程|願望|口袋/;
+const FAVORITE_KEYWORDS = /收藏|願望|口袋/;
 const CHECKOUT_KEYWORDS = /結帳|付款|下訂|訂房確認|去結帳|買單/;
 const GREETING_KEYWORDS = /^(hi|hello|你好|哈囉|嗨|安安|在嗎)/i;
 const SEARCH_KEYWORDS = /房|訂|住|空房|入住|包棟|民宿|飯店|旅宿/;
+const TRIP_KEYWORDS = /排行程|安排行程|規劃行程|行程規劃|推薦行程|行程推薦|幫我排|玩什麼|怎麼玩|有什麼好玩|景點推薦|一日遊|兩天一夜|三天兩夜|旅遊建議/;
+
+/** 情境模板 key（與 trip-recommend 的 SCENARIOS 對齊；包棟 → villa） */
+export function detectScenario(text: string): TripScenario | undefined {
+  const t = text || "";
+  if (/包棟|整棟|包場|團體包棟|團體/.test(t)) return "villa";
+  if (/親子|小孩|家庭|長輩|爸媽/.test(t)) return "family";
+  if (/情侶|蜜月|約會|兩人|夫妻/.test(t)) return "couple";
+  if (/朋友|同事|閨蜜|同學/.test(t)) return "friends";
+  if (/戶外|步道|登山|單車|生態|健行|露營/.test(t)) return "outdoor";
+  return undefined;
+}
+
+/** 從訊息抽取旅遊屬性（缺的就留空，不臆測） */
+export function extractTripAttributes(text: string, today: string): TripAttributes {
+  const t = text || "";
+  const attrs: TripAttributes = {};
+
+  const durMatch = t.match(/([一二兩三四五1-5])\s*天\s*([一二兩三四1-4])\s*夜/);
+  if (durMatch) attrs.trip_duration = durMatch[0];
+  else if (/一日遊|當天來回/.test(t)) attrs.trip_duration = "一日遊";
+  else {
+    const nights = extractDates(t, today).nights;
+    if (nights) attrs.trip_duration = `${nights + 1}天${nights}夜`;
+  }
+
+  const festival = t.match(/(過年|春節|農曆年|中秋|端午|清明|跨年|聖誕|情人節|生日|畢業|尾牙|國慶)/);
+  if (festival) attrs.festival = festival[1];
+
+  const guests = extractGuests(t);
+  if (guests) attrs.party_size = guests;
+
+  const scenario = detectScenario(t);
+  if (scenario) {
+    attrs.companion_type = scenario === "villa"
+      ? "group"
+      : scenario === "outdoor"
+      ? "friends"
+      : scenario;
+  }
+
+  const purpose = t.match(/(放鬆|療癒|慶生|團聚|團建|拍照|美食|溫泉|看星星|踏青|度假|工作坊)/);
+  if (purpose) attrs.purpose = purpose[1];
+
+  const budget = t.match(/(?:預算|每人|人均)\s*(?:約|大約)?\s*(?:NT\$?|台幣)?\s*([\d,]{3,7})/i);
+  if (budget) {
+    const n = Number(budget[1].replace(/,/g, ""));
+    if (n > 0 && n <= 1000000) attrs.budget = n;
+  }
+
+  const highlights = ["日月潭", "纜車", "自行車", "遊湖", "夜市", "溫泉", "咖啡", "手作", "SUP", "獨木舟", "BBQ", "星空"]
+    .filter((h) => t.includes(h));
+  if (highlights.length) attrs.highlights = highlights;
+
+  return attrs;
+}
 
 export function parseIntent(text: string, today: string): ParsedIntent {
   const t = (text || "").trim();
   const dates = extractDates(t, today);
   const guests = extractGuests(t);
+  const venueAliasEarly = matchVenueAlias(t);
 
   let intent: ButlerIntent = "unknown";
   if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
+  else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
   else if (ADDON_KEYWORDS.test(t)) intent = "addon";
-  else if (SEARCH_KEYWORDS.test(t) || dates.checkIn || guests) intent = "search_rooms";
+  // 查房（含館別關鍵字）優先序永遠高於行程意圖
+  else if (SEARCH_KEYWORDS.test(t) || venueAliasEarly) intent = "search_rooms";
+  else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
+  else if (dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
 
   // 館別（常用簡稱）
