@@ -155,6 +155,8 @@ interface OrderRow {
   campaign_id?: string | null;
   reported?: boolean;
   confirmed?: boolean;
+  cancelRequested?: boolean;
+
 }
 
 const emptyCampaign = (accommodationId: string): Partial<Campaign> => ({
