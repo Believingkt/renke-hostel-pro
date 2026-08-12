@@ -127,6 +127,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const [originalAddons, setOriginalAddons] = useState<AddonDetail[]>([]);
 
+  const [originalAddonTotal, setOriginalAddonTotal] = useState(0);
+
   useEffect(() => {
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
@@ -145,10 +147,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .then(({ data }) => {
           const quantities: Record<string, number> = {};
           const orig: AddonDetail[] = [];
+          let origTotal = 0;
           if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
             for (const a of data.custom_addon_details as any[]) {
               if (a?.addon_type && a.count > 0) {
                 quantities[a.addon_type] = a.count;
+                origTotal += Number(a.total ?? 0) || 0;
                 orig.push({
                   addon_type: a.addon_type,
                   count: a.count,
@@ -161,9 +165,13 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           }
           setAddonQuantities(quantities);
           setOriginalAddons(orig);
+          setOriginalAddonTotal(origTotal);
+          // orders.total_price 已包含加購金額（建單流程口徑），此處欄位為「房費」，需扣除加購避免重複計算
+          setEditTotalPriceStr(String(Math.max(0, (order.total_price ?? 0) - origTotal)));
         });
     }
   }, [open, order]);
+
 
   const updateAddonQty = (addonType: string, delta: number, max: number, min = 0) => {
     setAddonQuantities(prev => {
