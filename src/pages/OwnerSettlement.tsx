@@ -332,7 +332,7 @@ export default function OwnerSettlement() {
         monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config, accCurrency, effectiveRule]);
+  }, [orders, month, config, accCurrency, effectiveRule, basis]);
 
   /** standard 型：本月已從抽成基礎扣除的增值服務總額（已依夜數比例分攤） */
   const stdAddonDeducted = useMemo(
@@ -643,6 +643,22 @@ export default function OwnerSettlement() {
         icon={Banknote}
         action={
           <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
+              {([
+                { k: "nightly", label: "夜次均攤" },
+                { k: "checkin", label: "以入住日計" },
+              ] as { k: RevenueStatBasis; label: string }[]).map((b) => (
+                <Button
+                  key={b.k}
+                  size="sm"
+                  variant={basis === b.k ? "default" : "ghost"}
+                  className={`px-3 ${basis === b.k ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" : "text-muted-foreground hover:bg-background"}`}
+                  onClick={() => setBasis(b.k)}
+                >
+                  {b.label}
+                </Button>
+              ))}
+            </div>
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
             <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
               <Printer className="w-4 h-4 mr-1" />
@@ -673,7 +689,10 @@ export default function OwnerSettlement() {
             </div>
             <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
               <div>
-                <div className="text-muted-foreground">本月入住營收</div>
+                <div className="text-muted-foreground">
+                  本月入住營收
+                  <span className="ml-1 text-[11px]">（{basis === "checkin" ? "以入住日計" : "夜次均攤"}）</span>
+                </div>
                 <div className="text-base font-semibold tabular-nums mt-0.5">
                   NT$ {fmt(summary.totalRevenue)}
                 </div>
