@@ -211,7 +211,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleReload = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => { loadData(); }, 250);
+      debounceTimer = setTimeout(() => { loadData(); }, 600);
     };
     const channel = supabase
       .channel(`booking-calendar-${accommodationId}`)
