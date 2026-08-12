@@ -93,6 +93,17 @@ Deno.serve(async (req) => {
     const mail = await sendGroupBuyEmail(order.guest_email, renderDepositReceived(emailOrder));
     if (!mail.ok) console.warn(`[${FN}] email skipped: ${mail.reason}`);
 
+    await admin.from("group_buy_payment_events").insert({
+      campaign_id: campaign?.id ?? null,
+      order_id: order.id,
+      event_type: mail.ok ? "email_sent" : "email_failed",
+      actor_user_id: ctx.userId,
+      actor_label: ctx.userEmail ?? "admin",
+      note: mail.ok
+        ? `訂金確認信已寄至 ${order.guest_email}`
+        : `訂金確認信寄送失敗：${mail.reason ?? "unknown"}`,
+    });
+
     return json({ success: true, paymentStatus, receivedAmount: received, emailSent: mail.ok });
   } catch (e) {
     console.error(`[${FN}] error`, e);

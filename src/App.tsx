@@ -115,6 +115,7 @@ const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const ManualReviewTasks = lazy(() => import("./pages/ManualReviewTasks"));
 const GroupBuyCampaign = lazy(() => import("./pages/GroupBuyCampaign"));
 const GroupBuyOrderLookup = lazy(() => import("./pages/GroupBuyOrderLookup"));
+const GroupBuyOrderConfirmation = lazy(() => import("./pages/GroupBuyOrderConfirmation"));
 const AdminGroupBuy = lazy(() => import("./pages/AdminGroupBuy"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
@@ -415,6 +416,9 @@ function App() {
                     {/* 網紅團購 */}
                     <Route path="g/order" element={
                       <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
+                    } />
+                    <Route path="g/order/:orderNumber/confirmed" element={
+                      <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderConfirmation /></Suspense>
                     } />
                     <Route path="g/order/:orderNumber" element={
                       <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
