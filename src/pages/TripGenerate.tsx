@@ -201,11 +201,84 @@ export default function TripGenerate() {
     })();
   }, [generate, loadSnapshot, tripId]);
 
+
+  /** 該行程在目前語系是否還缺翻譯（zh 一律視為完成） */
+  const needsTranslation = useCallback(
+    (trip: GenTrip) => {
+      if (lang === "zh") return false;
+      const hasTitle = Boolean((trip.title as Record<string, string>)?.[lang]);
+      const hasGuides = trip.items.every((it) => {
+        const g = it.guide as Record<string, string> | undefined;
+        return !g?.zh || Boolean(g?.[lang]);
+      });
+      return !hasTitle || !hasGuides;
+    },
+    [lang],
+  );
+
+  const mergeSnapshot = useCallback((id: string, payload: GenTrip, status: GenTrip["translation_status"]) => {
+    setTrips((prev) =>
+      prev.map((t2) =>
+        t2.snapshot_id === id ? { ...payload, snapshot_id: id, translation_status: status } : t2,
+      ),
+    );
+  }, []);
+
+  // 背景補寫完成即無縫替換：僅在非中文語系且仍缺翻譯時輪詢
+  useEffect(() => {
+    if (lang === "zh") return;
+    const pendingIds = trips
+      .filter((t2) => t2.snapshot_id && t2.translation_status !== "failed" && needsTranslation(t2))
+      .map((t2) => t2.snapshot_id as string);
+    if (!pendingIds.length) return;
+
+    let stopped = false;
+    let tries = 0;
+    const tick = async () => {
+      if (stopped) return;
+      tries += 1;
+      const { data } = await supabase
+        .from("trip_generations")
+        .select("id, payload, translation_status")
+        .in("id", pendingIds);
+      (data || []).forEach((row) => {
+        const payload = row.payload as unknown as GenTrip | undefined;
+        if (!payload?.items?.length) return;
+        if (row.translation_status === "ready" || row.translation_status === "failed") {
+          console.info("[trip-translate]", row.translation_status, row.id);
+          mergeSnapshot(row.id, payload, row.translation_status as GenTrip["translation_status"]);
+        }
+      });
+      if (tries >= 30) stopped = true; // 最多輪詢約 75 秒
+    };
+
+    const timer = window.setInterval(() => void tick(), 2500);
+    void tick();
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [lang, trips, needsTranslation, mergeSnapshot]);
+
+  const retryTranslate = async (trip: GenTrip) => {
+    if (!trip.snapshot_id) return;
+    const id = trip.snapshot_id;
+    setTrips((prev) => prev.map((t2) => (t2.snapshot_id === id ? { ...t2, translation_status: "pending" } : t2)));
+    const { data, error } = await supabase.functions.invoke("trip-translate", { body: { id } });
+    if (error || !data?.payload) {
+      console.error("[trip-translate] retry failed", error);
+      setTrips((prev) => prev.map((t2) => (t2.snapshot_id === id ? { ...t2, translation_status: "failed" } : t2)));
+      return;
+    }
+    mergeSnapshot(id, data.payload as GenTrip, "ready");
+  };
+
   const setLang = (next: TripLang) => {
     const q = new URLSearchParams(params);
     q.set("lang", next);
     setParams(q, { replace: true });
   };
+
 
   const saveTrip = async (trip: GenTrip, index: number) => {
     setSavingId(index);
