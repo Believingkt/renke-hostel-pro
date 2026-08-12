@@ -119,6 +119,7 @@ export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
   accommodation_voucher: "住宿票卷",
   hotelnabe: "旭海 HotelNabe (Channel Manager)",
   owlting: "奧丁丁 OwlNest (OTA 聚合)",
+  group_buy: "網紅團購",
 };
 
 /** 旭海通路 OTA code → 顯示名稱 */
