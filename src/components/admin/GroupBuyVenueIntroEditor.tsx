@@ -40,10 +40,13 @@ const emptyForm: FormState = {
 export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
   const { toast } = useToast();
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [savedForm, setSavedForm] = useState<FormState | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const dirty = savedForm ? JSON.stringify(savedForm) !== JSON.stringify(form) : false;
 
   const movePhoto = (from: number, to: number) => {
     setForm((f) => {
@@ -64,9 +67,10 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
       .eq("accommodation_id", accommodationId)
       .maybeSingle();
 
+    let next: FormState;
     if (data) {
       const row = data as any;
-      setForm({
+      next = {
         description: htmlToPlainText(row.description),
         facilities: (row.facilities ?? []).join("、"),
         check_in_notice: htmlToPlainText(row.check_in_notice),
@@ -74,10 +78,10 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
         address: row.address ?? "",
         gallery_urls: row.gallery_urls ?? [],
         is_visible: row.is_visible ?? true,
-      });
+      };
     } else {
       const official = await fetchOfficialVenueIntro(accommodationId);
-      setForm({
+      next = {
         description: htmlToPlainText(official?.description),
         facilities: (official?.facilities ?? []).join("、"),
         check_in_notice: htmlToPlainText(official?.check_in_notice),
@@ -85,14 +89,27 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
         address: official?.address ?? "",
         gallery_urls: (official?.gallery_urls ?? []).slice(0, 12),
         is_visible: true,
-      });
+      };
     }
+    setForm(next);
+    setSavedForm(data ? next : null);
     setLoading(false);
   }, [accommodationId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
 
   const syncFromOfficial = async () => {
     const official = await fetchOfficialVenueIntro(accommodationId);
@@ -114,29 +131,45 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("group_buy_venue_intros").upsert(
-      {
-        accommodation_id: accommodationId,
-        description: form.description || null,
-        facilities: form.facilities
-          .split(/[、,，\n]/)
-          .map((s) => s.trim())
-          .filter(Boolean),
-        check_in_notice: form.check_in_notice || null,
-        phone: form.phone || null,
-        address: form.address || null,
-        gallery_urls: form.gallery_urls,
-        is_visible: form.is_visible,
-      } as any,
-      { onConflict: "accommodation_id" },
-    );
+    const snapshot = form;
+    const { data, error } = await supabase
+      .from("group_buy_venue_intros")
+      .upsert(
+        {
+          accommodation_id: accommodationId,
+          description: snapshot.description || null,
+          facilities: snapshot.facilities
+            .split(/[、,，\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+          check_in_notice: snapshot.check_in_notice || null,
+          phone: snapshot.phone || null,
+          address: snapshot.address || null,
+          gallery_urls: snapshot.gallery_urls,
+          is_visible: snapshot.is_visible,
+        } as any,
+        { onConflict: "accommodation_id" },
+      )
+      .select("gallery_urls")
+      .maybeSingle();
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "已儲存團購頁民宿介紹" });
+    const stored = ((data as any)?.gallery_urls ?? []) as string[];
+    if (JSON.stringify(stored) !== JSON.stringify(snapshot.gallery_urls)) {
+      toast({
+        title: "相簿順序寫入異常",
+        description: "資料庫回傳的順序與畫面不一致，請重新整理確認。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavedForm(snapshot);
+    toast({ title: "已儲存團購頁民宿介紹", description: `相簿順序已寫入（${stored.length} 張）` });
   };
+
 
   if (loading) {
     return (
@@ -153,6 +186,9 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">團購頁民宿介紹</CardTitle>
         <div className="flex items-center gap-2">
+          {(dirty || !savedForm) && (
+            <Badge variant="destructive" className="text-xs">尚未儲存</Badge>
+          )}
           <div className="flex items-center gap-2 text-sm">
             <Switch
               checked={form.is_visible}
