@@ -276,7 +276,13 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    handleButlerEvents(events, butlerToken).catch((e) => console.error(e));
+    // 必須 await 整段 pipeline（佔位訊息已用 reply 先送出），
+    // 否則 Edge Function 回應後 runtime 會終止背景 promise，導致行程卡永遠沒 push。
+    try {
+      await handleButlerEvents(events, butlerToken);
+    } catch (e) {
+      console.error("[line-webhook] butler pipeline error", e);
+    }
     return new Response("ok", { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain" } });
   }
 
