@@ -550,7 +550,16 @@ export default function AdminGroupBuy() {
                   <TableBody>
                     {orders.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell className="whitespace-nowrap font-medium">{o.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">
+                          <Link
+                            to={`/admin/orders/${o.id}`}
+                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+                          >
+                            {o.order_number}
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </TableCell>
+
                         <TableCell className="whitespace-nowrap">
                           {o.guest_name}
                           <div className="text-xs text-muted-foreground">{o.guest_phone}</div>
