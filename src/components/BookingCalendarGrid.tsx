@@ -375,7 +375,6 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       setCustomRows(customs.filter(c => c.name && c.count > 0));
 
 
-      if (roomTypesRes.error) throw roomTypesRes.error;
       setRoomTypes(roomTypesRes.data || []);
 
       const fetchedOrders = ordersRes.data || [];
@@ -385,22 +384,31 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       const orderIds = fetchedOrders.map(o => o.id);
       let fetchedOrderRooms: OrderRoom[] = [];
       if (orderIds.length > 0) {
-        const { data: orData } = await supabase
-          .from("order_rooms")
-          .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
-          .in("order_id", orderIds);
-        fetchedOrderRooms = (orData || []) as OrderRoom[];
+        const orRes = await runWithRetry(() =>
+          supabase
+            .from("order_rooms")
+            .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
+            .in("order_id", orderIds)
+        );
+        if (isStale()) return;
+        // order_rooms 讀不到會讓多間訂單顯示錯誤，視為失敗
+        if (orRes.error) throw orRes.error;
+        fetchedOrderRooms = (orRes.data || []) as OrderRoom[];
       }
       setOrderRooms(fetchedOrderRooms);
 
       // Fetch room units for this accommodation
-      const { data: unitData } = await supabase
-        .from("room_units")
-        .select("id, room_type_id, unit_number, nickname, display_order, is_active")
-        .eq("accommodation_id", accommodationId)
-        .eq("is_active", true)
-        .order("display_order");
-      setRoomUnits((unitData || []) as RoomUnit[]);
+      const unitRes = await runWithRetry(() =>
+        supabase
+          .from("room_units")
+          .select("id, room_type_id, unit_number, nickname, display_order, is_active")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_active", true)
+          .order("display_order")
+      );
+      if (isStale()) return;
+      setRoomUnits((unitRes.data || []) as RoomUnit[]);
+
 
       // Build calendar entries: expand multi-room orders
       const entries: CalendarEntry[] = [];
