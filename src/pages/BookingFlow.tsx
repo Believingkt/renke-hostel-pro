@@ -118,6 +118,12 @@ import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { reportFrontendError } from "@/utils/errorReporter";
 import { recordOrderAttribution } from "@/lib/attribution";
+import {
+  buildNightDates,
+  verifyAdjustedInventory,
+  describeInventoryVerdict,
+} from "@/lib/exclusiveAvailability";
+
 
 
 // TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
