@@ -15,6 +15,14 @@ import {
   Activity,
   Bot,
   Inbox,
+  MessageSquareText,
+  Brain,
+  KeyRound,
+  MessagesSquare,
+  BookOpen,
+  Search,
+  Route,
+  Compass,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
