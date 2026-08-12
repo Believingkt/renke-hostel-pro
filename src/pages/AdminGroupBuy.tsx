@@ -289,7 +289,12 @@ export default function AdminGroupBuy() {
         ? await supabase.from("group_buy_campaigns").update(payload).eq("id", editing.id)
         : await supabase.from("group_buy_campaigns").insert(payload);
       if (error) throw error;
+      if (!editing.id) {
+        // 新活動：預設帶入官網介紹內容，之後可於「民宿介紹」分頁編輯
+        await ensureGroupBuyVenueIntroDefaults(accommodationId);
+      }
       toast({ title: "已儲存團購活動" });
+
       setEditing(null);
       await loadCampaigns();
     } catch (e) {
