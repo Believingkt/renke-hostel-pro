@@ -72,43 +72,46 @@ export async function askLlm(
   sb: SupabaseClient,
   opts: { text: string; history?: { role: "user" | "assistant"; content: string }[] },
 ): Promise<LlmAnswer> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
-    console.error("[butler-llm] ANTHROPIC_API_KEY missing");
+    console.error("[butler-llm] LOVABLE_API_KEY missing");
     return { text: FALLBACK_TEXT, promptVersion: null };
   }
   let version: number | null = null;
   try {
+    const t0 = Date.now();
     const { prompt, version: v } = await buildSystemPrompt(sb);
     version = v;
     const history = (opts.history || []).slice(-6);
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    // 低延遲模型：LINE 佔位→push 目標 < 5 秒
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "google/gemini-3.6-flash",
+        reasoning_effort: "none",
         max_tokens: 700,
-        system: prompt,
-        messages: [...history, { role: "user", content: opts.text }],
+        messages: [
+          { role: "system", content: prompt },
+          ...history,
+          { role: "user", content: opts.text },
+        ],
       }),
     });
     if (!resp.ok) {
-      console.error("[butler-llm] anthropic error", resp.status, await resp.text());
+      console.error("[butler-llm] gateway error", resp.status, await resp.text());
       return { text: FALLBACK_TEXT, promptVersion: version };
     }
     const data = await resp.json();
-    // deno-lint-ignore no-explicit-any
-    const text = ((data?.content || []) as any[]).map((c) => c?.text || "").join("").trim();
+    const text = String(data?.choices?.[0]?.message?.content || "").trim();
+    console.log("[butler-llm] latency_ms", Date.now() - t0);
     return { text: text || FALLBACK_TEXT, promptVersion: version };
   } catch (e) {
     console.error("[butler-llm] failed", e);
     return { text: FALLBACK_TEXT, promptVersion: version };
   }
 }
+
 
 /** 寫入對話紀錄（source = 'line'），失敗不影響回覆 */
 export async function logLineConversation(

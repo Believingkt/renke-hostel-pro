@@ -417,20 +417,59 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
     const total_price = items.reduce((sum, i) => sum + (Number(i.price) || 0) * (i.qty || 1), 0);
     const match_score = Math.min(99, Math.max(60, Math.round(Number(parsed?.match_score) || 82)));
 
+    const payload = {
+      scenario,
+      title: tri(parsed?.title),
+      guide: tri(parsed?.reason),
+      match_score,
+      items,
+      total_price,
+      total_distance_km: totalDistance,
+      room_type_id: room?.id ?? null,
+      accommodation_id: room?.accommodation_id ?? null,
+    };
+
+    // 快照落地 + 背景三語補寫（fast 模式只先生中文，ja/en 由 trip-translate 補齊）
+    let snapshot_id: string | null = null;
+    let translation_status: "pending" | "ready" = fast ? "pending" : "ready";
+    if (body?.persist === true) {
+      const { data: snap, error: snapErr } = await supabase
+        .from("trip_generations")
+        .insert({
+          scenario,
+          source: typeof body?.source === "string" ? body.source : "web",
+          attributes,
+          payload,
+          translation_status,
+        })
+        .select("id")
+        .single();
+      if (snapErr) console.error("[trip-recommend] snapshot insert failed", snapErr);
+      snapshot_id = snap?.id ?? null;
+
+      if (snapshot_id && fast) {
+        const kick = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/trip-translate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          },
+          body: JSON.stringify({ id: snapshot_id }),
+        }).catch((e) => console.error("[trip-recommend] translate kick failed", e));
+        // deno-lint-ignore no-explicit-any
+        const rt = (globalThis as any).EdgeRuntime;
+        if (rt?.waitUntil) rt.waitUntil(kick);
+      } else if (snapshot_id) {
+        translation_status = "ready";
+      }
+    }
+
     return new Response(
-      JSON.stringify({
-        scenario,
-        title: tri(parsed?.title),
-        guide: tri(parsed?.reason),
-        match_score,
-        items,
-        total_price,
-        total_distance_km: totalDistance,
-        room_type_id: room?.id ?? null,
-        accommodation_id: room?.accommodation_id ?? null,
-      }),
+      JSON.stringify({ ...payload, snapshot_id, translation_status }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("trip-recommend error", e);
     return new Response(JSON.stringify({ error: "系統錯誤，請稍後再試" }), {

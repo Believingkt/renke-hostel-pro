@@ -98,15 +98,50 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all active accommodations
-    const { data: allAccommodations } = await supabase
+    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單一次並行取回（原為序列查詢）
+    const t0 = Date.now();
+    const accommodationsPromise = supabase
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
-      .order('display_order', { ascending: true, nullsFirst: false });
+      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r);
+    const knowledgePromise = supabase
+      .from('ai_knowledge')
+      .select('title, content, priority')
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
+      .limit(80).then(r => r);
+    const examplesPromise = supabase
+      .from('ai_examples')
+      .select('scenario, user_message, ideal_response')
+      .eq('is_active', true)
+      .limit(40).then(r => r);
+    const templatesPromise = supabase
+      .from('ai_reply_templates')
+      .select('name, scenario, template')
+      .eq('is_active', true)
+      .order('sort', { ascending: true })
+      .limit(20).then(r => r);
+    const abTestPromise = supabase
+      .from('ai_ab_tests')
+      .select('version_a, version_b, traffic_split')
+      .eq('is_active', true)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle().then(r => r);
+    const publishedPromptPromise = supabase
+      .from('ai_prompts')
+      .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
+      .eq('status', 'published')
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle().then(r => r);
+
+    const { data: allAccommodations } = await accommodationsPromise;
 
     const accommodationList = allAccommodations || [];
     const accommodationMap = new Map(accommodationList.map(a => [a.id, a]));
+
 
     // Tools
     const tools = [
@@ -681,14 +716,7 @@ serve(async (req) => {
         .maybeSingle();
       dbPrompt = data;
     } else {
-      // Check active A/B test
-      const { data: abTest } = await supabase
-        .from('ai_ab_tests')
-        .select('version_a, version_b, traffic_split')
-        .eq('is_active', true)
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: abTest } = await abTestPromise;
 
       if (abTest && session_id) {
         // Deterministic hash on session_id
@@ -703,38 +731,19 @@ serve(async (req) => {
       }
 
       if (!dbPrompt) {
-        const { data } = await supabase
-          .from('ai_prompts')
-          .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
-          .eq('status', 'published')
-          .order('version', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data } = await publishedPromptPromise;
         dbPrompt = data;
       }
     }
 
 
-    const { data: dbKnowledge } = await supabase
-      .from('ai_knowledge')
-      .select('title, content, priority')
-      .eq('is_active', true)
-      .order('priority', { ascending: false })
-      .limit(80);
+    const [{ data: dbKnowledge }, { data: dbExamples }, { data: dbReplyTemplates }] = await Promise.all([
+      knowledgePromise,
+      examplesPromise,
+      templatesPromise,
+    ]);
+    console.log('[portal-ai-chat] prep_ms', Date.now() - t0);
 
-    const { data: dbExamples } = await supabase
-      .from('ai_examples')
-      .select('scenario, user_message, ideal_response')
-      .eq('is_active', true)
-      .limit(40);
-
-    // B1: 回覆樣板（啟用中）— 作為回覆風格提示，不強制逐字套用
-    const { data: dbReplyTemplates } = await supabase
-      .from('ai_reply_templates')
-      .select('name, scenario, template')
-      .eq('is_active', true)
-      .order('sort', { ascending: true })
-      .limit(20);
 
 
 
