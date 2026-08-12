@@ -283,7 +283,9 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
-          max_tokens: 800,
+          max_tokens: 2000,
+          reasoning_effort: "none",
+
           messages: [
             { role: "system", content: system },
             { role: "user", content: userContent },
