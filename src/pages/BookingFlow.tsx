@@ -3660,6 +3660,61 @@ const BookingFlow = () => {
         }
       }
 
+      // 下訂「後」複驗：訂單已寫入，庫存已含本單。
+      // 若此時仍被互斥封鎖或出現負庫存，代表並發下訂造成超賣。
+      if (orderData?.id && bookingNightDates.length > 0) {
+        try {
+          const postVerdict = verifyAdjustedInventory(await fetchAdjustedRows(), {
+            requiredQuantity: roomQuantity || 1,
+            postBooking: true,
+          });
+          if (!postVerdict.ok) {
+            const detail = describeInventoryVerdict(postVerdict);
+            if (paidOrderResult) {
+              // 已完成付款：不自動取消，改開客服待辦人工處理
+              await supabase.from("order_manual_review_tasks").insert([{
+                order_id: orderData.id,
+                accommodation_id: accommodationId,
+                task_type: "inventory_conflict",
+                reason_code: "concurrent_oversell",
+                requested_check_in: checkInDateStr,
+                requested_check_out: checkOutDateStr,
+                quote_snapshot: {
+                  room_type_id: selectedRoom.id,
+                  room_quantity: roomQuantity,
+                  verdict: postVerdict,
+                } as unknown as never,
+                requester_note: `並發下訂複驗失敗：${detail}`,
+              }]);
+              toast({
+                title: "房況需人工確認",
+                description: "您的付款已完成，但該日期房況於同時間被其他訂單佔用，客服將盡快與您聯繫。",
+                variant: "destructive",
+              });
+            } else {
+              await supabase
+                .from("orders")
+                .update({
+                  order_status: "cancelled",
+                  notes: `[系統自動取消] 並發下訂庫存複驗失敗：${detail}`,
+                })
+                .eq("id", orderData.id);
+              toast({
+                title: "預訂失敗",
+                description: detail,
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        } catch (postErr) {
+          console.error("下訂後庫存複驗失敗:", postErr);
+        }
+      }
+
+
+
 
       // 廣告歸因：記錄此訂單的首次接觸 / 最後點擊來源（失敗不影響訂單流程）
       if (orderData?.id) {
