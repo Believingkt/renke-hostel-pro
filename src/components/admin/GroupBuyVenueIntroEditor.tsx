@@ -186,6 +186,9 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">團購頁民宿介紹</CardTitle>
         <div className="flex items-center gap-2">
+          {(dirty || !savedForm) && (
+            <Badge variant="destructive" className="text-xs">尚未儲存</Badge>
+          )}
           <div className="flex items-center gap-2 text-sm">
             <Switch
               checked={form.is_visible}
