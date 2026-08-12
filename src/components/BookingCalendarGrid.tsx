@@ -784,6 +784,18 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     );
   }
 
+  if (loadError && roomTypes.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-center space-y-3">
+          <p className="text-base font-medium">日曆資料載入失敗</p>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button variant="outline" onClick={() => loadData()}>重新載入</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (roomTypes.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
@@ -795,6 +807,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       </div>
     );
   }
+
 
   return (
     <div className="space-y-4">
