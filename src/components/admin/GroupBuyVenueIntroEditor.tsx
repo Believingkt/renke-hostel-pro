@@ -40,10 +40,13 @@ const emptyForm: FormState = {
 export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
   const { toast } = useToast();
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [savedForm, setSavedForm] = useState<FormState | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const dirty = savedForm ? JSON.stringify(savedForm) !== JSON.stringify(form) : false;
 
   const movePhoto = (from: number, to: number) => {
     setForm((f) => {
