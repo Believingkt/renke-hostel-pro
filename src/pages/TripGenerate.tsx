@@ -132,12 +132,15 @@ export default function TripGenerate() {
     const results: GenTrip[] = [];
     try {
       for (let i = 0; i < 3; i++) {
+        const t0 = performance.now();
         const { data, error } = await supabase.functions.invoke("trip-recommend", {
-          body: { scenario, attributes, exclude },
+          // fast：先出中文（低延遲模型）；persist：落地快照，日／英由背景補寫
+          body: { scenario, attributes, exclude, fast: true, persist: true, source: "web" },
         });
         if (error) throw error;
         const trip = data as GenTrip;
         if (!trip?.items?.length) continue;
+        console.info("[trip-generate] trip", i + 1, `${Math.round(performance.now() - t0)}ms`, trip.snapshot_id);
         trip.items.forEach((it) => {
           if (it.ref_type === "product") exclude.push(it.ref_id);
         });
@@ -162,14 +165,20 @@ export default function TripGenerate() {
     try {
       const { data, error } = await supabase
         .from("trip_generations")
-        .select("payload")
+        .select("payload, translation_status")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       const trip = data?.payload as unknown as GenTrip | undefined;
       if (trip?.items?.length) {
         console.info("[trip-snapshot] hit", id, { items: trip.items.length, total: trip.total_price });
-        setTrips([trip]);
+        setTrips([
+          {
+            ...trip,
+            snapshot_id: id,
+            translation_status: (data?.translation_status as GenTrip["translation_status"]) || "ready",
+          },
+        ]);
         setLoading(false);
         return true;
       }
@@ -178,6 +187,7 @@ export default function TripGenerate() {
     } catch (e) {
       console.error("[trip-snapshot] error", id, e);
       return false;
+
     }
   }, []);
 
