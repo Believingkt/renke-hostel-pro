@@ -559,9 +559,7 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/kol-overview" element={
-                      <RequireModule module="discount_codes">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/kol-overview" title="創作者總覽已移至總部後台" description="創作者與裂變推廣由總部統一管理，跨館創作者績效已集中到總部後台。" />
                     } />
                     <Route path="admin/discount-codes" element={
 
@@ -594,25 +592,18 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
                       </RequireModule>
                     } />
+                    {/* 以下平台層級模組已搬遷至總部後台 hq.lakeze.com */}
                     <Route path="admin/cdp" element={
-                      <RequireModule module="customers">
-                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><TravelerCdp /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/cdp" title="旅客資料匯流已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，全平台旅客檔案已集中到總部後台。" />
                     } />
                     <Route path="admin/cdp/:travelerId" element={
-                      <RequireModule module="customers">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/cdp" title="旅客資料匯流已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，全平台旅客檔案已集中到總部後台。" />
                     } />
                     <Route path="admin/remarketing" element={
-                      <RequireModule module="customers">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/remarketing" title="AI 再行銷推播已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，再行銷活動已集中到總部後台。" />
                     } />
                     <Route path="admin/referral" element={
-                      <RequireModule module="discount_codes">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/referral" title="社群裂變推廣已移至總部後台" description="創作者與裂變推廣由總部統一管理，活動設定已集中到總部後台。" />
                     } />
 
                     <Route path="admin/notifications" element={
@@ -781,6 +772,23 @@ function App() {
                       } />
                       <Route path="/hq/deploy-status" element={
                         <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      } />
+
+                      {/* 顧客與行銷／創作者與裂變（總部全平台視角） */}
+                      <Route path="/hq/cdp" element={
+                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><TravelerCdp /></Suspense>
+                      } />
+                      <Route path="/hq/cdp/:travelerId" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
+                      } />
+                      <Route path="/hq/remarketing" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
+                      } />
+                      <Route path="/hq/kol-overview" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                      } />
+                      <Route path="/hq/referral" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
                       } />
 
                       <Route path="/hq/owner-settlement-settings" element={

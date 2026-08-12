@@ -23,6 +23,10 @@ import {
   Search,
   Route,
   Compass,
+  Database,
+  Send,
+  Sparkles,
+  Share2,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -100,6 +104,26 @@ const menuItems = [
     ],
   },
   {
+    title: "顧客與行銷",
+    url: "/hq/cdp",
+    icon: Database,
+    tab: "crm-marketing",
+    subItems: [
+      { title: "旅客資料匯流", url: "/hq/cdp", icon: Database },
+      { title: "AI 再行銷推播", url: "/hq/remarketing", icon: Send },
+    ],
+  },
+  {
+    title: "創作者與裂變",
+    url: "/hq/kol-overview",
+    icon: Sparkles,
+    tab: "creator-growth",
+    subItems: [
+      { title: "創作者總覽", url: "/hq/kol-overview", icon: Sparkles },
+      { title: "社群裂變推廣", url: "/hq/referral", icon: Share2 },
+    ],
+  },
+  {
     title: "系統管理",
     url: "/hq?tab=system&section=settings",
     icon: Settings,
@@ -144,6 +168,14 @@ export function HQSidebar() {
       return location.pathname.startsWith('/hq/ai-training')
         || location.pathname.startsWith('/hq/line-butler')
         || location.pathname.startsWith('/hq/knowledge');
+    }
+    if (tab === 'crm-marketing') {
+      return location.pathname.startsWith('/hq/cdp')
+        || location.pathname.startsWith('/hq/remarketing');
+    }
+    if (tab === 'creator-growth') {
+      return location.pathname.startsWith('/hq/kol-overview')
+        || location.pathname.startsWith('/hq/referral');
     }
     if (tab === 'trip-engine') {
       return location.pathname.startsWith('/hq/traveler-attributes')

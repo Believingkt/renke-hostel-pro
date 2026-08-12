@@ -26,7 +26,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Pencil, Users, MousePointerClick, CheckCircle2, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_LABEL, rewardTypeLabel, type RewardTier } from "@/lib/referral";
-import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface CampaignForm {
   id?: string;
@@ -36,6 +35,7 @@ interface CampaignForm {
   ends_at: string;
   is_active: boolean;
   reward_tiers: RewardTier[];
+  accommodation_id?: string | null;
 }
 
 const emptyForm = (): CampaignForm => ({
@@ -45,10 +45,12 @@ const emptyForm = (): CampaignForm => ({
   ends_at: "",
   is_active: true,
   reward_tiers: [{ tier: 1, condition: "受邀好友完成首筆訂單", reward_type: "points", reward_value: 500 }],
+  accommodation_id: null,
 });
 
 const ReferralAdmin = () => {
-  const { currentAccommodationId } = useAccommodation() as any;
+  const [accommodations, setAccommodations] = useState<{ id: string; name: string }[]>([]);
+  const [accFilter, setAccFilter] = useState<string>("all");
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
@@ -59,7 +61,6 @@ const ReferralAdmin = () => {
     const { data: cs } = await (supabase as any)
       .from("referral_campaigns")
       .select("*")
-      .eq("accommodation_id", currentAccommodationId)
       .order("created_at", { ascending: false });
     setCampaigns(cs || []);
     const ids = (cs || []).map((c: any) => c.id);
@@ -88,9 +89,24 @@ const ReferralAdmin = () => {
   };
 
   useEffect(() => {
-    if (currentAccommodationId) load();
+    load();
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .order("name");
+      setAccommodations((data || []) as any);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAccommodationId]);
+  }, []);
+
+  const accName = (id?: string | null) =>
+    id ? accommodations.find((a) => a.id === id)?.name || id.slice(0, 8) : "全平台";
+
+  const visibleCampaigns = useMemo(
+    () => (accFilter === "all" ? campaigns : campaigns.filter((c) => (c.accommodation_id ?? "none") === accFilter)),
+    [campaigns, accFilter],
+  );
 
   const stats = useMemo(() => {
     const invites = records.filter((r) => r.invitee_id);
@@ -117,7 +133,7 @@ const ReferralAdmin = () => {
   const save = async () => {
     if (!form.name.trim()) return toast.error("請輸入活動名稱");
     const payload: any = {
-      accommodation_id: currentAccommodationId,
+      accommodation_id: form.accommodation_id ?? null,
       name: form.name.trim(),
       description: form.description.trim() || null,
       starts_at: new Date(form.starts_at).toISOString(),
@@ -149,8 +165,19 @@ const ReferralAdmin = () => {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">社群裂變推廣</h1>
-          <p className="text-sm text-muted-foreground">邀請活動管理與擴散績效追蹤</p>
+          <p className="text-sm text-muted-foreground">全平台邀請活動管理與擴散績效追蹤</p>
         </div>
+        <div className="flex items-center gap-2">
+        <Select value={accFilter} onValueChange={setAccFilter}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="全部館別" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部館別</SelectItem>
+            <SelectItem value="none">全平台活動</SelectItem>
+            {accommodations.map((a) => (
+              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           onClick={() => {
             setForm(emptyForm());
@@ -160,6 +187,7 @@ const ReferralAdmin = () => {
         >
           <Plus className="h-4 w-4" /> 新增活動
         </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -183,6 +211,7 @@ const ReferralAdmin = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>活動名稱</TableHead>
+                  <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">期間</TableHead>
                   <TableHead className="whitespace-nowrap">獎勵層級</TableHead>
                   <TableHead className="whitespace-nowrap">狀態</TableHead>
@@ -190,16 +219,17 @@ const ReferralAdmin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.length === 0 ? (
+                {visibleCampaigns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
                       尚未建立邀請活動
                     </TableCell>
                   </TableRow>
                 ) : (
-                  campaigns.map((c) => (
+                  visibleCampaigns.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{accName(c.accommodation_id)}</TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(c.starts_at).toLocaleDateString("zh-TW")} ~{" "}
                         {c.ends_at ? new Date(c.ends_at).toLocaleDateString("zh-TW") : "不限"}
@@ -229,6 +259,7 @@ const ReferralAdmin = () => {
                               starts_at: String(c.starts_at).slice(0, 10),
                               ends_at: c.ends_at ? String(c.ends_at).slice(0, 10) : "",
                               is_active: c.is_active,
+                              accommodation_id: c.accommodation_id ?? null,
                               reward_tiers: Array.isArray(c.reward_tiers) ? c.reward_tiers : [],
                             });
                             setDialogOpen(true);
@@ -326,6 +357,21 @@ const ReferralAdmin = () => {
             <DialogTitle>{form.id ? "編輯裂變活動" : "新增裂變活動"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>適用館別</Label>
+              <Select
+                value={form.accommodation_id ?? "none"}
+                onValueChange={(v) => setForm({ ...form, accommodation_id: v === "none" ? null : v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">全平台</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>活動名稱</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

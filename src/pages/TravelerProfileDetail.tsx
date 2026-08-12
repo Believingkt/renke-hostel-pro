@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,8 @@ export default function TravelerProfileDetail() {
   const { travelerId } = useParams();
   const navigate = useNavigate();
   const { withPrefix } = useAliasPrefix();
+  const hqLoc = useLocation();
+  const isHQ = hqLoc.pathname.startsWith("/hq");
   const [profile, setProfile] = useState<TravelerProfile | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [newTag, setNewTag] = useState("");
@@ -96,7 +98,7 @@ export default function TravelerProfileDetail() {
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(withPrefix("/admin/cdp"))}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(isHQ ? "/hq/cdp" : withPrefix("/admin/cdp"))}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

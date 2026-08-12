@@ -134,14 +134,9 @@ const menuItems = [
     moduleKey: "customers",
     subItems: [
       { title: "客戶列表", url: "/admin/customers", icon: Users },
-      { title: "旅客資料匯流", url: "/admin/cdp", icon: Database },
-      { title: "AI 再行銷推播", url: "/admin/remarketing", icon: Send },
     ]
   },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
-  { title: "創作者總覽", url: "/admin/kol-overview", icon: Users, moduleKey: "discount_codes" },
-
-  { title: "社群裂變推廣", url: "/admin/referral", icon: Share2, moduleKey: "discount_codes" },
 
   // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
