@@ -3223,34 +3223,39 @@ const BookingFlow = () => {
         return;
       }
 
-      // 檢查包棟互斥邏輯（使用資料庫欄位而非硬編碼名稱）
+      // 檢查包棟互斥邏輯：改用「綁定關係」判斷（不同棟的包區互不封鎖）
       const isExclusiveRoom = selectedRoom.is_exclusive_package === true || selectedRoom.is_bound_to_exclusive === true;
       if (isExclusiveRoom) {
         const nights = calculateNights();
         const start = new Date(checkInDateStr);
-        
+        const nightDates: string[] = [];
         for (let i = 0; i < nights; i++) {
           const currentDate = new Date(start);
           currentDate.setDate(start.getDate() + i);
-          const dateStr = currentDate.toISOString().split('T')[0];
+          nightDates.push(currentDate.toISOString().split('T')[0]);
+        }
 
-          const { data: bookingCheck } = await supabase
-            .rpc('check_exclusive_room_booking', {
-              p_accommodation_id: accommodationId,
-              p_date: dateStr
-            });
+        const { data: adjRows } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+          p_room_type_id: selectedRoom.id,
+          p_dates: nightDates,
+          p_accommodation_id: accommodationId,
+        });
 
-          if (bookingCheck && bookingCheck[0]?.has_booking) {
-            toast({
-              title: "預訂失敗",
-              description: `${dateStr} 已被 ${bookingCheck[0].booked_room_type_name} 預訂，包棟互斥無法重複預訂`,
-              variant: "destructive",
-            });
-            setIsSubmitting(false);
-            return;
-          }
+        const blockedRow = ((adjRows as any[]) || []).find((r) => r?.is_blocked === true);
+        if (blockedRow) {
+          const dateStr = typeof blockedRow.date_value === 'string'
+            ? blockedRow.date_value
+            : new Date(blockedRow.date_value).toISOString().split('T')[0];
+          toast({
+            title: "預訂失敗",
+            description: `${dateStr} 已被 ${blockedRow.blocked_by_room_name || '其他訂單'} 預訂，包棟互斥無法重複預訂`,
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
         }
       }
+
 
       // 處理在線支付（信用卡或 LINE Pay）
       let paymentTransactionId = null;
