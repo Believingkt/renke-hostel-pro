@@ -416,6 +416,9 @@ function App() {
                     <Route path="g/order" element={
                       <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
                     } />
+                    <Route path="g/order/:orderNumber/confirmed" element={
+                      <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderConfirmation /></Suspense>
+                    } />
                     <Route path="g/order/:orderNumber" element={
                       <Suspense fallback={<FrontendSkeleton />}><GroupBuyOrderLookup /></Suspense>
                     } />
