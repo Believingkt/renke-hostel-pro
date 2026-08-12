@@ -140,6 +140,15 @@ export function HQSidebar() {
       return location.pathname.startsWith('/hq/bonus-settings')
         || location.pathname.startsWith('/hq/owner-settlement-settings');
     }
+    if (tab === 'ai-training') {
+      return location.pathname.startsWith('/hq/ai-training')
+        || location.pathname.startsWith('/hq/line-butler')
+        || location.pathname.startsWith('/hq/knowledge');
+    }
+    if (tab === 'trip-engine') {
+      return location.pathname.startsWith('/hq/traveler-attributes')
+        || location.pathname.startsWith('/hq/deploy-status');
+    }
     if (location.pathname !== '/hq') return false;
     if (tab === 'overview') {
       return currentTab === 'overview' || !searchParams.has('tab');
