@@ -385,6 +385,11 @@ export default function GroupBuyCampaign() {
         {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
       </div>
 
+      <GroupBuyVenueIntro
+        accommodationId={campaign.accommodation_id}
+        hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
+      />
+
       <Separator className="my-6" />
 
       <h2 className="mb-3 text-lg font-semibold text-foreground">填寫訂房資料</h2>
