@@ -21,6 +21,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 interface EventRow {
@@ -93,6 +97,7 @@ interface PackageRow {
   id: string;
   campaign_id: string;
   room_type_id: string | null;
+  room_type_ids: string[] | null;
   display_name: string;
   description: string | null;
   image_url: string | null;
@@ -170,6 +175,12 @@ export default function AdminGroupBuy() {
     () => campaigns.find((c) => c.id === activeId) ?? null,
     [campaigns, activeId],
   );
+
+  /** 活動表單即時日期驗證 */
+  const editErrors = useMemo(() => (editing ? validateCampaignWindow(editing) : {}), [editing]);
+  const editHasDateError = hasErrors(editErrors);
+
+
 
   const loadCampaigns = useCallback(async () => {
     if (!accommodationId) return;
@@ -260,6 +271,15 @@ export default function AdminGroupBuy() {
     if (!editing || !accommodationId) return;
     if (!editing.title || !editing.slug) {
       toast({ title: "請填寫活動名稱與網址代稱", variant: "destructive" });
+      return;
+    }
+    const dateErrors = validateCampaignWindow(editing);
+    if (hasErrors(dateErrors)) {
+      toast({
+        title: "日期設定不正確，無法儲存",
+        description: Object.values(dateErrors).join("；"),
+        variant: "destructive",
+      });
       return;
     }
     setSaving(true);
@@ -430,7 +450,10 @@ export default function AdminGroupBuy() {
           </CardContent>
         </Card>
       ) : (
+        <>
+        <CampaignWindowSummary campaign={activeCampaign} />
         <Tabs defaultValue="orders">
+
           <TabsList>
             <TabsTrigger value="orders">訂單對帳</TabsTrigger>
             <TabsTrigger value="packages">方案設定</TabsTrigger>
@@ -531,28 +554,38 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
-                    <Label>對應房型（庫存依據）</Label>
-                    <Select
-                      value={p.room_type_id ?? "none"}
-                      onValueChange={(v) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, room_type_id: v === "none" ? null : v } : x)),
-                        )
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">未設定</SelectItem>
-                        {roomTypes.map((rt) => (
-                          <SelectItem key={rt.id} value={rt.id}>
-                            {rt.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>對應房型（可複選，庫存依據）</Label>
+                    <div className="mt-1 max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-2">
+                      {roomTypes.length === 0 && (
+                        <p className="text-sm text-muted-foreground">此館別尚未建立房型</p>
+                      )}
+                      {roomTypes.map((rt) => {
+                        const selected = (p.room_type_ids ?? []).includes(rt.id);
+                        return (
+                          <label key={rt.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={selected}
+                              onCheckedChange={(v) =>
+                                setPackages((prev) =>
+                                  prev.map((x, i) => {
+                                    if (i !== idx) return x;
+                                    const cur = x.room_type_ids ?? [];
+                                    const next = v === true ? [...cur, rt.id] : cur.filter((id) => id !== rt.id);
+                                    return { ...x, room_type_ids: next, room_type_id: next[0] ?? null };
+                                  }),
+                                )
+                              }
+                            />
+                            <span>{rt.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      勾選多個房型時，系統會逐一比對真實庫存，指派第一個有空房的房型。
+                    </p>
                   </div>
+
                   <div>
                     <Label>團購價（每晚）</Label>
                     <Input
@@ -594,14 +627,17 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
-                    <Label>方案圖片網址</Label>
-                    <Input
-                      value={p.image_url ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, image_url: e.target.value } : x)))
+                    <Label>方案圖片</Label>
+                    <ImageUploadField
+                      value={p.image_url}
+                      onChange={(url) =>
+                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, image_url: url } : x)))
                       }
+                      pathPrefix={`${accommodationId}/group-buy/package`}
+                      aspect="aspect-[4/3]"
                     />
                   </div>
+
                   <div className="md:col-span-2">
                     <Label>方案說明</Label>
                     <Textarea
@@ -725,6 +761,7 @@ export default function AdminGroupBuy() {
             </div>
           </TabsContent>
         </Tabs>
+        </>
       )}
 
       {/* 活動編輯 */}
@@ -764,11 +801,12 @@ export default function AdminGroupBuy() {
                   onChange={(e) => setEditing({ ...editing, discount_code: e.target.value.toUpperCase() })}
                 />
               </div>
-              <div>
-                <Label>封面圖網址</Label>
-                <Input
-                  value={editing.cover_image_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, cover_image_url: e.target.value })}
+              <div className="md:col-span-2">
+                <Label>封面圖片</Label>
+                <ImageUploadField
+                  value={editing.cover_image_url ?? null}
+                  onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
+                  pathPrefix={`${accommodationId}/group-buy/cover`}
                 />
               </div>
               <div>
@@ -783,6 +821,9 @@ export default function AdminGroupBuy() {
                     <SelectItem value="ended">已結束</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="md:col-span-2">
+                <CampaignWindowSummary campaign={editing} />
               </div>
               <div>
                 <Label>開賣時間</Label>
@@ -801,6 +842,9 @@ export default function AdminGroupBuy() {
                   }
                   placeholder="選擇開賣時間"
                 />
+                {editErrors.sale_start && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.sale_start}</p>
+                )}
               </div>
               <div>
                 <Label>結束時間</Label>
@@ -810,6 +854,7 @@ export default function AdminGroupBuy() {
                   minDateTime={editing.sale_start ?? null}
                   placeholder="選擇結束時間"
                 />
+                {editErrors.sale_end && <p className="mt-1 text-xs text-destructive">{editErrors.sale_end}</p>}
               </div>
               <div>
                 <Label>可入住起日</Label>
@@ -825,6 +870,9 @@ export default function AdminGroupBuy() {
                   }
                   placeholder="選擇起始日"
                 />
+                {editErrors.stay_start_date && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.stay_start_date}</p>
+                )}
               </div>
               <div>
                 <Label>可入住迄日</Label>
@@ -834,7 +882,11 @@ export default function AdminGroupBuy() {
                   minDate={editing.stay_start_date ?? null}
                   placeholder="選擇結束日"
                 />
+                {editErrors.stay_end_date && (
+                  <p className="mt-1 text-xs text-destructive">{editErrors.stay_end_date}</p>
+                )}
               </div>
+
 
               <div>
                 <Label>訂金比例（%）</Label>
@@ -885,14 +937,18 @@ export default function AdminGroupBuy() {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {editHasDateError && (
+              <p className="mr-auto text-xs text-destructive">日期設定不正確，請修正後才能儲存</p>
+            )}
             <Button variant="outline" onClick={() => setEditing(null)}>
               取消
             </Button>
-            <Button onClick={saveCampaign} disabled={saving}>
+            <Button onClick={saveCampaign} disabled={saving || editHasDateError}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}儲存
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 

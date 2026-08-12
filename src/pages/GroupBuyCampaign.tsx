@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
+import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
+import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
 interface Campaign {
@@ -41,6 +43,7 @@ interface CampaignPackage {
   original_price: number | null;
   max_quantity: number | null;
   room_type_id: string | null;
+  room_type_ids: string[] | null;
   package_id: string | null;
   sort_order: number;
 }
@@ -129,56 +132,77 @@ export default function GroupBuyCampaign() {
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
   const balance = Math.max(0, total - deposit);
+  /** 前台日期限制（可入住起迄）＋ 販售狀態 */
+  const stayErrors = useMemo(
+    () => (campaign ? validateStayRange(campaign, checkIn, checkOut) : {}),
+    [campaign, checkIn, checkOut],
+  );
+  const sale = campaign ? saleState(campaign) : "on_sale";
+  const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
 
   const checkAvailability = useCallback(async () => {
-    if (!campaign || !selectedPkg?.room_type_id || nights <= 0) {
+    const roomTypeIds =
+      selectedPkg?.room_type_ids && selectedPkg.room_type_ids.length > 0
+        ? selectedPkg.room_type_ids
+        : selectedPkg?.room_type_id
+          ? [selectedPkg.room_type_id]
+          : [];
+    if (!campaign || roomTypeIds.length === 0 || nights <= 0 || dateBlocked) {
       setAvailability({ checking: false, ok: null, message: "" });
       return;
     }
     setAvailability({ checking: true, ok: null, message: "" });
-    const { data, error } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-      p_room_type_id: selectedPkg.room_type_id,
-      p_dates: dateList(checkIn, nights),
-      p_accommodation_id: campaign.accommodation_id,
-    });
-    if (error) {
-      setAvailability({ checking: false, ok: null, message: "" });
-      return;
-    }
-    const rows = (data ?? []) as any[];
-    const blocked = rows.find((r) => r?.is_blocked === true);
-    if (blocked) {
-      setAvailability({
-        checking: false,
-        ok: false,
-        message: blocked.blocked_by_room_name
+    const dates = dateList(checkIn, nights);
+    let lastMessage = "此區間目前無足夠空房";
+
+    for (const rtId of roomTypeIds) {
+      const { data, error } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+        p_room_type_id: rtId,
+        p_dates: dates,
+        p_accommodation_id: campaign.accommodation_id,
+      });
+      if (error) continue;
+      const rows = (data ?? []) as any[];
+      const blocked = rows.find((r) => r?.is_blocked === true);
+      if (blocked) {
+        lastMessage = blocked.blocked_by_room_name
           ? `${blocked.date_value} 已被「${blocked.blocked_by_room_name}」預訂`
-          : `${blocked.date_value} 已滿房`,
-      });
+          : `${blocked.date_value} 已滿房`;
+        continue;
+      }
+      const short = rows.find((r) => Number(r?.available_rooms ?? 0) < roomQuantity);
+      if (short) {
+        lastMessage = `${short.date_value} 僅剩 ${Math.max(0, Number(short.available_rooms))} 間`;
+        continue;
+      }
+      setAvailability({ checking: false, ok: true, message: "此區間有空房，可立即預訂" });
       return;
     }
-    const short = rows.find((r) => Number(r?.available_rooms ?? 0) < roomQuantity);
-    if (short) {
-      setAvailability({
-        checking: false,
-        ok: false,
-        message: `${short.date_value} 僅剩 ${Math.max(0, Number(short.available_rooms))} 間`,
-      });
-      return;
-    }
-    setAvailability({ checking: false, ok: true, message: "此區間有空房，可立即預訂" });
-  }, [campaign, selectedPkg, checkIn, nights, roomQuantity]);
+    setAvailability({ checking: false, ok: false, message: lastMessage });
+  }, [campaign, selectedPkg, checkIn, nights, roomQuantity, dateBlocked]);
 
   useEffect(() => {
     void checkAvailability();
   }, [checkAvailability]);
 
+
   const submit = async () => {
     if (!campaign || !selectedPkg) return;
+    if (sale !== "on_sale") {
+      toast({ title: sale === "not_started" ? "團購尚未開賣" : "團購已結束", variant: "destructive" });
+      return;
+    }
+    const errs = validateStayRange(campaign, checkIn, checkOut);
+    const firstErr = errs.checkIn || errs.checkOut;
+    if (firstErr) {
+      toast({ title: "日期不符合活動規定", description: firstErr, variant: "destructive" });
+      return;
+    }
     if (nights <= 0) {
       toast({ title: "請選擇入住與退房日期", variant: "destructive" });
       return;
     }
+
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-create-order", {
@@ -301,13 +325,15 @@ export default function GroupBuyCampaign() {
         {campaign.kol_display_name && <Badge variant="secondary">{campaign.kol_display_name} 專屬團購</Badge>}
         <h1 className="text-2xl font-bold text-foreground">{campaign.title}</h1>
         {campaign.subtitle && <p className="text-muted-foreground">{campaign.subtitle}</p>}
-        {(campaign.stay_start_date || campaign.stay_end_date) && (
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            可入住期間：{campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
-          </p>
-        )}
       </div>
+
+      <CampaignWindowSummary campaign={campaign} className="mt-4" />
+      {sale !== "on_sale" && (
+        <p className="mt-2 text-sm text-destructive">
+          此活動目前{SALE_STATE_LABEL[sale]}，暫時無法下訂。
+        </p>
+      )}
+
 
       {campaign.description_html && (
         <div
@@ -371,8 +397,11 @@ export default function GroupBuyCampaign() {
             value={checkIn}
             min={campaign.stay_start_date ?? undefined}
             max={campaign.stay_end_date ?? undefined}
+            aria-invalid={!!stayErrors.checkIn}
+            className={stayErrors.checkIn ? "border-destructive" : undefined}
             onChange={(e) => setCheckIn(e.target.value)}
           />
+          {stayErrors.checkIn && <p className="mt-1 text-xs text-destructive">{stayErrors.checkIn}</p>}
         </div>
         <div>
           <Label htmlFor="gb-checkout">退房日</Label>
@@ -382,9 +411,13 @@ export default function GroupBuyCampaign() {
             value={checkOut}
             min={checkIn || campaign.stay_start_date || undefined}
             max={campaign.stay_end_date ?? undefined}
+            aria-invalid={!!stayErrors.checkOut}
+            className={stayErrors.checkOut ? "border-destructive" : undefined}
             onChange={(e) => setCheckOut(e.target.value)}
           />
+          {stayErrors.checkOut && <p className="mt-1 text-xs text-destructive">{stayErrors.checkOut}</p>}
         </div>
+
         <div>
           <Label htmlFor="gb-rooms">間數</Label>
           <Input
@@ -459,7 +492,15 @@ export default function GroupBuyCampaign() {
       <Button
         className="mt-5 w-full"
         size="lg"
-        disabled={submitting || availability.checking || availability.ok === false || nights <= 0 || !selectedPkg}
+        disabled={
+          submitting ||
+          availability.checking ||
+          availability.ok === false ||
+          nights <= 0 ||
+          !selectedPkg ||
+          dateBlocked ||
+          sale !== "on_sale"
+        }
         onClick={submit}
       >
         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
