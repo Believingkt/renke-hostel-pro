@@ -118,6 +118,12 @@ import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { reportFrontendError } from "@/utils/errorReporter";
 import { recordOrderAttribution } from "@/lib/attribution";
+import {
+  buildNightDates,
+  verifyAdjustedInventory,
+  describeInventoryVerdict,
+} from "@/lib/exclusiveAvailability";
+
 
 
 // TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
@@ -3193,38 +3199,33 @@ const BookingFlow = () => {
         return;
       }
 
-      // 檢查包棟互斥邏輯：改用「綁定關係」判斷（不同棟的包區互不封鎖）
-      const isExclusiveRoom = selectedRoom.is_exclusive_package === true || selectedRoom.is_bound_to_exclusive === true;
-      if (isExclusiveRoom) {
-        const nights = calculateNights();
-        const start = new Date(checkInDateStr);
-        const nightDates: string[] = [];
-        for (let i = 0; i < nights; i++) {
-          const currentDate = new Date(start);
-          currentDate.setDate(start.getDate() + i);
-          nightDates.push(currentDate.toISOString().split('T')[0]);
-        }
-
-        const { data: adjRows } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+      // 下訂「前」庫存驗證：一律以 get_adjusted_room_inventory_batch 為準
+      //（該 RPC 以綁定關係判斷互斥：不同棟的包區互不封鎖）
+      const bookingNightDates = buildNightDates(checkInDateStr, calculateNights());
+      const fetchAdjustedRows = async () => {
+        const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
           p_room_type_id: selectedRoom.id,
-          p_dates: nightDates,
+          p_dates: bookingNightDates,
           p_accommodation_id: accommodationId,
         });
+        return (data as any[]) || [];
+      };
 
-        const blockedRow = ((adjRows as any[]) || []).find((r) => r?.is_blocked === true);
-        if (blockedRow) {
-          const dateStr = typeof blockedRow.date_value === 'string'
-            ? blockedRow.date_value
-            : new Date(blockedRow.date_value).toISOString().split('T')[0];
+      if (bookingNightDates.length > 0) {
+        const preVerdict = verifyAdjustedInventory(await fetchAdjustedRows(), {
+          requiredQuantity: roomQuantity || 1,
+        });
+        if (!preVerdict.ok) {
           toast({
             title: "預訂失敗",
-            description: `${dateStr} 已被 ${blockedRow.blocked_by_room_name || '其他訂單'} 預訂，包棟互斥無法重複預訂`,
+            description: describeInventoryVerdict(preVerdict),
             variant: "destructive",
           });
           setIsSubmitting(false);
           return;
         }
       }
+
 
 
       // 處理在線支付（信用卡或 LINE Pay）
@@ -3658,6 +3659,61 @@ const BookingFlow = () => {
           }
         }
       }
+
+      // 下訂「後」複驗：訂單已寫入，庫存已含本單。
+      // 若此時仍被互斥封鎖或出現負庫存，代表並發下訂造成超賣。
+      if (orderData?.id && bookingNightDates.length > 0) {
+        try {
+          const postVerdict = verifyAdjustedInventory(await fetchAdjustedRows(), {
+            requiredQuantity: roomQuantity || 1,
+            postBooking: true,
+          });
+          if (!postVerdict.ok) {
+            const detail = describeInventoryVerdict(postVerdict);
+            if (paidOrderResult) {
+              // 已完成付款：不自動取消，改開客服待辦人工處理
+              await supabase.from("order_manual_review_tasks").insert([{
+                order_id: orderData.id,
+                accommodation_id: accommodationId,
+                task_type: "inventory_conflict",
+                reason_code: "concurrent_oversell",
+                requested_check_in: checkInDateStr,
+                requested_check_out: checkOutDateStr,
+                quote_snapshot: {
+                  room_type_id: selectedRoom.id,
+                  room_quantity: roomQuantity,
+                  verdict: postVerdict,
+                } as unknown as never,
+                requester_note: `並發下訂複驗失敗：${detail}`,
+              }]);
+              toast({
+                title: "房況需人工確認",
+                description: "您的付款已完成，但該日期房況於同時間被其他訂單佔用，客服將盡快與您聯繫。",
+                variant: "destructive",
+              });
+            } else {
+              await supabase
+                .from("orders")
+                .update({
+                  order_status: "cancelled",
+                  notes: `[系統自動取消] 並發下訂庫存複驗失敗：${detail}`,
+                })
+                .eq("id", orderData.id);
+              toast({
+                title: "預訂失敗",
+                description: detail,
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        } catch (postErr) {
+          console.error("下訂後庫存複驗失敗:", postErr);
+        }
+      }
+
+
 
 
       // 廣告歸因：記錄此訂單的首次接觸 / 最後點擊來源（失敗不影響訂單流程）
