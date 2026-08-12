@@ -157,16 +157,19 @@ export default function TripGenerate() {
       if (error) throw error;
       const trip = data?.payload as unknown as GenTrip | undefined;
       if (trip?.items?.length) {
+        console.info("[trip-snapshot] hit", id, { items: trip.items.length, total: trip.total_price });
         setTrips([trip]);
         setLoading(false);
         return true;
       }
+      console.warn("[trip-snapshot] miss", id, "— no row or empty payload (regenerating)");
       return false;
     } catch (e) {
-      console.error("load trip snapshot failed", e);
+      console.error("[trip-snapshot] error", id, e);
       return false;
     }
   }, []);
+
 
   useEffect(() => {
     if (startedRef.current) return;
