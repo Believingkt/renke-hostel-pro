@@ -66,6 +66,7 @@ export const getOrderSourceConfig = (source: string, otaCode?: string | null) =>
     accommodation_voucher: { label: "住宿票卷", className: "bg-cyan-100 text-cyan-700 border-cyan-200" },
     hotelnabe: { label: "hotelnabe", className: "bg-sky-100 text-sky-700 border-sky-200" },
     owlting: { label: "奧丁丁", className: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
+    group_buy: { label: "網紅團購", className: "bg-lime-100 text-lime-700 border-lime-200" },
   };
   const base = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
   const trimmed = (otaCode ?? "").toString().trim();
