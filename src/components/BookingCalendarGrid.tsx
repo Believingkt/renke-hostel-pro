@@ -184,6 +184,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const [customRows, setCustomRows] = useState<Array<{ id: string; name: string; count: number; capacity: number }>>([]);
   const [packageRowsByRt, setPackageRowsByRt] = useState<Map<string, Array<{ id: string; name: string; count: number }>>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // 避免快速切換日期／即時事件造成「舊回應覆蓋新資料」
+  const loadSeqRef = useRef(0);
+
+
   
 
   // Generate date columns
@@ -206,7 +211,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleReload = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => { loadData(); }, 250);
+      debounceTimer = setTimeout(() => { loadData(); }, 600);
     };
     const channel = supabase
       .channel(`booking-calendar-${accommodationId}`)
@@ -239,49 +244,91 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     }
   }, [roomTypes]);
 
+  // 單一查詢失敗時自動重試（網路抖動／暫時性錯誤是最常見的讀取不到原因）
+  const runWithRetry = async <T,>(fn: () => PromiseLike<{ data: T; error: any }>, tries = 3) => {
+    let lastError: any = null;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const res = await fn();
+        if (!res.error) return res;
+        lastError = res.error;
+      } catch (e) {
+        lastError = e;
+      }
+      if (i < tries - 1) await new Promise(r => setTimeout(r, 300 * (i + 1)));
+    }
+    return { data: null as unknown as T, error: lastError };
+  };
+
   const loadData = async () => {
+    const seq = ++loadSeqRef.current;
+    const isStale = () => seq !== loadSeqRef.current;
     try {
       setLoading(true);
+      setLoadError(null);
       const endDate = addDays(startDate, dayCount - 1);
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes, accInfoRes] = await Promise.all([
+      const roomTypesRes = await runWithRetry(() =>
         supabase
           .from("room_types")
           .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, package_contents")
           .eq("accommodation_id", accommodationId)
-          .order("display_order"),
-        supabase
-          .from("orders")
-          .select("id, order_number, guest_name, guest_phone, guest_count, check_in_date, check_out_date, order_status, order_source, room_type_id, notes, lock_whole_building")
-          .eq("accommodation_id", accommodationId)
-          .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
-          .gte("check_out_date", startStr)
-          .lte("check_in_date", endStr),
-        supabase
-          .from("public_holidays")
-          .select("holiday_date, holiday_name, holiday_type")
-          .eq("accommodation_id", accommodationId)
-          .gte("holiday_date", startStr)
-          .lte("holiday_date", endStr),
-        supabase
-          .from("room_inventory_pricing")
-          .select("date, room_type_id, available_rooms, is_available")
-          .in("room_type_id", (await supabase.from("room_types").select("id").eq("accommodation_id", accommodationId)).data?.map(r => r.id) || [])
-          .is("pricing_template_id", null)
-          .gte("date", startStr)
-          .lte("date", endStr),
-        supabase
-          .from("pricing_templates")
-          .select("id, accommodation_id, valid_from, valid_until, room_overrides, weekday_enabled, peak_enabled, weekend_enabled, extra_dates, excluded_dates")
-          .eq("accommodation_id", accommodationId),
-        supabase
-          .from("accommodation_info")
-          .select("exclusive_room_breakdown")
-          .eq("id", accommodationId)
-          .maybeSingle(),
+          .order("display_order")
+      );
+      if (isStale()) return;
+      if (roomTypesRes.error) throw roomTypesRes.error;
+      const roomTypeIds = ((roomTypesRes.data || []) as any[]).map(r => r.id as string);
+
+      const [ordersRes, holidaysRes, inventoryRes, templatesRes, accInfoRes] = await Promise.all([
+        runWithRetry(() =>
+          supabase
+            .from("orders")
+            .select("id, order_number, guest_name, guest_phone, guest_count, check_in_date, check_out_date, order_status, order_source, room_type_id, notes, lock_whole_building")
+            .eq("accommodation_id", accommodationId)
+            .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
+            .gte("check_out_date", startStr)
+            .lte("check_in_date", endStr)
+        ),
+        runWithRetry(() =>
+          supabase
+            .from("public_holidays")
+            .select("holiday_date, holiday_name, holiday_type")
+            .eq("accommodation_id", accommodationId)
+            .gte("holiday_date", startStr)
+            .lte("holiday_date", endStr)
+        ),
+        roomTypeIds.length > 0
+          ? runWithRetry(() =>
+              supabase
+                .from("room_inventory_pricing")
+                .select("date, room_type_id, available_rooms, is_available")
+                .in("room_type_id", roomTypeIds)
+                .is("pricing_template_id", null)
+                .gte("date", startStr)
+                .lte("date", endStr)
+            )
+          : Promise.resolve({ data: [] as any[], error: null }),
+        runWithRetry(() =>
+          supabase
+            .from("pricing_templates")
+            .select("id, accommodation_id, valid_from, valid_until, room_overrides, weekday_enabled, peak_enabled, weekend_enabled, extra_dates, excluded_dates")
+            .eq("accommodation_id", accommodationId)
+        ),
+        runWithRetry(() =>
+          supabase
+            .from("accommodation_info")
+            .select("exclusive_room_breakdown")
+            .eq("id", accommodationId)
+            .maybeSingle()
+        ),
       ]);
+      if (isStale()) return;
+      // 訂單是日曆主體，失敗就整批視為錯誤（避免顯示「空日曆」誤導）
+      if (ordersRes.error) throw ordersRes.error;
+
+
 
       // 1) 「其他自訂房型」（accommodation_info.exclusive_room_breakdown 的 custom_id 項目）作為虛擬列
       const accInfo = accInfoRes.data as { exclusive_room_breakdown?: unknown } | null;
@@ -328,7 +375,6 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       setCustomRows(customs.filter(c => c.name && c.count > 0));
 
 
-      if (roomTypesRes.error) throw roomTypesRes.error;
       setRoomTypes(roomTypesRes.data || []);
 
       const fetchedOrders = ordersRes.data || [];
@@ -338,22 +384,31 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       const orderIds = fetchedOrders.map(o => o.id);
       let fetchedOrderRooms: OrderRoom[] = [];
       if (orderIds.length > 0) {
-        const { data: orData } = await supabase
-          .from("order_rooms")
-          .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
-          .in("order_id", orderIds);
-        fetchedOrderRooms = (orData || []) as OrderRoom[];
+        const orRes = await runWithRetry(() =>
+          supabase
+            .from("order_rooms")
+            .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
+            .in("order_id", orderIds)
+        );
+        if (isStale()) return;
+        // order_rooms 讀不到會讓多間訂單顯示錯誤，視為失敗
+        if (orRes.error) throw orRes.error;
+        fetchedOrderRooms = (orRes.data || []) as OrderRoom[];
       }
       setOrderRooms(fetchedOrderRooms);
 
       // Fetch room units for this accommodation
-      const { data: unitData } = await supabase
-        .from("room_units")
-        .select("id, room_type_id, unit_number, nickname, display_order, is_active")
-        .eq("accommodation_id", accommodationId)
-        .eq("is_active", true)
-        .order("display_order");
-      setRoomUnits((unitData || []) as RoomUnit[]);
+      const unitRes = await runWithRetry(() =>
+        supabase
+          .from("room_units")
+          .select("id, room_type_id, unit_number, nickname, display_order, is_active")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_active", true)
+          .order("display_order")
+      );
+      if (isStale()) return;
+      setRoomUnits((unitRes.data || []) as RoomUnit[]);
+
 
       // Build calendar entries: expand multi-room orders
       const entries: CalendarEntry[] = [];
@@ -406,22 +461,27 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       setCalendarEntries(entries);
 
       const holidayMap = new Map<string, PublicHoliday>();
-      holidaysRes.data?.forEach(h => holidayMap.set(h.holiday_date, h));
+      ((holidaysRes.data || []) as PublicHoliday[]).forEach(h => holidayMap.set(h.holiday_date, h));
       setHolidays(holidayMap);
 
       const invMap = new Map<string, InventoryRecord>();
-      inventoryRes.data?.forEach(inv => {
+      ((inventoryRes.data || []) as InventoryRecord[]).forEach(inv => {
         invMap.set(`${inv.room_type_id}_${inv.date}`, inv);
       });
-      setInventory(invMap);
-      setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
-    } catch (error) {
+      // 庫存讀取失敗時保留舊資料，避免整張日曆變空白
+      if (!inventoryRes.error) setInventory(invMap);
+      if (!templatesRes.error) setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
+      setLoadError(null);
+    } catch (error: any) {
+      if (isStale()) return;
       console.error("載入資料失敗:", error);
-      toast.error("載入資料失敗");
+      setLoadError(error?.message || "載入資料失敗，請重新整理");
+      toast.error("日曆載入失敗，請點「重新載入」再試一次");
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
+
 
   // Get available rooms for a room type on a date
   // 以「庫存設定」為主：取 base 與所有 active 專案 override 中的最大值
@@ -724,6 +784,18 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     );
   }
 
+  if (loadError && roomTypes.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-center space-y-3">
+          <p className="text-base font-medium">日曆資料載入失敗</p>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button variant="outline" onClick={() => loadData()}>重新載入</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (roomTypes.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
@@ -736,9 +808,17 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     );
   }
 
+
   return (
     <div className="space-y-4">
+      {loadError && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+          <span className="text-destructive">部分資料載入失敗，畫面可能不是最新：{loadError}</span>
+          <Button variant="outline" size="sm" onClick={() => loadData()}>重新載入</Button>
+        </div>
+      )}
       {/* Controls */}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={goToToday} className="h-9">
           今日
