@@ -515,6 +515,7 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
   rule?: OwnerPricingRule | null,
   /** room_type_id → 房型基礎人數（room_types.capacity） */
   roomCapacityMap?: Record<string, number> | null,
+  basis: RevenueStatBasis = "nightly",
 ): GuestCountRow<T>[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -524,18 +525,12 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
 
   const rows: GuestCountRow<T>[] = [];
   for (const o of orders) {
-    const ci = parseISO(o.check_in_date);
-    const co = parseISO(o.check_out_date);
-    const totalNights = Math.max(1, differenceInDays(co, ci));
-    let nightsInMonth = 0;
-    for (let i = 0; i < totalNights; i++) {
-      const d = addDays(ci, i);
-      if (d >= monthStart && d <= monthEnd) nightsInMonth++;
-    }
-    if (nightsInMonth === 0) continue;
+    const share = resolveMonthShare(o.check_in_date, o.check_out_date, monthStart, monthEnd, basis);
+    if (!share.include) continue;
+    const { nightsInMonth, totalNights, ratio } = share;
 
-    const ratio = nightsInMonth / totalNights;
     const resolved = resolveOrderCurrency(o, currencyFallback);
+
     const finalPriceOriginal = Number(o.final_price || 0) * ratio;
     // 只扣除館別設定為「不列入抽成」的增值服務，並依夜數比例分攤
     const addonTotalOriginal =
