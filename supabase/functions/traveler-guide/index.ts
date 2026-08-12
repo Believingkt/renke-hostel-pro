@@ -73,31 +73,32 @@ serve(async (req) => {
 
     const known = body?.known && typeof body.known === "object" ? body.known : {};
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const anthropicMessages = cleaned.length
+    const convo = cleaned.length
       ? cleaned
       : [{ role: "user", content: "（旅客剛進入導引，請你先打招呼並問第一個問題）" }];
 
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const t0 = Date.now();
+    // 屬性抽取＝短輸出任務，改用低延遲模型
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "google/gemini-3.6-flash",
+        reasoning_effort: "none",
         max_tokens: 800,
-        system: `${SYSTEM_PROMPT}\n\n目前已知屬性：${JSON.stringify(known)}`,
-        messages: anthropicMessages,
+        messages: [
+          { role: "system", content: `${SYSTEM_PROMPT}\n\n目前已知屬性：${JSON.stringify(known)}` },
+          ...convo,
+        ],
       }),
     });
 
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error("Anthropic error", resp.status, errText);
+      console.error("gateway error", resp.status, errText);
       if (resp.status === 429) {
         return new Response(JSON.stringify({ error: "使用量超過限制，請稍後再試" }), {
           status: 429,
@@ -111,7 +112,9 @@ serve(async (req) => {
     }
 
     const data = await resp.json();
-    const raw = (data?.content || []).map((c: any) => c?.text || "").join("").trim();
+    const raw = String(data?.choices?.[0]?.message?.content || "").trim();
+    console.log("[traveler-guide] latency_ms", Date.now() - t0);
+
 
     let parsed: any = null;
     try {
