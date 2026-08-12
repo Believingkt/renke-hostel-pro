@@ -55,6 +55,8 @@ export interface ButlerState {
   keyword?: string;
   venue?: string;
   venueLabel?: string;
+  scenario?: TripScenario;
+  tripAttributes?: TripAttributes;
   cart?: ButlerCartItem[];
 }
 
