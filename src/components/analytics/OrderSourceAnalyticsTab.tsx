@@ -24,6 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  GROUP_BUY_MODE_NOTE,
+  GROUP_BUY_MODE_OPTIONS,
+  filterByGroupBuyMode,
+  splitGroupBuy,
+  type GroupBuyMode,
+} from "@/lib/groupBuyCaliber";
 
 
 interface Props {
@@ -100,6 +107,8 @@ export function OrderSourceAnalyticsTab({
   const [loading, setLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [basis, setBasis] = useState<StatBasis>("checkin");
+  // 團購口徑：預設不與一般訂房混算
+  const [gbMode, setGbMode] = useState<GroupBuyMode>("exclude");
 
   // Traveldays 專屬：檢視模式與匯率（未受控時使用內部 state）
   const [innerViewMode, setInnerViewMode] = useState<"separate" | "consolidated">("separate");
@@ -381,8 +390,21 @@ export function OrderSourceAnalyticsTab({
     });
   };
 
-  const activeRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
-  const activeTrendRows = useMemo(() => transformRows(trendOrders), [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+  const allRows = useMemo(() => transformRows(orders), [orders, isTraveldays, viewMode, selectedCurrency, exchangeRate]);
+  const activeRows = useMemo(() => filterByGroupBuyMode(allRows, gbMode), [allRows, gbMode]);
+  const activeTrendRows = useMemo(
+    () => filterByGroupBuyMode(transformRows(trendOrders), gbMode),
+    [trendOrders, isTraveldays, viewMode, selectedCurrency, exchangeRate, gbMode],
+  );
+
+  // 團購 vs 非團購對照（不受目前口徑影響，永遠兩組都算）
+  const groupBuyCompare = useMemo(() => {
+    const { groupBuy, regular } = splitGroupBuy(allRows);
+    return {
+      groupBuy: aggregate(groupBuy, rangeStart, rangeEnd, basis).totals,
+      regular: aggregate(regular, rangeStart, rangeEnd, basis).totals,
+    };
+  }, [allRows, rangeStart, rangeEnd, basis]);
 
   const activeAggregate = useMemo(() => aggregate(activeRows, rangeStart, rangeEnd, basis), [activeRows, rangeStart, rangeEnd, basis]);
   const stats = activeAggregate.stats;
@@ -755,7 +777,70 @@ export function OrderSourceAnalyticsTab({
           </div>
           <span className="text-xs text-muted-foreground">{BASIS_NOTE[basis]}</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-muted rounded-lg p-1">
+            {GROUP_BUY_MODE_OPTIONS.map((g) => (
+              <Button
+                key={g.k}
+                variant={gbMode === g.k ? "default" : "ghost"}
+                size="sm"
+                className={`px-3 ${gbMode === g.k ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" : "text-muted-foreground hover:bg-background"}`}
+                onClick={() => setGbMode(g.k)}
+              >
+                {g.label}
+              </Button>
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground">{GROUP_BUY_MODE_NOTE[gbMode]}</span>
+        </div>
       </div>
+
+      {/* 團購 / 非團購 對照 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">團購 / 非團購 對照</CardTitle>
+          <CardDescription className="text-xs">兩組獨立計算，切換上方口徑不影響此對照表</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table className="fixed-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs text-muted-foreground">類別</TableHead>
+                  <TableHead className="text-center text-xs text-muted-foreground">訂單數</TableHead>
+                  <TableHead className="text-center text-xs text-muted-foreground">訂單總金額</TableHead>
+                  <TableHead className="text-center text-xs text-muted-foreground">已收款</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {([
+                  { label: "一般訂房（非團購）", t: groupBuyCompare.regular },
+                  { label: "網紅團購", t: groupBuyCompare.groupBuy },
+                ]).map((r) => (
+                  <TableRow key={r.label}>
+                    <TableCell className="whitespace-nowrap font-medium">{r.label}</TableCell>
+                    <TableCell className="text-center tabular-nums">{r.t.count}</TableCell>
+                    <TableCell className="text-center tabular-nums">{f(r.t.total)}</TableCell>
+                    <TableCell className="text-center tabular-nums">{f(r.t.paid)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-muted/40">
+                  <TableCell className="whitespace-nowrap font-semibold">合計</TableCell>
+                  <TableCell className="text-center tabular-nums font-semibold">
+                    {groupBuyCompare.regular.count + groupBuyCompare.groupBuy.count}
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums font-semibold">
+                    {f(groupBuyCompare.regular.total + groupBuyCompare.groupBuy.total)}
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums font-semibold">
+                    {f(groupBuyCompare.regular.paid + groupBuyCompare.groupBuy.paid)}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPI card + Pie charts */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">

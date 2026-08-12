@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import {
+  GROUP_BUY_MODE_NOTE,
+  GROUP_BUY_MODE_OPTIONS,
+  filterByGroupBuyMode,
+  splitGroupBuy,
+  type GroupBuyMode,
+} from "@/lib/groupBuyCaliber";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -163,6 +170,8 @@ export default function OwnerSettlement() {
   const [savingRate, setSavingRate] = useState(false);
   // 入住營收統計口徑：預設以入住日計（與營運分析一致）
   const [basis, setBasis] = useState<RevenueStatBasis>("nightly");
+  // 團購口徑：預設不與一般訂房混算
+  const [gbMode, setGbMode] = useState<GroupBuyMode>("exclude");
 
 
 
@@ -310,8 +319,11 @@ export default function OwnerSettlement() {
     [pricingRule, config]
   );
 
+  /** 依團購口徑過濾後、實際進入拆解計算的訂單 */
+  const scopedOrders = useMemo(() => filterByGroupBuyMode(orders, gbMode), [orders, gbMode]);
+
   const rows: OrderRow[] = useMemo(() => {
-    const computed = computeOwnerSettlementRows(orders, config, month, accCurrency, effectiveRule, basis);
+    const computed = computeOwnerSettlementRows(scopedOrders, config, month, accCurrency, effectiveRule, basis);
     return computed
       .map((r) => ({
         order: r.order as Order,
@@ -332,7 +344,7 @@ export default function OwnerSettlement() {
         monthFinalOriginal: r.monthFinalOriginal,
       }))
       .sort((a, b) => a.order.check_in_date.localeCompare(b.order.check_in_date));
-  }, [orders, month, config, accCurrency, effectiveRule, basis]);
+  }, [scopedOrders, month, config, accCurrency, effectiveRule, basis]);
 
   /** standard 型：本月已從抽成基礎扣除的增值服務總額（已依夜數比例分攤） */
   const stdAddonDeducted = useMemo(
@@ -364,12 +376,34 @@ export default function OwnerSettlement() {
   const isGuestCount = config.revenue_breakdown_type === "guestcount";
 
   const gcRows = useMemo(
-    () => (isGuestCount ? computeGuestCountRows(orders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap, basis) : []),
-    [isGuestCount, orders, config, month, accCurrency, effectiveRule, roomCapacityMap, basis]
+    () => (isGuestCount ? computeGuestCountRows(scopedOrders as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap, basis) : []),
+    [isGuestCount, scopedOrders, config, month, accCurrency, effectiveRule, roomCapacityMap, basis]
 
   );
 
   const gcTotals = useMemo(() => computeGuestCountTotals(gcRows as any), [gcRows]);
+
+  /**
+   * 團購 / 非團購 對照：兩組各自獨立計算（不受上方口徑切換影響），
+   * 讓業主可同時看到兩種來源的入住營收與平台抽成。
+   */
+  const groupBuyCompare = useMemo(() => {
+    const { groupBuy, regular } = splitGroupBuy(orders);
+    const calc = (list: typeof orders) => {
+      if (isGuestCount) {
+        const r = computeGuestCountRows(list as any[], config as any, month, accCurrency, effectiveRule, roomCapacityMap, basis);
+        const t = computeGuestCountTotals(r as any);
+        return { count: r.length, revenue: t.totalRevenue, commission: t.totalCommission };
+      }
+      const r = computeOwnerSettlementRows(list, config, month, accCurrency, effectiveRule, basis);
+      return {
+        count: r.length,
+        revenue: r.reduce((s2, x) => s2 + x.monthFinal, 0),
+        commission: r.reduce((s2, x) => s2 + x.commission, 0),
+      };
+    };
+    return { regular: calc(regular), groupBuy: calc(groupBuy) };
+  }, [orders, isGuestCount, config, month, accCurrency, effectiveRule, roomCapacityMap, basis]);
 
   /**
    * guestcount 型的行銷推廣費：僅在該館別已套用新制（owner_settlement_pricing_rules）
@@ -659,6 +693,19 @@ export default function OwnerSettlement() {
                 </Button>
               ))}
             </div>
+            <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
+              {GROUP_BUY_MODE_OPTIONS.map((g) => (
+                <Button
+                  key={g.k}
+                  size="sm"
+                  variant={gbMode === g.k ? "default" : "ghost"}
+                  className={`px-3 ${gbMode === g.k ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" : "text-muted-foreground hover:bg-background"}`}
+                  onClick={() => setGbMode(g.k)}
+                >
+                  {g.label}
+                </Button>
+              ))}
+            </div>
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
             <Button variant="outline" size="sm" onClick={exportPdf} disabled={loading}>
               <Printer className="w-4 h-4 mr-1" />
@@ -714,6 +761,59 @@ export default function OwnerSettlement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 團購 / 非團購 對照 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">團購 / 非團購 對照</CardTitle>
+          <CardDescription>
+            {GROUP_BUY_MODE_NOTE[gbMode]}；下方兩組數字永遠各自獨立計算，不受口徑切換影響
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="fixed-table w-full text-sm">
+              <thead>
+                <tr className="text-xs text-muted-foreground">
+                  <th className="py-2 text-left font-medium">類別</th>
+                  <th className="py-2 text-right font-medium">訂單數</th>
+                  <th className="py-2 text-right font-medium">入住營收</th>
+                  <th className="py-2 text-right font-medium">平台服務費抽成</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: "一般訂房（非團購）", t: groupBuyCompare.regular },
+                  { label: "網紅團購", t: groupBuyCompare.groupBuy },
+                ].map((r) => (
+                  <tr key={r.label} className="border-t">
+                    <td className="py-2 whitespace-nowrap">{r.label}</td>
+                    <td className="py-2 text-right tabular-nums">{r.t.count}</td>
+                    <td className="py-2 text-right tabular-nums">NT$ {fmt(r.t.revenue)}</td>
+                    <td className="py-2 text-right tabular-nums">NT$ {fmt(r.t.commission)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t bg-muted/40 font-semibold">
+                  <td className="py-2">合計</td>
+                  <td className="py-2 text-right tabular-nums">
+                    {groupBuyCompare.regular.count + groupBuyCompare.groupBuy.count}
+                  </td>
+                  <td className="py-2 text-right tabular-nums">
+                    NT$ {fmt(groupBuyCompare.regular.revenue + groupBuyCompare.groupBuy.revenue)}
+                  </td>
+                  <td className="py-2 text-right tabular-nums">
+                    NT$ {fmt(groupBuyCompare.regular.commission + groupBuyCompare.groupBuy.commission)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            行銷推廣費為每月固定費用，不隨團購／非團購分攤，故不列入此對照。
+          </p>
+        </CardContent>
+      </Card>
+
 
       {/* 收益歸屬一覽：業主 vs 平台 */}
       {summary.totalRevenue > 0 && (() => {
