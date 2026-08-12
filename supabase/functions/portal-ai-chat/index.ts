@@ -716,14 +716,7 @@ serve(async (req) => {
         .maybeSingle();
       dbPrompt = data;
     } else {
-      // Check active A/B test
-      const { data: abTest } = await supabase
-        .from('ai_ab_tests')
-        .select('version_a, version_b, traffic_split')
-        .eq('is_active', true)
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: abTest } = await abTestPromise;
 
       if (abTest && session_id) {
         // Deterministic hash on session_id
@@ -738,38 +731,19 @@ serve(async (req) => {
       }
 
       if (!dbPrompt) {
-        const { data } = await supabase
-          .from('ai_prompts')
-          .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
-          .eq('status', 'published')
-          .order('version', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data } = await publishedPromptPromise;
         dbPrompt = data;
       }
     }
 
 
-    const { data: dbKnowledge } = await supabase
-      .from('ai_knowledge')
-      .select('title, content, priority')
-      .eq('is_active', true)
-      .order('priority', { ascending: false })
-      .limit(80);
+    const [{ data: dbKnowledge }, { data: dbExamples }, { data: dbReplyTemplates }] = await Promise.all([
+      knowledgePromise,
+      examplesPromise,
+      templatesPromise,
+    ]);
+    console.log('[portal-ai-chat] prep_ms', Date.now() - t0);
 
-    const { data: dbExamples } = await supabase
-      .from('ai_examples')
-      .select('scenario, user_message, ideal_response')
-      .eq('is_active', true)
-      .limit(40);
-
-    // B1: 回覆樣板（啟用中）— 作為回覆風格提示，不強制逐字套用
-    const { data: dbReplyTemplates } = await supabase
-      .from('ai_reply_templates')
-      .select('name, scenario, template')
-      .eq('is_active', true)
-      .order('sort', { ascending: true })
-      .limit(20);
 
 
 
