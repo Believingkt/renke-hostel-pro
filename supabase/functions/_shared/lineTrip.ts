@@ -44,8 +44,38 @@ export async function archiveTripAttributes(
   if (error) console.error("[butler-trip] archive attributes failed", error);
 }
 
-export function tripFullUrl(scenario: TripScenario) {
-  return `${SITE_ORIGIN}/trips/generate?scenario=${scenario}&lang=zh`;
+export function tripFullUrl(scenario: TripScenario, tripId?: string | null) {
+  const base = `${SITE_ORIGIN}/trips/generate?scenario=${scenario}&lang=zh`;
+  return tripId ? `${base}&trip=${tripId}` : base;
+}
+
+/** 把 LINE 端已生成的行程落地保存，回傳快照 id（失敗回 null，不影響回覆） */
+export async function saveTripSnapshot(
+  sb: SupabaseClient,
+  lineUserId: string,
+  scenario: TripScenario,
+  attrs: TripAttributes,
+  // deno-lint-ignore no-explicit-any
+  trip: any,
+): Promise<string | null> {
+  try {
+    const { data, error } = await sb
+      .from("trip_generations")
+      .insert({
+        scenario,
+        source: "line",
+        line_user_id: lineUserId,
+        attributes: attrs ?? {},
+        payload: trip,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data?.id ?? null;
+  } catch (e) {
+    console.error("[butler-trip] save snapshot failed", e);
+    return null;
+  }
 }
 
 function money(n: number) {
