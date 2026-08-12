@@ -302,6 +302,8 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
       }
       const j = await r.json();
       raw = (j?.choices?.[0]?.message?.content || "").trim();
+      console.log("[trip-recommend] fast raw length", raw.length, "finish", j?.choices?.[0]?.finish_reason);
+
     } else {
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
