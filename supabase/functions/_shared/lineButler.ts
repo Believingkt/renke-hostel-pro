@@ -89,7 +89,11 @@ export async function linePush(token: string, to: string, messages: OutgoingMess
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ to, messages: messages.slice(0, 5) }),
   });
-  if (!r.ok) console.error("[butler] push failed", r.status, await r.text());
+  if (!r.ok) {
+    const body = await r.text();
+    console.error("[butler] push failed", r.status, body);
+    throw new Error(`LINE push failed ${r.status}: ${body}`);
+  }
 }
 
 export function textMsg(text: string): OutgoingMessage {
