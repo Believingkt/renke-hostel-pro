@@ -46,11 +46,11 @@ export async function fetchOfficialVenueIntro(accommodationId: string): Promise<
   return {
     name: info.name,
     region: [info.region_1, info.region_2].filter(Boolean).join("・"),
-    description: info.description ?? null,
+    description: htmlToPlainText(info.description) || null,
     facilities: expandFacilitiesForAccommodations((facRes.data ?? []) as any[], [accommodationId])
       .map((f: any) => f.facility_name)
       .filter(Boolean),
-    check_in_notice: info.check_in_notice ?? null,
+    check_in_notice: htmlToPlainText(info.check_in_notice) || null,
     phone: info.phone ?? null,
     address: info.address ?? null,
     gallery_urls: (photoRes.data ?? [])
@@ -78,9 +78,9 @@ export async function fetchGroupBuyVenueIntro(accommodationId: string): Promise<
 
   return {
     ...official,
-    description: row.description ?? official.description,
+    description: htmlToPlainText(row.description) || official.description,
     facilities: row.facilities?.length ? row.facilities : official.facilities,
-    check_in_notice: row.check_in_notice ?? official.check_in_notice,
+    check_in_notice: htmlToPlainText(row.check_in_notice) || official.check_in_notice,
     phone: row.phone ?? official.phone,
     address: row.address ?? official.address,
     gallery_urls: row.gallery_urls?.length ? row.gallery_urls : official.gallery_urls,
