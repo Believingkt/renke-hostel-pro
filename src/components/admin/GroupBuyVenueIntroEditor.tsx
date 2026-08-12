@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { useToast } from "@/hooks/use-toast";
-import { fetchOfficialVenueIntro } from "@/lib/groupBuyVenueIntro";
-import { Loader2, RefreshCw, Save, X } from "lucide-react";
+import { fetchOfficialVenueIntro, htmlToPlainText } from "@/lib/groupBuyVenueIntro";
+import { GripVertical, Loader2, RefreshCw, Save, X } from "lucide-react";
 
 interface Props {
   accommodationId: string;
@@ -43,6 +43,17 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const movePhoto = (from: number, to: number) => {
+    setForm((f) => {
+      if (from === to || from < 0 || to < 0 || to >= f.gallery_urls.length) return f;
+      const next = [...f.gallery_urls];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return { ...f, gallery_urls: next };
+    });
+  };
 
   const load = useCallback(async () => {
     if (!accommodationId) return;
@@ -56,9 +67,9 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
     if (data) {
       const row = data as any;
       setForm({
-        description: row.description ?? "",
+        description: htmlToPlainText(row.description),
         facilities: (row.facilities ?? []).join("、"),
-        check_in_notice: row.check_in_notice ?? "",
+        check_in_notice: htmlToPlainText(row.check_in_notice),
         phone: row.phone ?? "",
         address: row.address ?? "",
         gallery_urls: row.gallery_urls ?? [],
@@ -67,9 +78,9 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
     } else {
       const official = await fetchOfficialVenueIntro(accommodationId);
       setForm({
-        description: official?.description ?? "",
+        description: htmlToPlainText(official?.description),
         facilities: (official?.facilities ?? []).join("、"),
-        check_in_notice: official?.check_in_notice ?? "",
+        check_in_notice: htmlToPlainText(official?.check_in_notice),
         phone: official?.phone ?? "",
         address: official?.address ?? "",
         gallery_urls: (official?.gallery_urls ?? []).slice(0, 12),
@@ -91,9 +102,9 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
     }
     setForm((f) => ({
       ...f,
-      description: official.description ?? "",
+      description: htmlToPlainText(official.description),
       facilities: official.facilities.join("、"),
-      check_in_notice: official.check_in_notice ?? "",
+      check_in_notice: htmlToPlainText(official.check_in_notice),
       phone: official.phone ?? "",
       address: official.address ?? "",
       gallery_urls: official.gallery_urls.slice(0, 12),
@@ -216,10 +227,29 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
 
         <div>
           <Label>相簿照片（團購頁輪播）</Label>
+          <p className="mt-1 text-xs text-muted-foreground">拖曳縮圖可調整順序，第 1 張為封面。</p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {form.gallery_urls.map((url, i) => (
-              <div key={url + i} className="relative overflow-hidden rounded-md border">
-                <img src={url} alt="" className="aspect-[4/3] w-full object-cover" />
+              <div
+                key={url + i}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) movePhoto(dragIndex, i);
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                className={`relative overflow-hidden rounded-md border transition-opacity ${
+                  dragIndex === i ? "opacity-50" : ""
+                }`}
+              >
+                <img src={url} alt="" className="aspect-[4/3] w-full object-cover" draggable={false} />
+                <div className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-background/90 px-1.5 py-0.5 text-xs cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-3.5 w-3.5" />
+                  {i + 1}
+                </div>
                 <button
                   type="button"
                   aria-label="移除照片"
@@ -230,6 +260,28 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
+                <div className="absolute inset-x-1 bottom-1 flex justify-between">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-6 px-2 text-xs"
+                    disabled={i === 0}
+                    onClick={() => movePhoto(i, i - 1)}
+                  >
+                    ←
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-6 px-2 text-xs"
+                    disabled={i === form.gallery_urls.length - 1}
+                    onClick={() => movePhoto(i, i + 1)}
+                  >
+                    →
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
