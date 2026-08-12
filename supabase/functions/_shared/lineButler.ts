@@ -794,17 +794,34 @@ async function handleText(
         messages = [textMsg("這幾天剛好都被訂滿了 😢 換個日期或人數，我再幫你找找！")];
       }
     }
+  } else if (parsed.intent === "trip_plan") {
+    await saveSession(sb, lineUserId, next, parsed.intent);
+    if (next.scenario) {
+      return tripReply(sb, lineUserId, next, next.scenario, mergedAttrs);
+    }
+    return { messages: [scenarioQuickReply()] };
   } else if (parsed.intent === "greeting") {
     messages = welcomeMessages();
   } else {
-    messages = [
-      textMsg("我可以幫你找房、加購體驗、管理收藏喔 🧸"),
-      quickMenu(),
-    ];
+    // Fallback：交給 LLM（沿用網頁版 prompt／知識庫／範例／樣板）
+    await saveSession(sb, lineUserId, next, parsed.intent);
+    return {
+      messages: [textMsg("小安想一下下… 🧸")],
+      deferred: async () => {
+        const answer = await askLlm(sb, { text });
+        await logLineConversation(sb, {
+          lineUserId,
+          userText: text,
+          assistantText: answer.text,
+          promptVersion: answer.promptVersion,
+        });
+        return [textMsg(answer.text), quickMenu()];
+      },
+    };
   }
 
   await saveSession(sb, lineUserId, next, parsed.intent);
-  return messages;
+  return { messages };
 }
 
 async function fetchAddons(sb: SupabaseClient, _keyword?: string): Promise<AddonProduct[]> {
