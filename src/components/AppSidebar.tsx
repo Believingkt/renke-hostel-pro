@@ -139,6 +139,8 @@ const menuItems = [
     ]
   },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
+  { title: "創作者總覽", url: "/admin/kol-overview", icon: Users, moduleKey: "discount_codes" },
+
   { title: "社群裂變推廣", url: "/admin/referral", icon: Share2, moduleKey: "discount_codes" },
 
   // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },

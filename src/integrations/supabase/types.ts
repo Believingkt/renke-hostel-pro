@@ -5004,6 +5004,83 @@ export type Database = {
           },
         ]
       }
+      kol_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          invitee_contact: string | null
+          invitee_ig: string | null
+          invitee_kol_id: string | null
+          invitee_name: string | null
+          inviter_kol_id: string
+          is_active: boolean
+          joined_at: string | null
+          override_rate: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          invitee_contact?: string | null
+          invitee_ig?: string | null
+          invitee_kol_id?: string | null
+          invitee_name?: string | null
+          inviter_kol_id: string
+          is_active?: boolean
+          joined_at?: string | null
+          override_rate?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          invitee_contact?: string | null
+          invitee_ig?: string | null
+          invitee_kol_id?: string | null
+          invitee_name?: string | null
+          inviter_kol_id?: string
+          is_active?: boolean
+          joined_at?: string | null
+          override_rate?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_referrals_invitee_kol_id_fkey"
+            columns: ["invitee_kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_referrals_invitee_kol_id_fkey"
+            columns: ["invitee_kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_referrals_inviter_kol_id_fkey"
+            columns: ["inviter_kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_referrals_inviter_kol_id_fkey"
+            columns: ["inviter_kol_id"]
+            isOneToOne: false
+            referencedRelation: "kol_profiles_with_progress"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kol_tags: {
         Row: {
           created_at: string

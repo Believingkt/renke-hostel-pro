@@ -125,6 +125,10 @@ const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
 const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
+const KolDashboardPublic = lazy(() => import("./pages/kol/KolDashboardPublic"));
+const KolReferralJoin = lazy(() => import("./pages/kol/KolReferralJoin"));
+const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
+
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
@@ -564,7 +568,13 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={4} />}><PermissionTemplates /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/kol-overview" element={
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/discount-codes" element={
+
                       <RequireModule module="discount_codes">
                         <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
                       </RequireModule>
@@ -733,6 +743,13 @@ function App() {
                       <Route path="/team/kol/bonus/:token" element={
                         <Suspense fallback={null}><KolBonusPublic /></Suspense>
                       } />
+                      <Route path="/kol/d/:token" element={
+                        <Suspense fallback={null}><KolDashboardPublic /></Suspense>
+                      } />
+                      <Route path="/kol/join/:code" element={
+                        <Suspense fallback={null}><KolReferralJoin /></Suspense>
+                      } />
+
                       <Route path="/hq/ai-training" element={
                         <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
                       }>
