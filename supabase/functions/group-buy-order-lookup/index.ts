@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, order_status, payment_status, order_source, order_date, notes",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, order_source, order_date, notes, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -114,6 +114,40 @@ Deno.serve(async (req) => {
       return json({ success: true, reported: true });
     }
 
+    // ── 民宿基本資料／入住須知／方案內容 ──
+    const accommodationId = (order as any).accommodation_id ?? campaign?.accommodation_id ?? null;
+    const [{ data: acc }, { data: intro }] = await Promise.all([
+      accommodationId
+        ? admin.from("accommodation_info").select("name, address, phone").eq("id", accommodationId).maybeSingle()
+        : Promise.resolve({ data: null as any }),
+      accommodationId
+        ? admin
+          .from("group_buy_venue_intros")
+          .select("address, phone, check_in_notice")
+          .eq("accommodation_id", accommodationId)
+          .maybeSingle()
+        : Promise.resolve({ data: null as any }),
+    ]);
+
+    let pkg: any = null;
+    if (campaign?.id) {
+      const { data: pkgs } = await admin
+        .from("group_buy_campaign_packages")
+        .select("display_name, description, image_url, group_buy_price, package_id, room_type_id, room_type_ids")
+        .eq("campaign_id", campaign.id);
+      const list = (pkgs ?? []) as any[];
+      pkg = list.find((p) => p.package_id && p.package_id === (order as any).package_id)
+        ?? list.find((p) =>
+          p.room_type_id === (order as any).room_type_id ||
+          (Array.isArray(p.room_type_ids) && p.room_type_ids.includes((order as any).room_type_id))
+        )
+        ?? (list.length === 1 ? list[0] : null);
+    }
+
+    const emailEvents = (events ?? []).filter((e: any) =>
+      e.event_type === "email_sent" || e.event_type === "email_failed"
+    );
+
     return json({
       order: {
         orderNumber: order.order_number,
@@ -147,6 +181,32 @@ Deno.serve(async (req) => {
         return bankToInfo(data);
       })(),
       events: events ?? [],
+      emails: emailEvents.map((e: any) => ({
+        status: e.event_type === "email_sent" ? "sent" : "failed",
+        note: e.note,
+        createdAt: e.created_at,
+      })),
+      venue: acc
+        ? {
+          name: (acc as any).name ?? null,
+          address: (intro as any)?.address || (acc as any).address || null,
+          phone: (intro as any)?.phone || (acc as any).phone || null,
+        }
+        : null,
+      checkInNotice: (intro as any)?.check_in_notice ?? null,
+      package: pkg
+        ? {
+          name: pkg.display_name,
+          description: pkg.description,
+          imageUrl: pkg.image_url,
+          price: Number(pkg.group_buy_price) || 0,
+        }
+        : null,
+      refund: {
+        status: (order as any).refund_status ?? null,
+        amount: Number((order as any).refunded_amount) || 0,
+        refundedAt: (order as any).refunded_at ?? null,
+      },
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
