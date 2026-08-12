@@ -267,6 +267,15 @@ export default function AdminGroupBuy() {
       toast({ title: "請填寫活動名稱與網址代稱", variant: "destructive" });
       return;
     }
+    const dateErrors = validateCampaignWindow(editing);
+    if (hasErrors(dateErrors)) {
+      toast({
+        title: "日期設定不正確，無法儲存",
+        description: Object.values(dateErrors).join("；"),
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const payload = { ...editing, accommodation_id: accommodationId } as any;
