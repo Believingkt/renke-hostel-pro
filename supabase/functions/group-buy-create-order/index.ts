@@ -180,6 +180,16 @@ Deno.serve(async (req) => {
       return json({ error: "訂單建立失敗，請稍後再試" }, 500);
     }
 
+    // 6.5) 稽核：訂單建立事件
+    await admin.from("group_buy_payment_events").insert({
+      campaign_id: campaign.id,
+      order_id: order.id,
+      event_type: "order_created",
+      amount: deposit,
+      actor_label: order.guest_name ?? "guest",
+      note: `旅客於團購頁建立訂單（${roomQuantity} 間 / ${checkInDate} → ${checkOutDate}）`,
+    });
+
     // 7) 下訂後複驗（並發超賣防護）
     const { data: invAfter } = await admin.rpc("get_adjusted_room_inventory_batch", {
       p_room_type_id: roomTypeId,

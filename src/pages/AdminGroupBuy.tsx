@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -20,7 +20,49 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
-import { Copy, Loader2, Megaphone, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2 } from "lucide-react";
+
+interface EventRow {
+  id: string;
+  order_id: string;
+  event_type: string;
+  amount: number | null;
+  account_last5: string | null;
+  transferred_at: string | null;
+  actor_user_id: string | null;
+  actor_label: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  order_created: "訂單建立",
+  guest_reported: "旅客回報已匯款",
+  admin_confirmed: "後台確認收到訂金",
+  expired: "逾期自動取消",
+  cancelled: "訂單取消",
+};
+
+const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  order_created: "outline",
+  guest_reported: "secondary",
+  admin_confirmed: "default",
+  expired: "destructive",
+  cancelled: "destructive",
+};
+
+const fmtTime = (iso: string | null) =>
+  iso
+    ? new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "Asia/Taipei",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(iso))
+    : "—";
 
 const twd = (n: number) => `NT$ ${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 
@@ -113,6 +155,8 @@ export default function AdminGroupBuy() {
   const [packages, setPackages] = useState<PackageRow[]>([]);
   const [banks, setBanks] = useState<BankRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [auditTarget, setAuditTarget] = useState<OrderRow | null>(null);
   const [roomTypes, setRoomTypes] = useState<{ id: string; name: string }[]>([]);
   const [editing, setEditing] = useState<Partial<Campaign> | null>(null);
   const [saving, setSaving] = useState(false);
@@ -145,6 +189,7 @@ export default function AdminGroupBuy() {
       setPackages([]);
       setBanks([]);
       setOrders([]);
+      setEvents([]);
       return;
     }
     const [{ data: pkgs }, { data: bankRows }, { data: comms }] = await Promise.all([
@@ -168,8 +213,13 @@ export default function AdminGroupBuy() {
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
-      supabase.from("group_buy_payment_events").select("order_id, event_type").eq("campaign_id", activeId),
+      supabase
+        .from("group_buy_payment_events")
+        .select("id, order_id, event_type, amount, account_last5, transferred_at, actor_user_id, actor_label, note, created_at")
+        .eq("campaign_id", activeId)
+        .order("created_at", { ascending: true }),
     ]);
+    setEvents((events ?? []) as unknown as EventRow[]);
     const reportedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "guest_reported").map((e: any) => e.order_id),
     );
@@ -438,6 +488,15 @@ export default function AdminGroupBuy() {
                               確認收到訂金
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="ml-1"
+                            onClick={() => setAuditTarget(o)}
+                          >
+                            <History className="mr-1 h-4 w-4" />
+                            稽核紀錄
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -846,6 +905,40 @@ export default function AdminGroupBuy() {
               {confirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認收款並寄信
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 訂單狀態稽核紀錄 */}
+      <Dialog open={!!auditTarget} onOpenChange={(v) => !v && setAuditTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>狀態稽核紀錄</DialogTitle>
+            <DialogDescription>
+              {auditTarget ? `訂單 ${auditTarget.order_number} · ${auditTarget.guest_name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {(auditTarget ? events.filter((e) => e.order_id === auditTarget.id) : []).map((e) => (
+              <div key={e.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant={EVENT_VARIANT[e.event_type] ?? "outline"}>
+                    {EVENT_LABEL[e.event_type] ?? e.event_type}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground tabular-nums">{fmtTime(e.created_at)}</span>
+                </div>
+                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  <div>操作者：{e.actor_label || (e.actor_user_id ? e.actor_user_id : "系統")}</div>
+                  {e.amount != null && <div>金額：{twd(Number(e.amount))}</div>}
+                  {e.account_last5 && <div>帳號末五碼：{e.account_last5}</div>}
+                  {e.transferred_at && <div>匯款時間：{fmtTime(e.transferred_at)}</div>}
+                  {e.note && <div>備註：{e.note}</div>}
+                </div>
+              </div>
+            ))}
+            {auditTarget && events.filter((e) => e.order_id === auditTarget.id).length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">尚無稽核紀錄</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

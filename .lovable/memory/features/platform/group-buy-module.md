@@ -26,3 +26,11 @@ type: feature
 - 訂單一律 `order_source = 'group_buy'`；`calc_team_commission_price` 對此來源回傳 0，**不進既有團隊／星探分潤**，團購分潤只記在 `group_buy_commissions`。
 - 匯款帳戶「各活動各自設定」，不公開讀取（僅由 Edge Function 於信件與訂單查詢頁提供）。
 - 訂金比例、匯款期限、分潤比例都在活動層設定。
+
+## 口徑切換與稽核
+- `src/lib/groupBuyCaliber.ts`：`GroupBuyMode = exclude | only | include`，**預設 exclude（不混算）**。
+  營運分析「訂單來源分析」與業主月結頁都有切換鈕，並固定顯示「團購／非團購」對照表（兩組永遠各自獨立計算，不受切換影響）。
+- 狀態流轉稽核全部寫入 `group_buy_payment_events`：`order_created`（建單，由 `group-buy-create-order` 寫入）、
+  `guest_reported`（旅客回報已匯款）、`admin_confirmed`（後台確認收訂金）、`expired`（逾期取消）。
+  後台 `/admin/group-buy` 訂單列可開「稽核紀錄」時間軸（時間／操作者／金額／末五碼／備註）。
+- 自動化情境測試：`src/lib/__tests__/groupBuyIsolation.test.ts`（口徑分流不重複不遺漏、庫存雙向共用、包棟互斥、下訂前後雙重驗證）。
