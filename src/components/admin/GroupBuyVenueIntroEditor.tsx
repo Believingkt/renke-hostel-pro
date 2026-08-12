@@ -67,9 +67,10 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
       .eq("accommodation_id", accommodationId)
       .maybeSingle();
 
+    let next: FormState;
     if (data) {
       const row = data as any;
-      setForm({
+      next = {
         description: htmlToPlainText(row.description),
         facilities: (row.facilities ?? []).join("、"),
         check_in_notice: htmlToPlainText(row.check_in_notice),
@@ -77,10 +78,10 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
         address: row.address ?? "",
         gallery_urls: row.gallery_urls ?? [],
         is_visible: row.is_visible ?? true,
-      });
+      };
     } else {
       const official = await fetchOfficialVenueIntro(accommodationId);
-      setForm({
+      next = {
         description: htmlToPlainText(official?.description),
         facilities: (official?.facilities ?? []).join("、"),
         check_in_notice: htmlToPlainText(official?.check_in_notice),
@@ -88,14 +89,27 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
         address: official?.address ?? "",
         gallery_urls: (official?.gallery_urls ?? []).slice(0, 12),
         is_visible: true,
-      });
+      };
     }
+    setForm(next);
+    setSavedForm(data ? next : null);
     setLoading(false);
   }, [accommodationId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
 
   const syncFromOfficial = async () => {
     const official = await fetchOfficialVenueIntro(accommodationId);
