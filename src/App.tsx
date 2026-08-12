@@ -125,6 +125,10 @@ const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
 const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
+const KolDashboardPublic = lazy(() => import("./pages/kol/KolDashboardPublic"));
+const KolReferralJoin = lazy(() => import("./pages/kol/KolReferralJoin"));
+const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
+
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
