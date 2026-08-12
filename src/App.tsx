@@ -183,16 +183,9 @@ const AiTrainingExamples = lazy(() => import("./pages/ai-training/AiTrainingExam
 const AiTrainingConversations = lazy(() => import("./pages/ai-training/AiTrainingConversations"));
 const AiTrainingPlayground = lazy(() => import("./pages/ai-training/AiTrainingPlayground"));
 const AiTrainingVersions = lazy(() => import("./pages/ai-training/AiTrainingVersions"));
+const AiTrainingApiKeys = lazy(() => import("./pages/ai-training/AiTrainingApiKeys"));
 
-// 民宿後台 AI 管家訓練中心
-const AdminAiTrainingLayout = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingLayout"));
-const AdminAiTrainingDashboard = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingDashboard"));
-const AdminAiTrainingPrompt = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPrompt"));
-const AdminAiTrainingKnowledge = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingKnowledge"));
-const AdminAiTrainingExamples = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingExamples"));
-const AdminAiTrainingConversations = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingConversations"));
-const AdminAiTrainingPlayground = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPlayground"));
-const AdminAiTrainingApiKeys = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiKeys"));
+// 已由 PMS 搬遷至總部後台（HQ）的 AI 管家相關頁面
 const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiDocs"));
 const KnowledgeIndexPage = lazy(() => import("./pages/admin/knowledge/KnowledgeIndex"));
 const AdminAiReplyTemplatesPage = lazy(() => import("./pages/admin/ai-training/AdminAiReplyTemplates"));
