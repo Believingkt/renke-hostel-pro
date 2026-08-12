@@ -236,11 +236,16 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       return;
     }
     // Safety: enforce locked fields server-truth even if UI was bypassed
-    const safeTotalPrice = isAmountLocked ? order.total_price : editTotalPrice;
+    // 房費（不含加購）
+    const safeRoomPrice = isAmountLocked
+      ? Math.max(0, (order.total_price ?? 0) - originalAddonTotal)
+      : editTotalPrice;
     const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
     const safeDepositAmount = isDepositLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
     const safeDiscountCode = isDiscountLocked ? (order.discount_code || "") : editDiscountCode;
-    const safeFinalPrice = safeTotalPrice - safeDiscountAmount + addonTotal;
+    // orders.total_price 口徑：房費 + 加購
+    const safeTotalPrice = safeRoomPrice + addonTotal;
+    const safeFinalPrice = safeTotalPrice - safeDiscountAmount;
     setIsSaving(true);
     try {
       const oldValues = {
