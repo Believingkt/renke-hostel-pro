@@ -11591,6 +11591,8 @@ export type Database = {
           payload: Json
           scenario: string
           source: string
+          translated_at: string | null
+          translation_status: string
         }
         Insert: {
           attributes?: Json
@@ -11601,6 +11603,8 @@ export type Database = {
           payload: Json
           scenario: string
           source?: string
+          translated_at?: string | null
+          translation_status?: string
         }
         Update: {
           attributes?: Json
@@ -11611,6 +11615,8 @@ export type Database = {
           payload?: Json
           scenario?: string
           source?: string
+          translated_at?: string | null
+          translation_status?: string
         }
         Relationships: []
       }
