@@ -188,10 +188,21 @@ export default function GroupBuyCampaign() {
 
   const submit = async () => {
     if (!campaign || !selectedPkg) return;
+    if (sale !== "on_sale") {
+      toast({ title: sale === "not_started" ? "團購尚未開賣" : "團購已結束", variant: "destructive" });
+      return;
+    }
+    const errs = validateStayRange(campaign, checkIn, checkOut);
+    const firstErr = errs.checkIn || errs.checkOut;
+    if (firstErr) {
+      toast({ title: "日期不符合活動規定", description: firstErr, variant: "destructive" });
+      return;
+    }
     if (nights <= 0) {
       toast({ title: "請選擇入住與退房日期", variant: "destructive" });
       return;
     }
+
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-create-order", {
