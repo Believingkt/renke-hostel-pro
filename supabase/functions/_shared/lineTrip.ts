@@ -125,7 +125,7 @@ export async function recommendTrip(scenario: TripScenario, attributes: TripAttr
 }
 
 // deno-lint-ignore no-explicit-any
-export function tripFlex(scenario: TripScenario, trip: any): OutgoingMessage {
+export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | null): OutgoingMessage {
   // deno-lint-ignore no-explicit-any
   const items: any[] = Array.isArray(trip?.items) ? trip.items.slice(0, 6) : [];
   const rows = items.map((i) => ({
@@ -181,7 +181,7 @@ export function tripFlex(scenario: TripScenario, trip: any): OutgoingMessage {
             type: "button",
             style: "primary",
             color: "#E8792B",
-            action: { type: "uri", label: "查看完整行程", uri: tripFullUrl(scenario) },
+            action: { type: "uri", label: "查看完整行程", uri: tripFullUrl(scenario, tripId) },
           },
         ],
       },

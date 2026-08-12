@@ -13,6 +13,7 @@ import { askLlm, logLineConversation } from "./lineLlm.ts";
 import {
   archiveTripAttributes,
   recommendTrip,
+  saveTripSnapshot,
   scenarioQuickReply,
   SCENARIO_LABEL,
   tripFlex,
@@ -744,7 +745,8 @@ function tripReply(
       try {
         const trip = await recommendTrip(scenario, merged);
         if (!trip) throw new Error("trip-recommend returned null");
-        return [tripFlex(scenario, trip)];
+        const tripId = await saveTripSnapshot(sb, lineUserId, scenario, merged, trip);
+        return [tripFlex(scenario, trip, tripId)];
       } catch (e) {
         console.error("[butler-trip] plan failed", scenario, e);
         await logLineConversation(sb, {
