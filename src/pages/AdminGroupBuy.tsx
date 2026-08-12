@@ -27,7 +27,9 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Link } from "react-router-dom";
+
 
 interface EventRow {
   id: string;
