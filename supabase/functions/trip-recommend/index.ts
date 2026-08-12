@@ -222,7 +222,7 @@ serve(async (req) => {
     }
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    if (!ANTHROPIC_API_KEY && body?.fast !== true) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const catalog = products.map((p) => ({
       id: p.id,
@@ -240,7 +240,23 @@ serve(async (req) => {
       exclusive: r.is_exclusive_package,
     }));
 
-    const system = `你是日月潭旅遊行程策展人。依「旅客屬性」與「情境模板」，從提供的品項清單中挑選 3~5 個行程點，並挑選 1 個合適房型。
+    const fast = body?.fast === true;
+
+    const system = fast
+      ? `你是日月潭旅遊行程策展人。依「旅客屬性」與「情境模板」，從清單挑 3~4 個行程點與 1 個房型。
+
+情境：${scenario}（${SCENARIOS[scenario]}）
+
+嚴格規則：
+- 只能使用清單中的 id，不可捏造。
+- 不要輸出任何價格數字。
+- 只輸出繁體中文，文字要短（標題 ≤ 16 字、摘要 ≤ 30 字、每點一句 ≤ 20 字）。
+- match_score 為 60~99 的整數。
+${exclude.length ? `- 盡量避開：${exclude.join(", ")}` : ""}
+
+只輸出一段 JSON（不要 markdown）：
+{"title":"","match_score":85,"reason":"","room_type_id":"","product_ids":["",""],"guides":{"<product_id>":""}}`
+      : `你是日月潭旅遊行程策展人。依「旅客屬性」與「情境模板」，從提供的品項清單中挑選 3~5 個行程點，並挑選 1 個合適房型。
 
 情境：${scenario}（${SCENARIOS[scenario]}）
 
@@ -254,37 +270,69 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
 只輸出一段 JSON（不要 markdown）：
 {"title":{"zh":"","ja":"","en":""},"match_score":85,"reason":{"zh":"","ja":"","en":""},"room_type_id":"","product_ids":["",""],"guides":{"<product_id>":{"zh":"","ja":"","en":""}}}`;
 
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 2000,
-        system,
-        messages: [
-          {
-            role: "user",
-            content: `旅客屬性：${JSON.stringify(attributes)}\n\n可選行程品項：${JSON.stringify(catalog)}\n\n可選房型：${JSON.stringify(roomCatalog)}`,
-          },
-        ],
-      }),
-    });
+    const userContent = `旅客屬性：${JSON.stringify(attributes)}\n\n可選行程品項：${JSON.stringify(catalog)}\n\n可選房型：${JSON.stringify(roomCatalog)}`;
 
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error("Anthropic error", resp.status, errText);
-      return new Response(JSON.stringify({ error: resp.status === 429 ? "使用量超過限制，請稍後再試" : "AI 服務暫時無法回應" }), {
-        status: resp.status === 429 ? 429 : 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let raw = "";
+
+    if (fast) {
+      // LINE 情境：低延遲模型 + 只生中文 + 極短輸出
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+        body: JSON.stringify({
+          model: "google/gemini-3.6-flash",
+          max_tokens: 2000,
+          reasoning_effort: "none",
+
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: userContent },
+          ],
+        }),
       });
+      if (!r.ok) {
+        const errText = await r.text();
+        console.error("fast model error", r.status, errText);
+        return new Response(JSON.stringify({ error: r.status === 429 ? "使用量超過限制，請稍後再試" : "AI 服務暫時無法回應" }), {
+          status: r.status === 429 ? 429 : 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const j = await r.json();
+      raw = (j?.choices?.[0]?.message?.content || "").trim();
+      console.log("[trip-recommend] fast raw length", raw.length, "finish", j?.choices?.[0]?.finish_reason);
+
+    } else {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5-20250929",
+          max_tokens: 2000,
+          system,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("Anthropic error", resp.status, errText);
+        return new Response(JSON.stringify({ error: resp.status === 429 ? "使用量超過限制，請稍後再試" : "AI 服務暫時無法回應" }), {
+          status: resp.status === 429 ? 429 : 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await resp.json();
+      raw = (data?.content || []).map((c: any) => c?.text || "").join("").trim();
     }
 
-    const data = await resp.json();
-    const raw = (data?.content || []).map((c: any) => c?.text || "").join("").trim();
     let parsed: any = {};
     try {
       const start = raw.indexOf("{");
@@ -293,6 +341,7 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
     } catch {
       parsed = {};
     }
+
 
     const byId = new Map(products.map((p) => [p.id, p]));
     const pickedIds: string[] = Array.isArray(parsed?.product_ids)
@@ -311,11 +360,19 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
     });
 
     const guides = parsed?.guides && typeof parsed.guides === "object" ? parsed.guides : {};
-    const tri = (v: any) => ({
-      zh: typeof v?.zh === "string" ? v.zh.slice(0, 300) : "",
-      ja: typeof v?.ja === "string" ? v.ja.slice(0, 300) : "",
-      en: typeof v?.en === "string" ? v.en.slice(0, 300) : "",
-    });
+    const tri = (v: any) => {
+      // fast 模式只生中文（字串），其餘語系先以中文帶入，之後可 lazy 補生成
+      if (typeof v === "string") {
+        const zh = v.slice(0, 300);
+        return { zh, ja: "", en: "" };
+      }
+      return {
+        zh: typeof v?.zh === "string" ? v.zh.slice(0, 300) : "",
+        ja: typeof v?.ja === "string" ? v.ja.slice(0, 300) : "",
+        en: typeof v?.en === "string" ? v.en.slice(0, 300) : "",
+      };
+    };
+
 
     const items = result.map((r, idx) => ({
       ref_type: "product" as const,

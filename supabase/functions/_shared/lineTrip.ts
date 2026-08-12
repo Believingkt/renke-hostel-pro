@@ -114,8 +114,10 @@ export async function recommendTrip(scenario: TripScenario, attributes: TripAttr
     const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, apikey: key },
-      body: JSON.stringify({ scenario, attributes }),
+      // fast：LINE 端只生中文短文案 + 低延遲模型（品項/價格仍為 DB 實價）
+      body: JSON.stringify({ scenario, attributes, fast: true }),
     });
+
     if (!r.ok) {
       const body = await r.text();
       console.error("[butler-trip] trip-recommend failed", r.status, body);
