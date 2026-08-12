@@ -176,6 +176,12 @@ export default function AdminGroupBuy() {
     [campaigns, activeId],
   );
 
+  /** 活動表單即時日期驗證 */
+  const editErrors = useMemo(() => (editing ? validateCampaignWindow(editing) : {}), [editing]);
+  const editHasDateError = hasErrors(editErrors);
+
+
+
   const loadCampaigns = useCallback(async () => {
     if (!accommodationId) return;
     setLoading(true);
