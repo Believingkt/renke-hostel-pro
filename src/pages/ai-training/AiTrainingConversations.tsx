@@ -33,6 +33,7 @@ interface LogRow {
   prompt_version: number | null;
   messages: Array<{ role: string; content: string }>;
   user_rating: Rating;
+  source: string | null;
   admin_note: string | null;
   created_at: string;
 }
@@ -44,6 +45,7 @@ export default function AiTrainingConversations() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [ratingFilter, setRatingFilter] = useState<"all" | "none" | "good" | "bad">("all");
   const [versionFilter, setVersionFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "line" | "web">("all");
   const [versionOptions, setVersionOptions] = useState<number[]>([]);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: subDays(new Date(), 7),
@@ -123,6 +125,9 @@ export default function AiTrainingConversations() {
 
     if (versionFilter !== "all") q = q.eq("prompt_version", Number(versionFilter));
 
+    if (sourceFilter === "line") q = q.eq("source", "line");
+    else if (sourceFilter === "web") q = q.or("source.is.null,source.neq.line");
+
     const { data, error } = await q;
     if (error) {
       toast.error("讀取失敗：" + error.message);
@@ -138,7 +143,7 @@ export default function AiTrainingConversations() {
 
   useEffect(() => {
     void loadLogs();
-  }, [ratingFilter, versionFilter, dateRange.from, dateRange.to]);
+  }, [ratingFilter, versionFilter, sourceFilter, dateRange.from, dateRange.to]);
 
   const saveNote = async () => {
     if (!selected) return;
@@ -279,6 +284,17 @@ export default function AiTrainingConversations() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={sourceFilter} onValueChange={(v: any) => setSourceFilter(v)}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部來源</SelectItem>
+            <SelectItem value="line">LINE</SelectItem>
+            <SelectItem value="web">官網</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Main two-column */}
@@ -312,6 +328,9 @@ export default function AiTrainingConversations() {
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <Badge variant="secondary" className="text-[10px] h-5">
                       {log.messages.length} 則
+                    </Badge>
+                    <Badge variant={log.source === "line" ? "default" : "outline"} className="text-[10px] h-5">
+                      {log.source === "line" ? "LINE" : "官網"}
                     </Badge>
                     {log.prompt_version && (
                       <Badge variant="outline" className="text-[10px] h-5">v{log.prompt_version}</Badge>
