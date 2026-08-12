@@ -768,6 +768,10 @@ export default function AdminGroupBuy() {
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value="venue">
+            {accommodationId && <GroupBuyVenueIntroEditor accommodationId={accommodationId} />}
+          </TabsContent>
         </Tabs>
         </>
       )}
