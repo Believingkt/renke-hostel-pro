@@ -270,6 +270,17 @@ Deno.serve(async (req) => {
     );
     if (!mailResult.ok) console.warn(`[${FN}] email skipped: ${mailResult.reason}`);
 
+    // 9.5) 稽核：通知信寄送結果（供訂單確認頁顯示「已寄出／失敗」）
+    await admin.from("group_buy_payment_events").insert({
+      campaign_id: campaign.id,
+      order_id: order.id,
+      event_type: mailResult.ok ? "email_sent" : "email_failed",
+      actor_label: "system",
+      note: mailResult.ok
+        ? `訂房通知＋匯款資訊信已寄至 ${guestEmail}`
+        : `訂房通知信寄送失敗：${mailResult.reason ?? "unknown"}`,
+    });
+
     const deadline = paymentDeadline(order.created_at ?? order.order_date ?? new Date().toISOString(), campaign.payment_deadline_hours);
 
     return json({
