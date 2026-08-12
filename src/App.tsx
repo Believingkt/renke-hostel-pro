@@ -451,35 +451,27 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
                       </RequireModule>
                     } />
+                    {/* 以下 AI 管家相關頁面已搬遷至總部後台 hq.lakeze.com */}
                     <Route path="admin/line-butler" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                      <MovedToHQCard hqPath="/hq/line-butler" title="LINE AI 管家監看已移至總部後台" />
                     } />
                     <Route path="admin/traveler-attributes" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                      <MovedToHQCard hqPath="/hq/traveler-attributes" title="旅遊屬性已移至總部後台" />
                     } />
-
                     <Route path="admin/deploy-status" element={
-                      <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      <MovedToHQCard hqPath="/hq/deploy-status" title="部署佐證已移至總部後台" />
                     } />
                     <Route path="admin/knowledge/index" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/knowledge/index" title="知識庫索引已移至總部後台" />
                     } />
                     <Route path="admin/knowledge/search" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/knowledge/search" title="知識庫檢索已移至總部後台" />
                     } />
                     <Route path="admin/reply-templates" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><AdminAiReplyTemplatesPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/ai-training/reply-templates" title="回覆樣板已移至總部後台" />
                     } />
                     <Route path="admin/model-training" element={
-                      <RequireModule module="ai_training">
-                        <Suspense fallback={<DashboardSkeleton />}><AdminAiModelTrainingPage /></Suspense>
-                      </RequireModule>
+                      <MovedToHQCard hqPath="/hq/ai-training/model-training" title="模型訓練已移至總部後台" />
                     } />
 
 
