@@ -672,7 +672,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       }, 0);
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
-      const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
+      // orders.total_price 口徑：房費 + 加購
+      const savedTotalPrice = effectiveTotal + addonTotal;
+      const totalFinal = Math.max(0, savedTotalPrice - effectiveDiscount);
       const isBankTransfer = editForm.balance_payment_method === "bank_transfer";
 
       // 訂金邏輯：只有匯款才使用訂金/尾款拆分
