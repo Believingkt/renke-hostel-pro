@@ -189,8 +189,13 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   const guests = extractGuests(t);
   const venueAliasEarly = matchVenueAlias(t);
 
+  // 明確訂房訊號：新日期 / 人數 / 房型館別 / 明確查訂房措辭
+  const bookingSignal = Boolean(dates.checkIn) || Boolean(guests) || SEARCH_KEYWORDS.test(t);
+  const policyOnly = POLICY_KEYWORDS.test(t) && !bookingSignal;
+
   let intent: ButlerIntent = "unknown";
-  if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
+  if (policyOnly) intent = "unknown"; // 知識／政策問答一律交給 LLM
+  else if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
   else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
   else if (ADDON_KEYWORDS.test(t)) intent = "addon";
@@ -199,6 +204,7 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
   else if (dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
+
 
   // 館別（常用簡稱）
   const venueAlias = matchVenueAlias(t);
