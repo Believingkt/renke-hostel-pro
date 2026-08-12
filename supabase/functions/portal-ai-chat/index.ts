@@ -104,38 +104,38 @@ serve(async (req) => {
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
-      .order('display_order', { ascending: true, nullsFirst: false });
+      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r);
     const knowledgePromise = supabase
       .from('ai_knowledge')
       .select('title, content, priority')
       .eq('is_active', true)
       .order('priority', { ascending: false })
-      .limit(80);
+      .limit(80).then(r => r);
     const examplesPromise = supabase
       .from('ai_examples')
       .select('scenario, user_message, ideal_response')
       .eq('is_active', true)
-      .limit(40);
+      .limit(40).then(r => r);
     const templatesPromise = supabase
       .from('ai_reply_templates')
       .select('name, scenario, template')
       .eq('is_active', true)
       .order('sort', { ascending: true })
-      .limit(20);
+      .limit(20).then(r => r);
     const abTestPromise = supabase
       .from('ai_ab_tests')
       .select('version_a, version_b, traffic_split')
       .eq('is_active', true)
       .order('started_at', { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle().then(r => r);
     const publishedPromptPromise = supabase
       .from('ai_prompts')
       .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
       .eq('status', 'published')
       .order('version', { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle().then(r => r);
 
     const { data: allAccommodations } = await accommodationsPromise;
 
