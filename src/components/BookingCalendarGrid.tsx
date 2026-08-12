@@ -187,9 +187,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const [loadError, setLoadError] = useState<string | null>(null);
   // 避免快速切換日期／即時事件造成「舊回應覆蓋新資料」
   const loadSeqRef = useRef(0);
-
-
-  
+  // 目前畫面資料實際對應的「民宿 + 日期區間」，用來擋掉切換期間的舊資料
+  const [loadedRangeKey, setLoadedRangeKey] = useState<string | null>(null);
 
   // Generate date columns
   const dates = useMemo(() => {
@@ -197,6 +196,10 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   }, [startDate, dayCount]);
 
   const dateStrings = useMemo(() => dates.map(d => format(d, "yyyy-MM-dd")), [dates]);
+
+  const currentRangeKey = `${accommodationId}_${dateStrings[0]}_${dateStrings[dateStrings.length - 1]}`;
+  const rangeReady = loadedRangeKey === currentRangeKey;
+
 
   // Load data
   useEffect(() => {
