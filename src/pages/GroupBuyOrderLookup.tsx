@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { CheckCircle2, Loader2, MapPin, Undo2 } from "lucide-react";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -189,6 +190,72 @@ export default function GroupBuyOrderLookup() {
                   {reporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   送出匯款回報
                 </Button>
+              </div>
+            )}
+
+            {data.package && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-2 font-semibold text-foreground">方案內容</p>
+                <p className="font-medium text-foreground">{data.package.name}</p>
+                {data.package.description && (
+                  <p className="whitespace-pre-line text-muted-foreground">{data.package.description}</p>
+                )}
+              </div>
+            )}
+
+            {data.venue && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-2 font-semibold text-foreground">住宿資訊</p>
+                <p className="font-medium text-foreground">{data.venue.name}</p>
+                {data.venue.address && (
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" /> {data.venue.address}
+                  </p>
+                )}
+                {data.venue.phone && <p className="text-muted-foreground">電話：{data.venue.phone}</p>}
+              </div>
+            )}
+
+            {data.checkInNotice && (
+              <Accordion type="single" collapsible className="rounded-lg border px-4">
+                <AccordionItem value="notice" className="border-0">
+                  <AccordionTrigger className="text-sm font-semibold">入住須知</AccordionTrigger>
+                  <AccordionContent className="whitespace-pre-line text-muted-foreground">
+                    {data.checkInNotice}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
+
+            {data.refund && (data.refund.amount > 0 || (data.refund.status && data.refund.status !== "none")) && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
+                  <Undo2 className="h-4 w-4" /> 退款狀態
+                </p>
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">處理狀態</span>
+                  <span>
+                    {data.refund.status === "refunded"
+                      ? "已全額退款"
+                      : data.refund.status === "partial_refunded"
+                        ? "已部分退款"
+                        : data.refund.status === "pending_manual"
+                          ? "退款處理中"
+                          : "不退款"}
+                  </span>
+                </div>
+                {data.refund.amount > 0 && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">退款金額</span>
+                    <span className="font-semibold">{twd(data.refund.amount)}</span>
+                  </div>
+                )}
+                {data.refund.refundedAt && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">退款時間</span>
+                    <span>{new Date(data.refund.refundedAt).toLocaleString("zh-TW")}</span>
+                  </div>
+                )}
               </div>
             )}
 
