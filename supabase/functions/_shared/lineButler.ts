@@ -6,9 +6,17 @@
  * 不改動既有金流與 portal-ai-chat。
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { parseIntent, type ParsedIntent } from "./lineIntent.ts";
+import { parseIntent, type ParsedIntent, type TripAttributes, type TripScenario } from "./lineIntent.ts";
 import { VENUE_ALIASES, accommodationMatchesVenue } from "./lineVenueAlias.ts";
 import { taipeiToday } from "./taipeiDate.ts";
+import { askLlm, logLineConversation } from "./lineLlm.ts";
+import {
+  archiveTripAttributes,
+  recommendTrip,
+  scenarioQuickReply,
+  SCENARIO_LABEL,
+  tripFlex,
+} from "./lineTrip.ts";
 
 export interface ButlerCartStay {
   kind: "stay";
@@ -47,6 +55,8 @@ export interface ButlerState {
   keyword?: string;
   venue?: string;
   venueLabel?: string;
+  scenario?: TripScenario;
+  tripAttributes?: TripAttributes;
   cart?: ButlerCartItem[];
 }
 
@@ -94,6 +104,7 @@ function quickMenu(): OutgoingMessage {
       items: [
         { type: "action", action: { type: "message", label: "🔍 找房", text: "我想找房" } },
         { type: "action", action: { type: "message", label: "🎁 加購", text: "有什麼加購體驗" } },
+        { type: "action", action: { type: "message", label: "🗺️ 排行程", text: "幫我排行程" } },
         { type: "action", action: { type: "message", label: "❤️ 我的收藏", text: "我的收藏" } },
         { type: "action", action: { type: "message", label: "🛒 結帳", text: "我要結帳" } },
       ],
@@ -650,6 +661,12 @@ export function liffFavoritesUrl(lineUserId: string): string | null {
 
 /* ---------------- Main event handling ---------------- */
 
+/** 立即回覆的訊息 + 需要較久處理、稍後 push 的延遲訊息 */
+interface ButlerReply {
+  messages: OutgoingMessage[];
+  deferred?: () => Promise<OutgoingMessage[]>;
+}
+
 // deno-lint-ignore no-explicit-any
 export async function handleButlerEvent(sb: SupabaseClient, accessToken: string | null, ev: any): Promise<OutgoingMessage[]> {
   const lineUserId: string | undefined = ev?.source?.userId;
@@ -657,22 +674,60 @@ export async function handleButlerEvent(sb: SupabaseClient, accessToken: string 
   const session = await loadSession(sb, lineUserId);
   const state: ButlerState = (session.state as ButlerState) || {};
   const today = taipeiToday();
-  let out: OutgoingMessage[] = [];
+  let reply: ButlerReply = { messages: [] };
 
   if (ev.type === "follow") {
-    out = welcomeMessages();
+    reply = { messages: welcomeMessages() };
     await saveSession(sb, lineUserId, state, "greeting");
   } else if (ev.type === "postback") {
-    out = await handlePostback(sb, lineUserId, state, String(ev.postback?.data || ""));
+    const data = String(ev.postback?.data || "");
+    const scenario = new URLSearchParams(data).get("scenario");
+    if (new URLSearchParams(data).get("action") === "trip" && scenario) {
+      reply = tripReply(sb, lineUserId, state, scenario as TripScenario);
+    } else {
+      reply = { messages: await handlePostback(sb, lineUserId, state, data) };
+    }
   } else if (ev.type === "message" && ev.message?.type === "text") {
-    out = await handleText(sb, lineUserId, state, String(ev.message.text || ""), today);
+    reply = await handleText(sb, lineUserId, state, String(ev.message.text || ""), today);
   }
 
-  if (accessToken && out.length > 0) {
-    if (ev.replyToken) await lineReply(accessToken, ev.replyToken, out);
-    else await linePush(accessToken, lineUserId, out);
+  if (accessToken && reply.messages.length > 0) {
+    if (ev.replyToken) await lineReply(accessToken, ev.replyToken, reply.messages);
+    else await linePush(accessToken, lineUserId, reply.messages);
   }
-  return out;
+
+  let all = reply.messages;
+  if (reply.deferred) {
+    // 先回覆佔位訊息，正式回覆改走 push，避免 reply token 逾時
+    const later = await reply.deferred();
+    if (later.length > 0) {
+      if (accessToken) await linePush(accessToken, lineUserId, later);
+      all = [...all, ...later];
+    }
+  }
+  return all;
+}
+
+/** 行程推薦：先回「小安規劃中…」再 push 完整卡片 */
+function tripReply(
+  sb: SupabaseClient,
+  lineUserId: string,
+  state: ButlerState,
+  scenario: TripScenario,
+  attrs: TripAttributes = {},
+): ButlerReply {
+  return {
+    messages: [textMsg(`好的！我用「${SCENARIO_LABEL[scenario]}」的調性排行程，稍等我 30 秒 🧸✨`)],
+    deferred: async () => {
+      const merged: TripAttributes = { ...(state.tripAttributes || {}), ...attrs };
+      await archiveTripAttributes(sb, lineUserId, merged);
+      const trip = await recommendTrip(scenario, merged);
+      if (!trip) {
+        return [textMsg("行程排到一半卡住了 😢 等等再跟我說一次好嗎？")];
+      }
+      return [tripFlex(scenario, trip)];
+    },
+  };
 }
 
 async function handleText(
@@ -681,8 +736,9 @@ async function handleText(
   state: ButlerState,
   text: string,
   today: string,
-): Promise<OutgoingMessage[]> {
+): Promise<ButlerReply> {
   const parsed: ParsedIntent = parseIntent(text, today);
+  const mergedAttrs: TripAttributes = { ...(state.tripAttributes || {}), ...(parsed.tripAttributes || {}) };
   const next: ButlerState = {
     ...state,
     intent: parsed.intent,
@@ -692,6 +748,8 @@ async function handleText(
     keyword: parsed.keyword ?? state.keyword,
     venue: parsed.venue ?? state.venue,
     venueLabel: parsed.venueLabel ?? state.venueLabel,
+    scenario: parsed.scenario ?? state.scenario,
+    tripAttributes: mergedAttrs,
   };
 
   let messages: OutgoingMessage[] = [];
@@ -747,17 +805,34 @@ async function handleText(
         messages = [textMsg("這幾天剛好都被訂滿了 😢 換個日期或人數，我再幫你找找！")];
       }
     }
+  } else if (parsed.intent === "trip_plan") {
+    await saveSession(sb, lineUserId, next, parsed.intent);
+    if (next.scenario) {
+      return tripReply(sb, lineUserId, next, next.scenario, mergedAttrs);
+    }
+    return { messages: [scenarioQuickReply()] };
   } else if (parsed.intent === "greeting") {
     messages = welcomeMessages();
   } else {
-    messages = [
-      textMsg("我可以幫你找房、加購體驗、管理收藏喔 🧸"),
-      quickMenu(),
-    ];
+    // Fallback：交給 LLM（沿用網頁版 prompt／知識庫／範例／樣板）
+    await saveSession(sb, lineUserId, next, parsed.intent);
+    return {
+      messages: [textMsg("小安想一下下… 🧸")],
+      deferred: async () => {
+        const answer = await askLlm(sb, { text });
+        await logLineConversation(sb, {
+          lineUserId,
+          userText: text,
+          assistantText: answer.text,
+          promptVersion: answer.promptVersion,
+        });
+        return [textMsg(answer.text), quickMenu()];
+      },
+    };
   }
 
   await saveSession(sb, lineUserId, next, parsed.intent);
-  return messages;
+  return { messages };
 }
 
 async function fetchAddons(sb: SupabaseClient, _keyword?: string): Promise<AddonProduct[]> {
