@@ -106,30 +106,45 @@ Deno.serve(async (req) => {
       return json({ error: `此方案單筆最多預訂 ${pkg.max_quantity} 間` }, 400);
     }
 
-    // 3) 房型（庫存判定必須要有 room_type_id）
-    let roomTypeId: string | null = pkg.room_type_id ?? null;
-    if (!roomTypeId && pkg.package_id) {
+    // 3) 房型（庫存判定必須要有房型；支援複選房型清單）
+    const candidateRoomTypeIds: string[] = Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.length > 0
+      ? (pkg.room_type_ids as string[])
+      : pkg.room_type_id
+        ? [pkg.room_type_id as string]
+        : [];
+    if (candidateRoomTypeIds.length === 0 && pkg.package_id) {
       const { data: accPkg } = await admin
         .from("accommodation_packages")
         .select("id, room_type_id")
         .eq("id", pkg.package_id)
         .maybeSingle();
-      roomTypeId = (accPkg as any)?.room_type_id ?? null;
+      const fallback = (accPkg as any)?.room_type_id ?? null;
+      if (fallback) candidateRoomTypeIds.push(fallback);
     }
-    if (!roomTypeId) return json({ error: "此方案尚未設定房型，請聯繫客服" }, 400);
+    if (candidateRoomTypeIds.length === 0) return json({ error: "此方案尚未設定房型，請聯繫客服" }, 400);
 
     const n = calcNights(checkInDate, checkOutDate);
     const dates = nightDates(checkInDate, n);
 
-    // 4) 下訂前庫存驗證（含包棟互斥）
-    const { data: invBefore, error: invErr } = await admin.rpc("get_adjusted_room_inventory_batch", {
-      p_room_type_id: roomTypeId,
-      p_dates: dates,
-      p_accommodation_id: campaign.accommodation_id,
-    });
-    if (invErr) throw invErr;
-    const pre = verifyInventory(invBefore as any[], roomQuantity, false);
-    if (!pre.ok) return json({ error: `預訂失敗：${pre.message}` }, 409);
+    // 4) 下訂前庫存驗證（含包棟互斥）：逐一比對，取第一個有空房的房型
+    let roomTypeId: string | null = null;
+    let preMessage = "此區間目前無足夠空房";
+    for (const rtId of candidateRoomTypeIds) {
+      const { data: invBefore, error: invErr } = await admin.rpc("get_adjusted_room_inventory_batch", {
+        p_room_type_id: rtId,
+        p_dates: dates,
+        p_accommodation_id: campaign.accommodation_id,
+      });
+      if (invErr) throw invErr;
+      const pre = verifyInventory(invBefore as any[], roomQuantity, false);
+      if (pre.ok) {
+        roomTypeId = rtId;
+        break;
+      }
+      preMessage = pre.message;
+    }
+    if (!roomTypeId) return json({ error: `預訂失敗：${preMessage}` }, 409);
+
 
     // 5) 價格（server 端重算：團購價 × 晚數 × 間數）
     const unit = Math.round(Number(pkg.group_buy_price) || 0);
