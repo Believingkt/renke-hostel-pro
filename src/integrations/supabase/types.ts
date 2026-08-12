@@ -11581,6 +11581,39 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_generations: {
+        Row: {
+          attributes: Json
+          created_at: string
+          expires_at: string
+          id: string
+          line_user_id: string | null
+          payload: Json
+          scenario: string
+          source: string
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          line_user_id?: string | null
+          payload: Json
+          scenario: string
+          source?: string
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          line_user_id?: string | null
+          payload?: Json
+          scenario?: string
+          source?: string
+        }
+        Relationships: []
+      }
       trip_products: {
         Row: {
           accommodation_id: string | null
