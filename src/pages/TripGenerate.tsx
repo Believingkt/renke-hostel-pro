@@ -99,11 +99,13 @@ export default function TripGenerate() {
   const navigate = useNavigate();
   const lang = normalizeLang(params.get("lang")) as TripLang;
   const scenario = (params.get("scenario") || "family") as ScenarioKey;
+  const tripId = params.get("trip");
   const t = tripText(lang);
   const p = PAGE_TEXT[lang];
 
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<GenTrip[]>([]);
+  const [more, setMore] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savedIds, setSavedIds] = useState<Record<number, string>>({});
   const startedRef = useRef(false);
@@ -130,6 +132,8 @@ export default function TripGenerate() {
         });
         results.push(trip);
         setTrips([...results].sort((a, b) => b.match_score - a.match_score));
+        // 有第一條行程就先解除 loading，其餘在背景補齊
+        setLoading(false);
       }
       if (!results.length) toast({ title: p.empty, variant: "destructive" });
     } catch (e) {
@@ -137,14 +141,41 @@ export default function TripGenerate() {
       toast({ title: p.failed, variant: "destructive" });
     } finally {
       setLoading(false);
+      setMore(false);
     }
   }, [scenario, p.empty, p.failed]);
+
+  // 優先讀取 LINE 端已生成的行程快照（秒開、內容與卡片一致）
+  const loadSnapshot = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("trip_generations")
+        .select("payload")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      const trip = data?.payload as GenTrip | undefined;
+      if (trip?.items?.length) {
+        setTrips([trip]);
+        setLoading(false);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("load trip snapshot failed", e);
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    void generate();
-  }, [generate]);
+    void (async () => {
+      if (tripId && (await loadSnapshot(tripId))) return;
+      await generate();
+    })();
+  }, [generate, loadSnapshot, tripId]);
 
   const setLang = (next: TripLang) => {
     const q = new URLSearchParams(params);
@@ -198,8 +229,21 @@ export default function TripGenerate() {
       </div>
 
       <div className="mb-4 flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => void generate()} disabled={loading}>
-          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (tripId) {
+              const q = new URLSearchParams(params);
+              q.delete("trip");
+              setParams(q, { replace: true });
+            }
+            setMore(true);
+            void generate();
+          }}
+          disabled={loading || more}
+        >
+          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading || more ? "animate-spin" : ""}`} />
           {p.regenerate}
         </Button>
         <Link
@@ -305,7 +349,7 @@ export default function TripGenerate() {
         })}
       </div>
 
-      {loading && trips.length > 0 && (
+      {(loading || more) && trips.length > 0 && (
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           {p.generating}
