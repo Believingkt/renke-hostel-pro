@@ -1,50 +1,4 @@
-import { 
-  DoorOpen, 
-  DollarSign, 
-  ClipboardList, 
-  Users, 
-  BarChart3, 
-  Settings,
-  Tag,
-  ChevronDown,
-  Globe,
-  Building,
-  UserCircle,
-  Database,
-  Info,
-  Wrench,
-  Package,
-  Image as ImageIcon,
-  Navigation,
-  HelpCircle,
-  Hotel,
-  Calendar,
-  ShoppingBag,
-  Ticket,
-  UserCog,
-  Shield,
-  UserCheck,
-  KeyRound,
-  Receipt,
-
-  Megaphone,
-  BadgePercent,
-  Banknote,
-  Sparkles,
-  Share2,
-
-  BookOpen,
-  Bed,
-  TrendingUp,
-  Star,
-  ConciergeBell,
-  Plug,
-  FileText,
-  Mail,
-  Headset,
-  LayoutPanelTop,
-  Send
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
@@ -66,88 +20,10 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 import owlnestLogo from "@/assets/owlnest-logo.png";
+import { ADMIN_MENU_ITEMS } from "@/config/adminMenu";
 
-const menuItems = [
-  { title: "營運分析", url: "/admin", icon: BarChart3, moduleKey: "analytics" },
-  { title: "櫃檯接待", url: "/admin/reception", icon: ConciergeBell, moduleKey: "reception" },
-  { 
-    title: "訂單資訊", 
-    url: "/admin/orders", 
-    icon: ShoppingBag,
-    moduleKey: "orders",
-    subItems: [
-      { title: "預訂管理", url: "/admin/room-inventory", icon: Package },
-      { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
-      { title: "客服待辦", url: "/admin/manual-review", icon: Headset },
-    ]
-  },
-  { title: "網紅團購", url: "/admin/group-buy", icon: Megaphone, moduleKey: "orders" },
-  { title: "KOL 互惠額度", url: "/admin/kol-reciprocal-quota", icon: Sparkles, moduleKey: "kol_quota" },
-  { 
-    title: "官網內容", 
-    url: "/admin/website-content", 
-    icon: Globe,
-    moduleKey: "website_content",
-    subItems: [
-      { title: "首頁與 SEO 設定", url: "/admin/website-content?tab=basic-info", icon: Info },
-      { title: "訂房頁標頭", url: "/admin/website-content?tab=villa-header", icon: LayoutPanelTop },
-      { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
-      { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
-      { title: "Google 評論", url: "/admin/website-content?tab=reviews", icon: Star },
-      { title: "常見問題", url: "/admin/website-content?tab=faq", icon: HelpCircle },
-      { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: BookOpen },
-      { title: "增值服務", url: "/admin/website-content?tab=addon-plans", icon: Package },
-      { title: "精選照片", url: "/admin/website-content?tab=gallery", icon: ImageIcon },
-      { title: "精選民宿卡片", url: "/admin/website-content?tab=portal-card", icon: Sparkles },
-      { title: "訂房確認通知", url: "/admin/website-content?tab=email-notification", icon: Mail },
+const menuItems = ADMIN_MENU_ITEMS;
 
-    ]
-  },
-  { 
-    title: "房型設施", 
-    url: "/admin/pricing", 
-    icon: Hotel,
-    moduleKey: "pricing",
-    subItems: [
-      { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
-    ]
-  },
-  { 
-    title: "房價庫存", 
-    url: "/admin/room-price-calendar", 
-    icon: DollarSign,
-    moduleKey: "room_price",
-    subItems: [
-      { title: "庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
-      
-      { title: "房價價格設定", url: "/admin/projects", icon: TrendingUp },
-      { title: "訂房入住方案", url: "/admin/packages", icon: Package },
-      { title: "前台訂房價格", url: "/admin/package-price-calendar", icon: DollarSign },
-      { title: "搜尋圖卡設定", url: "/admin/search-card", icon: Package },
-      { title: "國定假日", url: "/admin/holidays", icon: Calendar },
-    ]
-  },
-  { 
-    title: "顧客資料", 
-    url: "/admin/customers", 
-    icon: Users,
-    moduleKey: "customers",
-    subItems: [
-      { title: "客戶列表", url: "/admin/customers", icon: Users },
-    ]
-  },
-  { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
-
-  // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
-  { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
-  { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "owner_settlement" },
-
-  { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
-  { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
-  // AI 管家相關頁面已搬遷至總部後台（hq.lakeze.com）
-  // { title: "流量分析", url: "/admin/analytics", icon: TrendingUp },
-  { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },
-];
 
 export function AppSidebar() {
   const { open, setOpenMobile, isMobile } = useSidebar();
