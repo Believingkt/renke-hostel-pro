@@ -94,7 +94,13 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
           .filter((r: any) => r.accommodation_id === currentAccommodationId)
           .map((r: any) => r.role);
       }
-      const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin") || globalRoles.includes("super_admin");
+      // 舊帳號可能只有泛用 admin 角色，需與 hotel_admin 同等對待，
+      // 否則側邊欄看得到、進頁面卻被擋（權限不足）。
+      const isAdmin =
+        roles.includes("hotel_admin") ||
+        roles.includes("super_admin") ||
+        roles.includes("admin") ||
+        globalRoles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
       if (isAdmin) {
