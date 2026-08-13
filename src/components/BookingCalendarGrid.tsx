@@ -281,7 +281,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       const roomTypesRes = await runWithRetry(() =>
         supabase
           .from("room_types")
-          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, package_contents")
+          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids, package_contents")
           .eq("accommodation_id", accommodationId)
           .order("display_order")
       );
