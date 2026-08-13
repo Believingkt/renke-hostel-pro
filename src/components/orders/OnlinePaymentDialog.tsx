@@ -6,12 +6,52 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Copy, Check, CheckCircle2 } from "lucide-react";
+import { Link2, Copy, Check, CheckCircle2, Clock, RefreshCw, History as HistoryIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
+import { formatCountdown } from "@/hooks/use-pending-atm-orders";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+
+/** 付款連結有效期：3 天 */
+const LINK_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+interface LinkState {
+  payment_link_created_at: string | null;
+  atm_vacc_no: string | null;
+  atm_vacc_bank_code: string | null;
+  atm_expire_at: string | null;
+}
+
+interface PaymentLinkLog {
+  id: string;
+  created_at: string;
+  amount: number;
+  method: string;
+  acc_param: string | null;
+  action: string;
+  performed_by_email: string | null;
+  note: string | null;
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  copy: "複製連結",
+  regenerate: "重新產生連結",
+  regenerate_atm_void: "作廢帳號並重產",
+};
 
 interface OnlinePaymentDialogProps {
+
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: {
@@ -46,6 +86,12 @@ export function OnlinePaymentDialog({
   const [copied, setCopied] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [methodOverride, setMethodOverride] = useState<'card' | 'atm' | null>(null);
+  const [linkState, setLinkState] = useState<LinkState | null>(null);
+  const [logs, setLogs] = useState<PaymentLinkLog[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+  const [regenerating, setRegenerating] = useState(false);
+  const [confirmAtmVoid, setConfirmAtmVoid] = useState(false);
+
 
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
@@ -110,8 +156,84 @@ export function OnlinePaymentDialog({
       setCopied(false);
       setGeneratedLink('');
       setMethodOverride(null);
+      setLinkState(null);
+      setLogs([]);
+      setConfirmAtmVoid(false);
     }
   }, [open]);
+
+  // 讀取訂單目前的連結時間戳、ATM 虛擬帳號狀態與歷史紀錄
+  const refreshLinkState = async () => {
+    if (!order) return;
+    const { data } = await supabase
+      .from('orders')
+      .select('payment_link_created_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at')
+      .eq('id', order.id)
+      .maybeSingle();
+    if (data) setLinkState(data as LinkState);
+
+    const { data: logRows } = await supabase
+      .from('payment_link_logs')
+      .select('id, created_at, amount, method, acc_param, action, performed_by_email, note')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setLogs((logRows || []) as PaymentLinkLog[]);
+  };
+
+  useEffect(() => {
+    if (open && order) refreshLinkState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, order?.id]);
+
+  // 倒數計時器
+  useEffect(() => {
+    if (!open) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [open]);
+
+  const linkCreatedAt = linkState?.payment_link_created_at
+    ? new Date(linkState.payment_link_created_at)
+    : null;
+  const linkExpiresAt = linkCreatedAt ? new Date(linkCreatedAt.getTime() + LINK_TTL_MS) : null;
+  const linkExpired = !!linkExpiresAt && linkExpiresAt.getTime() <= now;
+  const atmActive =
+    !!linkState?.atm_vacc_no &&
+    !!linkState?.atm_expire_at &&
+    new Date(linkState.atm_expire_at).getTime() > now;
+  const unpaidOrder = (order?.paid_amount || 0) < (order?.final_price || 0);
+
+  const writeLog = async (action: string, note?: string) => {
+    if (!order || !generatedLink) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('payment_link_logs').insert({
+        order_id: order.id,
+        accommodation_id: order.accommodation_id || null,
+        order_number: order.order_number,
+        amount: paymentAmount,
+        method: isAtm ? 'atm' : 'card',
+        acc_param: order.accommodation_id || null,
+        link_url: generatedLink,
+        action,
+        performed_by: user.id,
+        performed_by_email: user.email ?? null,
+        note: note ?? null,
+      } as any);
+    } catch (err) {
+      console.error('Failed to write payment link log:', err);
+    }
+  };
+
+  const stampLink = async () => {
+    if (!order) return;
+    await supabase
+      .from('orders')
+      .update({ payment_link_created_at: new Date().toISOString() } as any)
+      .eq('id', order.id);
+  };
 
   const handleCopyLink = async () => {
     if (!generatedLink || !order) return;
@@ -138,14 +260,55 @@ export function OnlinePaymentDialog({
 
     // Save payment_link_created_at to the order (reset on every new link copy)
     try {
-      await supabase
-        .from('orders')
-        .update({ payment_link_created_at: new Date().toISOString() } as any)
-        .eq('id', order.id);
+      await stampLink();
+      await writeLog('copy');
+      await refreshLinkState();
     } catch (err) {
       console.error('Failed to save payment link timestamp:', err);
     }
   };
+
+  // 重新產生連結（重置 3 天效期）
+  const handleRegenerate = async (voidAtm: boolean) => {
+    if (!order) return;
+    setRegenerating(true);
+    try {
+      if (voidAtm) {
+        await supabase
+          .from('orders')
+          .update({
+            atm_vacc_no: null,
+            atm_vacc_bank_code: null,
+            atm_expire_at: null,
+            atm_rec_trade_id: null,
+          } as any)
+          .eq('id', order.id);
+      }
+      await stampLink();
+      await writeLog(voidAtm ? 'regenerate_atm_void' : 'regenerate', voidAtm ? '作廢原虛擬帳號並重新產生連結' : undefined);
+      await refreshLinkState();
+      toast({
+        title: '已重新產生付款連結',
+        description: voidAtm ? '原虛擬帳號已作廢，客人開啟連結後可取得新帳號' : '有效期限已重新計算為 3 天',
+      });
+      onPaymentSuccess();
+    } catch (err) {
+      console.error(err);
+      toast({ title: '重新產生失敗', description: String(err), variant: 'destructive' });
+    } finally {
+      setRegenerating(false);
+      setConfirmAtmVoid(false);
+    }
+  };
+
+  const onRegenerateClick = () => {
+    if (isAtm && atmActive && unpaidOrder) {
+      setConfirmAtmVoid(true);
+      return;
+    }
+    handleRegenerate(false);
+  };
+
 
   const content = (
     <div className="space-y-6 py-4">
@@ -306,8 +469,49 @@ export function OnlinePaymentDialog({
               />
               <p className="text-xs text-muted-foreground">
                 複製連結傳送給客人，客人開啟後即可{isAtm ? "取得 ATM 虛擬帳號完成轉帳" : "自行輸入信用卡完成付款"}。
-                <span className="text-warning font-medium">連結有效期限為 3 天。</span>
+                <span className="text-warning font-medium">連結有效期限為 3 天（自複製／重新產生起算）。</span>
               </p>
+
+              {/* 效期倒數 */}
+              {linkExpiresAt && (
+                <div
+                  className={`rounded-lg p-3 text-sm space-y-1 ${
+                    linkExpired ? "bg-destructive/10" : "bg-muted/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      連結到期時間
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {linkExpiresAt.toLocaleString("zh-TW", { hour12: false })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">剩餘時間</span>
+                    {linkExpired ? (
+                      <span className="font-semibold text-destructive">已過期</span>
+                    ) : (
+                      <span className="font-semibold text-primary tabular-nums">
+                        {formatCountdown(linkExpiresAt, now)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 重新產生連結 */}
+              <Button
+                type="button"
+                variant={linkExpired ? "default" : "outline"}
+                className="w-full"
+                disabled={regenerating}
+                onClick={onRegenerateClick}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? "animate-spin" : ""}`} />
+                {linkExpired ? "連結已過期，重新產生" : "重新產生連結（重置 3 天效期）"}
+              </Button>
             </div>
           )}
 
@@ -331,37 +535,105 @@ export function OnlinePaymentDialog({
               )}
             </Button>
           )}
+
+          {/* 連結操作紀錄 */}
+          {logs.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <HistoryIcon className="h-4 w-4" />
+                連結操作紀錄
+              </Label>
+              <div className="max-h-56 overflow-y-auto rounded-lg border divide-y">
+                {logs.map((log) => (
+                  <div key={log.id} className="p-2 text-xs space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">
+                        {ACTION_LABEL[log.action] || log.action}
+                        <span className="ml-2 text-muted-foreground">
+                          {log.method === "atm" ? "ATM" : "刷卡"}
+                        </span>
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                      <span>NT$ {Number(log.amount).toLocaleString()}</span>
+                      <span className="truncate">{log.performed_by_email || "—"}</span>
+                    </div>
+                    {log.acc_param && (
+                      <div className="text-muted-foreground font-mono truncate">acc={log.acc_param}</div>
+                    )}
+                    {log.note && <div className="text-muted-foreground">{log.note}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </>
       )}
     </div>
   );
 
+  const atmConfirm = (
+    <AlertDialog open={confirmAtmVoid} onOpenChange={setConfirmAtmVoid}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>已有尚未繳費的虛擬帳號</AlertDialogTitle>
+          <AlertDialogDescription>
+            此訂單目前已開立虛擬帳號 {linkState?.atm_vacc_no}
+            {linkState?.atm_vacc_bank_code ? `（銀行代碼 ${linkState.atm_vacc_bank_code}）` : ""}，
+            到期時間{" "}
+            {linkState?.atm_expire_at
+              ? new Date(linkState.atm_expire_at).toLocaleString("zh-TW", { hour12: false })
+              : "—"}
+            。是否要作廢原帳號並重新產生連結？客人須改用新帳號轉帳，請務必通知客人。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={regenerating}>保留原帳號</AlertDialogCancel>
+          <AlertDialogAction disabled={regenerating} onClick={() => handleRegenerate(true)}>
+            作廢並重新產生
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh]">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>線上收款</DrawerTitle>
-            <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-[env(safe-area-inset-bottom)] overflow-y-auto">
-            <div className="pb-6">{content}</div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <>
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[92vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>線上收款</DrawerTitle>
+              <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-[env(safe-area-inset-bottom)] overflow-y-auto">
+              <div className="pb-6">{content}</div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+        {atmConfirm}
+      </>
     );
   }
 
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>線上收款</DialogTitle>
-          <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
-        </DialogHeader>
-        {content}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>線上收款</DialogTitle>
+            <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+      {atmConfirm}
+    </>
+
   );
 }

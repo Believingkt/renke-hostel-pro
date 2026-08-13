@@ -8487,6 +8487,62 @@ export type Database = {
           },
         ]
       }
+      payment_link_logs: {
+        Row: {
+          acc_param: string | null
+          accommodation_id: string | null
+          action: string
+          amount: number
+          created_at: string
+          id: string
+          link_url: string
+          method: string
+          note: string | null
+          order_id: string
+          order_number: string
+          performed_by: string | null
+          performed_by_email: string | null
+        }
+        Insert: {
+          acc_param?: string | null
+          accommodation_id?: string | null
+          action?: string
+          amount: number
+          created_at?: string
+          id?: string
+          link_url: string
+          method?: string
+          note?: string | null
+          order_id: string
+          order_number: string
+          performed_by?: string | null
+          performed_by_email?: string | null
+        }
+        Update: {
+          acc_param?: string | null
+          accommodation_id?: string | null
+          action?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          link_url?: string
+          method?: string
+          note?: string | null
+          order_id?: string
+          order_number?: string
+          performed_by?: string | null
+          performed_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_link_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_status_history: {
         Row: {
           changed_by: string | null
