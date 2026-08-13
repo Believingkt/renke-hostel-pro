@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
+import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
@@ -413,29 +414,27 @@ export default function GroupBuyCampaign() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="gb-checkin">入住日</Label>
-          <Input
+          <GroupBuyDateField
             id="gb-checkin"
-            type="date"
             value={checkIn}
-            min={campaign.stay_start_date ?? undefined}
-            max={campaign.stay_end_date ?? undefined}
-            aria-invalid={!!stayErrors.checkIn}
-            className={stayErrors.checkIn ? "border-destructive" : undefined}
-            onChange={(e) => setCheckIn(e.target.value)}
+            min={campaign.stay_start_date}
+            max={campaign.stay_end_date}
+            placeholder="選擇入住日"
+            invalid={!!stayErrors.checkIn}
+            onChange={setCheckIn}
           />
           {stayErrors.checkIn && <p className="mt-1 text-xs text-destructive">{stayErrors.checkIn}</p>}
         </div>
         <div>
           <Label htmlFor="gb-checkout">退房日</Label>
-          <Input
+          <GroupBuyDateField
             id="gb-checkout"
-            type="date"
             value={checkOut}
-            min={checkIn || campaign.stay_start_date || undefined}
-            max={campaign.stay_end_date ?? undefined}
-            aria-invalid={!!stayErrors.checkOut}
-            className={stayErrors.checkOut ? "border-destructive" : undefined}
-            onChange={(e) => setCheckOut(e.target.value)}
+            min={checkIn || campaign.stay_start_date}
+            max={campaign.stay_end_date}
+            placeholder="選擇退房日"
+            invalid={!!stayErrors.checkOut}
+            onChange={setCheckOut}
           />
           {stayErrors.checkOut && <p className="mt-1 text-xs text-destructive">{stayErrors.checkOut}</p>}
         </div>
@@ -470,11 +469,11 @@ export default function GroupBuyCampaign() {
           <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <Label htmlFor="gb-email">Email（接收匯款資訊）</Label>
+          <Label htmlFor="gb-email">Email（接收訂單確認及匯款資訊）</Label>
           <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
         </div>
         <div className="col-span-2">
-          <Label htmlFor="gb-note">備註</Label>
+          <Label htmlFor="gb-note">備註（民宿將盡力配合，但無法保證能滿足所有需求）</Label>
           <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
         </div>
       </div>
