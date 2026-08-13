@@ -724,8 +724,29 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       meal_plan_total: order.meal_plan_total || 0,
       // Exclude reserved types (pet/meal/bbq) — those are handled by their dedicated UI sections,
       // otherwise legacy entries would be double-counted (invisible in UI but added to total).
-      custom_addon_details: ((order.custom_addon_details as CustomAddonDetail[]) || [])
-        .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq'),
+      // 同時把改名前的舊快照（例如「加床服務」）對應回現行設定並合併數量，避免出現兩筆重複加購。
+      custom_addon_details: (() => {
+        const raw = ((order.custom_addon_details as CustomAddonDetail[]) || [])
+          .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq');
+        const merged: CustomAddonDetail[] = [];
+        for (const d of raw) {
+          const matched = resolveAddonSetting(d, addonSettings);
+          const canonical: CustomAddonDetail = matched
+            ? { ...d, addon_id: matched.id, addon_type: matched.addon_type }
+            : d;
+          const hit = merged.find(m =>
+            (canonical.addon_id && m.addon_id === canonical.addon_id) || m.addon_type === canonical.addon_type,
+          );
+          if (hit) {
+            hit.count += canonical.count;
+            hit.total += canonical.total;
+          } else {
+            merged.push({ ...canonical });
+          }
+        }
+        return merged;
+      })(),
+
       addon_total: savedAddonTotal,
       addon_note: extractAddonNote(order.notes),
       extra_addon_amount: extractExtraAddonAmount(order.notes),
