@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
+import { resolveAddonId } from "@/lib/addonAliases";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
@@ -290,29 +291,25 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           (sum: number, d: any) => sum + (Number(d?.total ?? 0) || 0),
           0,
         );
-        // Fetch addon settings to match by addon_id first (survives renames), then by addon_type
+        // Fetch addon settings to match by addon_id first (survives renames), then by name/alias
         const { data: addons } = await supabase
           .from("addon_settings")
           .select("id, addon_type")
           .eq("accommodation_id", currentAccommodationId || "");
 
         if (addons) {
-          const idSet = new Set(addons.map(a => a.id));
-          const addonMap = new Map(addons.map(a => [a.addon_type, a.id]));
           // Merge duplicates that point to the same addon (e.g. legacy name + new name)
           const merged = new Map<string, number>();
           (data.custom_addon_details as any[])
             .filter((d: any) => d && d.count > 0)
             .forEach((d: any) => {
-              const id =
-                (d.addon_id && idSet.has(d.addon_id) ? d.addon_id : "") ||
-                addonMap.get(d.addon_type) ||
-                "";
+              const id = resolveAddonId(d, addons);
               if (!id) return;
               merged.set(id, (merged.get(id) || 0) + Number(d.count || 0));
             });
           selectedAddons = Array.from(merged, ([addon_id, quantity]) => ({ addon_id, quantity }));
         }
+
 
       } else if (order.meal_plan_details && Array.isArray(order.meal_plan_details)) {
         // Fallback to meal_plan_details for legacy data
