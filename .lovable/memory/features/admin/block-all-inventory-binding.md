@@ -19,3 +19,9 @@ type: feature
 - RPC `get_adjusted_room_inventory_batch`：在 whole-building 檢查後、既有互斥分支前判定。
 - `supabase/functions/_shared/availability.ts`（all-availability / accommodation-api）。
 - 設定 UI：`src/components/RoomTypeForm.tsx` 底部「全區／全棟綁定」區塊。
+
+## 一致性稽核（2026-08-13）
+- 所有房況查詢一律以 RPC `get_adjusted_room_inventory_batch` 為單一真實來源（已扣既有訂單＋整棟保留＋包棟互斥＋全區綁定）。
+- 已修正：`BookingCalendarGrid.tsx`（PMS 預訂日曆）原本自行推導互斥，未含全區綁定 → 補上。
+- 已修正：`points-booking-api`（點數訂房 API）原本直接讀 `room_inventory_pricing`（未扣訂單）且用舊 `check_exclusive_room_booking` → 改走 batch RPC，查詢與建單雙段驗證。
+- 舊 DB 函式 `get_adjusted_room_inventory`（單筆版）已無任何呼叫端，勿再使用；`check_exclusive_room_booking` 亦不含全區綁定規則。

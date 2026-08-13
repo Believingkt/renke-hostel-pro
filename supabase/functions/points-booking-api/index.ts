@@ -361,28 +361,27 @@ async function handleCheckAvailability(supabase: any, body: any) {
       inventoryMap[inv.date] = inv;
     }
 
-    let hasExclusiveConflict = false;
-    if (rt.is_exclusive_package || rt.is_bound_to_exclusive) {
-      for (const date of dates) {
-        const { data: exclusiveCheck } = await supabase
-          .rpc("check_exclusive_room_booking", {
-            p_accommodation_id: accommodation_id,
-            p_date: date,
-          });
-        if (exclusiveCheck?.[0]?.has_booking && exclusiveCheck[0].booked_room_type_id !== rt.id) {
-          hasExclusiveConflict = true;
-          break;
-        }
-      }
+    // 一律走 get_adjusted_room_inventory_batch：已扣既有訂單，並涵蓋整棟保留、
+    // 包棟互斥、綁定房型與「全區／全棟綁定」等所有鎖房規則（避免超賣）。
+    const { data: adjRows } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+      p_room_type_id: rt.id,
+      p_dates: dates,
+      p_accommodation_id: accommodation_id,
+    });
+    const adjMap: Record<string, { available_rooms: number; is_blocked: boolean; blocked_by_room_name: string | null }> = {};
+    for (const r of (adjRows || []) as any[]) {
+      adjMap[String(r.date_value).split("T")[0]] = r;
     }
 
-    if (hasExclusiveConflict) {
+    const blocked = dates.map((d) => adjMap[d]).find((r) => r?.is_blocked === true);
+    if (blocked) {
       availability.push({
         room_type_id: rt.id,
         room_name: rt.name,
         capacity: rt.capacity,
         available: false,
         reason: "exclusive_room_conflict",
+        blocked_by: blocked.blocked_by_room_name ?? null,
         daily_prices: [],
       });
       continue;
@@ -399,11 +398,16 @@ async function handleCheckAvailability(supabase: any, body: any) {
         isAvailable = false;
         break;
       }
-      if (inv.is_available === false || inv.available_rooms <= 0) {
+      if (inv.is_available === false) {
         isAvailable = false;
         break;
       }
-      minAvailableRooms = Math.min(minAvailableRooms, inv.available_rooms);
+      const adjusted = adjMap[date]?.available_rooms ?? 0;
+      if (adjusted <= 0) {
+        isAvailable = false;
+        break;
+      }
+      minAvailableRooms = Math.min(minAvailableRooms, adjusted);
       const dateObj = new Date(date + "T00:00:00");
       const dayType = getDayTypeForDate(dateObj, date, holidayMap);
       dailyPrices.push({
@@ -535,8 +539,30 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   }
 
   for (const inv of inventory) {
-    if (inv.is_available === false || inv.available_rooms <= 0) {
+    if (inv.is_available === false) {
       return jsonResponse({ error: `No availability on ${inv.date}` }, 400);
+    }
+  }
+
+  // 以 RPC 為準做最終庫存/鎖房檢查（已扣既有訂單，含互斥與全區綁定規則）
+  const { data: adjRows, error: adjErr } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+    p_room_type_id: room_type_id,
+    p_dates: dates,
+    p_accommodation_id: selectedTemplate.accommodation_id,
+  });
+  if (adjErr) {
+    return jsonResponse({ error: "Availability check failed" }, 500);
+  }
+  for (const r of (adjRows || []) as any[]) {
+    const dateStr = String(r.date_value).split("T")[0];
+    if (r.is_blocked === true) {
+      return jsonResponse(
+        { error: `Room is blocked on ${dateStr}`, blocked_by: r.blocked_by_room_name ?? null },
+        409,
+      );
+    }
+    if ((r.available_rooms ?? 0) <= 0) {
+      return jsonResponse({ error: `No availability on ${dateStr}` }, 409);
     }
   }
 
