@@ -483,7 +483,7 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/group-buy" element={
-                      <RequireModule module="orders">
+                      <RequireModule module="group_buy">
                         <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminGroupBuy /></Suspense>
                       </RequireModule>
                     } />
@@ -637,7 +637,7 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/payment-audit" element={
-                      <RequireModule module="owner_settlement">
+                      <RequireModule module="payment_audit">
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><PaymentAudit /></Suspense>
                       </RequireModule>
                     } />
