@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
       // Fetch room types for this accommodation (optionally filtered)
       let rtQuery = supabase
         .from("room_types")
-        .select("id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
+        .select("id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
         .eq("accommodation_id", accommodationId)
         .order("display_order", { ascending: true, nullsFirst: false });
       if (rtParam) {
