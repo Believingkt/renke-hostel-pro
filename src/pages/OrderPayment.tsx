@@ -577,7 +577,7 @@ export default function OrderPayment() {
   }
 
   // Auth gate: require FB/LINE login before showing the payment form
-  if (!authChecked) {
+  if (!skipAuthGate && !authChecked) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -585,7 +585,7 @@ export default function OrderPayment() {
     );
   }
 
-  if (!isAuthed) {
+  if (!skipAuthGate && !isAuthed) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
