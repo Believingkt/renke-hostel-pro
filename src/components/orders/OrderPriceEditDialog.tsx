@@ -178,7 +178,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       })();
 
     }
-  }, [open, order]);
+  }, [open, order, currentAccommodationId]);
 
 
   const updateAddonQty = (addonType: string, delta: number, max: number, min = 0) => {
