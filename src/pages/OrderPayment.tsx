@@ -64,6 +64,7 @@ export default function OrderPayment() {
   const [emailInput, setEmailInput] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
   const [atmStep, setAtmStep] = useState<1 | 2>(1);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   const emailError =
