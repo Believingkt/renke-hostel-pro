@@ -457,8 +457,49 @@ export function OnlinePaymentDialog({
               />
               <p className="text-xs text-muted-foreground">
                 複製連結傳送給客人，客人開啟後即可{isAtm ? "取得 ATM 虛擬帳號完成轉帳" : "自行輸入信用卡完成付款"}。
-                <span className="text-warning font-medium">連結有效期限為 3 天。</span>
+                <span className="text-warning font-medium">連結有效期限為 3 天（自複製／重新產生起算）。</span>
               </p>
+
+              {/* 效期倒數 */}
+              {linkExpiresAt && (
+                <div
+                  className={`rounded-lg p-3 text-sm space-y-1 ${
+                    linkExpired ? "bg-destructive/10" : "bg-muted/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      連結到期時間
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {linkExpiresAt.toLocaleString("zh-TW", { hour12: false })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">剩餘時間</span>
+                    {linkExpired ? (
+                      <span className="font-semibold text-destructive">已過期</span>
+                    ) : (
+                      <span className="font-semibold text-primary tabular-nums">
+                        {formatCountdown(linkExpiresAt, now)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 重新產生連結 */}
+              <Button
+                type="button"
+                variant={linkExpired ? "default" : "outline"}
+                className="w-full"
+                disabled={regenerating}
+                onClick={onRegenerateClick}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? "animate-spin" : ""}`} />
+                {linkExpired ? "連結已過期，重新產生" : "重新產生連結（重置 3 天效期）"}
+              </Button>
             </div>
           )}
 
@@ -482,6 +523,42 @@ export function OnlinePaymentDialog({
               )}
             </Button>
           )}
+
+          {/* 連結操作紀錄 */}
+          {logs.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                連結操作紀錄
+              </Label>
+              <div className="max-h-56 overflow-y-auto rounded-lg border divide-y">
+                {logs.map((log) => (
+                  <div key={log.id} className="p-2 text-xs space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">
+                        {ACTION_LABEL[log.action] || log.action}
+                        <span className="ml-2 text-muted-foreground">
+                          {log.method === "atm" ? "ATM" : "刷卡"}
+                        </span>
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                      <span>NT$ {Number(log.amount).toLocaleString()}</span>
+                      <span className="truncate">{log.performed_by_email || "—"}</span>
+                    </div>
+                    {log.acc_param && (
+                      <div className="text-muted-foreground font-mono truncate">acc={log.acc_param}</div>
+                    )}
+                    {log.note && <div className="text-muted-foreground">{log.note}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </>
       )}
     </div>
