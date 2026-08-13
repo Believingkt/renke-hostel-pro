@@ -344,7 +344,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         bound_exclusive_ids: (!formData.is_exclusive_package && formData.is_bound_to_exclusive && !formData.bind_all_exclusives)
           ? formData.bound_exclusive_ids
           : [],
+        // 全區／全棟綁定（空陣列＝整館所有房型）
+        blocks_all_inventory: formData.blocks_all_inventory,
+        blocks_all_target_ids: (formData.blocks_all_inventory && !formData.block_all_targets_all)
+          ? formData.blocks_all_target_ids
+          : [],
       };
+
 
       let savedRoomId = roomType?.id;
 
