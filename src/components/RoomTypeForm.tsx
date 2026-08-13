@@ -103,6 +103,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [exclusivePackages, setExclusivePackages] = useState<Array<{ id: string; name: string }>>([]);
+  const [otherRoomTypes, setOtherRoomTypes] = useState<Array<{ id: string; name: string }>>([]);
+
 
   // 記住「進入編輯時」的房間數量，避免儲存時 roomType 已被外層 state 更新而比對不到差異
   const originalRoomCountRef = useRef<number | null>(roomType?.room_count ?? null);
