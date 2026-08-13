@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
+import { resolveAddonId } from "@/lib/addonAliases";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 
