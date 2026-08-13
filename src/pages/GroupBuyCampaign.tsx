@@ -413,29 +413,27 @@ export default function GroupBuyCampaign() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="gb-checkin">入住日</Label>
-          <Input
+          <GroupBuyDateField
             id="gb-checkin"
-            type="date"
             value={checkIn}
-            min={campaign.stay_start_date ?? undefined}
-            max={campaign.stay_end_date ?? undefined}
-            aria-invalid={!!stayErrors.checkIn}
-            className={stayErrors.checkIn ? "border-destructive" : undefined}
-            onChange={(e) => setCheckIn(e.target.value)}
+            min={campaign.stay_start_date}
+            max={campaign.stay_end_date}
+            placeholder="選擇入住日"
+            invalid={!!stayErrors.checkIn}
+            onChange={setCheckIn}
           />
           {stayErrors.checkIn && <p className="mt-1 text-xs text-destructive">{stayErrors.checkIn}</p>}
         </div>
         <div>
           <Label htmlFor="gb-checkout">退房日</Label>
-          <Input
+          <GroupBuyDateField
             id="gb-checkout"
-            type="date"
             value={checkOut}
-            min={checkIn || campaign.stay_start_date || undefined}
-            max={campaign.stay_end_date ?? undefined}
-            aria-invalid={!!stayErrors.checkOut}
-            className={stayErrors.checkOut ? "border-destructive" : undefined}
-            onChange={(e) => setCheckOut(e.target.value)}
+            min={checkIn || campaign.stay_start_date}
+            max={campaign.stay_end_date}
+            placeholder="選擇退房日"
+            invalid={!!stayErrors.checkOut}
+            onChange={setCheckOut}
           />
           {stayErrors.checkOut && <p className="mt-1 text-xs text-destructive">{stayErrors.checkOut}</p>}
         </div>
