@@ -110,8 +110,84 @@ export function OnlinePaymentDialog({
       setCopied(false);
       setGeneratedLink('');
       setMethodOverride(null);
+      setLinkState(null);
+      setLogs([]);
+      setConfirmAtmVoid(false);
     }
   }, [open]);
+
+  // 讀取訂單目前的連結時間戳、ATM 虛擬帳號狀態與歷史紀錄
+  const refreshLinkState = async () => {
+    if (!order) return;
+    const { data } = await supabase
+      .from('orders')
+      .select('payment_link_created_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at')
+      .eq('id', order.id)
+      .maybeSingle();
+    if (data) setLinkState(data as LinkState);
+
+    const { data: logRows } = await supabase
+      .from('payment_link_logs')
+      .select('id, created_at, amount, method, acc_param, action, performed_by_email, note')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setLogs((logRows || []) as PaymentLinkLog[]);
+  };
+
+  useEffect(() => {
+    if (open && order) refreshLinkState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, order?.id]);
+
+  // 倒數計時器
+  useEffect(() => {
+    if (!open) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [open]);
+
+  const linkCreatedAt = linkState?.payment_link_created_at
+    ? new Date(linkState.payment_link_created_at)
+    : null;
+  const linkExpiresAt = linkCreatedAt ? new Date(linkCreatedAt.getTime() + LINK_TTL_MS) : null;
+  const linkExpired = !!linkExpiresAt && linkExpiresAt.getTime() <= now;
+  const atmActive =
+    !!linkState?.atm_vacc_no &&
+    !!linkState?.atm_expire_at &&
+    new Date(linkState.atm_expire_at).getTime() > now;
+  const unpaidOrder = (order?.paid_amount || 0) < (order?.final_price || 0);
+
+  const writeLog = async (action: string, note?: string) => {
+    if (!order || !generatedLink) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('payment_link_logs').insert({
+        order_id: order.id,
+        accommodation_id: order.accommodation_id || null,
+        order_number: order.order_number,
+        amount: paymentAmount,
+        method: isAtm ? 'atm' : 'card',
+        acc_param: order.accommodation_id || null,
+        link_url: generatedLink,
+        action,
+        performed_by: user.id,
+        performed_by_email: user.email ?? null,
+        note: note ?? null,
+      } as any);
+    } catch (err) {
+      console.error('Failed to write payment link log:', err);
+    }
+  };
+
+  const stampLink = async () => {
+    if (!order) return;
+    await supabase
+      .from('orders')
+      .update({ payment_link_created_at: new Date().toISOString() } as any)
+      .eq('id', order.id);
+  };
 
   const handleCopyLink = async () => {
     if (!generatedLink || !order) return;
@@ -138,14 +214,55 @@ export function OnlinePaymentDialog({
 
     // Save payment_link_created_at to the order (reset on every new link copy)
     try {
-      await supabase
-        .from('orders')
-        .update({ payment_link_created_at: new Date().toISOString() } as any)
-        .eq('id', order.id);
+      await stampLink();
+      await writeLog('copy');
+      await refreshLinkState();
     } catch (err) {
       console.error('Failed to save payment link timestamp:', err);
     }
   };
+
+  // 重新產生連結（重置 3 天效期）
+  const handleRegenerate = async (voidAtm: boolean) => {
+    if (!order) return;
+    setRegenerating(true);
+    try {
+      if (voidAtm) {
+        await supabase
+          .from('orders')
+          .update({
+            atm_vacc_no: null,
+            atm_vacc_bank_code: null,
+            atm_expire_at: null,
+            atm_rec_trade_id: null,
+          } as any)
+          .eq('id', order.id);
+      }
+      await stampLink();
+      await writeLog(voidAtm ? 'regenerate_atm_void' : 'regenerate', voidAtm ? '作廢原虛擬帳號並重新產生連結' : undefined);
+      await refreshLinkState();
+      toast({
+        title: '已重新產生付款連結',
+        description: voidAtm ? '原虛擬帳號已作廢，客人開啟連結後可取得新帳號' : '有效期限已重新計算為 3 天',
+      });
+      onPaymentSuccess();
+    } catch (err) {
+      console.error(err);
+      toast({ title: '重新產生失敗', description: String(err), variant: 'destructive' });
+    } finally {
+      setRegenerating(false);
+      setConfirmAtmVoid(false);
+    }
+  };
+
+  const onRegenerateClick = () => {
+    if (isAtm && atmActive && unpaidOrder) {
+      setConfirmAtmVoid(true);
+      return;
+    }
+    handleRegenerate(false);
+  };
+
 
   const content = (
     <div className="space-y-6 py-4">
