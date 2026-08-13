@@ -70,7 +70,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
       { title: "客服待辦", url: "/admin/manual-review", icon: Headset },
     ],
   },
-  { title: "網紅團購", url: "/admin/group-buy", icon: Megaphone, moduleKey: "orders" },
+  { title: "網紅團購", url: "/admin/group-buy", icon: Megaphone, moduleKey: "group_buy" },
   { title: "KOL 互惠額度", url: "/admin/kol-reciprocal-quota", icon: Sparkles, moduleKey: "kol_quota" },
   {
     title: "官網內容",
@@ -121,7 +121,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
-  { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "owner_settlement" },
+  { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "payment_audit" },
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
   // AI 管家相關頁面已搬遷至總部後台（hq.lakeze.com）
