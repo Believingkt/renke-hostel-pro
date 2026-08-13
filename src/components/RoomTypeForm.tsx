@@ -117,7 +117,11 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     is_bound_to_exclusive: false,
     bound_exclusive_ids: [] as string[],
     bind_all_exclusives: true, // 預設綁定全部
+    blocks_all_inventory: false,
+    blocks_all_target_ids: [] as string[],
+    block_all_targets_all: true, // 空陣列 = 整館所有房型
   };
+
 
   const {
     formData,
