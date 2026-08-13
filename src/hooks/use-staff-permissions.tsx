@@ -143,13 +143,26 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
     if (isAdmin) return "editable";
     if (!hasAccommodationRole) return "hidden";
     if (!isStaff) return "hidden";
-    return permissions[moduleKey] ?? DEFAULT_STAFF_PERMISSIONS[moduleKey] ?? "hidden";
+    // 舊 key 沿用改版後的對應模組，避免升級後既有設定失效
+    const key = LEGACY_MODULE_ALIASES[moduleKey] ?? moduleKey;
+    return (
+      permissions[key] ??
+      permissions[moduleKey] ??
+      DEFAULT_STAFF_PERMISSIONS[key] ??
+      DEFAULT_STAFF_PERMISSIONS[moduleKey] ??
+      "hidden"
+    );
   };
 
   return {
     permissions,
     isStaff,
-    isLoading: Boolean(currentAccommodationId) && (!authResolved || isAccommodationLoading || (Boolean(userId) && isLoading)),
+    // 館別尚未解析出來時仍視為載入中，避免誤判成「無權限」
+    isLoading:
+      !authResolved ||
+      isAccommodationLoading ||
+      !currentAccommodationId ||
+      (Boolean(userId) && Boolean(currentAccommodationId) && isLoading),
     getLevel,
     canView: (k) => getLevel(k) !== "hidden",
     canEdit: (k) => getLevel(k) === "editable",
