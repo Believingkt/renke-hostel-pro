@@ -10,11 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
-import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
-import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -49,6 +48,19 @@ interface CampaignPackage {
   package_id: string | null;
   sort_order: number;
 }
+
+const fmtWindow = (iso?: string | null) =>
+  iso && !isNaN(new Date(iso).getTime())
+    ? new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "Asia/Taipei",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(iso))
+    : "不限";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
