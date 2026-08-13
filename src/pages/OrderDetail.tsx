@@ -3730,7 +3730,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               {(() => {
                 const genericAddons = addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq');
                 return genericAddons.map((addon, idx) => {
-                  const existing = editForm.custom_addon_details.find(d => d.addon_type === addon.addon_type);
+                  const matchesAddon = (d: CustomAddonDetail) =>
+                    d.addon_id ? d.addon_id === addon.id : d.addon_type === addon.addon_type;
+                  const existing = editForm.custom_addon_details.find(matchesAddon);
+
                   const count = existing?.count || 0;
                   const total = existing?.total || 0;
                   return (
