@@ -29,11 +29,15 @@ export function AppSidebar() {
   const { open, setOpenMobile, isMobile } = useSidebar();
   const location = useLocation();
   const { withPrefix, prefix } = useAliasPrefix();
-  const { canView, isStaff } = useStaffPermissions();
+  const { canView, isStaff, isLoading } = useStaffPermissions();
 
-  const visibleMenuItems = menuItems.filter(
-    (item) => !isStaff || !item.moduleKey || canView(item.moduleKey)
-  );
+  // 權限尚未載入完成前不渲染選單，避免先閃出不可見的分頁再消失
+  const visibleMenuItems =
+    isLoading || !isStaff
+      ? isLoading
+        ? []
+        : menuItems
+      : menuItems.filter((item) => !item.moduleKey || canView(item.moduleKey));
 
   const handleLinkClick = () => {
     if (isMobile) {
