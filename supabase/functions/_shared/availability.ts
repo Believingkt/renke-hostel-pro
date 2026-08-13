@@ -21,7 +21,12 @@ export interface RoomType {
   is_exclusive_package: boolean | null;
   is_bound_to_exclusive: boolean | null;
   bound_exclusive_ids: string[] | null;
+  /** 全區／全棟綁定：被訂走當天鎖定範圍內所有房型（含獨立庫存） */
+  blocks_all_inventory?: boolean | null;
+  /** 鎖定範圍；空／null = 整館所有房型 */
+  blocks_all_target_ids?: string[] | null;
 }
+
 export interface InvRow {
   room_type_id: string;
   date: string;
