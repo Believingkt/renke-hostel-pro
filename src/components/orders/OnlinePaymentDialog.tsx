@@ -46,6 +46,12 @@ export function OnlinePaymentDialog({
   const [copied, setCopied] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [methodOverride, setMethodOverride] = useState<'card' | 'atm' | null>(null);
+  const [linkState, setLinkState] = useState<LinkState | null>(null);
+  const [logs, setLogs] = useState<PaymentLinkLog[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+  const [regenerating, setRegenerating] = useState(false);
+  const [confirmAtmVoid, setConfirmAtmVoid] = useState(false);
+
 
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
