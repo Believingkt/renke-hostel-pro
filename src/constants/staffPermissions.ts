@@ -1,8 +1,10 @@
 /**
  * Staff 模組權限常數
- * - module key 對應 admin sidebar 的主項目
- * - 預設值需與 DB 函式 get_staff_module_permission 同步
+ * - 模組清單直接由左側選單設定（src/config/adminMenu.ts）推導，新增分頁會自動同步。
+ * - 未在 DEFAULT_STAFF_PERMISSIONS_OVERRIDES 指定者，一律預設「不可見」。
+ * - super_admin / hotel_admin 不受此設定限制。
  */
+import { deriveModuleDefs } from "@/config/adminMenu";
 
 export type ModulePermissionLevel = "hidden" | "readonly" | "editable";
 
@@ -11,41 +13,29 @@ export interface ModuleDefinition {
   label: string;
 }
 
-export const STAFF_MODULES: ModuleDefinition[] = [
-  { key: "analytics", label: "營運分析" },
-  { key: "reception", label: "櫃檯接待" },
-  { key: "orders", label: "訂單資訊" },
-  { key: "kol_quota", label: "KOL 互惠額度" },
-  { key: "website_content", label: "官網內容" },
-  { key: "pricing", label: "房型設施" },
-  { key: "room_price", label: "房價庫存" },
-  { key: "customers", label: "顧客資料" },
-  { key: "discount_codes", label: "網紅導購" },
-  { key: "settlement", label: "請款管理" },
-  { key: "owner_settlement", label: "業主月結" },
-  { key: "addon_center", label: "購物商品" },
-  { key: "channel_manager", label: "通路管理" },
-  { key: "ai_training", label: "AI 管家" },
-  { key: "accounts", label: "帳號管理" },
-];
+export const STAFF_MODULES: ModuleDefinition[] = deriveModuleDefs();
 
-export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = {
+/** 僅列出需要「非不可見」的預設值；其餘模組（含未來新增）預設 hidden */
+const DEFAULT_STAFF_PERMISSIONS_OVERRIDES: Record<string, ModulePermissionLevel> = {
   orders: "editable",
-  kol_quota: "hidden",
   reception: "editable",
   room_price: "editable",
   customers: "editable",
   analytics: "readonly",
   discount_codes: "readonly",
   settlement: "readonly",
-  owner_settlement: "hidden",
   addon_center: "editable",
-  website_content: "hidden",
-  pricing: "hidden",
-  channel_manager: "hidden",
-  ai_training: "hidden",
-  accounts: "hidden",
 };
+
+export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> =
+  STAFF_MODULES.reduce(
+    (acc, m) => {
+      acc[m.key] = DEFAULT_STAFF_PERMISSIONS_OVERRIDES[m.key] ?? "hidden";
+      return acc;
+    },
+    { ...DEFAULT_STAFF_PERMISSIONS_OVERRIDES } as Record<string, ModulePermissionLevel>,
+  );
+
 
 export const PERMISSION_LEVEL_LABEL: Record<ModulePermissionLevel, string> = {
   hidden: "不可見",
