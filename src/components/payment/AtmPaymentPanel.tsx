@@ -88,6 +88,18 @@ export function AtmPaymentPanel({
   const [errorDetail, setErrorDetail] = useState<{ title: string; suggestion: string; canRetrySamePrime: boolean } | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
 
+  // 預先載入 SDK（不等 config 回來），縮短串行等待
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (TP()?.virtualAccount?.getPrime) return;
+    if (document.querySelector('script[data-tp-sdk="atm"]')) return;
+    const s = document.createElement("script");
+    s.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.19.2";
+    s.async = true;
+    s.dataset.tpSdk = "atm";
+    document.body.appendChild(s);
+  }, []);
+
   // 載入 SDK
   useEffect(() => {
     if (!config) return;
@@ -114,6 +126,7 @@ export function AtmPaymentPanel({
     };
     ensure();
   }, [config]);
+
 
   // 已有虛擬帳號 → 不需檢查 ATM getPrime
   useEffect(() => {
