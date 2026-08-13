@@ -66,6 +66,12 @@ export default function OrderPayment() {
   
   const [emailConfirmed, setEmailConfirmed] = useState(false);
 
+  // 每一個付款連結都必須由訪客明確確認 Email，不能沿用上一筆連結的畫面狀態。
+  useEffect(() => {
+    setEmailConfirmed(false);
+    setEmailTouched(false);
+  }, [orderNumber, amount, accommodationId, requestedMethod]);
+
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   const emailError =
     emailTouched && !isValidEmail(emailInput) ? "請輸入有效的 Email" : null;
@@ -290,8 +296,6 @@ export default function OrderPayment() {
           isAtm,
         });
         if (data.guest_email) setEmailInput((prev) => prev || data.guest_email);
-        // 已有有效虛擬帳號且訂單已有 Email：直接顯示帳號，不再要求重填
-        if (atmActive && data.guest_email) setEmailConfirmed(true);
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
