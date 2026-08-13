@@ -15,6 +15,14 @@ export interface ModuleDefinition {
 
 export const STAFF_MODULES: ModuleDefinition[] = deriveModuleDefs();
 
+/**
+ * 已淘汰／被拆分的舊模組 key → 目前對應的模組 key。
+ * 讓升級前既有帳號的設定不會因為改名或拆分而失效。
+ */
+export const LEGACY_MODULE_ALIASES: Record<string, string> = {
+  settlement: "owner_settlement",
+};
+
 /** 僅列出需要「非不可見」的預設值；其餘模組（含未來新增）預設 hidden */
 const DEFAULT_STAFF_PERMISSIONS_OVERRIDES: Record<string, ModulePermissionLevel> = {
   orders: "editable",
@@ -23,7 +31,6 @@ const DEFAULT_STAFF_PERMISSIONS_OVERRIDES: Record<string, ModulePermissionLevel>
   customers: "editable",
   analytics: "readonly",
   discount_codes: "readonly",
-  settlement: "readonly",
   addon_center: "editable",
 };
 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import {
   DEFAULT_STAFF_PERMISSIONS,
+  LEGACY_MODULE_ALIASES,
   ModulePermissionLevel,
 } from "@/constants/staffPermissions";
 
@@ -94,7 +95,13 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
           .filter((r: any) => r.accommodation_id === currentAccommodationId)
           .map((r: any) => r.role);
       }
-      const isAdmin = roles.includes("hotel_admin") || roles.includes("super_admin") || globalRoles.includes("super_admin");
+      // 舊帳號可能只有泛用 admin 角色，需與 hotel_admin 同等對待，
+      // 否則側邊欄看得到、進頁面卻被擋（權限不足）。
+      const isAdmin =
+        roles.includes("hotel_admin") ||
+        roles.includes("super_admin") ||
+        roles.includes("admin") ||
+        globalRoles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
       if (isAdmin) {
@@ -137,13 +144,26 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
     if (isAdmin) return "editable";
     if (!hasAccommodationRole) return "hidden";
     if (!isStaff) return "hidden";
-    return permissions[moduleKey] ?? DEFAULT_STAFF_PERMISSIONS[moduleKey] ?? "hidden";
+    // 舊 key 沿用改版後的對應模組，避免升級後既有設定失效
+    const key = LEGACY_MODULE_ALIASES[moduleKey] ?? moduleKey;
+    return (
+      permissions[key] ??
+      permissions[moduleKey] ??
+      DEFAULT_STAFF_PERMISSIONS[key] ??
+      DEFAULT_STAFF_PERMISSIONS[moduleKey] ??
+      "hidden"
+    );
   };
 
   return {
     permissions,
     isStaff,
-    isLoading: Boolean(currentAccommodationId) && (!authResolved || isAccommodationLoading || (Boolean(userId) && isLoading)),
+    // 館別尚未解析出來時仍視為載入中，避免誤判成「無權限」
+    isLoading:
+      !authResolved ||
+      isAccommodationLoading ||
+      !currentAccommodationId ||
+      (Boolean(userId) && Boolean(currentAccommodationId) && isLoading),
     getLevel,
     canView: (k) => getLevel(k) !== "hidden",
     canEdit: (k) => getLevel(k) === "editable",

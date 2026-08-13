@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function StaffPermissionsDialog({
   userId,
   accommodationId,
 }: StaffPermissionsDialogProps) {
+  const queryClient = useQueryClient();
   const [perms, setPerms] = useState<Record<string, ModulePermissionLevel>>({
     ...DEFAULT_STAFF_PERMISSIONS,
   });
@@ -130,6 +132,9 @@ export function StaffPermissionsDialog({
         .update({ template_id: selectedTemplateId === "custom" ? null : selectedTemplateId })
         .eq("user_id", userId)
         .eq("accommodation_id", accommodationId);
+
+      // 立即失效快取，避免對方（或自己）沿用 5 分鐘前的舊權限
+      await queryClient.invalidateQueries({ queryKey: ["staff-permissions"] });
 
       toast.success("已更新權限設定");
       onOpenChange(false);
