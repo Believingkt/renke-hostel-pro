@@ -883,40 +883,14 @@ export default function OrderPayment() {
                     </Alert>
                   )}
 
-                  {false ? (
-                    <div className="space-y-3">
-                      <Alert className="border-amber-200 bg-amber-50">
-                        <Info className="h-4 w-4 text-amber-600" />
-                        <AlertTitle className="text-amber-800">請先填寫 Email</AlertTitle>
-                        <AlertDescription className="text-amber-700 text-xs">
-                          虛擬帳號將以此 Email 寄送匯款通知，請於上方填入有效的 Email，然後按「下一步」取得虛擬帳號。
-                        </AlertDescription>
-                      </Alert>
-                      <Button
-                        onClick={() => {
-                          if (!isValidEmail(emailInput)) {
-                            setEmailTouched(true);
-                            toast.error("請輸入有效的 Email");
-                            return;
-                          }
-                          setAtmStep(2);
-                        }}
-                        disabled={!isValidEmail(emailInput)}
-                        className="w-full h-12 text-base"
-                        size="lg"
-                      >
-                        下一步：取得虛擬帳號
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
+                  <>
                       {!orderInfo.atmInfo && (
                         <div className="flex justify-end">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setAtmStep(1)}
+                            onClick={() => setEmailConfirmed(false)}
                           >
                             ← 修改 Email
                           </Button>
