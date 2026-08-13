@@ -539,8 +539,30 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   }
 
   for (const inv of inventory) {
-    if (inv.is_available === false || inv.available_rooms <= 0) {
+    if (inv.is_available === false) {
       return jsonResponse({ error: `No availability on ${inv.date}` }, 400);
+    }
+  }
+
+  // 以 RPC 為準做最終庫存/鎖房檢查（已扣既有訂單，含互斥與全區綁定規則）
+  const { data: adjRows, error: adjErr } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+    p_room_type_id: room_type_id,
+    p_dates: dates,
+    p_accommodation_id: selectedTemplate.accommodation_id,
+  });
+  if (adjErr) {
+    return jsonResponse({ error: "Availability check failed" }, 500);
+  }
+  for (const r of (adjRows || []) as any[]) {
+    const dateStr = String(r.date_value).split("T")[0];
+    if (r.is_blocked === true) {
+      return jsonResponse(
+        { error: `Room is blocked on ${dateStr}`, blocked_by: r.blocked_by_room_name ?? null },
+        409,
+      );
+    }
+    if ((r.available_rooms ?? 0) <= 0) {
+      return jsonResponse({ error: `No availability on ${dateStr}` }, 409);
     }
   }
 
