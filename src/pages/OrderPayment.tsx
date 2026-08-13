@@ -63,7 +63,8 @@ export default function OrderPayment() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
-  const [atmStep, setAtmStep] = useState<1 | 2>(1);
+  
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   const emailError =
@@ -289,7 +290,8 @@ export default function OrderPayment() {
           isAtm,
         });
         if (data.guest_email) setEmailInput((prev) => prev || data.guest_email);
-        if (atmActive) setAtmStep(2);
+        // 已有有效虛擬帳號且訂單已有 Email：直接顯示帳號，不再要求重填
+        if (atmActive && data.guest_email) setEmailConfirmed(true);
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
@@ -644,6 +646,74 @@ export default function OrderPayment() {
     );
   }
 
+  // Email 步驟：付款前必須先填寫可收信的 Email（用於寄送訂房確認信 / 匯款通知）
+  if (!emailConfirmed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            {accName && <p className="text-sm text-muted-foreground mb-1">{accName}</p>}
+            <CardTitle className="text-xl">確認聯絡 Email</CardTitle>
+            <CardDescription>訂房確認信與付款通知將寄送至此信箱</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">訂單編號</span>
+                <span className="font-medium">{orderNumber}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">訂購人</span>
+                <span className="font-medium">{orderInfo?.guestName}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                <span>應付金額</span>
+                <span className="text-primary">NT$ {amount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gate-email" className="flex items-center gap-2 text-sm">
+                <Mail className="h-4 w-4" />
+                Email <span className="text-destructive">*</span>
+                <span className="text-xs text-muted-foreground font-normal">（用於寄送訂房資訊）</span>
+              </Label>
+              <Input
+                id="gate-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="your@email.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                aria-invalid={!!emailError}
+                className={emailError ? "border-destructive" : ""}
+              />
+              {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+            </div>
+
+            <Button
+              className="w-full h-12 text-base"
+              size="lg"
+              disabled={!isValidEmail(emailInput)}
+              onClick={() => {
+                if (!isValidEmail(emailInput)) {
+                  setEmailTouched(true);
+                  toast.error("請輸入有效的 Email");
+                  return;
+                }
+                setEmailConfirmed(true);
+              }}
+            >
+              下一步：前往付款
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -814,40 +884,14 @@ export default function OrderPayment() {
                     </Alert>
                   )}
 
-                  {atmStep === 1 && !orderInfo.atmInfo ? (
-                    <div className="space-y-3">
-                      <Alert className="border-amber-200 bg-amber-50">
-                        <Info className="h-4 w-4 text-amber-600" />
-                        <AlertTitle className="text-amber-800">請先填寫 Email</AlertTitle>
-                        <AlertDescription className="text-amber-700 text-xs">
-                          虛擬帳號將以此 Email 寄送匯款通知，請於上方填入有效的 Email，然後按「下一步」取得虛擬帳號。
-                        </AlertDescription>
-                      </Alert>
-                      <Button
-                        onClick={() => {
-                          if (!isValidEmail(emailInput)) {
-                            setEmailTouched(true);
-                            toast.error("請輸入有效的 Email");
-                            return;
-                          }
-                          setAtmStep(2);
-                        }}
-                        disabled={!isValidEmail(emailInput)}
-                        className="w-full h-12 text-base"
-                        size="lg"
-                      >
-                        下一步：取得虛擬帳號
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
+                  <>
                       {!orderInfo.atmInfo && (
                         <div className="flex justify-end">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setAtmStep(1)}
+                            onClick={() => setEmailConfirmed(false)}
                           >
                             ← 修改 Email
                           </Button>
@@ -867,8 +911,7 @@ export default function OrderPayment() {
                           setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
                         }}
                       />
-                    </>
-                  )}
+                  </>
 
                   {orderInfo.atmInfo && (
                     <>
