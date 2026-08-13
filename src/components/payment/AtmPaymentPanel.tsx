@@ -168,7 +168,7 @@ export function AtmPaymentPanel({
     setErrorDetail(null);
     try {
       const prime: string = await new Promise((resolve, reject) => {
-        const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
+        const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 30000);
         TP().virtualAccount.getPrime((err: any, result?: any) => {
           clearTimeout(to);
           const r = result ?? err;
