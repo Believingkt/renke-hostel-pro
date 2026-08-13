@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
+import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 
