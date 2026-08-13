@@ -26,6 +26,10 @@ interface RoomType {
   is_exclusive_package: boolean;
   is_bound_to_exclusive: boolean;
   bound_exclusive_ids: string[] | null;
+  /** 全區／全棟綁定：主控房型 */
+  blocks_all_inventory?: boolean | null;
+  /** 鎖定範圍；空／null = 整館所有房型 */
+  blocks_all_target_ids?: string[] | null;
 }
 
 interface Order {
