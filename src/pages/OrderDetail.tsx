@@ -51,6 +51,7 @@ import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
+import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
   AlertDialog,
   AlertDialogAction,
