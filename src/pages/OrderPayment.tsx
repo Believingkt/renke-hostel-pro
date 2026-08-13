@@ -883,7 +883,7 @@ export default function OrderPayment() {
                     </Alert>
                   )}
 
-                  {atmStep === 1 && !orderInfo.atmInfo ? (
+                  {false ? (
                     <div className="space-y-3">
                       <Alert className="border-amber-200 bg-amber-50">
                         <Info className="h-4 w-4 text-amber-600" />
