@@ -799,6 +799,87 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
               <strong>獨立房間：</strong>此房型可獨立預訂，不會影響其他房型的可用狀態。
             </div>
           )}
+
+          {/* 全區／全棟綁定（獨立於上方設定，可疊加） */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="blocks-all-inventory"
+                checked={formData.blocks_all_inventory}
+                onCheckedChange={(checked) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    blocks_all_inventory: !!checked,
+                    block_all_targets_all: true,
+                    blocks_all_target_ids: [],
+                  }));
+                }}
+              />
+              <Label htmlFor="blocks-all-inventory" className="cursor-pointer text-base font-medium">
+                全區／全棟綁定
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>此房型被預訂當天，指定範圍內的所有房型（含獨立計算庫存）都會整天關閉；反之範圍內任一房型被預訂，此房型也整天關閉。多個「全區」房型之間不互鎖。</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {formData.blocks_all_inventory && (
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <Label className="text-sm font-medium">鎖定範圍</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="block-all-targets"
+                    checked={formData.block_all_targets_all}
+                    onCheckedChange={(checked) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        block_all_targets_all: !!checked,
+                        blocks_all_target_ids: checked ? [] : prev.blocks_all_target_ids,
+                      }));
+                    }}
+                  />
+                  <Label htmlFor="block-all-targets" className="cursor-pointer font-medium">整館所有房型</Label>
+                </div>
+
+                {!formData.block_all_targets_all && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                    {otherRoomTypes.length === 0 && (
+                      <p className="text-sm text-muted-foreground">目前沒有其他房型可指定。</p>
+                    )}
+                    {otherRoomTypes.map((rt) => (
+                      <div key={rt.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`block-target-${rt.id}`}
+                          checked={formData.blocks_all_target_ids.includes(rt.id)}
+                          onCheckedChange={(isChecked) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              blocks_all_target_ids: isChecked
+                                ? Array.from(new Set([...prev.blocks_all_target_ids, rt.id]))
+                                : prev.blocks_all_target_ids.filter(id => id !== rt.id),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`block-target-${rt.id}`} className="cursor-pointer">{rt.name}</Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                  <strong>全區／全棟綁定：</strong>只要範圍內任一房型當天有訂單，此房型即整天不可售；此房型被訂走時，範圍內房型當天也全部關閉。
+                </div>
+              </div>
+            )}
+          </div>
+
         </CardContent>
       </Card>
 
