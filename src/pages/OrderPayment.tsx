@@ -185,11 +185,13 @@ export default function OrderPayment() {
 
 
 
+  // 與訂單載入平行取得付款設定（先前需等訂單載入完才開始，造成串行等待）
   const {
     config: tappayConfig,
     loading: tappayConfigLoading,
     error: tappayConfigError,
-  } = useTapPayConfig(!loadingOrder && !orderError);
+  } = useTapPayConfig(true);
+
 
   useEffect(() => {
     let cancelled = false;
