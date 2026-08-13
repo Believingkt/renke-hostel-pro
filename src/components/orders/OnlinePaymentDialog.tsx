@@ -11,7 +11,35 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 
+/** 付款連結有效期：3 天 */
+const LINK_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+interface LinkState {
+  payment_link_created_at: string | null;
+  atm_vacc_no: string | null;
+  atm_vacc_bank_code: string | null;
+  atm_expire_at: string | null;
+}
+
+interface PaymentLinkLog {
+  id: string;
+  created_at: string;
+  amount: number;
+  method: string;
+  acc_param: string | null;
+  action: string;
+  performed_by_email: string | null;
+  note: string | null;
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  copy: "複製連結",
+  regenerate: "重新產生連結",
+  regenerate_atm_void: "作廢帳號並重產",
+};
+
 interface OnlinePaymentDialogProps {
+
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: {
