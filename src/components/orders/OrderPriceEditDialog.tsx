@@ -140,36 +140,43 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       setEditDiscountCode(order.discount_code || "");
 
       // Fetch existing addon data from the order
-      supabase
-        .from("orders")
-        .select("custom_addon_details")
-        .eq("id", order.id)
-        .single()
-        .then(({ data }) => {
-          const quantities: Record<string, number> = {};
-          const orig: AddonDetail[] = [];
-          let origTotal = 0;
-          if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
-            for (const a of data.custom_addon_details as any[]) {
-              if (a?.addon_type && a.count > 0) {
-                quantities[a.addon_type] = a.count;
-                origTotal += Number(a.total ?? 0) || 0;
-                orig.push({
-                  addon_type: a.addon_type,
-                  count: a.count,
-                  price_per_unit: a.price_per_unit ?? 0,
-                  total: a.total ?? 0,
-                  unit_label: a.unit_label ?? "",
-                });
-              }
+      (async () => {
+        const [{ data }, { data: settings }] = await Promise.all([
+          supabase.from("orders").select("custom_addon_details").eq("id", order.id).single(),
+          supabase
+            .from("addon_settings")
+            .select("id, addon_type")
+            .eq("accommodation_id", currentAccommodationId || ""),
+        ]);
+
+        const quantities: Record<string, number> = {};
+        const orig: AddonDetail[] = [];
+        let origTotal = 0;
+        if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
+          for (const a of data.custom_addon_details as any[]) {
+            if (a?.addon_type && a.count > 0) {
+              // 舊訂單可能保留改名前的名稱，改以 addon_id／別名對應到現行設定
+              const matched = resolveAddonSetting(a, settings || []);
+              const key = matched?.addon_type || a.addon_type;
+              quantities[key] = (quantities[key] || 0) + a.count;
+              origTotal += Number(a.total ?? 0) || 0;
+              orig.push({
+                addon_type: key,
+                count: a.count,
+                price_per_unit: a.price_per_unit ?? 0,
+                total: a.total ?? 0,
+                unit_label: a.unit_label ?? "",
+              });
             }
           }
-          setAddonQuantities(quantities);
-          setOriginalAddons(orig);
-          setOriginalAddonTotal(origTotal);
-          // orders.total_price 已包含加購金額（建單流程口徑），此處欄位為「房費」，需扣除加購避免重複計算
-          setEditTotalPriceStr(String(Math.max(0, (order.total_price ?? 0) - origTotal)));
-        });
+        }
+        setAddonQuantities(quantities);
+        setOriginalAddons(orig);
+        setOriginalAddonTotal(origTotal);
+        // orders.total_price 已包含加購金額（建單流程口徑），此處欄位為「房費」，需扣除加購避免重複計算
+        setEditTotalPriceStr(String(Math.max(0, (order.total_price ?? 0) - origTotal)));
+      })();
+
     }
   }, [open, order]);
 
