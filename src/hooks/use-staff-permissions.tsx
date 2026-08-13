@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import {
   DEFAULT_STAFF_PERMISSIONS,
+  LEGACY_MODULE_ALIASES,
   ModulePermissionLevel,
 } from "@/constants/staffPermissions";
 
