@@ -72,13 +72,13 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
   return (
     <section className="mt-10">
       <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">關於這間民宿</h2>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
         <span className="font-medium text-foreground">{info.name}</span>
         {info.region && <span>· {info.region}</span>}
       </div>
 
       {info.description && (
-        <p className="mt-3 whitespace-pre-line text-[15px] leading-[1.9] text-muted-foreground">
+        <p className="mt-3 whitespace-pre-line text-base leading-[1.9] text-muted-foreground">
           {info.description}
         </p>
       )}
@@ -149,10 +149,10 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
 
       {info.facilities.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-semibold tracking-wide text-foreground">房源特色</h3>
+          <h3 className="text-base font-semibold tracking-wide text-foreground">房源特色</h3>
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
             {info.facilities.slice(0, 18).map((f) => (
-              <span key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+              <span key={f} className="flex items-start gap-2 text-[15px] leading-relaxed text-muted-foreground">
                 <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                 <span className="leading-snug">{f}</span>
               </span>
@@ -163,7 +163,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
 
       <Separator className="my-6 bg-border/60" />
 
-      <div className="space-y-2.5 text-sm text-muted-foreground">
+      <div className="space-y-3 text-[15px] leading-relaxed text-muted-foreground">
         {info.address && (
           <div className="flex items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
@@ -179,7 +179,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-xs"
+              className="h-9 px-2.5 text-sm"
               onClick={() => copy("地址", info.address!)}
             >
               <Copy className="mr-1 h-3.5 w-3.5" /> 複製
@@ -199,7 +199,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-xs"
+              className="h-9 px-2.5 text-sm"
               onClick={() => copy("電話", info.phone!)}
             >
               <Copy className="mr-1 h-3.5 w-3.5" /> 複製
@@ -212,7 +212,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
         <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
           <Accordion type="single" collapsible defaultValue="notice">
             <AccordionItem value="notice" className="border-b-0">
-              <AccordionTrigger className="py-0 text-sm hover:no-underline">
+              <AccordionTrigger className="py-0 text-base hover:no-underline">
                 <span className="flex items-center gap-2 font-semibold text-foreground">
                   <Clock className="h-4 w-4 text-primary" /> 入住資訊與須知
                 </span>
@@ -224,7 +224,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
                     .map((l) => l.trim())
                     .filter(Boolean)
                     .map((line, i) => (
-                      <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+                      <li key={i} className="flex gap-2 text-[15px] leading-[1.8] text-muted-foreground">
                         <span className="mt-[0.55rem] h-1 w-1 flex-shrink-0 rounded-full bg-primary/60" />
                         <span>{line}</span>
                       </li>
