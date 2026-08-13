@@ -139,6 +139,8 @@ export function OnlinePaymentDialog({
         acc: accId,
       });
       if (isAtm) params.set("method", "atm");
+      // 後台產生的連結免會員登入
+      params.set("src", "admin");
       const link = `${baseUrl}/pay/order?${params.toString()}`;
       setGeneratedLink(link);
     });
