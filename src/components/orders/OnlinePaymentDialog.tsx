@@ -576,32 +576,64 @@ export function OnlinePaymentDialog({
     </div>
   );
 
+  const atmConfirm = (
+    <AlertDialog open={confirmAtmVoid} onOpenChange={setConfirmAtmVoid}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>已有尚未繳費的虛擬帳號</AlertDialogTitle>
+          <AlertDialogDescription>
+            此訂單目前已開立虛擬帳號 {linkState?.atm_vacc_no}
+            {linkState?.atm_vacc_bank_code ? `（銀行代碼 ${linkState.atm_vacc_bank_code}）` : ""}，
+            到期時間{" "}
+            {linkState?.atm_expire_at
+              ? new Date(linkState.atm_expire_at).toLocaleString("zh-TW", { hour12: false })
+              : "—"}
+            。是否要作廢原帳號並重新產生連結？客人須改用新帳號轉帳，請務必通知客人。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={regenerating}>保留原帳號</AlertDialogCancel>
+          <AlertDialogAction disabled={regenerating} onClick={() => handleRegenerate(true)}>
+            作廢並重新產生
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh]">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>線上收款</DrawerTitle>
-            <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-[env(safe-area-inset-bottom)] overflow-y-auto">
-            <div className="pb-6">{content}</div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <>
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[92vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>線上收款</DrawerTitle>
+              <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-[env(safe-area-inset-bottom)] overflow-y-auto">
+              <div className="pb-6">{content}</div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+        {atmConfirm}
+      </>
     );
   }
 
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>線上收款</DialogTitle>
-          <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
-        </DialogHeader>
-        {content}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>線上收款</DialogTitle>
+            <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+      {atmConfirm}
+    </>
+
   );
 }
