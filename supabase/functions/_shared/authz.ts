@@ -16,6 +16,7 @@ export type ModuleKey =
   | "analytics"
   | "reception"
   | "orders"
+  | "group_buy"
   | "kol_quota"
   | "website_content"
   | "pricing"
@@ -24,6 +25,7 @@ export type ModuleKey =
   | "discount_codes"
   | "settlement"
   | "owner_settlement"
+  | "payment_audit"
   | "addon_center"
   | "channel_manager"
   | "ai_training"
@@ -31,14 +33,16 @@ export type ModuleKey =
 
 const DEFAULT_STAFF_PERMISSIONS: Record<ModuleKey, "hidden" | "readonly" | "editable"> = {
   orders: "editable",
+  group_buy: "hidden",
   kol_quota: "hidden",
   reception: "editable",
   room_price: "editable",
   customers: "editable",
   analytics: "readonly",
   discount_codes: "readonly",
-  settlement: "readonly",
+  settlement: "hidden", // 已淘汰，改用 owner_settlement
   owner_settlement: "hidden",
+  payment_audit: "hidden",
   addon_center: "editable",
   website_content: "hidden",
   pricing: "hidden",
