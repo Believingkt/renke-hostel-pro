@@ -123,12 +123,14 @@ interface OrderDetail {
 }
 
 interface CustomAddonDetail {
+  addon_id?: string | null;
   addon_type: string;
   count: number;
   price_per_unit: number;
   total: number;
   unit_label: string;
 }
+
 
 interface CustomMealPlan {
   id: string;
