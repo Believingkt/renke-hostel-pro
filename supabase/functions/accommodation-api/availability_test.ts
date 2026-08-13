@@ -644,3 +644,101 @@ Deno.test("parity-pure: meal column — 三食 template 從 inv.price_3_meals �
   assertEquals(fe["2026-07-01"], 4200);
   assertParity("meal-3 rt-a", res[0].days, fe);
 });
+
+// ── 全區／全棟綁定 (blocks_all_inventory) ────────────────────────────
+// 32人全區＝主控，鎖定範圍 = [20人區, 12人區]；20人區與12人區彼此不互鎖。
+const RT_ZONE32 = {
+  id: "rt-32",
+  name: "32人全區",
+  capacity: 32,
+  room_count: 1,
+  is_exclusive_package: true,
+  is_bound_to_exclusive: false,
+  bound_exclusive_ids: null,
+  blocks_all_inventory: true,
+  blocks_all_target_ids: ["rt-20", "rt-12"],
+};
+const RT_ZONE20 = {
+  id: "rt-20",
+  name: "20人區",
+  capacity: 20,
+  room_count: 2,
+  is_exclusive_package: true,
+  is_bound_to_exclusive: false,
+  bound_exclusive_ids: null,
+  blocks_all_inventory: false,
+  blocks_all_target_ids: [],
+};
+const RT_ZONE12 = {
+  id: "rt-12",
+  name: "12人區",
+  capacity: 12,
+  room_count: 2,
+  is_exclusive_package: false,
+  is_bound_to_exclusive: false,
+  bound_exclusive_ids: null,
+  blocks_all_inventory: false,
+  blocks_all_target_ids: [],
+};
+
+const zoneInventory = (date: string) =>
+  [RT_ZONE32, RT_ZONE20, RT_ZONE12].map((rt) => ({
+    room_type_id: rt.id,
+    date,
+    price: 10000,
+    available_rooms: rt.room_count,
+    is_available: true,
+  }));
+
+function zoneRun(bookedRoomTypeId: string) {
+  const res = buildAvailability({
+    from: "2026-09-10",
+    to: "2026-09-10",
+    roomTypes: [RT_ZONE32, RT_ZONE20, RT_ZONE12],
+    inventory: zoneInventory("2026-09-10"),
+    orders: [
+      {
+        id: "o-1",
+        room_type_id: bookedRoomTypeId,
+        check_in_date: "2026-09-10",
+        check_out_date: "2026-09-11",
+        order_status: "confirmed",
+        lock_whole_building: false,
+      },
+    ],
+    orderRooms: [],
+    templates: [],
+    holidays: [],
+  });
+  const day = (id: string) => res.find((r) => r.room_type_id === id)!.days[0];
+  return { d32: day("rt-32"), d20: day("rt-20"), d12: day("rt-12") };
+}
+
+Deno.test("全區綁定 1：32人全區被訂 → 20人區與12人區整天關閉", () => {
+  const { d32, d20, d12 } = zoneRun("rt-32");
+  assertEquals(d32.remaining, 0); // 自身庫存被佔用
+  assertEquals(d20.closed, true);
+  assertEquals(d20.remaining, 0);
+  assertEquals(d12.closed, true);
+  assertEquals(d12.remaining, 0);
+});
+
+Deno.test("全區綁定 2：20人區只賣掉 1 間 → 32人全區立即關閉，12人區不受影響", () => {
+  const { d32, d20, d12 } = zoneRun("rt-20");
+  assertEquals(d32.closed, true);
+  assertEquals(d32.remaining, 0);
+  assertEquals(d20.closed, false); // 還有 1 間可售
+  assertEquals(d20.remaining, 1);
+  assertEquals(d12.closed, false);
+  assertEquals(d12.remaining, 2);
+});
+
+Deno.test("全區綁定 3：12人區被訂 → 32人全區關閉，20人區不受影響", () => {
+  const { d32, d20, d12 } = zoneRun("rt-12");
+  assertEquals(d32.closed, true);
+  assertEquals(d32.remaining, 0);
+  assertEquals(d20.closed, false);
+  assertEquals(d20.remaining, 2);
+  assertEquals(d12.closed, false);
+  assertEquals(d12.remaining, 1);
+});
