@@ -1033,13 +1033,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
-                      const isTiansong = accommodationId === TIANSONG_ACC_ID;
                       const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
-                      // 有設定房號單位管理即以單位顯示；包棟房型預設不使用單位（天送例外，包棟顯示棟號）
-                      const useUnits = rtUnits.length > 0 && (
-                        !roomType.is_exclusive_package || isTiansong
-                      );
+                      // 只要該房型（含包棟房型）有設定房號／棟號單位，一律以單位名稱顯示，
+                      // 新館別無需任何硬編碼即可自動生效。
+                      const useUnits = rtUnits.length > 0;
+
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
                       const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
