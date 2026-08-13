@@ -6,10 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Copy, Check, CheckCircle2 } from "lucide-react";
+import { Link2, Copy, Check, CheckCircle2, Clock, RefreshCw, History as HistoryIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
+import { formatCountdown } from "@/hooks/use-pending-atm-orders";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 /** 付款連結有效期：3 天 */
 const LINK_TTL_MS = 3 * 24 * 60 * 60 * 1000;
