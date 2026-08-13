@@ -910,8 +910,7 @@ export default function OrderPayment() {
                           setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
                         }}
                       />
-                    </>
-                  )}
+                  </>
 
                   {orderInfo.atmInfo && (
                     <>
