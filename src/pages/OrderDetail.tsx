@@ -3750,9 +3750,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               onClick={() => {
                                 const newCount = addonStepDown(count, addon.min_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
-                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                const newDetails = editForm.custom_addon_details.filter(d => !matchesAddon(d));
                                 if (newCount > 0) {
-                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                  newDetails.push({ addon_id: addon.id, addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
                                 }
                                 setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
                               }}>
@@ -3763,9 +3763,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               onClick={() => {
                                 const newCount = addonStepUp(count, addon.min_quantity, addon.max_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
-                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                const newDetails = editForm.custom_addon_details.filter(d => !matchesAddon(d));
                                 if (newCount > 0) {
-                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                  newDetails.push({ addon_id: addon.id, addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
                                 }
                                 setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
                               }}>
