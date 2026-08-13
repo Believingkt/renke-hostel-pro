@@ -348,12 +348,12 @@ export default function GroupBuyCampaign() {
 
   const saleBadge =
     sale === "on_sale" ? (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground">
         <span className="h-1.5 w-1.5 rounded-full bg-accent-foreground/80" />
         {SALE_STATE_LABEL.on_sale}
       </span>
     ) : (
-      <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+      <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
         {SALE_STATE_LABEL[sale]}
       </span>
     );
@@ -379,7 +379,7 @@ export default function GroupBuyCampaign() {
           >
             <div className="flex flex-wrap items-center gap-2">
               {campaign.kol_display_name && (
-                <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium tracking-wide text-secondary-foreground">
+                <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-sm font-medium tracking-wide text-secondary-foreground">
                   {campaign.kol_display_name} 專屬團購
                 </span>
               )}
@@ -387,7 +387,7 @@ export default function GroupBuyCampaign() {
             </div>
             <h1 className="mt-3 text-2xl font-bold leading-snug tracking-tight sm:text-[2rem]">{campaign.title}</h1>
             {campaign.subtitle && (
-              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{campaign.subtitle}</p>
+              <p className="mt-2 text-base leading-[1.8] text-muted-foreground">{campaign.subtitle}</p>
             )}
           </div>
         </div>
@@ -397,19 +397,19 @@ export default function GroupBuyCampaign() {
         {/* ── 活動資訊 ── */}
         <section className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl bg-muted/70 px-4 py-3.5">
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> 販售期間
             </p>
-            <p className="mt-1 text-sm tabular-nums">
+            <p className="mt-1 text-base font-medium leading-relaxed tabular-nums">
               {fmtWindow(campaign.sale_start)} <span className="text-muted-foreground">~</span>{" "}
               {fmtWindow(campaign.sale_end)}
             </p>
           </div>
           <div className="rounded-2xl bg-muted/70 px-4 py-3.5">
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" /> 可入住期間
             </p>
-            <p className="mt-1 text-sm tabular-nums">
+            <p className="mt-1 text-base font-medium leading-relaxed tabular-nums">
               {campaign.stay_start_date ?? "不限"} <span className="text-muted-foreground">~</span>{" "}
               {campaign.stay_end_date ?? "不限"}
             </p>
@@ -445,7 +445,7 @@ export default function GroupBuyCampaign() {
         {/* ── 方案 ── */}
         <section className="mt-10">
           <h2 className="text-xl font-bold tracking-tight sm:text-2xl">選擇專屬方案</h2>
-          <p className="mt-1 text-sm text-muted-foreground">團購限定價格，選定後於下方填寫資料即可完成預訂。</p>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">團購限定價格，選定後於下方填寫資料即可完成預訂。</p>
           <div className="mt-4 space-y-3">
             {packages.map((p) => {
               const active = p.id === selectedPkgId;
@@ -456,7 +456,7 @@ export default function GroupBuyCampaign() {
                   type="button"
                   onClick={() => setSelectedPkgId(p.id)}
                   aria-pressed={active}
-                  className={`flex w-full gap-3.5 rounded-2xl bg-card p-3.5 text-left transition sm:gap-4 sm:p-4 ${
+                  className={`flex w-full gap-3.5 rounded-2xl bg-card p-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:gap-4 sm:p-4 ${
                     active
                       ? "shadow-[0_0_0_2px_hsl(var(--primary)),0_14px_36px_-26px_rgba(63,57,51,0.7)]"
                       : "shadow-[0_1px_0_0_hsl(var(--border))] hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]"
@@ -476,20 +476,20 @@ export default function GroupBuyCampaign() {
                       {active && <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />}
                     </div>
                     {p.description && (
-                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+                      <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                         {p.description}
                       </p>
                     )}
                     <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       {p.original_price ? (
-                        <span className="text-xs text-muted-foreground/80 line-through">{twd(p.original_price)}</span>
+                        <span className="text-sm text-muted-foreground line-through">{twd(p.original_price)}</span>
                       ) : null}
                       <span className="text-xl font-bold tracking-tight text-accent sm:text-2xl">
                         {twd(p.group_buy_price)}
                       </span>
-                      <span className="text-xs text-muted-foreground">／晚</span>
+                      <span className="text-sm font-medium text-foreground">／晚</span>
                       {save > 0 && (
-                        <span className="rounded-full bg-accent/12 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
                           省 {twd(save)}
                         </span>
                       )}
@@ -510,11 +510,11 @@ export default function GroupBuyCampaign() {
         {/* ── 訂房表單（最終 CTA） ── */}
         <section className="mt-10 rounded-3xl bg-card p-5 shadow-[0_14px_50px_-34px_rgba(63,57,51,0.75)] sm:p-7">
           <h2 className="text-xl font-bold tracking-tight sm:text-2xl">準備好入住了嗎？</h2>
-          <p className="mt-1 text-sm text-muted-foreground">選擇日期並填寫資料，即可取得匯款資訊完成訂位。</p>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">選擇日期並填寫資料，即可取得匯款資訊完成訂位。</p>
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <Label htmlFor="gb-checkin" className="text-xs text-muted-foreground">入住日</Label>
+              <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
               <GroupBuyDateField
                 id="gb-checkin"
                 value={checkIn}
@@ -524,10 +524,10 @@ export default function GroupBuyCampaign() {
                 invalid={!!stayErrors.checkIn}
                 onChange={setCheckIn}
               />
-              {stayErrors.checkIn && <p className="mt-1 text-xs text-destructive">{stayErrors.checkIn}</p>}
+              {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
             </div>
             <div>
-              <Label htmlFor="gb-checkout" className="text-xs text-muted-foreground">退房日</Label>
+              <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
               <GroupBuyDateField
                 id="gb-checkout"
                 value={checkOut}
@@ -537,11 +537,11 @@ export default function GroupBuyCampaign() {
                 invalid={!!stayErrors.checkOut}
                 onChange={setCheckOut}
               />
-              {stayErrors.checkOut && <p className="mt-1 text-xs text-destructive">{stayErrors.checkOut}</p>}
+              {stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
             </div>
 
             <div>
-              <Label htmlFor="gb-rooms" className="text-xs text-muted-foreground">間數</Label>
+              <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
               <Input
                 id="gb-rooms"
                 type="number"
@@ -552,7 +552,7 @@ export default function GroupBuyCampaign() {
               />
             </div>
             <div>
-              <Label htmlFor="gb-guests" className="text-xs text-muted-foreground">入住人數</Label>
+              <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
               <Input
                 id="gb-guests"
                 type="number"
@@ -562,19 +562,19 @@ export default function GroupBuyCampaign() {
               />
             </div>
             <div className="col-span-2">
-              <Label htmlFor="gb-name" className="text-xs text-muted-foreground">訂房人姓名</Label>
+              <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
               <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-phone" className="text-xs text-muted-foreground">聯絡電話</Label>
+              <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
               <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-email" className="text-xs text-muted-foreground">Email（接收訂單確認及匯款資訊）</Label>
+              <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
               <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
             </div>
             <div className="col-span-2">
-              <Label htmlFor="gb-note" className="text-xs text-muted-foreground">
+              <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
                 備註（民宿將盡力配合，但無法保證能滿足所有需求）
               </Label>
               <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
@@ -600,14 +600,14 @@ export default function GroupBuyCampaign() {
               </div>
               {availability.ok === false && <p className="mt-2 text-destructive">{availability.message}</p>}
               {availability.ok === true && <p className="mt-2 text-primary">{availability.message}</p>}
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
               </p>
             </div>
           )}
 
           <Button
-            className="mt-5 h-14 w-full rounded-xl bg-accent text-base font-semibold text-accent-foreground hover:bg-accent/90"
+            className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
             disabled={
               submitting ||
               availability.checking ||
