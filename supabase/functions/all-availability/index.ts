@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       wantRoomTypes
         ? supabase
             .from("room_types")
-            .select("id, accommodation_id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
+            .select("id, accommodation_id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
             .in("accommodation_id", accIds)
             .order("display_order", { ascending: true, nullsFirst: false })
         : Promise.resolve({ data: [], error: null } as any),

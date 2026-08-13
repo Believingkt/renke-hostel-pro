@@ -21,7 +21,12 @@ export interface RoomType {
   is_exclusive_package: boolean | null;
   is_bound_to_exclusive: boolean | null;
   bound_exclusive_ids: string[] | null;
+  /** 全區／全棟綁定：被訂走當天鎖定範圍內所有房型（含獨立庫存） */
+  blocks_all_inventory?: boolean | null;
+  /** 鎖定範圍；空／null = 整館所有房型 */
+  blocks_all_target_ids?: string[] | null;
 }
+
 export interface InvRow {
   room_type_id: string;
   date: string;
@@ -244,6 +249,37 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
     return rt.is_bound_to_exclusive === true && sharedExclusiveBookedDates.has(d);
   };
 
+  // 全區／全棟綁定：主控房型與其範圍內房型雙向整天鎖定；主控之間不互鎖。
+  const blockAllMasters = roomTypes.filter((r) => r.blocks_all_inventory === true);
+  const isOccupiedOn = (id: string, d: string) => (occupied.get(`${id}_${d}`) ?? 0) > 0;
+  const masterTargetIds = (m: RoomType): Set<string> => {
+    const explicit = m.blocks_all_target_ids ?? [];
+    if (explicit.length > 0) return new Set(explicit);
+    return new Set(
+      roomTypes.filter((r) => r.id !== m.id && r.blocks_all_inventory !== true).map((r) => r.id),
+    );
+  };
+  const targetsCache = new Map<string, Set<string>>();
+  const targetsOf = (m: RoomType): Set<string> => {
+    let s = targetsCache.get(m.id);
+    if (!s) {
+      s = masterTargetIds(m);
+      targetsCache.set(m.id, s);
+    }
+    return s;
+  };
+  const isBlockedByBlockAll = (rt: RoomType, d: string): boolean => {
+    if (rt.blocks_all_inventory === true) {
+      const targets = targetsOf(rt);
+      return roomTypes.some(
+        (o) => o.id !== rt.id && o.blocks_all_inventory !== true && targets.has(o.id) && isOccupiedOn(o.id, d),
+      );
+    }
+    return blockAllMasters.some((m) => m.id !== rt.id && targetsOf(m).has(rt.id) && isOccupiedOn(m.id, d));
+  };
+
+
+
   const results: RoomTypeResult[] = [];
   for (const rt of roomTypes) {
     const days: DayResult[] = [];
@@ -256,7 +292,9 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       const occ = occupied.get(`${rt.id}_${d}`) ?? 0;
       const wholeBlock = wholeLocked.has(d);
       const exclusiveBlock = isBlockedByExclusive(rt, d);
-      const closed = wholeBlock || exclusiveBlock || !invAvailable;
+      const blockAll = isBlockedByBlockAll(rt, d);
+      const closed = wholeBlock || exclusiveBlock || blockAll || !invAvailable;
+
       const remaining = closed ? 0 : Math.max(0, capacity - occ);
       const tier = classifyDay(d, holidaySet, workOnWeekendSet);
       let price: number | null = null;
