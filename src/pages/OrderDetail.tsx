@@ -51,6 +51,7 @@ import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
+import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,12 +124,14 @@ interface OrderDetail {
 }
 
 interface CustomAddonDetail {
+  addon_id?: string | null;
   addon_type: string;
   count: number;
   price_per_unit: number;
   total: number;
   unit_label: string;
 }
+
 
 interface CustomMealPlan {
   id: string;
@@ -721,8 +724,29 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       meal_plan_total: order.meal_plan_total || 0,
       // Exclude reserved types (pet/meal/bbq) — those are handled by their dedicated UI sections,
       // otherwise legacy entries would be double-counted (invisible in UI but added to total).
-      custom_addon_details: ((order.custom_addon_details as CustomAddonDetail[]) || [])
-        .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq'),
+      // 同時把改名前的舊快照（例如「加床服務」）對應回現行設定並合併數量，避免出現兩筆重複加購。
+      custom_addon_details: (() => {
+        const raw = ((order.custom_addon_details as CustomAddonDetail[]) || [])
+          .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq');
+        const merged: CustomAddonDetail[] = [];
+        for (const d of raw) {
+          const matched = resolveAddonSetting(d, addonSettings);
+          const canonical: CustomAddonDetail = matched
+            ? { ...d, addon_id: matched.id, addon_type: matched.addon_type }
+            : d;
+          const hit = merged.find(m =>
+            (canonical.addon_id && m.addon_id === canonical.addon_id) || m.addon_type === canonical.addon_type,
+          );
+          if (hit) {
+            hit.count += canonical.count;
+            hit.total += canonical.total;
+          } else {
+            merged.push({ ...canonical });
+          }
+        }
+        return merged;
+      })(),
+
       addon_total: savedAddonTotal,
       addon_note: extractAddonNote(order.notes),
       extra_addon_amount: extractExtraAddonAmount(order.notes),
@@ -3706,7 +3730,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               {(() => {
                 const genericAddons = addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq');
                 return genericAddons.map((addon, idx) => {
-                  const existing = editForm.custom_addon_details.find(d => d.addon_type === addon.addon_type);
+                  const matchesAddon = (d: CustomAddonDetail) =>
+                    d.addon_id ? d.addon_id === addon.id : d.addon_type === addon.addon_type;
+                  const existing = editForm.custom_addon_details.find(matchesAddon);
+
                   const count = existing?.count || 0;
                   const total = existing?.total || 0;
                   return (
@@ -3723,9 +3750,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               onClick={() => {
                                 const newCount = addonStepDown(count, addon.min_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
-                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                const newDetails = editForm.custom_addon_details.filter(d => !matchesAddon(d));
                                 if (newCount > 0) {
-                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                  newDetails.push({ addon_id: addon.id, addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
                                 }
                                 setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
                               }}>
@@ -3736,9 +3763,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               onClick={() => {
                                 const newCount = addonStepUp(count, addon.min_quantity, addon.max_quantity);
                                 const newTotal = newCount * addon.price_per_unit * addonNightsMultiplier(addon.pricing_mode, nights);
-                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                const newDetails = editForm.custom_addon_details.filter(d => !matchesAddon(d));
                                 if (newCount > 0) {
-                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                  newDetails.push({ addon_id: addon.id, addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
                                 }
                                 setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
                               }}>
