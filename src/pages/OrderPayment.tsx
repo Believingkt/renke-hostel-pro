@@ -30,6 +30,8 @@ export default function OrderPayment() {
   const amount = parseInt(searchParams.get("amount") || "0", 10);
   const accommodationId = searchParams.get("acc") || "";
   const requestedMethod = searchParams.get("method") || "";
+  // 後台產生的付款連結（刷卡／ATM）免會員登入
+  const skipAuthGate = searchParams.get("src") === "admin";
 
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
