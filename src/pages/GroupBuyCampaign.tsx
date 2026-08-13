@@ -469,11 +469,11 @@ export default function GroupBuyCampaign() {
           <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <Label htmlFor="gb-email">Email（接收匯款資訊）</Label>
+          <Label htmlFor="gb-email">Email（接收訂單確認及匯款資訊）</Label>
           <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
         </div>
         <div className="col-span-2">
-          <Label htmlFor="gb-note">備註</Label>
+          <Label htmlFor="gb-note">備註（民宿將盡力配合，但無法保證能滿足所有需求）</Label>
           <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
         </div>
       </div>
