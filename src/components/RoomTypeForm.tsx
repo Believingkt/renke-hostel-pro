@@ -163,13 +163,23 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         : (data || []);
       setExclusivePackages(filtered);
     };
+    const loadAllRoomTypes = async () => {
+      const { data } = await supabase
+        .from("room_types")
+        .select("id, name")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order", { ascending: true });
+      setOtherRoomTypes((data || []).filter(r => r.id !== roomType?.id));
+    };
     loadExclusivePackages();
+    loadAllRoomTypes();
   }, [accommodationId, roomType?.id]);
 
   useEffect(() => {
     if (roomType) {
       originalRoomCountRef.current = roomType.room_count ?? null;
       const boundIds = roomType.bound_exclusive_ids || [];
+      const blockAllIds = (roomType as any).blocks_all_target_ids || [];
       setFormData({
         name: roomType.name || "",
         description: roomType.description || "",
@@ -180,7 +190,11 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         is_bound_to_exclusive: roomType.is_bound_to_exclusive || false,
         bound_exclusive_ids: boundIds,
         bind_all_exclusives: boundIds.length === 0, // 空陣列表示綁定全部
+        blocks_all_inventory: (roomType as any).blocks_all_inventory || false,
+        blocks_all_target_ids: blockAllIds,
+        block_all_targets_all: blockAllIds.length === 0,
       });
+
       loadPhotos(roomType.id);
       // 編輯模式時清除草稿，避免顯示草稿恢復提示
       clearDraft();
