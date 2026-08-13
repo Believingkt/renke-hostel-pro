@@ -540,7 +540,7 @@ export function OnlinePaymentDialog({
           {logs.length > 0 && (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <History className="h-4 w-4" />
+                <HistoryIcon className="h-4 w-4" />
                 連結操作紀錄
               </Label>
               <div className="max-h-56 overflow-y-auto rounded-lg border divide-y">
