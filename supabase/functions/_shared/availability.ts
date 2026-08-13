@@ -292,7 +292,9 @@ export function buildAvailability(input: ComputeInput): RoomTypeResult[] {
       const occ = occupied.get(`${rt.id}_${d}`) ?? 0;
       const wholeBlock = wholeLocked.has(d);
       const exclusiveBlock = isBlockedByExclusive(rt, d);
-      const closed = wholeBlock || exclusiveBlock || !invAvailable;
+      const blockAll = isBlockedByBlockAll(rt, d);
+      const closed = wholeBlock || exclusiveBlock || blockAll || !invAvailable;
+
       const remaining = closed ? 0 : Math.max(0, capacity - occ);
       const tier = classifyDay(d, holidaySet, workOnWeekendSet);
       let price: number | null = null;
