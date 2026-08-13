@@ -290,7 +290,8 @@ export default function OrderPayment() {
           isAtm,
         });
         if (data.guest_email) setEmailInput((prev) => prev || data.guest_email);
-        if (atmActive) setAtmStep(2);
+        // 已有有效虛擬帳號且訂單已有 Email：直接顯示帳號，不再要求重填
+        if (atmActive && data.guest_email) setEmailConfirmed(true);
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
