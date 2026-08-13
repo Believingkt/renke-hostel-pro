@@ -26,6 +26,10 @@ interface RoomType {
   is_exclusive_package: boolean;
   is_bound_to_exclusive: boolean;
   bound_exclusive_ids: string[] | null;
+  /** 全區／全棟綁定：主控房型 */
+  blocks_all_inventory?: boolean | null;
+  /** 鎖定範圍；空／null = 整館所有房型 */
+  blocks_all_target_ids?: string[] | null;
 }
 
 interface Order {
@@ -277,7 +281,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
       const roomTypesRes = await runWithRetry(() =>
         supabase
           .from("room_types")
-          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, package_contents")
+          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids, package_contents")
           .eq("accommodation_id", accommodationId)
           .order("display_order")
       );
@@ -570,11 +574,40 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
     return blocked;
   }, [orders, dateStrings]);
 
+  // 全區／全棟綁定：主控房型與其鎖定範圍雙向整天互鎖；主控之間不互鎖。
+  const blockAllInfo = useMemo(() => {
+    const masters = roomTypes.filter(r => r.blocks_all_inventory === true);
+    const targetsOf = (m: RoomType): Set<string> => {
+      const explicit = m.blocks_all_target_ids ?? [];
+      if (explicit.length > 0) return new Set(explicit);
+      return new Set(roomTypes.filter(r => r.id !== m.id && r.blocks_all_inventory !== true).map(r => r.id));
+    };
+    const occupied = (rtId: string, dateStr: string) =>
+      visibleEntries.some(e => e.room_type_id === rtId && e.check_in_date <= dateStr && e.check_out_date > dateStr);
+    const targetMap = new Map(masters.map(m => [m.id, targetsOf(m)] as const));
+    return { masters, targetMap, occupied };
+  }, [roomTypes, visibleEntries]);
+
+  const isBlockedByBlockAll = (rt: RoomType, dateStr: string): boolean => {
+    const { masters, targetMap, occupied } = blockAllInfo;
+    if (masters.length === 0) return false;
+    if (rt.blocks_all_inventory === true) {
+      const targets = targetMap.get(rt.id);
+      if (!targets) return false;
+      return roomTypes.some(o =>
+        o.id !== rt.id && o.blocks_all_inventory !== true && targets.has(o.id) && occupied(o.id, dateStr)
+      );
+    }
+    return masters.some(m => m.id !== rt.id && targetMap.get(m.id)?.has(rt.id) && occupied(m.id, dateStr));
+  };
+
   const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
     // 整棟保留 → 任何房型該日都鎖
     if (wholeBuildingLockedDates.has(dateStr)) return true;
     const rt = roomTypes.find(r => r.id === roomTypeId);
     if (!rt) return false;
+    // 全區／全棟綁定優先判定（獨立於既有包棟互斥邏輯）
+    if (isBlockedByBlockAll(rt, dateStr)) return true;
     if (rt.is_exclusive_package) {
       if (!rt.is_bound_to_exclusive) return false; // 獨立包棟不受影響
       // 被其他共用包棟鎖,或被綁定的散客房間訂單鎖
