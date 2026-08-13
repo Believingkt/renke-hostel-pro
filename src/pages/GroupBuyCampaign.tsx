@@ -373,7 +373,7 @@ export default function GroupBuyCampaign() {
         )}
         <div className="mx-auto max-w-3xl px-5">
           <div
-            className={`rounded-2xl bg-card px-5 py-6 shadow-[0_10px_40px_-24px_rgba(63,57,51,0.55)] sm:px-8 sm:py-8 ${
+            className={`relative z-10 rounded-2xl bg-card px-5 py-6 shadow-[0_10px_40px_-24px_rgba(63,57,51,0.55)] sm:px-8 sm:py-8 ${
               campaign.cover_image_url ? "-mt-10 sm:-mt-14" : "mt-6"
             }`}
           >
