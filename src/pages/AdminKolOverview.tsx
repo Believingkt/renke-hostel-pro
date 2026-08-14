@@ -18,6 +18,7 @@ interface KolRow {
   accommodation_id: string | null;
   public_token: string | null;
   token_expires_at: string | null;
+  cid_configured: boolean;
 }
 
 interface ApiOrder {
@@ -74,7 +75,8 @@ export default function AdminKolOverview() {
     const [kolRes, apiRes, refRes, codeRes] = await Promise.all([
       supabase
         .from("kol_profiles")
-        .select("id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at")
+        .select("id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, cid_configured")
+        .eq("cid_configured", true)
         .not("cid_code", "is", null)
         .neq("cid_code", ""),
       supabase.functions.invoke("kol-bonus-public", { body: { mode: "internal" } }),
@@ -84,10 +86,17 @@ export default function AdminKolOverview() {
           "id, inviter_kol_id, invitee_kol_id, invite_code, status, override_rate, is_active, invitee_name, invitee_ig, invitee_contact, joined_at, created_at",
         )
         .order("created_at", { ascending: false }),
-      supabase.from("discount_codes").select("id, code"),
+      supabase.from("discount_codes").select("id, code, is_active").eq("is_active", true),
     ]);
 
-    setKols((kolRes.data ?? []) as KolRow[]);
+    const activeCodeSet = new Set(
+      (codeRes.data ?? []).map((c) => (c.code ?? "").trim().toUpperCase()).filter(Boolean),
+    );
+    setKols(
+      ((kolRes.data ?? []) as KolRow[]).filter((k) =>
+        activeCodeSet.has((k.cid_code ?? "").trim().toUpperCase()),
+      ),
+    );
     setReferrals((refRes.data ?? []) as ReferralRow[]);
     const payload = (apiRes.data ?? {}) as any;
     setOrders((payload.orders ?? []) as ApiOrder[]);
