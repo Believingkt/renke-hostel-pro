@@ -184,6 +184,9 @@ Deno.serve(async (req) => {
         payment_status: "unpaid",
         deposit_payment_method: "bank_transfer",
         order_source: GROUP_BUY_ORDER_SOURCE,
+        // 以活動 slug 作為「通路代號」，讓後台來源標籤可顯示各團購活動名稱
+        ota_channel: campaign.slug ?? null,
+
         notes: noteLines.join("\n"),
       })
       .select("*")
