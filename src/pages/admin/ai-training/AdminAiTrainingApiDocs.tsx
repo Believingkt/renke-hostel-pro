@@ -66,7 +66,7 @@ export default function AdminAiTrainingApiDocs() {
           <div className="mt-4 p-4 rounded-lg border bg-muted/40 space-y-2">
             <p className="text-sm font-medium">身份識別：一把 key = 一間民宿</p>
             <p className="text-sm text-muted-foreground">
-              每把 <code>x-api-key</code> 在建立時就<strong>綁定到唯一一間民宿（accommodation_id）</strong>。後端會用這把 key 自動反查所屬民宿，載入該民宿的系統提示詞、知識庫（房型、設施、價格、政策）後再回答。
+              每把 <code>x-api-key</code> 在建立時就<strong>綁定到唯一一間民宿（accommodation_id）</strong>。後端會用這把 key 自動反查所屬民宿，套用平台統一的 AI 管家設定（系統提示詞／語氣），並載入該民宿專屬的知識庫（房型、設施、價格、政策）後再回答。
             </p>
             <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
               <li><strong>不需要</strong>在 <code>messages</code> 或 request body 內傳 <code>accommodation_id</code>，身份由認證層自動帶入。</li>
