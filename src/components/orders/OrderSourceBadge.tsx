@@ -4,8 +4,10 @@ import {
   getOrderOtaCode,
   getOrderSourceDisplayName,
   getHotelnabeOtaDisplayName,
+  getGroupBuyCampaignDisplayName,
   OWLTING_OTA_DISPLAY_NAMES,
 } from "@/utils/orderHelpers";
+import { useGroupBuyCampaignNames } from "@/hooks/use-group-buy-campaign-names";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -20,15 +22,20 @@ interface OrderSourceBadgeProps {
  * hover 時顯示 code / 顯示名稱 / OTA 通路對照，方便管理員辨識來源。
  */
 export function OrderSourceBadge({ order, className, leadingIcon }: OrderSourceBadgeProps) {
+  useGroupBuyCampaignNames();
   const source = order?.order_source ?? "";
   const otaCode = getOrderOtaCode(order);
   const cfg = getOrderSourceConfig(source, otaCode);
   const sourceName = getOrderSourceDisplayName(source);
+  const isGroupBuy = source === "group_buy";
   const otaName = otaCode
-    ? (source === "owlting"
-        ? (OWLTING_OTA_DISPLAY_NAMES[otaCode.toLowerCase()] ?? otaCode)
-        : getHotelnabeOtaDisplayName(otaCode))
+    ? (isGroupBuy
+        ? getGroupBuyCampaignDisplayName(otaCode)
+        : source === "owlting"
+          ? (OWLTING_OTA_DISPLAY_NAMES[otaCode.toLowerCase()] ?? otaCode)
+          : getHotelnabeOtaDisplayName(otaCode))
     : null;
+
 
   return (
     <TooltipProvider delayDuration={200}>
