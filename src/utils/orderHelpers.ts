@@ -49,6 +49,24 @@ export const getOrderStatusConfig = (status: string) => {
   return statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
 };
 
+/**
+ * 網紅團購活動 slug → 活動名稱對照表。
+ * 由 useGroupBuyCampaignNames() 於執行期填入（一次查詢後快取），
+ * 查無對照時直接顯示 slug，行為與 hotelnabe 的 OTA code 相同。
+ */
+export const GROUP_BUY_CAMPAIGN_NAMES: Record<string, string> = {};
+
+export const registerGroupBuyCampaignNames = (map: Record<string, string>) => {
+  for (const [k, v] of Object.entries(map)) {
+    if (k && v) GROUP_BUY_CAMPAIGN_NAMES[k.toLowerCase()] = v;
+  }
+};
+
+export const getGroupBuyCampaignDisplayName = (slug: string) => {
+  const key = (slug || "").trim().toLowerCase();
+  return GROUP_BUY_CAMPAIGN_NAMES[key] ?? slug;
+};
+
 export const getOrderSourceConfig = (source: string, otaCode?: string | null) => {
   const sourceMap: Record<string, { label: string; className: string }> = {
     website: { label: "官網訂房", className: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -76,6 +94,9 @@ export const getOrderSourceConfig = (source: string, otaCode?: string | null) =>
   if (source === "owlting" && trimmed) {
     return { ...base, label: `${base.label} - ${OWLTING_OTA_DISPLAY_NAMES[trimmed.toLowerCase()] ?? trimmed}` };
   }
+  if (source === "group_buy" && trimmed) {
+    return { ...base, label: `${base.label} - ${getGroupBuyCampaignDisplayName(trimmed)}` };
+  }
   return base;
 };
 
@@ -95,12 +116,13 @@ export const getOrderOtaCode = (
 ): string | null => {
   if (!order) return null;
   if (order.order_source === "hotelnabe") return getHotelnabeOtaCode(order);
-  if (order.order_source === "owlting") {
+  if (order.order_source === "owlting" || order.order_source === "group_buy") {
     const v = (order.ota_channel ?? "").toString().trim();
     return v || null;
   }
   return null;
 };
+
 
 /** 訂單來源 code → 中文顯示名稱（供 Tooltip 使用） */
 export const ORDER_SOURCE_DISPLAY_NAMES: Record<string, string> = {
