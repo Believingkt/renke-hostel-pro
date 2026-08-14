@@ -29,7 +29,9 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [], accommodationId }: OrdersTableProps) {
+  useGroupBuyCampaignNames();
   const { config: secondaryConfig } = useSecondaryCurrency(accommodationId);
+
   // 逐筆訂單顯示幣別：order_id → 'TWD' | 'JPY' | ...
   const [displayCurrencyMap, setDisplayCurrencyMap] = useState<Map<string, string>>(new Map());
   useEffect(() => {
