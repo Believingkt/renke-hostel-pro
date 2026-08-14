@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { supabase } from "@/integrations/supabase/client";
 import { getAtmDisplayInfo } from "@/lib/atmPayment";
+import { useGroupBuyCampaignNames } from "@/hooks/use-group-buy-campaign-names";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -29,7 +30,9 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [], accommodationId }: OrdersTableProps) {
+  useGroupBuyCampaignNames();
   const { config: secondaryConfig } = useSecondaryCurrency(accommodationId);
+
   // 逐筆訂單顯示幣別：order_id → 'TWD' | 'JPY' | ...
   const [displayCurrencyMap, setDisplayCurrencyMap] = useState<Map<string, string>>(new Map());
   useEffect(() => {
