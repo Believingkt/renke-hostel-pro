@@ -66,13 +66,14 @@ export function OrderSourceBadge({ order, className, leadingIcon }: OrderSourceB
               <>
                 <div className="border-t border-border/50 my-1" />
                 <div className="flex gap-2">
-                  <span className="text-muted-foreground">OTA code：</span>
+                  <span className="text-muted-foreground">{isGroupBuy ? "活動代號：" : "OTA code："}</span>
                   <span className="font-mono">{otaCode}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-muted-foreground">OTA 通路：</span>
+                  <span className="text-muted-foreground">{isGroupBuy ? "團購活動：" : "OTA 通路："}</span>
                   <span>{otaName}</span>
                 </div>
+
               </>
             )}
           </div>
