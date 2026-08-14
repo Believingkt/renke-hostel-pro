@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { supabase } from "@/integrations/supabase/client";
 import { getAtmDisplayInfo } from "@/lib/atmPayment";
+import { useGroupBuyCampaignNames } from "@/hooks/use-group-buy-campaign-names";
 
 interface OrdersTableProps {
   orders: Order[];
