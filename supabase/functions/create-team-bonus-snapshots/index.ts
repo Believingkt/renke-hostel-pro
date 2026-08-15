@@ -294,6 +294,15 @@ interface DualRevenue {
   excl: number;
 }
 
+/** 逐館營收明細（供快照 lines 使用，未經任何縮放） */
+interface RevenueDetail {
+  accommodation_id: string;
+  incl: number;
+  excl: number;
+  payout: number;
+  ranges: CountableRange[];
+}
+
 /** 加總後的營收：兩軌 + 依各館 payout_basis 決定的實付基準 */
 interface RevenueTotals {
   incl: number;
@@ -301,6 +310,8 @@ interface RevenueTotals {
   payout: number;
   /** 本次加總實際採用的實付基準；各館不一致時為 "mixed" */
   basis: string | null;
+  /** 逐館明細，加總必等於上方總額 */
+  detail: RevenueDetail[];
 }
 
 
@@ -396,7 +407,7 @@ async function getAccommodationRevenue(
 ): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
-  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
+  const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null, detail: [] };
   if (accIds.length === 0 || sources.length === 0) return empty;
 
   const rangesByAcc = await getCountableRangesByAcc(
@@ -446,14 +457,22 @@ async function getAccommodationRevenue(
   }
 
   const basis = await getPayoutBasisByAcc(client, Object.keys(byAcc));
-  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
+  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null, detail: [] };
   const usedBasis = new Set<string>();
   for (const [accId, v] of Object.entries(byAcc)) {
     totals.incl += v.incl;
     totals.excl += v.excl;
     const b = basis[accId] === "include_owner_direct" ? "include_owner_direct" : "exclude_owner_direct";
     usedBasis.add(b);
-    totals.payout += b === "include_owner_direct" ? v.incl : v.excl;
+    const payout = b === "include_owner_direct" ? v.incl : v.excl;
+    totals.payout += payout;
+    totals.detail.push({
+      accommodation_id: accId,
+      incl: v.incl,
+      excl: v.excl,
+      payout,
+      ranges: rangesByAcc[accId] ?? [],
+    });
   }
   totals.basis = usedBasis.size === 0 ? null : usedBasis.size === 1 ? [...usedBasis][0] : "mixed";
   return totals;
@@ -565,29 +584,42 @@ serve(async (req) => {
 
     const tp = getTaipeiParts();
 
-    // 每月 10 日才實際執行（cron 每日呼叫，其餘日期 skip）
-    if (!testMode && tp.day !== 10) {
-      return jsonResponse({
-        success: true,
-        skipped: true,
-        reason: "今日非發放日（每月10日），不執行",
-        today_taipei: `${tp.y}-${pad2(tp.m)}-${pad2(tp.day)}`,
-      });
-    }
-
-    const payoutYear = tp.y;
-    const payoutMonth = tp.m;
-
+    // 資料月與狀態：
+    //  - 1～8 日：上個月資料月，寫「草稿」（每日覆寫）
+    //  - 9 日   ：上個月資料月，寫「定案」並鎖定
+    //  - 10 日起：本月資料月（發放月為下個月），寫「草稿」
+    const isFinalDay = tp.day === 9;
     let snapYear: number;
     let snapMonth: number;
+    let payoutYear: number;
+    let payoutMonth: number;
+
     if (testMonth && /^\d{4}-\d{2}$/.test(testMonth)) {
       const [y, m] = testMonth.split("-").map(Number);
       snapYear = y;
       snapMonth = m;
+      payoutYear = m === 12 ? y + 1 : y;
+      payoutMonth = m === 12 ? 1 : m + 1;
+    } else if (tp.day >= 10) {
+      snapYear = tp.y;
+      snapMonth = tp.m;
+      payoutYear = tp.m === 12 ? tp.y + 1 : tp.y;
+      payoutMonth = tp.m === 12 ? 1 : tp.m + 1;
     } else {
-      snapYear = payoutMonth === 1 ? payoutYear - 1 : payoutYear;
-      snapMonth = payoutMonth === 1 ? 12 : payoutMonth - 1;
+      payoutYear = tp.y;
+      payoutMonth = tp.m;
+      snapYear = tp.m === 1 ? tp.y - 1 : tp.y;
+      snapMonth = tp.m === 1 ? 12 : tp.m - 1;
     }
+
+    const snapshotStatus: "draft" | "final" =
+      body?.finalize === true
+        ? "final"
+        : body?.draft === true
+          ? "draft"
+          : isFinalDay && !testMonth
+            ? "final"
+            : "draft";
 
     const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
     const payoutMonthStr = `${payoutYear}-${pad2(payoutMonth)}`;
@@ -671,6 +703,69 @@ serve(async (req) => {
       kolSources,
     );
 
+    /* ---------- 逐館明細（snapshot lines） ---------- */
+    interface LineDraft {
+      accommodation_id: string | null;
+      accommodation_name: string | null;
+      revenue_base: number | null;
+      revenue_base_incl_owner: number | null;
+      revenue_base_excl_owner: number | null;
+      rate_value: number | null;
+      rate_kind: "percent" | "fixed";
+      amount: number;
+      amount_incl_owner: number | null;
+      amount_excl_owner: number | null;
+      split_headcount: number | null;
+      prorate_ratio: number | null;
+      countable_ranges: CountableRange[];
+      multiplier?: number | null;
+    }
+
+    /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
+    const revenueLines = (
+      rev: RevenueTotals,
+      rate: number | null,
+      opts?: { splitHeadcount?: number | null; prorateRatio?: number | null },
+    ): LineDraft[] => {
+      const r = Number(rate ?? 0);
+      const headcount = opts?.splitHeadcount ?? null;
+      const ratio = opts?.prorateRatio ?? null;
+      const extra = (headcount && headcount > 0 ? 1 / headcount : 1) * (ratio ?? 1);
+      return rev.detail.map((d) => ({
+        accommodation_id: d.accommodation_id,
+        accommodation_name: accNameById.get(d.accommodation_id) ?? null,
+        revenue_base: d.payout,
+        revenue_base_incl_owner: d.incl,
+        revenue_base_excl_owner: d.excl,
+        rate_value: rate,
+        rate_kind: "percent" as const,
+        amount: d.payout * r * extra,
+        amount_incl_owner: d.incl * r * extra,
+        amount_excl_owner: d.excl * r * extra,
+        split_headcount: headcount,
+        prorate_ratio: ratio,
+        countable_ranges: d.ranges,
+      }));
+    };
+
+    /** 固定額類：逐館一份固定金額 */
+    const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
+      accIds.map((id) => ({
+        accommodation_id: id,
+        accommodation_name: accNameById.get(id) ?? null,
+        revenue_base: null,
+        revenue_base_incl_owner: null,
+        revenue_base_excl_owner: null,
+        rate_value: fixed,
+        rate_kind: "fixed" as const,
+        amount: Number(fixed ?? 0),
+        amount_incl_owner: null,
+        amount_excl_owner: null,
+        split_headcount: null,
+        prorate_ratio: null,
+        countable_ranges: [],
+      }));
+
     /* ---------- 組出待寫入的 snapshot ---------- */
     interface Row {
       bonus_type: BonusType;
@@ -696,6 +791,8 @@ serve(async (req) => {
       period_days?: number | null;
       prorate_ratio?: number | null;
       settings_snapshot: Record<string, unknown>;
+      /** 逐館明細（未經任何縮放，加總 = amount） */
+      lines?: LineDraft[];
     }
 
 
@@ -749,6 +846,7 @@ serve(async (req) => {
         amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
         amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
         payout_basis_used: myRevenue.basis,
+        lines: revenueLines(myRevenue, amPerfRate),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -769,6 +867,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: amVenueFixed,
         venue_count: managedNoTravel.length,
+        lines: fixedLines(managedNoTravel, amVenueFixed),
         amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
@@ -840,6 +939,10 @@ serve(async (req) => {
         amount_incl_owner: closerHeadcount > 0 ? (closerPoolIncl / closerHeadcount) * ratio : 0,
         amount_excl_owner: closerHeadcount > 0 ? (closerPoolExcl / closerHeadcount) * ratio : 0,
         payout_basis_used: companyRevenue.basis,
+        lines: revenueLines(companyRevenue, closerPerfRate, {
+          splitHeadcount: closerHeadcount,
+          prorateRatio: ratio,
+        }),
         active_days: activeDays,
         period_days: periodDays,
         prorate_ratio: ratio,
@@ -884,6 +987,7 @@ serve(async (req) => {
         amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
         amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
         payout_basis_used: companyRevenue.basis,
+        lines: revenueLines(companyRevenue, rate),
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -912,6 +1016,7 @@ serve(async (req) => {
         amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
         amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
         payout_basis_used: kolRevenue.basis,
+        lines: revenueLines(kolRevenue, kolRate),
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
@@ -952,6 +1057,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: kolMonthlyFixed,
         venue_count: kolMonthlyAccIds.length,
+        lines: fixedLines(kolMonthlyAccIds, kolMonthlyFixed),
         amount: Number(kolMonthlyFixed ?? 0) * kolMonthlyAccIds.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
@@ -988,6 +1094,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: venueClosingFixed,
         venue_count: hitIds.length,
+        lines: fixedLines(hitIds, venueClosingFixed),
         amount: Number(venueClosingFixed ?? 0) * hitIds.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
@@ -1020,6 +1127,7 @@ serve(async (req) => {
         };
         const m = v(own) * v(all);
         row.multiplier_used = m;
+        for (const l of row.lines ?? []) l.multiplier = m;
         row.multiplier_source =
           m === 1
             ? null
@@ -1047,18 +1155,41 @@ serve(async (req) => {
         .map((m) => String(m.source_id)),
     );
 
+    /** 重寫某筆快照的逐館明細（先清空再寫入，加總必等於 amount） */
+    const writeLines = async (snapshotId: string, lines: LineDraft[] | undefined) => {
+      await supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .delete()
+        .eq("snapshot_id", snapshotId);
+      const payload = (lines ?? []).filter((l) => Number(l.amount) !== 0);
+      if (payload.length === 0) return;
+      const { error } = await supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .insert(payload.map((l) => ({ ...l, snapshot_id: snapshotId })));
+      if (error) console.error("[create-team-bonus-snapshots] lines insert failed", error.message);
+    };
+
     for (const row of rows) {
-      const { error: insErr } = await supabase.from("teamcommission_bonus_snapshots").insert(row);
+      const { lines, ...snapshotRow } = row;
+      const { data: inserted, error: insErr } = await supabase
+        .from("teamcommission_bonus_snapshots")
+        .insert({ ...snapshotRow, status: snapshotStatus })
+        .select("id")
+        .maybeSingle();
       if (insErr) {
         if ((insErr as any).code === "23505") {
           const { data: existing } = await supabase
             .from("teamcommission_bonus_snapshots")
-            .select("id")
+            .select("id, status")
             .eq("bonus_type", row.bonus_type)
             .eq("member_id", row.member_id)
             .eq("snapshot_month", row.snapshot_month)
             .maybeSingle();
-          if (existing?.id && !paidSnapshotIds.has(String(existing.id))) {
+          const isLocked =
+            !!existing &&
+            (paidSnapshotIds.has(String(existing.id)) ||
+              (existing.status === "final" && snapshotStatus !== "final"));
+          if (existing?.id && !isLocked) {
             const { error: updErr } = await supabase
               .from("teamcommission_bonus_snapshots")
               .update({
@@ -1079,8 +1210,7 @@ serve(async (req) => {
                 period_days: row.period_days ?? null,
                 prorate_ratio: row.prorate_ratio ?? null,
                 settings_snapshot: row.settings_snapshot,
-
-
+                status: snapshotStatus,
               })
               .eq("id", existing.id);
             if (updErr) {
@@ -1090,6 +1220,7 @@ serve(async (req) => {
                 error: updErr.message,
               });
             } else {
+              await writeLines(String(existing.id), lines);
               updated++;
             }
           } else {
@@ -1103,12 +1234,14 @@ serve(async (req) => {
           });
         }
       } else {
+        if (inserted?.id) await writeLines(String(inserted.id), lines);
         created++;
       }
     }
 
 
     console.log("[create-team-bonus-snapshots] done", {
+      status: snapshotStatus,
       snapshotMonthStr,
       payoutMonthStr,
       candidates: rows.length,
@@ -1121,6 +1254,7 @@ serve(async (req) => {
     return jsonResponse({
       success: true,
       test_mode: testMode,
+      status: snapshotStatus,
       snapshot_month: snapshotMonthStr,
       payout_month: payoutMonthStr,
       candidates: rows.length,

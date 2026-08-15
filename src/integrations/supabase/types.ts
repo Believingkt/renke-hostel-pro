@@ -11270,6 +11270,81 @@ export type Database = {
         }
         Relationships: []
       }
+      teamcommission_bonus_snapshot_lines: {
+        Row: {
+          accommodation_id: string | null
+          accommodation_name: string | null
+          amount: number
+          amount_excl_owner: number | null
+          amount_incl_owner: number | null
+          countable_ranges: Json
+          created_at: string
+          id: string
+          multiplier: number | null
+          prorate_ratio: number | null
+          rate_kind: string
+          rate_value: number | null
+          revenue_base: number | null
+          revenue_base_excl_owner: number | null
+          revenue_base_incl_owner: number | null
+          snapshot_id: string
+          split_headcount: number | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          accommodation_name?: string | null
+          amount?: number
+          amount_excl_owner?: number | null
+          amount_incl_owner?: number | null
+          countable_ranges?: Json
+          created_at?: string
+          id?: string
+          multiplier?: number | null
+          prorate_ratio?: number | null
+          rate_kind?: string
+          rate_value?: number | null
+          revenue_base?: number | null
+          revenue_base_excl_owner?: number | null
+          revenue_base_incl_owner?: number | null
+          snapshot_id: string
+          split_headcount?: number | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          accommodation_name?: string | null
+          amount?: number
+          amount_excl_owner?: number | null
+          amount_incl_owner?: number | null
+          countable_ranges?: Json
+          created_at?: string
+          id?: string
+          multiplier?: number | null
+          prorate_ratio?: number | null
+          rate_kind?: string
+          rate_value?: number | null
+          revenue_base?: number | null
+          revenue_base_excl_owner?: number | null
+          revenue_base_incl_owner?: number | null
+          snapshot_id?: string
+          split_headcount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamcommission_bonus_snapshot_lines_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teamcommission_bonus_snapshot_lines_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "teamcommission_bonus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teamcommission_bonus_snapshots: {
         Row: {
           active_days: number | null
@@ -11293,6 +11368,7 @@ export type Database = {
           rate: number | null
           settings_snapshot: Json | null
           snapshot_month: string
+          status: string
           venue_count: number | null
         }
         Insert: {
@@ -11317,6 +11393,7 @@ export type Database = {
           rate?: number | null
           settings_snapshot?: Json | null
           snapshot_month: string
+          status?: string
           venue_count?: number | null
         }
         Update: {
@@ -11341,6 +11418,7 @@ export type Database = {
           rate?: number | null
           settings_snapshot?: Json | null
           snapshot_month?: string
+          status?: string
           venue_count?: number | null
         }
         Relationships: [

@@ -58,6 +58,14 @@ interface VenueRevenueLine {
   revenue: number;
   amount: number;
   rangeNote?: string;
+  /** 當期費率（抽成型為小數，如 0.005；固定額型為金額） */
+  rate?: number | null;
+  /** 費率型態：percent（營收 × 費率）／fixed（固定金額 × 館數） */
+  rateKind?: "percent" | "fixed";
+  /** 均分人數（成交組績效等均分型） */
+  splitHeadcount?: number | null;
+  /** 在職比例（未滿月者） */
+  prorateRatio?: number | null;
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
@@ -86,6 +94,7 @@ interface TeamHomePayload {
   multMap: BonusMultiplierRow[];
   scoutFromPayoutFlag: boolean;
   monthlySettledFlag: boolean;
+  monthlyDraftFlag: boolean;
   amManagerFlag: boolean;
   closerManagerFlag: boolean;
   kolRecipientFlag: boolean;
@@ -274,6 +283,7 @@ export default function TeamHome() {
   const [scoutFromPayout, setScoutFromPayout] = useState(false);
   // 月結系是否已由後端結算（snapshot 存在）
   const [monthlySettled, setMonthlySettled] = useState(false);
+  const [monthlyDraft, setMonthlyDraft] = useState(false);
 
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
@@ -356,6 +366,7 @@ export default function TeamHome() {
     setMultiplierRows(p.multMap);
     setScoutFromPayout(p.scoutFromPayoutFlag);
     setMonthlySettled(p.monthlySettledFlag);
+    setMonthlyDraft(p.monthlyDraftFlag);
     setIsAmManager(p.amManagerFlag);
     setIsCloserManager(p.closerManagerFlag);
     setIsKolBonusRecipient(p.kolRecipientFlag);
@@ -450,6 +461,7 @@ export default function TeamHome() {
         let closerSum = 0;
         let videoSum = 0;
         let monthlySettledFlag = false;
+        let monthlyDraftFlag = false;
         // 回溯補建：快照的資料月不等於本期資料月（前期漏建、於本期才補上）
         let closerBackfillSum = 0;
         let closerBackfillCount = 0;
@@ -1088,6 +1100,8 @@ export default function TeamHome() {
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
                 amount: rev * rate,
+                rate,
+                rateKind: "percent" as const,
                 rangeNote: rangeNoteOf(accId),
               }));
 
@@ -1262,12 +1276,13 @@ export default function TeamHome() {
         if (isMonthlyPayout && profileId) {
           const { data: bonusSnaps } = await db
             .from("teamcommission_bonus_snapshots")
-            .select("bonus_type, amount")
+            .select("id, bonus_type, amount, status")
             .eq("payout_month", payoutMonthKey)
             .eq("member_id", profileId);
           const snapRows = (bonusSnaps ?? []) as any[];
           if (snapRows.length > 0) {
             monthlySettledFlag = true;
+            monthlyDraftFlag = snapRows.every((r) => String(r.status ?? "final") === "draft");
             const byType = new Map<string, number>();
             for (const r of snapRows) {
               byType.set(
@@ -1290,9 +1305,39 @@ export default function TeamHome() {
                 venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
               }
             }
-            // 已結算金額以快照為準；逐館明細（即時費率算出）等比例縮放，
-            // 讓各館別加總＝快照金額，避免明細與實付總額對不上。
+            // 逐館明細優先讀快照 lines（凍結時就寫好的營收／費率／金額，可用公式反推）。
+            const snapIds = snapRows.map((r) => String(r.id)).filter(Boolean);
+            const linesByType = new Map<string, VenueRevenueLine[]>();
+            if (snapIds.length > 0) {
+              const { data: snapLines } = await db
+                .from("teamcommission_bonus_snapshot_lines")
+                .select(
+                  "snapshot_id, accommodation_name, revenue_base, rate_value, rate_kind, amount, split_headcount, prorate_ratio",
+                )
+                .in("snapshot_id", snapIds);
+              const typeById = new Map(snapRows.map((r) => [String(r.id), String(r.bonus_type)]));
+              for (const l of (snapLines ?? []) as any[]) {
+                const bt = typeById.get(String(l.snapshot_id));
+                if (!bt) continue;
+                const arr = linesByType.get(bt) ?? [];
+                arr.push({
+                  name: String(l.accommodation_name ?? "其他"),
+                  revenue: Number(l.revenue_base ?? 0),
+                  amount: Number(l.amount ?? 0),
+                  rate: l.rate_value === null ? null : Number(l.rate_value),
+                  rateKind: l.rate_kind === "fixed" ? "fixed" : "percent",
+                  splitHeadcount: l.split_headcount === null ? null : Number(l.split_headcount),
+                  prorateRatio: l.prorate_ratio === null ? null : Number(l.prorate_ratio),
+                });
+                linesByType.set(bt, arr);
+              }
+              for (const [bt, arr] of linesByType) {
+                breakdown[bt] = arr.sort((a, b) => b.amount - a.amount);
+              }
+            }
+            // 沒有快照明細的舊資料：維持等比例縮放，讓明細加總＝快照金額。
             for (const k of Object.keys(breakdown)) {
+              if (linesByType.has(k)) continue;
               if (!byType.has(k)) {
                 delete breakdown[k];
                 continue;
@@ -1345,6 +1390,7 @@ export default function TeamHome() {
           multMap,
           scoutFromPayoutFlag,
           monthlySettledFlag,
+          monthlyDraftFlag,
           amManagerFlag,
           closerManagerFlag,
           kolRecipientFlag,
@@ -1391,7 +1437,14 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number; rangeNote?: string }>;
+    lines?: Array<{
+      label: string;
+      amount: number;
+      multiplier: number;
+      revenue?: number;
+      rangeNote?: string;
+      rateNote?: string;
+    }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
@@ -1401,7 +1454,11 @@ export default function TeamHome() {
   const monthlyNote = (extra?: string) =>
     [
       `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
-      monthlySettled ? "已結算，實付金額" : "即時試算，10 日結算後定版",
+      monthlySettled
+        ? monthlyDraft
+          ? "每日自動試算（草稿），9 日 09:00 定案"
+          : "已結算，實付金額"
+        : "即時試算，9 日 09:00 定案",
       extra,
     ]
       .filter(Boolean)
@@ -1416,6 +1473,19 @@ export default function TeamHome() {
       .filter(Boolean)
       .join("・");
 
+  /** 明細列的「當期費率」文字：抽成型顯示百分比，均分型補上人數與在職比例 */
+  const rateNoteOf = (d: VenueRevenueLine) => {
+    if (d.rate === null || d.rate === undefined) return undefined;
+    if (d.rateKind === "fixed") return `固定 ${fmt(d.rate)}／館`;
+    const pct = `${(d.rate * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+    const parts = [pct];
+    if (d.splitHeadcount && d.splitHeadcount > 1) parts.push(`÷ 在職 ${d.splitHeadcount} 人`);
+    if (d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1) {
+      parts.push(`× 在職比例 ${(d.prorateRatio * 100).toFixed(0)}%`);
+    }
+    return parts.join(" ");
+  };
+
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
@@ -1424,6 +1494,7 @@ export default function TeamHome() {
       amount: roundBoosted(d.amount, m),
       multiplier: m,
       rangeNote: d.rangeNote,
+      rateNote: rateNoteOf(d),
     }));
 
   if (showCloser && isMonthly) {
@@ -1895,6 +1966,7 @@ export default function TeamHome() {
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>
                         <th className="text-right py-2 font-medium">營收</th>
+                        <th className="text-right py-2 font-medium">當期費率</th>
                         <th className="text-right py-2 font-medium">獎金</th>
                       </tr>
                     </thead>
@@ -1911,6 +1983,9 @@ export default function TeamHome() {
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
+                          </td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap text-muted-foreground">
+                            {ln.rateNote ?? "—"}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {fmt(ln.amount)}

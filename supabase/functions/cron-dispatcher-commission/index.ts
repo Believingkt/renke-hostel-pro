@@ -148,7 +148,8 @@ Deno.serve(async (req) => {
     }),
   );
 
-  // 第4步：八種團隊獎金月結鎖定（函式內部自行守門：僅台北時間每月10日實際執行）
+  // 第4步：八種團隊獎金快照（函式內部自行決定資料月與 draft/final：
+  //        1～8 日上月草稿、9 日上月定案、10 日起本月草稿）
   results.push(await callFunction("create-team-bonus-snapshots", snapshotBody));
 
 
