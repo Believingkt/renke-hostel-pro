@@ -798,17 +798,18 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         .filter(Boolean);
       const linesBySnapshot = new Map<
         string,
-        { name: string; revenue: number | null; amount: number }[]
+        { accId: string | null; name: string; revenue: number | null; amount: number }[]
       >();
       if (snapIdList.length > 0) {
         const { data: snapLines } = await supabase
           .from("teamcommission_bonus_snapshot_lines")
-          .select("snapshot_id, accommodation_name, revenue_base, amount")
+          .select("snapshot_id, accommodation_id, accommodation_name, revenue_base, amount")
           .in("snapshot_id", snapIdList);
         for (const l of (snapLines ?? []) as any[]) {
           const sid = String(l.snapshot_id);
           const arr = linesBySnapshot.get(sid) ?? [];
           arr.push({
+            accId: l.accommodation_id ? String(l.accommodation_id) : null,
             name: String(l.accommodation_name ?? "其他"),
             revenue: l.revenue_base === null ? null : Number(l.revenue_base),
             amount: Math.round(Number(l.amount ?? 0)),
@@ -842,7 +843,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             pushItem(
               "teamcommission_bonus_snapshots",
               r.id,
-              `${r.bonus_type}#${idx}`,
+              `${r.bonus_type}#${l.accId ?? idx}`,
               profileById.get(r.member_id),
               label,
               detail,
