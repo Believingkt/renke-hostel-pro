@@ -40,7 +40,7 @@ const TEAM_ROLES: TeamRole[] = [
   "closer_manager",
   "scout",
   "scout_manager",
-  // "video", // 影音組分潤已停用，不再開放登入角色選擇（歷史資料保留）
+  "video", // 影音組分潤已停用：保留白名單讓既有成員仍可登入查看歷史
   "franchise",
   "franchise_internal",
   "franchise_external",

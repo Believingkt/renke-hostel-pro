@@ -1808,12 +1808,8 @@ export default function TeamOrders() {
                           value={form.ad_id ?? ""}
                           onChange={(e) => {
                             const nextAdId = e.target.value || null;
-                            const matched = matchVideoCreatorByAdId(nextAdId);
-                            setForm((f) => ({
-                              ...f,
-                              ad_id: nextAdId,
-                              video_creator_id: matched,
-                            }));
+                            // 影音組分潤已停用：不再依廣告編號自動指派影音組
+                            setForm((f) => ({ ...f, ad_id: nextAdId }));
                           }}
                         />
                       </div>
