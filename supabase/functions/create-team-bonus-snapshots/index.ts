@@ -690,6 +690,68 @@ serve(async (req) => {
       kolSources,
     );
 
+    /* ---------- 逐館明細（snapshot lines） ---------- */
+    interface LineDraft {
+      accommodation_id: string | null;
+      accommodation_name: string | null;
+      revenue_base: number | null;
+      revenue_base_incl_owner: number | null;
+      revenue_base_excl_owner: number | null;
+      rate_value: number | null;
+      rate_kind: "percent" | "fixed";
+      amount: number;
+      amount_incl_owner: number | null;
+      amount_excl_owner: number | null;
+      split_headcount: number | null;
+      prorate_ratio: number | null;
+      countable_ranges: CountableRange[];
+    }
+
+    /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
+    const revenueLines = (
+      rev: RevenueTotals,
+      rate: number | null,
+      opts?: { splitHeadcount?: number | null; prorateRatio?: number | null },
+    ): LineDraft[] => {
+      const r = Number(rate ?? 0);
+      const headcount = opts?.splitHeadcount ?? null;
+      const ratio = opts?.prorateRatio ?? null;
+      const extra = (headcount && headcount > 0 ? 1 / headcount : 1) * (ratio ?? 1);
+      return rev.detail.map((d) => ({
+        accommodation_id: d.accommodation_id,
+        accommodation_name: accNameById.get(d.accommodation_id) ?? null,
+        revenue_base: d.payout,
+        revenue_base_incl_owner: d.incl,
+        revenue_base_excl_owner: d.excl,
+        rate_value: rate,
+        rate_kind: "percent" as const,
+        amount: d.payout * r * extra,
+        amount_incl_owner: d.incl * r * extra,
+        amount_excl_owner: d.excl * r * extra,
+        split_headcount: headcount,
+        prorate_ratio: ratio,
+        countable_ranges: d.ranges,
+      }));
+    };
+
+    /** 固定額類：逐館一份固定金額 */
+    const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
+      accIds.map((id) => ({
+        accommodation_id: id,
+        accommodation_name: accNameById.get(id) ?? null,
+        revenue_base: null,
+        revenue_base_incl_owner: null,
+        revenue_base_excl_owner: null,
+        rate_value: fixed,
+        rate_kind: "fixed" as const,
+        amount: Number(fixed ?? 0),
+        amount_incl_owner: null,
+        amount_excl_owner: null,
+        split_headcount: null,
+        prorate_ratio: null,
+        countable_ranges: [],
+      }));
+
     /* ---------- 組出待寫入的 snapshot ---------- */
     interface Row {
       bonus_type: BonusType;
