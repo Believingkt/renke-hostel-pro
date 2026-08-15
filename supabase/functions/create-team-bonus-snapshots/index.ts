@@ -584,23 +584,42 @@ serve(async (req) => {
 
     const tp = getTaipeiParts();
 
-    // 每日產生「草稿」快照（可覆寫）；每月 9 日起首次執行時寫成「定案」並鎖定。
-    const snapshotStatus: "draft" | "final" =
-      body?.finalize === true ? "final" : body?.draft === true ? "draft" : tp.day >= 9 ? "final" : "draft";
-
-    const payoutYear = tp.y;
-    const payoutMonth = tp.m;
-
+    // 資料月與狀態：
+    //  - 1～8 日：上個月資料月，寫「草稿」（每日覆寫）
+    //  - 9 日   ：上個月資料月，寫「定案」並鎖定
+    //  - 10 日起：本月資料月（發放月為下個月），寫「草稿」
+    const isFinalDay = tp.day === 9;
     let snapYear: number;
     let snapMonth: number;
+    let payoutYear: number;
+    let payoutMonth: number;
+
     if (testMonth && /^\d{4}-\d{2}$/.test(testMonth)) {
       const [y, m] = testMonth.split("-").map(Number);
       snapYear = y;
       snapMonth = m;
+      payoutYear = m === 12 ? y + 1 : y;
+      payoutMonth = m === 12 ? 1 : m + 1;
+    } else if (tp.day >= 10) {
+      snapYear = tp.y;
+      snapMonth = tp.m;
+      payoutYear = tp.m === 12 ? tp.y + 1 : tp.y;
+      payoutMonth = tp.m === 12 ? 1 : tp.m + 1;
     } else {
-      snapYear = payoutMonth === 1 ? payoutYear - 1 : payoutYear;
-      snapMonth = payoutMonth === 1 ? 12 : payoutMonth - 1;
+      payoutYear = tp.y;
+      payoutMonth = tp.m;
+      snapYear = tp.m === 1 ? tp.y - 1 : tp.y;
+      snapMonth = tp.m === 1 ? 12 : tp.m - 1;
     }
+
+    const snapshotStatus: "draft" | "final" =
+      body?.finalize === true
+        ? "final"
+        : body?.draft === true
+          ? "draft"
+          : isFinalDay && !testMonth
+            ? "final"
+            : "draft";
 
     const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
     const payoutMonthStr = `${payoutYear}-${pad2(payoutMonth)}`;
