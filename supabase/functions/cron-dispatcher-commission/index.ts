@@ -131,6 +131,9 @@ Deno.serve(async (req) => {
   const snapshotBody: Record<string, unknown> = snapshotMonth
     ? { test_mode: true, test_month: snapshotMonth }
     : {};
+  // 手動回填時可指定要以 final（定案）或 draft（草稿）寫入快照
+  if (snapshotMonth && reqBody?.finalize === true) snapshotBody.finalize = true;
+  if (snapshotMonth && reqBody?.draft === true) snapshotBody.draft = true;
 
   console.log(`[${FUNCTION_NAME}] start`, { startedAt, scout, snapshotMonth });
 
