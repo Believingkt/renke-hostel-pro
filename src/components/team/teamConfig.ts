@@ -41,7 +41,7 @@ export const TEAM_ROLES: TeamRole[] = [
   "closer_manager",
   "scout",
   "scout_manager",
-  "video",
+  "video", // 影音組分潤已停用：保留以顯示既有成員與歷史資料，不再開放指派
   "franchise_internal",
   "franchise_external",
   "franchise_manager",

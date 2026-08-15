@@ -186,18 +186,9 @@ export default function TeamOrders() {
   >([]);
   const [adNameByAdId, setAdNameByAdId] = useState<Record<string, string>>({});
 
-  function matchVideoCreatorByAdId(adId: string | null): string | null {
-    if (!adId) return null;
-    const adName = adNameByAdId[adId];
-    if (!adName) return null;
-    const lower = adName.toLowerCase();
-    for (const r of adVideoRules) {
-      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
-        return r.video_creator_id;
-      }
-    }
-    return null;
-  }
+  // 影音組分潤已停用：原「依廣告編號自動指派影音組」邏輯已移除
+
+
 
 
   function emptyMeta(): MetaRow {
@@ -1808,12 +1799,8 @@ export default function TeamOrders() {
                           value={form.ad_id ?? ""}
                           onChange={(e) => {
                             const nextAdId = e.target.value || null;
-                            const matched = matchVideoCreatorByAdId(nextAdId);
-                            setForm((f) => ({
-                              ...f,
-                              ad_id: nextAdId,
-                              video_creator_id: matched,
-                            }));
+                            // 影音組分潤已停用：不再依廣告編號自動指派影音組
+                            setForm((f) => ({ ...f, ad_id: nextAdId }));
                           }}
                         />
                       </div>
