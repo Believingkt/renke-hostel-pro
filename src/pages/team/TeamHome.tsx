@@ -69,7 +69,11 @@ interface VenueRevenueLine {
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
+/** 首屏資料快取存活時間：10 分鐘內回訪直接沿用，不再重算。 */
+const TEAM_HOME_CACHE_TTL_MS = 10 * 60 * 1000;
+
 interface TeamHomePayload {
+
   closerSum: number;
   closerBackfillSum: number;
   closerBackfillCount: number;
