@@ -1319,8 +1319,10 @@ export default function TeamHome() {
               }
             }
           }
+          } // end if (!snapshotCoversAll)
 
         }
+
 
         // ===== 月結型：已結算則以正式快照為準（與「獎金管理 → 發放管理」一致）=====
         if (isMonthlyPayout && profileId) {
