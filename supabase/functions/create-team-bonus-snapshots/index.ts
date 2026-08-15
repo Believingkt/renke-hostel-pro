@@ -715,6 +715,8 @@ serve(async (req) => {
       period_days?: number | null;
       prorate_ratio?: number | null;
       settings_snapshot: Record<string, unknown>;
+      /** 逐館明細（未經任何縮放，加總 = amount） */
+      lines?: LineDraft[];
     }
 
 
