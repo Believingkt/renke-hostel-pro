@@ -58,6 +58,14 @@ interface VenueRevenueLine {
   revenue: number;
   amount: number;
   rangeNote?: string;
+  /** 當期費率（抽成型為小數，如 0.005；固定額型為金額） */
+  rate?: number | null;
+  /** 費率型態：percent（營收 × 費率）／fixed（固定金額 × 館數） */
+  rateKind?: "percent" | "fixed";
+  /** 均分人數（成交組績效等均分型） */
+  splitHeadcount?: number | null;
+  /** 在職比例（未滿月者） */
+  prorateRatio?: number | null;
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
