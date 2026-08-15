@@ -1097,7 +1097,6 @@ export default function TeamOrders() {
                 ) : (
                   pageItems.map((o) => {
                     const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
-                    const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
                     const isCancelled = o.order_status === "cancelled";
                     return (
                     <TableRow
