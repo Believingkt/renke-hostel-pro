@@ -1025,8 +1025,55 @@ export default function TeamHome() {
         let kolRecipientFlag = false;
         const missing: Record<string, boolean> = {};
 
+        // ===== 先讀快照（含逐館明細）=====
+        // 有完整快照明細時，整段「即時逐館營收重算」可以直接略過：
+        // 首屏只剩兩次查詢，速度大幅提升，且數字與發放管理完全一致。
+        let snapRows: any[] = [];
+        const snapLinesByType = new Map<string, VenueRevenueLine[]>();
+        if (isMonthlyPayout && profileId) {
+          const { data: bonusSnaps } = await db
+            .from("teamcommission_bonus_snapshots")
+            .select("id, bonus_type, amount, status")
+            .eq("payout_month", payoutMonthKey)
+            .eq("member_id", profileId);
+          snapRows = (bonusSnaps ?? []) as any[];
+          const snapIds = snapRows.map((r) => String(r.id)).filter(Boolean);
+          if (snapIds.length > 0) {
+            const { data: snapLines } = await db
+              .from("teamcommission_bonus_snapshot_lines")
+              .select(
+                "snapshot_id, accommodation_name, revenue_base, rate_value, rate_kind, amount, split_headcount, prorate_ratio",
+              )
+              .in("snapshot_id", snapIds);
+            const typeById = new Map(snapRows.map((r) => [String(r.id), String(r.bonus_type)]));
+            for (const l of (snapLines ?? []) as any[]) {
+              const bt = typeById.get(String(l.snapshot_id));
+              if (!bt) continue;
+              const arr = snapLinesByType.get(bt) ?? [];
+              arr.push({
+                name: String(l.accommodation_name ?? "其他"),
+                revenue: Number(l.revenue_base ?? 0),
+                amount: Number(l.amount ?? 0),
+                rate: l.rate_value === null ? null : Number(l.rate_value),
+                rateKind: l.rate_kind === "fixed" ? "fixed" : "percent",
+                splitHeadcount: l.split_headcount === null ? null : Number(l.split_headcount),
+                prorateRatio: l.prorate_ratio === null ? null : Number(l.prorate_ratio),
+              });
+              snapLinesByType.set(bt, arr);
+            }
+          }
+        }
+        // 只有「每一筆非零快照都有逐館明細」時才略過即時計算，
+        // 舊快照（無明細）仍走即時計算 + 等比例縮放的原路徑。
+        const snapshotCoversAll =
+          snapRows.length > 0 &&
+          snapRows.every(
+            (r) => Number(r.amount ?? 0) === 0 || snapLinesByType.has(String(r.bonus_type)),
+          );
+
         {
           const client = db as any;
+
           // 版本切點一律取「資料月當時生效版本」（BONUS_RULES_SPEC §0），
           // 與發放管理快照相同，避免 TeamHome 用「今天」而與快照對不上。
           const versionAsOf = monthStartDate;
@@ -1047,7 +1094,10 @@ export default function TeamHome() {
           closerManagerFlag = !!profileId && closerManagerId === profileId;
           kolRecipientFlag = !!profileId && kolRecipientId === profileId;
 
+          // 快照已含完整逐館明細 → 略過以下所有即時營收查詢（效能主要瓶頸）。
+          if (!snapshotCoversAll) {
           // 月結型獎金只在 10 日期發放；25 日期不做任何營收計算。
+
           const needCompanyRevenue =
             isMonthlyPayout &&
             (amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag);
@@ -1269,17 +1319,13 @@ export default function TeamHome() {
               }
             }
           }
+          } // end if (!snapshotCoversAll)
 
         }
 
+
         // ===== 月結型：已結算則以正式快照為準（與「獎金管理 → 發放管理」一致）=====
         if (isMonthlyPayout && profileId) {
-          const { data: bonusSnaps } = await db
-            .from("teamcommission_bonus_snapshots")
-            .select("id, bonus_type, amount, status")
-            .eq("payout_month", payoutMonthKey)
-            .eq("member_id", profileId);
-          const snapRows = (bonusSnaps ?? []) as any[];
           if (snapRows.length > 0) {
             monthlySettledFlag = true;
             monthlyDraftFlag = snapRows.every((r) => String(r.status ?? "final") === "draft");
@@ -1306,35 +1352,11 @@ export default function TeamHome() {
               }
             }
             // 逐館明細優先讀快照 lines（凍結時就寫好的營收／費率／金額，可用公式反推）。
-            const snapIds = snapRows.map((r) => String(r.id)).filter(Boolean);
-            const linesByType = new Map<string, VenueRevenueLine[]>();
-            if (snapIds.length > 0) {
-              const { data: snapLines } = await db
-                .from("teamcommission_bonus_snapshot_lines")
-                .select(
-                  "snapshot_id, accommodation_name, revenue_base, rate_value, rate_kind, amount, split_headcount, prorate_ratio",
-                )
-                .in("snapshot_id", snapIds);
-              const typeById = new Map(snapRows.map((r) => [String(r.id), String(r.bonus_type)]));
-              for (const l of (snapLines ?? []) as any[]) {
-                const bt = typeById.get(String(l.snapshot_id));
-                if (!bt) continue;
-                const arr = linesByType.get(bt) ?? [];
-                arr.push({
-                  name: String(l.accommodation_name ?? "其他"),
-                  revenue: Number(l.revenue_base ?? 0),
-                  amount: Number(l.amount ?? 0),
-                  rate: l.rate_value === null ? null : Number(l.rate_value),
-                  rateKind: l.rate_kind === "fixed" ? "fixed" : "percent",
-                  splitHeadcount: l.split_headcount === null ? null : Number(l.split_headcount),
-                  prorateRatio: l.prorate_ratio === null ? null : Number(l.prorate_ratio),
-                });
-                linesByType.set(bt, arr);
-              }
-              for (const [bt, arr] of linesByType) {
-                breakdown[bt] = arr.sort((a, b) => b.amount - a.amount);
-              }
+            const linesByType = snapLinesByType;
+            for (const [bt, arr] of linesByType) {
+              breakdown[bt] = [...arr].sort((a, b) => b.amount - a.amount);
             }
+
             // 沒有快照明細的舊資料：維持等比例縮放，讓明細加總＝快照金額。
             for (const k of Object.keys(breakdown)) {
               if (linesByType.has(k)) continue;
