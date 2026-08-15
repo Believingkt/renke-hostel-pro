@@ -457,14 +457,22 @@ async function getAccommodationRevenue(
   }
 
   const basis = await getPayoutBasisByAcc(client, Object.keys(byAcc));
-  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null };
+  const totals: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null, detail: [] };
   const usedBasis = new Set<string>();
   for (const [accId, v] of Object.entries(byAcc)) {
     totals.incl += v.incl;
     totals.excl += v.excl;
     const b = basis[accId] === "include_owner_direct" ? "include_owner_direct" : "exclude_owner_direct";
     usedBasis.add(b);
-    totals.payout += b === "include_owner_direct" ? v.incl : v.excl;
+    const payout = b === "include_owner_direct" ? v.incl : v.excl;
+    totals.payout += payout;
+    totals.detail.push({
+      accommodation_id: accId,
+      incl: v.incl,
+      excl: v.excl,
+      payout,
+      ranges: rangesByAcc[accId] ?? [],
+    });
   }
   totals.basis = usedBasis.size === 0 ? null : usedBasis.size === 1 ? [...usedBasis][0] : "mixed";
   return totals;
