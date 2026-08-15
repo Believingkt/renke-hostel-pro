@@ -320,7 +320,9 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "starlink_orders") return "starlink";
   if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
-  if (source_table === "teamcommission_bonus_snapshots") return role_key;
+  // 逐館拆分的 role_key 形如 "am_manager#<idx|accId>"，取 "#" 前的獎金類型
+  if (source_table === "teamcommission_bonus_snapshots") return role_key.split("#")[0];
+
   // 補差需跟著原始分潤的倍率，否則加倍期間取消訂單會「發 1.5x、扣回 1x」造成多發
   if (source_table === "closer_commission_adjustments") {
     if (role_key === "closer") return "closer";
