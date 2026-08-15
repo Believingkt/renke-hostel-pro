@@ -1096,6 +1096,8 @@ export default function TeamHome() {
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
                 amount: rev * rate,
+                rate,
+                rateKind: "percent" as const,
                 rangeNote: rangeNoteOf(accId),
               }));
 
@@ -1270,7 +1272,7 @@ export default function TeamHome() {
         if (isMonthlyPayout && profileId) {
           const { data: bonusSnaps } = await db
             .from("teamcommission_bonus_snapshots")
-            .select("bonus_type, amount")
+            .select("id, bonus_type, amount")
             .eq("payout_month", payoutMonthKey)
             .eq("member_id", profileId);
           const snapRows = (bonusSnaps ?? []) as any[];
@@ -1298,9 +1300,39 @@ export default function TeamHome() {
                 venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
               }
             }
-            // 已結算金額以快照為準；逐館明細（即時費率算出）等比例縮放，
-            // 讓各館別加總＝快照金額，避免明細與實付總額對不上。
+            // 逐館明細優先讀快照 lines（凍結時就寫好的營收／費率／金額，可用公式反推）。
+            const snapIds = snapRows.map((r) => String(r.id)).filter(Boolean);
+            const linesByType = new Map<string, VenueRevenueLine[]>();
+            if (snapIds.length > 0) {
+              const { data: snapLines } = await db
+                .from("teamcommission_bonus_snapshot_lines")
+                .select(
+                  "snapshot_id, accommodation_name, revenue_base, rate_value, rate_kind, amount, split_headcount, prorate_ratio",
+                )
+                .in("snapshot_id", snapIds);
+              const typeById = new Map(snapRows.map((r) => [String(r.id), String(r.bonus_type)]));
+              for (const l of (snapLines ?? []) as any[]) {
+                const bt = typeById.get(String(l.snapshot_id));
+                if (!bt) continue;
+                const arr = linesByType.get(bt) ?? [];
+                arr.push({
+                  name: String(l.accommodation_name ?? "其他"),
+                  revenue: Number(l.revenue_base ?? 0),
+                  amount: Number(l.amount ?? 0),
+                  rate: l.rate_value === null ? null : Number(l.rate_value),
+                  rateKind: l.rate_kind === "fixed" ? "fixed" : "percent",
+                  splitHeadcount: l.split_headcount === null ? null : Number(l.split_headcount),
+                  prorateRatio: l.prorate_ratio === null ? null : Number(l.prorate_ratio),
+                });
+                linesByType.set(bt, arr);
+              }
+              for (const [bt, arr] of linesByType) {
+                breakdown[bt] = arr.sort((a, b) => b.amount - a.amount);
+              }
+            }
+            // 沒有快照明細的舊資料：維持等比例縮放，讓明細加總＝快照金額。
             for (const k of Object.keys(breakdown)) {
+              if (linesByType.has(k)) continue;
               if (!byType.has(k)) {
                 delete breakdown[k];
                 continue;
