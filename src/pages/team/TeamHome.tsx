@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
 import ZeroBonusReason from "@/components/team/ZeroBonusReason";
@@ -69,7 +69,11 @@ interface VenueRevenueLine {
 }
 
 // 單一期別計算完成後的結果快照（用於期別切換快取）
+/** 首屏資料快取存活時間：10 分鐘內回訪直接沿用，不再重算。 */
+const TEAM_HOME_CACHE_TTL_MS = 10 * 60 * 1000;
+
 interface TeamHomePayload {
+
   closerSum: number;
   closerBackfillSum: number;
   closerBackfillCount: number;
@@ -110,6 +114,11 @@ interface TeamHomePayload {
   breakdown: Record<string, VenueRevenueLine[]>;
   missing: Record<string, boolean>;
 }
+
+/** 模組層快取：離開頁面再回來仍命中，避免重新跑整輪獎金試算。 */
+const payloadCache = new Map<string, { at: number; payload: TeamHomePayload }>();
+
+
 
 
 function taipeiParts(d: Date = new Date()) {
@@ -334,9 +343,10 @@ export default function TeamHome() {
     };
   }, [activePeriod]);
 
-  // ===== 期別資料快取：避免「上一期／本期」來回切換時重複讀取 =====
-  const cacheRef = useRef<Map<string, TeamHomePayload>>(new Map());
+  // ===== 期別資料快取（模組層，跨頁面來回不重讀）=====
+  // 命中即先上畫面（不轉圈），超過 TTL 才在背景重新計算後靜默更新。
   const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
+
   /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
   const basisOverride =
     null;
@@ -391,15 +401,17 @@ export default function TeamHome() {
     const userId = viewUserId;
     let cancelled = false;
 
-    const cached = cacheRef.current.get(cacheKey);
+    const cached = payloadCache.get(cacheKey);
+    const fresh = !!cached && Date.now() - cached.at < TEAM_HOME_CACHE_TTL_MS;
     if (cached) {
-      applyPayload(cached);
+      applyPayload(cached.payload);
       setLoading(false);
-      return;
+      if (fresh) return;
     }
 
     (async () => {
-      setLoading(true);
+      if (!cached) setLoading(true);
+
 
       try {
         const {
@@ -1428,7 +1440,7 @@ export default function TeamHome() {
           breakdown,
           missing,
         };
-        cacheRef.current.set(cacheKey, payload);
+        payloadCache.set(cacheKey, { at: Date.now(), payload });
         applyPayload(payload);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
