@@ -148,9 +148,10 @@ serve(async (req) => {
 
         const diff = currentBase - snapBase;
         const closerRate = Number(s.closer_rate ?? 0);
-        const videoRate = Number(s.video_rate ?? 0);
         const closerAmt = diff * closerRate;
-        const videoAmt = s.video_creator_id ? diff * videoRate : 0;
+        // 影音組分潤已停止使用：金額異動不再產生影音補差
+        const videoAmt = 0;
+
 
         const row = {
           snapshot_id: s.id,
