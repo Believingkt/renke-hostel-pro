@@ -6780,6 +6780,7 @@ export type Database = {
           currency_at_booking: string | null
           custom_addon_details: Json | null
           customer_id: string | null
+          dedupe_key: string | null
           deposit_amount: number | null
           deposit_charged_amount: number
           deposit_charged_at: string | null
@@ -6868,6 +6869,7 @@ export type Database = {
           currency_at_booking?: string | null
           custom_addon_details?: Json | null
           customer_id?: string | null
+          dedupe_key?: string | null
           deposit_amount?: number | null
           deposit_charged_amount?: number
           deposit_charged_at?: string | null
@@ -6956,6 +6958,7 @@ export type Database = {
           currency_at_booking?: string | null
           custom_addon_details?: Json | null
           customer_id?: string | null
+          dedupe_key?: string | null
           deposit_amount?: number | null
           deposit_charged_amount?: number
           deposit_charged_at?: string | null
