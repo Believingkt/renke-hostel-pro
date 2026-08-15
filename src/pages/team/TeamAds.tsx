@@ -342,8 +342,7 @@ function AdsListTab() {
                   )}
                 </span>
               </div>
-              <DetailRow label="影音組" value={matchVideoCreatorName(adDetail.ad_name)} />
-              <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
+                <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
 
               <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
               <DetailRow label="建立時間" value={fmtDate(adDetail.created_time)} />
@@ -840,63 +839,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
         </CardContent>
       </Card>
 
-      {/* Video creator rules */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base">廣告名稱 → 影音組對照規則</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              填寫廣告編號時，系統會根據廣告名稱自動比對關鍵字並帶入影音組成員
-            </p>
-          </div>
-          <Button size="sm" onClick={openNewRule}>
-            <Plus className="h-4 w-4 mr-1" /> 新增規則
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>關鍵字</TableHead>
-                <TableHead>影音組成員</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rules.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                    尚無規則
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rules.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.keyword}</TableCell>
-                    <TableCell>{memberName(r.video_creator_id)}</TableCell>
-                    <TableCell className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => openEditRule(r)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => deleteRule(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* 影音組分潤已停用：廣告名稱 → 影音組對照規則管理已移除 */}
 
       {/* Dialog: common ad id */}
       <Dialog
@@ -935,63 +878,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: rule */}
-      <Dialog
-        open={ruleDialogOpen}
-        onOpenChange={(o) => {
-          setRuleDialogOpen(o);
-          if (!o) setEditingRuleId(null);
-        }}
-      >
-        <DialogContent className="overflow-x-hidden">
-          <DialogHeader>
-            <DialogTitle>{editingRuleId ? "編輯對照規則" : "新增對照規則"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>關鍵字（廣告名稱包含此文字）</Label>
-              <Input
-                value={ruleForm.keyword}
-                onChange={(e) =>
-                  setRuleForm({ ...ruleForm, keyword: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>影音組成員</Label>
-              <Select
-                value={ruleForm.video_creator_id || undefined}
-                onValueChange={(v) =>
-                  setRuleForm({ ...ruleForm, video_creator_id: v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇成員" />
-                </SelectTrigger>
-                <SelectContent>
-                  {videoMembers.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      無影音組成員
-                    </SelectItem>
-                  ) : (
-                    videoMembers.map((m) => (
-                      <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.display_name ?? m.user_id}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={saveRule}>{editingRuleId ? "更新" : "新增"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

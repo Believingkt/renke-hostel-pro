@@ -43,7 +43,7 @@ import { Plus, Trash2 } from "lucide-react";
 export const BONUS_MULTIPLIER_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
   closer: "成交組獎金",
-  video: "影音組分潤",
+  video: "影音組分潤（已停用）",
   scout_kol: "KOL訂單星探分潤",
   scout_discount_code: "星探折扣碼獎金",
   scout_rarity: "星探稀有度獎金",
@@ -295,7 +295,9 @@ export default function BonusMultiplierSection({
               <Select value={draft.bonus_type} onValueChange={(v) => setDraft({ ...draft, bonus_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(BONUS_MULTIPLIER_TYPE_LABEL).map(([k, v]) => (
+                  {Object.entries(BONUS_MULTIPLIER_TYPE_LABEL)
+                    .filter(([k]) => k !== "video") /* 影音組分潤已停用：不可新增 */
+                    .map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
                   ))}
                 </SelectContent>

@@ -121,13 +121,8 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
   async function handleSave() {
     if (!editing) return;
     const cr = Number(closerRate);
-    const vr = Number(videoRate);
     if (Number.isNaN(cr) || cr < 0 || cr > 100) {
       toast.error("成交組分潤% 必須在 0-100");
-      return;
-    }
-    if (Number.isNaN(vr) || vr < 0 || vr > 100) {
-      toast.error("影音組分潤% 必須在 0-100");
       return;
     }
     if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
@@ -141,7 +136,8 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
         .insert({
           accommodation_id: editing.id,
           closer_rate: cr / 100,
-          video_rate: vr / 100,
+          // 影音組分潤已停用：沿用既有費率，不再開放編輯
+          video_rate: editing.video_rate,
           effective_from: effectiveFrom,
         });
       if (error) throw error;
@@ -166,7 +162,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
               <TableHead className="w-10"></TableHead>
               <TableHead>民宿名稱</TableHead>
               <TableHead className="w-32">成交組分潤%</TableHead>
-              <TableHead className="w-32">影音組分潤%</TableHead>
               <TableHead className="w-36">生效日期</TableHead>
               {!readOnly && <TableHead className="w-20 text-right">操作</TableHead>}
             </TableRow>
@@ -174,13 +169,13 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
           <TableBody>
             {loading && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 4 : 5} className="text-center text-muted-foreground">
                   載入中...
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 4 : 5} className="text-center text-muted-foreground">
                   尚無資料
                 </TableCell>
               </TableRow>
@@ -208,7 +203,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                       </TableCell>
                       <TableCell>{r.name}</TableCell>
                       <TableCell>{r.closer_rate != null ? `${Number((r.closer_rate * 100).toFixed(2))}%` : "—"}</TableCell>
-                      <TableCell>{r.video_rate != null ? `${Number((r.video_rate * 100).toFixed(2))}%` : "—"}</TableCell>
 
                       <TableCell>{r.effective_from ?? "—"}</TableCell>
                       {!readOnly && (
@@ -227,7 +221,7 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                     {isOpen && (
                       <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
                         <TableCell></TableCell>
-                        <TableCell colSpan={readOnly ? 4 : 5} className="p-0">
+                        <TableCell colSpan={readOnly ? 3 : 4} className="p-0">
                           <div className="px-4 py-3">
                             <div className="text-xs text-muted-foreground mb-2">歷史紀錄</div>
                             {history.length === 0 ? (
@@ -239,7 +233,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead className="w-40">成交組分潤%</TableHead>
-                                    <TableHead className="w-40">影音組分潤%</TableHead>
                                     <TableHead>生效日期</TableHead>
                                   </TableRow>
                                 </TableHeader>
@@ -248,9 +241,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                                     <TableRow key={`${r.id}-h-${idx}`}>
                                       <TableCell>
                                         {h.closer_rate != null ? `${Number((h.closer_rate * 100).toFixed(2))}%` : "—"}
-                                      </TableCell>
-                                      <TableCell>
-                                        {h.video_rate != null ? `${Number((h.video_rate * 100).toFixed(2))}%` : "—"}
                                       </TableCell>
 
                                       <TableCell>{h.effective_from}</TableCell>
@@ -286,17 +276,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                 step="0.01"
                 value={closerRate}
                 onChange={(e) => setCloserRate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>影音組分潤%</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={videoRate}
-                onChange={(e) => setVideoRate(e.target.value)}
               />
             </div>
             <div className="space-y-2">

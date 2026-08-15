@@ -1077,7 +1077,6 @@ export default function TeamOrders() {
                   <TableHead className="whitespace-nowrap">來源</TableHead>
                   <TableHead className="whitespace-nowrap">來源管道</TableHead>
                   <TableHead className="whitespace-nowrap">廣告編號</TableHead>
-                  <TableHead className="whitespace-nowrap">影音組</TableHead>
                   <TableHead className="whitespace-nowrap">補充資料</TableHead>
                   <TableHead className="whitespace-nowrap w-16">操作</TableHead>
                 </TableRow>
@@ -1085,20 +1084,19 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
                 ) : (
                   pageItems.map((o) => {
                     const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
-                    const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
                     const isCancelled = o.order_status === "cancelled";
                     return (
                     <TableRow
@@ -1253,7 +1251,6 @@ export default function TeamOrders() {
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.meta?.ad_id || "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{videoName}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
@@ -1638,10 +1635,12 @@ export default function TeamOrders() {
                         label="成交人"
                         value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
                       />
-                      <ReadField
-                        label="影音組"
-                        value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
-                      />
+                      {form.video_creator_id && (
+                        <ReadField
+                          label="影音組（已停用）"
+                          value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                        />
+                      )}
                     </div>
                     {/* 廣告編號 全寬 */}
                     <ReadField label="廣告編號" value={form.ad_id || "-"} />
@@ -1783,9 +1782,9 @@ export default function TeamOrders() {
                         </Select>
                       </div>
 
-                      {/* 影音組(唯讀) */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">影音組</Label>
+                      {/* 影音組（已停用，僅顯示既有指派） */}
+                      <div className={`space-y-2 ${form.video_creator_id ? "" : "hidden"}`}>
+                        <Label className="text-sm">影音組（已停用）</Label>
                         <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
                           {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
                         </div>

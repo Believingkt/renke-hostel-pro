@@ -139,15 +139,6 @@ export const BONUS_RATE_META: Record<string, BonusRateMeta> = {
     viewerRoles: ["closer", "closer_manager"],
     settingsPath: HQ_TEAM_RATES,
   },
-  video: {
-    payoutSchedule: "每月 10 日",
-    settlementWindow: "上個月整月訂單",
-    rateToken: "影音組費率",
-    rateKind: "per_venue",
-    venueRateField: "video_rate",
-    viewerRoles: ["video", "closer_manager"],
-    settingsPath: HQ_TEAM_RATES,
-  },
   closer_team_bonus: {
     payoutSchedule: "每月 10 日",
     settlementWindow: "上個月整月訂單",
