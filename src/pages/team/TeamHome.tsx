@@ -1431,7 +1431,7 @@ export default function TeamHome() {
           breakdown,
           missing,
         };
-        cacheRef.current.set(cacheKey, payload);
+        payloadCache.set(cacheKey, { at: Date.now(), payload });
         applyPayload(payload);
       } catch (e) {
         console.error("[TeamHome] load error:", e);
