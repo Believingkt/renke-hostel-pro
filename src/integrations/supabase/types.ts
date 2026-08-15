@@ -12274,6 +12274,7 @@ export type Database = {
         }
         Returns: number
       }
+      current_user_accommodation_ids: { Args: never; Returns: string[] }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
