@@ -831,6 +831,27 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         const accIds: string[] = Array.isArray(snap.accommodation_ids) ? snap.accommodation_ids : [];
         const snapNames: string[] = Array.isArray(snap.accommodation_names) ? snap.accommodation_names : [];
 
+        // 有快照逐館明細就直接用（金額已凍結，不需再依營收比例回推）
+        const frozenLines = linesBySnapshot.get(String(r.id)) ?? [];
+        if (frozenLines.length > 0) {
+          const sorted = [...frozenLines].sort((a, b) => b.amount - a.amount);
+          sorted.forEach((l, idx) => {
+            if (!l.amount) return;
+            pushItem(
+              "teamcommission_bonus_snapshots",
+              r.id,
+              `${r.bonus_type}#${idx}`,
+              profileById.get(r.member_id),
+              label,
+              detail,
+              l.amount,
+              { venue_name: l.name, base_revenue: l.revenue ? Math.round(l.revenue) : null },
+            );
+          });
+          continue;
+        }
+
+
         if (PER_VENUE_BONUS.has(r.bonus_type) && accIds.length > 0) {
           const per = Math.round(amount / accIds.length);
           accIds.forEach((accId, idx) => {
