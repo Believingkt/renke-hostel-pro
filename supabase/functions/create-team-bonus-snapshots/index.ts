@@ -294,6 +294,15 @@ interface DualRevenue {
   excl: number;
 }
 
+/** 逐館營收明細（供快照 lines 使用，未經任何縮放） */
+interface RevenueDetail {
+  accommodation_id: string;
+  incl: number;
+  excl: number;
+  payout: number;
+  ranges: CountableRange[];
+}
+
 /** 加總後的營收：兩軌 + 依各館 payout_basis 決定的實付基準 */
 interface RevenueTotals {
   incl: number;
@@ -301,6 +310,8 @@ interface RevenueTotals {
   payout: number;
   /** 本次加總實際採用的實付基準；各館不一致時為 "mixed" */
   basis: string | null;
+  /** 逐館明細，加總必等於上方總額 */
+  detail: RevenueDetail[];
 }
 
 
