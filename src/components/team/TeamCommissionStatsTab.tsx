@@ -1300,10 +1300,6 @@ export default function TeamCommissionStatsTab() {
                   {validOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆成交組有效訂單 /{" "}
                   {cancelOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆取消訂單
                 </div>
-                <div>
-                  {validOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆影音組有效訂單 /{" "}
-                  {cancelOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆取消訂單
-                </div>
                 {(() => {
                   const scoutCodeSet = new Set(
                     scoutCodes.map((c) => (c.discount_code || "").toUpperCase()).filter(Boolean)
