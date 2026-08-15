@@ -115,6 +115,11 @@ interface TeamHomePayload {
   missing: Record<string, boolean>;
 }
 
+/** 模組層快取：離開頁面再回來仍命中，避免重新跑整輪獎金試算。 */
+const payloadCache = new Map<string, { at: number; payload: TeamHomePayload }>();
+
+
+
 
 function taipeiParts(d: Date = new Date()) {
   const f = new Intl.DateTimeFormat("en-CA", {
