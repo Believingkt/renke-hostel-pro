@@ -927,22 +927,16 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>影音組</Label>
-              <Select value={videoCreatorId} onValueChange={setVideoCreatorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="請選擇影音組" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>未指定</SelectItem>
-                  {videoCreators.map((v) => (
-                    <SelectItem key={v.user_id} value={v.user_id}>
-                      {v.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {videoCreatorId !== NONE && (
+              /* 影音組分潤已停止使用：僅保留既有指派的唯讀顯示 */
+              <div className="space-y-2">
+                <Label>影音組（已停用）</Label>
+                <div className="min-h-[40px] flex items-center px-3 py-2 rounded-md border border-input bg-muted/40 text-sm">
+                  {videoCreators.find((v) => v.user_id === videoCreatorId)?.display_name ?? videoCreatorId}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* 4. 訂房方式 / 來源管道 */}
