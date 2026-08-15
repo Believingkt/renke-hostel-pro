@@ -832,6 +832,7 @@ serve(async (req) => {
         amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
         amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
         payout_basis_used: myRevenue.basis,
+        lines: revenueLines(myRevenue, amPerfRate),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
@@ -852,6 +853,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: amVenueFixed,
         venue_count: managedNoTravel.length,
+        lines: fixedLines(managedNoTravel, amVenueFixed),
         amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
@@ -923,6 +925,10 @@ serve(async (req) => {
         amount_incl_owner: closerHeadcount > 0 ? (closerPoolIncl / closerHeadcount) * ratio : 0,
         amount_excl_owner: closerHeadcount > 0 ? (closerPoolExcl / closerHeadcount) * ratio : 0,
         payout_basis_used: companyRevenue.basis,
+        lines: revenueLines(companyRevenue, closerPerfRate, {
+          splitHeadcount: closerHeadcount,
+          prorateRatio: ratio,
+        }),
         active_days: activeDays,
         period_days: periodDays,
         prorate_ratio: ratio,
@@ -967,6 +973,7 @@ serve(async (req) => {
         amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
         amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
         payout_basis_used: companyRevenue.basis,
+        lines: revenueLines(companyRevenue, rate),
         settings_snapshot: {
           as_of: asOf,
           rate,
@@ -995,6 +1002,7 @@ serve(async (req) => {
         amount_incl_owner: kolRevenue.incl * Number(kolRate ?? 0),
         amount_excl_owner: kolRevenue.excl * Number(kolRate ?? 0),
         payout_basis_used: kolRevenue.basis,
+        lines: revenueLines(kolRevenue, kolRate),
         settings_snapshot: {
           as_of: asOf,
           rate: kolRate,
@@ -1035,6 +1043,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: kolMonthlyFixed,
         venue_count: kolMonthlyAccIds.length,
+        lines: fixedLines(kolMonthlyAccIds, kolMonthlyFixed),
         amount: Number(kolMonthlyFixed ?? 0) * kolMonthlyAccIds.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
@@ -1071,6 +1080,7 @@ serve(async (req) => {
         rate: null,
         fixed_amount: venueClosingFixed,
         venue_count: hitIds.length,
+        lines: fixedLines(hitIds, venueClosingFixed),
         amount: Number(venueClosingFixed ?? 0) * hitIds.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
