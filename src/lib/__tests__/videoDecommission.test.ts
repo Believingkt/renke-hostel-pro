@@ -22,7 +22,8 @@ describe("快照不再產生 video 金額", () => {
   it("create-commission-snapshots 將 videoAmt 固定為 0、video_rate 為 null", () => {
     expect(snapshots).toMatch(/const videoAmt = 0;/);
     expect(snapshots).toMatch(/video_rate: null,/);
-    expect(snapshots).not.toMatch(/videoAmt\s*=\s*[^0;]/);
+    // 重算路徑允許 videoAmt = Number(s.video_commission_amount)（保值歷史），新建路徑必須為 0
+    expect(snapshots).toMatch(/const videoAmt = Number\(s\.video_commission_amount \?\? 0\);/);
   });
 
   it("preview-closer-commission 試算的影音金額為 0", () => {
