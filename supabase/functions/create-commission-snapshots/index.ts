@@ -229,7 +229,8 @@ serve(async (req) => {
             : Number(tcp);
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
         const closerAmt = baseAmount * rates.closer * factor;
-        const videoAmt = meta.video_creator_id ? baseAmount * rates.video * factor : 0;
+        // 影音組分潤已停止使用：新快照一律不再產生影音金額（歷史快照保留可追溯）
+        const videoAmt = 0;
 
         toInsert.push({
           order_id: o.id,
@@ -238,9 +239,10 @@ serve(async (req) => {
           video_creator_id: meta.video_creator_id,
           final_price_snapshot: baseAmount,
           closer_rate: rates.closer,
-          video_rate: meta.video_creator_id ? rates.video : null,
+          video_rate: null,
           closer_commission_amount: closerAmt,
           video_commission_amount: videoAmt,
+
           // snapshot_month = 訂單原始所屬月份；payout_month = 本次執行的當期發放月
           snapshot_month: monthStr,
           payout_month: payoutMonthStr,
