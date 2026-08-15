@@ -392,15 +392,17 @@ export default function TeamHome() {
     const userId = viewUserId;
     let cancelled = false;
 
-    const cached = cacheRef.current.get(cacheKey);
+    const cached = payloadCache.get(cacheKey);
+    const fresh = !!cached && Date.now() - cached.at < TEAM_HOME_CACHE_TTL_MS;
     if (cached) {
-      applyPayload(cached);
+      applyPayload(cached.payload);
       setLoading(false);
-      return;
+      if (fresh) return;
     }
 
     (async () => {
-      setLoading(true);
+      if (!cached) setLoading(true);
+
 
       try {
         const {
