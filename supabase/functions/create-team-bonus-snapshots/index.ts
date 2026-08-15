@@ -699,6 +699,7 @@ serve(async (req) => {
       split_headcount: number | null;
       prorate_ratio: number | null;
       countable_ranges: CountableRange[];
+      multiplier?: number | null;
     }
 
     /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
@@ -1107,6 +1108,7 @@ serve(async (req) => {
         };
         const m = v(own) * v(all);
         row.multiplier_used = m;
+        for (const l of row.lines ?? []) l.multiplier = m;
         row.multiplier_source =
           m === 1
             ? null
@@ -1134,18 +1136,41 @@ serve(async (req) => {
         .map((m) => String(m.source_id)),
     );
 
+    /** 重寫某筆快照的逐館明細（先清空再寫入，加總必等於 amount） */
+    const writeLines = async (snapshotId: string, lines: LineDraft[] | undefined) => {
+      await supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .delete()
+        .eq("snapshot_id", snapshotId);
+      const payload = (lines ?? []).filter((l) => Number(l.amount) !== 0);
+      if (payload.length === 0) return;
+      const { error } = await supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .insert(payload.map((l) => ({ ...l, snapshot_id: snapshotId })));
+      if (error) console.error("[create-team-bonus-snapshots] lines insert failed", error.message);
+    };
+
     for (const row of rows) {
-      const { error: insErr } = await supabase.from("teamcommission_bonus_snapshots").insert(row);
+      const { lines, ...snapshotRow } = row;
+      const { data: inserted, error: insErr } = await supabase
+        .from("teamcommission_bonus_snapshots")
+        .insert({ ...snapshotRow, status: snapshotStatus })
+        .select("id")
+        .maybeSingle();
       if (insErr) {
         if ((insErr as any).code === "23505") {
           const { data: existing } = await supabase
             .from("teamcommission_bonus_snapshots")
-            .select("id")
+            .select("id, status")
             .eq("bonus_type", row.bonus_type)
             .eq("member_id", row.member_id)
             .eq("snapshot_month", row.snapshot_month)
             .maybeSingle();
-          if (existing?.id && !paidSnapshotIds.has(String(existing.id))) {
+          const isLocked =
+            !!existing &&
+            (paidSnapshotIds.has(String(existing.id)) ||
+              (existing.status === "final" && snapshotStatus !== "final"));
+          if (existing?.id && !isLocked) {
             const { error: updErr } = await supabase
               .from("teamcommission_bonus_snapshots")
               .update({
@@ -1166,8 +1191,7 @@ serve(async (req) => {
                 period_days: row.period_days ?? null,
                 prorate_ratio: row.prorate_ratio ?? null,
                 settings_snapshot: row.settings_snapshot,
-
-
+                status: snapshotStatus,
               })
               .eq("id", existing.id);
             if (updErr) {
@@ -1177,6 +1201,7 @@ serve(async (req) => {
                 error: updErr.message,
               });
             } else {
+              await writeLines(String(existing.id), lines);
               updated++;
             }
           } else {
@@ -1190,12 +1215,14 @@ serve(async (req) => {
           });
         }
       } else {
+        if (inserted?.id) await writeLines(String(inserted.id), lines);
         created++;
       }
     }
 
 
     console.log("[create-team-bonus-snapshots] done", {
+      status: snapshotStatus,
       snapshotMonthStr,
       payoutMonthStr,
       candidates: rows.length,
@@ -1208,6 +1235,7 @@ serve(async (req) => {
     return jsonResponse({
       success: true,
       test_mode: testMode,
+      status: snapshotStatus,
       snapshot_month: snapshotMonthStr,
       payout_month: payoutMonthStr,
       candidates: rows.length,
