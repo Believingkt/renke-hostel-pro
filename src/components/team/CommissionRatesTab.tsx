@@ -121,13 +121,8 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
   async function handleSave() {
     if (!editing) return;
     const cr = Number(closerRate);
-    const vr = Number(videoRate);
     if (Number.isNaN(cr) || cr < 0 || cr > 100) {
       toast.error("成交組分潤% 必須在 0-100");
-      return;
-    }
-    if (Number.isNaN(vr) || vr < 0 || vr > 100) {
-      toast.error("影音組分潤% 必須在 0-100");
       return;
     }
     if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
