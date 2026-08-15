@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -62,6 +62,8 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const { logAction } = useAuditLog();
   const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
   const [isSaving, setIsSaving] = useState(false);
+  // 同步鎖：state 更新是非同步的，連點兩下會在同一輪都通過 isSaving 檢查而重複建單
+  const savingRef = useRef(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
@@ -291,6 +293,8 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       return;
     }
     if (!currentAccommodationId) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
 
     // 檢查對應方案（僅奧丁丁需要；hotelnabe 庫存推送不依方案）
     try {
@@ -457,6 +461,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       });
 
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
   };
