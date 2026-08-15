@@ -165,6 +165,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     : null;
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
+  // 同步鎖：避免連點兩下在 state 更新前重複建單
+  const savingRef = useRef(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
   // Deposit flow removed: orders always require full payment upfront.
@@ -1115,6 +1117,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
+    if (savingRef.current) return;
+    savingRef.current = true;
+
     // 若訂單房型會同步到奧丁丁，「對應方案」必填（讀 form.package_id 或該房 template.default_package_id）
     let effectivePackageId: string | null = form.package_id || null;
     try {
@@ -1169,6 +1174,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     } catch (error) {
       console.error("查詢庫存失敗:", error);
       toast({ title: "無法確認庫存", description: "請稍後再試，避免建立超過庫存的訂單", variant: "destructive" });
+      savingRef.current = false;
       setIsSaving(false);
       return;
     }
@@ -1182,7 +1188,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           description: `${dateList} 已關閉庫存，無法建立訂單`,
           variant: "destructive",
         });
-        setIsSaving(false);
+        savingRef.current = false;
+      setIsSaving(false);
         return;
       }
       const insufficientDates = latestInventoryWarnings.filter(w => !w.blocked && w.available > 0);
@@ -1193,7 +1200,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           description: `${dateList}，無法建立訂單`,
           variant: "destructive",
         });
-        setIsSaving(false);
+        savingRef.current = false;
+      setIsSaving(false);
         return;
       }
     }
@@ -1225,6 +1233,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       onOverride: (status) => { kolOverrideStatus = status; },
     });
     if (!kolPermitted) {
+      savingRef.current = false;
       setIsSaving(false);
       return;
     }
@@ -1293,7 +1302,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           `仍要以 NT$ 0 建立訂單嗎？`
         );
         if (!proceed) {
-          setIsSaving(false);
+          savingRef.current = false;
+      setIsSaving(false);
           return;
         }
       }
@@ -1306,7 +1316,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         const rawDeposit = Number(form.deposit_amount) || 0;
         if (rawDeposit < 0) {
           toast({ title: "訂金金額不可為負數", variant: "destructive" });
-          setIsSaving(false);
+          savingRef.current = false;
+      setIsSaving(false);
           return;
         }
         const maxDeposit = totals.final;
@@ -1316,12 +1327,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             description: `訂金不可超過訂單總額 NT$ ${maxDeposit.toLocaleString()}`,
             variant: "destructive",
           });
-          setIsSaving(false);
+          savingRef.current = false;
+      setIsSaving(false);
           return;
         }
         if (form.deposit_paid && rawDeposit <= 0) {
           toast({ title: "請輸入訂金金額", description: "選擇「已付訂金」時，訂金金額必須大於 0", variant: "destructive" });
-          setIsSaving(false);
+          savingRef.current = false;
+      setIsSaving(false);
           return;
         }
         depositAmount = rawDeposit;
@@ -1655,6 +1668,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
 
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
   };

@@ -236,6 +236,7 @@ const BookingFlow = () => {
     return initNativePaymentListener((result) => {
       if (!result.success || !result.recTradeId) {
         setIsProcessingPayment(false);
+        submittingRef.current = false;
         setIsSubmitting(false);
         toast({
           title: "付款未完成",
@@ -604,6 +605,8 @@ const BookingFlow = () => {
   const [selectedImageRoom, setSelectedImageRoom] = useState<RoomType | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 同步鎖：避免連點/重送在 state 更新前重複建立訂單
+  const submittingRef = useRef(false);
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -3020,10 +3023,11 @@ const BookingFlow = () => {
     }
 
 
-    if (isSubmitting) {
+    if (isSubmitting || submittingRef.current) {
       return; // 防止重複提交
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
 
 
@@ -3170,7 +3174,8 @@ const BookingFlow = () => {
             description: rateLimitMessage || "無法驗證訂單價格，請重新整理頁面後再試",
             variant: "destructive",
           });
-          setIsSubmitting(false);
+          submittingRef.current = false;
+        setIsSubmitting(false);
           return;
         }
 
@@ -3183,7 +3188,8 @@ const BookingFlow = () => {
               : "訂單價格與系統計算不符，請重新整理頁面後再試",
             variant: "destructive",
           });
-          setIsSubmitting(false);
+          submittingRef.current = false;
+        setIsSubmitting(false);
           return;
         }
 
@@ -3195,6 +3201,7 @@ const BookingFlow = () => {
           description: "為保障您的權益，目前無法送出訂單，請稍後再試或聯繫客服。",
           variant: "destructive",
         });
+        submittingRef.current = false;
         setIsSubmitting(false);
         return;
       }
@@ -3221,7 +3228,8 @@ const BookingFlow = () => {
             description: describeInventoryVerdict(preVerdict),
             variant: "destructive",
           });
-          setIsSubmitting(false);
+          submittingRef.current = false;
+        setIsSubmitting(false);
           return;
         }
       }
@@ -3248,7 +3256,8 @@ const BookingFlow = () => {
             setTappayPrime(null);
             setTappayPrimeIssuedAt(null);
             setCurrentStep("payment");
-            setIsSubmitting(false);
+            submittingRef.current = false;
+        setIsSubmitting(false);
             return;
           }
 
@@ -3332,7 +3341,8 @@ const BookingFlow = () => {
               setPaymentFailed(true);
               setShowRetryDialog(true);
               setIsProcessingPayment(false);
-              setIsSubmitting(false);
+              submittingRef.current = false;
+        setIsSubmitting(false);
               return;
             }
 
@@ -3366,7 +3376,8 @@ const BookingFlow = () => {
               setPaymentFailed(true);
               setShowRetryDialog(true);
               setIsProcessingPayment(false);
-              setIsSubmitting(false);
+              submittingRef.current = false;
+        setIsSubmitting(false);
               return;
             }
 
@@ -3419,7 +3430,8 @@ const BookingFlow = () => {
             setPaymentFailed(true);
             setShowRetryDialog(true);
             setIsProcessingPayment(false);
-            setIsSubmitting(false);
+            submittingRef.current = false;
+        setIsSubmitting(false);
             return;
           }
 
@@ -3448,7 +3460,8 @@ const BookingFlow = () => {
           setPaymentFailed(true);
           setShowRetryDialog(true);
           setIsProcessingPayment(false);
-          setIsSubmitting(false);
+          submittingRef.current = false;
+        setIsSubmitting(false);
           return;
         } finally {
           setIsProcessingPayment(false);
@@ -3572,7 +3585,8 @@ const BookingFlow = () => {
           // 顯示錯誤對話框
           setShowRetryDialog(true);
           
-          setIsSubmitting(false);
+          submittingRef.current = false;
+        setIsSubmitting(false);
           setIsProcessingPayment(false);
           return;
         } finally {
@@ -3704,7 +3718,8 @@ const BookingFlow = () => {
                 description: detail,
                 variant: "destructive",
               });
-              setIsSubmitting(false);
+              submittingRef.current = false;
+        setIsSubmitting(false);
               return;
             }
           }
@@ -3821,7 +3836,8 @@ const BookingFlow = () => {
         description,
         variant: "destructive",
       });
-      setIsSubmitting(false); // 失敗時恢復按鈕狀態
+      submittingRef.current = false;
+        setIsSubmitting(false); // 失敗時恢復按鈕狀態
     }
   };
 

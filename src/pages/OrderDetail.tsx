@@ -321,6 +321,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   // Edit mode
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // 同步鎖：state 為非同步，連點兩下會在 await 期間同時通過檢查而寫入重複 order_rooms
+  const savingEditRef = useRef(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
@@ -963,7 +965,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   };
 
   const handleSaveEdit = async () => {
-    if (!order || isSavingEdit) return;
+    if (!order || isSavingEdit || savingEditRef.current) return;
+    savingEditRef.current = true;
+    try {
 
     // KOL 互惠額度檢查（編輯時：若來源改為/維持 'kol'，依入住日歸屬月份）
     let kolOverrideStatus: KolQuotaStatus | null = null;
@@ -993,7 +997,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         }),
       onOverride: (status) => { kolOverrideStatus = status; },
     });
-    if (!kolPermitted) return;
+    if (!kolPermitted) { savingEditRef.current = false; return; }
 
     setIsSavingEdit(true);
     try {
@@ -1385,6 +1389,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       toast({ title: "儲存失敗", description: msg, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
+    }
+    } finally {
+      savingEditRef.current = false;
     }
   };
 
