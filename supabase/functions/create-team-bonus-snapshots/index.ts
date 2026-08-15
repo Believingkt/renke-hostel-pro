@@ -584,15 +584,9 @@ serve(async (req) => {
 
     const tp = getTaipeiParts();
 
-    // 每月 10 日才實際執行（cron 每日呼叫，其餘日期 skip）
-    if (!testMode && tp.day !== 10) {
-      return jsonResponse({
-        success: true,
-        skipped: true,
-        reason: "今日非發放日（每月10日），不執行",
-        today_taipei: `${tp.y}-${pad2(tp.m)}-${pad2(tp.day)}`,
-      });
-    }
+    // 每日產生「草稿」快照（可覆寫）；每月 9 日起首次執行時寫成「定案」並鎖定。
+    const snapshotStatus: "draft" | "final" =
+      body?.finalize === true ? "final" : body?.draft === true ? "draft" : tp.day >= 9 ? "final" : "draft";
 
     const payoutYear = tp.y;
     const payoutMonth = tp.m;
