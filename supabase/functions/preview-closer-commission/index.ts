@@ -219,9 +219,11 @@ serve(async (req) => {
         : Number(tcp);
 
       const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") * factor : 0;
-      const videoRate = meta.video_creator_id ? rateFor(o.accommodation_id, o.order_date, "video_rate") * factor : 0;
+      // 影音組分潤已停止使用：試算不再計入影音金額
+      const videoRate = 0;
       const closerAmt = meta.closer_id ? base * closerRate : 0;
-      const videoAmt = meta.video_creator_id ? base * videoRate : 0;
+      const videoAmt = 0;
+
 
       const row = {
         order_id: o.id,
