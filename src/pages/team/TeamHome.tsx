@@ -334,9 +334,10 @@ export default function TeamHome() {
     };
   }, [activePeriod]);
 
-  // ===== 期別資料快取：避免「上一期／本期」來回切換時重複讀取 =====
-  const cacheRef = useRef<Map<string, TeamHomePayload>>(new Map());
+  // ===== 期別資料快取（模組層，跨頁面來回不重讀）=====
+  // 命中即先上畫面（不轉圈），超過 TTL 才在背景重新計算後靜默更新。
   const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
+
   /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
   const basisOverride =
     null;
