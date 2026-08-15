@@ -94,6 +94,7 @@ interface TeamHomePayload {
   multMap: BonusMultiplierRow[];
   scoutFromPayoutFlag: boolean;
   monthlySettledFlag: boolean;
+  monthlyDraftFlag: boolean;
   amManagerFlag: boolean;
   closerManagerFlag: boolean;
   kolRecipientFlag: boolean;
@@ -282,6 +283,7 @@ export default function TeamHome() {
   const [scoutFromPayout, setScoutFromPayout] = useState(false);
   // 月結系是否已由後端結算（snapshot 存在）
   const [monthlySettled, setMonthlySettled] = useState(false);
+  const [monthlyDraft, setMonthlyDraft] = useState(false);
 
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
@@ -364,6 +366,7 @@ export default function TeamHome() {
     setMultiplierRows(p.multMap);
     setScoutFromPayout(p.scoutFromPayoutFlag);
     setMonthlySettled(p.monthlySettledFlag);
+    setMonthlyDraft(p.monthlyDraftFlag);
     setIsAmManager(p.amManagerFlag);
     setIsCloserManager(p.closerManagerFlag);
     setIsKolBonusRecipient(p.kolRecipientFlag);
@@ -458,6 +461,7 @@ export default function TeamHome() {
         let closerSum = 0;
         let videoSum = 0;
         let monthlySettledFlag = false;
+        let monthlyDraftFlag = false;
         // 回溯補建：快照的資料月不等於本期資料月（前期漏建、於本期才補上）
         let closerBackfillSum = 0;
         let closerBackfillCount = 0;
@@ -1272,12 +1276,13 @@ export default function TeamHome() {
         if (isMonthlyPayout && profileId) {
           const { data: bonusSnaps } = await db
             .from("teamcommission_bonus_snapshots")
-            .select("id, bonus_type, amount")
+            .select("id, bonus_type, amount, status")
             .eq("payout_month", payoutMonthKey)
             .eq("member_id", profileId);
           const snapRows = (bonusSnaps ?? []) as any[];
           if (snapRows.length > 0) {
             monthlySettledFlag = true;
+            monthlyDraftFlag = snapRows.every((r) => String(r.status ?? "final") === "draft");
             const byType = new Map<string, number>();
             for (const r of snapRows) {
               byType.set(
@@ -1385,6 +1390,7 @@ export default function TeamHome() {
           multMap,
           scoutFromPayoutFlag,
           monthlySettledFlag,
+          monthlyDraftFlag,
           amManagerFlag,
           closerManagerFlag,
           kolRecipientFlag,
@@ -1448,7 +1454,11 @@ export default function TeamHome() {
   const monthlyNote = (extra?: string) =>
     [
       `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
-      monthlySettled ? "已結算，實付金額" : "即時試算，10 日結算後定版",
+      monthlySettled
+        ? monthlyDraft
+          ? "每日自動試算（草稿），9 日 09:00 定案"
+          : "已結算，實付金額"
+        : "即時試算，9 日 09:00 定案",
       extra,
     ]
       .filter(Boolean)
