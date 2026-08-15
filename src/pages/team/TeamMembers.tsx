@@ -28,7 +28,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "scout",
   "closer",
   "closer_manager",
-  "video",
+  // "video", // 影音組分潤已停用，不再可指派（歷史成員資料保留）
   "franchise_internal",
   "franchise_external",
   "starlink",

@@ -118,7 +118,7 @@ const ROLE_OPTIONS = [
   "scout",
   "scout_manager",
   "closer",
-  "video",
+  // "video", // 影音組分潤已停用
   "franchise_internal",
   "franchise_external",
   "franchise_manager",
