@@ -233,32 +233,10 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
         <CardTitle>結算規則說明</CardTitle>
       </CardHeader>
       <CardContent className="text-sm leading-7 space-y-4">
-        <p className="text-muted-foreground">各獎金類型的結算週期與發放日如下：</p>
-        <ul className="space-y-2">
-          <li><span className="font-medium">成交組訂房佣金：</span>每月 10 日發放，結算上個月整月訂單。</li>
-          <li><span className="font-medium">影音組分潤：</span>每月 10 日發放，結算上個月整月訂單。</li>
-          <li>
-            <div><span className="font-medium">KOL訂單星探分潤：</span>每月 10 日與 25 日各發放一次。</div>
-            <ul className="pl-6 mt-1 space-y-1 text-muted-foreground list-disc">
-              <li>10 日期：結算上月 21 日 ～ 當月 5 日的入住訂單</li>
-              <li>25 日期：結算當月 6 日 ～ 當月 20 日的入住訂單</li>
-            </ul>
-          </li>
-          <li><span className="font-medium">星探底薪：</span>每月 10 日發放，以上月整月邀約達標為計算基準。</li>
-          <li><span className="font-medium">星探團隊獎金：</span>每月 10 日發放，以上月整月全隊達標為計算基準。</li>
-          <li><span className="font-medium">星探稀有度獎金：</span>10 日與 25 日各發放一次，計算區間同 KOL訂單星探分潤。</li>
-          <li><span className="font-medium">特許加盟內部：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
-          <li><span className="font-medium">特許加盟外部：</span>每月 10 日發放，結算上個月簽約且合約已完成的訂單。</li>
-          <li><span className="font-medium">星鏈分潤：</span>每月 10 日發放，結算上個月成交且已確認付款的訂單。</li>
-          <li><span className="font-medium">AM績效獎金：</span>每月 10 日發放，結算上個月管理場館營收，僅計入已勾選的訂單來源。</li>
-          <li><span className="font-medium">AM場域獎金：</span>每月 10 日發放，結算上個月管理場館數固定金額。</li>
-          <li><span className="font-medium">成交組績效獎金：</span>每月 10 日發放，結算上個月全公司營收 × 費率，由「資料月底仍在職」的成交組成員均分。</li>
-          <li><span className="font-medium">AM總管獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源；離職生效日之後不再發放。</li>
-          <li><span className="font-medium">成交組主管管理獎金：</span>每月 10 日發放，結算上個月全公司營收，僅計入已勾選的訂單來源；離職生效日之後不再發放。</li>
-          <li><span className="font-medium">網紅營銷專利獎金(抽成)：</span>每月 10 日發放，結算上個月全公司營收，僅計入該獎金專屬已勾選的訂單來源。</li>
-          <li><span className="font-medium">網紅營銷專利獎金(月費)：</span>每月 10 日發放，固定金額。</li>
-          <li><span className="font-medium">場域成交獎金：</span>每月 10 日發放，結算上個月簽約場域中已收行銷推廣費且合作期間有效者，固定金額。</li>
-        </ul>
+        <p className="text-muted-foreground">
+          各獎金項目的公式、口徑、發放日與結算區間統一列於下方，與實際計算同源。
+        </p>
+
         <div className="rounded-md border p-3 space-y-1">
           <div className="font-medium">團隊獎金的營收採計口徑</div>
           <ul className="pl-6 space-y-1 list-disc text-muted-foreground">
