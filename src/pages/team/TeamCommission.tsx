@@ -262,6 +262,9 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
         <div className="rounded-md border p-3 space-y-1">
           <div className="font-medium">團隊獎金的營收採計口徑</div>
           <ul className="pl-6 space-y-1 list-disc text-muted-foreground">
+            <li>快照節奏：每日自動試算一次（草稿），每月 9 日 09:00 定案凍結；定案後金額不再被草稿覆寫。</li>
+            <li>逐館明細（館別／營收基準／當期費率／金額）在凍結當下一併寫入，可用公式反推；明細加總恆等於卡片總額。</li>
+
             <li>採計範圍：各館的「合作期間」（可暫停／重啟）與資料月的交集；沒有有效合作期間、或期間設定為「不發獎金」（含旅行日系列）者一律不採計。</li>
             <li>2026-07 資料月起，一、團隊獎金（AM績效／AM總管／成交組績效／成交組主管／網紅營銷專利抽成）改以業主月結「本月入住營收」為基準：依入住夜數逐夜攤提、跨月拆分、外幣依匯率快照換算台幣，只扣除該館設定為「不列入抽成」的增值服務，並排除業主自帶與免抽成來源。</li>
             <li>2026-07 之前的資料月維持舊口徑（下訂日 × 分潤基準金額），已凍結的快照不追溯。</li>
@@ -320,7 +323,9 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   if (source_table === "starlink_orders") return "starlink";
   if (source_table === "scout_discount_code_payouts") return "scout_discount_code";
   if (source_table === "closer_team_bonus_distribution") return "closer";
-  if (source_table === "teamcommission_bonus_snapshots") return role_key;
+  // 逐館拆分的 role_key 形如 "am_manager#<idx|accId>"，取 "#" 前的獎金類型
+  if (source_table === "teamcommission_bonus_snapshots") return role_key.split("#")[0];
+
   // 補差需跟著原始分潤的倍率，否則加倍期間取消訂單會「發 1.5x、扣回 1x」造成多發
   if (source_table === "closer_commission_adjustments") {
     if (role_key === "closer") return "closer";
@@ -790,7 +795,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       // 固定金額×館別數的類型（AM 場域／場域成交／網紅月費）拆成逐館一筆
       // 抽成類（營收 × 費率）依「各館別營收」拆成逐館一筆，並顯示該館營收
       const PER_VENUE_BONUS = new Set(["am_venue_bonus", "venue_closing", "kol_monthly"]);
+      // 快照逐館明細（凍結當下寫入的營收／費率／金額），優先於前端即時重算
+      const snapIdList = ((teamBonusSnapshots ?? []) as any[])
+        .map((r) => String(r.id))
+        .filter(Boolean);
+      const linesBySnapshot = new Map<
+        string,
+        { accId: string | null; name: string; revenue: number | null; amount: number }[]
+      >();
+      if (snapIdList.length > 0) {
+        const { data: snapLines } = await supabase
+          .from("teamcommission_bonus_snapshot_lines")
+          .select("snapshot_id, accommodation_id, accommodation_name, revenue_base, amount")
+          .in("snapshot_id", snapIdList);
+        for (const l of (snapLines ?? []) as any[]) {
+          const sid = String(l.snapshot_id);
+          const arr = linesBySnapshot.get(sid) ?? [];
+          arr.push({
+            accId: l.accommodation_id ? String(l.accommodation_id) : null,
+            name: String(l.accommodation_name ?? "其他"),
+            revenue: l.revenue_base === null ? null : Number(l.revenue_base),
+            amount: Math.round(Number(l.amount ?? 0)),
+          });
+          linesBySnapshot.set(sid, arr);
+        }
+      }
       const REVENUE_BONUS = new Set([
+
         "am_performance",
         "closer_performance",
         "am_manager",
@@ -805,6 +836,27 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         const snap = (r.settings_snapshot ?? {}) as any;
         const accIds: string[] = Array.isArray(snap.accommodation_ids) ? snap.accommodation_ids : [];
         const snapNames: string[] = Array.isArray(snap.accommodation_names) ? snap.accommodation_names : [];
+
+        // 有快照逐館明細就直接用（金額已凍結，不需再依營收比例回推）
+        const frozenLines = linesBySnapshot.get(String(r.id)) ?? [];
+        if (frozenLines.length > 0) {
+          const sorted = [...frozenLines].sort((a, b) => b.amount - a.amount);
+          sorted.forEach((l, idx) => {
+            if (!l.amount) return;
+            pushItem(
+              "teamcommission_bonus_snapshots",
+              r.id,
+              `${r.bonus_type}#${l.accId ?? idx}`,
+              profileById.get(r.member_id),
+              label,
+              detail,
+              l.amount,
+              { venue_name: l.name, base_revenue: l.revenue ? Math.round(l.revenue) : null },
+            );
+          });
+          continue;
+        }
+
 
         if (PER_VENUE_BONUS.has(r.bonus_type) && accIds.length > 0) {
           const per = Math.round(amount / accIds.length);
