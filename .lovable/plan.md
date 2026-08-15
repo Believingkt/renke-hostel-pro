@@ -1,0 +1,78 @@
+# 團隊獎金：快照存逐館明細 ＋ 每日草稿快照 ＋ 三頁改讀快照
+
+## 目標
+
+1. 消除 TeamHome「明細等比例縮放對齊快照總額」的假數字，讓每一列都能用公式反推。
+2. 明細顯示館別／營收基準／當期費率／金額（現在只有館別、營收、金額）。
+3. 不必等 10 號或手動重算才看得到數字：每天產一次「草稿快照」。
+4. TeamHome、發放管理 Tab、業績統計 Tab 讀取加速。
+
+---
+
+## 一、資料模型：快照逐館 breakdown
+
+新增表 `teamcommission_bonus_snapshot_lines`：
+
+```text
+id                uuid pk
+snapshot_id       uuid -> teamcommission_bonus_snapshots(id) on delete cascade
+accommodation_id  uuid -> accommodation_info
+revenue_base      numeric   -- 該館採計營收（已扣增值服務、換匯後）
+rate_value        numeric   -- 當期費率或固定額
+rate_kind         text      -- 'percent' | 'fixed'
+amount            numeric   -- 該館金額（未經任何縮放）
+countable_ranges  jsonb     -- 該館在資料月內實際採計的日期區間
+multiplier        numeric   -- 倍率（若該項適用）
+created_at        timestamptz default now()
+```
+
+- 雙軌欄位比照主表：`revenue_base_incl/excl_owner_direct`、`amount_incl/excl_owner_direct`。
+- `GRANT SELECT` 給 `authenticated`、`GRANT ALL` 給 `service_role`；RLS 沿用主快照表的可見範圍（本人／管理層）。
+- 主表 `amount` 恆等於 lines 的 `amount` 加總（由產生器保證，不再事後對齊）。
+
+## 二、快照產生器
+
+`supabase/functions/create-team-bonus-snapshots`：
+
+- 計算過程本來就是逐館累加，改為在累加時同時 `push` 一筆 line，最後一次寫入。
+- 主表金額由 lines 加總得出，杜絕總額與明細不一致。
+- 訂單型獎金（成交大師分潤、影音分潤）不適用館別 breakdown，維持只寫主表。
+
+## 三、每日草稿快照
+
+- 目前 pg_cron `commission-cron-dispatcher-daily` 每天跑，但四支函式內部都有「只有台北 10 日才執行」的守門，1–9 日等於空轉。
+- 主快照表新增 `status text not null default 'final'`（`'draft' | 'final'`）。
+- 守門改為：非 10 日 → 以 `status='draft'` 產生／覆寫當期快照；10 日 → 產生 `final` 並凍結。
+- `draft` 可被隔天覆寫；`final` 與已發放（paid）維持 append-only，永不被草稿覆蓋。
+- 前端顯示 `draft` 時加「試算中，10 日結算後定案」標示。
+
+## 四、前端改讀快照（三頁）
+
+- **TeamHome**：移除 `TeamHome.tsx:1293-1308` 的 ratio 縮放整段，以及展開時的逐館即時重算。改為讀 `snapshot_lines`。無快照（極舊月份）才 fallback 即時算，並明確標示「即時試算」。
+- **明細 Drawer 欄位**：館別 ｜ 營收基準 ｜ 當期費率 ｜ 倍率 ｜ 金額，並保留既有 `BonusFormulaHint` 帶入實際數字。
+- **發放管理 Tab / 業績統計 Tab**：同樣改讀 lines，取消各自重算逐館營收。
+
+## 五、效能
+
+1. 三頁的逐館營收查詢移除後，首屏只剩「讀快照 + 讀 lines」兩次查詢。
+2. lines 加索引 `(snapshot_id)`、`(accommodation_id)`；主表確認 `(month, user_id)` 覆蓋索引。
+3. react-query `staleTime` 5–10 分鐘 + `placeholderData`，切換月份／Tab 不白畫面。
+4. 目前無相依的多段 `await`（設定表、名稱表、倍率表）合併為單一 `Promise.all`。
+5. 明細改為展開時才抓 lines（lazy detail）。
+
+---
+
+## 上線順序
+
+1. Migration：`snapshot_lines` 表 + `status` 欄位 + GRANT/RLS + 索引。
+2. 產生器改寫（同時寫 lines、主表由 lines 加總）。
+3. 對既有未付快照跑一次 resync，回填 lines；已付（paid）快照不動，前端對已付且無 lines 者顯示「此期無逐館明細」而非縮放假數字。
+4. 每日草稿快照開關上線。
+5. 三頁前端改讀 lines、移除 ratio 縮放。
+6. 「結算規則說明」Tab 同步更新口徑描述。
+
+## 技術備註
+
+- 計算規則單一真相來源仍在 `src/lib/`，edge function 鏡射同一份。
+- 期別（10 日／25 日）、倍率、雙軌 `payout_basis` 邏輯完全不變。
+- 驗收：任取一館明細，`營收基準 × 費率 × 倍率` 必須等於顯示金額；lines 加總必須等於卡片總額。
