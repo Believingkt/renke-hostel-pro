@@ -790,7 +790,32 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       // 固定金額×館別數的類型（AM 場域／場域成交／網紅月費）拆成逐館一筆
       // 抽成類（營收 × 費率）依「各館別營收」拆成逐館一筆，並顯示該館營收
       const PER_VENUE_BONUS = new Set(["am_venue_bonus", "venue_closing", "kol_monthly"]);
+      // 快照逐館明細（凍結當下寫入的營收／費率／金額），優先於前端即時重算
+      const snapIdList = ((teamBonusSnapshots ?? []) as any[])
+        .map((r) => String(r.id))
+        .filter(Boolean);
+      const linesBySnapshot = new Map<
+        string,
+        { name: string; revenue: number | null; amount: number }[]
+      >();
+      if (snapIdList.length > 0) {
+        const { data: snapLines } = await supabase
+          .from("teamcommission_bonus_snapshot_lines")
+          .select("snapshot_id, accommodation_name, revenue_base, amount")
+          .in("snapshot_id", snapIdList);
+        for (const l of (snapLines ?? []) as any[]) {
+          const sid = String(l.snapshot_id);
+          const arr = linesBySnapshot.get(sid) ?? [];
+          arr.push({
+            name: String(l.accommodation_name ?? "其他"),
+            revenue: l.revenue_base === null ? null : Number(l.revenue_base),
+            amount: Math.round(Number(l.amount ?? 0)),
+          });
+          linesBySnapshot.set(sid, arr);
+        }
+      }
       const REVENUE_BONUS = new Set([
+
         "am_performance",
         "closer_performance",
         "am_manager",
