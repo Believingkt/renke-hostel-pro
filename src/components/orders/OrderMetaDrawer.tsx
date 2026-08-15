@@ -431,18 +431,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   }, [open, orderId]);
 
   const applyAdIdWithAutoVideo = (nextAdId: string) => {
+    // 影音組分潤已停止使用：僅更新廣告編號，不再自動指派影音組
     setAdId(nextAdId);
-    const adName = nextAdId ? adNameByAdId[nextAdId] : "";
-    if (adName) {
-      const lower = adName.toLowerCase();
-      for (const r of adVideoRules) {
-        if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
-          setVideoCreatorId(r.video_creator_id);
-          return;
-        }
-      }
-    }
-    setVideoCreatorId(NONE);
+
   };
 
 
