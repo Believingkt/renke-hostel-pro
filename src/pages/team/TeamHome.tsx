@@ -1620,9 +1620,10 @@ export default function TeamHome() {
     }
   }
 
-  if (showVideo && isMonthly) {
+  // 影音組分潤已停用：僅在仍有歷史金額時顯示，不再產生新的影音獎金
+  if (showVideo && isMonthly && videoAmt > 0) {
     const m = multOf("video");
-    cards.push({ key: "video", title: "影音獎金", amount: roundBoosted(videoAmt, m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
+    cards.push({ key: "video", title: "影音獎金（已停用・歷史）", amount: roundBoosted(videoAmt, m), baseAmount: videoAmt, multiplier: m, note: monthlyNote() });
   }
   if (showScout) {
     const kolM = multOf("scout_kol", scoutPeriodPayoutKey);

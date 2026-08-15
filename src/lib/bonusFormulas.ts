@@ -147,16 +147,6 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     anchorId: "bonus-closer",
   },
   {
-    key: "video",
-    name: "影音組分潤",
-    category: "closer",
-    formula: "訂單分潤基準金額 × 影音組費率 × 門檻係數",
-    basis: "以訂單為單位，與成交組分潤同一基準",
-    gates: [GATE_PARTNERSHIP_CLOSER, GATE_STATUS, GATE_THRESHOLD],
-    usesVenueRevenue: false,
-    anchorId: "bonus-video",
-  },
-  {
     key: "closer_team_bonus",
     name: "成交組團隊獎金",
     category: "closer",

@@ -307,10 +307,6 @@ export default function BonusOrderInspector() {
               value: !closerGate ? "不採計" : closerName ?? "訂單未指定成交人",
             },
             {
-              label: "成交大師（影音組）",
-              value: !closerGate ? "不採計" : videoName ?? "訂單未指定影音組",
-            },
-            {
               label: "成交組主管",
               value: !closerGate ? "不採計" : closerManager ?? "未綁定",
             },
