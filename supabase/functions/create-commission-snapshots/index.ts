@@ -464,11 +464,10 @@ serve(async (req) => {
 
         const rates = rateFor(ord.accommodation_id as string, ord.order_date as string);
         const closerRate = s.closer_rate == null ? rates.closer : Number(s.closer_rate);
-        const hasVideo = !!s.video_creator_id;
-        const videoRate = hasVideo ? (s.video_rate == null ? rates.video : Number(s.video_rate)) : 0;
 
         const closerAmt = baseAmount * closerRate * factor;
-        const videoAmt = hasVideo ? baseAmount * videoRate * factor : 0;
+        // 影音組分潤已停止使用：重算時不再重新計算影音金額，維持既有快照值不變
+        const videoAmt = Number(s.video_commission_amount ?? 0);
 
         const beforeBase = Number(s.final_price_snapshot ?? 0);
         const beforeCloser = Number(s.closer_commission_amount ?? 0);
@@ -484,10 +483,10 @@ serve(async (req) => {
           .update({
             final_price_snapshot: baseAmount,
             closer_commission_amount: closerAmt,
-            video_commission_amount: videoAmt,
             check_out_date: ord.check_out_date,
           })
           .eq("id", s.id);
+
         if (updErr) {
           out.errors.push({ order_id: s.order_id as string, error: updErr.message });
           continue;
