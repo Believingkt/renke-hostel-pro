@@ -1325,12 +1325,12 @@ export default function TeamCommissionStatsTab() {
 
 
 
-      {/* 成交組 / 影音組業績 */}
+      {/* 成交組業績（影音組分潤已停用：僅在仍有歷史金額時顯示） */}
       {!isScoutOnly && (
         <>
           {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true, "closer")}
-          {renderMemberCard("影音組業績", videoStats, expandedVideo, setExpandedVideo, "影音組成員", false, "video")}
-
+          {videoStats.some((s) => s.commission !== 0 || s.cancelCommission !== 0) &&
+            renderMemberCard("影音組業績（已停用・歷史）", videoStats, expandedVideo, setExpandedVideo, "影音組成員", false, "video")}
         </>
       )}
 
