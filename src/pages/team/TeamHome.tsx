@@ -1094,7 +1094,10 @@ export default function TeamHome() {
           closerManagerFlag = !!profileId && closerManagerId === profileId;
           kolRecipientFlag = !!profileId && kolRecipientId === profileId;
 
+          // 快照已含完整逐館明細 → 略過以下所有即時營收查詢（效能主要瓶頸）。
+          if (!snapshotCoversAll) {
           // 月結型獎金只在 10 日期發放；25 日期不做任何營收計算。
+
           const needCompanyRevenue =
             isMonthlyPayout &&
             (amManagerFlag || closerManagerFlag || showCloser || kolRecipientFlag);
