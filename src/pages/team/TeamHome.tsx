@@ -1431,7 +1431,14 @@ export default function TeamHome() {
     baseAmount?: number;         // 原始金額（未加倍）
     multiplier: number;          // 用於 badge
     note?: string;
-    lines?: Array<{ label: string; amount: number; multiplier: number; revenue?: number; rangeNote?: string }>;
+    lines?: Array<{
+      label: string;
+      amount: number;
+      multiplier: number;
+      revenue?: number;
+      rangeNote?: string;
+      rateNote?: string;
+    }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
   }> = [];
@@ -1456,6 +1463,19 @@ export default function TeamHome() {
       .filter(Boolean)
       .join("・");
 
+  /** 明細列的「當期費率」文字：抽成型顯示百分比，均分型補上人數與在職比例 */
+  const rateNoteOf = (d: VenueRevenueLine) => {
+    if (d.rate === null || d.rate === undefined) return undefined;
+    if (d.rateKind === "fixed") return `固定 ${fmt(d.rate)}／館`;
+    const pct = `${(d.rate * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+    const parts = [pct];
+    if (d.splitHeadcount && d.splitHeadcount > 1) parts.push(`÷ 在職 ${d.splitHeadcount} 人`);
+    if (d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1) {
+      parts.push(`× 在職比例 ${(d.prorateRatio * 100).toFixed(0)}%`);
+    }
+    return parts.join(" ");
+  };
+
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
@@ -1464,6 +1484,7 @@ export default function TeamHome() {
       amount: roundBoosted(d.amount, m),
       multiplier: m,
       rangeNote: d.rangeNote,
+      rateNote: rateNoteOf(d),
     }));
 
   if (showCloser && isMonthly) {
@@ -1935,6 +1956,7 @@ export default function TeamHome() {
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>
                         <th className="text-right py-2 font-medium">營收</th>
+                        <th className="text-right py-2 font-medium">當期費率</th>
                         <th className="text-right py-2 font-medium">獎金</th>
                       </tr>
                     </thead>
@@ -1951,6 +1973,9 @@ export default function TeamHome() {
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
+                          </td>
+                          <td className="py-2 text-right tabular-nums whitespace-nowrap text-muted-foreground">
+                            {ln.rateNote ?? "—"}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {fmt(ln.amount)}
