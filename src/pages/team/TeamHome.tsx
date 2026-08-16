@@ -1151,16 +1151,22 @@ export default function TeamHome() {
             formatCountableRangeNote(noteRanges[accId], monthStartDate, monthEndDate) ?? undefined;
 
           // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
-          const linesOf = (byAcc: Record<string, number>, rate: number) =>
+          // rate 一律傳「設定值」；均分型再帶 splitHeadcount，金額才除以人數
+          const linesOf = (
+            byAcc: Record<string, number>,
+            rate: number,
+            splitHeadcount?: number,
+          ) =>
             Object.entries(byAcc)
               .filter(([, rev]) => rev > 0)
               .sort((a, b) => b[1] - a[1])
               .map(([accId, rev]) => ({
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
-                amount: rev * rate,
+                amount: (rev * rate) / (splitHeadcount && splitHeadcount > 1 ? splitHeadcount : 1),
                 rate,
                 rateKind: "percent" as const,
+                splitHeadcount: splitHeadcount ?? null,
                 rangeNote: rangeNoteOf(accId),
               }));
 
