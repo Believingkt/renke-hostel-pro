@@ -1242,7 +1242,11 @@ export default function TeamHome() {
             }
             const perHeadRate = Number(s?.rate ?? 0) / headcount;
             closerPerfSum = companyRevenue * perHeadRate;
-            breakdown.closer_performance = linesOf(companyByAcc, perHeadRate);
+            breakdown.closer_performance = linesOf(
+              companyByAcc,
+              Number(s?.rate ?? 0),
+              headcount,
+            );
           }
 
 
