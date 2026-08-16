@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
 import { resolveAddonSetting } from "@/lib/addonAliases";
+import { calcOrderAddonTotal, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
