@@ -139,6 +139,13 @@ export default function GroupBuyCampaign() {
       if (list.length > 0) setSelectedPkgId(list[0].id);
       if (c.stay_start_date) setCheckIn(c.stay_start_date);
       setLoading(false);
+      const { data: acc } = await supabase
+        .from("accommodation_info")
+        .select("name")
+        .eq("id", c.accommodation_id)
+        .maybeSingle();
+      if (!cancelled && acc?.name) setVenueName(acc.name);
+
     })();
     return () => {
       cancelled = true;
