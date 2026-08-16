@@ -148,18 +148,33 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
       )}
 
       {info.facilities.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-base font-semibold tracking-wide text-foreground">房源特色</h3>
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
-            {info.facilities.slice(0, 18).map((f) => (
+        <div className="mt-7">
+          <h3 className="text-base font-semibold tracking-wide text-foreground">
+            房源特色
+            <span className="ml-2 text-sm font-normal text-muted-foreground">共 {info.facilities.length} 項</span>
+          </h3>
+          <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5 sm:grid-cols-3">
+            {(showAllFacilities ? info.facilities : info.facilities.slice(0, 9)).map((f) => (
               <span key={f} className="flex items-start gap-2 text-[15px] leading-relaxed text-muted-foreground">
                 <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                 <span className="leading-snug">{f}</span>
               </span>
             ))}
           </div>
+          {info.facilities.length > 9 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4 h-10 rounded-full px-4 text-sm"
+              onClick={() => setShowAllFacilities((v) => !v)}
+            >
+              {showAllFacilities ? "收合特色" : `顯示全部 ${info.facilities.length} 項特色`}
+            </Button>
+          )}
         </div>
       )}
+
 
       <Separator className="my-6 bg-border/60" />
 
