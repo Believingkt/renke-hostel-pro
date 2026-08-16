@@ -675,11 +675,31 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       // Calculate deposit and balance amounts
       const addonNights = 1; // 歷史訂單不重算加購晚數，保留原金額
-      const editableAddonDetails = [] as any[];
-      const addonTotalRaw = editForm.selected_addons.reduce((sum, selectedAddon) => {
-        const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-        return sum + (addon ? addon.price_per_unit * selectedAddon.quantity * addonNights : 0);
-      }, 0);
+      // 加購明細：可編輯項目 + 原樣保留的非設定項目（寵物 / bbq / 已停用）
+      const customAddonDetails = [
+        ...preservedAddons,
+        ...editForm.selected_addons
+          .filter(sa => sa.quantity > 0)
+          .map(sa => {
+            const addon = addonSettings.find(a => a.id === sa.addon_id);
+            return addon ? {
+              addon_id: sa.addon_id,
+              addon_type: addon.addon_type,
+              count: sa.quantity,
+              price_per_unit: addon.price_per_unit,
+              total: addon.price_per_unit * sa.quantity * addonNights,
+              unit_label: addon.unit_label,
+            } : null;
+          })
+          .filter(Boolean),
+      ];
+      // 加購總額一律以 DB calc_order_addon_total 口徑計算，房費比對才會一致
+      const addonTotal = calcOrderAddonTotal({
+        pet_plan_price: (order as any)?.pet_plan_price,
+        meal_plan_total: (order as any)?.meal_plan_total,
+        custom_addon_details: customAddonDetails,
+        notes: editForm.notes,
+      });
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
       // orders.total_price 口徑：房費 + 加購
@@ -720,22 +740,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         payment_status = "deposit_paid";
         paid_amount = depositAmount;
       }
-
-      // Build custom_addon_details for persistence
-      const customAddonDetails = editForm.selected_addons
-        .filter(sa => sa.quantity > 0)
-        .map(sa => {
-          const addon = addonSettings.find(a => a.id === sa.addon_id);
-          return addon ? {
-            addon_id: sa.addon_id,
-            addon_type: addon.addon_type,
-            count: sa.quantity,
-            price_per_unit: addon.price_per_unit,
-            total: addon.price_per_unit * sa.quantity * addonNights,
-            unit_label: addon.unit_label,
-          } : null;
-        })
-        .filter(Boolean);
 
       await onSave({
         order_status: editForm.order_status,
