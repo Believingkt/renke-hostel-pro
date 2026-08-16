@@ -1548,17 +1548,29 @@ export default function TeamHome() {
       .filter(Boolean)
       .join("・");
 
-  /** 明細列的「當期費率」文字：抽成型顯示百分比，均分型補上人數與在職比例 */
-  const rateNoteOf = (d: VenueRevenueLine) => {
+  /** 百分比字串（去掉多餘的 0） */
+  const pctText = (v: number) => `${(v * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+  /**
+   * 明細列的「當期費率」文字：一律顯示 HQ 設定值，均分型再補「÷ 在職 N 人」。
+   * 回傳 main（設定值算式）與 effective（均分後每人實際費率）兩段。
+   */
+  const rateNoteOf = (d: VenueRevenueLine): { main: string; effective?: string } | undefined => {
     if (d.rate === null || d.rate === undefined) return undefined;
-    if (d.rateKind === "fixed") return `固定 ${fmt(d.rate)}／館`;
-    const pct = `${(d.rate * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
-    const parts = [pct];
-    if (d.splitHeadcount && d.splitHeadcount > 1) parts.push(`÷ 在職 ${d.splitHeadcount} 人`);
-    if (d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1) {
-      parts.push(`× 在職比例 ${(d.prorateRatio * 100).toFixed(0)}%`);
-    }
-    return parts.join(" ");
+    if (d.rateKind === "fixed") return { main: `固定 ${fmt(d.rate)}／館` };
+    const parts = [pctText(d.rate)];
+    const hc = d.splitHeadcount && d.splitHeadcount > 1 ? d.splitHeadcount : null;
+    if (hc) parts.push(`÷ 在職 ${hc} 人`);
+    const ratio =
+      d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1
+        ? d.prorateRatio
+        : null;
+    if (ratio !== null) parts.push(`× 在職比例 ${(ratio * 100).toFixed(0)}%`);
+    const eff = (d.rate / (hc ?? 1)) * (ratio ?? 1);
+    return {
+      main: parts.join(" "),
+      effective: hc || ratio !== null ? `＝ 每人 ${pctText(eff)}` : undefined,
+    };
   };
 
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
