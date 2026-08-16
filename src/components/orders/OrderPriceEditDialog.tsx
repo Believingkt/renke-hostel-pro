@@ -144,6 +144,36 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   }>({ pet_plan_price: 0, meal_plan_total: 0, notes: null, preserved: [] });
   const [savedRoomFee, setSavedRoomFee] = useState(0);
 
+  // 儲存後的 custom_addon_details（可編輯項目 + 原樣保留項目）
+  const buildNewAddonDetails = (): AddonDetail[] => [
+    ...(addonCtx.preserved as AddonDetail[]),
+    ...addonSettings
+      .filter((s) => (addonQuantities[s.addon_type] || 0) > 0)
+      .map((s) => {
+        const qty = addonQuantities[s.addon_type] || 0;
+        return {
+          addon_id: s.id,
+          addon_type: s.addon_type,
+          count: qty,
+          price_per_unit: s.price_per_unit,
+          total: s.price_per_unit * qty * addonNights,
+          unit_label: s.unit_label,
+        };
+      }),
+  ];
+
+  // 加購總額一律以 DB calc_order_addon_total 口徑計算，確保房費比對一致
+  const addonTotal = calcOrderAddonTotal({
+    pet_plan_price: addonCtx.pet_plan_price,
+    meal_plan_total: addonCtx.meal_plan_total,
+    custom_addon_details: buildNewAddonDetails(),
+    notes: addonCtx.notes,
+  });
+
+  const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
+
+
+
   useEffect(() => {
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
