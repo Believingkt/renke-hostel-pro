@@ -105,6 +105,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  // 對應不到現行 addon_settings 的加購明細（寵物 / bbq / 已停用項目），存檔時原樣保留
+  const [preservedAddons, setPreservedAddons] = useState<any[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
