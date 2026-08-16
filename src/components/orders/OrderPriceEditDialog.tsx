@@ -64,13 +64,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   // 歷史訂單不重算加購晚數，保留原金額
   const addonNights = 1;
 
-  // Compute addon total from editable quantities
-  const addonTotal = addonSettings.reduce((sum, s) => {
+  // 可編輯加購項目金額（僅 addon_settings 內的項目）
+  const editableAddonTotal = addonSettings.reduce((sum, s) => {
     const qty = addonQuantities[s.addon_type] || 0;
     return sum + s.price_per_unit * qty * addonNights;
   }, 0);
 
-  const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
 
   // Total/discount fields lock only when fully paid; deposit locks once any payment received
   const isAmountLocked = !!order && ["paid", "fully_paid"].includes(order.payment_status);
