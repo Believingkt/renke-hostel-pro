@@ -1730,6 +1730,7 @@ export default function TeamHome() {
       baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
+      simAmount: simAmountOf("am_performance", m),
       lines: venueLines("am_performance", m),
       alwaysShowLines: true,
     });
@@ -1752,6 +1753,7 @@ export default function TeamHome() {
       baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
+      simAmount: simAmountOf("closer_performance", m),
       lines: venueLines("closer_performance", m),
       alwaysShowLines: true,
     });
@@ -1765,6 +1767,7 @@ export default function TeamHome() {
       baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
+      simAmount: simAmountOf("am_manager", m),
       lines: venueLines("am_manager", m),
       alwaysShowLines: true,
     });
@@ -1778,6 +1781,7 @@ export default function TeamHome() {
       baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
+      simAmount: simAmountOf("closer_manager", m),
       lines: venueLines("closer_manager", m),
       alwaysShowLines: true,
     });
@@ -1791,6 +1795,7 @@ export default function TeamHome() {
       baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
+      simAmount: simAmountOf("kol_commission", mc),
       lines: venueLines("kol_commission", mc),
       alwaysShowLines: true,
     });
