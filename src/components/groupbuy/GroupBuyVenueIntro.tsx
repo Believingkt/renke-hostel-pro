@@ -227,7 +227,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
 
       {info.check_in_notice && (
         <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
-          <Accordion type="single" collapsible defaultValue="notice">
+          <Accordion type="single" collapsible>
             <AccordionItem value="notice" className="border-b-0">
               <AccordionTrigger className="py-0 text-base hover:no-underline">
                 <span className="flex items-center gap-2 font-semibold text-foreground">
