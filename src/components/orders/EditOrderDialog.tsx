@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
+import { calcOrderAddonTotal, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { resolveAddonId } from "@/lib/addonAliases";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
@@ -104,6 +105,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  // 對應不到現行 addon_settings 的加購明細（寵物 / bbq / 已停用項目），存檔時原樣保留
+  const [preservedAddons, setPreservedAddons] = useState<any[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
@@ -300,13 +303,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         if (addons) {
           // Merge duplicates that point to the same addon (e.g. legacy name + new name)
           const merged = new Map<string, number>();
+          const keep: any[] = [];
           (data.custom_addon_details as any[])
             .filter((d: any) => d && d.count > 0)
             .forEach((d: any) => {
               const id = resolveAddonId(d, addons);
-              if (!id) return;
+              // 對應不到現行加購設定（寵物 / bbq / 已停用項目）→ 原樣保留，避免存檔時被抹除
+              if (!id) { keep.push(d); return; }
               merged.set(id, (merged.get(id) || 0) + Number(d.count || 0));
             });
+          setPreservedAddons(keep);
           selectedAddons = Array.from(merged, ([addon_id, quantity]) => ({ addon_id, quantity }));
         }
 
@@ -361,7 +367,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       // Initialize manual overrides from saved order values
       // orders.total_price 已含加購金額，此欄位為「房費金額」，需扣除加購避免重複計算
-      setManualTotalPriceStr(String(Math.max(0, (order.total_price || 0) - existingAddonTotal)));
+      setManualTotalPriceStr(String(pureRoomFeeOf(order as any)));
       setManualDiscountStr(String(order.discount_amount));
     };
 
@@ -671,10 +677,31 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       // Calculate deposit and balance amounts
       const addonNights = 1; // 歷史訂單不重算加購晚數，保留原金額
-      const addonTotal = editForm.selected_addons.reduce((sum, selectedAddon) => {
-        const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-        return sum + (addon ? addon.price_per_unit * selectedAddon.quantity * addonNights : 0);
-      }, 0);
+      // 加購明細：可編輯項目 + 原樣保留的非設定項目（寵物 / bbq / 已停用）
+      const customAddonDetails = [
+        ...preservedAddons,
+        ...editForm.selected_addons
+          .filter(sa => sa.quantity > 0)
+          .map(sa => {
+            const addon = addonSettings.find(a => a.id === sa.addon_id);
+            return addon ? {
+              addon_id: sa.addon_id,
+              addon_type: addon.addon_type,
+              count: sa.quantity,
+              price_per_unit: addon.price_per_unit,
+              total: addon.price_per_unit * sa.quantity * addonNights,
+              unit_label: addon.unit_label,
+            } : null;
+          })
+          .filter(Boolean),
+      ];
+      // 加購總額一律以 DB calc_order_addon_total 口徑計算，房費比對才會一致
+      const addonTotal = calcOrderAddonTotal({
+        pet_plan_price: (order as any)?.pet_plan_price,
+        meal_plan_total: (order as any)?.meal_plan_total,
+        custom_addon_details: customAddonDetails,
+        notes: editForm.notes,
+      });
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
       // orders.total_price 口徑：房費 + 加購
@@ -715,22 +742,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         payment_status = "deposit_paid";
         paid_amount = depositAmount;
       }
-
-      // Build custom_addon_details for persistence
-      const customAddonDetails = editForm.selected_addons
-        .filter(sa => sa.quantity > 0)
-        .map(sa => {
-          const addon = addonSettings.find(a => a.id === sa.addon_id);
-          return addon ? {
-            addon_id: sa.addon_id,
-            addon_type: addon.addon_type,
-            count: sa.quantity,
-            price_per_unit: addon.price_per_unit,
-            total: addon.price_per_unit * sa.quantity * addonNights,
-            unit_label: addon.unit_label,
-          } : null;
-        })
-        .filter(Boolean);
 
       await onSave({
         order_status: editForm.order_status,
