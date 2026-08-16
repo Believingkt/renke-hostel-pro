@@ -7,7 +7,9 @@ import {
   getBonusFormula,
   type BonusCategory,
 } from "@/lib/bonusFormulas";
-import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
+import { useOwnerDirectSim } from "@/hooks/use-owner-direct-sim";
+import { OwnerDirectSimToggle } from "@/components/team/OwnerDirectSimToggle";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -163,12 +165,10 @@ export default function TeamHome() {
   // 計算邏輯完全沿用同一份程式碼。
   const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
 
-  // ===== 業主自帶雙軌顯示口徑 =====
-  const {
-    basis: ownerDirectBasis,
-    setBasis: setOwnerDirectBasis,
-    canSwitch: canSwitchBasis,
-  } = useOwnerDirectBasis();
+  // ===== 排除業主自帶（試算）檢視 =====
+  const { simEnabled, setSimEnabled, canSim } = useOwnerDirectSim();
+  const [simPayload, setSimPayload] = useState<TeamHomePayload | null>(null);
+
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const [viewAsRoles, setViewAsRoles] = useState<TeamRole[]>([]);
   const [members, setMembers] = useState<
@@ -345,11 +345,8 @@ export default function TeamHome() {
 
   // ===== 期別資料快取（模組層，跨頁面來回不重讀）=====
   // 命中即先上畫面（不轉圈），超過 TTL 才在背景重新計算後靜默更新。
-  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}|${ownerDirectBasis}`;
+  const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
 
-  /** 管理層切換到參考軌時才覆寫；一般成員與「實付真值」皆為 null */
-  const basisOverride =
-    null;
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
@@ -409,11 +406,11 @@ export default function TeamHome() {
       if (fresh) return;
     }
 
-    (async () => {
-      if (!cached) setLoading(true);
-
-
+    const runLoad = async (
+      basisOverride: "exclude_owner_direct" | null,
+    ): Promise<TeamHomePayload | undefined> => {
       try {
+
         const {
           today,
           monthStartIso,
@@ -1440,10 +1437,27 @@ export default function TeamHome() {
           breakdown,
           missing,
         };
-        payloadCache.set(cacheKey, { at: Date.now(), payload });
-        applyPayload(payload);
+        return payload;
       } catch (e) {
         console.error("[TeamHome] load error:", e);
+        return undefined;
+      }
+    };
+
+    (async () => {
+      if (!cached) setLoading(true);
+      try {
+        const payload = await runLoad(null);
+        if (cancelled || !payload) return;
+        payloadCache.set(cacheKey, { at: Date.now(), payload });
+        applyPayload(payload);
+
+        if (simEnabled) {
+          const sim = await runLoad("exclude_owner_direct");
+          if (!cancelled) setSimPayload(sim ?? null);
+        } else if (!cancelled) {
+          setSimPayload(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -1452,7 +1466,8 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, basisOverride]);
+  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, simEnabled]);
+
 
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
@@ -1481,7 +1496,23 @@ export default function TeamHome() {
     }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
+    simAmount?: number;          // 「排除業主自帶」試算對照金額（僅管理員檢視）
   }> = [];
+
+  /** 「排除業主自帶」試算金額（僅以館別營收為基準的獎金受影響） */
+  const simAmountOf = (key: string, m: number): number | undefined => {
+    if (!simEnabled || !simPayload) return undefined;
+    const map: Record<string, number> = {
+      am_performance: simPayload.amPerfSum,
+      closer_performance: simPayload.closerPerfSum,
+      am_manager: simPayload.amManagerSum,
+      closer_manager: simPayload.closerManagerSum,
+      kol_commission: simPayload.kolCommissionSum,
+    };
+    const v = map[key];
+    return v === undefined ? undefined : roundBoosted(v, m);
+  };
+
 
   const isMonthly = monthInfo.isMonthlyPayout;
   /** 月結型卡片統一備註：期別 + 是否已結算 */
@@ -1699,6 +1730,7 @@ export default function TeamHome() {
       baseAmount: amPerformanceAmt,
       multiplier: m,
       note: rateNote("am_performance"),
+      simAmount: simAmountOf("am_performance", m),
       lines: venueLines("am_performance", m),
       alwaysShowLines: true,
     });
@@ -1721,6 +1753,7 @@ export default function TeamHome() {
       baseAmount: closerPerformanceAmt,
       multiplier: m,
       note: rateNote("closer_performance"),
+      simAmount: simAmountOf("closer_performance", m),
       lines: venueLines("closer_performance", m),
       alwaysShowLines: true,
     });
@@ -1734,6 +1767,7 @@ export default function TeamHome() {
       baseAmount: amManagerAmt,
       multiplier: m,
       note: rateNote("am_manager"),
+      simAmount: simAmountOf("am_manager", m),
       lines: venueLines("am_manager", m),
       alwaysShowLines: true,
     });
@@ -1747,6 +1781,7 @@ export default function TeamHome() {
       baseAmount: closerManagerAmt,
       multiplier: m,
       note: rateNote("closer_manager"),
+      simAmount: simAmountOf("closer_manager", m),
       lines: venueLines("closer_manager", m),
       alwaysShowLines: true,
     });
@@ -1760,6 +1795,7 @@ export default function TeamHome() {
       baseAmount: kolCommissionAmt,
       multiplier: mc,
       note: rateNote("kol_commission"),
+      simAmount: simAmountOf("kol_commission", mc),
       lines: venueLines("kol_commission", mc),
       alwaysShowLines: true,
     });
@@ -1791,6 +1827,16 @@ export default function TeamHome() {
   }
 
   const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
+
+  /** 「排除業主自帶」試算總計（僅在開啟試算且已算出對照值時顯示） */
+  const simTotal =
+    simEnabled && simPayload
+      ? cards.reduce(
+          (s, c) =>
+            s + (c.excludeFromTotal ? 0 : c.simAmount !== undefined ? c.simAmount : c.amount),
+          0,
+        )
+      : null;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -1838,6 +1884,8 @@ export default function TeamHome() {
         </p>
       </div>
 
+      <OwnerDirectSimToggle enabled={simEnabled} onChange={setSimEnabled} visible={canSim} />
+
       <PayoutPeriodBanner
         periods={periodOptions}
         index={periodIndex}
@@ -1868,6 +1916,12 @@ export default function TeamHome() {
               <p className="text-4xl font-bold text-primary">
                 {loading ? "—" : fmt(total)}
               </p>
+              {!loading && simTotal !== null ? (
+                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                  排除業主自帶：{fmt(simTotal)}（{simTotal - total >= 0 ? "+" : "−"}
+                  {fmt(Math.abs(simTotal - total))}）・僅供參考，非實付金額
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -1904,6 +1958,13 @@ export default function TeamHome() {
                   <p className="text-2xl font-semibold">
                     {loading ? "—" : fmt(c.amount)}
                   </p>
+                  {!loading && c.simAmount !== undefined ? (
+                    <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      排除業主自帶：{fmt(c.simAmount)}（
+                      {c.simAmount - c.amount >= 0 ? "+" : "−"}
+                      {fmt(Math.abs(c.simAmount - c.amount))}）
+                    </p>
+                  ) : null}
 
                   {!loading && c.amount === 0 ? (
                     <ZeroBonusReason bonusKey={c.key} roles={roles} />

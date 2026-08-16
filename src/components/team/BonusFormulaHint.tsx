@@ -93,12 +93,6 @@ export function BonusFormulaHint({
           </div>
         )}
 
-        {formula.usesVenueRevenue && (
-          <p className="text-xs text-muted-foreground">
-            此項以館別營收為基準，受「含／排除業主自帶」雙軌口徑影響。
-          </p>
-        )}
-
         <Link
           to={`${rulesPath}#${formula.anchorId}`}
           className="block text-xs text-primary hover:underline"
