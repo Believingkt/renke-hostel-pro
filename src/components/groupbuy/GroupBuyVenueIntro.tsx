@@ -38,6 +38,8 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
   const [info, setInfo] = useState<VenueIntroData | null>(null);
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [showAllFacilities, setShowAllFacilities] = useState(false);
+
 
   useEffect(() => {
     let cancelled = false;
