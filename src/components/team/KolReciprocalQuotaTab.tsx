@@ -575,9 +575,47 @@ export function KolReciprocalQuotaTab({
             </SelectContent>
           </Select>
         </div>
+
+        {isScoped && (
+          <div className="mt-3 rounded-md border bg-muted/40 p-3 space-y-2">
+            <div className="flex items-start gap-2 text-sm">
+              <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+              <div>
+                <div className="font-medium">你可編輯的館別範圍</div>
+                <div className="text-xs text-muted-foreground">
+                  依你的 AM 負責館別設定（am_managed_accommodation_ids）自動帶入，僅以下館別可檢視與編輯互惠額度。
+                </div>
+              </div>
+            </div>
+            {accListLoading ? (
+              <div className="text-xs text-muted-foreground">載入中…</div>
+            ) : accList.length === 0 ? (
+              <div className="text-xs text-amber-600">尚未指派任何負責館別，請聯繫主管設定。</div>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {accList.map((a) => (
+                  <Badge
+                    key={a.id}
+                    variant={a.id === selectedAccId ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedAccId(a.id)}
+                  >
+                    {a.name}
+                    {a.id === selectedAccId ? "（目前選中）" : ""}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              目前操作依據：<span className="text-foreground font-medium">{currentAccName ?? "未選擇"}</span>
+              ；所有新增／修改／刪除都只會影響此館別，並會留下操作紀錄。
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
+
 
   if (!currentAccommodationId) {
     return (
