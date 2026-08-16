@@ -2103,7 +2103,18 @@ export default function TeamHome() {
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap text-muted-foreground">
-                            {ln.rateNote ?? "—"}
+                            {ln.rateNote ? (
+                              <>
+                                <div>{ln.rateNote.main}</div>
+                                {ln.rateNote.effective ? (
+                                  <div className="text-[11px] leading-tight">
+                                    {ln.rateNote.effective}
+                                  </div>
+                                ) : null}
+                              </>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {fmt(ln.amount)}
