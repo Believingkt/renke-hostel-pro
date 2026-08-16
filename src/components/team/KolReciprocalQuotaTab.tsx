@@ -366,10 +366,11 @@ export function KolReciprocalQuotaTab({
         note: form.note.trim() || null,
         package_id: pkgId,
       }));
+      const scopeText = pkgId ? (packageNameById[pkgId] ?? "指定包棟") : "全館共用";
       for (const p of payloads) {
         let q = supabase
           .from("kol_reciprocal_monthly_quotas")
-          .select("id")
+          .select("id, quota, note")
           .eq("accommodation_id", p.accommodation_id)
           .eq("year_month", p.year_month);
         q = p.package_id ? q.eq("package_id", p.package_id) : q.is("package_id", null);
@@ -379,8 +380,16 @@ export function KolReciprocalQuotaTab({
             .from("kol_reciprocal_monthly_quotas")
             .update({ quota: p.quota, note: p.note })
             .eq("id", exist.id);
+          audit("update", p.year_month, scopeText, [
+            { field: "quota", label: "額度上限", before: (exist as any).quota, after: p.quota },
+            { field: "note", label: "備註", before: (exist as any).note, after: p.note },
+          ], exist.id);
         } else {
           await supabase.from("kol_reciprocal_monthly_quotas").insert(p as any);
+          audit("create", p.year_month, scopeText, [
+            { field: "quota", label: "額度上限", before: null, after: p.quota },
+            { field: "note", label: "備註", before: null, after: p.note },
+          ]);
         }
       }
       toast({ title: `已批次設定 ${months.length} 個月份` });
@@ -389,16 +398,24 @@ export function KolReciprocalQuotaTab({
       return;
     }
 
+    const scopeText = pkgId ? (packageNameById[pkgId] ?? "指定包棟") : "全館共用";
+    const nextQuota = Math.floor(form.quota);
+    const nextNote = form.note.trim() || null;
+
     if (editing) {
       const { error } = await supabase
         .from("kol_reciprocal_monthly_quotas")
-        .update({ quota: Math.floor(form.quota), note: form.note.trim() || null })
+        .update({ quota: nextQuota, note: nextNote })
         .eq("id", editing.id);
       if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+      audit("update", editing.year_month, scopeLabel(editing), [
+        { field: "quota", label: "額度上限", before: editing.quota, after: nextQuota },
+        { field: "note", label: "備註", before: editing.note, after: nextNote },
+      ], editing.id);
     } else {
       let q = supabase
         .from("kol_reciprocal_monthly_quotas")
-        .select("id")
+        .select("id, quota, note")
         .eq("accommodation_id", currentAccommodationId)
         .eq("year_month", form.year_month);
       q = pkgId ? q.eq("package_id", pkgId) : q.is("package_id", null);
@@ -406,20 +423,28 @@ export function KolReciprocalQuotaTab({
       if (exist?.id) {
         const { error } = await supabase
           .from("kol_reciprocal_monthly_quotas")
-          .update({ quota: Math.floor(form.quota), note: form.note.trim() || null })
+          .update({ quota: nextQuota, note: nextNote })
           .eq("id", exist.id);
         if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+        audit("update", form.year_month, scopeText, [
+          { field: "quota", label: "額度上限", before: (exist as any).quota, after: nextQuota },
+          { field: "note", label: "備註", before: (exist as any).note, after: nextNote },
+        ], exist.id);
       } else {
         const { error } = await supabase
           .from("kol_reciprocal_monthly_quotas")
           .insert({
             accommodation_id: currentAccommodationId,
             year_month: form.year_month,
-            quota: Math.floor(form.quota),
-            note: form.note.trim() || null,
+            quota: nextQuota,
+            note: nextNote,
             package_id: pkgId,
           } as any);
         if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+        audit("create", form.year_month, scopeText, [
+          { field: "quota", label: "額度上限", before: null, after: nextQuota },
+          { field: "note", label: "備註", before: null, after: nextNote },
+        ]);
       }
     }
     toast({ title: editing ? "已更新" : "已新增" });
@@ -429,18 +454,24 @@ export function KolReciprocalQuotaTab({
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const target = deleteTarget;
     const { error } = await supabase
       .from("kol_reciprocal_monthly_quotas")
       .delete()
-      .eq("id", deleteTarget.id);
+      .eq("id", target.id);
     if (error) {
       toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
       return;
     }
+    audit("delete", target.year_month, scopeLabel(target), [
+      { field: "quota", label: "額度上限", before: target.quota, after: null },
+      { field: "note", label: "備註", before: target.note, after: null },
+    ], target.id);
     toast({ title: "已刪除" });
     setDeleteTarget(null);
     load();
   };
+
 
   const scopeLabel = (r: QuotaRow) =>
     r.package_id ? packageNameById[r.package_id] ?? "（已刪除包棟）" : "全館共用";
