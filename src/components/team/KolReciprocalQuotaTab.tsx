@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, History, Info } from "lucide-react";
+
 import { AvailabilityCalendarDialog } from "@/components/AvailabilityCalendarDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import {
+  logKolQuotaChange, fetchKolQuotaAuditLogs, describeChange,
+  type QuotaAuditLogRow,
+} from "@/lib/kolQuotaAudit";
 import { format } from "date-fns";
+
 
 const SHARED_KEY = "__shared__";
 
@@ -127,11 +133,57 @@ export function KolReciprocalQuotaTab({
     package_id: SHARED_KEY as string,
   });
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRows, setHistoryRows] = useState<QuotaAuditLogRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
   const packageNameById = useMemo(() => {
     const map: Record<string, string> = {};
     for (const p of packages) map[p.id] = p.name;
     return map;
   }, [packages]);
+
+  const currentAccName = useMemo(
+    () => accList.find((a) => a.id === selectedAccId)?.name ?? null,
+    [accList, selectedAccId],
+  );
+  const isScoped = Array.isArray(allowedAccommodationIds);
+
+  const openHistory = async () => {
+    if (!currentAccommodationId) return;
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      setHistoryRows(await fetchKolQuotaAuditLogs(currentAccommodationId, 100));
+    } catch (e) {
+      setHistoryRows([]);
+      setHistoryError((e as Error).message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const audit = (
+    actionType: "create" | "update" | "delete",
+    yearMonth: string,
+    scopeLabelText: string,
+    changes: { field: string; label: string; before?: unknown; after?: unknown }[],
+    quotaId?: string | null,
+  ) => {
+    if (!currentAccommodationId) return;
+    void logKolQuotaChange({
+      actionType,
+      accommodationId: currentAccommodationId,
+      accommodationName: currentAccName,
+      yearMonth,
+      scopeLabel: scopeLabelText,
+      quotaId: quotaId ?? null,
+      changes: changes as any,
+    });
+  };
+
 
   const load = async () => {
     if (!currentAccommodationId) {
@@ -314,10 +366,11 @@ export function KolReciprocalQuotaTab({
         note: form.note.trim() || null,
         package_id: pkgId,
       }));
+      const scopeText = pkgId ? (packageNameById[pkgId] ?? "指定包棟") : "全館共用";
       for (const p of payloads) {
         let q = supabase
           .from("kol_reciprocal_monthly_quotas")
-          .select("id")
+          .select("id, quota, note")
           .eq("accommodation_id", p.accommodation_id)
           .eq("year_month", p.year_month);
         q = p.package_id ? q.eq("package_id", p.package_id) : q.is("package_id", null);
@@ -327,8 +380,16 @@ export function KolReciprocalQuotaTab({
             .from("kol_reciprocal_monthly_quotas")
             .update({ quota: p.quota, note: p.note })
             .eq("id", exist.id);
+          audit("update", p.year_month, scopeText, [
+            { field: "quota", label: "額度上限", before: (exist as any).quota, after: p.quota },
+            { field: "note", label: "備註", before: (exist as any).note, after: p.note },
+          ], exist.id);
         } else {
           await supabase.from("kol_reciprocal_monthly_quotas").insert(p as any);
+          audit("create", p.year_month, scopeText, [
+            { field: "quota", label: "額度上限", before: null, after: p.quota },
+            { field: "note", label: "備註", before: null, after: p.note },
+          ]);
         }
       }
       toast({ title: `已批次設定 ${months.length} 個月份` });
@@ -337,16 +398,24 @@ export function KolReciprocalQuotaTab({
       return;
     }
 
+    const scopeText = pkgId ? (packageNameById[pkgId] ?? "指定包棟") : "全館共用";
+    const nextQuota = Math.floor(form.quota);
+    const nextNote = form.note.trim() || null;
+
     if (editing) {
       const { error } = await supabase
         .from("kol_reciprocal_monthly_quotas")
-        .update({ quota: Math.floor(form.quota), note: form.note.trim() || null })
+        .update({ quota: nextQuota, note: nextNote })
         .eq("id", editing.id);
       if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+      audit("update", editing.year_month, scopeLabel(editing), [
+        { field: "quota", label: "額度上限", before: editing.quota, after: nextQuota },
+        { field: "note", label: "備註", before: editing.note, after: nextNote },
+      ], editing.id);
     } else {
       let q = supabase
         .from("kol_reciprocal_monthly_quotas")
-        .select("id")
+        .select("id, quota, note")
         .eq("accommodation_id", currentAccommodationId)
         .eq("year_month", form.year_month);
       q = pkgId ? q.eq("package_id", pkgId) : q.is("package_id", null);
@@ -354,20 +423,28 @@ export function KolReciprocalQuotaTab({
       if (exist?.id) {
         const { error } = await supabase
           .from("kol_reciprocal_monthly_quotas")
-          .update({ quota: Math.floor(form.quota), note: form.note.trim() || null })
+          .update({ quota: nextQuota, note: nextNote })
           .eq("id", exist.id);
         if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+        audit("update", form.year_month, scopeText, [
+          { field: "quota", label: "額度上限", before: (exist as any).quota, after: nextQuota },
+          { field: "note", label: "備註", before: (exist as any).note, after: nextNote },
+        ], exist.id);
       } else {
         const { error } = await supabase
           .from("kol_reciprocal_monthly_quotas")
           .insert({
             accommodation_id: currentAccommodationId,
             year_month: form.year_month,
-            quota: Math.floor(form.quota),
-            note: form.note.trim() || null,
+            quota: nextQuota,
+            note: nextNote,
             package_id: pkgId,
           } as any);
         if (error) { toast({ title: "儲存失敗", description: error.message, variant: "destructive" }); return; }
+        audit("create", form.year_month, scopeText, [
+          { field: "quota", label: "額度上限", before: null, after: nextQuota },
+          { field: "note", label: "備註", before: null, after: nextNote },
+        ]);
       }
     }
     toast({ title: editing ? "已更新" : "已新增" });
@@ -377,18 +454,24 @@ export function KolReciprocalQuotaTab({
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const target = deleteTarget;
     const { error } = await supabase
       .from("kol_reciprocal_monthly_quotas")
       .delete()
-      .eq("id", deleteTarget.id);
+      .eq("id", target.id);
     if (error) {
       toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
       return;
     }
+    audit("delete", target.year_month, scopeLabel(target), [
+      { field: "quota", label: "額度上限", before: target.quota, after: null },
+      { field: "note", label: "備註", before: target.note, after: null },
+    ], target.id);
     toast({ title: "已刪除" });
     setDeleteTarget(null);
     load();
   };
+
 
   const scopeLabel = (r: QuotaRow) =>
     r.package_id ? packageNameById[r.package_id] ?? "（已刪除包棟）" : "全館共用";
@@ -492,9 +575,47 @@ export function KolReciprocalQuotaTab({
             </SelectContent>
           </Select>
         </div>
+
+        {isScoped && (
+          <div className="mt-3 rounded-md border bg-muted/40 p-3 space-y-2">
+            <div className="flex items-start gap-2 text-sm">
+              <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+              <div>
+                <div className="font-medium">你可編輯的館別範圍</div>
+                <div className="text-xs text-muted-foreground">
+                  依你的 AM 負責館別設定（am_managed_accommodation_ids）自動帶入，僅以下館別可檢視與編輯互惠額度。
+                </div>
+              </div>
+            </div>
+            {accListLoading ? (
+              <div className="text-xs text-muted-foreground">載入中…</div>
+            ) : accList.length === 0 ? (
+              <div className="text-xs text-amber-600">尚未指派任何負責館別，請聯繫主管設定。</div>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {accList.map((a) => (
+                  <Badge
+                    key={a.id}
+                    variant={a.id === selectedAccId ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedAccId(a.id)}
+                  >
+                    {a.name}
+                    {a.id === selectedAccId ? "（目前選中）" : ""}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              目前操作依據：<span className="text-foreground font-medium">{currentAccName ?? "未選擇"}</span>
+              ；所有新增／修改／刪除都只會影響此館別，並會留下操作紀錄。
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
+
 
   if (!currentAccommodationId) {
     return (
@@ -515,6 +636,11 @@ export function KolReciprocalQuotaTab({
           <CalendarDays className="h-4 w-4 mr-2" />
           日曆檢視
         </Button>
+        <Button variant="outline" size="sm" onClick={openHistory}>
+          <History className="h-4 w-4 mr-2" />
+          異動紀錄
+        </Button>
+
         {editable ? (
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-2" />新增月份額度
@@ -676,6 +802,50 @@ export function KolReciprocalQuotaTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 異動紀錄 */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>互惠額度異動紀錄{currentAccName ? `｜${currentAccName}` : ""}</DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">載入中…</div>
+          ) : historyError ? (
+            <div className="p-6 text-center text-destructive text-sm">讀取失敗：{historyError}</div>
+          ) : historyRows.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">尚無異動紀錄</div>
+          ) : (
+            <div className="space-y-2">
+              {historyRows.map((log) => (
+                <div key={log.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={log.action_type === "delete" ? "destructive" : log.action_type === "create" ? "default" : "secondary"}>
+                      {log.action_type === "create" ? "新增" : log.action_type === "delete" ? "刪除" : "更新"}
+                    </Badge>
+                    <span className="font-medium">
+                      {log.details?.year_month ?? "—"}｜{log.details?.scope_label ?? "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                      {format(new Date(log.created_at), "yyyy-MM-dd HH:mm")}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    操作者：{log.details?.operator_name ?? log.user_email ?? "—"}
+                  </div>
+                  {(log.details?.changes ?? []).length > 0 && (
+                    <ul className="mt-2 space-y-0.5 text-xs">
+                      {(log.details?.changes ?? []).map((c, i) => (
+                        <li key={i}>・{describeChange(c)}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {currentAccommodationId && (
         <AvailabilityCalendarDialog
           open={calOpen}
@@ -683,6 +853,7 @@ export function KolReciprocalQuotaTab({
           accommodationId={currentAccommodationId}
         />
       )}
+
     </div>
   );
 }
