@@ -1437,10 +1437,27 @@ export default function TeamHome() {
           breakdown,
           missing,
         };
-        payloadCache.set(cacheKey, { at: Date.now(), payload });
-        applyPayload(payload);
+        return payload;
       } catch (e) {
         console.error("[TeamHome] load error:", e);
+        return undefined;
+      }
+    };
+
+    (async () => {
+      if (!cached) setLoading(true);
+      try {
+        const payload = await runLoad(null);
+        if (cancelled || !payload) return;
+        payloadCache.set(cacheKey, { at: Date.now(), payload });
+        applyPayload(payload);
+
+        if (simEnabled) {
+          const sim = await runLoad("exclude_owner_direct");
+          if (!cancelled) setSimPayload(sim ?? null);
+        } else if (!cancelled) {
+          setSimPayload(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -1449,7 +1466,8 @@ export default function TeamHome() {
     return () => {
       cancelled = true;
     };
-  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, basisOverride]);
+  }, [viewUserId, db, anyCard, showCloser, showVideo, showScout, showFranchise, showStarlink, showAM, monthInfo, cacheKey, applyPayload, simEnabled]);
+
 
 
   // 加倍倍率取用：一律以「發放月」比對（pickMultiplier 內含 bonus_type × "all" 相乘）
