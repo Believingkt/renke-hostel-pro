@@ -636,6 +636,11 @@ export function KolReciprocalQuotaTab({
           <CalendarDays className="h-4 w-4 mr-2" />
           日曆檢視
         </Button>
+        <Button variant="outline" size="sm" onClick={openHistory}>
+          <History className="h-4 w-4 mr-2" />
+          異動紀錄
+        </Button>
+
         {editable ? (
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-2" />新增月份額度
