@@ -406,11 +406,11 @@ export default function TeamHome() {
       if (fresh) return;
     }
 
-    (async () => {
-      if (!cached) setLoading(true);
-
-
+    const runLoad = async (
+      basisOverride: "exclude_owner_direct" | null,
+    ): Promise<TeamHomePayload | undefined> => {
       try {
+
         const {
           today,
           monthStartIso,
