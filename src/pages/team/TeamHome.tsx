@@ -1496,7 +1496,23 @@ export default function TeamHome() {
     }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
+    simAmount?: number;          // 「排除業主自帶」試算對照金額（僅管理員檢視）
   }> = [];
+
+  /** 「排除業主自帶」試算金額（僅以館別營收為基準的獎金受影響） */
+  const simAmountOf = (key: string, m: number): number | undefined => {
+    if (!simEnabled || !simPayload) return undefined;
+    const map: Record<string, number> = {
+      am_performance: simPayload.amPerfSum,
+      closer_performance: simPayload.closerPerfSum,
+      am_manager: simPayload.amManagerSum,
+      closer_manager: simPayload.closerManagerSum,
+      kol_commission: simPayload.kolCommissionSum,
+    };
+    const v = map[key];
+    return v === undefined ? undefined : roundBoosted(v, m);
+  };
+
 
   const isMonthly = monthInfo.isMonthlyPayout;
   /** 月結型卡片統一備註：期別 + 是否已結算 */
