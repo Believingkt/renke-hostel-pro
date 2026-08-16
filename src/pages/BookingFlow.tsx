@@ -675,9 +675,6 @@ const BookingFlow = () => {
   const [childRules, setChildRules] = useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
   const [infantsCount, setInfantsCount] = useState(0);
   const [toddlersCount, setToddlersCount] = useState(0);
-  const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
-  const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
-  const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
 
   // 自訂加購方案（非 pet/meal 類型）
   interface CustomAddonSetting {
@@ -698,7 +695,6 @@ const BookingFlow = () => {
   }
   const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
   const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
-  const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [customAddonDetail, setCustomAddonDetail] = useState<{ title: string; subtitle: string; html: string } | null>(null);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
@@ -749,14 +745,6 @@ const BookingFlow = () => {
     enabled: false,
     pricePerUnit: 600,
     maxQuantity: 2,
-    detailedDescription: ""
-  });
-  const [mealPlanSettings, setMealPlanSettings] = useState({
-    enabled: false,
-    pricePerUnit: 900,
-    weekdayMinQuantity: 12,
-    weekendMinQuantity: 18,
-    maxQuantity: 30,
     detailedDescription: ""
   });
   
@@ -865,7 +853,6 @@ const BookingFlow = () => {
 
         if (addonData) {
           const petData = addonData.find(a => a.addon_type === 'pet');
-          const mealData = addonData.find(a => a.addon_type === 'meal');
 
           if (petData) {
             setPetPlanSettings({
@@ -873,17 +860,6 @@ const BookingFlow = () => {
               pricePerUnit: petData.price_per_unit,
               maxQuantity: petData.max_quantity,
               detailedDescription: petData.detailed_description || ""
-            });
-          }
-
-          if (mealData) {
-            setMealPlanSettings({
-              enabled: mealData.enabled || false,
-              pricePerUnit: mealData.price_per_unit,
-              weekdayMinQuantity: mealData.weekday_min_quantity || 12,
-              weekendMinQuantity: mealData.weekend_min_quantity || 18,
-              maxQuantity: mealData.max_quantity,
-              detailedDescription: mealData.detailed_description || ""
             });
           }
 
