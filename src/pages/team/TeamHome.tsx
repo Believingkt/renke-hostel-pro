@@ -163,12 +163,10 @@ export default function TeamHome() {
   // 計算邏輯完全沿用同一份程式碼。
   const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
 
-  // ===== 業主自帶雙軌顯示口徑 =====
-  const {
-    basis: ownerDirectBasis,
-    setBasis: setOwnerDirectBasis,
-    canSwitch: canSwitchBasis,
-  } = useOwnerDirectBasis();
+  // ===== 排除業主自帶（試算）檢視 =====
+  const { simEnabled, setSimEnabled, canSim } = useOwnerDirectSim();
+  const [simPayload, setSimPayload] = useState<TeamHomePayload | null>(null);
+
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const [viewAsRoles, setViewAsRoles] = useState<TeamRole[]>([]);
   const [members, setMembers] = useState<
