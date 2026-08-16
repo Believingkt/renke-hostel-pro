@@ -680,7 +680,29 @@ export default function GroupBuyCampaign() {
           <p className="mt-4 text-center text-sm text-muted-foreground">{campaign.contact_note}</p>
         )}
       </main>
+
+      {/* ── 手機固定底部 CTA（只做捲動導引，不改動任何訂房邏輯） ── */}
+      {selectedPkg && sale === "on_sale" && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur sm:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-muted-foreground">{selectedPkg.display_name}</p>
+              <p className="text-xl font-bold leading-tight text-accent tabular-nums">
+                {twd(selectedPkg.group_buy_price)}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">／晚</span>
+              </p>
+            </div>
+            <Button
+              onClick={scrollToForm}
+              className="h-12 shrink-0 rounded-xl bg-accent px-6 text-base font-semibold text-accent-foreground hover:bg-accent/90"
+            >
+              立即預訂
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
+
 }
 
