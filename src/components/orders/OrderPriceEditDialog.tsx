@@ -134,13 +134,15 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const [originalAddonTotal, setOriginalAddonTotal] = useState(0);
 
-  // 訂單上與 addon_settings 無關的加購欄位（寵物 / 餐點 / bbq / 備註現場加購），
+  // 訂單上與 addon_settings 無關的加購欄位（寵物 / 備註現場加購），
   // 必須原樣保留並納入 DB 口徑計算，否則已付款訂單的「純房費」會被算錯而擋下儲存。
   const [addonCtx, setAddonCtx] = useState<{
     pet_plan_price: number;
     notes: string | null;
     preserved: any[];
-  }>({ pet_plan_price: 0,  const [savedRoomFee, setSavedRoomFee] = useState(0);
+  }>({ pet_plan_price: 0, notes: null, preserved: [] });
+
+  const [savedRoomFee, setSavedRoomFee] = useState(0);
 
   // 儲存後的 custom_addon_details（可編輯項目 + 原樣保留項目）
   const buildNewAddonDetails = (): AddonDetail[] => [
@@ -185,7 +187,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         const [{ data }, { data: settings }] = await Promise.all([
           supabase
             .from("orders")
-            .select("custom_addon_details, pet_plan_price, meal_plan_total, notes")
+            .select("custom_addon_details, pet_plan_price, notes")
             .eq("id", order.id)
             .single(),
           supabase
