@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { fetchAdjustedInventory } from "@/lib/inventoryQuery";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search, User, LogIn, SlidersHorizontal, Sparkles, ChevronUp, ChevronDown, ArrowUpDown, MapPin, Users } from "lucide-react";
