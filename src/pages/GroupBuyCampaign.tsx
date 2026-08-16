@@ -105,6 +105,9 @@ export default function GroupBuyCampaign() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
+  const [venueName, setVenueName] = useState("");
+
 
   useEffect(() => {
     let cancelled = false;
