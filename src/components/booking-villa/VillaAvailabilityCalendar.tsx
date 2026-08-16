@@ -127,26 +127,24 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       // 森山：改用「當天是否有任一非取消訂單」直接判斷；其他館別仍走原本的房型可訂量邏輯。
       let sensanBookedDates = new Set<string>();
       if (isSensanAcc && allDates.length > 0) {
-        const { data: bookedRows } = await supabase.rpc("get_dates_with_active_orders", {
-          p_accommodation_id: accommodationId,
-          p_dates: allDates,
-        });
+        const { data: bookedRows, error: bookedErr } = await supabase.rpc(
+          "get_dates_with_active_orders",
+          { p_accommodation_id: accommodationId, p_dates: allDates },
+        );
+        if (bookedErr) throw new InventoryQueryError("庫存查詢失敗", bookedErr);
         for (const row of (bookedRows as any[]) || []) {
           const key = row.date_value ?? row.date;
           if (key) sensanBookedDates.add(String(key));
         }
       }
 
-      const adjustedResults = await Promise.all(
-        roomTypes.map(async (rt) => {
-          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-            p_room_type_id: rt.id,
-            p_dates: allDates,
-            p_accommodation_id: accommodationId,
-          });
-          return { roomTypeId: rt.id, rows: (data as any[]) || [] };
-        }),
+      // 查詢失敗／逾時會 throw，不再靜默回傳空陣列（那會讓所有日期都被視為不可訂）
+      const adjustedResults = await fetchAdjustedInventoryForRoomTypes(
+        roomTypes.map((rt) => rt.id),
+        allDates,
+        accommodationId,
       );
+
 
       const adjustedIndex = new Map<
         string,
