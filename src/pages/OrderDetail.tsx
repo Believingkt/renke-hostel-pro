@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@/lib/addonLabels";
+import { savedAddonTotalOf, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
