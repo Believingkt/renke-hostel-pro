@@ -1119,7 +1119,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // 讓已結清訂單仍可調整加購項目（DB trigger 亦採相同判斷）。
       const originalRoomFee = Number(order.total_price ?? 0) - originalAddonTotal;
       const blocked: string[] = [];
-      if (isPaidOrDeposit && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
+      // super_admin 可修改已結清訂單的房費（DB trigger 亦放行）
+      if (isPaidOrDeposit && !isSuperAdmin && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) blocked.push("折扣碼");
       if (blocked.length > 0) {
@@ -3223,7 +3224,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={!isSuperAdmin && ["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayTotal.toLocaleString()}</span>
                     )}

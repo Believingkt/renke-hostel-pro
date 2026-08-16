@@ -77,6 +77,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   // Permission: can current user unlock discount fields on already-paid orders?
   const [canUnlockDiscount, setCanUnlockDiscount] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
@@ -92,6 +93,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .select("role")
         .eq("user_id", user.id);
       const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+      if (!cancelled) setIsSuperAdmin(isSuper);
       if (isSuper) {
         if (!cancelled) setCanUnlockDiscount(true);
         return;
@@ -110,6 +112,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   // Discount fields are only locked when amount-locked AND user has no unlock permission
   const isDiscountLocked = isAmountLocked && !canUnlockDiscount;
+  // super_admin 可修改已結清訂單的房費（DB trigger 亦放行）
+  const isRoomPriceLocked = isAmountLocked && !isSuperAdmin;
 
   // Fetch addon settings once
   useEffect(() => {
@@ -245,7 +249,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     // Safety: enforce locked fields server-truth even if UI was bypassed
     // 房費（不含加購）
-    const safeRoomPrice = isAmountLocked
+    const safeRoomPrice = isRoomPriceLocked
       ? Math.max(0, (order.total_price ?? 0) - originalAddonTotal)
       : editTotalPrice;
     const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
@@ -434,7 +438,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-total-price"
               type="text" inputMode="numeric"
-              disabled={isAmountLocked}
+              disabled={isRoomPriceLocked}
               value={editTotalPriceStr}
               onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
