@@ -940,9 +940,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   useEffect(() => {
     if (!isEditing || orderRooms.length === 0 || editOrderRooms.length > 0) return;
     const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order?.total_price || 0) > 0 && savedRoomsTotal !== Number(order?.total_price || 0);
+    // 以「純房費」為準（total_price 含加購，直接拿來當房費會重複計入加購而誤觸金額鎖）
+    const savedRoomFee = pureRoomFeeOf(order);
+    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && savedRoomFee > 0 && savedRoomsTotal !== savedRoomFee;
     const normalizedRooms = orderRooms.map((or) => {
-      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order?.total_price || 0) : Number(or.room_price || 0);
+      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? savedRoomFee : Number(or.room_price || 0);
       const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
       return {
         id: or.id,
