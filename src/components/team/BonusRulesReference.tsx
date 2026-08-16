@@ -154,11 +154,6 @@ export function BonusRulesReference() {
       <div key={f.key} id={f.anchorId} className="scroll-mt-24 border-b pb-4 last:border-0 last:pb-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{f.name}</span>
-          {f.usesVenueRevenue && (
-            <Badge variant="secondary" className="text-[11px] font-normal">
-              受業主自帶雙軌影響
-            </Badge>
-          )}
         </div>
 
         <div className="mt-1">

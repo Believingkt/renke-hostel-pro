@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import BonusRulesReference from "@/components/team/BonusRulesReference";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
-import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
   Dialog,
@@ -402,7 +401,6 @@ function commissionPeriodRange(year: number, month: number, period: "10" | "25")
 
 function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false, onOpenRules }: { scoutManagerOnly?: boolean; readOnly?: boolean; onOpenRules?: () => void }) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
-  const { basis, setBasis, canSwitch } = useOwnerDirectBasis();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [groups, setGroups] = useState<MemberGroup[]>([]);
