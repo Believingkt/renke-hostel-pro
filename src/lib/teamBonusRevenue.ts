@@ -359,8 +359,10 @@ export async function getAccommodationRevenueDualByAcc(
 }
 
 /**
- * 各館別營收（單軌）。依各館 payout_basis 決定回傳含／排除業主自帶的金額。
- * 未設定者預設「排除業主自帶」。
+ * 各館別營收（單軌實付）。
+ *
+ * 實付一律採「含業主自帶」單軌；`basisOverride` 僅供管理層「排除業主自帶（試算）」
+ * 檢視使用，不影響任何發放金額。
  */
 export async function getAccommodationRevenueByAcc(
   client: any,
@@ -368,10 +370,7 @@ export async function getAccommodationRevenueByAcc(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
-  /**
-   * 顯示用雙軌覆寫（僅管理層切換「含／排除業主自帶」時傳入）。
-   * 不傳（或傳 null）時一律依各館 payout_basis 回傳實付真值。
-   */
+  /** 僅管理層試算檢視傳入 "exclude_owner_direct"；其餘一律 null（實付真值） */
   basisOverride?: PayoutBasis | null,
 ): Promise<Record<string, number>> {
   const dual = await getAccommodationRevenueDualByAcc(
@@ -381,14 +380,14 @@ export async function getAccommodationRevenueByAcc(
     monthEndDate,
     allowedSources,
   );
-  // 業主自帶口徑功能暫時停用：一律回傳「含業主自帶」單軌
-  void basisOverride;
+  const useExcl = basisOverride === "exclude_owner_direct";
   const out: Record<string, number> = {};
   for (const [accId, v] of Object.entries(dual)) {
-    out[accId] = v.incl;
+    out[accId] = useExcl ? v.excl : v.incl;
   }
   return out;
 }
+
 
 
 
