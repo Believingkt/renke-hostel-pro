@@ -802,7 +802,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       setEditOrderRooms(normalizedRooms);
       const roomsTotal = shouldUseOrderTotalForSingleRoom
-        ? Number(order.total_price || 0)
+        ? editableRoomPrice
         : normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
