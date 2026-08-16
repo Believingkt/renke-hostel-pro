@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { initLiff, butlerApi, type LiffProfile } from "@/lib/liff";
 import { toast } from "sonner";
+import { bookingPath } from "@/lib/frontendUrl";
 
 interface FavoriteRow {
   id: string;
@@ -88,7 +89,7 @@ export default function LiffFavorites() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => navigate(`/booking/villa/${r.meta!.accommodation_id}`)}
+                    onClick={() => navigate(bookingPath(r.meta!.accommodation_id))}
                   >
                     前往預約
                   </Button>
