@@ -1151,16 +1151,22 @@ export default function TeamHome() {
             formatCountableRangeNote(noteRanges[accId], monthStartDate, monthEndDate) ?? undefined;
 
           // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
-          const linesOf = (byAcc: Record<string, number>, rate: number) =>
+          // rate 一律傳「設定值」；均分型再帶 splitHeadcount，金額才除以人數
+          const linesOf = (
+            byAcc: Record<string, number>,
+            rate: number,
+            splitHeadcount?: number,
+          ) =>
             Object.entries(byAcc)
               .filter(([, rev]) => rev > 0)
               .sort((a, b) => b[1] - a[1])
               .map(([accId, rev]) => ({
                 name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
                 revenue: rev,
-                amount: rev * rate,
+                amount: (rev * rate) / (splitHeadcount && splitHeadcount > 1 ? splitHeadcount : 1),
                 rate,
                 rateKind: "percent" as const,
+                splitHeadcount: splitHeadcount ?? null,
                 rangeNote: rangeNoteOf(accId),
               }));
 
@@ -1236,7 +1242,11 @@ export default function TeamHome() {
             }
             const perHeadRate = Number(s?.rate ?? 0) / headcount;
             closerPerfSum = companyRevenue * perHeadRate;
-            breakdown.closer_performance = linesOf(companyByAcc, perHeadRate);
+            breakdown.closer_performance = linesOf(
+              companyByAcc,
+              Number(s?.rate ?? 0),
+              headcount,
+            );
           }
 
 
@@ -1492,7 +1502,7 @@ export default function TeamHome() {
       multiplier: number;
       revenue?: number;
       rangeNote?: string;
-      rateNote?: string;
+      rateNote?: { main: string; effective?: string };
     }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
@@ -1538,17 +1548,29 @@ export default function TeamHome() {
       .filter(Boolean)
       .join("・");
 
-  /** 明細列的「當期費率」文字：抽成型顯示百分比，均分型補上人數與在職比例 */
-  const rateNoteOf = (d: VenueRevenueLine) => {
+  /** 百分比字串（去掉多餘的 0） */
+  const pctText = (v: number) => `${(v * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+  /**
+   * 明細列的「當期費率」文字：一律顯示 HQ 設定值，均分型再補「÷ 在職 N 人」。
+   * 回傳 main（設定值算式）與 effective（均分後每人實際費率）兩段。
+   */
+  const rateNoteOf = (d: VenueRevenueLine): { main: string; effective?: string } | undefined => {
     if (d.rate === null || d.rate === undefined) return undefined;
-    if (d.rateKind === "fixed") return `固定 ${fmt(d.rate)}／館`;
-    const pct = `${(d.rate * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
-    const parts = [pct];
-    if (d.splitHeadcount && d.splitHeadcount > 1) parts.push(`÷ 在職 ${d.splitHeadcount} 人`);
-    if (d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1) {
-      parts.push(`× 在職比例 ${(d.prorateRatio * 100).toFixed(0)}%`);
-    }
-    return parts.join(" ");
+    if (d.rateKind === "fixed") return { main: `固定 ${fmt(d.rate)}／館` };
+    const parts = [pctText(d.rate)];
+    const hc = d.splitHeadcount && d.splitHeadcount > 1 ? d.splitHeadcount : null;
+    if (hc) parts.push(`÷ 在職 ${hc} 人`);
+    const ratio =
+      d.prorateRatio !== null && d.prorateRatio !== undefined && d.prorateRatio < 1
+        ? d.prorateRatio
+        : null;
+    if (ratio !== null) parts.push(`× 在職比例 ${(ratio * 100).toFixed(0)}%`);
+    const eff = (d.rate / (hc ?? 1)) * (ratio ?? 1);
+    return {
+      main: parts.join(" "),
+      effective: hc || ratio !== null ? `＝ 每人 ${pctText(eff)}` : undefined,
+    };
   };
 
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
@@ -2062,7 +2084,7 @@ export default function TeamHome() {
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>
                         <th className="text-right py-2 font-medium">營收</th>
-                        <th className="text-right py-2 font-medium">當期費率</th>
+                        <th className="text-right py-2 font-medium">當期費率（設定值）</th>
                         <th className="text-right py-2 font-medium">獎金</th>
                       </tr>
                     </thead>
@@ -2081,7 +2103,18 @@ export default function TeamHome() {
                             {ln.revenue !== undefined ? fmt(ln.revenue) : "—"}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap text-muted-foreground">
-                            {ln.rateNote ?? "—"}
+                            {ln.rateNote ? (
+                              <>
+                                <div>{ln.rateNote.main}</div>
+                                {ln.rateNote.effective ? (
+                                  <div className="text-[11px] leading-tight">
+                                    {ln.rateNote.effective}
+                                  </div>
+                                ) : null}
+                              </>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                           <td className="py-2 text-right tabular-nums whitespace-nowrap">
                             {fmt(ln.amount)}
