@@ -12190,6 +12190,15 @@ export type Database = {
       bulk_upsert_room_inventory_pricing:
         | { Args: { p_rows: Json }; Returns: undefined }
         | { Args: { p_rows: Json; p_source?: string }; Returns: undefined }
+      calc_order_addon_total: {
+        Args: {
+          _custom_addon_details: Json
+          _meal_plan_total: number
+          _notes: string
+          _pet_plan_price: number
+        }
+        Returns: number
+      }
       calc_team_commission_price: {
         Args: { _order_id: string }
         Returns: number
