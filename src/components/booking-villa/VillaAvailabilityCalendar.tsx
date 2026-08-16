@@ -38,6 +38,8 @@ interface Props {
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
   onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null; packageDates?: Set<string>; commonDates?: Set<string> }) => void;
+  /** 庫存查詢失敗／逾時時回報，讓頁面顯示明確錯誤訊息與重試，而非把所有日期視為不可訂 */
+  onAvailabilityError?: (info: { message: string; retry: () => void }) => void;
 }
 
 /**
