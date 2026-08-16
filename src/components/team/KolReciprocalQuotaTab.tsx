@@ -50,6 +50,8 @@ type Mode = "shared" | "per_package";
 interface Props {
   isManager: boolean;
   defaultAccommodationId?: string | null;
+  /** 若提供，館別下拉僅顯示這些館別（AM 只能操作負責館別） */
+  allowedAccommodationIds?: string[] | null;
 }
 
 interface AccommodationOption {
@@ -57,13 +59,18 @@ interface AccommodationOption {
   name: string;
 }
 
-export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Props) {
+export function KolReciprocalQuotaTab({
+  isManager,
+  defaultAccommodationId,
+  allowedAccommodationIds,
+}: Props) {
   const editable = isManager;
 
   const [accList, setAccList] = useState<AccommodationOption[]>([]);
   const [accListLoading, setAccListLoading] = useState(true);
   const [selectedAccId, setSelectedAccId] = useState<string | null>(null);
   const currentAccommodationId = selectedAccId;
+  const allowedKey = (allowedAccommodationIds ?? []).join(",");
 
   useEffect(() => {
     (async () => {
@@ -79,7 +86,11 @@ export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Pro
         setAccListLoading(false);
         return;
       }
-      const list = (data ?? []) as AccommodationOption[];
+      let list = (data ?? []) as AccommodationOption[];
+      if (allowedAccommodationIds) {
+        const allow = new Set(allowedAccommodationIds);
+        list = list.filter((a) => allow.has(a.id));
+      }
       setAccList(list);
       setSelectedAccId((prev) => {
         if (prev && list.some((a) => a.id === prev)) return prev;
@@ -91,7 +102,7 @@ export function KolReciprocalQuotaTab({ isManager, defaultAccommodationId }: Pro
       setAccListLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultAccommodationId]);
+  }, [defaultAccommodationId, allowedKey]);
 
   const [rows, setRows] = useState<QuotaRow[]>([]);
   const [packages, setPackages] = useState<PackageOption[]>([]);

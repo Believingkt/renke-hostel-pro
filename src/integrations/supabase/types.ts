@@ -12179,6 +12179,10 @@ export type Database = {
         Args: { _order_id: string; _reason?: string }
         Returns: Json
       }
+      am_manages_accommodation: {
+        Args: { _accommodation_id: string; _user_id: string }
+        Returns: boolean
+      }
       apply_template_to_user: {
         Args: {
           _accommodation_id: string
