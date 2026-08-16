@@ -802,6 +802,50 @@ export function KolReciprocalQuotaTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 異動紀錄 */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>互惠額度異動紀錄{currentAccName ? `｜${currentAccName}` : ""}</DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">載入中…</div>
+          ) : historyError ? (
+            <div className="p-6 text-center text-destructive text-sm">讀取失敗：{historyError}</div>
+          ) : historyRows.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">尚無異動紀錄</div>
+          ) : (
+            <div className="space-y-2">
+              {historyRows.map((log) => (
+                <div key={log.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={log.action_type === "delete" ? "destructive" : log.action_type === "create" ? "default" : "secondary"}>
+                      {log.action_type === "create" ? "新增" : log.action_type === "delete" ? "刪除" : "更新"}
+                    </Badge>
+                    <span className="font-medium">
+                      {log.details?.year_month ?? "—"}｜{log.details?.scope_label ?? "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                      {format(new Date(log.created_at), "yyyy-MM-dd HH:mm")}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    操作者：{log.details?.operator_name ?? log.user_email ?? "—"}
+                  </div>
+                  {(log.details?.changes ?? []).length > 0 && (
+                    <ul className="mt-2 space-y-0.5 text-xs">
+                      {(log.details?.changes ?? []).map((c, i) => (
+                        <li key={i}>・{describeChange(c)}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {currentAccommodationId && (
         <AvailabilityCalendarDialog
           open={calOpen}
@@ -809,6 +853,7 @@ export function KolReciprocalQuotaTab({
           accommodationId={currentAccommodationId}
         />
       )}
+
     </div>
   );
 }
