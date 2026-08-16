@@ -316,10 +316,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       return;
     }
     // Safety: enforce locked fields server-truth even if UI was bypassed
-    // 房費（不含加購）
-    const safeRoomPrice = isRoomPriceLocked
-      ? Math.max(0, (order.total_price ?? 0) - originalAddonTotal)
-      : editTotalPrice;
+    // 房費（不含加購，與 DB 觸發器同口徑）
+    const safeRoomPrice = isRoomPriceLocked ? savedRoomFee : editTotalPrice;
     const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
     const safeDepositAmount = isDepositLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
     const safeDiscountCode = isDiscountLocked ? (order.discount_code || "") : editDiscountCode;
@@ -343,20 +341,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         paid_amount: editPaidAmount,
       };
 
-      // Build custom_addon_details from current quantities
-      const newCustomAddonDetails: AddonDetail[] = addonSettings
-        .filter(s => (addonQuantities[s.addon_type] || 0) > 0)
-        .map(s => {
-          const qty = addonQuantities[s.addon_type] || 0;
-          return {
-            addon_id: s.id,
-            addon_type: s.addon_type,
-            count: qty,
-            price_per_unit: s.price_per_unit,
-            total: s.price_per_unit * qty * addonNights,
-            unit_label: s.unit_label,
-          };
-        });
+      // Build custom_addon_details（含原樣保留的非設定項目）
+      const newCustomAddonDetails: AddonDetail[] = buildNewAddonDetails();
+
 
       // Also build meal_plan_details format for EditOrderDialog sync
       const newMealPlanDetails = addonSettings
