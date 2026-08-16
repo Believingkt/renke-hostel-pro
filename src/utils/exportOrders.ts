@@ -19,8 +19,6 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
   let allOrderRooms: OrderRoom[] = [];
   const addonByOrder = new Map<string, {
     meal_plan: string | null;
-    meal_plan_details: any;
-    meal_plan_total: number | null;
     custom_addon_details: any;
     pet_count: number | null;
     pet_plan_price: number | null;
@@ -36,7 +34,7 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
         .in("order_id", chunk),
       supabase
         .from("orders")
-        .select("id, meal_plan, meal_plan_details, meal_plan_total, custom_addon_details, pet_count, pet_plan_price")
+        .select("id, meal_plan, custom_addon_details, pet_count, pet_plan_price")
         .in("id", chunk),
     ]);
     if (roomsData) allOrderRooms = allOrderRooms.concat(roomsData as unknown as OrderRoom[]);
@@ -92,15 +90,8 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
     const addonItems: string[] = [];
     const customs = Array.isArray(addon?.custom_addon_details) ? (addon!.custom_addon_details as any[]) : [];
     const petFromCustom = customs.filter(d => d?.addon_type === 'pet').reduce((s, d) => s + (Number(d?.total) || 0), 0);
-    const mealFromCustom = customs.filter(d => d?.addon_type === 'meal').reduce((s, d) => s + (Number(d?.total) || 0), 0);
-    const otherCustoms = customs.filter(d => d?.addon_type !== 'pet' && d?.addon_type !== 'meal');
+    const otherCustoms = customs.filter(d => d?.addon_type !== 'pet');
     const petTotal = (addon?.pet_plan_price || 0) > 0 ? (addon!.pet_plan_price as number) : petFromCustom;
-    const mealTotal = (addon?.meal_plan_total || 0) > 0 ? (addon!.meal_plan_total as number) : mealFromCustom;
-
-    if (mealTotal > 0) {
-      const label = addon?.meal_plan && addon.meal_plan !== "none" ? `餐食(${addon.meal_plan})` : "餐食";
-      addonItems.push(`${label} $${mealTotal}`);
-    }
     if ((addon?.pet_count || 0) > 0 || petTotal > 0) {
       addonItems.push(`寵物 x${addon?.pet_count || 0} $${petTotal}`);
     }

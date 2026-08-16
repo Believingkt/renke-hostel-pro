@@ -291,8 +291,6 @@ Deno.serve(async (req) => {
         room_charge_rec_trade_id: recTradeId,
         pet_count: body.petCount || 0,
         pet_plan_price: body.petPlanPrice || 0,
-        meal_plan_details: body.mealPlanDetails || [],
-        meal_plan_total: body.mealPlanTotal || 0,
         custom_addon_details: body.customAddonDetails ?? null,
         order_source: "website",
       }])
