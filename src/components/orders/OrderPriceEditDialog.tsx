@@ -134,6 +134,16 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const [originalAddonTotal, setOriginalAddonTotal] = useState(0);
 
+  // 訂單上與 addon_settings 無關的加購欄位（寵物 / 餐點 / bbq / 備註現場加購），
+  // 必須原樣保留並納入 DB 口徑計算，否則已付款訂單的「純房費」會被算錯而擋下儲存。
+  const [addonCtx, setAddonCtx] = useState<{
+    pet_plan_price: number;
+    meal_plan_total: number;
+    notes: string | null;
+    preserved: any[];
+  }>({ pet_plan_price: 0, meal_plan_total: 0, notes: null, preserved: [] });
+  const [savedRoomFee, setSavedRoomFee] = useState(0);
+
   useEffect(() => {
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
@@ -146,7 +156,11 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       // Fetch existing addon data from the order
       (async () => {
         const [{ data }, { data: settings }] = await Promise.all([
-          supabase.from("orders").select("custom_addon_details").eq("id", order.id).single(),
+          supabase
+            .from("orders")
+            .select("custom_addon_details, pet_plan_price, meal_plan_total, notes")
+            .eq("id", order.id)
+            .single(),
           supabase
             .from("addon_settings")
             .select("id, addon_type")
@@ -155,13 +169,19 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
         const quantities: Record<string, number> = {};
         const orig: AddonDetail[] = [];
+        const preserved: any[] = [];
         let origTotal = 0;
         if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
           for (const a of data.custom_addon_details as any[]) {
             if (a?.addon_type && a.count > 0) {
               // 舊訂單可能保留改名前的名稱，改以 addon_id／別名對應到現行設定
               const matched = resolveAddonSetting(a, settings || []);
-              const key = matched?.addon_type || a.addon_type;
+              if (!matched) {
+                // 對應不到現行設定（已停用／寵物／bbq 等）→ 原樣保留，不在此畫面編輯
+                preserved.push(a);
+                continue;
+              }
+              const key = matched.addon_type;
               quantities[key] = (quantities[key] || 0) + a.count;
               origTotal += Number(a.total ?? 0) || 0;
               orig.push({
@@ -177,12 +197,30 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         setAddonQuantities(quantities);
         setOriginalAddons(orig);
         setOriginalAddonTotal(origTotal);
-        // orders.total_price 已包含加購金額（建單流程口徑），此處欄位為「房費」，需扣除加購避免重複計算
-        setEditTotalPriceStr(String(Math.max(0, (order.total_price ?? 0) - origTotal)));
+        const ctx = {
+          pet_plan_price: Number((data as any)?.pet_plan_price ?? 0) || 0,
+          meal_plan_total: Number((data as any)?.meal_plan_total ?? 0) || 0,
+          notes: ((data as any)?.notes ?? null) as string | null,
+          preserved,
+        };
+        setAddonCtx(ctx);
+        // orders.total_price 已包含加購金額，此欄位為「房費」；口徑與 DB calc_order_addon_total 一致
+        const roomFee = pureRoomFeeOf({
+          total_price: order.total_price,
+          final_price: order.final_price,
+          discount_amount: order.discount_amount,
+          pet_plan_price: ctx.pet_plan_price,
+          meal_plan_total: ctx.meal_plan_total,
+          custom_addon_details: data?.custom_addon_details ?? null,
+          notes: ctx.notes,
+        });
+        setSavedRoomFee(roomFee);
+        setEditTotalPriceStr(String(roomFee));
       })();
 
     }
   }, [open, order, currentAccommodationId]);
+
 
 
   const updateAddonQty = (addonType: string, delta: number, max: number, min = 0) => {
