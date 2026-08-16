@@ -583,13 +583,11 @@ export const AddonPlansSection = ({
       return;
     }
     const normalized = trimmed.toLowerCase();
-    const isDuplicate = addonPlans.some(
-      p => p.addon_type !== renameTarget && p.addon_type.toLowerCase() === normalized
-    );
-    if (isDuplicate) {
-      setRenameError("已存在相同名稱的方案");
+    if (RESERVED_ADDON_TYPES.includes(normalized)) {
+      setRenameError(reservedError);
       return;
     }
+
     const updated = addonPlans.map(p =>
       p.addon_type === renameTarget ? { ...p, addon_type: trimmed } : p
     );
