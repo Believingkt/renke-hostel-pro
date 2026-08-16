@@ -1039,19 +1039,34 @@ export default function TeamHome() {
         // 首屏只剩兩次查詢，速度大幅提升，且數字與發放管理完全一致。
         let snapRows: any[] = [];
         const snapLinesByType = new Map<string, VenueRevenueLine[]>();
+        // 試算（排除業主自帶）時，若營收型快照缺 *_excl_owner 值（舊快照），
+        // 不能拿實付數字充當試算值，必須回退即時計算。
+        let snapExclMissing = false;
         if (isMonthlyPayout && profileId) {
           const { data: bonusSnaps } = await db
             .from("teamcommission_bonus_snapshots")
-            .select("id, bonus_type, amount, status")
+            .select("id, bonus_type, amount, amount_excl_owner, base_revenue, status")
             .eq("payout_month", payoutMonthKey)
             .eq("member_id", profileId);
           snapRows = (bonusSnaps ?? []) as any[];
+          if (basisOverride === "exclude_owner_direct") {
+            for (const r of snapRows) {
+              const isRevenueBased = r.base_revenue !== null && r.base_revenue !== undefined;
+              if (
+                Number(r.amount ?? 0) !== 0 &&
+                isRevenueBased &&
+                (r.amount_excl_owner === null || r.amount_excl_owner === undefined)
+              ) {
+                snapExclMissing = true;
+              }
+            }
+          }
           const snapIds = snapRows.map((r) => String(r.id)).filter(Boolean);
           if (snapIds.length > 0) {
             const { data: snapLines } = await db
               .from("teamcommission_bonus_snapshot_lines")
               .select(
-                "snapshot_id, accommodation_name, revenue_base, rate_value, rate_kind, amount, split_headcount, prorate_ratio",
+                "snapshot_id, accommodation_name, revenue_base, revenue_base_excl_owner, rate_value, rate_kind, amount, amount_excl_owner, split_headcount, prorate_ratio",
               )
               .in("snapshot_id", snapIds);
             const typeById = new Map(snapRows.map((r) => [String(r.id), String(r.bonus_type)]));
@@ -1059,10 +1074,20 @@ export default function TeamHome() {
               const bt = typeById.get(String(l.snapshot_id));
               if (!bt) continue;
               const arr = snapLinesByType.get(bt) ?? [];
+              // 試算模式：有 excl 值就用 excl；固定額型（excl 為 NULL）維持原值（差額 0）。
+              const useExcl = basisOverride === "exclude_owner_direct";
+              const rev =
+                useExcl && l.revenue_base_excl_owner !== null && l.revenue_base_excl_owner !== undefined
+                  ? Number(l.revenue_base_excl_owner)
+                  : Number(l.revenue_base ?? 0);
+              const amt =
+                useExcl && l.amount_excl_owner !== null && l.amount_excl_owner !== undefined
+                  ? Number(l.amount_excl_owner)
+                  : Number(l.amount ?? 0);
               arr.push({
                 name: String(l.accommodation_name ?? "其他"),
-                revenue: Number(l.revenue_base ?? 0),
-                amount: Number(l.amount ?? 0),
+                revenue: rev,
+                amount: amt,
                 rate: l.rate_value === null ? null : Number(l.rate_value),
                 rateKind: l.rate_kind === "fixed" ? "fixed" : "percent",
                 splitHeadcount: l.split_headcount === null ? null : Number(l.split_headcount),
@@ -1073,12 +1098,14 @@ export default function TeamHome() {
           }
         }
         // 只有「每一筆非零快照都有逐館明細」時才略過即時計算，
-        // 舊快照（無明細）仍走即時計算 + 等比例縮放的原路徑。
+        // 舊快照（無明細，或試算缺 excl 值）仍走即時計算 + 等比例縮放的原路徑。
         const snapshotCoversAll =
           snapRows.length > 0 &&
+          !snapExclMissing &&
           snapRows.every(
             (r) => Number(r.amount ?? 0) === 0 || snapLinesByType.has(String(r.bonus_type)),
           );
+
 
         {
           const client = db as any;
@@ -1349,14 +1376,22 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             monthlyDraftFlag = snapRows.every((r) => String(r.status ?? "final") === "draft");
             const byType = new Map<string, number>();
+            // 試算缺 excl 值的營收型獎金（舊快照）不覆蓋，改留用即時計算結果。
+            const skipTypes = new Set<string>();
             for (const r of snapRows) {
-              byType.set(
-                String(r.bonus_type),
-                (byType.get(String(r.bonus_type)) ?? 0) + Number(r.amount ?? 0),
-              );
+              const bt = String(r.bonus_type);
+              const useExcl = basisOverride === "exclude_owner_direct";
+              const hasExcl = r.amount_excl_owner !== null && r.amount_excl_owner !== undefined;
+              const isRevenueBased = r.base_revenue !== null && r.base_revenue !== undefined;
+              if (useExcl && isRevenueBased && !hasExcl && Number(r.amount ?? 0) !== 0) {
+                skipTypes.add(bt);
+                continue;
+              }
+              const amt = useExcl && hasExcl ? Number(r.amount_excl_owner) : Number(r.amount ?? 0);
+              byType.set(bt, (byType.get(bt) ?? 0) + amt);
             }
             const take = (t: string, fallback: number) =>
-              byType.has(t) ? (byType.get(t) as number) : fallback;
+              byType.has(t) && !skipTypes.has(t) ? (byType.get(t) as number) : fallback;
             amPerfSum = take("am_performance", amPerfSum);
             amVenueSum = take("am_venue_bonus", amVenueSum);
             closerPerfSum = take("closer_performance", closerPerfSum);
@@ -1364,7 +1399,7 @@ export default function TeamHome() {
             closerManagerSum = take("closer_manager", closerManagerSum);
             kolCommissionSum = take("kol_commission", kolCommissionSum);
             kolMonthlySum = take("kol_monthly", kolMonthlySum);
-            if (byType.has("venue_closing")) {
+            if (byType.has("venue_closing") && !skipTypes.has("venue_closing")) {
               venueClosingSum = byType.get("venue_closing") as number;
               if (venueClosingLines.length === 0) {
                 venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
@@ -1373,12 +1408,13 @@ export default function TeamHome() {
             // 逐館明細優先讀快照 lines（凍結時就寫好的營收／費率／金額，可用公式反推）。
             const linesByType = snapLinesByType;
             for (const [bt, arr] of linesByType) {
+              if (skipTypes.has(bt)) continue;
               breakdown[bt] = [...arr].sort((a, b) => b.amount - a.amount);
             }
 
             // 沒有快照明細的舊資料：維持等比例縮放，讓明細加總＝快照金額。
             for (const k of Object.keys(breakdown)) {
-              if (linesByType.has(k)) continue;
+              if (linesByType.has(k) || skipTypes.has(k)) continue;
               if (!byType.has(k)) {
                 delete breakdown[k];
                 continue;
