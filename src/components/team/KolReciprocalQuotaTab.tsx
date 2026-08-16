@@ -28,7 +28,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import {
+  logKolQuotaChange, fetchKolQuotaAuditLogs, describeChange,
+  type QuotaAuditLogRow,
+} from "@/lib/kolQuotaAudit";
 import { format } from "date-fns";
+
 
 const SHARED_KEY = "__shared__";
 
