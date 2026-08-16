@@ -133,11 +133,57 @@ export function KolReciprocalQuotaTab({
     package_id: SHARED_KEY as string,
   });
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRows, setHistoryRows] = useState<QuotaAuditLogRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
   const packageNameById = useMemo(() => {
     const map: Record<string, string> = {};
     for (const p of packages) map[p.id] = p.name;
     return map;
   }, [packages]);
+
+  const currentAccName = useMemo(
+    () => accList.find((a) => a.id === selectedAccId)?.name ?? null,
+    [accList, selectedAccId],
+  );
+  const isScoped = Array.isArray(allowedAccommodationIds);
+
+  const openHistory = async () => {
+    if (!currentAccommodationId) return;
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      setHistoryRows(await fetchKolQuotaAuditLogs(currentAccommodationId, 100));
+    } catch (e) {
+      setHistoryRows([]);
+      setHistoryError((e as Error).message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const audit = (
+    actionType: "create" | "update" | "delete",
+    yearMonth: string,
+    scopeLabelText: string,
+    changes: { field: string; label: string; before?: unknown; after?: unknown }[],
+    quotaId?: string | null,
+  ) => {
+    if (!currentAccommodationId) return;
+    void logKolQuotaChange({
+      actionType,
+      accommodationId: currentAccommodationId,
+      accommodationName: currentAccName,
+      yearMonth,
+      scopeLabel: scopeLabelText,
+      quotaId: quotaId ?? null,
+      changes: changes as any,
+    });
+  };
+
 
   const load = async () => {
     if (!currentAccommodationId) {
