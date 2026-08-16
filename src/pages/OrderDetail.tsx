@@ -270,6 +270,35 @@ function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
   return { effectiveStatus, stage, reason, depositDue, balanceDue };
 }
 
+/**
+ * 訂單已存加購總額（與 DB public.calc_order_addon_total 同口徑）。
+ */
+function savedAddonTotalOf(order: any): number {
+  const all: CustomAddonDetail[] = (order?.custom_addon_details as CustomAddonDetail[]) || [];
+  const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const otherCustom = all
+    .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq')
+    .reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const extraMatch = (order?.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+  const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
+  return ((order?.pet_plan_price || 0) > 0 ? Number(order.pet_plan_price) : petFromCustom)
+    + ((order?.meal_plan_total || 0) > 0 ? Number(order.meal_plan_total) : mealFromCustom)
+    + otherCustom
+    + extra;
+}
+
+/**
+ * 「純房費」= total_price 扣掉加購（舊訂單 total_price 未含加購時不扣）。
+ * 編輯畫面的房費欄位一律使用此值，避免加購被重複計入而誤觸已付款金額鎖。
+ */
+function pureRoomFeeOf(order: any): number {
+  const addon = savedAddonTotalOf(order);
+  const includesAddons = Math.abs(
+    Number(order?.final_price || 0) - (Number(order?.total_price || 0) - Number(order?.discount_amount || 0)),
+  ) <= 1;
+  return Math.max(0, Number(order?.total_price || 0) - (includesAddons ? addon : 0));
+}
 
 
 const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: OrderDetailPageProps = {}) => {
@@ -773,7 +802,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       setEditOrderRooms(normalizedRooms);
       const roomsTotal = shouldUseOrderTotalForSingleRoom
-        ? Number(order.total_price || 0)
+        ? editableRoomPrice
         : normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
@@ -911,9 +940,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   useEffect(() => {
     if (!isEditing || orderRooms.length === 0 || editOrderRooms.length > 0) return;
     const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order?.total_price || 0) > 0 && savedRoomsTotal !== Number(order?.total_price || 0);
+    // 以「純房費」為準（total_price 含加購，直接拿來當房費會重複計入加購而誤觸金額鎖）
+    const savedRoomFee = pureRoomFeeOf(order);
+    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && savedRoomFee > 0 && savedRoomsTotal !== savedRoomFee;
     const normalizedRooms = orderRooms.map((or) => {
-      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order?.total_price || 0) : Number(or.room_price || 0);
+      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? savedRoomFee : Number(or.room_price || 0);
       const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
       return {
         id: or.id,
@@ -1095,17 +1126,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
       // 但若 total_price / discount / 加購 全都沒動，代表使用者只是編輯備註等非金額欄位，
       // 不可用「重算公式」覆蓋歷史 final_price（避免舊資料 total-discount 與 final 不一致時被靜默改動）。
-      const originalAddonTotal = (() => {
-        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
-        const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + d.total, 0);
-        const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + d.total, 0);
-        const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
-        const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
-        const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
-        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
-        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
-        return petTotal + mealTotal + otherCustom + extra;
-      })();
+      const originalAddonTotal = savedAddonTotalOf(order);
       const pricingUnchanged =
         Number(savedTotalPrice) === Number(order.total_price ?? 0) &&
         Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
@@ -1117,7 +1138,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Block disallowed financial edits with friendly toast
       // 注意：total_price 內含加購金額，因此只比對「純房費」部分，
       // 讓已結清訂單仍可調整加購項目（DB trigger 亦採相同判斷）。
-      const originalRoomFee = Number(order.total_price ?? 0) - originalAddonTotal;
+      // 舊訂單的 total_price 可能未含加購，改用與編輯欄位相同的「純房費」口徑，避免誤擋。
+      const originalRoomFee = pureRoomFeeOf(order);
       const blocked: string[] = [];
       // super_admin 可修改已結清訂單的房費（DB trigger 亦放行）
       if (isPaidOrDeposit && !isSuperAdmin && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
