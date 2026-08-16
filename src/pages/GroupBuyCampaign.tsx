@@ -64,6 +64,10 @@ const fmtWindow = (iso?: string | null) =>
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
+/** 全頁統一的內容寬度（桌機約 960px，兩側保留舒服留白） */
+const SHELL = "mx-auto w-full max-w-[960px] px-5 sm:px-6";
+
+
 function nightsBetween(a: string, b: string) {
   if (!a || !b) return 0;
   const diff = (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86400000;
