@@ -16,6 +16,10 @@ import { zhTW } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  InventoryQueryError,
+  fetchAdjustedInventoryForRoomTypes,
+} from "@/lib/inventoryQuery";
 
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
@@ -38,6 +42,8 @@ interface Props {
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
   onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null; packageDates?: Set<string>; commonDates?: Set<string> }) => void;
+  /** 庫存查詢失敗／逾時時回報，讓頁面顯示明確錯誤訊息與重試，而非把所有日期視為不可訂 */
+  onAvailabilityError?: (info: { message: string; retry: () => void }) => void;
 }
 
 /**
@@ -48,10 +54,11 @@ interface Props {
  *  - 其他: 任一房型有空即開啟
  * 只顯示「是否可訂」(綠/灰)，不顯示價格。
  */
-const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate, onAvailabilityComputed }: Props) => {
+const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate, onAvailabilityComputed, onAvailabilityError }: Props) => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [hasInventory, setHasInventory] = useState<boolean | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const today = useMemo(() => startOfToday(), []);
   const baseMonth = useMemo(() => addMonths(startOfMonth(today), monthOffset), [
@@ -124,26 +131,24 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       // 森山：改用「當天是否有任一非取消訂單」直接判斷；其他館別仍走原本的房型可訂量邏輯。
       let sensanBookedDates = new Set<string>();
       if (isSensanAcc && allDates.length > 0) {
-        const { data: bookedRows } = await supabase.rpc("get_dates_with_active_orders", {
-          p_accommodation_id: accommodationId,
-          p_dates: allDates,
-        });
+        const { data: bookedRows, error: bookedErr } = await supabase.rpc(
+          "get_dates_with_active_orders",
+          { p_accommodation_id: accommodationId, p_dates: allDates },
+        );
+        if (bookedErr) throw new InventoryQueryError("庫存查詢失敗", bookedErr);
         for (const row of (bookedRows as any[]) || []) {
           const key = row.date_value ?? row.date;
           if (key) sensanBookedDates.add(String(key));
         }
       }
 
-      const adjustedResults = await Promise.all(
-        roomTypes.map(async (rt) => {
-          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-            p_room_type_id: rt.id,
-            p_dates: allDates,
-            p_accommodation_id: accommodationId,
-          });
-          return { roomTypeId: rt.id, rows: (data as any[]) || [] };
-        }),
+      // 查詢失敗／逾時會 throw，不再靜默回傳空陣列（那會讓所有日期都被視為不可訂）
+      const adjustedResults = await fetchAdjustedInventoryForRoomTypes(
+        roomTypes.map((rt) => rt.id),
+        allDates,
+        accommodationId,
       );
+
 
       const adjustedIndex = new Map<
         string,
@@ -321,11 +326,24 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       }
     };
 
-    load();
+    load().catch((err) => {
+      if (cancelled) return;
+      console.error("[VillaAvailabilityCalendar] 庫存查詢失敗", err);
+      // 降級：不把「查不到」當成「訂滿」，維持既有可訂日資料，並回報明確錯誤讓頁面提示與重試
+      setHasInventory(null);
+      onAvailabilityError?.({
+        message:
+          err instanceof InventoryQueryError
+            ? "即時空房資料載入失敗（連線逾時），可訂日期可能未更新。"
+            : "即時空房資料載入失敗，可訂日期可能未更新。",
+        retry: () => setReloadKey((k) => k + 1),
+      });
+    });
     return () => {
       cancelled = true;
     };
-  }, [accommodationId, today]);
+  }, [accommodationId, today, reloadKey]);
+
 
   // 已移除可視化日曆 UI；此元件僅負責計算可訂日資料並透過 onAvailabilityComputed 回傳，
   // 由民宿搜尋日曆 (EditSearchSheet) 使用。

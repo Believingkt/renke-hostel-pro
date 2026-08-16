@@ -61,6 +61,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import VillaPhotoCarousel from "@/components/booking-villa/VillaPhotoCarousel";
 import VillaOverviewBar from "@/components/booking-villa/VillaOverviewBar";
 import VillaAvailabilityCalendar from "@/components/booking-villa/VillaAvailabilityCalendar";
+import { fetchAdjustedInventoryForRoomTypes } from "@/lib/inventoryQuery";
 import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
@@ -164,6 +165,7 @@ const BookingVilla = () => {
   // 微幅重疊 2px，避免 Safari 位移/四捨五入時 CTA 與選單中間露縫。
   const bottomNavOffset = bottomNavVisible && !editSearchOpen ? Math.max(0, bottomNavHeight - 2) : 0;
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<{ message: string; retry: () => void } | null>(null);
   const [availablePackageSet, setAvailablePackageSet] = useState<Set<string> | null>(null);
   const [availableCommonSet, setAvailableCommonSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
@@ -392,30 +394,39 @@ const BookingVilla = () => {
       return;
     }
     (async () => {
-      const results = await Promise.all(
-        roomTypeIds.map(async (rtId) => {
-          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-            p_room_type_id: rtId,
-            p_dates: [dateStr],
-            p_accommodation_id: accId,
-          });
-          const row = (data as any[])?.[0];
-          return [
-            rtId as string,
-            {
-              available: row?.available_rooms ?? 0,
-              blocked: row?.is_blocked === true,
-            },
-          ] as const;
-        }),
-      );
-      if (cancelled) return;
-      setRoomAvailByDate(Object.fromEntries(results));
+      try {
+        const results = await fetchAdjustedInventoryForRoomTypes(
+          roomTypeIds as string[],
+          [dateStr],
+          accId,
+        );
+        if (cancelled) return;
+        setRoomAvailByDate(
+          Object.fromEntries(
+            results.map(({ roomTypeId, rows }) => [
+              roomTypeId,
+              {
+                available: rows[0]?.available_rooms ?? 0,
+                blocked: rows[0]?.is_blocked === true,
+              },
+            ]),
+          ),
+        );
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[BookingVilla] 方案庫存查詢失敗", err);
+        // 降級：查詢失敗時不過濾方案（維持依日期規則顯示），並提示使用者
+        setRoomAvailByDate({});
+        toast.error("即時空房資料載入失敗", {
+          description: "目前顯示的方案可能未反映最新空房，送出訂單前會再次確認。",
+        });
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [accId, checkIn && formatISO(checkIn, { representation: "date" }), packages]);
+
 
   const availabilityFilteredPackages = useMemo(() => {
     if (!checkIn) return dateFilteredPackages;
@@ -1218,16 +1229,37 @@ const BookingVilla = () => {
 
 
         {/* ── 4. 即時空房日曆 ── */}
+        {availabilityError && (
+          <div className="mx-4 mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+            <p className="text-[14px] text-destructive font-medium">{availabilityError.message}</p>
+            <p className="text-[14px] text-muted-foreground mt-1">
+              您仍可選擇日期查詢，系統會在結帳前重新確認空房。
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                setAvailabilityError(null);
+                availabilityError.retry();
+              }}
+            >
+              重新載入空房資料
+            </Button>
+          </div>
+        )}
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
           onAvailabilityComputed={({ dates, minPrice, earliestDate, packageDates, commonDates }) => {
+            setAvailabilityError(null);
             setAvailableDateSet(dates);
             setAvailMinPrice(minPrice);
             setAvailEarliestDate(earliestDate);
             setAvailablePackageSet(packageDates ?? null);
             setAvailableCommonSet(commonDates ?? null);
           }}
+          onAvailabilityError={(info) => setAvailabilityError(info)}
           onSelectDate={(d) => {
             const next = new Date(d);
             next.setDate(next.getDate() + 1);

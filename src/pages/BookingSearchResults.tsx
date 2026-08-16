@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { fetchAdjustedInventory } from "@/lib/inventoryQuery";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search, User, LogIn, SlidersHorizontal, Sparkles, ChevronUp, ChevronDown, ArrowUpDown, MapPin, Users } from "lucide-react";
@@ -368,18 +370,32 @@ const BookingSearchResults = () => {
         });
       });
 
-      // 2) adjusted：扣除既有訂單後的真實可售房數
-      const adjustedResults = await Promise.all(
-        roomTypes.map(async (rt) => {
-          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-            p_room_type_id: rt.id,
-            p_dates: stayDates,
-            p_accommodation_id: rt.accommodation_id,
-          });
-          return { roomTypeId: rt.id, rows: (data as any[]) || [] };
-        }),
-      );
+      // 2) adjusted：扣除既有訂單後的真實可售房數（失敗會重試，仍失敗則明確報錯不誤判為訂滿）
+      let adjustedResults: { roomTypeId: string; rows: any[] }[] = [];
+      try {
+        adjustedResults = [];
+        for (let i = 0; i < roomTypes.length; i += 3) {
+          const batch = roomTypes.slice(i, i + 3);
+          const part = await Promise.all(
+            batch.map(async (rt) => ({
+              roomTypeId: rt.id,
+              rows: await fetchAdjustedInventory(rt.id, stayDates, rt.accommodation_id),
+            })),
+          );
+          adjustedResults.push(...part);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[BookingSearchResults] 庫存查詢失敗", err);
+        setInventoryMap(new Map());
+        setClosedAccIds(new Set());
+        toast.error("即時空房資料載入失敗", {
+          description: "請稍後重新查詢；顯示的房況可能不是最新狀態。",
+        });
+        return;
+      }
       if (cancelled) return;
+
 
       const adjMap = new Map<string, { available: number; isBlocked: boolean }>();
       for (const { roomTypeId, rows } of adjustedResults) {
