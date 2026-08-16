@@ -270,6 +270,35 @@ function getPaymentDeadlineInfo(order: any, isNonPayableCurrency: boolean) {
   return { effectiveStatus, stage, reason, depositDue, balanceDue };
 }
 
+/**
+ * 訂單已存加購總額（與 DB public.calc_order_addon_total 同口徑）。
+ */
+function savedAddonTotalOf(order: any): number {
+  const all: CustomAddonDetail[] = (order?.custom_addon_details as CustomAddonDetail[]) || [];
+  const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const otherCustom = all
+    .filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq')
+    .reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const extraMatch = (order?.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+  const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
+  return ((order?.pet_plan_price || 0) > 0 ? Number(order.pet_plan_price) : petFromCustom)
+    + ((order?.meal_plan_total || 0) > 0 ? Number(order.meal_plan_total) : mealFromCustom)
+    + otherCustom
+    + extra;
+}
+
+/**
+ * 「純房費」= total_price 扣掉加購（舊訂單 total_price 未含加購時不扣）。
+ * 編輯畫面的房費欄位一律使用此值，避免加購被重複計入而誤觸已付款金額鎖。
+ */
+function pureRoomFeeOf(order: any): number {
+  const addon = savedAddonTotalOf(order);
+  const includesAddons = Math.abs(
+    Number(order?.final_price || 0) - (Number(order?.total_price || 0) - Number(order?.discount_amount || 0)),
+  ) <= 1;
+  return Math.max(0, Number(order?.total_price || 0) - (includesAddons ? addon : 0));
+}
 
 
 const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: OrderDetailPageProps = {}) => {
