@@ -7,7 +7,9 @@ import {
   getBonusFormula,
   type BonusCategory,
 } from "@/lib/bonusFormulas";
-import { useOwnerDirectBasis } from "@/hooks/use-owner-direct-basis";
+import { useOwnerDirectSim } from "@/hooks/use-owner-direct-sim";
+import { OwnerDirectSimToggle } from "@/components/team/OwnerDirectSimToggle";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
