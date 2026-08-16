@@ -1376,14 +1376,22 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             monthlyDraftFlag = snapRows.every((r) => String(r.status ?? "final") === "draft");
             const byType = new Map<string, number>();
+            // 試算缺 excl 值的營收型獎金（舊快照）不覆蓋，改留用即時計算結果。
+            const skipTypes = new Set<string>();
             for (const r of snapRows) {
-              byType.set(
-                String(r.bonus_type),
-                (byType.get(String(r.bonus_type)) ?? 0) + Number(r.amount ?? 0),
-              );
+              const bt = String(r.bonus_type);
+              const useExcl = basisOverride === "exclude_owner_direct";
+              const hasExcl = r.amount_excl_owner !== null && r.amount_excl_owner !== undefined;
+              const isRevenueBased = r.base_revenue !== null && r.base_revenue !== undefined;
+              if (useExcl && isRevenueBased && !hasExcl && Number(r.amount ?? 0) !== 0) {
+                skipTypes.add(bt);
+                continue;
+              }
+              const amt = useExcl && hasExcl ? Number(r.amount_excl_owner) : Number(r.amount ?? 0);
+              byType.set(bt, (byType.get(bt) ?? 0) + amt);
             }
             const take = (t: string, fallback: number) =>
-              byType.has(t) ? (byType.get(t) as number) : fallback;
+              byType.has(t) && !skipTypes.has(t) ? (byType.get(t) as number) : fallback;
             amPerfSum = take("am_performance", amPerfSum);
             amVenueSum = take("am_venue_bonus", amVenueSum);
             closerPerfSum = take("closer_performance", closerPerfSum);
