@@ -134,14 +134,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const [originalAddonTotal, setOriginalAddonTotal] = useState(0);
 
-  // 訂單上與 addon_settings 無關的加購欄位（寵物 / 餐點 / bbq / 備註現場加購），
+  // 訂單上與 addon_settings 無關的加購欄位（寵物 / 備註現場加購），
   // 必須原樣保留並納入 DB 口徑計算，否則已付款訂單的「純房費」會被算錯而擋下儲存。
   const [addonCtx, setAddonCtx] = useState<{
     pet_plan_price: number;
-    meal_plan_total: number;
     notes: string | null;
     preserved: any[];
-  }>({ pet_plan_price: 0, meal_plan_total: 0, notes: null, preserved: [] });
+  }>({ pet_plan_price: 0, notes: null, preserved: [] });
+
   const [savedRoomFee, setSavedRoomFee] = useState(0);
 
   // 儲存後的 custom_addon_details（可編輯項目 + 原樣保留項目）
@@ -165,7 +165,6 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   // 加購總額一律以 DB calc_order_addon_total 口徑計算，確保房費比對一致
   const addonTotal = calcOrderAddonTotal({
     pet_plan_price: addonCtx.pet_plan_price,
-    meal_plan_total: addonCtx.meal_plan_total,
     custom_addon_details: buildNewAddonDetails(),
     notes: addonCtx.notes,
   });
@@ -188,7 +187,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         const [{ data }, { data: settings }] = await Promise.all([
           supabase
             .from("orders")
-            .select("custom_addon_details, pet_plan_price, meal_plan_total, notes")
+            .select("custom_addon_details, pet_plan_price, notes")
             .eq("id", order.id)
             .single(),
           supabase
@@ -229,7 +228,6 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         setOriginalAddonTotal(origTotal);
         const ctx = {
           pet_plan_price: Number((data as any)?.pet_plan_price ?? 0) || 0,
-          meal_plan_total: Number((data as any)?.meal_plan_total ?? 0) || 0,
           notes: ((data as any)?.notes ?? null) as string | null,
           preserved,
         };
@@ -240,7 +238,6 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           final_price: order.final_price,
           discount_amount: order.discount_amount,
           pet_plan_price: ctx.pet_plan_price,
-          meal_plan_total: ctx.meal_plan_total,
           custom_addon_details: data?.custom_addon_details ?? null,
           notes: ctx.notes,
         });

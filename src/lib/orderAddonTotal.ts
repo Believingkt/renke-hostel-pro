@@ -8,7 +8,6 @@
 
 export interface OrderAddonSource {
   pet_plan_price?: number | string | null;
-  meal_plan_total?: number | string | null;
   custom_addon_details?: unknown;
   notes?: string | null;
   total_price?: number | string | null;
@@ -25,25 +24,22 @@ export function extraOnSiteAddonFromNotes(notes?: string | null): number {
   return m ? Number(m[1]) || 0 : 0;
 }
 
-/** 與 DB calc_order_addon_total 相同：pet / meal 欄位優先，排除 bbq，加上備註現場加購 */
+/** 與 DB calc_order_addon_total 相同：pet 欄位優先，加上備註現場加購（meal / bbq 舊路徑已移除，全庫 0 筆） */
 export function calcOrderAddonTotal(order: OrderAddonSource): number {
   const list = Array.isArray(order.custom_addon_details)
     ? (order.custom_addon_details as Record<string, unknown>[])
     : [];
   let petFromCustom = 0;
-  let mealFromCustom = 0;
   let otherCustom = 0;
   for (const d of list) {
     if (!d || typeof d !== "object") continue;
     const type = String((d as any).addon_type ?? "");
     const total = num((d as any).total);
     if (type === "pet") petFromCustom += total;
-    else if (type === "meal") mealFromCustom += total;
-    else if (type !== "bbq") otherCustom += total;
+    else otherCustom += total;
   }
   const pet = num(order.pet_plan_price) > 0 ? num(order.pet_plan_price) : petFromCustom;
-  const meal = num(order.meal_plan_total) > 0 ? num(order.meal_plan_total) : mealFromCustom;
-  return pet + meal + otherCustom + extraOnSiteAddonFromNotes(order.notes);
+  return pet + otherCustom + extraOnSiteAddonFromNotes(order.notes);
 }
 
 /** 訂單已存加購總額 */

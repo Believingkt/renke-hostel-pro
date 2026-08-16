@@ -18,8 +18,6 @@ interface Props {
   calculateDiscount: () => number;
   petCount: number;
   petPlanSettings: { pricePerUnit: number };
-  bbqMealsByDate: Record<string, number>;
-  mealPlanSettings: { pricePerUnit: number };
   customAddonCounts: Record<string, number>;
   customAddonSettings: Array<{ addon_type: string; description?: string; price_per_unit?: number }>;
   appliedDiscount: { code: string } | null;
@@ -45,8 +43,6 @@ export default function OrderSummarySidebar(props: Props) {
     calculateDiscount,
     petCount,
     petPlanSettings,
-    bbqMealsByDate,
-    mealPlanSettings,
     customAddonCounts,
     customAddonSettings,
     appliedDiscount,
@@ -146,18 +142,6 @@ export default function OrderSummarySidebar(props: Props) {
                         </span>
                       </div>
                     )}
-                    {Object.entries(bbqMealsByDate)
-                      .filter(([_, count]) => count > 0)
-                      .map(([dateStr, count]) => (
-                        <div key={dateStr} className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
-                          </span>
-                          <span className="font-medium">
-                            NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
                     {Object.entries(customAddonCounts)
                       .filter(([_, count]) => count > 0)
                       .map(([type, count]) => {

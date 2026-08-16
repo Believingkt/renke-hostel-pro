@@ -133,8 +133,6 @@ export default function LinePayConfirm() {
           pet_count: orderData.petCount || 0,
           pet_plan_price: orderData.petPlanPrice || 0,
           meal_plan: orderData.selectedMealPlan || null,
-          meal_plan_details: orderData.mealPlanDetailsData.length > 0 ? orderData.mealPlanDetailsData : null,
-          meal_plan_total: orderData.mealPlanTotalPrice || 0,
           customer_id: orderData.customerId,
         };
 

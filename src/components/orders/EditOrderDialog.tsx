@@ -698,7 +698,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       // 加購總額一律以 DB calc_order_addon_total 口徑計算，房費比對才會一致
       const addonTotal = calcOrderAddonTotal({
         pet_plan_price: (order as any)?.pet_plan_price,
-        meal_plan_total: (order as any)?.meal_plan_total,
         custom_addon_details: customAddonDetails,
         notes: editForm.notes,
       });
