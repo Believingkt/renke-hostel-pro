@@ -542,9 +542,13 @@ export default function GroupBuyCampaign() {
         />
 
         {/* ── 訂房表單（最終 CTA） ── */}
-        <section className="mt-10 rounded-3xl bg-card p-5 shadow-[0_14px_50px_-34px_rgba(63,57,51,0.75)] sm:p-7">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">準備好入住了嗎？</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">選擇日期並填寫資料，即可取得匯款資訊完成訂位。</p>
+        <section
+          id="gb-book"
+          className="mt-12 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
+        >
+          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">準備好入住了嗎？</h2>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">選擇您的方案並填寫資料，即可取得匯款資訊完成訂位。</p>
+
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
             <div>
