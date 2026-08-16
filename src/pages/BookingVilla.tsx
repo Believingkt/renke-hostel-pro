@@ -392,30 +392,39 @@ const BookingVilla = () => {
       return;
     }
     (async () => {
-      const results = await Promise.all(
-        roomTypeIds.map(async (rtId) => {
-          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-            p_room_type_id: rtId,
-            p_dates: [dateStr],
-            p_accommodation_id: accId,
-          });
-          const row = (data as any[])?.[0];
-          return [
-            rtId as string,
-            {
-              available: row?.available_rooms ?? 0,
-              blocked: row?.is_blocked === true,
-            },
-          ] as const;
-        }),
-      );
-      if (cancelled) return;
-      setRoomAvailByDate(Object.fromEntries(results));
+      try {
+        const results = await fetchAdjustedInventoryForRoomTypes(
+          roomTypeIds as string[],
+          [dateStr],
+          accId,
+        );
+        if (cancelled) return;
+        setRoomAvailByDate(
+          Object.fromEntries(
+            results.map(({ roomTypeId, rows }) => [
+              roomTypeId,
+              {
+                available: rows[0]?.available_rooms ?? 0,
+                blocked: rows[0]?.is_blocked === true,
+              },
+            ]),
+          ),
+        );
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[BookingVilla] 方案庫存查詢失敗", err);
+        // 降級：查詢失敗時不過濾方案（維持依日期規則顯示），並提示使用者
+        setRoomAvailByDate({});
+        toast.error("即時空房資料載入失敗", {
+          description: "目前顯示的方案可能未反映最新空房，送出訂單前會再次確認。",
+        });
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [accId, checkIn && formatISO(checkIn, { representation: "date" }), packages]);
+
 
   const availabilityFilteredPackages = useMemo(() => {
     if (!checkIn) return dateFilteredPackages;
