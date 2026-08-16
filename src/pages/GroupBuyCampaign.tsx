@@ -358,62 +358,67 @@ export default function GroupBuyCampaign() {
       </span>
     );
 
+  const scrollToForm = () => {
+    document.getElementById("gb-book")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="gb-theme min-h-screen bg-background pb-16 text-foreground">
+    <div className="gb-theme min-h-screen bg-background pb-28 text-foreground sm:pb-16">
       {/* ── Hero ── */}
       <header className="relative">
         {campaign.cover_image_url ? (
-          <img
-            src={campaign.cover_image_url}
-            alt={campaign.title}
-            className="h-[58vw] max-h-[520px] min-h-[240px] w-full object-cover sm:rounded-b-[2rem]"
-          />
+          <div className="relative">
+            <img
+              src={campaign.cover_image_url}
+              alt={venueName || campaign.title}
+              className="h-[66vw] max-h-[560px] min-h-[280px] w-full object-cover object-center sm:h-[46vw]"
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background/85 to-transparent" />
+          </div>
         ) : (
-          <div className="h-24 w-full" />
+          <div className="h-20 w-full" />
         )}
-        <div className="mx-auto max-w-3xl px-5">
+        <div className={SHELL}>
           <div
-            className={`relative z-10 rounded-2xl bg-card px-5 py-6 shadow-[0_10px_40px_-24px_rgba(63,57,51,0.55)] sm:px-8 sm:py-8 ${
-              campaign.cover_image_url ? "-mt-10 sm:-mt-14" : "mt-6"
+            className={`relative z-10 rounded-2xl bg-card px-5 py-5 shadow-[0_10px_40px_-26px_rgba(63,57,51,0.5)] sm:px-8 sm:py-6 ${
+              campaign.cover_image_url ? "-mt-12 sm:-mt-16" : "mt-6"
             }`}
           >
             <div className="flex flex-wrap items-center gap-2">
-              {campaign.kol_display_name && (
-                <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-sm font-medium tracking-wide text-secondary-foreground">
-                  {campaign.kol_display_name} 專屬團購
-                </span>
-              )}
+              <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-sm font-medium tracking-wide text-secondary-foreground">
+                {campaign.kol_display_name ? `${campaign.kol_display_name} 專屬團購` : "團媽專屬團購"}
+              </span>
               {saleBadge}
             </div>
-            <h1 className="mt-3 text-2xl font-bold leading-snug tracking-tight sm:text-[2rem]">{campaign.title}</h1>
-            {campaign.subtitle && (
-              <p className="mt-2 text-base leading-[1.8] text-muted-foreground">{campaign.subtitle}</p>
+            <h1 className="mt-2.5 text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
+              {venueName || campaign.title}
+            </h1>
+            {(campaign.subtitle || (venueName && campaign.title)) && (
+              <p className="mt-1.5 text-base leading-[1.75] text-muted-foreground">
+                {campaign.subtitle || campaign.title}
+              </p>
             )}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5">
-        {/* ── 活動資訊 ── */}
-        <section className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-muted/70 px-4 py-3.5">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> 販售期間
-            </p>
-            <p className="mt-1 text-base font-medium leading-relaxed tabular-nums">
-              {fmtWindow(campaign.sale_start)} <span className="text-muted-foreground">~</span>{" "}
-              {fmtWindow(campaign.sale_end)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-muted/70 px-4 py-3.5">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarDays className="h-3.5 w-3.5" /> 可入住期間
-            </p>
-            <p className="mt-1 text-base font-medium leading-relaxed tabular-nums">
-              {campaign.stay_start_date ?? "不限"} <span className="text-muted-foreground">~</span>{" "}
-              {campaign.stay_end_date ?? "不限"}
-            </p>
-          </div>
+      <main className={SHELL}>
+        {/* ── 活動資訊（線性排列，不做成表格） ── */}
+        <section className="mt-6 flex flex-col gap-2.5 border-b border-border/70 pb-6 text-[15px] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8">
+          <p className="flex items-center gap-2">
+            <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-muted-foreground">販售期間</span>
+            <span className="font-medium tabular-nums">
+              {fmtWindow(campaign.sale_start)} ~ {fmtWindow(campaign.sale_end)}
+            </span>
+          </p>
+          <p className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-muted-foreground">可入住期間</span>
+            <span className="font-medium tabular-nums">
+              {campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
+            </span>
+          </p>
         </section>
         {sale !== "on_sale" && (
           <p className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -429,12 +434,12 @@ export default function GroupBuyCampaign() {
         )}
 
         {campaign.gallery_urls?.length > 0 && (
-          <div className="mt-7 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {campaign.gallery_urls.map((url) => (
               <img
                 key={url}
                 src={url}
-                alt={campaign.title}
+                alt={venueName || campaign.title}
                 loading="lazy"
                 className="aspect-[4/3] w-full rounded-xl object-cover"
               />
@@ -443,10 +448,12 @@ export default function GroupBuyCampaign() {
         )}
 
         {/* ── 方案 ── */}
-        <section className="mt-10">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">選擇專屬方案</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">團購限定價格，選定後於下方填寫資料即可完成預訂。</p>
-          <div className="mt-4 space-y-3">
+        <section className="mt-12">
+          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇專屬方案</h2>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
+            團媽限定價格，選定後於下方填寫資料即可完成預訂。
+          </p>
+          <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = p.id === selectedPkgId;
               const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
@@ -456,10 +463,10 @@ export default function GroupBuyCampaign() {
                   type="button"
                   onClick={() => setSelectedPkgId(p.id)}
                   aria-pressed={active}
-                  className={`flex w-full gap-3.5 rounded-2xl bg-card p-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:gap-4 sm:p-4 ${
+                  className={`flex w-full gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-none sm:p-5 ${
                     active
-                      ? "shadow-[0_0_0_2px_hsl(var(--primary)),0_14px_36px_-26px_rgba(63,57,51,0.7)]"
-                      : "shadow-[0_1px_0_0_hsl(var(--border))] hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]"
+                      ? "border-primary/30 bg-secondary/60"
+                      : "border-border/70 bg-card hover:border-border"
                   }`}
                 >
                   {p.image_url && (
@@ -467,33 +474,45 @@ export default function GroupBuyCampaign() {
                       src={p.image_url}
                       alt={p.display_name}
                       loading="lazy"
-                      className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-28 sm:w-32"
+                      className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold leading-snug">{p.display_name}</p>
-                      {active && <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />}
-                    </div>
+                    <p className="text-[1.0625rem] font-semibold leading-snug">{p.display_name}</p>
                     {p.description && (
                       <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                         {p.description}
                       </p>
                     )}
-                    <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                       {p.original_price ? (
-                        <span className="text-sm text-muted-foreground line-through">{twd(p.original_price)}</span>
+                        <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
+                          {twd(p.original_price)}
+                        </span>
                       ) : null}
-                      <span className="text-xl font-bold tracking-tight text-accent sm:text-2xl">
+                      <span className="text-[1.625rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[1.75rem]">
                         {twd(p.group_buy_price)}
                       </span>
-                      <span className="text-sm font-medium text-foreground">／晚</span>
+                      <span className="text-sm text-muted-foreground">／晚</span>
                       {save > 0 && (
-                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
+                        <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
                           省 {twd(save)}
                         </span>
                       )}
                     </div>
+                    <p
+                      className={`mt-3 inline-flex items-center gap-1.5 text-sm font-medium ${
+                        active ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {active ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" /> 已選擇
+                        </>
+                      ) : (
+                        "選擇此方案"
+                      )}
+                    </p>
                   </div>
                 </button>
               );
@@ -501,6 +520,7 @@ export default function GroupBuyCampaign() {
             {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
           </div>
         </section>
+
 
         <GroupBuyVenueIntro
           accommodationId={campaign.accommodation_id}
