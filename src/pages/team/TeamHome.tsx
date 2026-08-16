@@ -2084,7 +2084,7 @@ export default function TeamHome() {
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>
                         <th className="text-right py-2 font-medium">營收</th>
-                        <th className="text-right py-2 font-medium">當期費率</th>
+                        <th className="text-right py-2 font-medium">當期費率（設定值）</th>
                         <th className="text-right py-2 font-medium">獎金</th>
                       </tr>
                     </thead>
