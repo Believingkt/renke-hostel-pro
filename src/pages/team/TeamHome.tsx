@@ -1828,6 +1828,16 @@ export default function TeamHome() {
 
   const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
+  /** 「排除業主自帶」試算總計（僅在開啟試算且已算出對照值時顯示） */
+  const simTotal =
+    simEnabled && simPayload
+      ? cards.reduce(
+          (s, c) =>
+            s + (c.excludeFromTotal ? 0 : c.simAmount !== undefined ? c.simAmount : c.amount),
+          0,
+        )
+      : null;
+
   return (
     <div className="space-y-6 max-w-5xl">
       {isAdminViewer && (
@@ -1874,6 +1884,8 @@ export default function TeamHome() {
         </p>
       </div>
 
+      <OwnerDirectSimToggle enabled={simEnabled} onChange={setSimEnabled} visible={canSim} />
+
       <PayoutPeriodBanner
         periods={periodOptions}
         index={periodIndex}
@@ -1904,6 +1916,12 @@ export default function TeamHome() {
               <p className="text-4xl font-bold text-primary">
                 {loading ? "—" : fmt(total)}
               </p>
+              {!loading && simTotal !== null ? (
+                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                  排除業主自帶：{fmt(simTotal)}（{simTotal - total >= 0 ? "+" : "−"}
+                  {fmt(Math.abs(simTotal - total))}）・僅供參考，非實付金額
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -1940,6 +1958,13 @@ export default function TeamHome() {
                   <p className="text-2xl font-semibold">
                     {loading ? "—" : fmt(c.amount)}
                   </p>
+                  {!loading && c.simAmount !== undefined ? (
+                    <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      排除業主自帶：{fmt(c.simAmount)}（
+                      {c.simAmount - c.amount >= 0 ? "+" : "−"}
+                      {fmt(Math.abs(c.simAmount - c.amount))}）
+                    </p>
+                  ) : null}
 
                   {!loading && c.amount === 0 ? (
                     <ZeroBonusReason bonusKey={c.key} roles={roles} />
