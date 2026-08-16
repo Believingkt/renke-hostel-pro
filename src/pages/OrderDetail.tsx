@@ -3224,7 +3224,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={!isSuperAdmin && ["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayTotal.toLocaleString()}</span>
                     )}
