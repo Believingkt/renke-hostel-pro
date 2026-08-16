@@ -1126,17 +1126,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
       // 但若 total_price / discount / 加購 全都沒動，代表使用者只是編輯備註等非金額欄位，
       // 不可用「重算公式」覆蓋歷史 final_price（避免舊資料 total-discount 與 final 不一致時被靜默改動）。
-      const originalAddonTotal = (() => {
-        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
-        const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + d.total, 0);
-        const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + d.total, 0);
-        const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
-        const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
-        const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
-        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
-        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
-        return petTotal + mealTotal + otherCustom + extra;
-      })();
+      const originalAddonTotal = savedAddonTotalOf(order);
       const pricingUnchanged =
         Number(savedTotalPrice) === Number(order.total_price ?? 0) &&
         Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
@@ -1148,7 +1138,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Block disallowed financial edits with friendly toast
       // 注意：total_price 內含加購金額，因此只比對「純房費」部分，
       // 讓已結清訂單仍可調整加購項目（DB trigger 亦採相同判斷）。
-      const originalRoomFee = Number(order.total_price ?? 0) - originalAddonTotal;
+      // 舊訂單的 total_price 可能未含加購，改用與編輯欄位相同的「純房費」口徑，避免誤擋。
+      const originalRoomFee = pureRoomFeeOf(order);
       const blocked: string[] = [];
       // super_admin 可修改已結清訂單的房費（DB trigger 亦放行）
       if (isPaidOrDeposit && !isSuperAdmin && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
