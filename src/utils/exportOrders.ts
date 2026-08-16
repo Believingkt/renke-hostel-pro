@@ -100,7 +100,7 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
       const qty = c?.quantity ? ` x${c.quantity}` : "";
       addonItems.push(`${name}${qty} $${Number(c?.total) || 0}`);
     }
-    const addonSubtotal = mealTotal + petTotal + otherCustoms.reduce((s, d) => s + (Number(d?.total) || 0), 0);
+    const addonSubtotal = petTotal + otherCustoms.reduce((s, d) => s + (Number(d?.total) || 0), 0);
 
     const extraAmount = parseExtraAmount(order.notes);
     const extraNote = parseAddonNote(order.notes);
