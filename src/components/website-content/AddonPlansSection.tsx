@@ -515,12 +515,21 @@ export const AddonPlansSection = ({
     onUpdate(arrayMove(addonPlans, oldIndex, newIndex));
   };
 
+  // 舊版專屬欄位（orders.pet_plan_price / meal_plan_total）已停用，
+  // 新方案一律走 custom_addon_details，因此保留字不可再被使用。
+  const RESERVED_ADDON_TYPES = ["pet", "meal", "bbq"];
+  const reservedError = "「pet / meal / bbq」為系統保留名稱，請改用其他名稱（例如：寵物入住、烤肉方案）";
+
   const handleAddPlan = () => {
     if (!newPlanName.trim()) {
       setNewPlanNameError("方案名稱不能為空");
       return;
     }
     const normalizedType = newPlanName.trim().toLowerCase();
+    if (RESERVED_ADDON_TYPES.includes(normalizedType)) {
+      setNewPlanNameError(reservedError);
+      return;
+    }
     const isDuplicate = addonPlans.some(
       plan => plan.addon_type.toLowerCase() === normalizedType
     );
@@ -534,6 +543,7 @@ export const AddonPlansSection = ({
     setNewPlanName("");
     setNewPlanNameError("");
   };
+
 
   const handleApplyTemplate = (index: number, tpl: AddonCopyTemplate) => {
     const updatedPlans = [...addonPlans];
