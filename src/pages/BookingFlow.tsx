@@ -4034,7 +4034,6 @@ const BookingFlow = () => {
                                 <span className="font-semibold shrink-0">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
-                            ))}
                             {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
                               const setting = customAddonSettings.find(s => s.addon_type === type);
                               return (
