@@ -1229,16 +1229,37 @@ const BookingVilla = () => {
 
 
         {/* ── 4. 即時空房日曆 ── */}
+        {availabilityError && (
+          <div className="mx-4 mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+            <p className="text-[14px] text-destructive font-medium">{availabilityError.message}</p>
+            <p className="text-[14px] text-muted-foreground mt-1">
+              您仍可選擇日期查詢，系統會在結帳前重新確認空房。
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                setAvailabilityError(null);
+                availabilityError.retry();
+              }}
+            >
+              重新載入空房資料
+            </Button>
+          </div>
+        )}
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
           onAvailabilityComputed={({ dates, minPrice, earliestDate, packageDates, commonDates }) => {
+            setAvailabilityError(null);
             setAvailableDateSet(dates);
             setAvailMinPrice(minPrice);
             setAvailEarliestDate(earliestDate);
             setAvailablePackageSet(packageDates ?? null);
             setAvailableCommonSet(commonDates ?? null);
           }}
+          onAvailabilityError={(info) => setAvailabilityError(info)}
           onSelectDate={(d) => {
             const next = new Date(d);
             next.setDate(next.getDate() + 1);
