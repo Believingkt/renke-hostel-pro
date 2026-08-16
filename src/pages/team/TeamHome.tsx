@@ -1399,7 +1399,7 @@ export default function TeamHome() {
             closerManagerSum = take("closer_manager", closerManagerSum);
             kolCommissionSum = take("kol_commission", kolCommissionSum);
             kolMonthlySum = take("kol_monthly", kolMonthlySum);
-            if (byType.has("venue_closing")) {
+            if (byType.has("venue_closing") && !skipTypes.has("venue_closing")) {
               venueClosingSum = byType.get("venue_closing") as number;
               if (venueClosingLines.length === 0) {
                 venueClosingLines = [{ name: "已結算合計", amount: venueClosingSum }];
@@ -1408,12 +1408,13 @@ export default function TeamHome() {
             // 逐館明細優先讀快照 lines（凍結時就寫好的營收／費率／金額，可用公式反推）。
             const linesByType = snapLinesByType;
             for (const [bt, arr] of linesByType) {
+              if (skipTypes.has(bt)) continue;
               breakdown[bt] = [...arr].sort((a, b) => b.amount - a.amount);
             }
 
             // 沒有快照明細的舊資料：維持等比例縮放，讓明細加總＝快照金額。
             for (const k of Object.keys(breakdown)) {
-              if (linesByType.has(k)) continue;
+              if (linesByType.has(k) || skipTypes.has(k)) continue;
               if (!byType.has(k)) {
                 delete breakdown[k];
                 continue;
