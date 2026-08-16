@@ -1115,9 +1115,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       }
 
       // Block disallowed financial edits with friendly toast
+      // 注意：total_price 內含加購金額，因此只比對「純房費」部分，
+      // 讓已結清訂單仍可調整加購項目（DB trigger 亦採相同判斷）。
+      const originalRoomFee = Number(order.total_price ?? 0) - originalAddonTotal;
       const blocked: string[] = [];
-      if (isPaidOrDeposit && Number(savedTotalPrice) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
+      if (isPaidOrDeposit && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+      if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) blocked.push("折扣碼");
       if (blocked.length > 0) {
         toast({
           title: "已付款訂單無法修改金額",
