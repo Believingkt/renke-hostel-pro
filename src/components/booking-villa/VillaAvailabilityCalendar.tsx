@@ -326,11 +326,24 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       }
     };
 
-    load();
+    load().catch((err) => {
+      if (cancelled) return;
+      console.error("[VillaAvailabilityCalendar] 庫存查詢失敗", err);
+      // 降級：不把「查不到」當成「訂滿」，維持既有可訂日資料，並回報明確錯誤讓頁面提示與重試
+      setHasInventory(null);
+      onAvailabilityError?.({
+        message:
+          err instanceof InventoryQueryError
+            ? "即時空房資料載入失敗（連線逾時），可訂日期可能未更新。"
+            : "即時空房資料載入失敗，可訂日期可能未更新。",
+        retry: () => setReloadKey((k) => k + 1),
+      });
+    });
     return () => {
       cancelled = true;
     };
-  }, [accommodationId, today]);
+  }, [accommodationId, today, reloadKey]);
+
 
   // 已移除可視化日曆 UI；此元件僅負責計算可訂日資料並透過 onAvailabilityComputed 回傳，
   // 由民宿搜尋日曆 (EditSearchSheet) 使用。
