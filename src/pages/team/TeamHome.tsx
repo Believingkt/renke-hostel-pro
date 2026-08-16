@@ -1502,7 +1502,7 @@ export default function TeamHome() {
       multiplier: number;
       revenue?: number;
       rangeNote?: string;
-      rateNote?: string;
+      rateNote?: { main: string; effective?: string };
     }>;
     alwaysShowLines?: boolean;   // 只有一列時也顯示明細
     excludeFromTotal?: boolean;  // 不計入本月預估總收入
