@@ -545,7 +545,11 @@ export default function TeamKOL() {
 
         {canViewReciprocalQuota && (
           <TabsContent value="reciprocal_quota" className="mt-4">
-            <KolReciprocalQuotaTab isManager={isManager} defaultAccommodationId={currentAccommodationId} />
+            <KolReciprocalQuotaTab
+              isManager={isManager || (isAmTeam && (amManagedAccIds?.length ?? 0) > 0)}
+              defaultAccommodationId={currentAccommodationId}
+              allowedAccommodationIds={isManager || !isAmTeam ? null : amManagedAccIds}
+            />
           </TabsContent>
         )}
       </Tabs>
