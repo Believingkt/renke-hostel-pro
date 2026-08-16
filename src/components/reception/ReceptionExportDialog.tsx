@@ -65,7 +65,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
           .select(`id, order_number, order_date, guest_name, guest_phone, guest_nationality,
                    check_in_date, check_out_date, guest_count, order_source, payment_status,
                    total_price, final_price, paid_amount, notes, ota_channel,
-                   owlting_reservation_id, hotelnabe_res_id, meal_plan, meal_plan_total,
+                   owlting_reservation_id, hotelnabe_res_id, meal_plan,
                    custom_addon_details, pet_count, pet_plan_price,
                    room_type:room_types(name)`)
           .eq("accommodation_id", accommodationId);
@@ -114,10 +114,6 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
           const customs = Array.isArray(o.custom_addon_details) ? o.custom_addon_details : [];
           const addons: string[] = [];
           const qtys: string[] = [];
-          if (o.meal_plan && o.meal_plan !== "none" && (o.meal_plan_total ?? 0) > 0) {
-            addons.push(`餐食(${o.meal_plan}) $${o.meal_plan_total}`);
-            qtys.push("");
-          }
           if ((o.pet_count ?? 0) > 0) {
             addons.push(`寵物 $${o.pet_plan_price ?? 0}`);
             qtys.push(String(o.pet_count));
