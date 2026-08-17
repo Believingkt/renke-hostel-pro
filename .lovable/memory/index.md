@@ -6,3 +6,4 @@
 - [Marketing Analytics Tab](mem://features/admin/marketing-analytics.md) — 行銷數據分析頁籤：歸因口徑、Meta 每日同步排程、UTM 規範、預算建議規則。
 - [Group Buy Module](mem://features/platform/group-buy-module.md) — 網紅團購頁路由、匯款對帳、72h 逾期取消、分潤與既有團隊獎金隔離。
 - [全區／全棟綁定](mem://features/admin/block-all-inventory-binding.md) — blocks_all_inventory 主控房型與範圍房型雙向整天鎖定，主控之間不互鎖。
+- [Discount Scope Mode](mem://features/admin/discount-scope-mode.md) — 折扣碼適用範圍：館別可選房型或房價方案判斷（舊三家維持房型）。
