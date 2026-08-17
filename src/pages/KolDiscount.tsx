@@ -482,6 +482,8 @@ const KolDiscount = () => {
   };
 
   const handleOpenEdit = async (code: DiscountCode) => {
+    // 重新拉一次房價方案，確保剛新增的方案立即出現（預設不勾選）
+    fetchScopeConfig();
     setEditingCode(code);
     setName(code.name);
     setDiscountType(code.discount_type);
@@ -688,6 +690,10 @@ const KolDiscount = () => {
 
   const handleDialogClose = (isOpen: boolean) => {
     setOpen(isOpen);
+    if (isOpen) {
+      // 開啟時重新載入房價方案，讓剛新增的方案立即出現（預設不勾選）
+      fetchScopeConfig();
+    }
     if (!isOpen) {
       // 清除表單
       setName("");

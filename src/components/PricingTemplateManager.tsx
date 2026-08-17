@@ -683,6 +683,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
         if (error) throw error;
         toast.success('專案已創建');
+        toast.info('已同步至折扣碼「適用房價方案」清單，預設不勾選；如需套用請至網紅導購設定勾選。');
       }
 
       // 同步展開基礎價
@@ -750,6 +751,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
       if (error) throw error;
       toast.success('專案已複製');
+      toast.info('已同步至折扣碼「適用房價方案」清單，預設不勾選。');
       loadTemplates();
     } catch (error) {
       console.error('複製專案失敗:', error);
