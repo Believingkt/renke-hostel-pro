@@ -846,13 +846,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     return Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
   };
 
+  /** 折扣適用範圍的識別鍵：房型 + 房價方案 */
+  const discountScopeKeyOf = (roomTypeId?: string | null, templateId?: string | null) =>
+    `${roomTypeId || null}|${templateId || null}`;
+
   const calculateDiscount = (total: number) => {
     if (!appliedDiscount) return 0;
     if (appliedDiscount.type === "percentage") {
       return Math.round(total * (appliedDiscount.value / 100));
     }
-    return appliedDiscount.value;
+    return Math.min(appliedDiscount.value, total);
   };
+
 
   const buildStayDates = useCallback(() => {
     const nights = calculateNights();
