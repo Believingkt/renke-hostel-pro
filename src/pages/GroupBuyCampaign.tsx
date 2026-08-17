@@ -603,12 +603,36 @@ export default function GroupBuyCampaign() {
 
 
         {/* ── 訂房表單（最終 CTA） ── */}
+        {bookingLocked ? (
+          <section
+            id="gb-book"
+            className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-muted/50 p-5 text-center sm:p-7"
+          >
+            <h2 className="text-[1.25rem] font-bold tracking-tight">
+              {sale === "ended" ? "此團購活動已結束" : "此團購活動尚未開賣"}
+            </h2>
+            <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+              {sale === "ended"
+                ? "目前無法使用團購價格預訂，以上方案與價格僅供瀏覽。"
+                : "開賣後即可選擇方案與入住日期完成預訂。"}
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              已下訂？
+              <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
+                查詢訂單／回報匯款
+              </Link>
+            </p>
+          </section>
+        ) : (
         <section
           id="gb-book"
-          className="mt-12 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
+          className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
         >
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">準備好入住了嗎？</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">選擇您的方案並填寫資料，即可取得匯款資訊完成訂位。</p>
+          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇入住日期</h2>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
+            無空房的日期已停用，選好日期後填寫訂房資料即可取得匯款資訊。
+          </p>
+
 
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
