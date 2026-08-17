@@ -2204,6 +2204,7 @@ const KolDiscount = () => {
                           setEditingCode({
                             ...editingCode,
                             applicable_date_from: format(new Date(), "yyyy-MM-dd"),
+                            applicable_date_to: format(addYears(new Date(), 1), "yyyy-MM-dd"),
                           });
                         }
                       } else {
