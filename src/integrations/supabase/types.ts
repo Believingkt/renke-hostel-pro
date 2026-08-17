@@ -11167,9 +11167,10 @@ export type Database = {
           amount: number
           created_at: string
           created_by: string | null
+          created_by_email: string | null
+          effective_from: string
           id: string
           note: string | null
-          salary_month: string
           updated_at: string
           user_id: string
         }
@@ -11177,9 +11178,10 @@ export type Database = {
           amount?: number
           created_at?: string
           created_by?: string | null
+          created_by_email?: string | null
+          effective_from?: string
           id?: string
           note?: string | null
-          salary_month: string
           updated_at?: string
           user_id: string
         }
@@ -11187,9 +11189,10 @@ export type Database = {
           amount?: number
           created_at?: string
           created_by?: string | null
+          created_by_email?: string | null
+          effective_from?: string
           id?: string
           note?: string | null
-          salary_month?: string
           updated_at?: string
           user_id?: string
         }
