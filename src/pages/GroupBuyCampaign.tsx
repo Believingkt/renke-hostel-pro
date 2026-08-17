@@ -667,129 +667,168 @@ export default function GroupBuyCampaign() {
           id="gb-book"
           className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
         >
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇入住日期</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            無空房的日期已停用，選好日期後填寫訂房資料即可取得匯款資訊。
-          </p>
+          <StepHeading
+            step={2}
+            title="選擇入住日期"
+            hint="無空房或不可入住的日期已停用，選好日期後即可填寫訂房資料。"
+          />
 
-
-
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
-              <GroupBuyDateField
-                id="gb-checkin"
-                value={checkIn}
-                min={campaign.stay_start_date}
-                max={campaign.stay_end_date}
-                placeholder="選擇入住日"
-                invalid={!!stayErrors.checkIn}
-                unavailableDates={unavailableDates}
-                onChange={setCheckIn}
-              />
-
-              {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
-            </div>
-            <div>
-              <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
-              <GroupBuyDateField
-                id="gb-checkout"
-                value={checkOut}
-                min={checkIn || campaign.stay_start_date}
-                max={campaign.stay_end_date}
-                placeholder="選擇退房日"
-                invalid={!!stayErrors.checkOut}
-                onChange={setCheckOut}
-              />
-              {stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
-              <Input
-                id="gb-rooms"
-                type="number"
-                min={1}
-                max={selectedPkg?.max_quantity ?? 10}
-                value={roomQuantity}
-                onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
-              <Input
-                id="gb-guests"
-                type="number"
-                min={1}
-                value={guestCount}
-                onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
-              />
-            </div>
-            <div className="col-span-2">
-              <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
-              <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
-              <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
-              <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
-            </div>
-            <div className="col-span-2">
-              <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
-                備註（民宿將盡力配合，但無法保證能滿足所有需求）
-              </Label>
-              <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
-            </div>
-          </div>
-
-          {nights > 0 && (
-            <div className="mt-5 rounded-2xl bg-muted/70 p-4 text-sm">
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">
-                  <Users className="mr-1 inline h-4 w-4" />
-                  {nights} 晚 × {roomQuantity} 間
-                </span>
-                <span className="tabular-nums">{twd(total)}</span>
+          {!selectedPkg ? (
+            <p className="mt-5 rounded-2xl bg-muted/70 px-4 py-5 text-center text-base text-muted-foreground">
+              請先於上方 STEP 1 選擇一個團購方案，即可挑選入住日期。
+            </p>
+          ) : (
+            <>
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div>
+                  <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
+                  <GroupBuyDateField
+                    id="gb-checkin"
+                    value={checkIn}
+                    min={campaign.stay_start_date}
+                    max={campaign.stay_end_date}
+                    placeholder="選擇入住日"
+                    invalid={!!stayErrors.checkIn}
+                    unavailableDates={unavailableDates}
+                    onChange={setCheckIn}
+                  />
+                  {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
+                  <GroupBuyDateField
+                    id="gb-checkout"
+                    value={checkOut}
+                    min={checkIn || campaign.stay_start_date}
+                    max={campaign.stay_end_date}
+                    placeholder="選擇退房日"
+                    invalid={!!stayErrors.checkOut}
+                    onChange={setCheckOut}
+                  />
+                  {stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
+                  <Input
+                    id="gb-rooms"
+                    type="number"
+                    min={1}
+                    max={selectedPkg?.max_quantity ?? 10}
+                    value={roomQuantity}
+                    onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
+                  <Input
+                    id="gb-guests"
+                    type="number"
+                    min={1}
+                    value={guestCount}
+                    onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">應付訂金（{depositPct}%）</span>
-                <span className="text-base font-bold tabular-nums text-accent">{twd(deposit)}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">入住現場付清</span>
-                <span className="tabular-nums">{twd(balance)}</span>
-              </div>
-              {availability.ok === false && <p className="mt-2 text-destructive">{availability.message}</p>}
-              {availability.ok === true && <p className="mt-2 text-primary">{availability.message}</p>}
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
-              </p>
-            </div>
+
+              {nights > 0 && !dateBlocked && (
+                <div className="mt-4">
+                  {availability.checking && (
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> 確認庫存中…
+                    </p>
+                  )}
+                  {!availability.checking && availability.ok === true && (
+                    <p className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" /> {availability.message}
+                    </p>
+                  )}
+                  {!availability.checking && availability.ok === false && (
+                    <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+                      {availability.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {nights > 0 && !dateBlocked && (
+                <>
+                  <Separator className="my-7 bg-border/70" />
+                  <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
+                      <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
+                      <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
+                      <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
+                        備註（民宿將盡力配合，但無法保證能滿足所有需求）
+                      </Label>
+                      <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <Separator className="my-7 bg-border/70" />
+                  <StepHeading step={4} title="確認訂房金額" />
+                  <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">
+                        <Users className="mr-1 inline h-4 w-4" />
+                        {nights} 晚 × {roomQuantity} 間
+                      </span>
+                      <span className="tabular-nums">{twd(total)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">住宿金額</span>
+                      <span className="text-base font-semibold tabular-nums">{twd(total)}</span>
+                    </div>
+                    <Separator className="my-2.5 bg-border/70" />
+                    <div className="flex items-baseline justify-between py-1">
+                      <span className="text-base font-semibold text-foreground">應付訂金（{depositPct}%）</span>
+                      <span className="text-[1.75rem] font-bold leading-none tabular-nums text-accent">
+                        {twd(deposit)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">入住現場付清</span>
+                      <span className="tabular-nums">{twd(balance)}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <Button
+                className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                disabled={
+                  submitting ||
+                  availability.checking ||
+                  availability.ok !== true ||
+                  nights <= 0 ||
+                  !selectedPkg ||
+                  dateBlocked ||
+                  bookingLocked ||
+                  !guestName.trim() ||
+                  !guestPhone.trim() ||
+                  !guestEmail.trim() ||
+                  guestCount < 1
+                }
+                onClick={submit}
+              >
+                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                確認訂房並取得匯款資訊
+              </Button>
+            </>
           )}
-
-          <Button
-            className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
-            disabled={
-              submitting ||
-              availability.checking ||
-              availability.ok !== true ||
-              nights <= 0 ||
-              !selectedPkg ||
-              dateBlocked ||
-              bookingLocked ||
-              !guestName.trim() ||
-              !guestPhone.trim() ||
-              !guestEmail.trim() ||
-              guestCount < 1
-            }
-            onClick={submit}
-          >
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            確認訂房並取得匯款資訊
-          </Button>
 
           <p className="mt-3 text-center text-sm text-muted-foreground">
             已下訂？
@@ -798,6 +837,7 @@ export default function GroupBuyCampaign() {
             </Link>
           </p>
         </section>
+
         )}
 
         {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
