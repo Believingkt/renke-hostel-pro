@@ -134,6 +134,16 @@ export default function OwnerSettlementSettings({
   const [excludedAddonIds, setExcludedAddonIds] = useState<string[]>([]);
   /** 舊版只存了文字、但目前 addon_settings 找不到對應項目的名稱（保留以維持向下相容） */
   const [legacyOnlyExcludedTypes, setLegacyOnlyExcludedTypes] = useState<string[]>([]);
+  /** 此館別已建立的規則版本數（0 = 首版，可自選生效月份） */
+  const [ruleCount, setRuleCount] = useState<number>(0);
+  /** 該館合作生效日所在月（生效月份可選範圍下限） */
+  const [partnershipMonth, setPartnershipMonth] = useState<string | null>(null);
+  /** 總部角色（super_admin / admin / finance）可校正任何版本的生效月份 */
+  const [canFixDate, setCanFixDate] = useState(false);
+  /** 首版要寫入的生效月份 */
+  const [effectiveMonth, setEffectiveMonth] = useState<string>(currentMonthStartTaipei());
+  const [fixingId, setFixingId] = useState<string | null>(null);
+
 
   const loadHistory = async () => {
     if (!currentAccommodationId) {
