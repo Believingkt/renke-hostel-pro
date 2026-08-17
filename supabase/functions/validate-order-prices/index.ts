@@ -19,6 +19,7 @@ interface ChildSelectionInput {
 interface OrderValidationRequest {
   accommodationId: string;
   roomTypeId: string;
+  pricingTemplateId?: string | null;
   checkInDate: string;
   checkOutDate: string;
   totalPrice: number;
@@ -112,6 +113,7 @@ serve(async (req) => {
     const {
       accommodationId,
       roomTypeId,
+      pricingTemplateId,
       checkInDate,
       checkOutDate,
       totalPrice,
@@ -544,7 +546,8 @@ serve(async (req) => {
           p_code: discountCode,
           p_order_amount: chargedRoomTotal,
           p_room_type_id: roomTypeId,
-          p_check_in_date: checkInDate
+          p_check_in_date: checkInDate,
+          p_pricing_template_id: pricingTemplateId ?? null
         });
 
       if (discountError) {

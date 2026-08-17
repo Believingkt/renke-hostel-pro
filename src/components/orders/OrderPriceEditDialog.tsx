@@ -270,12 +270,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     setIsValidatingCode(true);
     try {
+      const pricingTemplateId = await getOrderPricingTemplateId(order.id);
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: code,
         p_accommodation_id: currentAccommodationId,
         p_order_amount: editTotalPrice,
         p_room_type_id: order.room_types?.id || null,
         p_check_in_date: order.check_in_date || null,
+        p_pricing_template_id: pricingTemplateId,
       });
       if (error) throw error;
       const result = (data as any[])?.[0];

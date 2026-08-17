@@ -2353,7 +2353,8 @@ const BookingFlow = () => {
         p_accommodation_id: accommodationId,
         p_order_amount: orderAmount,
         p_room_type_id: roomId,
-        p_check_in_date: checkInDateStr
+        p_check_in_date: checkInDateStr,
+        p_pricing_template_id: selectedTemplate?.id || null
       });
 
       if (error) throw error;
@@ -3082,6 +3083,7 @@ const BookingFlow = () => {
             body: {
               accommodationId,
               roomTypeId: selectedRoom.id,
+              pricingTemplateId: selectedTemplate?.id || null,
               packageId: selectedPackageId,
               roomQuantity,
               checkInDate: checkInDateStr,
