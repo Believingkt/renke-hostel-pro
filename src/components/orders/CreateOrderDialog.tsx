@@ -1022,19 +1022,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     setIsValidatingCode(true);
     try {
-      // 逐一驗證所有已選房型／房價方案組合，任一不適用即整張單不套用
+      // 逐一驗證所有已選房型／房價方案組合。
+      // 後台建立訂單允許「部分適用」：只要有任一組合適用即可套用，
+      // 折扣僅計算在適用的房型／方案小計上（不適用的部分照原價）。
       const combos = roomSelections.length
         ? roomSelections.map((s) => ({ roomTypeId: s.room_type_id || form.room_type_id || null, templateId: s.template_id || null }))
         : [{ roomTypeId: form.room_type_id || null, templateId: null }];
       const seen = new Set<string>();
       const uniqueCombos = combos.filter((c) => {
-        const k = `${c.roomTypeId}|${c.templateId}`;
+        const k = discountScopeKeyOf(c.roomTypeId, c.templateId);
         if (seen.has(k)) return false;
         seen.add(k);
         return true;
       });
 
-      let result: any = null;
+      const eligible = new Set<string>();
+      let validResult: any = null;
+      let lastInvalid: any = null;
       for (const combo of uniqueCombos) {
         const { data, error } = await supabase.rpc('validate_discount_code', {
           p_code: discountCode.trim().toUpperCase(),
@@ -1045,22 +1049,30 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           p_pricing_template_id: combo.templateId
         });
         if (error) throw error;
-        result = data?.[0];
-        if (!result?.is_valid) break;
+        const result = data?.[0];
+        if (result?.is_valid) {
+          eligible.add(discountScopeKeyOf(combo.roomTypeId, combo.templateId));
+          validResult = result;
+        } else {
+          lastInvalid = result;
+        }
       }
 
-      if (result?.is_valid) {
+      if (validResult) {
         setAppliedDiscount({
           code: discountCode.trim().toUpperCase(),
-          type: result.discount_type as "percentage" | "amount",
-          value: result.discount_value
+          type: validResult.discount_type as "percentage" | "amount",
+          value: validResult.discount_value
         });
+        setDiscountEligibleKeys(eligible);
+        const partial = eligible.size < uniqueCombos.length;
         toast({
           title: "折扣代碼已套用",
-          description: `已套用 ${result.discount_type === "percentage" ? `${result.discount_value}% 折扣` : `NT$ ${result.discount_value} 折扣`}`,
+          description: `${validResult.discount_type === "percentage" ? `已套用 ${validResult.discount_value}% 折扣` : `已套用 NT$ ${validResult.discount_value} 折扣`}${partial ? "（僅計算適用的房價方案，其餘照原價）" : ""}`,
         });
       } else {
-        toast({ title: "折扣代碼無效", description: result?.message || "此折扣碼不適用於所選房價方案", variant: "destructive" });
+        setDiscountEligibleKeys(null);
+        toast({ title: "折扣代碼無效", description: lastInvalid?.message || "此折扣碼不適用於所選房價方案", variant: "destructive" });
       }
 
     } catch (error) {
@@ -1070,6 +1082,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setIsValidatingCode(false);
     }
   };
+
 
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
