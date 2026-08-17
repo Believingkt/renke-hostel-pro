@@ -212,14 +212,14 @@ const KolDiscount = () => {
           .maybeSingle(),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, is_active")
+          .select("id, template_name, project_name")
           .eq("accommodation_id", accommodationId)
-          .order("template_name"),
+          .order("display_order")
+          .order("created_at", { ascending: false }),
       ]);
       setScopeMode(((acc as any)?.discount_scope_mode as DiscountScopeMode) || "pricing_template");
       setPricingTemplates(
         ((tpls as any[]) || [])
-          .filter((t) => t.is_active !== false)
           .map((t) => ({ id: t.id, name: t.project_name ? `${t.project_name}／${t.template_name}` : t.template_name }))
       );
     } catch (error) {
