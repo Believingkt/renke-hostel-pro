@@ -171,7 +171,70 @@ export default function GroupBuyCampaign() {
     [campaign, checkIn, checkOut],
   );
   const sale = campaign ? saleState(campaign) : "on_sale";
+  const bookingLocked = sale !== "on_sale";
   const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
+
+  /** 方案綁定的候選房型（順序即為分配優先順序） */
+  const candidateRoomTypeIds = useMemo(() => {
+    if (!selectedPkg) return [] as string[];
+    if (selectedPkg.room_type_ids && selectedPkg.room_type_ids.length > 0) return selectedPkg.room_type_ids;
+    return selectedPkg.room_type_id ? [selectedPkg.room_type_id] : [];
+  }, [selectedPkg]);
+
+  /** 依活動可入住期間預先計算「該日期是否還有庫存」，無庫存日期於日曆停用 */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!campaign || bookingLocked || candidateRoomTypeIds.length === 0) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const start = campaign.stay_start_date && campaign.stay_start_date > today ? campaign.stay_start_date : today;
+      const endLimit = campaign.stay_end_date;
+      const dates: string[] = [];
+      const [y, m, d] = start.split("-").map(Number);
+      for (let i = 0; i < 120; i++) {
+        const iso = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + i)).toISOString().split("T")[0];
+        if (endLimit && iso > endLimit) break;
+        dates.push(iso);
+      }
+      if (dates.length === 0) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      const results = await Promise.all(
+        candidateRoomTypeIds.map((rtId) =>
+          supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: rtId,
+            p_dates: dates,
+            p_accommodation_id: campaign.accommodation_id,
+          }),
+        ),
+      );
+      if (cancelled) return;
+      const okDates = new Set<string>();
+      for (const { data, error } of results) {
+        if (error) continue;
+        for (const row of (data ?? []) as any[]) {
+          const iso = row?.date_value ?? row?.date;
+          if (!iso) continue;
+          if (row?.is_blocked === true) continue;
+          if (Number(row?.available_rooms ?? 0) >= roomQuantity) okDates.add(String(iso));
+        }
+      }
+      // 完全查不到資料時不阻擋使用者（維持原本送出時的後端驗證）
+      if (okDates.size === 0 && results.every((r) => r.error)) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      setUnavailableDates(new Set(dates.filter((iso) => !okDates.has(iso))));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign, candidateRoomTypeIds, roomQuantity, bookingLocked]);
+
 
   const checkAvailability = useCallback(async () => {
     const roomTypeIds =
