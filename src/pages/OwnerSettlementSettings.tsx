@@ -81,6 +81,27 @@ function currentMonthStartTaipei(): string {
   return `${y}-${m}-01`;
 }
 
+/** 產生 [minMonth, maxMonth] 之間的月初日期清單（新到舊） */
+function monthOptions(minMonth: string | null, maxMonth: string): string[] {
+  const max = maxMonth.slice(0, 7);
+  const min = (minMonth ?? maxMonth).slice(0, 7);
+  const out: string[] = [];
+  let [y, m] = max.split("-").map(Number);
+  for (let i = 0; i < 60; i++) {
+    const cur = `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
+    if (cur < min) break;
+    out.push(`${cur}-01`);
+    m -= 1;
+    if (m === 0) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  return out;
+}
+
+
+
 
 export default function OwnerSettlementSettings({
   accommodationIdOverride,
