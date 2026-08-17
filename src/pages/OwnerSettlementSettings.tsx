@@ -497,8 +497,34 @@ export default function OwnerSettlementSettings({
 
     setSaving(false);
     setUsingFallback(false);
+    setRuleCount((c) => c + 1);
+    if (historyLoaded) loadHistory();
     toast.success(`已儲存「${accName}」的設定`);
   };
+
+  /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
+  const fixEffectiveMonth = async (id: string, month: string) => {
+    const cur = currentMonthStartTaipei();
+    if (month < cur) {
+      const ok = window.confirm(
+        `生效月份將改為 ${month.slice(0, 7)}（過去月份）。若該月份的月結或獎金已發放，數字不會被追改，但重新試算時金額可能變動。確定要修正嗎？`,
+      );
+      if (!ok) return;
+    }
+    setFixingId(id);
+    const { error } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .update({ effective_from: month })
+      .eq("id", id);
+    setFixingId(null);
+    if (error) {
+      toast.error(`生效月份修正失敗：${error.message}`);
+      return;
+    }
+    toast.success(`已將生效月份修正為 ${month.slice(0, 7)}`);
+    loadHistory();
+  };
+
 
 
   if (loading) return null;
