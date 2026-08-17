@@ -1949,6 +1949,16 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Radix adds inline padding-right / margin-right to <body> while scroll is locked.
+   Combined with scrollbar-gutter: stable this double-compensates and shifts the page. */
+body[data-scroll-locked],
+body[data-radix-scroll-lock] {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  overflow-y: scroll !important;
+}
+
+
 /* ── iOS safe-area helpers (env() = 0 in normal browsers) ── */
 .safe-top,
 .pt-safe {
