@@ -545,6 +545,25 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           </div>
         )}
 
+        {cancelledAfterIssue && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            ⚠ 此訂單後續收到「取消通知」，補單前請先到 OwlNest 確認訂單是否仍有效。
+          </div>
+        )}
+
+        {modifications.length > 0 && (
+          <div className="rounded-md border border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+            <div className="font-medium">此訂單在新訂單通知後曾被修改，以下欄位已自動更新為最新狀態：</div>
+            <ul className="space-y-0.5">
+              {modifications.map((m, i) => (
+                <li key={i}>
+                  • {m.label ?? m.field}：{String(m.before ?? "—")} → <strong>{String(m.after ?? "—")}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
 
         {phase === "loading" && (
           <div className="py-12 flex justify-center">
