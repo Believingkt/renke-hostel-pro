@@ -44,6 +44,8 @@ interface Venue {
 }
 
 const WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
+const STORAGE_KEY = "team_all_venues_inventory_selected";
+
 
 export function AllVenuesInventoryTab() {
   const today = useMemo(() => startOfToday(), []);
