@@ -72,3 +72,18 @@ export async function mergeLaterStaging<T extends Record<string, any>>(
 
   return result;
 }
+
+/** Recompute derived fields (nights / remaining_amount) after a merge. */
+export function normalizeMerged<T extends Record<string, any>>(m: T, applied: boolean): T {
+  if (!applied) return m;
+  const out: any = { ...m };
+  if (out.check_in_date && out.check_out_date) {
+    const ms = new Date(out.check_out_date).getTime() - new Date(out.check_in_date).getTime();
+    const n = Math.round(ms / 86400000);
+    if (n > 0) out.nights = n;
+  }
+  const total = Number(out.total_amount ?? 0);
+  const remaining = Number(out.remaining_amount ?? 0);
+  if (total > 0 && remaining > total) out.remaining_amount = total;
+  return out as T;
+}
