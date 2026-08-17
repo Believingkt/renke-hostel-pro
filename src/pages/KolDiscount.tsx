@@ -482,6 +482,8 @@ const KolDiscount = () => {
   };
 
   const handleOpenEdit = async (code: DiscountCode) => {
+    // 重新拉一次房價方案，確保剛新增的方案立即出現（預設不勾選）
+    fetchScopeConfig();
     setEditingCode(code);
     setName(code.name);
     setDiscountType(code.discount_type);
