@@ -79,7 +79,10 @@ export default function HQBonusSettings() {
   const setTab = (value: string) => {
     const next = new URLSearchParams(searchParams);
     if (value === "owner-settlement") next.set("tab", "owner-settlement");
-    else {
+    else if (value === "base-salary") {
+      next.set("tab", "base-salary");
+      next.delete("acc");
+    } else {
       next.delete("tab");
       next.delete("acc");
     }
