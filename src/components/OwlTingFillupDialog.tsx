@@ -102,6 +102,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
   const [matchFailedReason, setMatchFailedReason] = useState<string | null>(null);
+  const [modifications, setModifications] = useState<Array<{ label?: string; field?: string; before?: unknown; after?: unknown }>>([]);
+  const [cancelledAfterIssue, setCancelledAfterIssue] = useState(false);
 
   // Step 1: load staging row and decide path
   useEffect(() => {
