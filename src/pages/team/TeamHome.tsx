@@ -166,15 +166,9 @@ export default function TeamHome() {
   const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
   // 主管可向下垂直檢視所屬組別成員（AM 主管 → AM、星探主管 → 星探…）
   const MANAGER_SCOPES: Record<string, TeamRole[]> = {
+    // 僅 AM 主管與星探主管可向下檢視全部組員
     am_manager: ["am", "am_manager"],
     scout_manager: ["scout", "scout_manager"],
-    closer_manager: ["closer", "closer_manager"],
-    franchise_manager: [
-      "franchise",
-      "franchise_internal",
-      "franchise_external",
-      "franchise_manager",
-    ],
   };
   const managerScope = Array.from(
     new Set(selfRoles.flatMap((r) => MANAGER_SCOPES[r] ?? [])),
