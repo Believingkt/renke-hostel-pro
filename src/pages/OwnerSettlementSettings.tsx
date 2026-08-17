@@ -465,7 +465,7 @@ export default function OwnerSettlementSettings({
         .from("owner_settlement_pricing_rules")
         .insert({
           accommodation_id: currentAccommodationId,
-          effective_from: currentMonthStartTaipei(),
+          effective_from: ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei(),
           // 費率一律小數存法（10% → 0.10）
           commission_rate: config.commission_rate / 100,
           commission_threshold: config.commission_threshold,
