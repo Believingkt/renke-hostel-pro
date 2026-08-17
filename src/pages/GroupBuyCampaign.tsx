@@ -524,93 +524,120 @@ export default function GroupBuyCampaign() {
         )}
 
 
-        {/* ── 方案 ── */}
+        {/* ── STEP 1 選擇專屬方案 ── */}
         <section className="mt-12">
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇專屬方案</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            {bookingLocked
-              ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
-              : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"}
-          </p>
+          <StepHeading
+            step={1}
+            title="選擇專屬方案"
+            hint={
+              bookingLocked
+                ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
+                : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"
+            }
+          />
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = !bookingLocked && p.id === selectedPkgId;
               const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  disabled={bookingLocked}
-                  onClick={() => {
-                    if (bookingLocked) return;
-                    setSelectedPkgId(p.id);
-                    scrollToForm();
-                  }}
-                  aria-pressed={active}
-                  className={`flex w-full gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-none sm:p-5 ${
+                  className={`flex w-full flex-col gap-4 rounded-2xl border p-4 transition sm:flex-row sm:p-5 ${
                     active
-                      ? "border-primary/30 bg-secondary/60"
-                      : "border-border/70 bg-card hover:border-border"
-                  } ${bookingLocked ? "cursor-not-allowed opacity-70 hover:border-border/70" : ""}`}
+                      ? "border-primary bg-secondary/60 ring-1 ring-primary/30"
+                      : "border-border/70 bg-card"
+                  } ${bookingLocked ? "opacity-70" : ""}`}
                 >
-
                   {p.image_url && (
                     <img
                       src={p.image_url}
                       alt={p.display_name}
                       loading="lazy"
-                      className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
+                      className="h-40 w-full shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[1.0625rem] font-semibold leading-snug">{p.display_name}</p>
+                    {/* 第一層：方案名稱 */}
+                    <p className="text-[1.1875rem] font-bold leading-snug tracking-tight sm:text-[1.25rem]">
+                      {p.display_name}
+                    </p>
+                    {/* 第二層：方案內容摘要 */}
                     {p.description && (
                       <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                         {p.description}
                       </p>
                     )}
-                    <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                      {p.original_price ? (
-                        <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
-                          {twd(p.original_price)}
+                    {/* 第三／四層：團購價 → 原價與省下金額 */}
+                    <div className="mt-3.5">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="text-sm text-muted-foreground">團購價</span>
+                        <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
+                          {twd(p.group_buy_price)}
                         </span>
-                      ) : null}
-                      <span className="text-[1.625rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[1.75rem]">
-                        {twd(p.group_buy_price)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">／晚</span>
-                      {save > 0 && (
-                        <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                          省 {twd(save)}
-                        </span>
+                        <span className="text-sm text-muted-foreground">／晚</span>
+                      </div>
+                      {(p.original_price || save > 0) && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          {p.original_price ? (
+                            <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
+                              原價 {twd(p.original_price)}
+                            </span>
+                          ) : null}
+                          {save > 0 && (
+                            <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                              現省 {twd(save)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <p
-                      className={`mt-3 inline-flex items-center gap-1.5 text-sm font-medium ${
-                        active ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
+                    {/* 第五層：選擇方案 */}
+                    <div className="mt-4">
                       {bookingLocked ? (
-                        sale === "ended" ? (
-                          "活動已結束"
-                        ) : (
-                          "尚未開賣"
-                        )
+                        <span className="text-sm text-muted-foreground">
+                          {sale === "ended" ? "活動已結束" : "尚未開賣"}
+                        </span>
                       ) : active ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" /> 已選擇
-                        </>
+                        <div className="rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                            <CheckCircle2 className="h-4 w-4" /> 已選擇「{p.display_name}」
+                          </p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            <span className="font-semibold text-accent tabular-nums">
+                              {twd(p.group_buy_price)}
+                            </span>
+                            ／晚 · 下一步：選擇入住日期
+                          </p>
+                          <button
+                            type="button"
+                            onClick={scrollToForm}
+                            className="mt-1.5 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            前往選擇入住日期
+                          </button>
+                        </div>
                       ) : (
-                        "選擇此方案"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 w-full rounded-xl border-primary/40 text-base font-semibold text-primary hover:bg-primary/10 sm:w-auto sm:px-6"
+                          onClick={() => {
+                            setSelectedPkgId(p.id);
+                            setTimeout(scrollToForm, 60);
+                          }}
+                        >
+                          選擇此方案
+                        </Button>
                       )}
-                    </p>
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
             {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
           </div>
         </section>
+
 
 
 
