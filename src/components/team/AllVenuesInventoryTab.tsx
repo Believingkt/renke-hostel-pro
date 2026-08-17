@@ -22,6 +22,13 @@ import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthPicker } from "@/components/ui/month-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { fetchVenueAvailability, type VenueAvailabilityResult } from "@/lib/venueAvailability";
@@ -40,6 +47,10 @@ export function AllVenuesInventoryTab() {
   const [dataMap, setDataMap] = useState<Record<string, VenueAvailabilityResult>>({});
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  /** 各館別選擇的房型（all = 全部房型合計） */
+  const [roomTypeFilter, setRoomTypeFilter] = useState<Record<string, string>>({});
+  /** 只顯示「當日仍有房」的館別 */
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
 
   const month = useMemo(
     () => startOfMonth(new Date(`${monthValue}-01T00:00:00`)),
@@ -110,15 +121,43 @@ export function AllVenuesInventoryTab() {
 
   const renderVenue = (venue: Venue) => {
     const res = dataMap[venue.id];
+    const rtId = roomTypeFilter[venue.id] ?? "all";
+    const selectedRt = res?.roomTypes.find((r) => r.id === rtId);
+    const dayMap = res
+      ? rtId === "all"
+        ? res.byDate
+        : (res.byRoomType.get(rtId) ?? new Map())
+      : null;
+    const bundledLock = rtId === "all" && (res?.bundledLock ?? false);
+
     return (
       <Card key={venue.id} className="overflow-hidden">
-        <CardHeader className="py-3">
+        <CardHeader className="py-3 space-y-2">
           <CardTitle className="text-sm font-semibold truncate" title={venue.name}>
             {venue.name}
           </CardTitle>
+          {res && res.roomTypes.length > 1 && (
+            <Select
+              value={rtId}
+              onValueChange={(v) => setRoomTypeFilter((prev) => ({ ...prev, [venue.id]: v }))}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="全部房型" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="all">全部房型（合計）</SelectItem>
+                {res.roomTypes.map((rt) => (
+                  <SelectItem key={rt.id} value={rt.id}>
+                    {rt.is_exclusive_package ? "［包棟/包區］" : ""}
+                    {rt.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
         <CardContent className="pb-4">
-          {!res ? (
+          {!res || !dayMap ? (
             <div className="h-40 flex items-center justify-center text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
@@ -144,25 +183,35 @@ export function AllVenuesInventoryTab() {
                     return <div key={dateStr} className="aspect-square" />;
                   }
                   const isPast = isBefore(day, today);
-                  const info = res.byDate.get(dateStr);
+                  const info = dayMap.get(dateStr);
                   const avail = info?.available ?? 0;
                   const total = info?.total ?? 0;
-                  const showCount = !res.bundledLock && total >= 2;
-                  const isFull = res.bundledLock ? !info?.bookable : avail <= 0;
+                  const showCount = !bundledLock && total >= 2;
+                  const isFull = bundledLock ? !info?.bookable : avail <= 0;
                   const ratio = total > 0 ? avail / total : 0;
 
-                  let tone = "border-muted bg-muted text-muted-foreground";
+                  const breakdown = res.roomTypes
+                    .map((rt) => {
+                      const d = res.byRoomType.get(rt.id)?.get(dateStr);
+                      if (!d) return null;
+                      return `${rt.name}：${d.available <= 0 ? "已滿" : `餘 ${d.available}/${d.total}`}`;
+                    })
+                    .filter(Boolean)
+                    .join("\n");
+
+                  let tone: string;
                   if (isPast) tone = "border-muted bg-muted/30 text-muted-foreground/50";
                   else if (isFull) tone = "border-muted bg-muted text-muted-foreground";
-                  else if (!res.bundledLock && ratio < 0.25)
+                  else if (!bundledLock && ratio < 0.25)
                     tone = "border-red-300 bg-red-50 text-red-700";
-                  else if (!res.bundledLock && ratio < 0.6)
+                  else if (!bundledLock && ratio < 0.6)
                     tone = "border-amber-300 bg-amber-50 text-amber-800";
                   else tone = "border-emerald-300 bg-emerald-50 text-emerald-900";
 
                   return (
                     <div
                       key={dateStr}
+                      title={isPast ? undefined : `${dateStr}\n${breakdown}`}
                       className={cn(
                         "aspect-square rounded-md border flex flex-col items-center justify-center text-[11px] select-none",
                         tone,
@@ -185,6 +234,11 @@ export function AllVenuesInventoryTab() {
                   );
                 })}
               </div>
+              {selectedRt && (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  目前檢視：{selectedRt.name}（共 {selectedRt.room_count} 間）
+                </p>
+              )}
             </>
           )}
         </CardContent>
