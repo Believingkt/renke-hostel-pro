@@ -153,11 +153,8 @@ export default function GroupBuyCampaign() {
       if (cancelled) return;
       const list = (pkgs ?? []) as unknown as CampaignPackage[];
       setPackages(list);
-      const onSale = saleState(c as unknown as Campaign) === "on_sale";
-      if (onSale) {
-        if (list.length > 0) setSelectedPkgId(list[0].id);
-        if (c.stay_start_date) setCheckIn(c.stay_start_date);
-      }
+      // 依步驟流程：不預選方案、不預填日期，讓使用者明確走 STEP 1 → STEP 2
+
 
       setLoading(false);
       const { data: acc } = await supabase
