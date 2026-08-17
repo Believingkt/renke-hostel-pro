@@ -338,6 +338,8 @@ const Pricing = () => {
     switch (tab) {
       case "rooms":
         return "房型管理";
+      case "amenities":
+        return "備品管理";
       case "basic":
         return "房價價格設定";
       case "holidays":
@@ -346,6 +348,7 @@ const Pricing = () => {
         return "房型管理";
     }
   };
+
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
