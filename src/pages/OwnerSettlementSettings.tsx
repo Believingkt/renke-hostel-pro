@@ -239,6 +239,36 @@ export default function OwnerSettlementSettings({
         };
       }
 
+      // 生效月份可編輯條件：版本數（0 = 首版）＋ 合作生效日下限 ＋ 使用者角色
+      if (currentAccommodationId) {
+        const [countRes, accInfoRes, roleRes] = await Promise.all([
+          supabase
+            .from("owner_settlement_pricing_rules")
+            .select("id", { count: "exact", head: true })
+            .eq("accommodation_id", currentAccommodationId),
+          supabase
+            .from("accommodation_info")
+            .select("partnership_start_date")
+            .eq("id", currentAccommodationId)
+            .maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id),
+        ]);
+        setRuleCount(countRes.count ?? 0);
+        const psd = (accInfoRes.data as any)?.partnership_start_date as string | null;
+        setPartnershipMonth(psd ? `${String(psd).slice(0, 7)}-01` : null);
+        setCanFixDate(
+          ((roleRes.data ?? []) as Array<{ role: string }>).some((r) =>
+            ["super_admin", "admin", "finance"].includes(r.role),
+          ),
+        );
+        setEffectiveMonth(currentMonthStartTaipei());
+      } else {
+        setRuleCount(0);
+        setPartnershipMonth(null);
+        setCanFixDate(false);
+      }
+
+
       // 新制優先：取該館別 effective_from <= 當月的最新一筆生效規則
       let ruleRow: any = null;
       if (currentAccommodationId) {
