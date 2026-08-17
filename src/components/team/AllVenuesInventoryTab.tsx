@@ -121,12 +121,42 @@ export function AllVenuesInventoryTab() {
     const res = dataMap[venue.id];
     const rtId = roomTypeFilter[venue.id] ?? "all";
     const selectedRt = res?.roomTypes.find((r) => r.id === rtId);
-    const dayMap = res
-      ? rtId === "all"
+    const pkgTypes = res?.roomTypes.filter((r) => r.is_exclusive_package === true) ?? [];
+    const singleTypes = res?.roomTypes.filter((r) => r.is_exclusive_package !== true) ?? [];
+
+    /** 合計指定房型群組的逐日餘房 */
+    const aggregate = (types: VenueRoomType[]) => {
+      const out = new Map<string, { available: number; total: number; bookable: boolean }>();
+      for (const dateStr of dateStrings) {
+        let available = 0;
+        let total = 0;
+        for (const rt of types) {
+          const d = res?.byRoomType.get(rt.id)?.get(dateStr);
+          if (!d) continue;
+          available += d.available;
+          total += d.total;
+        }
+        out.set(dateStr, { available, total, bookable: available > 0 });
+      }
+      return out;
+    };
+
+    const dayMap = !res
+      ? null
+      : rtId === "all"
         ? res.byDate
-        : (res.byRoomType.get(rtId) ?? new Map())
-      : null;
+        : rtId === "group:package"
+          ? aggregate(pkgTypes)
+          : rtId === "group:single"
+            ? aggregate(singleTypes)
+            : (res.byRoomType.get(rtId) ?? new Map());
     const bundledLock = rtId === "all" && (res?.bundledLock ?? false);
+    const groupLabel =
+      rtId === "group:package"
+        ? `包棟／包區合計（共 ${pkgTypes.length} 種）`
+        : rtId === "group:single"
+          ? `單間房合計（共 ${singleTypes.length} 種）`
+          : null;
 
     return (
       <Card key={venue.id} className="overflow-hidden">
@@ -144,6 +174,12 @@ export function AllVenuesInventoryTab() {
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="all">全部房型（合計）</SelectItem>
+                {pkgTypes.length > 0 && (
+                  <SelectItem value="group:package">包棟／包區（合計）</SelectItem>
+                )}
+                {singleTypes.length > 0 && (
+                  <SelectItem value="group:single">單間房（合計）</SelectItem>
+                )}
                 {res.roomTypes.map((rt) => (
                   <SelectItem key={rt.id} value={rt.id}>
                     {rt.is_exclusive_package ? "［包棟/包區］" : ""}
@@ -154,6 +190,7 @@ export function AllVenuesInventoryTab() {
             </Select>
           )}
         </CardHeader>
+
         <CardContent className="pb-4">
           {!res || !dayMap ? (
             <div className="h-40 flex items-center justify-center text-muted-foreground">
