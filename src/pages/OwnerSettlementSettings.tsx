@@ -972,7 +972,32 @@ export default function OwnerSettlementSettings({
                         生效月份：{String(r.effective_from).slice(0, 7)}
                       </span>
                       {r.id === currentRuleId && <Badge>目前生效中</Badge>}
+                      {(canFixDate || (historyRows.length === 1 && ruleCount === 1)) && (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(r.effective_from).slice(0, 10)}
+                            onValueChange={(v) => fixEffectiveMonth(r.id, v)}
+                            disabled={fixingId === r.id}
+                          >
+                            <SelectTrigger className="h-8 w-[150px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {monthOptions(
+                                canFixDate ? partnershipMonth ?? "2020-01-01" : partnershipMonth,
+                                currentMonthStartTaipei(),
+                              ).map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {m.slice(0, 7)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-xs text-muted-foreground">修正生效月份</span>
+                        </div>
+                      )}
                     </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <div>抽成費率：{((Number(r.commission_rate) || 0) * 100).toFixed(2)}%</div>
                       <div>抽成門檻：NT$ {(Number(r.commission_threshold) || 0).toLocaleString()}</div>
