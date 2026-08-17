@@ -1955,7 +1955,6 @@ body[data-scroll-locked],
 body[data-radix-scroll-lock] {
   padding-right: 0 !important;
   margin-right: 0 !important;
-  overflow-y: scroll !important;
 }
 
 
