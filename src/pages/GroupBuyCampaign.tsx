@@ -645,8 +645,10 @@ export default function GroupBuyCampaign() {
                 max={campaign.stay_end_date}
                 placeholder="選擇入住日"
                 invalid={!!stayErrors.checkIn}
+                unavailableDates={unavailableDates}
                 onChange={setCheckIn}
               />
+
               {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
             </div>
             <div>
