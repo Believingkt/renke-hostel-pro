@@ -136,8 +136,12 @@ export default function GroupBuyCampaign() {
       if (cancelled) return;
       const list = (pkgs ?? []) as unknown as CampaignPackage[];
       setPackages(list);
-      if (list.length > 0) setSelectedPkgId(list[0].id);
-      if (c.stay_start_date) setCheckIn(c.stay_start_date);
+      const onSale = saleState(c as unknown as Campaign) === "on_sale";
+      if (onSale) {
+        if (list.length > 0) setSelectedPkgId(list[0].id);
+        if (c.stay_start_date) setCheckIn(c.stay_start_date);
+      }
+
       setLoading(false);
       const { data: acc } = await supabase
         .from("accommodation_info")
