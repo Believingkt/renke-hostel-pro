@@ -375,14 +375,19 @@ export default function TeamHome() {
     if (!viewUserId) return;
     if (isViewing && !canSeeSalary) return;
     (async () => {
+      // 版本制：取「資料月份最後一天」當下已生效的最新版本
+      const [y, m] = monthInfo.currentMonthKey.split("-").map(Number);
+      const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
       const { data } = await db
         .from("team_base_salaries")
-        .select("amount")
+        .select("amount, effective_from")
         .eq("user_id", viewUserId)
-        .eq("salary_month", monthInfo.currentMonthKey)
-        .maybeSingle();
-      if (!cancelled) setSalaryAmt(Number((data as any)?.amount ?? 0));
+        .lte("effective_from", monthEnd)
+        .order("effective_from", { ascending: false })
+        .limit(1);
+      if (!cancelled) setSalaryAmt(Number((data as any)?.[0]?.amount ?? 0));
     })();
+
     return () => {
       cancelled = true;
     };
