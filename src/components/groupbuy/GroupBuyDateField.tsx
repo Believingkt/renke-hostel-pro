@@ -63,7 +63,7 @@ export function GroupBuyDateField({
           {selected ? format(selected, "yyyy/MM/dd (EEE)", { locale: zhTW }) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto rounded-xl p-0" align="start">
+      <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] rounded-xl p-0" align="start">
         <Calendar
           mode="single"
           locale={zhTW}
@@ -74,6 +74,12 @@ export function GroupBuyDateField({
             onChange(format(d, "yyyy-MM-dd"));
             setOpen(false);
           }}
+          modifiers={{
+            soldout: (d) => !!unavailableDates?.has(format(d, "yyyy-MM-dd")),
+          }}
+          modifiersClassNames={{
+            soldout: "line-through opacity-50",
+          }}
           disabled={(d) =>
             (minDate ? d < minDate : false) ||
             (maxDate ? d > maxDate : false) ||
@@ -83,7 +89,20 @@ export function GroupBuyDateField({
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-primary" />可預訂
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+            <span className="line-through">已滿房</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-border" />不可入住
+          </span>
+        </div>
       </PopoverContent>
     </Popover>
   );
 }
+
