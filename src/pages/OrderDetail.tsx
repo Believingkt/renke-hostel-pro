@@ -46,6 +46,8 @@ import OrderManualReviewCard from "@/components/orders/OrderManualReviewCard";
 
 import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
 import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
+import { OrderAmenityCard } from "@/components/amenities/OrderAmenityCard";
+
 
 import { computeOrderDiff, computeRoomsDiff, computeExclusiveConfigDiff, computeVisibleNotesDiff, extractAddonNote, extractExtraAddonAmount } from "@/utils/orderAuditDiff";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
