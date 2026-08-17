@@ -98,6 +98,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
+    setModifications([]); setCancelledAfterIssue(false);
   };
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
