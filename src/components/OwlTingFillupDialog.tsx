@@ -13,6 +13,7 @@ import { Copy, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
+import { mergeLaterStagingClient } from "@/lib/owltingStagingMergeClient";
 
 interface Props {
   open: boolean;
@@ -97,10 +98,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
     setPaymentStatus("paid"); setPaymentDefaultedFrom(null); setPaymentOverridden(false);
+    setModifications([]); setCancelledAfterIssue(false);
   };
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
   const [matchFailedReason, setMatchFailedReason] = useState<string | null>(null);
+  const [modifications, setModifications] = useState<Array<{ label?: string; field?: string; before?: unknown; after?: unknown }>>([]);
+  const [cancelledAfterIssue, setCancelledAfterIssue] = useState(false);
 
   // Step 1: load staging row and decide path
   useEffect(() => {
@@ -130,7 +134,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         autoOrderNumber = ord?.order_number ?? null;
       }
       (data as any).auto_order_number = autoOrderNumber;
-      const row = data as StagingRow & { raw_email_id: string | null };
+      // Apply any LATER 修改 / 取消 emails for the same OBE so we fill in the
+      // CURRENT state of the reservation, not the original one.
+      const mergeRes = await mergeLaterStagingClient(data as any);
+      (mergeRes.merged as any).auto_order_number = autoOrderNumber;
+      setModifications(mergeRes.changes);
+      setCancelledAfterIssue(mergeRes.cancelled);
+      const row = mergeRes.merged as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
       if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
@@ -533,6 +543,25 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
               <span className="ml-1 font-mono font-bold">#{stagingRow.auto_order_number}</span>
             )}
             ，補單提交後將直接更新此訂單並轉為正式 confirmed，不會新建。
+          </div>
+        )}
+
+        {cancelledAfterIssue && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            ⚠ 此訂單後續收到「取消通知」，補單前請先到 OwlNest 確認訂單是否仍有效。
+          </div>
+        )}
+
+        {modifications.length > 0 && (
+          <div className="rounded-md border border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+            <div className="font-medium">此訂單在新訂單通知後曾被修改，以下欄位已自動更新為最新狀態：</div>
+            <ul className="space-y-0.5">
+              {modifications.map((m, i) => (
+                <li key={i}>
+                  • {m.label ?? m.field}：{String(m.before ?? "—")} → <strong>{String(m.after ?? "—")}</strong>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
