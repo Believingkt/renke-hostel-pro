@@ -30,6 +30,8 @@ import {
   Megaphone,
   Navigation,
   Package,
+  PackageOpen,
+
   Plug,
   Receipt,
   ShoppingBag,
