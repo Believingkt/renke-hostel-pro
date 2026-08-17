@@ -1027,7 +1027,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         p_accommodation_id: currentAccommodationId,
         p_order_amount: roomPrice,
         p_room_type_id: form.room_type_id || null,
-        p_check_in_date: form.check_in_date || null
+        p_check_in_date: form.check_in_date || null,
+        p_pricing_template_id: roomSelections[0]?.template_id || null
       });
 
       if (error) throw error;

@@ -33,6 +33,7 @@ import { savedAddonTotalOf, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
+import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { useToast } from "@/hooks/use-toast";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { formatSecondary } from "@/lib/currency";
@@ -858,6 +859,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Use the primary room_type_id for validation
       const roomTypeId = editForm.room_type_id || (editOrderRooms.length > 0 ? editOrderRooms[0].room_type_id : null) || order.room_type_id || null;
       const checkInDate = order.check_in_date || null;
+      const pricingTemplateId = await getOrderPricingTemplateId(order.id);
 
       try {
         const { data, error } = await supabase.rpc('validate_discount_code', {
@@ -865,7 +867,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           p_accommodation_id: order.accommodation_id,
           p_order_amount: base,
           p_room_type_id: roomTypeId,
-          p_check_in_date: checkInDate
+          p_check_in_date: checkInDate,
+          p_pricing_template_id: pricingTemplateId
         });
 
         if (error) {

@@ -539,7 +539,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         p_accommodation_id: currentAccommodationId,
         p_order_amount: calculatedPrice.total,
         p_room_type_id: editForm.room_type_id || null,
-        p_check_in_date: editForm.check_in_date || null
+        p_check_in_date: editForm.check_in_date || null,
+        p_pricing_template_id: selectedTemplateId || null
       });
 
       if (error) throw error;

@@ -320,6 +320,7 @@ export type Database = {
           daily_room_capacity: number | null
           daily_villa_capacity: number | null
           description: string | null
+          discount_scope_mode: string
           display_order: number | null
           email: string | null
           email_important_notice: string | null
@@ -425,6 +426,7 @@ export type Database = {
           daily_room_capacity?: number | null
           daily_villa_capacity?: number | null
           description?: string | null
+          discount_scope_mode?: string
           display_order?: number | null
           email?: string | null
           email_important_notice?: string | null
@@ -530,6 +532,7 @@ export type Database = {
           daily_room_capacity?: number | null
           daily_villa_capacity?: number | null
           description?: string | null
+          discount_scope_mode?: string
           display_order?: number | null
           email?: string | null
           email_important_notice?: string | null
@@ -2932,6 +2935,7 @@ export type Database = {
           accommodation_id: string
           applicable_date_from: string | null
           applicable_date_to: string | null
+          applicable_pricing_template_ids: Json
           applicable_room_types: Json | null
           code: string
           commission_rate: number | null
@@ -2953,6 +2957,7 @@ export type Database = {
           accommodation_id: string
           applicable_date_from?: string | null
           applicable_date_to?: string | null
+          applicable_pricing_template_ids?: Json
           applicable_room_types?: Json | null
           code: string
           commission_rate?: number | null
@@ -2974,6 +2979,7 @@ export type Database = {
           accommodation_id?: string
           applicable_date_from?: string | null
           applicable_date_to?: string | null
+          applicable_pricing_template_ids?: Json
           applicable_room_types?: Json | null
           code?: string
           commission_rate?: number | null
@@ -12615,6 +12621,7 @@ export type Database = {
           p_check_in_date?: string
           p_code: string
           p_order_amount?: number
+          p_pricing_template_id?: string
           p_room_type_id?: string
         }
         Returns: {
