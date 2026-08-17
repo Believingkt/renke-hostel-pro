@@ -172,9 +172,10 @@ const Pricing = () => {
       }
     }
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "holidays")) {
+    if (tab && (tab === "rooms" || tab === "amenities" || tab === "basic" || tab === "holidays")) {
       setActiveTab(tab);
     }
+
   }, [searchParams]);
 
   useEffect(() => {
