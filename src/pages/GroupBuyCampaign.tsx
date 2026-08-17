@@ -64,8 +64,23 @@ const fmtWindow = (iso?: string | null) =>
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
-/** 全頁統一的內容寬度（桌機約 960px，兩側保留舒服留白） */
-const SHELL = "mx-auto w-full max-w-[960px] px-5 sm:px-6";
+/** 全頁統一的內容寬度（桌機約 1040px，兩側保留舒服留白） */
+const SHELL = "mx-auto w-full max-w-[1040px] px-5 sm:px-6";
+
+/** 流程步驟標題（單頁式，不做 Wizard） */
+function StepHeading({ step, title, hint }: { step: number; title: string; hint?: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+        {step}
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">{title}</h2>
+        {hint && <p className="mt-1 text-base leading-relaxed text-muted-foreground">{hint}</p>}
+      </div>
+    </div>
+  );
+}
 
 
 function nightsBetween(a: string, b: string) {
@@ -138,11 +153,8 @@ export default function GroupBuyCampaign() {
       if (cancelled) return;
       const list = (pkgs ?? []) as unknown as CampaignPackage[];
       setPackages(list);
-      const onSale = saleState(c as unknown as Campaign) === "on_sale";
-      if (onSale) {
-        if (list.length > 0) setSelectedPkgId(list[0].id);
-        if (c.stay_start_date) setCheckIn(c.stay_start_date);
-      }
+      // 依步驟流程：不預選方案、不預填日期，讓使用者明確走 STEP 1 → STEP 2
+
 
       setLoading(false);
       const { data: acc } = await supabase
@@ -512,93 +524,120 @@ export default function GroupBuyCampaign() {
         )}
 
 
-        {/* ── 方案 ── */}
+        {/* ── STEP 1 選擇專屬方案 ── */}
         <section className="mt-12">
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇專屬方案</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            {bookingLocked
-              ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
-              : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"}
-          </p>
+          <StepHeading
+            step={1}
+            title="選擇專屬方案"
+            hint={
+              bookingLocked
+                ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
+                : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"
+            }
+          />
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = !bookingLocked && p.id === selectedPkgId;
               const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  disabled={bookingLocked}
-                  onClick={() => {
-                    if (bookingLocked) return;
-                    setSelectedPkgId(p.id);
-                    scrollToForm();
-                  }}
-                  aria-pressed={active}
-                  className={`flex w-full gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-none sm:p-5 ${
+                  className={`flex w-full flex-col gap-4 rounded-2xl border p-4 transition sm:flex-row sm:p-5 ${
                     active
-                      ? "border-primary/30 bg-secondary/60"
-                      : "border-border/70 bg-card hover:border-border"
-                  } ${bookingLocked ? "cursor-not-allowed opacity-70 hover:border-border/70" : ""}`}
+                      ? "border-primary bg-secondary/60 ring-1 ring-primary/30"
+                      : "border-border/70 bg-card"
+                  } ${bookingLocked ? "opacity-70" : ""}`}
                 >
-
                   {p.image_url && (
                     <img
                       src={p.image_url}
                       alt={p.display_name}
                       loading="lazy"
-                      className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
+                      className="h-40 w-full shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[1.0625rem] font-semibold leading-snug">{p.display_name}</p>
+                    {/* 第一層：方案名稱 */}
+                    <p className="text-[1.1875rem] font-bold leading-snug tracking-tight sm:text-[1.25rem]">
+                      {p.display_name}
+                    </p>
+                    {/* 第二層：方案內容摘要 */}
                     {p.description && (
                       <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                         {p.description}
                       </p>
                     )}
-                    <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                      {p.original_price ? (
-                        <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
-                          {twd(p.original_price)}
+                    {/* 第三／四層：團購價 → 原價與省下金額 */}
+                    <div className="mt-3.5">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="text-sm text-muted-foreground">團購價</span>
+                        <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
+                          {twd(p.group_buy_price)}
                         </span>
-                      ) : null}
-                      <span className="text-[1.625rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[1.75rem]">
-                        {twd(p.group_buy_price)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">／晚</span>
-                      {save > 0 && (
-                        <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                          省 {twd(save)}
-                        </span>
+                        <span className="text-sm text-muted-foreground">／晚</span>
+                      </div>
+                      {(p.original_price || save > 0) && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          {p.original_price ? (
+                            <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
+                              原價 {twd(p.original_price)}
+                            </span>
+                          ) : null}
+                          {save > 0 && (
+                            <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                              現省 {twd(save)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <p
-                      className={`mt-3 inline-flex items-center gap-1.5 text-sm font-medium ${
-                        active ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
+                    {/* 第五層：選擇方案 */}
+                    <div className="mt-4">
                       {bookingLocked ? (
-                        sale === "ended" ? (
-                          "活動已結束"
-                        ) : (
-                          "尚未開賣"
-                        )
+                        <span className="text-sm text-muted-foreground">
+                          {sale === "ended" ? "活動已結束" : "尚未開賣"}
+                        </span>
                       ) : active ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" /> 已選擇
-                        </>
+                        <div className="rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                            <CheckCircle2 className="h-4 w-4" /> 已選擇「{p.display_name}」
+                          </p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            <span className="font-semibold text-accent tabular-nums">
+                              {twd(p.group_buy_price)}
+                            </span>
+                            ／晚 · 下一步：選擇入住日期
+                          </p>
+                          <button
+                            type="button"
+                            onClick={scrollToForm}
+                            className="mt-1.5 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            前往選擇入住日期
+                          </button>
+                        </div>
                       ) : (
-                        "選擇此方案"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 w-full rounded-xl border-primary/40 text-base font-semibold text-primary hover:bg-primary/10 sm:w-auto sm:px-6"
+                          onClick={() => {
+                            setSelectedPkgId(p.id);
+                            setTimeout(scrollToForm, 60);
+                          }}
+                        >
+                          選擇此方案
+                        </Button>
                       )}
-                    </p>
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
             {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
           </div>
         </section>
+
 
 
 
@@ -628,129 +667,168 @@ export default function GroupBuyCampaign() {
           id="gb-book"
           className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
         >
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇入住日期</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            無空房的日期已停用，選好日期後填寫訂房資料即可取得匯款資訊。
-          </p>
+          <StepHeading
+            step={2}
+            title="選擇入住日期"
+            hint="無空房或不可入住的日期已停用，選好日期後即可填寫訂房資料。"
+          />
 
-
-
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
-              <GroupBuyDateField
-                id="gb-checkin"
-                value={checkIn}
-                min={campaign.stay_start_date}
-                max={campaign.stay_end_date}
-                placeholder="選擇入住日"
-                invalid={!!stayErrors.checkIn}
-                unavailableDates={unavailableDates}
-                onChange={setCheckIn}
-              />
-
-              {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
-            </div>
-            <div>
-              <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
-              <GroupBuyDateField
-                id="gb-checkout"
-                value={checkOut}
-                min={checkIn || campaign.stay_start_date}
-                max={campaign.stay_end_date}
-                placeholder="選擇退房日"
-                invalid={!!stayErrors.checkOut}
-                onChange={setCheckOut}
-              />
-              {stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
-              <Input
-                id="gb-rooms"
-                type="number"
-                min={1}
-                max={selectedPkg?.max_quantity ?? 10}
-                value={roomQuantity}
-                onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
-              <Input
-                id="gb-guests"
-                type="number"
-                min={1}
-                value={guestCount}
-                onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
-              />
-            </div>
-            <div className="col-span-2">
-              <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
-              <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
-              <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
-              <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
-            </div>
-            <div className="col-span-2">
-              <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
-                備註（民宿將盡力配合，但無法保證能滿足所有需求）
-              </Label>
-              <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
-            </div>
-          </div>
-
-          {nights > 0 && (
-            <div className="mt-5 rounded-2xl bg-muted/70 p-4 text-sm">
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">
-                  <Users className="mr-1 inline h-4 w-4" />
-                  {nights} 晚 × {roomQuantity} 間
-                </span>
-                <span className="tabular-nums">{twd(total)}</span>
+          {!selectedPkg ? (
+            <p className="mt-5 rounded-2xl bg-muted/70 px-4 py-5 text-center text-base text-muted-foreground">
+              請先於上方 STEP 1 選擇一個團購方案，即可挑選入住日期。
+            </p>
+          ) : (
+            <>
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div>
+                  <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
+                  <GroupBuyDateField
+                    id="gb-checkin"
+                    value={checkIn}
+                    min={campaign.stay_start_date}
+                    max={campaign.stay_end_date}
+                    placeholder="選擇入住日"
+                    invalid={!!checkIn && !!stayErrors.checkIn}
+                    unavailableDates={unavailableDates}
+                    onChange={setCheckIn}
+                  />
+                  {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
+                  <GroupBuyDateField
+                    id="gb-checkout"
+                    value={checkOut}
+                    min={checkIn || campaign.stay_start_date}
+                    max={campaign.stay_end_date}
+                    placeholder="選擇退房日"
+                    invalid={!!checkOut && !!stayErrors.checkOut}
+                    onChange={setCheckOut}
+                  />
+                  {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
+                  <Input
+                    id="gb-rooms"
+                    type="number"
+                    min={1}
+                    max={selectedPkg?.max_quantity ?? 10}
+                    value={roomQuantity}
+                    onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
+                  <Input
+                    id="gb-guests"
+                    type="number"
+                    min={1}
+                    value={guestCount}
+                    onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">應付訂金（{depositPct}%）</span>
-                <span className="text-base font-bold tabular-nums text-accent">{twd(deposit)}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-muted-foreground">入住現場付清</span>
-                <span className="tabular-nums">{twd(balance)}</span>
-              </div>
-              {availability.ok === false && <p className="mt-2 text-destructive">{availability.message}</p>}
-              {availability.ok === true && <p className="mt-2 text-primary">{availability.message}</p>}
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
-              </p>
-            </div>
+
+              {nights > 0 && !dateBlocked && (
+                <div className="mt-4">
+                  {availability.checking && (
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> 確認庫存中…
+                    </p>
+                  )}
+                  {!availability.checking && availability.ok === true && (
+                    <p className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" /> {availability.message}
+                    </p>
+                  )}
+                  {!availability.checking && availability.ok === false && (
+                    <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+                      {availability.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {nights > 0 && !dateBlocked && (
+                <>
+                  <Separator className="my-7 bg-border/70" />
+                  <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
+                      <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
+                      <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
+                      <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
+                        備註（民宿將盡力配合，但無法保證能滿足所有需求）
+                      </Label>
+                      <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <Separator className="my-7 bg-border/70" />
+                  <StepHeading step={4} title="確認訂房金額" />
+                  <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">
+                        <Users className="mr-1 inline h-4 w-4" />
+                        {nights} 晚 × {roomQuantity} 間
+                      </span>
+                      <span className="tabular-nums">{twd(total)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">住宿金額</span>
+                      <span className="text-base font-semibold tabular-nums">{twd(total)}</span>
+                    </div>
+                    <Separator className="my-2.5 bg-border/70" />
+                    <div className="flex items-baseline justify-between py-1">
+                      <span className="text-base font-semibold text-foreground">應付訂金（{depositPct}%）</span>
+                      <span className="text-[1.75rem] font-bold leading-none tabular-nums text-accent">
+                        {twd(deposit)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 text-sm">
+                      <span className="text-muted-foreground">入住現場付清</span>
+                      <span className="tabular-nums">{twd(balance)}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <Button
+                className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                disabled={
+                  submitting ||
+                  availability.checking ||
+                  availability.ok !== true ||
+                  nights <= 0 ||
+                  !selectedPkg ||
+                  dateBlocked ||
+                  bookingLocked ||
+                  !guestName.trim() ||
+                  !guestPhone.trim() ||
+                  !guestEmail.trim() ||
+                  guestCount < 1
+                }
+                onClick={submit}
+              >
+                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                確認訂房並取得匯款資訊
+              </Button>
+            </>
           )}
-
-          <Button
-            className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
-            disabled={
-              submitting ||
-              availability.checking ||
-              availability.ok !== true ||
-              nights <= 0 ||
-              !selectedPkg ||
-              dateBlocked ||
-              bookingLocked ||
-              !guestName.trim() ||
-              !guestPhone.trim() ||
-              !guestEmail.trim() ||
-              guestCount < 1
-            }
-            onClick={submit}
-          >
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            確認訂房並取得匯款資訊
-          </Button>
 
           <p className="mt-3 text-center text-sm text-muted-foreground">
             已下訂？
@@ -759,6 +837,7 @@ export default function GroupBuyCampaign() {
             </Link>
           </p>
         </section>
+
         )}
 
         {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
