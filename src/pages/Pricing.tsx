@@ -4,7 +4,9 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed, Home } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, PackageOpen, Calendar, Bed, Home } from "lucide-react";
+import { AmenityItemsSection } from "@/components/amenities/AmenityItemsSection";
+
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
