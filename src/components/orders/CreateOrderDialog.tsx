@@ -2705,6 +2705,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         )}
       </div>
 
+      {/* 備品分配 */}
+      {currentAccommodationId && form.check_in_date && form.check_out_date && (
+        <div className="pt-4 border-t">
+          <AmenityAllocationPicker
+            accommodationId={currentAccommodationId}
+            checkIn={form.check_in_date}
+            checkOut={form.check_out_date}
+            value={amenityAllocations}
+            onChange={setAmenityAllocations}
+          />
+        </div>
+      )}
+
+
       {/* Discount Code Section */}
       <div className="space-y-2 pt-4 border-t">
         <Label className="flex items-center gap-2">
