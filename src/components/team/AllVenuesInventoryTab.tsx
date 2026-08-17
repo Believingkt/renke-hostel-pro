@@ -390,14 +390,56 @@ export function AllVenuesInventoryTab() {
         <span>數字 = 可訂房數 / 總房數</span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {venues.map(renderVenue)}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium">顯示館別（僅載入勾選的館別，可加快速度）</span>
+          <div className="ml-auto flex gap-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAll(venues.map((v) => v.id))}>
+              全選
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAll([])}>
+              全部取消
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {venues.map((v) => {
+            const active = selectedSet.has(v.id);
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => toggleVenue(v.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-muted bg-background text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                <Check className={cn("h-3 w-3", active ? "opacity-100" : "opacity-0")} />
+                {v.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {selectedIds.length === 0 ? (
+        <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+          請勾選要檢視的館別
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {venues.filter((v) => selectedSet.has(v.id)).map(renderVenue)}
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">
-        {format(month, "yyyy 年 M 月", { locale: zhTW })}・共 {venues.length} 間館別
+        {format(month, "yyyy 年 M 月", { locale: zhTW })}・顯示 {selectedIds.length} / {venues.length} 間館別
       </p>
     </div>
   );
 }
 
 export default AllVenuesInventoryTab;
+
