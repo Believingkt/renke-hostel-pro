@@ -97,6 +97,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const packageChannel = usePackageChannel(currentAccommodationId);
   const [amenityAllocations, setAmenityAllocations] = useState<Record<string, number>>({});
 
+  useEffect(() => {
+    if (!open || !order?.id) {
+      setAmenityAllocations({});
+      return;
+    }
+    fetchOrderAllocations(order.id)
+      .then(setAmenityAllocations)
+      .catch(() => setAmenityAllocations({}));
+  }, [open, order?.id]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [useDeposit, setUseDeposit] = useState(true);
