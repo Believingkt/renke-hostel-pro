@@ -1029,7 +1029,9 @@ export default function OwnerSettlementSettings({
 
       <div className="flex flex-col items-end gap-2">
         <p className="text-xs text-muted-foreground text-right">
-          儲存後會建立一筆「{currentMonthStartTaipei().slice(0, 7)}」生效的版本；過去月份的規則不可修改，歷史月結報表金額不受影響。
+          儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
+          」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
+
         </p>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "儲存中..." : "儲存設定"}
