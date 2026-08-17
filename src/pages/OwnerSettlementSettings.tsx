@@ -578,10 +578,46 @@ export default function OwnerSettlementSettings({
             ，等同更正。打錯的那筆仍會保留在下方「歷史生效版本」供稽核。
           </p>
           <p className="text-blue-800/80">
-            注意：只能更正「當月與未來月份」；已結算過的過去月份不可更動，歷史月結與已發放獎金以當時快照為準。
+            注意：內容只能以「新增版本」更正；唯一可回頭修改的是<span className="font-medium">生效月份</span>
+            （首版由 AM 自行校正，其餘版本由總部角色校正）。
           </p>
         </div>
       )}
+
+      {currentAccommodationId && ruleCount === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>生效月份（首次設定）</CardTitle>
+            <CardDescription>
+              若簽約當月未即時在 PMS 建立設定，這裡可把首版的生效月份補回正確月份。
+              可選範圍：合作生效日所在月（{partnershipMonth ? partnershipMonth.slice(0, 7) : "未設定合作生效日"}）至本月。
+              建立第二個版本後，此欄位就會鎖定為當月。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="max-w-sm space-y-2">
+            <Select value={effectiveMonth} onValueChange={setEffectiveMonth}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions(partnershipMonth, currentMonthStartTaipei()).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m.slice(0, 7)}
+                    {m === currentMonthStartTaipei() ? "（本月）" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {effectiveMonth < currentMonthStartTaipei() && (
+              <p className="text-xs text-orange-700">
+                將回填至過去月份；若該月的月結或獎金已發放，重新試算時金額可能變動。
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
 
 
       <Card>
