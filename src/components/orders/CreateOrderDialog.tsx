@@ -340,6 +340,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         package_id: "",
       });
       setSelectedAddons([]);
+      setAmenityAllocations({});
+
       setDiscountCode("");
       setAppliedDiscount(null);
       setManualDiscountStr(null);
