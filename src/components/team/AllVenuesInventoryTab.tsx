@@ -49,8 +49,6 @@ export function AllVenuesInventoryTab() {
   const [reloadKey, setReloadKey] = useState(0);
   /** 各館別選擇的房型（all = 全部房型合計） */
   const [roomTypeFilter, setRoomTypeFilter] = useState<Record<string, string>>({});
-  /** 只顯示「當日仍有房」的館別 */
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
 
   const month = useMemo(
     () => startOfMonth(new Date(`${monthValue}-01T00:00:00`)),
