@@ -508,7 +508,15 @@ const Pricing = () => {
         </TabsContent>
 
 
+        <TabsContent value="amenities" className="space-y-4">
+          <PageHeader title="備品管理" icon={PackageOpen} />
+          {currentAccommodationId && (
+            <AmenityItemsSection accommodationId={currentAccommodationId} />
+          )}
+        </TabsContent>
+
         <TabsContent value="basic" className="space-y-4">
+
           <PageHeader
             title="房價價格設定"
             icon={DollarSign}
