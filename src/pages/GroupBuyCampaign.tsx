@@ -503,32 +503,14 @@ export default function GroupBuyCampaign() {
             </span>
           </p>
         </section>
-        {sale !== "on_sale" && (
+        {bookingLocked && (
           <p className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            此活動目前{SALE_STATE_LABEL[sale]}，暫時無法下訂。
+            {sale === "ended"
+              ? "此團購活動已結束，目前無法使用團購價格預訂。"
+              : "此團購活動尚未開賣，目前無法下訂。"}
           </p>
         )}
 
-        {campaign.description_html && (
-          <div
-            className="prose prose-sm mt-7 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.description_html) }}
-          />
-        )}
-
-        {campaign.gallery_urls?.length > 0 && (
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {campaign.gallery_urls.map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt={venueName || campaign.title}
-                loading="lazy"
-                className="aspect-[4/3] w-full rounded-xl object-cover"
-              />
-            ))}
-          </div>
-        )}
 
         {/* ── 方案 ── */}
         <section className="mt-12">
