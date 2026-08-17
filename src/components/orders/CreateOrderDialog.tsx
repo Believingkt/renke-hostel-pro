@@ -1022,19 +1022,34 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     setIsValidatingCode(true);
     try {
-      const { data, error } = await supabase.rpc('validate_discount_code', {
-        p_code: discountCode.trim().toUpperCase(),
-        p_accommodation_id: currentAccommodationId,
-        p_order_amount: roomPrice,
-        p_room_type_id: form.room_type_id || null,
-        p_check_in_date: form.check_in_date || null,
-        p_pricing_template_id: roomSelections[0]?.template_id || null
+      // 逐一驗證所有已選房型／房價方案組合，任一不適用即整張單不套用
+      const combos = roomSelections.length
+        ? roomSelections.map((s) => ({ roomTypeId: s.room_type_id || form.room_type_id || null, templateId: s.template_id || null }))
+        : [{ roomTypeId: form.room_type_id || null, templateId: null }];
+      const seen = new Set<string>();
+      const uniqueCombos = combos.filter((c) => {
+        const k = `${c.roomTypeId}|${c.templateId}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
       });
 
-      if (error) throw error;
-      const result = data[0];
-      
-      if (result.is_valid) {
+      let result: any = null;
+      for (const combo of uniqueCombos) {
+        const { data, error } = await supabase.rpc('validate_discount_code', {
+          p_code: discountCode.trim().toUpperCase(),
+          p_accommodation_id: currentAccommodationId,
+          p_order_amount: roomPrice,
+          p_room_type_id: combo.roomTypeId,
+          p_check_in_date: form.check_in_date || null,
+          p_pricing_template_id: combo.templateId
+        });
+        if (error) throw error;
+        result = data?.[0];
+        if (!result?.is_valid) break;
+      }
+
+      if (result?.is_valid) {
         setAppliedDiscount({
           code: discountCode.trim().toUpperCase(),
           type: result.discount_type as "percentage" | "amount",
@@ -1045,8 +1060,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           description: `已套用 ${result.discount_type === "percentage" ? `${result.discount_value}% 折扣` : `NT$ ${result.discount_value} 折扣`}`,
         });
       } else {
-        toast({ title: "折扣代碼無效", description: result.message, variant: "destructive" });
+        toast({ title: "折扣代碼無效", description: result?.message || "此折扣碼不適用於所選房價方案", variant: "destructive" });
       }
+
     } catch (error) {
       console.error("Error validating discount code:", error);
       toast({ title: "驗證失敗", description: "無法驗證折扣代碼，請稍後再試", variant: "destructive" });
@@ -1062,6 +1078,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     manualDiscountInputRef.current = null;
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
+
+  // 房型／房價方案變更後，已套用的折扣碼需重新驗證，避免折扣到未勾選的方案
+  const discountScopeKey = roomSelections
+    .map((s) => `${s.room_type_id}:${s.template_id}`)
+    .join(",");
+  const prevDiscountScopeKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevDiscountScopeKeyRef.current;
+    prevDiscountScopeKeyRef.current = discountScopeKey;
+    if (prev === null || prev === discountScopeKey) return;
+    if (!appliedDiscount) return;
+    setAppliedDiscount(null);
+    setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
+    toast({
+      title: "折扣碼已清除",
+      description: "房型／房價方案已變更，請重新套用折扣碼",
+    });
+  }, [discountScopeKey]);
+
+
 
   // Calculate totals
   const calculateTotalsForSelections = (selections: RoomSelection[]) => {

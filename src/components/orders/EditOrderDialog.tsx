@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -591,6 +591,24 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       description: "折扣代碼已清除",
     });
   };
+
+  // 房型／房價方案變更後清除已套用折扣碼，避免折扣到未勾選的方案
+  const discountScopeKey = `${editForm.room_type_id}:${selectedTemplateId}`;
+  const prevDiscountScopeKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevDiscountScopeKeyRef.current;
+    prevDiscountScopeKeyRef.current = discountScopeKey;
+    if (prev === null || prev === discountScopeKey) return;
+    if (!appliedDiscount) return;
+    setAppliedDiscount(null);
+    setManualDiscountStr(null);
+    toast({
+      title: "折扣碼已清除",
+      description: "房型／房價方案已變更，請重新套用折扣碼",
+    });
+  }, [discountScopeKey]);
+
+
 
   const handleSave = async () => {
     // Validate dates
