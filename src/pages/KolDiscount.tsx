@@ -98,6 +98,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { DiscountScopeSelector, type DiscountScopeMode } from "@/components/discount/DiscountScopeSelector";
 
 
 interface DiscountCode {
@@ -114,6 +115,7 @@ interface DiscountCode {
   is_active: boolean;
   min_order_amount: number;
   applicable_room_types: string[];
+  applicable_pricing_template_ids?: string[];
   applicable_date_from: string | null;
   applicable_date_to: string | null;
   display_order: number;
@@ -149,6 +151,10 @@ const KolDiscount = () => {
   const [applicableDateFrom, setApplicableDateFrom] = useState<Date | undefined>();
   const [applicableDateTo, setApplicableDateTo] = useState<Date | undefined>();
   const [roomTypes, setRoomTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<Array<{ id: string; name: string }>>([]);
+  const [scopeMode, setScopeMode] = useState<DiscountScopeMode>("room_type");
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
+  const [applicableTemplates, setApplicableTemplates] = useState<string[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
@@ -174,6 +180,7 @@ const KolDiscount = () => {
     if (accommodationId) {
       fetchDiscountCodes();
       fetchRoomTypes();
+      fetchScopeConfig();
     }
   }, [accommodationId]);
 
@@ -194,6 +201,32 @@ const KolDiscount = () => {
     }
   };
 
+  const fetchScopeConfig = async () => {
+    if (!accommodationId) return;
+    try {
+      const [{ data: acc }, { data: tpls }] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("discount_scope_mode")
+          .eq("id", accommodationId)
+          .maybeSingle(),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, project_name, is_active")
+          .eq("accommodation_id", accommodationId)
+          .order("template_name"),
+      ]);
+      setScopeMode(((acc as any)?.discount_scope_mode as DiscountScopeMode) || "pricing_template");
+      setPricingTemplates(
+        ((tpls as any[]) || [])
+          .filter((t) => t.is_active !== false)
+          .map((t) => ({ id: t.id, name: t.project_name ? `${t.project_name}／${t.template_name}` : t.template_name }))
+      );
+    } catch (error) {
+      console.error("Error fetching discount scope config:", error);
+    }
+  };
+
   const fetchDiscountCodes = async () => {
     if (!accommodationId) return;
 
@@ -205,7 +238,7 @@ const KolDiscount = () => {
           id, accommodation_id, name, code, discount_type, discount_value,
           usage_limit, used_count, valid_from, valid_until, is_active,
           min_order_amount, applicable_room_types, applicable_date_from,
-          applicable_date_to, display_order, commission_rate,
+          applicable_date_to, applicable_pricing_template_ids, display_order, commission_rate,
           created_at, updated_at
         `)
         .eq("accommodation_id", accommodationId)
@@ -337,6 +370,7 @@ const KolDiscount = () => {
         valid_until: validUntil?.toISOString() || null,
         min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
         applicable_room_types: applicableRoomTypes,
+        applicable_pricing_template_ids: applicableTemplates,
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
@@ -372,6 +406,8 @@ const KolDiscount = () => {
       setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
+      setApplicableRoomTypes([]);
+      setApplicableTemplates([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
       setCommissionRate("");
@@ -455,6 +491,7 @@ const KolDiscount = () => {
     setValidUntil(code.valid_until ? new Date(code.valid_until) : undefined);
     setMinOrderAmount(code.min_order_amount > 0 ? code.min_order_amount.toString() : "");
     setSelectedRoomTypes(code.applicable_room_types || []);
+    setSelectedTemplates(code.applicable_pricing_template_ids || []);
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
     setCommissionRate(code.commission_rate?.toString() || "0");
@@ -555,7 +592,8 @@ const KolDiscount = () => {
           valid_from: validFromIso,
           valid_until: validUntilIso,
           min_order_amount: editingCode.min_order_amount ? Number(editingCode.min_order_amount) : 0,
-          applicable_room_types: editingCode.applicable_room_types || [],
+          applicable_room_types: selectedRoomTypes,
+          applicable_pricing_template_ids: selectedTemplates,
           applicable_date_from: editingCode.applicable_date_from || null,
           applicable_date_to: editingCode.applicable_date_to || null,
           commission_rate: isNaN(commissionRateNum) ? 0 : commissionRateNum,
@@ -593,6 +631,8 @@ const KolDiscount = () => {
       setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
+      setApplicableRoomTypes([]);
+      setApplicableTemplates([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
       setCommissionRate("");
@@ -659,6 +699,8 @@ const KolDiscount = () => {
       setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
+      setApplicableRoomTypes([]);
+      setApplicableTemplates([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
       setCommissionRate("");
