@@ -702,10 +702,10 @@ export default function GroupBuyCampaign() {
                     min={checkIn || campaign.stay_start_date}
                     max={campaign.stay_end_date}
                     placeholder="選擇退房日"
-                    invalid={!!stayErrors.checkOut}
+                    invalid={!!checkOut && !!stayErrors.checkOut}
                     onChange={setCheckOut}
                   />
-                  {stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
+                  {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
                 </div>
                 <div>
                   <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
