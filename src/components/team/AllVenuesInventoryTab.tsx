@@ -239,7 +239,7 @@ export function AllVenuesInventoryTab() {
                   <SelectItem value="group:single">單間房（合計）</SelectItem>
                 )}
                 {res.roomTypes.map((rt) => (
-                  <SelectItem key={rt.id} value={rt.id}>
+                  <SelectItem key={rt.id} value={rt.id} className="[&>span:last-child]:truncate">
                     {rt.is_exclusive_package ? "［包棟/包區］" : ""}
                     {rt.name}
                   </SelectItem>
