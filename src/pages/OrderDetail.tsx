@@ -3830,8 +3830,20 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         </CardContent>
       </Card>
 
+      {/* 備品分配（依住宿夜次佔用數量） */}
+      {order && (
+        <OrderAmenityCard
+          orderId={order.id}
+          accommodationId={order.accommodation_id}
+          checkIn={order.check_in_date}
+          checkOut={order.check_out_date}
+          readOnly={!(isAdminUser || canEditOrders)}
+        />
+      )}
+
       {/* 關聯的購物商品（加購紀錄） */}
       {order && <OrderAddonSalesCard orderId={order.id} />}
+
 
 
 
