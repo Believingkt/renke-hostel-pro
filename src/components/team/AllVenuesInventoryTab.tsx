@@ -18,7 +18,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthPicker } from "@/components/ui/month-picker";
@@ -44,6 +44,8 @@ interface Venue {
 }
 
 const WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
+const STORAGE_KEY = "team_all_venues_inventory_selected";
+
 
 export function AllVenuesInventoryTab() {
   const today = useMemo(() => startOfToday(), []);
@@ -73,6 +75,10 @@ export function AllVenuesInventoryTab() {
     [gridDays],
   );
 
+  /** 勾選要顯示（載入）的館別 */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -81,41 +87,76 @@ export function AllVenuesInventoryTab() {
         .select("id, name, display_order")
         .eq("is_active", true)
         .order("display_order", { ascending: true, nullsFirst: false });
-      if (!cancelled) {
-        setVenues(((data || []) as any[]).map((v) => ({ id: v.id, name: v.name })));
+      if (cancelled) return;
+      const list = ((data || []) as any[]).map((v) => ({ id: v.id, name: v.name }));
+      setVenues(list);
+      let saved: string[] | null = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) saved = (JSON.parse(raw) as string[]).filter((id) => list.some((v) => v.id === id));
+      } catch {
+        saved = null;
       }
+      setSelectedIds(saved && saved.length > 0 ? saved : list.slice(0, 3).map((v) => v.id));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // 已載入的月份快取（切換月份來回時免重打）
-  const cacheRef = useRef<Map<string, Record<string, VenueAvailabilityResult>>>(new Map());
+  const toggleVenue = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+  const setAll = (ids: string[]) => {
+    setSelectedIds(ids);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // 已載入的（館別 × 月份）快取，勾選新館別時只補打該館
+  const cacheRef = useRef<Map<string, VenueAvailabilityResult>>(new Map());
 
   useEffect(() => {
-    if (venues.length === 0) return;
-    const cacheKey = `${reloadKey}|${monthValue}|${venues.map((v) => v.id).join(",")}`;
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached) {
-      setDataMap(cached);
+    if (selectedIds.length === 0) {
+      setDataMap({});
       setLoading(false);
       return;
     }
     let cancelled = false;
+    const keyOf = (id: string) => `${reloadKey}|${monthValue}|${id}`;
+
+    const fromCache: Record<string, VenueAvailabilityResult> = {};
+    const missing: string[] = [];
+    for (const id of selectedIds) {
+      const hit = cacheRef.current.get(keyOf(id));
+      if (hit) fromCache[id] = hit;
+      else missing.push(id);
+    }
+    setDataMap(fromCache);
+    if (missing.length === 0) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setDataMap({});
     (async () => {
       try {
-        const res = await fetchAllVenuesAvailability(
-          venues.map((v) => v.id),
-          dateStrings,
-        );
+        const res = await fetchAllVenuesAvailability(missing, dateStrings);
         if (cancelled) return;
-        cacheRef.current.set(cacheKey, res);
-        setDataMap(res);
+        for (const [id, r] of Object.entries(res)) cacheRef.current.set(keyOf(id), r);
+        setDataMap({ ...fromCache, ...res });
       } catch {
-        if (!cancelled) setDataMap({});
+        /* ignore */
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -123,7 +164,8 @@ export function AllVenuesInventoryTab() {
     return () => {
       cancelled = true;
     };
-  }, [venues, dateStrings, monthValue, reloadKey]);
+  }, [selectedIds, dateStrings, monthValue, reloadKey]);
+
 
 
   const shiftMonth = (delta: number) =>
@@ -348,14 +390,56 @@ export function AllVenuesInventoryTab() {
         <span>數字 = 可訂房數 / 總房數</span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {venues.map(renderVenue)}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium">顯示館別（僅載入勾選的館別，可加快速度）</span>
+          <div className="ml-auto flex gap-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAll(venues.map((v) => v.id))}>
+              全選
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAll([])}>
+              全部取消
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {venues.map((v) => {
+            const active = selectedSet.has(v.id);
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => toggleVenue(v.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-muted bg-background text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                <Check className={cn("h-3 w-3", active ? "opacity-100" : "opacity-0")} />
+                {v.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {selectedIds.length === 0 ? (
+        <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+          請勾選要檢視的館別
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {venues.filter((v) => selectedSet.has(v.id)).map(renderVenue)}
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">
-        {format(month, "yyyy 年 M 月", { locale: zhTW })}・共 {venues.length} 間館別
+        {format(month, "yyyy 年 M 月", { locale: zhTW })}・顯示 {selectedIds.length} / {venues.length} 間館別
       </p>
     </div>
   );
 }
 
 export default AllVenuesInventoryTab;
+
