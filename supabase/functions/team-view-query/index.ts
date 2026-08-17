@@ -58,6 +58,7 @@ const ALLOWED_TABLES = new Set<string>([
   "teamcommission_bonus_snapshots",
   "accommodation_partnership_periods",
   "scout_discount_code_payouts",
+  "team_base_salaries",
 ]);
 
 /** 只允許 PostgREST 唯讀的鏈式方法 */
@@ -164,6 +165,11 @@ Deno.serve(async (req) => {
 
     if (rawBatch.length === 0 || rawBatch.length > 12) {
       return json({ error: "Invalid batch" }, 400);
+    }
+
+    // 底薪僅限總部管理員檢視
+    if (!isAdminViewer && rawBatch.some((b) => String(b?.table ?? "") === "team_base_salaries")) {
+      return json({ error: "Forbidden" }, 403);
     }
 
     // 非全域管理員（各組主管）：只能檢視自己或所屬組別的成員資料
