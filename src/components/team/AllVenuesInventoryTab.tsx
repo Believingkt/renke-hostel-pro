@@ -1,0 +1,256 @@
+/**
+ * 全館庫存日曆（唯讀）
+ * 行銷團隊後台 → 成交大師 → 全館庫存
+ * 僅檢視所有使用中館別的真實可訂庫存，不提供任何編輯／設定功能。
+ */
+import { useEffect, useMemo, useState } from "react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  formatISO,
+  isBefore,
+  isSameMonth,
+  startOfMonth,
+  startOfToday,
+  startOfWeek,
+} from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MonthPicker } from "@/components/ui/month-picker";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { fetchVenueAvailability, type VenueAvailabilityResult } from "@/lib/venueAvailability";
+
+interface Venue {
+  id: string;
+  name: string;
+}
+
+const WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+export function AllVenuesInventoryTab() {
+  const today = useMemo(() => startOfToday(), []);
+  const [monthValue, setMonthValue] = useState<string>(() => format(today, "yyyy-MM"));
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [dataMap, setDataMap] = useState<Record<string, VenueAvailabilityResult>>({});
+  const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const month = useMemo(
+    () => startOfMonth(new Date(`${monthValue}-01T00:00:00`)),
+    [monthValue],
+  );
+
+  const gridDays = useMemo(
+    () =>
+      eachDayOfInterval({
+        start: startOfWeek(startOfMonth(month), { weekStartsOn: 0 }),
+        end: endOfWeek(endOfMonth(month), { weekStartsOn: 0 }),
+      }),
+    [month],
+  );
+  const dateStrings = useMemo(
+    () => gridDays.map((d) => formatISO(d, { representation: "date" })),
+    [gridDays],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("id, name, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true, nullsFirst: false });
+      if (!cancelled) {
+        setVenues(((data || []) as any[]).map((v) => ({ id: v.id, name: v.name })));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (venues.length === 0) return;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const next: Record<string, VenueAvailabilityResult> = {};
+      const CONCURRENCY = 3;
+      for (let i = 0; i < venues.length; i += CONCURRENCY) {
+        if (cancelled) return;
+        const batch = venues.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async (v) => {
+            try {
+              return { id: v.id, res: await fetchVenueAvailability(v.id, dateStrings) };
+            } catch {
+              return { id: v.id, res: null };
+            }
+          }),
+        );
+        for (const r of results) if (r.res) next[r.id] = r.res;
+        if (!cancelled) setDataMap({ ...next });
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [venues, dateStrings, reloadKey]);
+
+  const shiftMonth = (delta: number) =>
+    setMonthValue(format(addMonths(month, delta), "yyyy-MM"));
+
+  const renderVenue = (venue: Venue) => {
+    const res = dataMap[venue.id];
+    return (
+      <Card key={venue.id} className="overflow-hidden">
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm font-semibold truncate" title={venue.name}>
+            {venue.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          {!res ? (
+            <div className="h-40 flex items-center justify-center text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {WEEK_DAYS.map((d, i) => (
+                  <div
+                    key={d}
+                    className={cn(
+                      "text-center text-[11px] py-0.5",
+                      i === 0 || i === 6 ? "text-orange-500" : "text-muted-foreground",
+                    )}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {gridDays.map((day) => {
+                  const dateStr = formatISO(day, { representation: "date" });
+                  if (!isSameMonth(day, month)) {
+                    return <div key={dateStr} className="aspect-square" />;
+                  }
+                  const isPast = isBefore(day, today);
+                  const info = res.byDate.get(dateStr);
+                  const avail = info?.available ?? 0;
+                  const total = info?.total ?? 0;
+                  const showCount = !res.bundledLock && total >= 2;
+                  const isFull = res.bundledLock ? !info?.bookable : avail <= 0;
+                  const ratio = total > 0 ? avail / total : 0;
+
+                  let tone = "border-muted bg-muted text-muted-foreground";
+                  if (isPast) tone = "border-muted bg-muted/30 text-muted-foreground/50";
+                  else if (isFull) tone = "border-muted bg-muted text-muted-foreground";
+                  else if (!res.bundledLock && ratio < 0.25)
+                    tone = "border-red-300 bg-red-50 text-red-700";
+                  else if (!res.bundledLock && ratio < 0.6)
+                    tone = "border-amber-300 bg-amber-50 text-amber-800";
+                  else tone = "border-emerald-300 bg-emerald-50 text-emerald-900";
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className={cn(
+                        "aspect-square rounded-md border flex flex-col items-center justify-center text-[11px] select-none",
+                        tone,
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "leading-tight font-medium",
+                          !isPast && isFull && "line-through",
+                        )}
+                      >
+                        {day.getDate()}
+                      </div>
+                      {!isPast && (
+                        <div className="text-[10px] mt-0.5 tabular-nums">
+                          {isFull ? "已滿" : showCount ? `${avail}/${total}` : "可訂"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="text-sm text-muted-foreground">
+          全部使用中館別的真實可訂庫存（唯讀，沿用前台可訂判斷邏輯）
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="icon" variant="ghost" onClick={() => shiftMonth(-1)} aria-label="上個月">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <MonthPicker
+            value={monthValue}
+            onChange={(v) => v && setMonthValue(v)}
+            placeholder="選擇月份"
+          />
+          <Button size="icon" variant="ghost" onClick={() => shiftMonth(1)} aria-label="下個月">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-1 gap-1"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            重新載入
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span>圖例：</span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded border border-emerald-300 bg-emerald-50" />
+          充足（≥60%）
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded border border-amber-300 bg-amber-50" />
+          普通（25–60%）
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded border border-red-300 bg-red-50" />
+          緊張（&lt;25%）
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded border border-muted bg-muted" />
+          已滿
+        </span>
+        <span>數字 = 可訂房數 / 總房數</span>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {venues.map(renderVenue)}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {format(month, "yyyy 年 M 月", { locale: zhTW })}・共 {venues.length} 間館別
+      </p>
+    </div>
+  );
+}
+
+export default AllVenuesInventoryTab;

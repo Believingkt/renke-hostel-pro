@@ -42,6 +42,7 @@ import { useSecondaryCurrencyMap } from "@/hooks/use-secondary-currency-map";
 import { formatSecondary, getDisplayCurrencyMode } from "@/lib/currency";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import TeamBonusDistributionTab from "@/components/team/TeamBonusDistributionTab";
+import AllVenuesInventoryTab from "@/components/team/AllVenuesInventoryTab";
 import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
@@ -918,6 +919,7 @@ export default function TeamOrders() {
             <TabsTrigger value="stats">成交統計</TabsTrigger>
             {(isAdmin || isCloser) && <TabsTrigger value="team-bonus">團隊成交統計</TabsTrigger>}
             {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates">民宿分潤比例</TabsTrigger>}
+            {(isAdmin || isCloser) && <TabsTrigger value="all-inventory">全館庫存日曆</TabsTrigger>}
             {!isScout && <TabsTrigger value="settings">設定</TabsTrigger>}
           </TabsList>
         </div>
@@ -1356,6 +1358,12 @@ export default function TeamOrders() {
           </TabsContent>
         )}
 
+
+        {(isAdmin || isCloser) && (
+          <TabsContent value="all-inventory" className="space-y-4">
+            <AllVenuesInventoryTab />
+          </TabsContent>
+        )}
 
         {(isAdmin || isCloser || isVideo) && (
           <TabsContent value="commission-rates" className="space-y-4">
