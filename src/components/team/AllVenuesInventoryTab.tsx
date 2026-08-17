@@ -273,11 +273,15 @@ export function AllVenuesInventoryTab() {
                   );
                 })}
               </div>
-              {selectedRt && (
+              {(selectedRt || groupLabel) && (
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  目前檢視：{selectedRt.name}（共 {selectedRt.room_count} 間）
+                  目前檢視：
+                  {selectedRt
+                    ? `${selectedRt.name}（共 ${selectedRt.room_count} 間）`
+                    : groupLabel}
                 </p>
               )}
+
             </>
           )}
         </CardContent>
