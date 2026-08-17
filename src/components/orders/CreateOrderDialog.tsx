@@ -180,6 +180,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
+  /** 折扣碼適用的房型／房價方案組合（null = 全部適用）。後台允許部分適用。 */
+  const [discountEligibleKeys, setDiscountEligibleKeys] = useState<Set<string> | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
   const manualDiscountInputRef = useRef<string | null>(null);
