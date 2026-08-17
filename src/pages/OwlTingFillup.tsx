@@ -44,6 +44,8 @@ export default function OwlTingFillup() {
   const [staging, setStaging] = useState<StagingData | null>(null);
   const [acc, setAcc] = useState<AccInfo | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [modifications, setModifications] = useState<Array<{ label?: string; field?: string; before?: unknown; after?: unknown }>>([]);
+  const [cancelledAfterIssue, setCancelledAfterIssue] = useState(false);
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -68,6 +70,8 @@ export default function OwlTingFillup() {
           setStaging(data.staging);
           setAcc(data.accommodation);
           setRoomTypes(data.room_types || []);
+          setModifications(Array.isArray(data.modifications) ? data.modifications : []);
+          setCancelledAfterIssue(!!data.cancelled_after_issue);
           if (data.staging?.total_amount) setTotalAmountOverride(String(data.staging.total_amount));
           if (data.staging?.check_in_date) setCheckInDate(data.staging.check_in_date);
           if (data.staging?.check_out_date) setCheckOutDate(data.staging.check_out_date);
@@ -190,6 +194,27 @@ export default function OwlTingFillup() {
                 到奧丁丁系統後台搜尋上方訂單編號，把住客姓名、電話、Email 複製貼到下方欄位。
               </p>
             </div>
+
+            {cancelledAfterIssue && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                ⚠ 此訂單後續收到「取消通知」，補單前請先向奧丁丁後台確認訂單是否仍有效。
+              </div>
+            )}
+
+            {modifications.length > 0 && (
+              <div className="rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-1">
+                <div className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  此訂單在發出補單通知後曾被修改，以下資料已更新為最新狀態：
+                </div>
+                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5">
+                  {modifications.map((m, i) => (
+                    <li key={i}>
+                      • {m.label ?? m.field}：{String(m.before ?? "—")} → <strong>{String(m.after ?? "—")}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {staging?.check_in_date && staging?.check_out_date ? (
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
