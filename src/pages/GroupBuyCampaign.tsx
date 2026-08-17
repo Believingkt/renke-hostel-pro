@@ -736,11 +736,15 @@ export default function GroupBuyCampaign() {
             disabled={
               submitting ||
               availability.checking ||
-              availability.ok === false ||
+              availability.ok !== true ||
               nights <= 0 ||
               !selectedPkg ||
               dateBlocked ||
-              sale !== "on_sale"
+              bookingLocked ||
+              !guestName.trim() ||
+              !guestPhone.trim() ||
+              !guestEmail.trim() ||
+              guestCount < 1
             }
             onClick={submit}
           >
@@ -755,6 +759,35 @@ export default function GroupBuyCampaign() {
             </Link>
           </p>
         </section>
+        )}
+
+        {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
+        {campaign.description_html && (
+          <div
+            className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.description_html) }}
+          />
+        )}
+
+        {campaign.gallery_urls?.length > 0 && (
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {campaign.gallery_urls.map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt={venueName || campaign.title}
+                loading="lazy"
+                className="aspect-[4/3] w-full rounded-xl object-cover"
+              />
+            ))}
+          </div>
+        )}
+
+        <GroupBuyVenueIntro
+          accommodationId={campaign.accommodation_id}
+          hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
+        />
+
 
         {campaign.terms_html && (
           <div
