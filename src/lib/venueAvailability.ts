@@ -38,7 +38,10 @@ export interface VenueAvailabilityResult {
   /** 整館綁定鎖房（只顯示可訂/已滿，不顯示間數） */
   bundledLock: boolean;
   byDate: Map<string, DayAvailability>;
+  /** 各房型逐日庫存（供房型篩選使用）：roomTypeId → date → 狀態 */
+  byRoomType: Map<string, Map<string, DayAvailability>>;
 }
+
 
 /** 取得單一館別在指定日期區間的可訂狀態（全館合計） */
 export async function fetchVenueAvailability(
