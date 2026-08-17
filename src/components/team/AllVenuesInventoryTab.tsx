@@ -73,6 +73,10 @@ export function AllVenuesInventoryTab() {
     [gridDays],
   );
 
+  /** 勾選要顯示（載入）的館別 */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -81,41 +85,76 @@ export function AllVenuesInventoryTab() {
         .select("id, name, display_order")
         .eq("is_active", true)
         .order("display_order", { ascending: true, nullsFirst: false });
-      if (!cancelled) {
-        setVenues(((data || []) as any[]).map((v) => ({ id: v.id, name: v.name })));
+      if (cancelled) return;
+      const list = ((data || []) as any[]).map((v) => ({ id: v.id, name: v.name }));
+      setVenues(list);
+      let saved: string[] | null = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) saved = (JSON.parse(raw) as string[]).filter((id) => list.some((v) => v.id === id));
+      } catch {
+        saved = null;
       }
+      setSelectedIds(saved && saved.length > 0 ? saved : list.slice(0, 3).map((v) => v.id));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // 已載入的月份快取（切換月份來回時免重打）
-  const cacheRef = useRef<Map<string, Record<string, VenueAvailabilityResult>>>(new Map());
+  const toggleVenue = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+  const setAll = (ids: string[]) => {
+    setSelectedIds(ids);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // 已載入的（館別 × 月份）快取，勾選新館別時只補打該館
+  const cacheRef = useRef<Map<string, VenueAvailabilityResult>>(new Map());
 
   useEffect(() => {
-    if (venues.length === 0) return;
-    const cacheKey = `${reloadKey}|${monthValue}|${venues.map((v) => v.id).join(",")}`;
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached) {
-      setDataMap(cached);
+    if (selectedIds.length === 0) {
+      setDataMap({});
       setLoading(false);
       return;
     }
     let cancelled = false;
+    const keyOf = (id: string) => `${reloadKey}|${monthValue}|${id}`;
+
+    const fromCache: Record<string, VenueAvailabilityResult> = {};
+    const missing: string[] = [];
+    for (const id of selectedIds) {
+      const hit = cacheRef.current.get(keyOf(id));
+      if (hit) fromCache[id] = hit;
+      else missing.push(id);
+    }
+    setDataMap(fromCache);
+    if (missing.length === 0) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setDataMap({});
     (async () => {
       try {
-        const res = await fetchAllVenuesAvailability(
-          venues.map((v) => v.id),
-          dateStrings,
-        );
+        const res = await fetchAllVenuesAvailability(missing, dateStrings);
         if (cancelled) return;
-        cacheRef.current.set(cacheKey, res);
-        setDataMap(res);
+        for (const [id, r] of Object.entries(res)) cacheRef.current.set(keyOf(id), r);
+        setDataMap({ ...fromCache, ...res });
       } catch {
-        if (!cancelled) setDataMap({});
+        /* ignore */
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -123,7 +162,8 @@ export function AllVenuesInventoryTab() {
     return () => {
       cancelled = true;
     };
-  }, [venues, dateStrings, monthValue, reloadKey]);
+  }, [selectedIds, dateStrings, monthValue, reloadKey]);
+
 
 
   const shiftMonth = (delta: number) =>
