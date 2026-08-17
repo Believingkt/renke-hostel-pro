@@ -223,10 +223,14 @@ export function AllVenuesInventoryTab() {
               value={rtId}
               onValueChange={(v) => setRoomTypeFilter((prev) => ({ ...prev, [venue.id]: v }))}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 w-full min-w-0 max-w-full text-xs [&>span]:truncate [&>span]:block [&>span]:min-w-0">
                 <SelectValue placeholder="全部房型" />
               </SelectTrigger>
-              <SelectContent className="max-h-72">
+              <SelectContent
+                className="max-h-72 w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]"
+                position="popper"
+              >
+
                 <SelectItem value="all">全部房型（合計）</SelectItem>
                 {pkgTypes.length > 0 && (
                   <SelectItem value="group:package">包棟／包區（合計）</SelectItem>
