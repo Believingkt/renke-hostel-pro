@@ -3,7 +3,7 @@
  * 行銷團隊後台 → 成交大師 → 全館庫存
  * 僅檢視所有使用中館別的真實可訂庫存，不提供任何編輯／設定功能。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -32,10 +32,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
-  fetchVenueAvailability,
+  fetchAllVenuesAvailability,
   type VenueAvailabilityResult,
   type VenueRoomType,
 } from "@/lib/venueAvailability";
+
 
 interface Venue {
   id: string;
