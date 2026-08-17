@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
