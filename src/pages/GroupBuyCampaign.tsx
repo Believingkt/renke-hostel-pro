@@ -578,7 +578,13 @@ export default function GroupBuyCampaign() {
                         active ? "text-primary" : "text-muted-foreground"
                       }`}
                     >
-                      {active ? (
+                      {bookingLocked ? (
+                        sale === "ended" ? (
+                          "活動已結束"
+                        ) : (
+                          "尚未開賣"
+                        )
+                      ) : active ? (
                         <>
                           <CheckCircle2 className="h-4 w-4" /> 已選擇
                         </>
@@ -595,10 +601,6 @@ export default function GroupBuyCampaign() {
         </section>
 
 
-        <GroupBuyVenueIntro
-          accommodationId={campaign.accommodation_id}
-          hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
-        />
 
         {/* ── 訂房表單（最終 CTA） ── */}
         <section
