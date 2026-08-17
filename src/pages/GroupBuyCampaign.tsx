@@ -64,8 +64,23 @@ const fmtWindow = (iso?: string | null) =>
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
-/** 全頁統一的內容寬度（桌機約 960px，兩側保留舒服留白） */
-const SHELL = "mx-auto w-full max-w-[960px] px-5 sm:px-6";
+/** 全頁統一的內容寬度（桌機約 1040px，兩側保留舒服留白） */
+const SHELL = "mx-auto w-full max-w-[1040px] px-5 sm:px-6";
+
+/** 流程步驟標題（單頁式，不做 Wizard） */
+function StepHeading({ step, title, hint }: { step: number; title: string; hint?: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+        {step}
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">{title}</h2>
+        {hint && <p className="mt-1 text-base leading-relaxed text-muted-foreground">{hint}</p>}
+      </div>
+    </div>
+  );
+}
 
 
 function nightsBetween(a: string, b: string) {
