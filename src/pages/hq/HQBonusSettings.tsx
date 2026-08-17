@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
+import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +15,7 @@ interface AccOption {
   name: string;
 }
 
-type SettingsTab = "bonus" | "owner-settlement";
+type SettingsTab = "bonus" | "owner-settlement" | "base-salary";
 
 /**
  * HQ 整合頁：獎金設定 ＋ 業主月結設定（總部唯一可編輯入口）。
@@ -48,8 +49,19 @@ export default function HQBonusSettings() {
   const isHQAdmin = !!roles?.some((r) => r === "super_admin" || r === "admin");
   const canSeeBonus = !!roles?.some((r) => ["super_admin", "admin", "finance"].includes(r));
 
-  const rawTab: SettingsTab = searchParams.get("tab") === "owner-settlement" ? "owner-settlement" : "bonus";
-  const tab: SettingsTab = canSeeBonus ? rawTab : "owner-settlement";
+  const tabParam = searchParams.get("tab");
+  const rawTab: SettingsTab =
+    tabParam === "owner-settlement"
+      ? "owner-settlement"
+      : tabParam === "base-salary"
+        ? "base-salary"
+        : "bonus";
+  const tab: SettingsTab =
+    rawTab === "base-salary" && !isHQAdmin
+      ? "owner-settlement"
+      : canSeeBonus
+        ? rawTab
+        : "owner-settlement";
   const accId = searchParams.get("acc") ?? "global";
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
@@ -99,6 +111,7 @@ export default function HQBonusSettings() {
         <TabsList>
           {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
           <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
+          {isHQAdmin && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="bonus" className="space-y-4">
@@ -154,6 +167,11 @@ export default function HQBonusSettings() {
             </Card>
           )}
         </TabsContent>
+        {isHQAdmin && (
+          <TabsContent value="base-salary" className="space-y-4">
+            <TeamBaseSalaryTab />
+          </TabsContent>
+        )}
       </Tabs>
 
     </div>
