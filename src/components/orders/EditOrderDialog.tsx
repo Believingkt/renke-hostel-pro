@@ -19,6 +19,8 @@ import { calcOrderAddonTotal, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { resolveAddonId } from "@/lib/addonAliases";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { fetchOrderAllocations, saveOrderAllocations } from "@/lib/amenityAllocation";
 
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -93,6 +95,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const packageChannel = usePackageChannel(currentAccommodationId);
+  const [amenityAllocations, setAmenityAllocations] = useState<Record<string, number>>({});
 
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
