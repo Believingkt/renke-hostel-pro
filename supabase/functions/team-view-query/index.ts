@@ -92,10 +92,9 @@ interface Op {
 
 /** 主管可向下檢視的角色範圍 */
 const MANAGER_SCOPES: Record<string, string[]> = {
+  // 僅 AM 主管與星探主管可向下檢視（closer_manager / franchise_manager 不開放）
   am_manager: ["am", "am_manager"],
   scout_manager: ["scout", "scout_manager"],
-  closer_manager: ["closer", "closer_manager"],
-  franchise_manager: ["franchise", "franchise_internal", "franchise_external", "franchise_manager"],
 };
 
 /** 主管列成員清單時只允許讀這兩張表 */
