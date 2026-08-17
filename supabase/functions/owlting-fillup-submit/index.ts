@@ -2,6 +2,7 @@
 // POST { token, guest_name, guest_phone, guest_email, room_type_id?, total_amount? }
 // Rate-limited: fail_count++ on bad inputs, lock 1h after 5.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,9 +139,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: staging } = await admin
+    const { data: stagingRow } = await admin
       .from("owlting_email_parsed_staging")
       .select("*").eq("id", tok.staging_id).maybeSingle();
+    // Apply later 修改 emails for the same OBE so we create the order in its
+    // CURRENT state instead of the original one.
+    const mergeRes = stagingRow
+      ? await mergeLaterStaging(admin, stagingRow as any)
+      : { merged: stagingRow as any, appliedIds: [] as string[], changes: [], cancelled: false };
+    const staging: any = stagingRow
+      ? normalizeMerged(mergeRes.merged, mergeRes.appliedIds.length > 0)
+      : stagingRow;
     if (!staging || staging.pii_status === "promoted_to_booking") {
       return new Response(JSON.stringify({ error: "Order already submitted" }), {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -445,6 +454,14 @@ Deno.serve(async (req) => {
       guest_email: guestEmail || null,
       pii_masked: false,
     }).eq("id", staging.id);
+
+    if (mergeRes.appliedIds.length > 0) {
+      await admin.from("owlting_email_parsed_staging").update({
+        pii_status: "promoted_to_booking",
+        promoted_order_id: inserted!.id,
+        owner_filled_at: nowIso,
+      }).in("id", mergeRes.appliedIds);
+    }
 
     await admin.from("owlting_fillup_tokens").update({
       used_at: nowIso,
