@@ -2,6 +2,7 @@
 // POST { token: string } → { ok, staging: {...non-PII fields}, accommodation: {...}, room_types: [...] }
 // Rate limit: per (IP, token-hash) — 5 fails locks the token for 1 hour.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +122,9 @@ Deno.serve(async (req) => {
         addons: staging.addons,
         pii_due_at: staging.pii_due_at,
       },
+      modifications: mergeRes.changes,
+      modified_after_issue: mergeRes.appliedIds.length > 0,
+      cancelled_after_issue: mergeRes.cancelled,
       accommodation: acc,
       room_types: roomTypes ?? [],
       _ip: ip,
