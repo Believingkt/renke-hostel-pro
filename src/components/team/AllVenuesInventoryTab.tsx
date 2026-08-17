@@ -31,7 +31,11 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { fetchVenueAvailability, type VenueAvailabilityResult } from "@/lib/venueAvailability";
+import {
+  fetchVenueAvailability,
+  type VenueAvailabilityResult,
+  type VenueRoomType,
+} from "@/lib/venueAvailability";
 
 interface Venue {
   id: string;
