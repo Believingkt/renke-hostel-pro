@@ -19,7 +19,49 @@ interface SalaryVersion {
 interface MemberRow {
   user_id: string;
   display_name: string;
+  role: string;
 }
+
+const ROLE_ORDER = [
+  "super_admin",
+  "admin",
+  "am_manager",
+  "am",
+  "scout_manager",
+  "scout",
+  "closer_manager",
+  "closer",
+  "franchise_manager",
+  "franchise_internal",
+  "franchise",
+  "franchise_external",
+  "starlink",
+  "venue_manager",
+  "owner",
+  "kol",
+  "staff",
+] as const;
+
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "超級管理員",
+  admin: "管理員",
+  am: "AM",
+  am_manager: "AM總管",
+  scout_manager: "星探主管",
+  scout: "星探",
+  closer_manager: "成交組主管",
+  closer: "成交組",
+  franchise_manager: "特許加盟主管",
+  franchise_internal: "特許加盟內部",
+  franchise: "特許加盟內部",
+  franchise_external: "特許加盟外部",
+  starlink: "星鏈",
+  venue_manager: "業主",
+  owner: "屋主",
+  kol: "KOL",
+  staff: "員工",
+  unknown: "未分類",
+};
 
 function todayTaipei() {
   return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
@@ -34,11 +76,17 @@ function fmtTime(iso: string) {
   return d.toISOString().slice(0, 16).replace("T", " ");
 }
 
+function primaryRole(roles: string[]) {
+  for (const r of ROLE_ORDER) if (roles.includes(r)) return r as string;
+  return "unknown";
+}
+
 /**
  * 成員底薪設定（總部限定）— 版本制。
  * 一位成員只需在「調整當下」新增一筆生效日版本，之後每個月自動沿用，
  * 直到有更新的生效日版本為止。歷史版本不可修改（append-only），
  * 未生效的版本才能刪除。每筆版本都記錄建立者與建立時間。
+ * 名單排除財務與已離職／停用成員，並依角色分組排序。
  */
 export default function TeamBaseSalaryTab() {
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -49,22 +97,52 @@ export default function TeamBaseSalaryTab() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: profiles }, { data: rows }] = await Promise.all([
-      supabase.from("team_member_profiles").select("user_id, display_name"),
+    const [{ data: profiles }, { data: rows }, { data: roleRows }] = await Promise.all([
+      supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name, is_active, resigned_at"),
       supabase
         .from("team_base_salaries")
         .select("id, user_id, amount, effective_from, note, created_at, created_by_email")
         .order("effective_from", { ascending: false }),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
-    setMembers(
-      ((profiles ?? []) as any[])
-        .filter((p) => p?.user_id)
-        .map((p) => ({ user_id: p.user_id as string, display_name: (p.display_name as string) || "未命名" }))
-        .sort((a, b) => a.display_name.localeCompare(b.display_name, "zh-Hant")),
-    );
+
+    const rolesByUser = new Map<string, string[]>();
+    ((roleRows ?? []) as any[]).forEach((r) => {
+      const list = rolesByUser.get(r.user_id) ?? [];
+      list.push(String(r.role));
+      rolesByUser.set(r.user_id, list);
+    });
+
+    const list = ((profiles ?? []) as any[])
+      .filter((p) => p?.user_id && p.is_active !== false && !p.resigned_at)
+      .map((p) => {
+        const roles = rolesByUser.get(p.user_id) ?? [];
+        return {
+          user_id: p.user_id as string,
+          display_name: (p.display_name as string) || "未命名",
+          roles,
+          role: primaryRole(roles),
+        };
+      })
+      // 排除財務
+      .filter((p) => !p.roles.includes("finance"))
+      .sort((a, b) => {
+        const ai = ROLE_ORDER.indexOf(a.role as any);
+        const bi = ROLE_ORDER.indexOf(b.role as any);
+        const ao = ai < 0 ? 999 : ai;
+        const bo = bi < 0 ? 999 : bi;
+        if (ao !== bo) return ao - bo;
+        return a.display_name.localeCompare(b.display_name, "zh-Hant");
+      })
+      .map(({ user_id, display_name, role }) => ({ user_id, display_name, role }));
+
+    setMembers(list);
     setVersions((rows ?? []) as any as SalaryVersion[]);
     setLoading(false);
   };
+
 
   useEffect(() => {
     load();
@@ -132,7 +210,18 @@ export default function TeamBaseSalaryTab() {
     load();
   };
 
+  const groups = useMemo(() => {
+    const out: { role: string; members: MemberRow[] }[] = [];
+    members.forEach((m) => {
+      const last = out[out.length - 1];
+      if (last && last.role === m.role) last.members.push(m);
+      else out.push({ role: m.role, members: [m] });
+    });
+    return out;
+  }, [members]);
+
   return (
+
     <Card>
       <CardHeader>
         <CardTitle>成員底薪設定（版本制）</CardTitle>
@@ -151,8 +240,16 @@ export default function TeamBaseSalaryTab() {
         {loading ? (
           <p className="text-sm text-muted-foreground">讀取中…</p>
         ) : (
-          <div className="space-y-3">
-            {members.map((m) => {
+          <div className="space-y-6">
+            {groups.map((g) => (
+              <div key={g.role} className="space-y-3">
+                <h3 className="text-sm font-semibold">
+                  {ROLE_LABEL[g.role] ?? g.role}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    （{g.members.length} 人）
+                  </span>
+                </h3>
+                {g.members.map((m) => {
               const list = byUser.get(m.user_id) ?? [];
               const cur = currentAmount(m.user_id);
               const d = draft[m.user_id] ?? {
@@ -237,8 +334,11 @@ export default function TeamBaseSalaryTab() {
                   )}
                 </div>
               );
-            })}
+                })}
+              </div>
+            ))}
           </div>
+
         )}
       </CardContent>
     </Card>
