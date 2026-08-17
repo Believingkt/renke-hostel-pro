@@ -1210,8 +1210,10 @@ const KolDiscount = () => {
                 mode={scopeMode}
                 roomTypes={roomTypes}
                 pricingTemplates={pricingTemplates}
-                selected={applicableRoomTypes}
-                onChange={setApplicableRoomTypes}
+                selectedRoomTypeIds={applicableRoomTypes}
+                onChangeRoomTypes={setApplicableRoomTypes}
+                selectedTemplateIds={applicableTemplates}
+                onChangeTemplates={setApplicableTemplates}
                 idPrefix="room"
                 scrollable={true}
               />
@@ -1489,8 +1491,10 @@ const KolDiscount = () => {
                 mode={scopeMode}
                 roomTypes={roomTypes}
                 pricingTemplates={pricingTemplates}
-                selected={applicableRoomTypes}
-                onChange={setApplicableRoomTypes}
+                selectedRoomTypeIds={applicableRoomTypes}
+                onChangeRoomTypes={setApplicableRoomTypes}
+                selectedTemplateIds={applicableTemplates}
+                onChangeTemplates={setApplicableTemplates}
                 idPrefix="room"
                 scrollable={false}
               />
@@ -1766,8 +1770,10 @@ const KolDiscount = () => {
                 mode={scopeMode}
                 roomTypes={roomTypes}
                 pricingTemplates={pricingTemplates}
-                selected={selectedRoomTypes}
-                onChange={setSelectedRoomTypes}
+                selectedRoomTypeIds={selectedRoomTypes}
+                onChangeRoomTypes={setSelectedRoomTypes}
+                selectedTemplateIds={selectedTemplates}
+                onChangeTemplates={setSelectedTemplates}
                 idPrefix="edit-room"
                 scrollable={true}
               />
@@ -2160,8 +2166,10 @@ const KolDiscount = () => {
                 mode={scopeMode}
                 roomTypes={roomTypes}
                 pricingTemplates={pricingTemplates}
-                selected={selectedRoomTypes}
-                onChange={setSelectedRoomTypes}
+                selectedRoomTypeIds={selectedRoomTypes}
+                onChangeRoomTypes={setSelectedRoomTypes}
+                selectedTemplateIds={selectedTemplates}
+                onChangeTemplates={setSelectedTemplates}
                 idPrefix="edit-room"
                 scrollable={false}
               />

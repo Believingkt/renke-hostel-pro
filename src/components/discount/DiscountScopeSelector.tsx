@@ -12,8 +12,10 @@ interface Props {
   mode: DiscountScopeMode;
   roomTypes: ScopeOption[];
   pricingTemplates: ScopeOption[];
-  selected: string[];
-  onChange: (next: string[]) => void;
+  selectedRoomTypeIds: string[];
+  onChangeRoomTypes: (next: string[]) => void;
+  selectedTemplateIds: string[];
+  onChangeTemplates: (next: string[]) => void;
   idPrefix: string;
   scrollable?: boolean;
 }
@@ -27,13 +29,17 @@ export function DiscountScopeSelector({
   mode,
   roomTypes,
   pricingTemplates,
-  selected,
-  onChange,
+  selectedRoomTypeIds,
+  onChangeRoomTypes,
+  selectedTemplateIds,
+  onChangeTemplates,
   idPrefix,
   scrollable = false,
 }: Props) {
   const isTemplate = mode === "pricing_template";
   const options = isTemplate ? pricingTemplates : roomTypes;
+  const selected = isTemplate ? selectedTemplateIds : selectedRoomTypeIds;
+  const onChange = isTemplate ? onChangeTemplates : onChangeRoomTypes;
 
   const toggle = (id: string, checked: boolean) => {
     if (checked) {
