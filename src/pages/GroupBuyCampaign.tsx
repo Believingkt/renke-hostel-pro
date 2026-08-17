@@ -516,24 +516,32 @@ export default function GroupBuyCampaign() {
         <section className="mt-12">
           <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇專屬方案</h2>
           <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            團媽限定價格，選定後於下方填寫資料即可完成預訂。
+            {bookingLocked
+              ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
+              : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"}
           </p>
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
-              const active = p.id === selectedPkgId;
+              const active = !bookingLocked && p.id === selectedPkgId;
               const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setSelectedPkgId(p.id)}
+                  disabled={bookingLocked}
+                  onClick={() => {
+                    if (bookingLocked) return;
+                    setSelectedPkgId(p.id);
+                    scrollToForm();
+                  }}
                   aria-pressed={active}
                   className={`flex w-full gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-none sm:p-5 ${
                     active
                       ? "border-primary/30 bg-secondary/60"
                       : "border-border/70 bg-card hover:border-border"
-                  }`}
+                  } ${bookingLocked ? "cursor-not-allowed opacity-70 hover:border-border/70" : ""}`}
                 >
+
                   {p.image_url && (
                     <img
                       src={p.image_url}
