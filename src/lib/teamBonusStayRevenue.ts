@@ -5,7 +5,7 @@
  *  - 歸屬時點：入住日逐夜攤提，跨月依夜數拆分
  *  - 取消訂單：自然不計入（不需事後扣回）
  *  - 增值服務：只扣除館別設定的 commission_excluded_addon_types / _ids
- *  - 業主自帶／exempt 來源：排除
+ *  - 業主自帶：不排除，改以 incl／excl 雙軌累計
  *  - 幣別：依訂單匯率快照換算台幣
  *
  * 只服務「一、團隊獎金」；星探類與加盟／Starlink 不使用此檔。
@@ -40,7 +40,6 @@ function addDays(s: string, n: number): string {
 }
 
 interface PricingRuleLite {
-  exempt_order_sources: string[];
   commission_excluded_addon_ids: string[] | null;
   commission_excluded_addon_types: string[] | null;
 }
@@ -61,7 +60,7 @@ async function getPricingRules(
     const { data } = await client
       .from("owner_settlement_pricing_rules")
       .select(
-        "accommodation_id, effective_from, created_at, exempt_order_sources, commission_excluded_addon_ids, commission_excluded_addon_types",
+        "accommodation_id, effective_from, created_at, commission_excluded_addon_ids, commission_excluded_addon_types",
       )
       .in("accommodation_id", accIds.slice(i, i + CHUNK))
       .lte("effective_from", monthStartDate);
@@ -81,7 +80,6 @@ async function getPricingRules(
       return best;
     });
     out[accId] = {
-      exempt_order_sources: toArr(latest?.exempt_order_sources),
       commission_excluded_addon_ids: toArr(latest?.commission_excluded_addon_ids),
       commission_excluded_addon_types: toArr(latest?.commission_excluded_addon_types),
     };

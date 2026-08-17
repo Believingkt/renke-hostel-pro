@@ -2000,7 +2000,20 @@ function OwnerPricingRuleOverviewSection() {
           才會進入上方「共用訂單來源 (AM、成交)」與「獨立訂單來源 (專利獎金)」白名單比對。
           場域成交獎金另外需要「收取行銷推廣費」為是。內容與業主月結設定即時同步，如需修改請至業主月結設定。
         </p>
+        {!loading && accs.some((a) => (byAcc.get(a.id) ?? []).length === 0) && (
+          <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
+            <span className="font-medium text-destructive">尚未設定基準金額規則：</span>{" "}
+            {accs
+              .filter((a) => (byAcc.get(a.id) ?? []).length === 0)
+              .map((a) => a.name)
+              .join("、")}
+            <div className="mt-1 text-xs text-muted-foreground">
+              這些館別的抽成門檻、免抽成來源與行銷推廣費判斷皆為空值，請 AM 至業主月結設定補建首版（首版可回填生效月份）。
+            </div>
+          </div>
+        )}
       </CardHeader>
+
       <CardContent>
         {loading ? null : (
           <Table>

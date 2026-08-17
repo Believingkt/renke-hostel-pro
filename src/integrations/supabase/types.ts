@@ -12220,6 +12220,10 @@ export type Database = {
           remaining: number
         }[]
       }
+      can_fix_pricing_rule_date: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_unlock_paid_order_discount: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
@@ -12472,6 +12476,10 @@ export type Database = {
         Returns: number
       }
       normalize_owlting_name: { Args: { p_name: string }; Returns: string }
+      pricing_rule_min_month: {
+        Args: { _accommodation_id: string }
+        Returns: string
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

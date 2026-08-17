@@ -81,6 +81,27 @@ function currentMonthStartTaipei(): string {
   return `${y}-${m}-01`;
 }
 
+/** 產生 [minMonth, maxMonth] 之間的月初日期清單（新到舊） */
+function monthOptions(minMonth: string | null, maxMonth: string): string[] {
+  const max = maxMonth.slice(0, 7);
+  const min = (minMonth ?? maxMonth).slice(0, 7);
+  const out: string[] = [];
+  let [y, m] = max.split("-").map(Number);
+  for (let i = 0; i < 60; i++) {
+    const cur = `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
+    if (cur < min) break;
+    out.push(`${cur}-01`);
+    m -= 1;
+    if (m === 0) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  return out;
+}
+
+
+
 
 export default function OwnerSettlementSettings({
   accommodationIdOverride,
@@ -113,6 +134,16 @@ export default function OwnerSettlementSettings({
   const [excludedAddonIds, setExcludedAddonIds] = useState<string[]>([]);
   /** 舊版只存了文字、但目前 addon_settings 找不到對應項目的名稱（保留以維持向下相容） */
   const [legacyOnlyExcludedTypes, setLegacyOnlyExcludedTypes] = useState<string[]>([]);
+  /** 此館別已建立的規則版本數（0 = 首版，可自選生效月份） */
+  const [ruleCount, setRuleCount] = useState<number>(0);
+  /** 該館合作生效日所在月（生效月份可選範圍下限） */
+  const [partnershipMonth, setPartnershipMonth] = useState<string | null>(null);
+  /** 總部角色（super_admin / admin / finance）可校正任何版本的生效月份 */
+  const [canFixDate, setCanFixDate] = useState(false);
+  /** 首版要寫入的生效月份 */
+  const [effectiveMonth, setEffectiveMonth] = useState<string>(currentMonthStartTaipei());
+  const [fixingId, setFixingId] = useState<string | null>(null);
+
 
   const loadHistory = async () => {
     if (!currentAccommodationId) {
@@ -207,6 +238,36 @@ export default function OwnerSettlementSettings({
           marketing_fee_threshold: 0,
         };
       }
+
+      // 生效月份可編輯條件：版本數（0 = 首版）＋ 合作生效日下限 ＋ 使用者角色
+      if (currentAccommodationId) {
+        const [countRes, accInfoRes, roleRes] = await Promise.all([
+          supabase
+            .from("owner_settlement_pricing_rules")
+            .select("id", { count: "exact", head: true })
+            .eq("accommodation_id", currentAccommodationId),
+          supabase
+            .from("accommodation_info")
+            .select("partnership_start_date")
+            .eq("id", currentAccommodationId)
+            .maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id),
+        ]);
+        setRuleCount(countRes.count ?? 0);
+        const psd = (accInfoRes.data as any)?.partnership_start_date as string | null;
+        setPartnershipMonth(psd ? `${String(psd).slice(0, 7)}-01` : null);
+        setCanFixDate(
+          ((roleRes.data ?? []) as Array<{ role: string }>).some((r) =>
+            ["super_admin", "admin", "finance"].includes(r.role),
+          ),
+        );
+        setEffectiveMonth(currentMonthStartTaipei());
+      } else {
+        setRuleCount(0);
+        setPartnershipMonth(null);
+        setCanFixDate(false);
+      }
+
 
       // 新制優先：取該館別 effective_from <= 當月的最新一筆生效規則
       let ruleRow: any = null;
@@ -404,7 +465,7 @@ export default function OwnerSettlementSettings({
         .from("owner_settlement_pricing_rules")
         .insert({
           accommodation_id: currentAccommodationId,
-          effective_from: currentMonthStartTaipei(),
+          effective_from: ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei(),
           // 費率一律小數存法（10% → 0.10）
           commission_rate: config.commission_rate / 100,
           commission_threshold: config.commission_threshold,
@@ -436,8 +497,34 @@ export default function OwnerSettlementSettings({
 
     setSaving(false);
     setUsingFallback(false);
+    setRuleCount((c) => c + 1);
+    if (historyLoaded) loadHistory();
     toast.success(`已儲存「${accName}」的設定`);
   };
+
+  /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
+  const fixEffectiveMonth = async (id: string, month: string) => {
+    const cur = currentMonthStartTaipei();
+    if (month < cur) {
+      const ok = window.confirm(
+        `生效月份將改為 ${month.slice(0, 7)}（過去月份）。若該月份的月結或獎金已發放，數字不會被追改，但重新試算時金額可能變動。確定要修正嗎？`,
+      );
+      if (!ok) return;
+    }
+    setFixingId(id);
+    const { error } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .update({ effective_from: month })
+      .eq("id", id);
+    setFixingId(null);
+    if (error) {
+      toast.error(`生效月份修正失敗：${error.message}`);
+      return;
+    }
+    toast.success(`已將生效月份修正為 ${month.slice(0, 7)}`);
+    loadHistory();
+  };
+
 
 
   if (loading) return null;
@@ -491,10 +578,46 @@ export default function OwnerSettlementSettings({
             ，等同更正。打錯的那筆仍會保留在下方「歷史生效版本」供稽核。
           </p>
           <p className="text-blue-800/80">
-            注意：只能更正「當月與未來月份」；已結算過的過去月份不可更動，歷史月結與已發放獎金以當時快照為準。
+            注意：內容只能以「新增版本」更正；唯一可回頭修改的是<span className="font-medium">生效月份</span>
+            （首版由 AM 自行校正，其餘版本由總部角色校正）。
           </p>
         </div>
       )}
+
+      {currentAccommodationId && ruleCount === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>生效月份（首次設定）</CardTitle>
+            <CardDescription>
+              若簽約當月未即時在 PMS 建立設定，這裡可把首版的生效月份補回正確月份。
+              可選範圍：合作生效日所在月（{partnershipMonth ? partnershipMonth.slice(0, 7) : "未設定合作生效日"}）至本月。
+              建立第二個版本後，此欄位就會鎖定為當月。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="max-w-sm space-y-2">
+            <Select value={effectiveMonth} onValueChange={setEffectiveMonth}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions(partnershipMonth, currentMonthStartTaipei()).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m.slice(0, 7)}
+                    {m === currentMonthStartTaipei() ? "（本月）" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {effectiveMonth < currentMonthStartTaipei() && (
+              <p className="text-xs text-orange-700">
+                將回填至過去月份；若該月的月結或獎金已發放，重新試算時金額可能變動。
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
 
 
       <Card>
@@ -849,7 +972,32 @@ export default function OwnerSettlementSettings({
                         生效月份：{String(r.effective_from).slice(0, 7)}
                       </span>
                       {r.id === currentRuleId && <Badge>目前生效中</Badge>}
+                      {(canFixDate || (historyRows.length === 1 && ruleCount === 1)) && (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(r.effective_from).slice(0, 10)}
+                            onValueChange={(v) => fixEffectiveMonth(r.id, v)}
+                            disabled={fixingId === r.id}
+                          >
+                            <SelectTrigger className="h-8 w-[150px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {monthOptions(
+                                canFixDate ? partnershipMonth ?? "2020-01-01" : partnershipMonth,
+                                currentMonthStartTaipei(),
+                              ).map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {m.slice(0, 7)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-xs text-muted-foreground">修正生效月份</span>
+                        </div>
+                      )}
                     </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <div>抽成費率：{((Number(r.commission_rate) || 0) * 100).toFixed(2)}%</div>
                       <div>抽成門檻：NT$ {(Number(r.commission_threshold) || 0).toLocaleString()}</div>
@@ -881,7 +1029,9 @@ export default function OwnerSettlementSettings({
 
       <div className="flex flex-col items-end gap-2">
         <p className="text-xs text-muted-foreground text-right">
-          儲存後會建立一筆「{currentMonthStartTaipei().slice(0, 7)}」生效的版本；過去月份的規則不可修改，歷史月結報表金額不受影響。
+          儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
+          」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
+
         </p>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "儲存中..." : "儲存設定"}
