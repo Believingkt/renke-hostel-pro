@@ -1129,7 +1129,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }, 0);
     // Use explicit selection prices to avoid stale roomPrice state during submit
     const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
-    const codeDiscount = calculateDiscount(actualRoomTotal);
+    // 折扣基準：僅計算折扣碼適用的房型／房價方案小計（不適用的部分照原價）
+    const discountBase = discountEligibleKeys
+      ? selections.reduce(
+          (sum, sel) =>
+            discountEligibleKeys.has(discountScopeKeyOf(sel.room_type_id, sel.template_id))
+              ? sum + sel.roomPrice
+              : sum,
+          0,
+        )
+      : actualRoomTotal;
+    const codeDiscount = calculateDiscount(discountBase);
     const manualDiscountValue = manualDiscountInputRef.current ?? manualDiscountStr;
     const discount = manualDiscountValue !== null
       ? Math.max(0, parseInt(manualDiscountValue) || 0)
