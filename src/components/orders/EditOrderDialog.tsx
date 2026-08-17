@@ -788,6 +788,22 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_email: editForm.guest_email,
         package_id: effectivePackageId,
       });
+
+      if (order?.id && currentAccommodationId) {
+        try {
+          await saveOrderAllocations({
+            orderId: order.id,
+            accommodationId: currentAccommodationId,
+            allocations: amenityAllocations,
+          });
+        } catch (amenityError: any) {
+          toast({
+            title: "備品分配未儲存",
+            description: amenityError.message,
+            variant: "destructive",
+          });
+        }
+      }
     } finally {
       setIsSaving(false);
     }
@@ -1105,6 +1121,20 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   </div>
                 ) : null;
               })()}
+            </div>
+          )}
+
+          {/* 備品分配 */}
+          {currentAccommodationId && editForm.check_in_date && editForm.check_out_date && (
+            <div className="pt-4 border-t">
+              <AmenityAllocationPicker
+                accommodationId={currentAccommodationId}
+                checkIn={editForm.check_in_date}
+                checkOut={editForm.check_out_date}
+                excludeOrderId={order?.id}
+                value={amenityAllocations}
+                onChange={setAmenityAllocations}
+              />
             </div>
           )}
 
