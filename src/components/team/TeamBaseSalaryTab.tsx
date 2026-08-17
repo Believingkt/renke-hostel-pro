@@ -229,8 +229,16 @@ export default function TeamBaseSalaryTab() {
         {loading ? (
           <p className="text-sm text-muted-foreground">讀取中…</p>
         ) : (
-          <div className="space-y-3">
-            {members.map((m) => {
+          <div className="space-y-6">
+            {groups.map((g) => (
+              <div key={g.role} className="space-y-3">
+                <h3 className="text-sm font-semibold">
+                  {ROLE_LABEL[g.role] ?? g.role}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    （{g.members.length} 人）
+                  </span>
+                </h3>
+                {g.members.map((m) => {
               const list = byUser.get(m.user_id) ?? [];
               const cur = currentAmount(m.user_id);
               const d = draft[m.user_id] ?? {
