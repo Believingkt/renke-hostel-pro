@@ -4,7 +4,9 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed, Home } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, PackageOpen, Calendar, Bed, Home } from "lucide-react";
+import { AmenityItemsSection } from "@/components/amenities/AmenityItemsSection";
+
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -172,9 +174,10 @@ const Pricing = () => {
       }
     }
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "holidays")) {
+    if (tab && (tab === "rooms" || tab === "amenities" || tab === "basic" || tab === "holidays")) {
       setActiveTab(tab);
     }
+
   }, [searchParams]);
 
   useEffect(() => {
@@ -338,6 +341,8 @@ const Pricing = () => {
     switch (tab) {
       case "rooms":
         return "房型管理";
+      case "amenities":
+        return "備品管理";
       case "basic":
         return "房價價格設定";
       case "holidays":
@@ -346,6 +351,7 @@ const Pricing = () => {
         return "房型管理";
     }
   };
+
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
@@ -504,7 +510,15 @@ const Pricing = () => {
         </TabsContent>
 
 
+        <TabsContent value="amenities" className="space-y-4">
+          <PageHeader title="備品管理" icon={PackageOpen} />
+          {currentAccommodationId && (
+            <AmenityItemsSection accommodationId={currentAccommodationId} />
+          )}
+        </TabsContent>
+
         <TabsContent value="basic" className="space-y-4">
+
           <PageHeader
             title="房價價格設定"
             icon={DollarSign}

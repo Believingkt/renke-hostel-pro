@@ -30,6 +30,8 @@ import {
   Megaphone,
   Navigation,
   Package,
+  PackageOpen,
+
   Plug,
   Receipt,
   ShoppingBag,
@@ -96,8 +98,12 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     url: "/admin/pricing",
     icon: Hotel,
     moduleKey: "pricing",
-    subItems: [{ title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed }],
+    subItems: [
+      { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
+      { title: "備品管理", url: "/admin/pricing?tab=amenities", icon: PackageOpen },
+    ],
   },
+
   {
     title: "房價庫存",
     url: "/admin/room-price-calendar",

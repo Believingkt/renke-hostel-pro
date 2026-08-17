@@ -19,6 +19,8 @@ import { calcOrderAddonTotal, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { resolveAddonId } from "@/lib/addonAliases";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { fetchOrderAllocations, saveOrderAllocations } from "@/lib/amenityAllocation";
 
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -93,6 +95,17 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const packageChannel = usePackageChannel(currentAccommodationId);
+  const [amenityAllocations, setAmenityAllocations] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!open || !order?.id) {
+      setAmenityAllocations({});
+      return;
+    }
+    fetchOrderAllocations(order.id)
+      .then(setAmenityAllocations)
+      .catch(() => setAmenityAllocations({}));
+  }, [open, order?.id]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -785,6 +798,22 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_email: editForm.guest_email,
         package_id: effectivePackageId,
       });
+
+      if (order?.id && currentAccommodationId) {
+        try {
+          await saveOrderAllocations({
+            orderId: order.id,
+            accommodationId: currentAccommodationId,
+            allocations: amenityAllocations,
+          });
+        } catch (amenityError: any) {
+          toast({
+            title: "備品分配未儲存",
+            description: amenityError.message,
+            variant: "destructive",
+          });
+        }
+      }
     } finally {
       setIsSaving(false);
     }
@@ -1102,6 +1131,20 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   </div>
                 ) : null;
               })()}
+            </div>
+          )}
+
+          {/* 備品分配 */}
+          {currentAccommodationId && editForm.check_in_date && editForm.check_out_date && (
+            <div className="pt-4 border-t">
+              <AmenityAllocationPicker
+                accommodationId={currentAccommodationId}
+                checkIn={editForm.check_in_date}
+                checkOut={editForm.check_out_date}
+                excludeOrderId={order?.id}
+                value={amenityAllocations}
+                onChange={setAmenityAllocations}
+              />
             </div>
           )}
 

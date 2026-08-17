@@ -1,4 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { saveOrderAllocations } from "@/lib/amenityAllocation";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -199,6 +202,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   // Selected addons
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
+  const [amenityAllocations, setAmenityAllocations] = useState<Record<string, number>>({});
+
   const [depositPct, setDepositPct] = useState<number>(30);
 
   // Multi-room selections
@@ -335,6 +340,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         package_id: "",
       });
       setSelectedAddons([]);
+      setAmenityAllocations({});
+
       setDiscountCode("");
       setAppliedDiscount(null);
       setManualDiscountStr(null);
@@ -1563,7 +1570,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       if (error) throw error;
 
+      // 備品分配（超額時由資料庫驗證擋下）
+      if (orderData?.id && Object.values(amenityAllocations).some((q) => q > 0)) {
+        try {
+          await saveOrderAllocations({
+            orderId: orderData.id,
+            accommodationId: currentAccommodationId!,
+            allocations: amenityAllocations,
+          });
+        } catch (amenityError: any) {
+          toast({ title: "備品分配未儲存", description: amenityError.message, variant: "destructive" });
+        }
+      }
+
       // KOL Webhook
+
       if (appliedDiscount && orderData?.id) {
         try {
           await supabase.functions.invoke('kol-webhook', { body: { order_id: orderData.id } });
@@ -2704,6 +2725,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </div>
         )}
       </div>
+
+      {/* 備品分配 */}
+      {currentAccommodationId && form.check_in_date && form.check_out_date && (
+        <div className="pt-4 border-t">
+          <AmenityAllocationPicker
+            accommodationId={currentAccommodationId}
+            checkIn={form.check_in_date}
+            checkOut={form.check_out_date}
+            value={amenityAllocations}
+            onChange={setAmenityAllocations}
+          />
+        </div>
+      )}
+
 
       {/* Discount Code Section */}
       <div className="space-y-2 pt-4 border-t">
