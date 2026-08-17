@@ -1206,30 +1206,15 @@ const KolDiscount = () => {
                 />
               </div>
               
-              <div className="grid gap-2">
-                <Label>適用房型（不選表示全部房型適用）</Label>
-                <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
-                  {roomTypes.map((room) => (
-                    <div key={room.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`room-${room.id}`}
-                        checked={selectedRoomTypes.includes(room.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedRoomTypes([...selectedRoomTypes, room.id]);
-                          } else {
-                            setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
-                          }
-                        }}
-                        className="h-5 w-5 touch-manipulation"
-                      />
-                      <Label htmlFor={`room-${room.id}`} className="cursor-pointer">
-                        {room.name}
-                      </Label>
-                    </div>
-                  ))}
-        </div>
-      </div>
+              <DiscountScopeSelector
+                mode={scopeMode}
+                roomTypes={roomTypes}
+                pricingTemplates={pricingTemplates}
+                selected={applicableRoomTypes}
+                onChange={setApplicableRoomTypes}
+                idPrefix="room"
+                scrollable={true}
+              />
               
               <div className="grid gap-2">
                 <Label>適用入住日期範圍（選填）</Label>
@@ -1500,35 +1485,15 @@ const KolDiscount = () => {
                       />
                     </div>
                     
-                    <div className="grid gap-2">
-                      <Label>適用房型（選填，不選表示全部適用）</Label>
-                      <div className="space-y-2">
-                        {roomTypes.map((room) => (
-                          <div key={room.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`room-${room.id}`}
-                            checked={applicableRoomTypes.includes(room.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setApplicableRoomTypes([...applicableRoomTypes, room.id]);
-                              } else {
-                                setApplicableRoomTypes(
-                                  applicableRoomTypes.filter((id) => id !== room.id)
-                                );
-                              }
-                            }}
-                            className="h-5 w-5 touch-manipulation"
-                          />
-                            <Label
-                              htmlFor={`room-${room.id}`}
-                              className="text-sm font-normal cursor-pointer"
-                            >
-                              {room.name}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <DiscountScopeSelector
+                mode={scopeMode}
+                roomTypes={roomTypes}
+                pricingTemplates={pricingTemplates}
+                selected={applicableRoomTypes}
+                onChange={setApplicableRoomTypes}
+                idPrefix="room"
+                scrollable={false}
+              />
                     
                     <div className="space-y-4">
                       <div className="flex items-center space-x-2">
@@ -1797,30 +1762,15 @@ const KolDiscount = () => {
               />
             </div>
             
-            <div className="grid gap-2">
-              <Label>適用房型（不選表示全部房型適用）</Label>
-              <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
-                {roomTypes.map((room) => (
-                  <div key={room.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`edit-room-${room.id}`}
-                      checked={selectedRoomTypes.includes(room.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedRoomTypes([...selectedRoomTypes, room.id]);
-                        } else {
-                          setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
-                        }
-                      }}
-                      className="h-5 w-5 touch-manipulation"
-                    />
-                    <Label htmlFor={`edit-room-${room.id}`} className="cursor-pointer">
-                      {room.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DiscountScopeSelector
+                mode={scopeMode}
+                roomTypes={roomTypes}
+                pricingTemplates={pricingTemplates}
+                selected={selectedRoomTypes}
+                onChange={setSelectedRoomTypes}
+                idPrefix="edit-room"
+                scrollable={true}
+              />
             
             <div className="grid gap-2">
               <Label>適用入住日期範圍（選填）</Label>
@@ -2206,32 +2156,15 @@ const KolDiscount = () => {
                 />
               </div>
               
-              <div className="grid gap-2">
-                <Label>適用房型（選填，不選表示全部適用）</Label>
-                <div className="space-y-2">
-                  {roomTypes.map((room) => (
-                    <div key={room.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`edit-room-${room.id}`}
-                        checked={selectedRoomTypes.includes(room.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedRoomTypes([...selectedRoomTypes, room.id]);
-                          } else {
-                            setSelectedRoomTypes(selectedRoomTypes.filter((id) => id !== room.id));
-                          }
-                        }}
-                      />
-                      <Label
-                        htmlFor={`edit-room-${room.id}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {room.name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <DiscountScopeSelector
+                mode={scopeMode}
+                roomTypes={roomTypes}
+                pricingTemplates={pricingTemplates}
+                selected={selectedRoomTypes}
+                onChange={setSelectedRoomTypes}
+                idPrefix="edit-room"
+                scrollable={false}
+              />
               
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
