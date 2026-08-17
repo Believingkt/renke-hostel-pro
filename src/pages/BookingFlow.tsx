@@ -2423,6 +2423,26 @@ const BookingFlow = () => {
     });
   };
 
+  /**
+   * 前台一次結帳只會有「一個房型 + 一個房價方案」，折扣碼僅在該方案有被勾選時才成立。
+   * 客人若改選房型或房價方案（例如從包棟改成單間），已套用的折扣必須失效，
+   * 避免折扣被帶到未勾選的方案上；需要折扣就必須重新套用一次。
+   */
+  const prevDiscountScopeRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${selectedRoom?.id || ""}|${selectedTemplate?.id || ""}`;
+    const prev = prevDiscountScopeRef.current;
+    prevDiscountScopeRef.current = key;
+    if (prev === null || prev === key) return;
+    if (!appliedDiscount) return;
+    setAppliedDiscount(null);
+    toast({
+      title: "折扣代碼已取消",
+      description: "已變更房型／房價方案，此折扣碼僅適用於指定方案，請重新輸入套用",
+    });
+  }, [selectedRoom?.id, selectedTemplate?.id]);
+
+
   const handleNextStep = async () => {
     // 驗證當前步驟
     if (currentStep === "dates") {
