@@ -1079,6 +1079,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
 
+  // 房型／房價方案變更後，已套用的折扣碼需重新驗證，避免折扣到未勾選的方案
+  const discountScopeKey = roomSelections
+    .map((s) => `${s.room_type_id}:${s.template_id}`)
+    .join(",");
+  const prevDiscountScopeKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevDiscountScopeKeyRef.current;
+    prevDiscountScopeKeyRef.current = discountScopeKey;
+    if (prev === null || prev === discountScopeKey) return;
+    if (!appliedDiscount) return;
+    setAppliedDiscount(null);
+    setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
+    toast({
+      title: "折扣碼已清除",
+      description: "房型／房價方案已變更，請重新套用折扣碼",
+    });
+  }, [discountScopeKey]);
+
+
+
   // Calculate totals
   const calculateTotalsForSelections = (selections: RoomSelection[]) => {
     const addonNights = Math.max(1, calculateNights());
