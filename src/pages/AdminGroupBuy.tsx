@@ -690,10 +690,59 @@ export default function AdminGroupBuy() {
                         );
                       })}
                     </div>
+                    {(p.room_type_ids ?? []).length > 1 && (
+                      <div className="mt-2 rounded-md border border-input p-2">
+                        <p className="mb-1 text-xs font-medium">分配優先順序（由上而下）</p>
+                        <div className="space-y-1">
+                          {(p.room_type_ids ?? []).map((rtId, order) => {
+                            const move = (delta: number) =>
+                              setPackages((prev) =>
+                                prev.map((x, i) => {
+                                  if (i !== idx) return x;
+                                  const cur = [...(x.room_type_ids ?? [])];
+                                  const to = order + delta;
+                                  if (to < 0 || to >= cur.length) return x;
+                                  [cur[order], cur[to]] = [cur[to], cur[order]];
+                                  return { ...x, room_type_ids: cur, room_type_id: cur[0] ?? null };
+                                }),
+                              );
+                            return (
+                              <div key={rtId} className="flex items-center gap-2 text-sm">
+                                <span className="w-5 text-muted-foreground tabular-nums">{order + 1}.</span>
+                                <span className="flex-1 truncate">
+                                  {roomTypes.find((rt) => rt.id === rtId)?.name ?? rtId}
+                                </span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  disabled={order === 0}
+                                  onClick={() => move(-1)}
+                                >
+                                  ↑
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  disabled={order === (p.room_type_ids ?? []).length - 1}
+                                  onClick={() => move(1)}
+                                >
+                                  ↓
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      勾選多個房型時，系統會逐一比對真實庫存，指派第一個有空房的房型。
+                      勾選多個房型時，系統會依上方順序逐一比對真實庫存，指派第一個有空房的房型。
                     </p>
                   </div>
+
 
                   <div>
                     <Label>團購價（每晚）</Label>
