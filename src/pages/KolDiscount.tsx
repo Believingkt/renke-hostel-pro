@@ -64,7 +64,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, addYears } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -141,7 +141,7 @@ const KolDiscount = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
   const [validFrom, setValidFrom] = useState<Date>(new Date());
-  const [validUntil, setValidUntil] = useState<Date | undefined>();
+  const [validUntil, setValidUntil] = useState<Date | undefined>(addYears(new Date(), 1));
   const [minOrderAmount, setMinOrderAmount] = useState("");
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [applicableRoomTypes, setApplicableRoomTypes] = useState<string[]>([]);
@@ -369,7 +369,7 @@ const KolDiscount = () => {
       setUsageLimit("");
       setDiscountType("percentage");
       setValidFrom(new Date());
-      setValidUntil(undefined);
+      setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
@@ -590,7 +590,7 @@ const KolDiscount = () => {
       setUsageLimit("");
       setDiscountType("percentage");
       setValidFrom(new Date());
-      setValidUntil(undefined);
+      setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
@@ -656,7 +656,7 @@ const KolDiscount = () => {
       setUsageLimit("");
       setDiscountType("percentage");
       setValidFrom(new Date());
-      setValidUntil(undefined);
+      setValidUntil(addYears(new Date(), 1));
       setMinOrderAmount("");
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
@@ -1099,7 +1099,7 @@ const KolDiscount = () => {
                       mode="single"
                       selected={validFrom}
                       defaultMonth={validFrom}
-                      onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
+                      onSelect={(date) => { if (!date) return; setValidFrom(date); setValidUntil(addYears(date, 1)); }}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -1210,7 +1210,7 @@ const KolDiscount = () => {
                         mode="single"
                         selected={applicableDateFrom}
                         defaultMonth={applicableDateFrom}
-                        onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
+                        onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); setApplicableDateTo(undefined); return; } setApplicableDateFrom(d); setApplicableDateTo(addYears(d, 1)); }}
                         initialFocus
                         className="pointer-events-auto"
                       />
@@ -1396,7 +1396,7 @@ const KolDiscount = () => {
                             mode="single"
                             selected={validFrom}
                             defaultMonth={validFrom}
-                            onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
+                            onSelect={(date) => { if (!date) return; setValidFrom(date); setValidUntil(addYears(date, 1)); }}
                             initialFocus
                             className="pointer-events-auto"
                           />
@@ -1517,7 +1517,7 @@ const KolDiscount = () => {
                                   mode="single"
                                   selected={applicableDateFrom}
                                   defaultMonth={applicableDateFrom}
-                                  onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
+                                  onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); setApplicableDateTo(undefined); return; } setApplicableDateFrom(d); setApplicableDateTo(addYears(d, 1)); }}
                                   initialFocus
                                   className="pointer-events-auto"
                                 />
@@ -1690,7 +1690,7 @@ const KolDiscount = () => {
                     mode="single"
                     selected={validFrom}
                     defaultMonth={validFrom}
-                    onSelect={(date) => { if (!date) return; setValidFrom(date); if (validUntil && validUntil < date) setValidUntil(undefined); }}
+                    onSelect={(date) => { if (!date) return; setValidFrom(date); setValidUntil(addYears(date, 1)); }}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -1801,7 +1801,7 @@ const KolDiscount = () => {
                       mode="single"
                       selected={applicableDateFrom}
                       defaultMonth={applicableDateFrom}
-                      onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); return; } setApplicableDateFrom(d); if (applicableDateTo && applicableDateTo < d) setApplicableDateTo(undefined); }}
+                      onSelect={(d) => { if (!d) { setApplicableDateFrom(undefined); setApplicableDateTo(undefined); return; } setApplicableDateFrom(d); setApplicableDateTo(addYears(d, 1)); }}
                       initialFocus
                       className="pointer-events-auto"
                     />
@@ -2062,8 +2062,7 @@ const KolDiscount = () => {
                     onSelect={(date) => {
                       if (!date || !editingCode) return;
                       const ds = format(date, "yyyy-MM-dd");
-                      const clearEnd = editingCode.valid_until && editingCode.valid_until < ds;
-                      setEditingCode({ ...editingCode, valid_from: ds, ...(clearEnd ? { valid_until: null } : {}) });
+                      setEditingCode({ ...editingCode, valid_from: ds, valid_until: format(addYears(date, 1), "yyyy-MM-dd") });
                     }}
                     initialFocus
                     className="pointer-events-auto"
@@ -2205,6 +2204,7 @@ const KolDiscount = () => {
                           setEditingCode({
                             ...editingCode,
                             applicable_date_from: format(new Date(), "yyyy-MM-dd"),
+                            applicable_date_to: format(addYears(new Date(), 1), "yyyy-MM-dd"),
                           });
                         }
                       } else {
@@ -2250,8 +2250,7 @@ const KolDiscount = () => {
                             onSelect={(date) => {
                               if (!date || !editingCode) return;
                               const ds = format(date, "yyyy-MM-dd");
-                              const clearEnd = editingCode.applicable_date_to && editingCode.applicable_date_to < ds;
-                              setEditingCode({ ...editingCode, applicable_date_from: ds, ...(clearEnd ? { applicable_date_to: null } : {}) });
+                              setEditingCode({ ...editingCode, applicable_date_from: ds, applicable_date_to: format(addYears(date, 1), "yyyy-MM-dd") });
                             }}
                             initialFocus
                             className="pointer-events-auto"
