@@ -11162,6 +11162,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_base_salaries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          salary_month: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          salary_month: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          salary_month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_member_profiles: {
         Row: {
           am_managed_accommodation_ids: string[] | null
@@ -12441,6 +12474,7 @@ export type Database = {
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_team_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
+      is_team_salary_manager: { Args: never; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       list_kol_quota_audit_logs: {
         Args: { _accommodation_id: string; _limit?: number }

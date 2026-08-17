@@ -164,6 +164,24 @@ export default function TeamHome() {
   // 預設一律先看自己；切換後資料改由 team-view-query Edge Function（service role）取得，
   // 計算邏輯完全沿用同一份程式碼。
   const isAdminViewer = selfRoles.includes("super_admin") || selfRoles.includes("admin");
+  // 主管可向下垂直檢視所屬組別成員（AM 主管 → AM、星探主管 → 星探…）
+  const MANAGER_SCOPES: Record<string, TeamRole[]> = {
+    am_manager: ["am", "am_manager"],
+    scout_manager: ["scout", "scout_manager"],
+    closer_manager: ["closer", "closer_manager"],
+    franchise_manager: [
+      "franchise",
+      "franchise_internal",
+      "franchise_external",
+      "franchise_manager",
+    ],
+  };
+  const managerScope = Array.from(
+    new Set(selfRoles.flatMap((r) => MANAGER_SCOPES[r] ?? [])),
+  ) as TeamRole[];
+  const canViewOthers = isAdminViewer || managerScope.length > 0;
+  // 底薪只有總部管理員可代看；其他主管檢視夥伴時不顯示薪資
+  const canSeeSalary = isAdminViewer;
 
   // ===== 排除業主自帶（試算）檢視 =====
   const { simEnabled, setSimEnabled, canSim } = useOwnerDirectSim();
@@ -183,16 +201,16 @@ export default function TeamHome() {
     : selfDisplayName;
 
   const db = useMemo(
-    () => (viewAsUserId ? (createTeamViewClient() as any) : (supabase as any)),
+    () => (viewAsUserId ? (createTeamViewClient(viewAsUserId) as any) : (supabase as any)),
     [viewAsUserId],
   );
 
   // 管理員：載入可檢視的成員清單（含各自角色）
   useEffect(() => {
-    if (!isAdminViewer) return;
+    if (!canViewOthers) return;
     let cancelled = false;
     (async () => {
-      const view = createTeamViewClient() as any;
+      const view = createTeamViewClient(null) as any;
       const [{ data: profiles }, { data: roleRows }] = await Promise.all([
         view.from("team_member_profiles").select("user_id, display_name"),
         view.from("user_roles").select("user_id, role").is("accommodation_id", null),
@@ -214,13 +232,16 @@ export default function TeamHome() {
           roles: (roleMap.get(p.user_id) ?? []).filter((r) => r !== "finance"),
         }))
         .filter((m) => m.roles.length > 0)
+        // 非全域管理員：只列出自己組別的成員
+        .filter((m) => isAdminViewer || m.roles.some((r) => managerScope.includes(r)))
         .sort((a, b) => a.display_name.localeCompare(b.display_name, "zh-Hant"));
       setMembers(list);
     })();
     return () => {
       cancelled = true;
     };
-  }, [isAdminViewer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canViewOthers, isAdminViewer, managerScope.join("|")]);
 
   const handleViewAs = (value: string) => {
     if (value === "self") {
@@ -294,10 +315,14 @@ export default function TeamHome() {
   const [monthlySettled, setMonthlySettled] = useState(false);
   const [monthlyDraft, setMonthlyDraft] = useState(false);
 
+  // ===== 底薪（僅月結期顯示）=====
+  const [salaryAmt, setSalaryAmt] = useState(0);
+
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
-  const periodOptions = useMemo(() => listRecentPayoutPeriods(6), []);
-  const [periodIndex, setPeriodIndex] = useState(0);
+  // 往前多帶 1 期（可先預覽下下期），預設仍停在即將發放的那一期
+  const periodOptions = useMemo(() => listRecentPayoutPeriods(6, new Date(), 1), []);
+  const [periodIndex, setPeriodIndex] = useState(1);
   const activePeriod = periodOptions[periodIndex] ?? periodOptions[0];
   const followingPeriod = useMemo(
     () => resolveFollowingPayoutPeriod(activePeriod),
@@ -346,6 +371,28 @@ export default function TeamHome() {
   // ===== 期別資料快取（模組層，跨頁面來回不重讀）=====
   // 命中即先上畫面（不轉圈），超過 TTL 才在背景重新計算後靜默更新。
   const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
+
+  // 底薪：只在月結期（每月 10 日期）顯示，對應資料月份；
+  // 自己的底薪由 RLS 允許讀取，代看他人僅限總部管理員。
+  useEffect(() => {
+    let cancelled = false;
+    setSalaryAmt(0);
+    if (!monthInfo.isMonthlyPayout) return;
+    if (!viewUserId) return;
+    if (isViewing && !canSeeSalary) return;
+    (async () => {
+      const { data } = await db
+        .from("team_base_salaries")
+        .select("amount")
+        .eq("user_id", viewUserId)
+        .eq("salary_month", monthInfo.currentMonthKey)
+        .maybeSingle();
+      if (!cancelled) setSalaryAmt(Number((data as any)?.amount ?? 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db, viewUserId, isViewing, canSeeSalary, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
 
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
@@ -1898,7 +1945,7 @@ export default function TeamHome() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      {isAdminViewer && (
+      {canViewOthers && (
         <Card className="border-dashed">
           <CardContent className="py-3 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center gap-2 text-sm font-medium shrink-0">
@@ -1973,7 +2020,17 @@ export default function TeamHome() {
             <CardContent>
               <p className="text-4xl font-bold text-primary">
                 {loading ? "—" : fmt(total)}
+                {!loading && salaryAmt > 0 && (
+                  <span className="ml-2 text-base font-medium text-muted-foreground">
+                    + 薪資 {fmt(salaryAmt)}
+                  </span>
+                )}
               </p>
+              {!loading && salaryAmt > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  （實際領款時，須扣除勞健保相關金額）
+                </p>
+              )}
               {!loading && simTotal !== null ? (
                 <p className="mt-1 text-xs text-muted-foreground tabular-nums">
                   排除業主自帶：{fmt(simTotal)}（{simTotal - total >= 0 ? "+" : "−"}

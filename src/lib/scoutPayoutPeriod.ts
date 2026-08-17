@@ -120,15 +120,23 @@ export function resolveFollowingPayoutPeriod(p: PayoutPeriod): PayoutPeriod {
 /**
  * 可檢視的期別清單（由新到舊）：從「即將發放的下一期」往回推 monthsBack 個月。
  * 例：今日 8/7（下一期 8/10）、monthsBack = 6 → 最舊到 2/10 期。
+ * forwardPeriods > 0 時，會在最前面再補上「下一期之後」的期別（預覽用）。
  */
 export function listRecentPayoutPeriods(
   monthsBack = 6,
   now: Date = new Date(),
+  forwardPeriods = 0,
 ): PayoutPeriod[] {
   const head = resolveNextPayoutPeriod(now);
   const oldest = addMonths(head.year, head.month, -monthsBack);
   const oldestKey = oldest.y * 12 + (oldest.m - 1);
-  const out: PayoutPeriod[] = [head];
+  const forward: PayoutPeriod[] = [];
+  let f = head;
+  for (let i = 0; i < forwardPeriods; i++) {
+    f = resolveFollowingPayoutPeriod(f);
+    forward.unshift(f);
+  }
+  const out: PayoutPeriod[] = [...forward, head];
   let cur = head;
   // 最多推 60 期，避免任何意外造成無限迴圈
   for (let i = 0; i < 60; i++) {
@@ -140,3 +148,4 @@ export function listRecentPayoutPeriods(
   }
   return out;
 }
+

@@ -58,6 +58,7 @@ const ALLOWED_TABLES = new Set<string>([
   "teamcommission_bonus_snapshots",
   "accommodation_partnership_periods",
   "scout_discount_code_payouts",
+  "team_base_salaries",
 ]);
 
 /** 只允許 PostgREST 唯讀的鏈式方法 */
@@ -89,6 +90,52 @@ interface Op {
   args: unknown[];
 }
 
+/** 主管可向下檢視的角色範圍 */
+const MANAGER_SCOPES: Record<string, string[]> = {
+  am_manager: ["am", "am_manager"],
+  scout_manager: ["scout", "scout_manager"],
+  closer_manager: ["closer", "closer_manager"],
+  franchise_manager: ["franchise", "franchise_internal", "franchise_external", "franchise_manager"],
+};
+
+/** 主管列成員清單時只允許讀這兩張表 */
+const ROSTER_TABLES = new Set<string>(["team_member_profiles", "user_roles"]);
+
+async function runOne(admin: any, table: string, ops: Op[]) {
+  if (!ALLOWED_TABLES.has(table)) {
+    return { data: null, error: { message: `Table not allowed: ${table}` } };
+  }
+  if (ops.length === 0 || ops.length > 30) {
+    return { data: null, error: { message: "Invalid ops" } };
+  }
+
+  let query: any = admin.from(table);
+  let terminal: string | null = null;
+
+  for (const op of ops) {
+    const fn = String(op?.fn ?? "");
+    const args = Array.isArray(op?.args) ? op.args : [];
+    if (TERMINALS.has(fn)) {
+      terminal = fn;
+      continue;
+    }
+    if (!ALLOWED_FILTERS.has(fn)) {
+      return { data: null, error: { message: `Method not allowed: ${fn}` } };
+    }
+    if (typeof query[fn] !== "function") {
+      return { data: null, error: { message: `Method unavailable: ${fn}` } };
+    }
+    query = query[fn](...args);
+  }
+
+  if (terminal === "maybeSingle") query = query.maybeSingle();
+  else if (terminal === "single") query = query.single();
+
+  const { data, error } = await query;
+  if (error) return { data: null, error: { message: error.message } };
+  return { data: data ?? null, error: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -102,49 +149,59 @@ Deno.serve(async (req) => {
     const roles = ctx.globalRoles ?? [];
     const isAdminViewer =
       ctx.isServiceRole || roles.includes("super_admin") || roles.includes("admin");
-    if (!isAdminViewer) {
+    const managerScope = Array.from(
+      new Set(roles.flatMap((r) => MANAGER_SCOPES[r] ?? [])),
+    );
+    if (!isAdminViewer && managerScope.length === 0) {
       return json({ error: "Forbidden" }, 403);
     }
 
     const body = await req.json().catch(() => ({} as any));
-    const table = typeof body?.table === "string" ? body.table : "";
-    const ops: Op[] = Array.isArray(body?.ops) ? body.ops : [];
+    const viewUserId = typeof body?.viewUserId === "string" ? body.viewUserId : null;
 
-    if (!ALLOWED_TABLES.has(table)) {
-      return json({ error: `Table not allowed: ${table}` }, 400);
+    const rawBatch: Array<{ table: string; ops: Op[] }> = Array.isArray(body?.batch)
+      ? body.batch
+      : [{ table: String(body?.table ?? ""), ops: Array.isArray(body?.ops) ? body.ops : [] }];
+
+    if (rawBatch.length === 0 || rawBatch.length > 12) {
+      return json({ error: "Invalid batch" }, 400);
     }
-    if (ops.length === 0 || ops.length > 30) {
-      return json({ error: "Invalid ops" }, 400);
+
+    // 底薪僅限總部管理員檢視
+    if (!isAdminViewer && rawBatch.some((b) => String(b?.table ?? "") === "team_base_salaries")) {
+      return json({ error: "Forbidden" }, 403);
     }
 
-    let query: any = ctx.admin.from(table);
-    let terminal: string | null = null;
-
-    for (const op of ops) {
-      const fn = String(op?.fn ?? "");
-      const args = Array.isArray(op?.args) ? op.args : [];
-      if (TERMINALS.has(fn)) {
-        terminal = fn;
-        continue;
+    // 非全域管理員（各組主管）：只能檢視自己或所屬組別的成員資料
+    if (!isAdminViewer) {
+      const rosterOnly = rawBatch.every((b) => ROSTER_TABLES.has(String(b?.table ?? "")));
+      if (!rosterOnly) {
+        if (!viewUserId) return json({ error: "Forbidden" }, 403);
+        if (viewUserId !== ctx.userId) {
+          const { data: targetRoles } = await ctx.admin
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", viewUserId);
+          const tRoles = (targetRoles ?? []).map((r: any) => String(r.role));
+          const allowed = tRoles.some((r) => managerScope.includes(r));
+          if (!allowed) return json({ error: "Forbidden" }, 403);
+        }
       }
-      if (!ALLOWED_FILTERS.has(fn)) {
-        return json({ error: `Method not allowed: ${fn}` }, 400);
-      }
-      if (typeof query[fn] !== "function") {
-        return json({ error: `Method unavailable: ${fn}` }, 400);
-      }
-      query = query[fn](...args);
     }
 
-    if (terminal === "maybeSingle") query = query.maybeSingle();
-    else if (terminal === "single") query = query.single();
+    const results = await Promise.all(
+      rawBatch.map((b) =>
+        runOne(ctx.admin, String(b?.table ?? ""), Array.isArray(b?.ops) ? b.ops : []),
+      ),
+    );
 
-    const { data, error } = await query;
-    if (error) {
-      return json({ data: null, error: { message: error.message } }, 200);
+    // 舊格式（單筆 table/ops）相容：同時回傳 data/error
+    if (!Array.isArray(body?.batch)) {
+      return json({ ...results[0], results }, 200);
     }
-    return json({ data: data ?? null, error: null }, 200);
+    return json({ results }, 200);
   } catch (e) {
     return json({ data: null, error: { message: String((e as Error)?.message ?? e) } }, 200);
   }
 });
+
