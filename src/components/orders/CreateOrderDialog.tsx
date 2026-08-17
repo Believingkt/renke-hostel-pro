@@ -1577,7 +1577,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             allocations: amenityAllocations,
           });
         } catch (amenityError: any) {
-          toast.error("備品分配未儲存", { description: amenityError.message });
+          toast({ title: "備品分配未儲存", description: amenityError.message, variant: "destructive" });
         }
       }
 
