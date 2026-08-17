@@ -1598,6 +1598,45 @@ export type Database = {
         }
         Relationships: []
       }
+      amenity_items: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          total_quantity: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          total_quantity?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          total_quantity?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           accommodation_id: string | null
@@ -6196,6 +6235,51 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_amenity_allocations: {
+        Row: {
+          accommodation_id: string
+          amenity_item_id: string
+          created_at: string
+          id: string
+          order_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          amenity_item_id: string
+          created_at?: string
+          id?: string
+          order_id: string
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          amenity_item_id?: string
+          created_at?: string
+          id?: string
+          order_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_amenity_allocations_amenity_item_id_fkey"
+            columns: ["amenity_item_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_amenity_allocations_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -12371,6 +12455,19 @@ export type Database = {
         }[]
       }
       get_all_order_sources: { Args: never; Returns: string[] }
+      get_amenity_daily_usage: {
+        Args: {
+          p_accommodation_id: string
+          p_end: string
+          p_exclude_order_id?: string
+          p_start: string
+        }
+        Returns: {
+          amenity_item_id: string
+          usage_date: string
+          used_qty: number
+        }[]
+      }
       get_analytics_summary: {
         Args: {
           p_accommodation_id: string
