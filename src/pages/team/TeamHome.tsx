@@ -315,6 +315,9 @@ export default function TeamHome() {
   const [monthlySettled, setMonthlySettled] = useState(false);
   const [monthlyDraft, setMonthlyDraft] = useState(false);
 
+  // ===== 底薪（僅月結期顯示）=====
+  const [salaryAmt, setSalaryAmt] = useState(0);
+
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
   // 往前多帶 1 期（可先預覽下下期），預設仍停在即將發放的那一期
@@ -368,6 +371,28 @@ export default function TeamHome() {
   // ===== 期別資料快取（模組層，跨頁面來回不重讀）=====
   // 命中即先上畫面（不轉圈），超過 TTL 才在背景重新計算後靜默更新。
   const cacheKey = `${viewUserId ?? "self"}|${activePeriod.year}-${activePeriod.month}-${activePeriod.period}`;
+
+  // 底薪：只在月結期（每月 10 日期）顯示，對應資料月份；
+  // 自己的底薪由 RLS 允許讀取，代看他人僅限總部管理員。
+  useEffect(() => {
+    let cancelled = false;
+    setSalaryAmt(0);
+    if (!monthInfo.isMonthlyPayout) return;
+    if (!viewUserId) return;
+    if (isViewing && !canSeeSalary) return;
+    (async () => {
+      const { data } = await db
+        .from("team_base_salaries")
+        .select("amount")
+        .eq("user_id", viewUserId)
+        .eq("salary_month", monthInfo.currentMonthKey)
+        .maybeSingle();
+      if (!cancelled) setSalaryAmt(Number((data as any)?.amount ?? 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db, viewUserId, isViewing, canSeeSalary, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
 
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
@@ -1995,7 +2020,17 @@ export default function TeamHome() {
             <CardContent>
               <p className="text-4xl font-bold text-primary">
                 {loading ? "—" : fmt(total)}
+                {!loading && salaryAmt > 0 && (
+                  <span className="ml-2 text-base font-medium text-muted-foreground">
+                    + 薪資 {fmt(salaryAmt)}
+                  </span>
+                )}
               </p>
+              {!loading && salaryAmt > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  （實際領款時，須扣除勞健保相關金額）
+                </p>
+              )}
               {!loading && simTotal !== null ? (
                 <p className="mt-1 text-xs text-muted-foreground tabular-nums">
                   排除業主自帶：{fmt(simTotal)}（{simTotal - total >= 0 ? "+" : "−"}
