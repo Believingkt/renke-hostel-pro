@@ -252,20 +252,20 @@ function toArr(v: unknown): string[] {
   return Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : [];
 }
 
-/** 各館別當月生效的業主月結規則（exempt 來源 + 不列入抽成的增值服務） */
+/** 各館別當月生效的業主月結規則（僅取不列入抽成的增值服務；團隊獎金不套用 exempt_order_sources） */
 async function getOwnerRules(
   client: any,
   accIds: string[],
   monthStartDate: string,
-): Promise<Record<string, { exempt: string[]; addonIds: string[]; addonTypes: string[] }>> {
-  const out: Record<string, { exempt: string[]; addonIds: string[]; addonTypes: string[] }> = {};
+): Promise<Record<string, { addonIds: string[]; addonTypes: string[] }>> {
+  const out: Record<string, { addonIds: string[]; addonTypes: string[] }> = {};
   if (accIds.length === 0) return out;
   const byAcc = new Map<string, any[]>();
   for (let i = 0; i < accIds.length; i += CHUNK) {
     const { data } = await client
       .from("owner_settlement_pricing_rules")
       .select(
-        "accommodation_id, effective_from, created_at, exempt_order_sources, commission_excluded_addon_ids, commission_excluded_addon_types",
+        "accommodation_id, effective_from, created_at, commission_excluded_addon_ids, commission_excluded_addon_types",
       )
       .in("accommodation_id", accIds.slice(i, i + CHUNK))
       .lte("effective_from", monthStartDate);
@@ -280,7 +280,6 @@ async function getOwnerRules(
   for (const [accId, list] of byAcc) {
     const latest = pickCurrent(list, monthStartDate);
     out[accId] = {
-      exempt: toArr(latest?.exempt_order_sources),
       addonIds: toArr(latest?.commission_excluded_addon_ids),
       addonTypes: toArr(latest?.commission_excluded_addon_types),
     };
