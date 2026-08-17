@@ -210,7 +210,18 @@ export default function TeamBaseSalaryTab() {
     load();
   };
 
+  const groups = useMemo(() => {
+    const out: { role: string; members: MemberRow[] }[] = [];
+    members.forEach((m) => {
+      const last = out[out.length - 1];
+      if (last && last.role === m.role) last.members.push(m);
+      else out.push({ role: m.role, members: [m] });
+    });
+    return out;
+  }, [members]);
+
   return (
+
     <Card>
       <CardHeader>
         <CardTitle>成員底薪設定（版本制）</CardTitle>
