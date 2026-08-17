@@ -1568,7 +1568,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       if (error) throw error;
 
+      // 備品分配（超額時由資料庫驗證擋下）
+      if (orderData?.id && Object.values(amenityAllocations).some((q) => q > 0)) {
+        try {
+          await saveOrderAllocations({
+            orderId: orderData.id,
+            accommodationId: currentAccommodationId!,
+            allocations: amenityAllocations,
+          });
+        } catch (amenityError: any) {
+          toast.error("備品分配未儲存", { description: amenityError.message });
+        }
+      }
+
       // KOL Webhook
+
       if (appliedDiscount && orderData?.id) {
         try {
           await supabase.functions.invoke('kol-webhook', { body: { order_id: orderData.id } });
