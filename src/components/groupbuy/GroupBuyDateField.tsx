@@ -21,14 +21,28 @@ interface Props {
   max?: string | null;
   placeholder?: string;
   invalid?: boolean;
+  disabled?: boolean;
+  /** 已無庫存、不可選取的日期（yyyy-MM-dd） */
+  unavailableDates?: Set<string>;
 }
 
 /** 團購頁專用的日期選擇器：品牌樣式日曆，取代原生 date input */
-export function GroupBuyDateField({ id, value, onChange, min, max, placeholder = "選擇日期", invalid }: Props) {
+export function GroupBuyDateField({
+  id,
+  value,
+  onChange,
+  min,
+  max,
+  placeholder = "選擇日期",
+  invalid,
+  disabled,
+  unavailableDates,
+}: Props) {
   const [open, setOpen] = useState(false);
   const selected = toDate(value);
   const minDate = toDate(min);
   const maxDate = toDate(max);
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -37,6 +51,7 @@ export function GroupBuyDateField({ id, value, onChange, min, max, placeholder =
           id={id}
           type="button"
           variant="outline"
+          disabled={disabled}
           aria-invalid={invalid || undefined}
           className={cn(
             "h-11 w-full justify-start gap-2 rounded-xl px-3 text-left text-base font-normal",
@@ -59,7 +74,12 @@ export function GroupBuyDateField({ id, value, onChange, min, max, placeholder =
             onChange(format(d, "yyyy-MM-dd"));
             setOpen(false);
           }}
-          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          disabled={(d) =>
+            (minDate ? d < minDate : false) ||
+            (maxDate ? d > maxDate : false) ||
+            (unavailableDates ? unavailableDates.has(format(d, "yyyy-MM-dd")) : false)
+          }
+
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />

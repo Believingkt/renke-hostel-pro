@@ -103,7 +103,9 @@ export default function GroupBuyCampaign() {
     ok: null,
     message: "",
   });
+  const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+
   const [result, setResult] = useState<any>(null);
   /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
   const [venueName, setVenueName] = useState("");
@@ -136,8 +138,12 @@ export default function GroupBuyCampaign() {
       if (cancelled) return;
       const list = (pkgs ?? []) as unknown as CampaignPackage[];
       setPackages(list);
-      if (list.length > 0) setSelectedPkgId(list[0].id);
-      if (c.stay_start_date) setCheckIn(c.stay_start_date);
+      const onSale = saleState(c as unknown as Campaign) === "on_sale";
+      if (onSale) {
+        if (list.length > 0) setSelectedPkgId(list[0].id);
+        if (c.stay_start_date) setCheckIn(c.stay_start_date);
+      }
+
       setLoading(false);
       const { data: acc } = await supabase
         .from("accommodation_info")
@@ -167,7 +173,70 @@ export default function GroupBuyCampaign() {
     [campaign, checkIn, checkOut],
   );
   const sale = campaign ? saleState(campaign) : "on_sale";
+  const bookingLocked = sale !== "on_sale";
   const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
+
+  /** 方案綁定的候選房型（順序即為分配優先順序） */
+  const candidateRoomTypeIds = useMemo(() => {
+    if (!selectedPkg) return [] as string[];
+    if (selectedPkg.room_type_ids && selectedPkg.room_type_ids.length > 0) return selectedPkg.room_type_ids;
+    return selectedPkg.room_type_id ? [selectedPkg.room_type_id] : [];
+  }, [selectedPkg]);
+
+  /** 依活動可入住期間預先計算「該日期是否還有庫存」，無庫存日期於日曆停用 */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!campaign || bookingLocked || candidateRoomTypeIds.length === 0) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const start = campaign.stay_start_date && campaign.stay_start_date > today ? campaign.stay_start_date : today;
+      const endLimit = campaign.stay_end_date;
+      const dates: string[] = [];
+      const [y, m, d] = start.split("-").map(Number);
+      for (let i = 0; i < 120; i++) {
+        const iso = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + i)).toISOString().split("T")[0];
+        if (endLimit && iso > endLimit) break;
+        dates.push(iso);
+      }
+      if (dates.length === 0) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      const results = await Promise.all(
+        candidateRoomTypeIds.map((rtId) =>
+          supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: rtId,
+            p_dates: dates,
+            p_accommodation_id: campaign.accommodation_id,
+          }),
+        ),
+      );
+      if (cancelled) return;
+      const okDates = new Set<string>();
+      for (const { data, error } of results) {
+        if (error) continue;
+        for (const row of (data ?? []) as any[]) {
+          const iso = row?.date_value ?? row?.date;
+          if (!iso) continue;
+          if (row?.is_blocked === true) continue;
+          if (Number(row?.available_rooms ?? 0) >= roomQuantity) okDates.add(String(iso));
+        }
+      }
+      // 完全查不到資料時不阻擋使用者（維持原本送出時的後端驗證）
+      if (okDates.size === 0 && results.every((r) => r.error)) {
+        setUnavailableDates(new Set());
+        return;
+      }
+      setUnavailableDates(new Set(dates.filter((iso) => !okDates.has(iso))));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign, candidateRoomTypeIds, roomQuantity, bookingLocked]);
+
 
   const checkAvailability = useCallback(async () => {
     const roomTypeIds =
@@ -434,55 +503,45 @@ export default function GroupBuyCampaign() {
             </span>
           </p>
         </section>
-        {sale !== "on_sale" && (
+        {bookingLocked && (
           <p className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            此活動目前{SALE_STATE_LABEL[sale]}，暫時無法下訂。
+            {sale === "ended"
+              ? "此團購活動已結束，目前無法使用團購價格預訂。"
+              : "此團購活動尚未開賣，目前無法下訂。"}
           </p>
         )}
 
-        {campaign.description_html && (
-          <div
-            className="prose prose-sm mt-7 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.description_html) }}
-          />
-        )}
-
-        {campaign.gallery_urls?.length > 0 && (
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {campaign.gallery_urls.map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt={venueName || campaign.title}
-                loading="lazy"
-                className="aspect-[4/3] w-full rounded-xl object-cover"
-              />
-            ))}
-          </div>
-        )}
 
         {/* ── 方案 ── */}
         <section className="mt-12">
           <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇專屬方案</h2>
           <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
-            團媽限定價格，選定後於下方填寫資料即可完成預訂。
+            {bookingLocked
+              ? "以下為本次團購的方案與價格，活動期間已結束，僅供瀏覽。"
+              : "團媽限定價格，選定方案後即可挑選入住日期完成預訂。"}
           </p>
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
-              const active = p.id === selectedPkgId;
+              const active = !bookingLocked && p.id === selectedPkgId;
               const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setSelectedPkgId(p.id)}
+                  disabled={bookingLocked}
+                  onClick={() => {
+                    if (bookingLocked) return;
+                    setSelectedPkgId(p.id);
+                    scrollToForm();
+                  }}
                   aria-pressed={active}
                   className={`flex w-full gap-4 rounded-2xl border p-4 text-left transition focus-visible:outline-none sm:p-5 ${
                     active
                       ? "border-primary/30 bg-secondary/60"
                       : "border-border/70 bg-card hover:border-border"
-                  }`}
+                  } ${bookingLocked ? "cursor-not-allowed opacity-70 hover:border-border/70" : ""}`}
                 >
+
                   {p.image_url && (
                     <img
                       src={p.image_url}
@@ -519,7 +578,13 @@ export default function GroupBuyCampaign() {
                         active ? "text-primary" : "text-muted-foreground"
                       }`}
                     >
-                      {active ? (
+                      {bookingLocked ? (
+                        sale === "ended" ? (
+                          "活動已結束"
+                        ) : (
+                          "尚未開賣"
+                        )
+                      ) : active ? (
                         <>
                           <CheckCircle2 className="h-4 w-4" /> 已選擇
                         </>
@@ -536,18 +601,38 @@ export default function GroupBuyCampaign() {
         </section>
 
 
-        <GroupBuyVenueIntro
-          accommodationId={campaign.accommodation_id}
-          hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
-        />
 
         {/* ── 訂房表單（最終 CTA） ── */}
+        {bookingLocked ? (
+          <section
+            id="gb-book"
+            className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-muted/50 p-5 text-center sm:p-7"
+          >
+            <h2 className="text-[1.25rem] font-bold tracking-tight">
+              {sale === "ended" ? "此團購活動已結束" : "此團購活動尚未開賣"}
+            </h2>
+            <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+              {sale === "ended"
+                ? "目前無法使用團購價格預訂，以上方案與價格僅供瀏覽。"
+                : "開賣後即可選擇方案與入住日期完成預訂。"}
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              已下訂？
+              <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
+                查詢訂單／回報匯款
+              </Link>
+            </p>
+          </section>
+        ) : (
         <section
           id="gb-book"
-          className="mt-12 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
+          className="mt-10 scroll-mt-6 rounded-3xl border border-border/70 bg-card p-5 sm:p-7"
         >
-          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">準備好入住了嗎？</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">選擇您的方案並填寫資料，即可取得匯款資訊完成訂位。</p>
+          <h2 className="text-[1.375rem] font-bold tracking-tight sm:text-[1.625rem]">選擇入住日期</h2>
+          <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
+            無空房的日期已停用，選好日期後填寫訂房資料即可取得匯款資訊。
+          </p>
+
 
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
@@ -560,8 +645,10 @@ export default function GroupBuyCampaign() {
                 max={campaign.stay_end_date}
                 placeholder="選擇入住日"
                 invalid={!!stayErrors.checkIn}
+                unavailableDates={unavailableDates}
                 onChange={setCheckIn}
               />
+
               {stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
             </div>
             <div>
@@ -649,11 +736,15 @@ export default function GroupBuyCampaign() {
             disabled={
               submitting ||
               availability.checking ||
-              availability.ok === false ||
+              availability.ok !== true ||
               nights <= 0 ||
               !selectedPkg ||
               dateBlocked ||
-              sale !== "on_sale"
+              bookingLocked ||
+              !guestName.trim() ||
+              !guestPhone.trim() ||
+              !guestEmail.trim() ||
+              guestCount < 1
             }
             onClick={submit}
           >
@@ -668,6 +759,35 @@ export default function GroupBuyCampaign() {
             </Link>
           </p>
         </section>
+        )}
+
+        {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
+        {campaign.description_html && (
+          <div
+            className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.description_html) }}
+          />
+        )}
+
+        {campaign.gallery_urls?.length > 0 && (
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {campaign.gallery_urls.map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt={venueName || campaign.title}
+                loading="lazy"
+                className="aspect-[4/3] w-full rounded-xl object-cover"
+              />
+            ))}
+          </div>
+        )}
+
+        <GroupBuyVenueIntro
+          accommodationId={campaign.accommodation_id}
+          hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
+        />
+
 
         {campaign.terms_html && (
           <div
