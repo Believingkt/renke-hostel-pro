@@ -38,7 +38,10 @@ export interface VenueAvailabilityResult {
   /** 整館綁定鎖房（只顯示可訂/已滿，不顯示間數） */
   bundledLock: boolean;
   byDate: Map<string, DayAvailability>;
+  /** 各房型逐日庫存（供房型篩選使用）：roomTypeId → date → 狀態 */
+  byRoomType: Map<string, Map<string, DayAvailability>>;
 }
+
 
 /** 取得單一館別在指定日期區間的可訂狀態（全館合計） */
 export async function fetchVenueAvailability(
@@ -49,6 +52,7 @@ export async function fetchVenueAvailability(
     roomTypes: [],
     bundledLock: false,
     byDate: new Map(),
+    byRoomType: new Map(),
   };
   if (!accommodationId || dates.length === 0) return empty;
 
@@ -167,6 +171,31 @@ export async function fetchVenueAvailability(
   }, 0);
 
   const byDate = new Map<string, DayAvailability>();
+  const byRoomType = new Map<string, Map<string, DayAvailability>>();
+  for (const rt of roomTypes) {
+    const isPkg = rt.is_exclusive_package === true;
+    const capacity = pkgAsOne && isPkg ? 1 : rt.room_count || 1;
+    const perDate = new Map<string, DayAvailability>();
+    for (const date of dates) {
+      let avail: number;
+      if (isSensan) {
+        avail = sensanBookedDates.has(date) ? 0 : capacity;
+      } else if (baseIndex.get(`${rt.id}:${date}`) === false) {
+        avail = 0;
+      } else {
+        const adj = adjustedIndex.get(`${rt.id}:${date}`);
+        if (!adj || adj.is_blocked) {
+          avail = 0;
+        } else {
+          const raw = Math.max(0, adj.available_rooms || 0);
+          avail = pkgAsOne && isPkg ? Math.min(1, raw) : Math.min(capacity, raw);
+        }
+      }
+      perDate.set(date, { available: avail, total: capacity, bookable: avail > 0 });
+    }
+    byRoomType.set(rt.id, perDate);
+  }
+
   for (const date of dates) {
     let bookable: boolean;
     if (isSensan) {
@@ -205,5 +234,5 @@ export async function fetchVenueAvailability(
     byDate.set(date, { available, total: totalRooms, bookable });
   }
 
-  return { roomTypes, bundledLock, byDate };
+  return { roomTypes, bundledLock, byDate, byRoomType };
 }
