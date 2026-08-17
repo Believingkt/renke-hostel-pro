@@ -323,8 +323,11 @@ export default function TeamBaseSalaryTab() {
                   )}
                 </div>
               );
-            })}
+                })}
+              </div>
+            ))}
           </div>
+
         )}
       </CardContent>
     </Card>
