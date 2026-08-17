@@ -73,17 +73,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: staging } = await admin
+    const { data: stagingRow } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, project_name, room_quantity, check_in_date, check_out_date, guest_count, adult_count, child_count, nights, total_amount, remaining_amount, currency, payment_status, addons, pii_status, pii_due_at")
+      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, project_name, room_quantity, check_in_date, check_out_date, guest_count, adult_count, child_count, nights, total_amount, remaining_amount, currency, payment_status, addons, pii_status, pii_due_at, created_at")
       .eq("id", tok.staging_id)
       .maybeSingle();
 
-    if (!staging || staging.pii_status === "promoted_to_booking") {
+    if (!stagingRow || stagingRow.pii_status === "promoted_to_booking") {
       return new Response(JSON.stringify({ error: "Order already submitted" }), {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Apply any later 修改 emails for the same OBE so the owner fills in the
+    // CURRENT state of the reservation, not the original one.
+    const mergeRes = await mergeLaterStaging(admin, stagingRow as any);
+    const staging = normalizeMerged(mergeRes.merged, mergeRes.appliedIds.length > 0);
+
 
     const accId = tok.accommodation_id ?? staging.accommodation_id;
     const { data: acc } = await admin
