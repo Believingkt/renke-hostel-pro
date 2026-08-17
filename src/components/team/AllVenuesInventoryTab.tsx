@@ -3,7 +3,7 @@
  * 行銷團隊後台 → 成交大師 → 全館庫存
  * 僅檢視所有使用中館別的真實可訂庫存，不提供任何編輯／設定功能。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -32,10 +32,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
-  fetchVenueAvailability,
+  fetchAllVenuesAvailability,
   type VenueAvailabilityResult,
   type VenueRoomType,
 } from "@/lib/venueAvailability";
+
 
 interface Venue {
   id: string;
@@ -89,34 +90,41 @@ export function AllVenuesInventoryTab() {
     };
   }, []);
 
+  // 已載入的月份快取（切換月份來回時免重打）
+  const cacheRef = useRef<Map<string, Record<string, VenueAvailabilityResult>>>(new Map());
+
   useEffect(() => {
     if (venues.length === 0) return;
+    const cacheKey = `${reloadKey}|${monthValue}|${venues.map((v) => v.id).join(",")}`;
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setDataMap(cached);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
+    setDataMap({});
     (async () => {
-      const next: Record<string, VenueAvailabilityResult> = {};
-      const CONCURRENCY = 3;
-      for (let i = 0; i < venues.length; i += CONCURRENCY) {
-        if (cancelled) return;
-        const batch = venues.slice(i, i + CONCURRENCY);
-        const results = await Promise.all(
-          batch.map(async (v) => {
-            try {
-              return { id: v.id, res: await fetchVenueAvailability(v.id, dateStrings) };
-            } catch {
-              return { id: v.id, res: null };
-            }
-          }),
+      try {
+        const res = await fetchAllVenuesAvailability(
+          venues.map((v) => v.id),
+          dateStrings,
         );
-        for (const r of results) if (r.res) next[r.id] = r.res;
-        if (!cancelled) setDataMap({ ...next });
+        if (cancelled) return;
+        cacheRef.current.set(cacheKey, res);
+        setDataMap(res);
+      } catch {
+        if (!cancelled) setDataMap({});
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [venues, dateStrings, reloadKey]);
+  }, [venues, dateStrings, monthValue, reloadKey]);
+
 
   const shiftMonth = (delta: number) =>
     setMonthValue(format(addMonths(month, delta), "yyyy-MM"));
