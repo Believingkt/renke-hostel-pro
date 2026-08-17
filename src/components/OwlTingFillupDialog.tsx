@@ -130,7 +130,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         autoOrderNumber = ord?.order_number ?? null;
       }
       (data as any).auto_order_number = autoOrderNumber;
-      const row = data as StagingRow & { raw_email_id: string | null };
+      // Apply any LATER 修改 / 取消 emails for the same OBE so we fill in the
+      // CURRENT state of the reservation, not the original one.
+      const mergeRes = await mergeLaterStagingClient(data as any);
+      (mergeRes.merged as any).auto_order_number = autoOrderNumber;
+      setModifications(mergeRes.changes);
+      setCancelledAfterIssue(mergeRes.cancelled);
+      const row = mergeRes.merged as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
       if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
