@@ -1093,6 +1093,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
+    setDiscountEligibleKeys(null);
     setDiscountCode("");
     setManualDiscountStr(null);
     manualDiscountInputRef.current = null;
@@ -1110,6 +1111,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     if (prev === null || prev === discountScopeKey) return;
     if (!appliedDiscount) return;
     setAppliedDiscount(null);
+    setDiscountEligibleKeys(null);
     setManualDiscountStr(null);
     manualDiscountInputRef.current = null;
     toast({
