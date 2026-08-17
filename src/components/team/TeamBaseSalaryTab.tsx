@@ -22,25 +22,27 @@ interface MemberRow {
   role: string;
 }
 
+// 與「成員管理」頁一致的分組優先序（super_admin 置頂，其餘沿用可指派角色順序）
 const ROLE_ORDER = [
   "super_admin",
   "admin",
-  "am_manager",
   "am",
+  "am_manager",
   "scout_manager",
-  "scout",
-  "closer_manager",
-  "closer",
   "franchise_manager",
+  "scout",
+  "closer",
+  "closer_manager",
   "franchise_internal",
-  "franchise",
   "franchise_external",
   "starlink",
-  "venue_manager",
   "owner",
-  "kol",
-  "staff",
+  "finance",
+  "venue_manager",
 ] as const;
+
+/** Norris 顯示上不掛 super_admin（與成員管理頁一致） */
+const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "超級管理員",
@@ -105,13 +107,16 @@ export default function TeamBaseSalaryTab() {
         .from("team_base_salaries")
         .select("id, user_id, amount, effective_from, note, created_at, created_by_email")
         .order("effective_from", { ascending: false }),
-      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
     ]);
 
     const rolesByUser = new Map<string, string[]>();
     ((roleRows ?? []) as any[]).forEach((r) => {
+      const role = String(r.role);
+      if (!(ROLE_ORDER as readonly string[]).includes(role)) return;
+      if (r.user_id === NORRIS_USER_ID && role === "super_admin") return;
       const list = rolesByUser.get(r.user_id) ?? [];
-      list.push(String(r.role));
+      list.push(role);
       rolesByUser.set(r.user_id, list);
     });
 
