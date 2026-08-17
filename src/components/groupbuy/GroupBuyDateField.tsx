@@ -21,14 +21,28 @@ interface Props {
   max?: string | null;
   placeholder?: string;
   invalid?: boolean;
+  disabled?: boolean;
+  /** 已無庫存、不可選取的日期（yyyy-MM-dd） */
+  unavailableDates?: Set<string>;
 }
 
 /** 團購頁專用的日期選擇器：品牌樣式日曆，取代原生 date input */
-export function GroupBuyDateField({ id, value, onChange, min, max, placeholder = "選擇日期", invalid }: Props) {
+export function GroupBuyDateField({
+  id,
+  value,
+  onChange,
+  min,
+  max,
+  placeholder = "選擇日期",
+  invalid,
+  disabled,
+  unavailableDates,
+}: Props) {
   const [open, setOpen] = useState(false);
   const selected = toDate(value);
   const minDate = toDate(min);
   const maxDate = toDate(max);
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
