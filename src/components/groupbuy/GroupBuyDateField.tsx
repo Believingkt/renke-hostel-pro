@@ -51,6 +51,7 @@ export function GroupBuyDateField({
           id={id}
           type="button"
           variant="outline"
+          disabled={disabled}
           aria-invalid={invalid || undefined}
           className={cn(
             "h-11 w-full justify-start gap-2 rounded-xl px-3 text-left text-base font-normal",
@@ -73,7 +74,12 @@ export function GroupBuyDateField({
             onChange(format(d, "yyyy-MM-dd"));
             setOpen(false);
           }}
-          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          disabled={(d) =>
+            (minDate ? d < minDate : false) ||
+            (maxDate ? d > maxDate : false) ||
+            (unavailableDates ? unavailableDates.has(format(d, "yyyy-MM-dd")) : false)
+          }
+
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />
