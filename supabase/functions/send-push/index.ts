@@ -142,9 +142,20 @@ serve(async (req) => {
       .eq("user_id", userId)
       .eq("is_active", true);
 
+    console.log("[send-push]", {
+      event: input.event,
+      orderId: input.orderId,
+      userId,
+      tokenCount: tokens?.length ?? 0,
+      tokens: (tokens ?? []).map((t) => String(t.token).slice(0, 8)),
+      host: Deno.env.get("APNS_ENV") === "sandbox" ? "sandbox" : "production",
+      topic: Deno.env.get("APNS_TOPIC") || "com.lakeze.booking",
+    });
+
     if (!tokens || tokens.length === 0) {
       return json({ success: true, sent: 0, reason: "no_tokens" });
     }
+
 
     let jwt: string;
     try {
