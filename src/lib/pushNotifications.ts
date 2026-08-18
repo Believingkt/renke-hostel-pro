@@ -81,10 +81,14 @@ async function saveToken(token: string) {
     );
   if (error) {
     console.error("[push] upsert device_token failed", error);
-    debugToast("寫入 device token 失敗", error);
+    debugToast(
+      "寫入 device token 失敗",
+      `${error.message}${(error as any).code ? ` (code ${(error as any).code})` : ""}${(error as any).hint ? ` / ${(error as any).hint}` : ""}`,
+    );
     return;
   }
   console.log("[push] device token saved", token.slice(0, 8));
+  toast.success(`[push] device token saved ${token.slice(0, 8)}`, { duration: 8000 });
 }
 
 
@@ -155,8 +159,15 @@ export async function bootstrapPushForExistingSession(): Promise<void> {
   if (!isNativeApp()) return;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-    await initPushNotifications();
+    if (!session?.user) {
+      toast.message("[push] 啟動註冊略過：尚未登入會員", { duration: 8000 });
+      return;
+    }
+    toast.message("[push] 啟動註冊開始…", { duration: 5000 });
+    const state = await initPushNotifications();
+    if (state !== "granted") {
+      toast.error(`[push] 啟動註冊未完成：權限 ${state}`, { duration: 10000 });
+    }
   } catch (e) {
     console.error("[push] bootstrap failed", e);
     debugToast("推播啟動檢查失敗", e);
