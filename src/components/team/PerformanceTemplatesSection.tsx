@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Copy, ExternalLink, Plus, Star, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Copy, ExternalLink, Plus, RotateCcw, Star, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 
 export interface PerfTemplate {
   id: string;
@@ -87,6 +87,17 @@ export default function PerformanceTemplatesSection({
 
   const active = items.find((t) => t.id === activeId) ?? null;
   const primary = items.find((t) => t.is_primary) ?? null;
+
+  // 模板內容為空時，直接把系統預設模板文字帶入編輯框，
+  // 讓使用者看得到原本長相（避免只顯示 placeholder 而不知內容）
+  useEffect(() => {
+    if (!active) return;
+    if ((active.body ?? "").trim() !== "") return;
+    setItems((prev) =>
+      prev.map((t) => (t.id === active.id ? { ...t, body: defaultBody } : t)),
+    );
+  }, [active?.id, active?.body, defaultBody]);
+
 
   const patchActive = (patch: Partial<PerfTemplate>) => {
     if (!active) return;
@@ -320,13 +331,23 @@ export default function PerformanceTemplatesSection({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1">
-                {templateVars.map((v) => (
-                  <Badge key={v} variant="outline" className="cursor-pointer hover:bg-muted"
-                    onClick={() => insertVar(v)}>
-                    {v}
-                  </Badge>
-                ))}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-1">
+                  {templateVars.map((v) => (
+                    <Badge key={v} variant="outline" className="cursor-pointer hover:bg-muted"
+                      onClick={() => insertVar(v)}>
+                      {v}
+                    </Badge>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => patchActive({ body: defaultBody })}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" /> 還原系統預設模板
+                </Button>
               </div>
 
               <Textarea
@@ -334,9 +355,9 @@ export default function PerformanceTemplatesSection({
                 rows={16}
                 className="font-mono text-sm"
                 value={active.body}
-                placeholder="留空則使用系統預設模板"
                 onChange={(e) => patchActive({ body: e.target.value })}
               />
+
 
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>
