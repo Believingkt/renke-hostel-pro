@@ -475,33 +475,13 @@ export default function TeamNotification() {
                   </p>
                 </section>
 
-                {/* Template */}
-                <section className="space-y-2">
-                  <h3 className="font-semibold">通知模板</h3>
-                  <div className="flex flex-wrap gap-1">
-                    {[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].map((v) => (
-                      <Badge
-                        key={v}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-muted"
-                        onClick={() => insertVar(v)}
-                      >
-                        {v}
-                      </Badge>
-                    ))}
-                  </div>
-                  <Textarea
-                    ref={templateRef}
-                    rows={hasFranchise ? 20 : 12}
-                    value={current.email_template ? current.email_template : buildDefaultTemplate(hasFranchise)}
-                    onChange={(e) => patchCurrent({ email_template: e.target.value })}
-                    placeholder="留空則使用系統預設模板"
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    留空則使用系統預設模板。可用變數：{[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].join("、")}
-                  </p>
-                </section>
+                {/* Templates（方案 B：多模板） */}
+                <PerformanceTemplatesSection
+                  accommodationId={selectedId}
+                  defaultBody={buildDefaultTemplate(hasFranchise)}
+                  templateVars={[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])]}
+                />
+
 
 
                 <div className="flex justify-end gap-2">
