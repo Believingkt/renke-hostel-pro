@@ -120,15 +120,21 @@ function FormulaLine({
  */
 export function BonusRulesReference({ scopedOnly = false }: { scopedOnly?: boolean } = {}) {
   const allGroups = groupedBonusFormulas();
-  const { roles, userId } = useTeam();
+  const { roles: myRoles, userId } = useTeam();
+  const isAdmin = isRateAdmin(myRoles);
+  // 管理員預覽模式：以指定角色的視角檢視隱藏結果
+  const [previewRole, setPreviewRole] = useState<TeamRole | "off">("off");
+  const preview = isAdmin && previewRole !== "off";
+  const roles = preview ? ([previewRole] as TeamRole[]) : myRoles;
+  const scoped = scopedOnly || preview;
   // 一般成員：只保留自己（含主管所轄）角色的獎金項目
-  const groups = scopedOnly
+  const groups = scoped
     ? allGroups
         .map((g) => ({ ...g, items: g.items.filter((f) => isBonusItemInScope(f.key, roles)) }))
         .filter((g) => g.items.length > 0)
     : allGroups;
-  const { globalRates, venueRates } = useCurrentBonusRates(roles, userId);
-  const admin = isRateAdmin(roles);
+  const { globalRates, venueRates } = useCurrentBonusRates(myRoles, userId);
+  const admin = isAdmin && !preview;
 
   useEffect(() => {
     const id = window.location.hash.slice(1);
