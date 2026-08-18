@@ -623,7 +623,13 @@ export default function Reception() {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div>{o.guest_name ?? "—"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span>{o.guest_name ?? "—"}</span>
+                            {mode === "checkin" && o.check_in_date < targetDate && (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">續住</span>
+                            )}
+                          </div>
+
                           {o.guest_phone && (
                             <div className="text-xs text-muted-foreground mt-0.5">{o.guest_phone}</div>
                           )}
