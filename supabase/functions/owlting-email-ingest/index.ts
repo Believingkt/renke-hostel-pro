@@ -36,7 +36,7 @@ function parseSubject(subject: string | null): ParsedSubject {
   // Detect message type by keywords. 2026-07-19: 收緊比對，避免「等待付款通知」內文含「取消」政策被誤判。
   if (/取消通知|訂單已取消|已取消|cancel/i.test(subject)) out.message_type = "cancelled";
   else if (/修改通知|變更通知|訂單已修改|訂單已變更|modif/i.test(subject)) out.message_type = "modified";
-  else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|等待付款|待付款通知|new\s*(order|booking)/i.test(subject)) out.message_type = "new_order";
+  else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|新預定|新預訂|預定通知|預訂通知|等待付款|待付款通知|new\s*(order|booking)/i.test(subject)) out.message_type = "new_order";
 
   // Extract OBE number (typical format: OBE followed by digits/letters)
   const obeMatch = subject.match(/\b(OBE[\w-]+)\b/i);
