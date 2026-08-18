@@ -523,7 +523,9 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       event_types: g.event_types ?? [],
       accommodation_ids: g.accommodation_ids ?? [],
       custom_venue_ids: g.custom_venue_ids ?? [],
+      performance_template_id: (g as any).performance_template_id ?? null,
       is_active: g.is_active,
+
     });
     setVenueInput("");
   };
