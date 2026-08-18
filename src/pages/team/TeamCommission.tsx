@@ -602,6 +602,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           order_number?: string | null;
           base_revenue?: number | null;
           range_note?: string | null;
+          rate_value?: number | null;
+          rate_kind?: string | null;
+          split_headcount?: number | null;
+          prorate_ratio?: number | null;
         },
       ) => {
         if (!amount || amount === 0) return;
@@ -622,6 +626,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           base_revenue: extra?.base_revenue ?? null,
           range_note: extra?.range_note ?? null,
           order_number: extra?.order_number ?? null,
+          rate_value: extra?.rate_value ?? null,
+          rate_kind: extra?.rate_kind ?? null,
+          split_headcount: extra?.split_headcount ?? null,
+          prorate_ratio: extra?.prorate_ratio ?? null,
         });
       };
 
