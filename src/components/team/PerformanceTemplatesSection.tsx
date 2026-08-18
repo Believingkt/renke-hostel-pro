@@ -290,15 +290,16 @@ export default function PerformanceTemplatesSection({
 
           {/* Editor */}
           {active && (
-            <div className="space-y-3 border rounded-md p-3">
+            <div className="space-y-3 border rounded-md p-3 min-w-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <Label className="text-xs">模板名稱</Label>
                   <Input value={active.name} onChange={(e) => patchActive({ name: e.target.value })} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <Label className="text-xs">狀態</Label>
-                  <div className="flex items-center gap-4 h-10">
+                  <div className="flex items-center gap-4 flex-wrap min-h-10">
+
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={active.enabled}
