@@ -30,7 +30,7 @@ interface Props {
 
 interface TargetRow {
   id: string;
-  label: string | null;
+  display_name: string | null;
   performance_template_id: string | null;
   accommodation_ids: string[] | null;
   custom_venue_ids: string[] | null;
@@ -59,12 +59,15 @@ export default function PerformanceTemplatesSection({
         .order("display_order", { ascending: true }),
       supabase
         .from("line_push_targets")
-        .select("id,label,performance_template_id,accommodation_ids,custom_venue_ids,custom_venue_names,event_types")
+        .select("id,display_name,performance_template_id,accommodation_ids,custom_venue_ids,custom_venue_names,event_types")
         .eq("is_active", true),
     ]);
     if (tplRes.error) {
       toast.error("載入模板失敗：" + tplRes.error.message);
       return;
+    }
+    if (tgtRes.error) {
+      toast.error("載入 LINE 群組失敗：" + tgtRes.error.message);
     }
     const rows = (tplRes.data || []) as unknown as PerfTemplate[];
     setItems(rows);
@@ -364,7 +367,7 @@ export default function PerformanceTemplatesSection({
                   訂閱此模板的 LINE 群組：
                   {groupsUsing(active.id).length === 0
                     ? "（尚無）"
-                    : groupsUsing(active.id).map((g) => g.label || g.id).join("、")}
+                    : groupsUsing(active.id).map((g) => g.display_name || g.id).join("、")}
                 </p>
                 <p>
                   未指定模板的群組會自動使用「完整版」。要調整群組訂閱，請至{" "}
