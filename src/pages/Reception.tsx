@@ -249,8 +249,7 @@ export default function Reception() {
     if (!currentAccommodationId) return;
     setLoading(true);
     try {
-      const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-      const { data, error } = await supabase
+      let query = supabase
         .from("orders")
         .select(
           `id, order_number, guest_name, guest_phone,
@@ -261,9 +260,13 @@ export default function Reception() {
            rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ), room_unit:room_units ( unit_number, display_order ) )`
         )
         .eq("accommodation_id", currentAccommodationId)
-        .eq(col, targetDate)
-        .neq("order_status", "cancelled")
-        .order("order_number", { ascending: true });
+        .neq("order_status", "cancelled");
+      // 入住頁：住宿期間內（含續住）都顯示；退房頁：退房日當天
+      query = mode === "checkin"
+        ? query.lte("check_in_date", targetDate).gt("check_out_date", targetDate)
+        : query.eq("check_out_date", targetDate);
+      const { data, error } = await query.order("order_number", { ascending: true });
+
       if (error) throw error;
       setOrders((data ?? []) as unknown as ReceptionOrder[]);
       setLastRefreshedAt(new Date());
