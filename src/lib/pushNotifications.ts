@@ -54,10 +54,19 @@ async function loadPlugin() {
 }
 
 async function saveToken(token: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr) {
+    console.error("[push] getUser failed", userErr);
+    debugToast("取得登入狀態失敗", userErr);
+    return;
+  }
+  if (!user) {
+    console.warn("[push] no session, token not saved");
+    toast.error("尚未登入會員，推播 token 未寫入（請登入後重開 App）", { duration: 12000 });
+    return;
+  }
   const platform = /android/i.test(navigator.userAgent) ? "android" : "ios";
-  await supabase
+  const { error } = await supabase
     .from("device_tokens")
     .upsert(
       {
@@ -70,7 +79,14 @@ async function saveToken(token: string) {
       },
       { onConflict: "token" },
     );
+  if (error) {
+    console.error("[push] upsert device_token failed", error);
+    debugToast("寫入 device token 失敗", error);
+    return;
+  }
+  console.log("[push] device token saved", token.slice(0, 8));
 }
+
 
 let listenersBound = false;
 
