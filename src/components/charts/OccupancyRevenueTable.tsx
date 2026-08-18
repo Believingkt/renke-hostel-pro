@@ -113,7 +113,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
       const endDate = `${selectedYear}-12-31`;
 
       const [roomTypesRes, holidaysRes, accRes, ordersAll] = await Promise.all([
-        supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
+        supabase.from('room_types').select('id, name, room_count, is_exclusive_package, blocks_all_inventory').eq('accommodation_id', accommodationId),
         supabase.from('public_holidays')
           .select('holiday_date, holiday_type')
           .eq('accommodation_id', accommodationId)
@@ -217,6 +217,10 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
     const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap, dailyVillaCap, dailyRoomCap, accName } = data;
 
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+    // 全區／全棟綁定主控房型：被訂走當天整館鎖定 → 住房率視為當日容量全數佔用
+    const blocksAllRoomTypeIds = new Set(
+      roomTypes.filter((rt: any) => rt.blocks_all_inventory === true).map(rt => rt.id)
+    );
     const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
     const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
 
@@ -350,6 +354,12 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
           standardQty = 1;
         }
 
+
+        // 全區／全棟綁定：訂單含主控房型 → 當天整館鎖定，住房率以當日容量全佔計算
+        const blocksAllBooked = orderRooms.length > 0
+          ? orderRooms.some(or => blocksAllRoomTypeIds.has(or.room_type_id))
+          : !!(order.room_type_id && blocksAllRoomTypeIds.has(order.room_type_id));
+
         const totalQty = exclusiveQty + standardQty;
         if (totalQty === 0) return;
 
@@ -368,11 +378,17 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
           // 管理員啟用分流（adminSplit）時：包棟訂單以「棟」計，數量取 order_rooms 中
           // exclusive 類型的 quantity 加總（每列代表 1 棟，允許單筆訂單多棟）。
           const villaUnitQty = villaAsSingleUnit ? exclusiveQty : exclusiveQty;
-          const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
+          const fullHouse = sensanExclusiveFull || oliviaLockFull || blocksAllBooked;
+          const effectiveTotalQty = fullHouse
             ? allCapacity
             : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
-          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
-          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
+          const effectiveExclusiveQty = blocksAllBooked
+            ? exclusiveCap
+            : (sensanExclusiveFull ? allCapacity : villaUnitQty);
+          const effectiveStandardQty = blocksAllBooked
+            ? standardCap
+            : (sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty));
+
 
 
           if (countForOccupancy) {
