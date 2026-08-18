@@ -132,7 +132,13 @@ function extractAccommodationFromHello(flat: string): string | null {
 function extractAccommodationFromOwlNestDirect(flat: string): string | null {
   const m = flat.match(OWLNEST_DIRECT_RE);
   if (!m) return null;
-  const candidate = m[1].trim().replace(/^[「【]/, "").trim();
+  // 前面常黏著「您好： 您有新訂單！」等句子，取最後一段標點之後的文字
+  const candidate = m[1]
+    .split(/[！!。；;，,、？?：:]/)
+    .pop()!
+    .trim()
+    .replace(/^[「【]/, "")
+    .trim();
   if (!candidate || candidate.length > 40) return null;
   if (/^owlting$/i.test(candidate)) return null;
   return candidate;
