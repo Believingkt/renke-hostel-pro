@@ -5600,6 +5600,7 @@ export type Database = {
           event_types: string[]
           id: string
           is_active: boolean
+          performance_template_id: string | null
           roles: string[]
           target_id: string
           target_type: string
@@ -5616,6 +5617,7 @@ export type Database = {
           event_types?: string[]
           id?: string
           is_active?: boolean
+          performance_template_id?: string | null
           roles?: string[]
           target_id: string
           target_type: string
@@ -5632,6 +5634,7 @@ export type Database = {
           event_types?: string[]
           id?: string
           is_active?: boolean
+          performance_template_id?: string | null
           roles?: string[]
           target_id?: string
           target_type?: string
@@ -5644,6 +5647,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "line_oa_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_push_targets_performance_template_id_fkey"
+            columns: ["performance_template_id"]
+            isOneToOne: false
+            referencedRelation: "performance_notification_templates"
             referencedColumns: ["id"]
           },
           {
@@ -8826,6 +8836,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_member_profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      performance_notification_templates: {
+        Row: {
+          accommodation_id: string
+          body: string
+          created_at: string
+          display_order: number
+          enabled: boolean
+          id: string
+          include_modified_notice: boolean
+          is_primary: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          body?: string
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          include_modified_notice?: boolean
+          is_primary?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          body?: string
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          include_modified_notice?: boolean
+          is_primary?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_notification_templates_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
           },
         ]
       }
