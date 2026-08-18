@@ -212,14 +212,18 @@ export default function Reception() {
       tomorrow: offsetDateStr(1),
     };
     const fetchOne = async (date: string, kind: "checkin" | "checkout") => {
-      const col = kind === "checkin" ? "check_in_date" : "check_out_date";
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
         .select("id, checked_in_at, checked_out_at")
         .eq("accommodation_id", currentAccommodationId)
-        .eq(col, date)
         .neq("order_status", "cancelled");
+      // 入住頁：住宿期間內（含當日入住與續住）都要顯示，直到退房日才移出
+      q = kind === "checkin"
+        ? q.lte("check_in_date", date).gt("check_out_date", date)
+        : q.eq("check_out_date", date);
+      const { data, error } = await q;
       if (error) return { total: 0, done: 0 };
+
       const total = data?.length ?? 0;
       const done =
         kind === "checkin"
@@ -245,8 +249,7 @@ export default function Reception() {
     if (!currentAccommodationId) return;
     setLoading(true);
     try {
-      const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-      const { data, error } = await supabase
+      let query = supabase
         .from("orders")
         .select(
           `id, order_number, guest_name, guest_phone,
@@ -257,9 +260,13 @@ export default function Reception() {
            rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ), room_unit:room_units ( unit_number, display_order ) )`
         )
         .eq("accommodation_id", currentAccommodationId)
-        .eq(col, targetDate)
-        .neq("order_status", "cancelled")
-        .order("order_number", { ascending: true });
+        .neq("order_status", "cancelled");
+      // 入住頁：住宿期間內（含續住）都顯示；退房頁：退房日當天
+      query = mode === "checkin"
+        ? query.lte("check_in_date", targetDate).gt("check_out_date", targetDate)
+        : query.eq("check_out_date", targetDate);
+      const { data, error } = await query.order("order_number", { ascending: true });
+
       if (error) throw error;
       setOrders((data ?? []) as unknown as ReceptionOrder[]);
       setLastRefreshedAt(new Date());
@@ -616,7 +623,13 @@ export default function Reception() {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div>{o.guest_name ?? "—"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span>{o.guest_name ?? "—"}</span>
+                            {mode === "checkin" && o.check_in_date < targetDate && (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">續住</span>
+                            )}
+                          </div>
+
                           {o.guest_phone && (
                             <div className="text-xs text-muted-foreground mt-0.5">{o.guest_phone}</div>
                           )}
@@ -758,7 +771,13 @@ export default function Reception() {
                     </div>
 
                     <div className="text-sm">
-                      <div className="font-medium">{o.guest_name ?? "—"}</div>
+                      <div className="font-medium flex items-center gap-1.5">
+                        <span>{o.guest_name ?? "—"}</span>
+                        {mode === "checkin" && o.check_in_date < targetDate && (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">續住</span>
+                        )}
+                      </div>
+
                       {o.guest_phone && (
                         <div className="text-xs text-muted-foreground">{o.guest_phone}</div>
                       )}
