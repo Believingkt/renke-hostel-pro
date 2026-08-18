@@ -861,7 +861,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               label,
               detail,
               l.amount,
-              { venue_name: l.name, base_revenue: l.revenue ? Math.round(l.revenue) : null },
+              {
+                venue_name: l.name,
+                base_revenue: l.revenue ? Math.round(l.revenue) : null,
+                rate_value: l.rateValue,
+                rate_kind: l.rateKind,
+                split_headcount: l.splitHeadcount,
+                prorate_ratio: l.prorateRatio,
+              },
             );
           });
           continue;
