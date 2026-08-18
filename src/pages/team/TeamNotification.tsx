@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import PerformanceTemplatesSection from "@/components/team/PerformanceTemplatesSection";
+import PerformanceTemplatesSection, { type PerformanceTemplatesHandle } from "@/components/team/PerformanceTemplatesSection";
 
 
 interface Accommodation {
@@ -212,6 +212,8 @@ export default function TeamNotification() {
     }));
   };
 
+  const templatesRef = useRef<PerformanceTemplatesHandle>(null);
+
   const handleSave = async () => {
     if (!current) return;
     setSaving(true);
@@ -238,6 +240,8 @@ export default function TeamNotification() {
       toast.error("儲存失敗：" + error.message);
       return;
     }
+    const tplOk = await templatesRef.current?.save();
+    if (tplOk === false) return;
     toast.success("已儲存");
     await loadAll();
   };
@@ -461,6 +465,7 @@ export default function TeamNotification() {
 
                 {/* Templates（方案 B：多模板） */}
                 <PerformanceTemplatesSection
+                  ref={templatesRef}
                   accommodationId={selectedId}
                   defaultBody={buildDefaultTemplate(hasFranchise)}
                   templateVars={[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])]}
