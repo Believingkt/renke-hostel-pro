@@ -9,6 +9,23 @@ import { groupedBonusFormulas, type BonusFormula } from "@/lib/bonusFormulas";
 import { BONUS_RATE_META, canViewBonusRate, isBonusItemInScope, isRateAdmin } from "@/lib/bonusRateMeta";
 import { useCurrentBonusRates, type VenueRate } from "@/hooks/use-current-bonus-rates";
 import { useTeam } from "@/components/team/TeamContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { TeamRole } from "@/components/team/teamConfig";
+
+/** 管理員預覽模式可切換的角色（僅列有獎金項目的角色） */
+const PREVIEW_ROLES: { value: TeamRole; label: string }[] = [
+  { value: "am", label: "AM" },
+  { value: "am_manager", label: "AM總管" },
+  { value: "closer", label: "成交組" },
+  { value: "closer_manager", label: "成交組主管" },
+  { value: "scout", label: "星探" },
+  { value: "scout_manager", label: "星探主管" },
+  { value: "franchise_internal", label: "特許加盟內部" },
+  { value: "franchise_external", label: "特許加盟外部" },
+  { value: "franchise_manager", label: "特許加盟主管" },
+  { value: "starlink", label: "星鏈" },
+  { value: "venue_manager", label: "業主" },
+];
 
 function fmtRate(rate: number | null | undefined): string | null {
   if (rate === null || rate === undefined) return null;
