@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,11 +38,14 @@ interface TargetRow {
   event_types: string[] | null;
 }
 
-export default function PerformanceTemplatesSection({
-  accommodationId,
-  defaultBody,
-  templateVars,
-}: Props) {
+export interface PerformanceTemplatesHandle {
+  save: () => Promise<boolean>;
+}
+
+const PerformanceTemplatesSection = forwardRef<PerformanceTemplatesHandle, Props>(function PerformanceTemplatesSection(
+  { accommodationId, defaultBody, templateVars }: Props,
+  ref,
+) {
   const [items, setItems] = useState<PerfTemplate[]>([]);
   const [targets, setTargets] = useState<TargetRow[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -135,8 +138,8 @@ export default function PerformanceTemplatesSection({
     if (data?.id) setActiveId(data.id as string);
   };
 
-  const handleSave = async () => {
-    if (!active) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!active) return true;
     setSaving(true);
     const { error } = await supabase
       .from("performance_notification_templates")
@@ -149,12 +152,14 @@ export default function PerformanceTemplatesSection({
       .eq("id", active.id);
     setSaving(false);
     if (error) {
-      toast.error("儲存失敗：" + error.message);
-      return;
+      toast.error("模板儲存失敗：" + error.message);
+      return false;
     }
-    toast.success("模板已儲存");
     await load();
+    return true;
   };
+
+  useImperativeHandle(ref, () => ({ save: handleSave }), [active, load]);
 
   const handleSetPrimary = async (tpl: PerfTemplate) => {
     if (tpl.is_primary) return;
@@ -385,4 +390,6 @@ export default function PerformanceTemplatesSection({
       )}
     </section>
   );
-}
+});
+
+export default PerformanceTemplatesSection;
