@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
-import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { isNativeApp } from "@/lib/appMode";
@@ -25,7 +24,6 @@ const PushNotificationCard = () => {
     // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
     const next = await initPushNotifications({ force: true });
     console.log("[push] enable() result:", next);
-    toast.message(`推播開關結果：${next}`, { duration: 10000 });
     setState(next);
   };
 
