@@ -375,11 +375,10 @@ export default function PerformanceTemplatesSection({
                 </p>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "儲存中..." : "儲存模板"}
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                模板內容會在按下下方「儲存設定」時一併儲存。
+              </p>
+
             </div>
           )}
         </div>
