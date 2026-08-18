@@ -79,6 +79,7 @@ const PushDiagnosticsCard = () => {
       }
 
       // 5
+      let tokenValue = "";
       const result = await new Promise<{ kind: string; detail: string }>((resolve) => {
         let done = false;
         const finish = (kind: string, detail: string) => {
@@ -88,7 +89,8 @@ const PushDiagnosticsCard = () => {
         };
         let h1: any, h2: any;
         PushNotifications.addListener("registration", (t: any) => {
-          finish("registration", `token 前 8 碼 = ${String(t?.value ?? "").slice(0, 8)} (len=${String(t?.value ?? "").length})`);
+          tokenValue = String(t?.value ?? "");
+          finish("registration", `token 前 8 碼 = ${tokenValue.slice(0, 8)} (len=${tokenValue.length})`);
         }).then((h: any) => (h1 = h));
         PushNotifications.addListener("registrationError", (err: any) => {
           finish("registrationError", safe((err as any)?.error ?? err));
