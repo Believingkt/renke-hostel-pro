@@ -1588,6 +1588,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                       <TableRow>
                                         <TableHead>館別</TableHead>
                                         <TableHead className="w-[120px] text-right">營收</TableHead>
+                                        <TableHead className="w-[150px] text-right">本次費率</TableHead>
                                         <TableHead className="w-[90px] text-right">筆數</TableHead>
                                         <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
