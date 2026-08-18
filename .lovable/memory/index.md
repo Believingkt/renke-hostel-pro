@@ -7,3 +7,4 @@
 - [Group Buy Module](mem://features/platform/group-buy-module.md) — 網紅團購頁路由、匯款對帳、72h 逾期取消、分潤與既有團隊獎金隔離。
 - [全區／全棟綁定](mem://features/admin/block-all-inventory-binding.md) — blocks_all_inventory 主控房型與範圍房型雙向整天鎖定，主控之間不互鎖。
 - [Discount Scope Mode](mem://features/admin/discount-scope-mode.md) — 折扣碼適用範圍：館別可選房型或房價方案判斷（舊三家維持房型）。
+- [OwlTing 官網信補單](mem://integrations/owlting-official-site-email.md) — 官網（OwlNest 直訂）信辨識、館名抽取、訂金計算與防重複回推規則；補單一律要判斷官網信。
