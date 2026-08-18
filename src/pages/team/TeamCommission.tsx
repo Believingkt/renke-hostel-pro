@@ -235,7 +235,14 @@ interface PayoutRuleRow {
   effective_from: string;
 }
 
-function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
+function PayoutRulesBlock({
+  readOnly = false,
+  scopedOnly = false,
+}: {
+  readOnly?: boolean;
+  /** 一般成員：只顯示自己（含主管所轄）角色的獎金說明 */
+  scopedOnly?: boolean;
+}) {
   void readOnly;
   return (
     <Card>
