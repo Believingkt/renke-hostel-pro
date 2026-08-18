@@ -771,7 +771,13 @@ export default function Reception() {
                     </div>
 
                     <div className="text-sm">
-                      <div className="font-medium">{o.guest_name ?? "—"}</div>
+                      <div className="font-medium flex items-center gap-1.5">
+                        <span>{o.guest_name ?? "—"}</span>
+                        {mode === "checkin" && o.check_in_date < targetDate && (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">續住</span>
+                        )}
+                      </div>
+
                       {o.guest_phone && (
                         <div className="text-xs text-muted-foreground">{o.guest_phone}</div>
                       )}
