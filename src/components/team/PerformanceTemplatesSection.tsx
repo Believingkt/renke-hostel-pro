@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Copy, ExternalLink, Plus, Star, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Copy, ExternalLink, Plus, RotateCcw, Star, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 
 export interface PerfTemplate {
   id: string;
