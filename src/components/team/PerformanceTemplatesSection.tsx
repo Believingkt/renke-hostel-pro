@@ -88,6 +88,17 @@ export default function PerformanceTemplatesSection({
   const active = items.find((t) => t.id === activeId) ?? null;
   const primary = items.find((t) => t.is_primary) ?? null;
 
+  // 模板內容為空時，直接把系統預設模板文字帶入編輯框，
+  // 讓使用者看得到原本長相（避免只顯示 placeholder 而不知內容）
+  useEffect(() => {
+    if (!active) return;
+    if ((active.body ?? "").trim() !== "") return;
+    setItems((prev) =>
+      prev.map((t) => (t.id === active.id ? { ...t, body: defaultBody } : t)),
+    );
+  }, [active?.id, active?.body, defaultBody]);
+
+
   const patchActive = (patch: Partial<PerfTemplate>) => {
     if (!active) return;
     setItems((prev) => prev.map((t) => (t.id === active.id ? { ...t, ...patch } : t)));
