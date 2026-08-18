@@ -354,6 +354,12 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
           standardQty = 1;
         }
 
+
+        // 全區／全棟綁定：訂單含主控房型 → 當天整館鎖定，住房率以當日容量全佔計算
+        const blocksAllBooked = orderRooms.length > 0
+          ? orderRooms.some(or => blocksAllRoomTypeIds.has(or.room_type_id))
+          : !!(order.room_type_id && blocksAllRoomTypeIds.has(order.room_type_id));
+
         const totalQty = exclusiveQty + standardQty;
         if (totalQty === 0) return;
 
@@ -372,11 +378,17 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
           // 管理員啟用分流（adminSplit）時：包棟訂單以「棟」計，數量取 order_rooms 中
           // exclusive 類型的 quantity 加總（每列代表 1 棟，允許單筆訂單多棟）。
           const villaUnitQty = villaAsSingleUnit ? exclusiveQty : exclusiveQty;
-          const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
+          const fullHouse = sensanExclusiveFull || oliviaLockFull || blocksAllBooked;
+          const effectiveTotalQty = fullHouse
             ? allCapacity
             : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
-          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
-          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
+          const effectiveExclusiveQty = blocksAllBooked
+            ? exclusiveCap
+            : (sensanExclusiveFull ? allCapacity : villaUnitQty);
+          const effectiveStandardQty = blocksAllBooked
+            ? standardCap
+            : (sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty));
+
 
 
           if (countForOccupancy) {
