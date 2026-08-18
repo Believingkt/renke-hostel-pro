@@ -134,22 +134,28 @@ const MemberMessages = () => {
   const [showBanner, setShowBanner] = useState(true);
 
   useEffect(() => {
-    void getPushPermissionState().then((state) => setNotifyOn(state === "granted"));
+    void isPushEnabled().then(setNotifyOn);
   }, []);
 
   const handleNotificationToggle = async (checked: boolean) => {
+    toast.message(checked ? "正在開啟通知…" : "通知開關", { duration: 4000 });
+
     if (!checked) {
       toast.message("請至裝置系統設定關閉通知");
-      setNotifyOn(await getPushPermissionState().then((state) => state === "granted"));
+      setNotifyOn(await isPushEnabled());
       return;
     }
 
     const state = await initPushNotifications({ force: true });
-    setNotifyOn(state === "granted");
-    if (state !== "granted") {
+    const enabled = await isPushEnabled();
+    setNotifyOn(enabled);
+    if (!enabled) {
       toast.error(`通知未開啟：${state}`, { duration: 10000 });
+    } else {
+      toast.success("已開啟通知");
     }
   };
+
 
   const renderList = (items: any[]) => (
     <div>
