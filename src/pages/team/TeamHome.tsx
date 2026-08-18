@@ -4,6 +4,7 @@ import BonusFormulaHint from "@/components/team/BonusFormulaHint";
 import ZeroBonusReason from "@/components/team/ZeroBonusReason";
 import {
   BONUS_CATEGORY_LABEL,
+  BONUS_FORMULAS,
   getBonusFormula,
   type BonusCategory,
 } from "@/lib/bonusFormulas";
