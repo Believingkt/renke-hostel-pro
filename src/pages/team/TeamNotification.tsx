@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PerformanceTemplatesSection from "@/components/team/PerformanceTemplatesSection";
+
 
 interface Accommodation {
   id: string;
@@ -160,7 +162,7 @@ export default function TeamNotification() {
   const [settingsMap, setSettingsMap] = useState<Record<string, SettingsRow>>({});
   const [selectedId, setSelectedId] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const templateRef = useRef<HTMLTextAreaElement>(null);
+  
 
   useEffect(() => {
     if (!canAccess) return;
@@ -240,24 +242,6 @@ export default function TeamNotification() {
     await loadAll();
   };
 
-  const insertVar = (v: string) => {
-    const el = templateRef.current;
-    const tmpl = current?.email_template || buildDefaultTemplate(hasFranchise);
-    if (!el) {
-      patchCurrent({ email_template: tmpl + v });
-      return;
-    }
-    const start = el.selectionStart ?? tmpl.length;
-    const end = el.selectionEnd ?? tmpl.length;
-    const next = tmpl.slice(0, start) + v + tmpl.slice(end);
-    patchCurrent({ email_template: next });
-
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + v.length;
-      el.setSelectionRange(pos, pos);
-    });
-  };
 
   const toggleFlag = async (accId: string, field: "has_franchise", value: boolean) => {
     const existing = flags[accId];
@@ -475,33 +459,13 @@ export default function TeamNotification() {
                   </p>
                 </section>
 
-                {/* Template */}
-                <section className="space-y-2">
-                  <h3 className="font-semibold">通知模板</h3>
-                  <div className="flex flex-wrap gap-1">
-                    {[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].map((v) => (
-                      <Badge
-                        key={v}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-muted"
-                        onClick={() => insertVar(v)}
-                      >
-                        {v}
-                      </Badge>
-                    ))}
-                  </div>
-                  <Textarea
-                    ref={templateRef}
-                    rows={hasFranchise ? 20 : 12}
-                    value={current.email_template ? current.email_template : buildDefaultTemplate(hasFranchise)}
-                    onChange={(e) => patchCurrent({ email_template: e.target.value })}
-                    placeholder="留空則使用系統預設模板"
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    留空則使用系統預設模板。可用變數：{[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].join("、")}
-                  </p>
-                </section>
+                {/* Templates（方案 B：多模板） */}
+                <PerformanceTemplatesSection
+                  accommodationId={selectedId}
+                  defaultBody={buildDefaultTemplate(hasFranchise)}
+                  templateVars={[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])]}
+                />
+
 
 
                 <div className="flex justify-end gap-2">

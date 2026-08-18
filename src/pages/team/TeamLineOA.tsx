@@ -426,7 +426,16 @@ type GroupFormState = {
   event_types: string[];
   accommodation_ids: string[];
   custom_venue_ids: string[];
+  performance_template_id: string | null;
   is_active: boolean;
+};
+
+type PerfTemplateOption = {
+  id: string;
+  name: string;
+  accommodation_id: string;
+  is_primary: boolean;
+  enabled: boolean;
 };
 
 function emptyGroupForm(): GroupFormState {
@@ -438,9 +447,11 @@ function emptyGroupForm(): GroupFormState {
     event_types: [],
     accommodation_ids: [],
     custom_venue_ids: [],
+    performance_template_id: null,
     is_active: true,
   };
 }
+
 
 function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: boolean; canManage?: boolean }) {
   const [deleteTarget, setDeleteTarget] = useState<PushTarget | null>(null);
@@ -452,7 +463,9 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
   const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
   const [venues, setVenues] = useState<VenueOption[]>([]);
   const [form, setForm] = useState<GroupFormState | null>(null);
+  const [perfTemplates, setPerfTemplates] = useState<PerfTemplateOption[]>([]);
   const [venueInput, setVenueInput] = useState("");
+
 
   const load = async () => {
     const [
@@ -494,7 +507,15 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       ...((roleRows ?? []).map((r: any) => r.role).filter(Boolean) as string[]),
     ]));
     setRoleOptions(uniq);
+
+    const { data: tplRows } = await supabase
+      .from("performance_notification_templates")
+      .select("id, name, accommodation_id, is_primary, enabled")
+      .eq("enabled", true)
+      .order("display_order", { ascending: true });
+    setPerfTemplates((tplRows ?? []) as unknown as PerfTemplateOption[]);
   };
+
 
   useEffect(() => {
     load();
@@ -510,7 +531,9 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       event_types: g.event_types ?? [],
       accommodation_ids: g.accommodation_ids ?? [],
       custom_venue_ids: g.custom_venue_ids ?? [],
+      performance_template_id: (g as any).performance_template_id ?? null,
       is_active: g.is_active,
+
     });
     setVenueInput("");
   };
@@ -535,7 +558,11 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       event_types: form.event_types,
       accommodation_ids: form.accommodation_ids,
       custom_venue_ids: form.custom_venue_ids,
+      performance_template_id: form.event_types.includes("daily_performance")
+        ? form.performance_template_id
+        : null,
       is_active: form.is_active,
+
     };
     // 允許同一個 (target_type, target_id) 有多筆訂閱規則
     // → 沒有 id 時直接 insert（建立新訂閱規則），有 id 時 update（修改該筆）
@@ -872,6 +899,39 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                   />
                 </div>
               </div>
+
+              {form.event_types.includes("daily_performance") && (
+                <div>
+                  <Label>每日業績通報 — 使用模板</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    同一館別可有多份通報模板（例：完整版、行銷總部版）。未指定時使用該館的「完整版」。
+                    模板內容請至{" "}
+                    <a href="/team/notification" className="text-primary underline">民宿業績通報 → 通報模板</a>
+                    {" "}管理。
+                  </p>
+                  <select
+                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
+                    value={form.performance_template_id ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, performance_template_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">使用該館完整版（預設）</option>
+                    {perfTemplates
+                      .filter((t) =>
+                        form.accommodation_ids.length === 0 ||
+                        form.accommodation_ids.includes(t.accommodation_id),
+                      )
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {accommodations.find((a) => a.id === t.accommodation_id)?.name ?? "?"} — {t.name}
+                          {t.is_primary ? "（完整版）" : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
 
 
 
