@@ -244,21 +244,22 @@ export default function PerformanceTemplatesSection({
               <div
                 key={t.id}
                 className={cn(
-                  "rounded-md border px-2 py-2 space-y-1 cursor-pointer",
+                  "rounded-md border px-2 py-2 space-y-1 cursor-pointer min-w-0",
                   activeId === t.id ? "border-primary bg-primary/5" : "hover:bg-muted",
                 )}
                 onClick={() => setActiveId(t.id)}
               >
-                <div className="flex items-center gap-1">
-                  <span className="text-sm truncate flex-1">{t.name}</span>
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="text-sm truncate flex-1 min-w-0">{t.name}</span>
                   {t.is_primary && <Badge variant="success" className="shrink-0">完整版</Badge>}
                   {!t.enabled && <Badge variant="secondary" className="shrink-0">停用</Badge>}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-1 flex-wrap">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {groupsUsing(t.id).length} 個群組使用
                   </span>
-                  <div className="flex items-center">
+                  <div className="flex items-center shrink-0">
+
                     <Button variant="ghost" size="icon" className="h-6 w-6"
                       onClick={(e) => { e.stopPropagation(); void move(t, -1); }} disabled={i === 0}>
                       <ChevronUp className="h-3.5 w-3.5" />
