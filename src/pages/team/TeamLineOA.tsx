@@ -900,6 +900,39 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
                 </div>
               </div>
 
+              {form.event_types.includes("daily_performance") && (
+                <div>
+                  <Label>每日業績通報 — 使用模板</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    同一館別可有多份通報模板（例：完整版、行銷總部版）。未指定時使用該館的「完整版」。
+                    模板內容請至{" "}
+                    <a href="/team/notification" className="text-primary underline">民宿業績通報 → 通報模板</a>
+                    {" "}管理。
+                  </p>
+                  <select
+                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
+                    value={form.performance_template_id ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, performance_template_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">使用該館完整版（預設）</option>
+                    {perfTemplates
+                      .filter((t) =>
+                        form.accommodation_ids.length === 0 ||
+                        form.accommodation_ids.includes(t.accommodation_id),
+                      )
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {accommodations.find((a) => a.id === t.accommodation_id)?.name ?? "?"} — {t.name}
+                          {t.is_primary ? "（完整版）" : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+
 
 
 
