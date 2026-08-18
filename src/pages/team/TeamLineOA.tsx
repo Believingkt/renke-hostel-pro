@@ -507,7 +507,15 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       ...((roleRows ?? []).map((r: any) => r.role).filter(Boolean) as string[]),
     ]));
     setRoleOptions(uniq);
+
+    const { data: tplRows } = await supabase
+      .from("performance_notification_templates")
+      .select("id, name, accommodation_id, is_primary, enabled")
+      .eq("enabled", true)
+      .order("display_order", { ascending: true });
+    setPerfTemplates((tplRows ?? []) as unknown as PerfTemplateOption[]);
   };
+
 
   useEffect(() => {
     load();
