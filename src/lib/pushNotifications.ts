@@ -227,6 +227,39 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
   }
 }
 
+/** 本裝置（目前登入會員）是否已有有效的推播 token */
+export async function hasActiveDeviceToken(): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return false;
+    const { data, error } = await supabase
+      .from("device_tokens")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("is_active", true)
+      .limit(1);
+    if (error) {
+      console.warn("[push] hasActiveDeviceToken failed", error);
+      return false;
+    }
+    return (data?.length ?? 0) > 0;
+  } catch (e) {
+    console.warn("[push] hasActiveDeviceToken error", e);
+    return false;
+  }
+}
+
+/**
+ * 通知開關的真實狀態：系統權限 granted 且本裝置有有效 token → true
+ * 供「訊息」與「我的帳號」兩顆開關共用，確保顯示一致。
+ */
+export async function isPushEnabled(): Promise<boolean> {
+  const state = await getPushPermissionState();
+  if (state !== "granted") return false;
+  return await hasActiveDeviceToken();
+}
+
+
 /** 登出時停用此裝置的 token（避免推播寄到別人的手機） */
 export async function deactivateCurrentDeviceTokens(): Promise<void> {
   if (!isNativeApp()) return;
