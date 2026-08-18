@@ -1647,6 +1647,45 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                                   return rev > 0 ? formatMoney(rev) : "—";
                                                 })()}
                                               </TableCell>
+                                              <TableCell className="text-right tabular-nums text-xs text-muted-foreground whitespace-nowrap">
+                                                {(() => {
+                                                  const withRate = vItems.find(
+                                                    (i) => i.rate_value !== null && i.rate_value !== undefined,
+                                                  );
+                                                  if (!withRate) return "—";
+                                                  const rate = Number(withRate.rate_value);
+                                                  if (withRate.rate_kind === "fixed") {
+                                                    return `固定 ${formatMoney(rate)}／館`;
+                                                  }
+                                                  const hc =
+                                                    withRate.split_headcount && withRate.split_headcount > 1
+                                                      ? withRate.split_headcount
+                                                      : null;
+                                                  const ratio =
+                                                    withRate.prorate_ratio !== null &&
+                                                    withRate.prorate_ratio !== undefined &&
+                                                    withRate.prorate_ratio < 1
+                                                      ? withRate.prorate_ratio
+                                                      : null;
+                                                  const pct = (v: number) =>
+                                                    `${(v * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+                                                  const parts = [pct(rate)];
+                                                  if (hc) parts.push(`÷ ${hc} 人`);
+                                                  if (ratio !== null)
+                                                    parts.push(`× 在職 ${(ratio * 100).toFixed(0)}%`);
+                                                  const eff = (rate / (hc ?? 1)) * (ratio ?? 1);
+                                                  return (
+                                                    <>
+                                                      <div>{parts.join(" ")}</div>
+                                                      {hc || ratio !== null ? (
+                                                        <div className="text-[11px] leading-tight">
+                                                          ＝ 每人 {pct(eff)}
+                                                        </div>
+                                                      ) : null}
+                                                    </>
+                                                  );
+                                                })()}
+                                              </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
                                               <TableCell className="text-right tabular-nums">
                                                 {vItems.some((i) => i.multiplier > 1) ? (
