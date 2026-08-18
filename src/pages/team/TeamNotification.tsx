@@ -242,24 +242,6 @@ export default function TeamNotification() {
     await loadAll();
   };
 
-  const insertVar = (v: string) => {
-    const el = templateRef.current;
-    const tmpl = current?.email_template || buildDefaultTemplate(hasFranchise);
-    if (!el) {
-      patchCurrent({ email_template: tmpl + v });
-      return;
-    }
-    const start = el.selectionStart ?? tmpl.length;
-    const end = el.selectionEnd ?? tmpl.length;
-    const next = tmpl.slice(0, start) + v + tmpl.slice(end);
-    patchCurrent({ email_template: next });
-
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + v.length;
-      el.setSelectionRange(pos, pos);
-    });
-  };
 
   const toggleFlag = async (accId: string, field: "has_franchise", value: boolean) => {
     const existing = flags[accId];
