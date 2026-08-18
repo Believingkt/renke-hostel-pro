@@ -236,9 +236,10 @@ export default function PerformanceTemplatesSection({
           尚無模板，點「新增模板」建立第一份（將自動成為 Email 完整版）。
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] gap-3">
           {/* Template list */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
+
             {items.map((t, i) => (
               <div
                 key={t.id}
