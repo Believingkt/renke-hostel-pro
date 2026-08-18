@@ -445,6 +445,17 @@ Deno.serve(async (req) => {
     }
 
 
+    // 補單完成 → 寫入/更新顧客資料（以 phone、其次 email 比對），並回填 orders.customer_id
+    await upsertCustomerForOrder(admin, {
+      accommodationId: accId,
+      name: guestName,
+      phone: guestPhone,
+      email: guestEmail || null,
+      firstOrderDate: finalCheckIn,
+      orderId: inserted!.id,
+      incrementVisit: !updatedExisting,
+    });
+
     // Mark staging promoted + token used
     await admin.from("owlting_email_parsed_staging").update({
       pii_status: "promoted_to_booking",
