@@ -583,6 +583,7 @@ Deno.serve(async (req) => {
           is_payment_pending: isPaymentPending,
           guest_name: fields.guest_name,
           special_requests: fields.special_requests,
+          remaining_amount: fields.remaining_amount,
         });
         if (!autoRes.ok) {
           console.warn("[owlting-email-ingest] auto-create pending skipped:", autoRes);
