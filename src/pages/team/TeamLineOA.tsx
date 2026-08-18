@@ -463,7 +463,9 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
   const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
   const [venues, setVenues] = useState<VenueOption[]>([]);
   const [form, setForm] = useState<GroupFormState | null>(null);
+  const [perfTemplates, setPerfTemplates] = useState<PerfTemplateOption[]>([]);
   const [venueInput, setVenueInput] = useState("");
+
 
   const load = async () => {
     const [
