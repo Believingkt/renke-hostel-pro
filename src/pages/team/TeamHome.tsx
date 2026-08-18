@@ -1931,6 +1931,24 @@ export default function TeamHome() {
     });
   }
 
+  // ===== 管理員預覽：補上本帳號沒有角色的獎金卡片（金額 0，不計入總計） =====
+  // 讓管理員能看到每一種獎金卡片的呈現方式與公式，不影響實際發放數字。
+  if (isAdminViewer && !isViewing && !loading) {
+    const existing = new Set(cards.map((c) => c.key));
+    for (const f of BONUS_FORMULAS) {
+      if (existing.has(f.key)) continue;
+      cards.push({
+        key: f.key,
+        title: f.name,
+        amount: 0,
+        baseAmount: 0,
+        multiplier: 1,
+        note: "管理員預覽：您本身無此獎金角色，僅顯示卡片樣式與公式",
+        excludeFromTotal: true,
+      });
+    }
+  }
+
   const total = cards.reduce((s, c) => s + (c.excludeFromTotal ? 0 : c.amount), 0);
 
   /** 「排除業主自帶」試算總計（僅在開啟試算且已算出對照值時顯示） */
