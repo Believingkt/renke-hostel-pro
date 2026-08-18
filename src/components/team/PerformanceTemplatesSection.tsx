@@ -282,9 +282,9 @@ export default function PerformanceTemplatesSection({
                       disabled={t.is_primary}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
                 </div>
               </div>
+
             ))}
           </div>
 
