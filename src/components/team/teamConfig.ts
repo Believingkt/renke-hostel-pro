@@ -114,6 +114,26 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: Coins,
     allowedRoles: ["super_admin", "admin", "finance"],
   },
+  // 一般成員／各層級主管：僅唯讀檢視自己（含所轄）獎金的結算規則說明
+  {
+    title: "結算規則",
+    url: "/team/commission?tab=payout",
+    icon: Coins,
+    allowedRoles: [
+      "am",
+      "am_manager",
+      "closer",
+      "closer_manager",
+      "scout",
+      "scout_manager",
+      "franchise",
+      "franchise_manager",
+      "franchise_internal",
+      "franchise_external",
+      "starlink",
+      "kol",
+    ],
+  },
   {
     title: "成員管理",
     url: "/team/members",
