@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PerformanceTemplatesSection from "@/components/team/PerformanceTemplatesSection";
+
 
 interface Accommodation {
   id: string;
