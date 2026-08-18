@@ -480,6 +480,7 @@ Deno.serve(async (req) => {
             total_amount: fields.total_amount,
             guest_name: fields.guest_name,
             special_requests: fields.special_requests,
+            remaining_amount: fields.remaining_amount,
           });
           console.log("[owlting-email-ingest] modification fallback create", fallback);
           await recordOutcome(supabase, inserted.id, fallback.ok ? "order_created" : "apply_failed", {
