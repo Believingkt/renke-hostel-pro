@@ -41,6 +41,21 @@ interface Stats {
   totalOrders: number;
 }
 
+const buildTimestamp = (() => {
+  const value = Number(typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : 0);
+  if (!Number.isFinite(value) || value <= 0) return "dev";
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+})();
+
 const initialStats: Stats = {
   name: "",
   avatarUrl: null,
@@ -288,7 +303,8 @@ const MemberProfile = () => {
       </div>
 
       <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
-        Lakeze 人客多 · 值得您信賴的訂房夥伴
+        <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
+        <div className="mt-1 opacity-70">Build {buildTimestamp}</div>
       </div>
     </div>
   );

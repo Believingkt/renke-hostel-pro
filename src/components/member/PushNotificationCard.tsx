@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { isNativeApp } from "@/lib/appMode";
 import {
   getPushPermissionState,
@@ -21,6 +22,7 @@ const PushNotificationCard = () => {
   if (!isNativeApp() || state === "unsupported") return null;
 
   const enable = async () => {
+    toast("handler-v3 執行中", { duration: 8000 });
     // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
     const next = await initPushNotifications({ force: true });
     console.log("[push] enable() result:", next);
