@@ -131,7 +131,6 @@ export const TEAM_MENU: TeamMenuItem[] = [
       "franchise_internal",
       "franchise_external",
       "starlink",
-      "kol",
     ],
   },
   {
