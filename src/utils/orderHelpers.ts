@@ -169,7 +169,7 @@ export const OWLTING_OTA_DISPLAY_NAMES: Record<string, string> = {
   airbnb: "Airbnb",
   klook: "Klook",
   kkday: "KKday",
-  owlting_direct: "奧丁丁官網",
+  owlting_direct: "奧丁丁-官網",
 };
 
 export const getOrderSourceDisplayName = (source: string) =>
