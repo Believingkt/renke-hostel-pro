@@ -9,6 +9,23 @@ import { groupedBonusFormulas, type BonusFormula } from "@/lib/bonusFormulas";
 import { BONUS_RATE_META, canViewBonusRate, isBonusItemInScope, isRateAdmin } from "@/lib/bonusRateMeta";
 import { useCurrentBonusRates, type VenueRate } from "@/hooks/use-current-bonus-rates";
 import { useTeam } from "@/components/team/TeamContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { TeamRole } from "@/components/team/teamConfig";
+
+/** 管理員預覽模式可切換的角色（僅列有獎金項目的角色） */
+const PREVIEW_ROLES: { value: TeamRole; label: string }[] = [
+  { value: "am", label: "AM" },
+  { value: "am_manager", label: "AM總管" },
+  { value: "closer", label: "成交組" },
+  { value: "closer_manager", label: "成交組主管" },
+  { value: "scout", label: "星探" },
+  { value: "scout_manager", label: "星探主管" },
+  { value: "franchise_internal", label: "特許加盟內部" },
+  { value: "franchise_external", label: "特許加盟外部" },
+  { value: "franchise_manager", label: "特許加盟主管" },
+  { value: "starlink", label: "星鏈" },
+  { value: "venue_manager", label: "業主" },
+];
 
 function fmtRate(rate: number | null | undefined): string | null {
   if (rate === null || rate === undefined) return null;
@@ -120,15 +137,21 @@ function FormulaLine({
  */
 export function BonusRulesReference({ scopedOnly = false }: { scopedOnly?: boolean } = {}) {
   const allGroups = groupedBonusFormulas();
-  const { roles, userId } = useTeam();
+  const { roles: myRoles, userId } = useTeam();
+  const isAdmin = isRateAdmin(myRoles);
+  // 管理員預覽模式：以指定角色的視角檢視隱藏結果
+  const [previewRole, setPreviewRole] = useState<TeamRole | "off">("off");
+  const preview = isAdmin && previewRole !== "off";
+  const roles = preview ? ([previewRole] as TeamRole[]) : myRoles;
+  const scoped = scopedOnly || preview;
   // 一般成員：只保留自己（含主管所轄）角色的獎金項目
-  const groups = scopedOnly
+  const groups = scoped
     ? allGroups
         .map((g) => ({ ...g, items: g.items.filter((f) => isBonusItemInScope(f.key, roles)) }))
         .filter((g) => g.items.length > 0)
     : allGroups;
-  const { globalRates, venueRates } = useCurrentBonusRates(roles, userId);
-  const admin = isRateAdmin(roles);
+  const { globalRates, venueRates } = useCurrentBonusRates(myRoles, userId);
+  const admin = isAdmin && !preview;
 
   useEffect(() => {
     const id = window.location.hash.slice(1);
@@ -213,6 +236,36 @@ export function BonusRulesReference({ scopedOnly = false }: { scopedOnly?: boole
 
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+          <span className="text-xs text-muted-foreground">管理員預覽視角：</span>
+          <Select value={previewRole} onValueChange={(v) => setPreviewRole(v as TeamRole | "off")}>
+            <SelectTrigger className="h-8 w-[180px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="off">管理員（全部可見）</SelectItem>
+              {PREVIEW_ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {preview && (
+            <Badge variant="secondary" className="font-normal">
+              預覽中：{PREVIEW_ROLES.find((r) => r.value === previewRole)?.label} 可見{" "}
+              {groups.reduce((n, g) => n + g.items.length, 0)} 項
+            </Badge>
+          )}
+        </div>
+      )}
+      {preview && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+          目前以該角色視角檢視：未列出的獎金項目（含公式、口徑、發放日）該角色看不到；
+          「當前設定值」徽章亦依該角色的可見範圍顯示，「前往設定」連結在預覽模式下隱藏。
+        </div>
+      )}
       <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed">
         公式中的「當前設定值」為<strong className="text-foreground">目前系統最新生效版本</strong>，
         不一定等於某個資料月（獎金發放月份）實際採用的版本；已凍結的快照仍以快照當時的費率為準。
