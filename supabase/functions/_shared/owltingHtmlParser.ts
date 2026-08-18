@@ -68,6 +68,8 @@ const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
 // (`{`, `}`, `:`, `：`, newline) so 「To: 小紅旅館 (測試) 您好」→ 「小紅旅館 (測試)」、
 // 「} 品雲岫海景渡假會館 您好」→ 「品雲岫海景渡假會館」。
 const HELLO_RE = /([^{}:：\n\r]+?)\s*您好/;
+// 官網（OwlNest 直訂）通知信：「<館名> 稍早透過 OwlNest 獲得一筆新訂單」
+const OWLNEST_DIRECT_RE = /([^{}:：\n\r]{2,40}?)\s*稍早透過\s*OwlNest/;
 // Channel source from subject. Forwarded 信會有「Fwd: 」前綴。
 const CHANNEL_SUBJECT_RE = /(?:Fwd:\s*)?(\S+)\s*訂單(?:成立|變更|取消|修改)通知/i;
 
