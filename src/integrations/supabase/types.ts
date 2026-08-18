@@ -12673,6 +12673,15 @@ export type Database = {
         Returns: number
       }
       normalize_owlting_name: { Args: { p_name: string }; Returns: string }
+      owlting_is_inbound_owned: {
+        Args: {
+          p_auto_email_id: string
+          p_order_source: string
+          p_reservation_id: string
+          p_sync_state: Json
+        }
+        Returns: boolean
+      }
       pricing_rule_min_month: {
         Args: { _accommodation_id: string }
         Returns: string
