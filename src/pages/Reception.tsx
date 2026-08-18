@@ -212,14 +212,18 @@ export default function Reception() {
       tomorrow: offsetDateStr(1),
     };
     const fetchOne = async (date: string, kind: "checkin" | "checkout") => {
-      const col = kind === "checkin" ? "check_in_date" : "check_out_date";
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
         .select("id, checked_in_at, checked_out_at")
         .eq("accommodation_id", currentAccommodationId)
-        .eq(col, date)
         .neq("order_status", "cancelled");
+      // 入住頁：住宿期間內（含當日入住與續住）都要顯示，直到退房日才移出
+      q = kind === "checkin"
+        ? q.lte("check_in_date", date).gt("check_out_date", date)
+        : q.eq("check_out_date", date);
+      const { data, error } = await q;
       if (error) return { total: 0, done: 0 };
+
       const total = data?.length ?? 0;
       const done =
         kind === "checkin"
