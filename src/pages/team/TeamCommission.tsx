@@ -790,12 +790,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         .filter(Boolean);
       const linesBySnapshot = new Map<
         string,
-        { accId: string | null; name: string; revenue: number | null; amount: number }[]
+        {
+          accId: string | null;
+          name: string;
+          revenue: number | null;
+          amount: number;
+          rateValue: number | null;
+          rateKind: string | null;
+          splitHeadcount: number | null;
+          prorateRatio: number | null;
+        }[]
       >();
       if (snapIdList.length > 0) {
         const { data: snapLines } = await supabase
           .from("teamcommission_bonus_snapshot_lines")
-          .select("snapshot_id, accommodation_id, accommodation_name, revenue_base, amount")
+          .select(
+            "snapshot_id, accommodation_id, accommodation_name, revenue_base, amount, rate_value, rate_kind, split_headcount, prorate_ratio",
+          )
           .in("snapshot_id", snapIdList);
         for (const l of (snapLines ?? []) as any[]) {
           const sid = String(l.snapshot_id);
@@ -805,6 +816,16 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             name: String(l.accommodation_name ?? "其他"),
             revenue: l.revenue_base === null ? null : Number(l.revenue_base),
             amount: Math.round(Number(l.amount ?? 0)),
+            rateValue: l.rate_value === null || l.rate_value === undefined ? null : Number(l.rate_value),
+            rateKind: l.rate_kind ? String(l.rate_kind) : null,
+            splitHeadcount:
+              l.split_headcount === null || l.split_headcount === undefined
+                ? null
+                : Number(l.split_headcount),
+            prorateRatio:
+              l.prorate_ratio === null || l.prorate_ratio === undefined
+                ? null
+                : Number(l.prorate_ratio),
           });
           linesBySnapshot.set(sid, arr);
         }
