@@ -92,7 +92,9 @@ export const getOrderSourceConfig = (source: string, otaCode?: string | null) =>
     return { ...base, label: `${base.label} - ${trimmed.toLowerCase()}` };
   }
   if (source === "owlting" && trimmed) {
-    return { ...base, label: `${base.label} - ${OWLTING_OTA_DISPLAY_NAMES[trimmed.toLowerCase()] ?? trimmed}` };
+    const otaLabel = OWLTING_OTA_DISPLAY_NAMES[trimmed.toLowerCase()] ?? trimmed;
+    // 若通路顯示名已含「奧丁丁」（例：奧丁丁-官網），直接使用避免重複前綴
+    return { ...base, label: otaLabel.startsWith(base.label) ? otaLabel : `${base.label} - ${otaLabel}` };
   }
   if (source === "group_buy" && trimmed) {
     return { ...base, label: `${base.label} - ${getGroupBuyCampaignDisplayName(trimmed)}` };
