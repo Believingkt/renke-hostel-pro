@@ -72,9 +72,13 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         if (mode === "list") {
           if (!orderIds || orderIds.length === 0) { setRows([]); return; }
           query = query.in("id", orderIds);
+        } else if (mode === "checkin") {
+          query = query
+            .lte("check_in_date", targetDate!)
+            .gt("check_out_date", targetDate!)
+            .neq("order_status", "cancelled");
         } else {
-          const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-          query = query.eq(col, targetDate!).neq("order_status", "cancelled");
+          query = query.eq("check_out_date", targetDate!).neq("order_status", "cancelled");
         }
         const { data: ordersData } = await query.order("order_number", { ascending: true });
 
