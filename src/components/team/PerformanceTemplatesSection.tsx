@@ -331,13 +331,23 @@ export default function PerformanceTemplatesSection({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1">
-                {templateVars.map((v) => (
-                  <Badge key={v} variant="outline" className="cursor-pointer hover:bg-muted"
-                    onClick={() => insertVar(v)}>
-                    {v}
-                  </Badge>
-                ))}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-1">
+                  {templateVars.map((v) => (
+                    <Badge key={v} variant="outline" className="cursor-pointer hover:bg-muted"
+                      onClick={() => insertVar(v)}>
+                      {v}
+                    </Badge>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => patchActive({ body: defaultBody })}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" /> 還原系統預設模板
+                </Button>
               </div>
 
               <Textarea
@@ -345,9 +355,9 @@ export default function PerformanceTemplatesSection({
                 rows={16}
                 className="font-mono text-sm"
                 value={active.body}
-                placeholder="留空則使用系統預設模板"
                 onChange={(e) => patchActive({ body: e.target.value })}
               />
+
 
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>
