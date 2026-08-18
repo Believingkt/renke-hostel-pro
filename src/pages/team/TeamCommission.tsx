@@ -1562,6 +1562,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                               label: "基準營收",
                                               value: it?.base_revenue ?? undefined,
                                             },
+                                            {
+                                              label: "本次費率",
+                                              value:
+                                                src.items.find(
+                                                  (i) =>
+                                                    i.rate_value !== null && i.rate_value !== undefined,
+                                                )?.rate_value ?? undefined,
+                                            },
                                           ]}
                                         />
                                       );
