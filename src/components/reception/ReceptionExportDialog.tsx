@@ -72,9 +72,13 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         if (mode === "list") {
           if (!orderIds || orderIds.length === 0) { setRows([]); return; }
           query = query.in("id", orderIds);
+        } else if (mode === "checkin") {
+          query = query
+            .lte("check_in_date", targetDate!)
+            .gt("check_out_date", targetDate!)
+            .neq("order_status", "cancelled");
         } else {
-          const col = mode === "checkin" ? "check_in_date" : "check_out_date";
-          query = query.eq(col, targetDate!).neq("order_status", "cancelled");
+          query = query.eq("check_out_date", targetDate!).neq("order_status", "cancelled");
         }
         const { data: ordersData } = await query.order("order_number", { ascending: true });
 
@@ -134,7 +138,9 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
             guest_phone: o.guest_phone ?? "",
             customer_name: o.guest_name ?? "",
             nationality: o.guest_nationality ?? "",
-            check_in_date: o.check_in_date,
+            check_in_date: mode === "checkin" && targetDate && o.check_in_date < targetDate
+              ? `${o.check_in_date}（續住）`
+              : o.check_in_date,
             check_out_date: o.check_out_date,
             room_info: roomInfo,
             adults: o.guest_count ?? 0,
