@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { getPushPermissionState, initPushNotifications } from "@/lib/pushNotifications";
 import {
   MessageSquare,
   ClipboardList,
@@ -131,6 +133,24 @@ const MemberMessages = () => {
   const [notifyOn, setNotifyOn] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
 
+  useEffect(() => {
+    void getPushPermissionState().then((state) => setNotifyOn(state === "granted"));
+  }, []);
+
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (!checked) {
+      toast.message("請至裝置系統設定關閉通知");
+      setNotifyOn(await getPushPermissionState().then((state) => state === "granted"));
+      return;
+    }
+
+    const state = await initPushNotifications({ force: true });
+    setNotifyOn(state === "granted");
+    if (state !== "granted") {
+      toast.error(`通知未開啟：${state}`, { duration: 10000 });
+    }
+  };
+
   const renderList = (items: any[]) => (
     <div>
       {items.map((it, i) => (
@@ -165,7 +185,7 @@ const MemberMessages = () => {
             <p className="text-xs sm:text-sm text-foreground/80 flex-1">
               開啟通知以免錯過新訊息與訂單更新
             </p>
-            <Switch checked={notifyOn} onCheckedChange={setNotifyOn} />
+            <Switch checked={notifyOn} onCheckedChange={handleNotificationToggle} />
           </div>
         </Card>
       )}
