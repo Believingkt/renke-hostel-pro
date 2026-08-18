@@ -426,7 +426,16 @@ type GroupFormState = {
   event_types: string[];
   accommodation_ids: string[];
   custom_venue_ids: string[];
+  performance_template_id: string | null;
   is_active: boolean;
+};
+
+type PerfTemplateOption = {
+  id: string;
+  name: string;
+  accommodation_id: string;
+  is_primary: boolean;
+  enabled: boolean;
 };
 
 function emptyGroupForm(): GroupFormState {
@@ -438,9 +447,11 @@ function emptyGroupForm(): GroupFormState {
     event_types: [],
     accommodation_ids: [],
     custom_venue_ids: [],
+    performance_template_id: null,
     is_active: true,
   };
 }
+
 
 function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: boolean; canManage?: boolean }) {
   const [deleteTarget, setDeleteTarget] = useState<PushTarget | null>(null);
