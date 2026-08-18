@@ -387,7 +387,7 @@ const PortalAIChatPanel = () => {
                           return (
                             <>
                               {cleanText && (
-                                <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
+                                <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed text-left ${isLatestAssistant ? "text-base" : "text-sm"}`}>
                                   <ReactMarkdown>{cleanText}</ReactMarkdown>
                                 </div>
                               )}
