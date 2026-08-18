@@ -269,7 +269,7 @@ function PayoutRulesBlock({
         </div>
         <div className="space-y-3">
           <div className="font-medium">各獎金項目公式（由系統 registry 自動產生，與實際計算同源）</div>
-          <BonusRulesReference />
+          <BonusRulesReference scopedOnly={scopedOnly} />
         </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
