@@ -68,6 +68,8 @@ const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
 // (`{`, `}`, `:`, `：`, newline) so 「To: 小紅旅館 (測試) 您好」→ 「小紅旅館 (測試)」、
 // 「} 品雲岫海景渡假會館 您好」→ 「品雲岫海景渡假會館」。
 const HELLO_RE = /([^{}:：\n\r]+?)\s*您好/;
+// 官網（OwlNest 直訂）通知信：「<館名> 稍早透過 OwlNest 獲得一筆新訂單」
+const OWLNEST_DIRECT_RE = /([^{}:：\n\r]{2,40}?)\s*稍早透過\s*OwlNest/;
 // Channel source from subject. Forwarded 信會有「Fwd: 」前綴。
 const CHANNEL_SUBJECT_RE = /(?:Fwd:\s*)?(\S+)\s*訂單(?:成立|變更|取消|修改)通知/i;
 
@@ -101,7 +103,7 @@ export function detectMessageTypeFromBody(text: string): ParsedMessageType {
   // 修改也一樣，避免內文提到「若要修改」誤判
   if (/訂單已修改|訂單修改通知|訂單變更通知|已變更|訂單已更改/.test(text)) return "modified";
   // 「等待付款 / 待付款」屬於新訂單流程（庫存已鎖），視為 new_order
-  if (/訂單成立|成立通知|新訂單|新訂房|等待付款|待付款|新的一筆訂單|一筆新訂單/.test(text)) return "new_order";
+  if (/訂單成立|成立通知|新訂單|新訂房|新預定|新預訂|預定通知|預訂通知|等待付款|待付款|新的一筆訂單|一筆新訂單/.test(text)) return "new_order";
   return "unknown";
 }
 
@@ -124,6 +126,21 @@ function extractAccommodationFromHello(flat: string): string | null {
   if (/^(to|from|date|subject|cc|bcc|re|fwd)$/i.test(candidate)) return null;
   // Reject overly long match (likely caught CSS / script residue)
   if (candidate.length > 50) return null;
+  return candidate;
+}
+
+function extractAccommodationFromOwlNestDirect(flat: string): string | null {
+  const m = flat.match(OWLNEST_DIRECT_RE);
+  if (!m) return null;
+  // 前面常黏著「您好： 您有新訂單！」等句子，取最後一段標點之後的文字
+  const candidate = m[1]
+    .split(/[！!。；;，,、？?：:]/)
+    .pop()!
+    .trim()
+    .replace(/^[「【]/, "")
+    .trim();
+  if (!candidate || candidate.length > 40) return null;
+  if (/^owlting$/i.test(candidate)) return null;
   return candidate;
 }
 
@@ -155,7 +172,7 @@ function parseCore(input: {
   if (input.subject) {
     if (/取消通知|訂單已取消|已取消|cancel/i.test(input.subject)) messageType = "cancelled";
     else if (/修改通知|變更通知|訂單已修改|訂單已變更|modif/i.test(input.subject)) messageType = "modified";
-    else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|等待付款|待付款通知|new\s*(order|booking)/i.test(input.subject)) messageType = "new_order";
+    else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|新預定|新預訂|預定通知|預訂通知|等待付款|待付款通知|new\s*(order|booking)/i.test(input.subject)) messageType = "new_order";
   }
   if (messageType === "unknown") {
     messageType = detectMessageTypeFromBody(flat);
@@ -168,8 +185,12 @@ function parseCore(input: {
   const obe = obeMatchBody?.[1]?.toUpperCase() ?? obeMatchSubject?.[1]?.toUpperCase() ?? null;
   if (!obe) warnings.push("obe_number: not found — cannot trigger OBE API lookup");
 
-  // accommodation_name — body「您好」pattern，回退主旨「來自 X 的」
-  let accommodation = extractAccommodationFromHello(flat);
+  // accommodation_name — 官網直訂信優先用「X 稍早透過 OwlNest」，
+  // 因為信頭是「OwlTing 您好：」會讓 HELLO_RE 抓到平台名而非館名。
+  let accommodation = extractAccommodationFromOwlNestDirect(flat)
+    ?? (flat !== flatFromHtml && flatFromHtml ? extractAccommodationFromOwlNestDirect(flatFromHtml) : null);
+  const isOwlNestDirect = !!accommodation;
+  if (!accommodation) accommodation = extractAccommodationFromHello(flat);
   if (!accommodation) {
     // fallback: stripped HTML (text body 可能截掉前半段)
     if (flat !== flatFromHtml && flatFromHtml) {
@@ -182,8 +203,8 @@ function parseCore(input: {
   }
   if (!accommodation) warnings.push("accommodation_name: not found");
 
-  // channel_source — 從主旨
-  const channel = extractChannelFromSubject(input.subject);
+  // channel_source — 從主旨；官網直訂信主旨沒有通路名，直接標記「官網」
+  const channel = extractChannelFromSubject(input.subject) ?? (isOwlNestDirect ? "官網" : null);
   if (!channel) warnings.push("channel_source: not found in subject");
 
   // 入住/退房日期

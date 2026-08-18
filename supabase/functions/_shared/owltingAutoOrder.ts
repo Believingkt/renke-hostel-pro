@@ -74,6 +74,8 @@ interface AutoCreateInput {
   guest_name?: string | null;
   /** 信件「特殊需求」原文，寫入備註 */
   special_requests?: string | null;
+  /** 信件「剩餘尾款」；官網直訂（待結清）用來推算已收訂金 */
+  remaining_amount?: number | null;
 }
 
 export interface AutoCreateResult {
@@ -120,8 +122,23 @@ export async function autoCreatePendingOrder(
     const guestCount = Math.max(1, Number(input.guest_count ?? 2) || 2);
     const total = Math.max(0, Math.round(Number(input.total_amount ?? 0)));
     const otaChannel = classifyOtaChannel(input.channel_source);
-    const paymentStatus = defaultPaymentStatusForChannel(otaChannel);
-    const paidAmount = paymentStatus === "paid" ? total : 0;
+    // 官網直訂信會附「訂單款項 / 剩餘尾款」，以此推算已收金額，
+    // 不能一律當成已付清（多數為已收訂金、待結清）。
+    const remainingRaw = input.remaining_amount;
+    const hasRemaining =
+      remainingRaw !== null && remainingRaw !== undefined && Number.isFinite(Number(remainingRaw));
+    let paymentStatus: "paid" | "unpaid" | "deposit_paid";
+    let paidAmount: number;
+    let depositAmount = 0;
+    if (hasRemaining) {
+      const remaining = Math.max(0, Math.round(Number(remainingRaw)));
+      paidAmount = Math.max(0, total - remaining);
+      paymentStatus = remaining <= 0 ? "paid" : paidAmount > 0 ? "deposit_paid" : "unpaid";
+      if (paymentStatus === "deposit_paid") depositAmount = paidAmount;
+    } else {
+      paymentStatus = defaultPaymentStatusForChannel(otaChannel);
+      paidAmount = paymentStatus === "paid" ? total : 0;
+    }
     const nowIso = new Date().toISOString();
 
     // 姓名信中未遮蔽 → 直接帶入，並標記電話仍待補；抓不到才用純待補佔位。
@@ -149,13 +166,14 @@ export async function autoCreatePendingOrder(
         order_status: "confirmed",
         payment_status: paymentStatus,
         paid_amount: paidAmount,
+        deposit_amount: depositAmount,
         confirmed_at: nowIso,
         requires_owner_review: true,
         owlting_reservation_id: input.obe_number,
         deposit_required_amount: 0,
         is_pii_pending: true,
         auto_created_from_email_id: input.raw_email_id,
-        notes: `${input.special_requests ? `[特殊需求] ${input.special_requests}\n` : ""}${input.is_payment_pending ? "[等待付款鎖房] " : ""}[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"}${input.is_payment_pending ? "，來源: 等待付款通知（48h 內未成立將自動釋放）" : ""})，待業主補齊${parsedName ? "電話等" : "住客"}資料。`,
+        notes: `${input.special_requests ? `[特殊需求] ${input.special_requests}\n` : ""}${input.is_payment_pending ? "[等待付款鎖房] " : ""}[自動鎖房] 奧丁丁 OTA email 進來自動建立 pending 訂單 (OBE: ${input.obe_number}${input.channel_source ? `, 平台: ${input.channel_source}` : ""}, ${roomQuantity} 間, 付款: ${paymentStatus === "paid" ? "已付清" : paymentStatus === "deposit_paid" ? `已收訂金 ${paidAmount}` : "待結清"}${input.is_payment_pending ? "，來源: 等待付款通知（48h 內未成立將自動釋放）" : ""})，待業主補齊${parsedName ? "電話等" : "住客"}資料。`,
       })
       .select("id, order_number")
       .single();
