@@ -217,6 +217,10 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
     const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap, dailyVillaCap, dailyRoomCap, accName } = data;
 
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+    // 全區／全棟綁定主控房型：被訂走當天整館鎖定 → 住房率視為當日容量全數佔用
+    const blocksAllRoomTypeIds = new Set(
+      roomTypes.filter((rt: any) => rt.blocks_all_inventory === true).map(rt => rt.id)
+    );
     const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
     const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
 
