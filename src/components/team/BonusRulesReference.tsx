@@ -236,6 +236,36 @@ export function BonusRulesReference({ scopedOnly = false }: { scopedOnly?: boole
 
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+          <span className="text-xs text-muted-foreground">管理員預覽視角：</span>
+          <Select value={previewRole} onValueChange={(v) => setPreviewRole(v as TeamRole | "off")}>
+            <SelectTrigger className="h-8 w-[180px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="off">管理員（全部可見）</SelectItem>
+              {PREVIEW_ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {preview && (
+            <Badge variant="secondary" className="font-normal">
+              預覽中：{PREVIEW_ROLES.find((r) => r.value === previewRole)?.label} 可見{" "}
+              {groups.reduce((n, g) => n + g.items.length, 0)} 項
+            </Badge>
+          )}
+        </div>
+      )}
+      {preview && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+          目前以該角色視角檢視：未列出的獎金項目（含公式、口徑、發放日）該角色看不到；
+          「當前設定值」徽章亦依該角色的可見範圍顯示，「前往設定」連結在預覽模式下隱藏。
+        </div>
+      )}
       <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed">
         公式中的「當前設定值」為<strong className="text-foreground">目前系統最新生效版本</strong>，
         不一定等於某個資料月（獎金發放月份）實際採用的版本；已凍結的快照仍以快照當時的費率為準。
