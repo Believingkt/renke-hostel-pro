@@ -3,6 +3,7 @@
 // Rate-limited: fail_count++ on bad inputs, lock 1h after 5.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
+import { upsertCustomerForOrder } from "../_shared/customerUpsert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
