@@ -281,6 +281,11 @@ interface SourceItem {
   base_revenue?: number | null; // 該館別計算基準營收（抽成類獎金）
   range_note?: string | null;   // 非整月合作期間提醒
   order_number?: string | null; // 訂單編號
+  // 快照凍結的費率資訊（僅團隊獎金逐館明細有值），用於驗算當期金額
+  rate_value?: number | null;
+  rate_kind?: string | null;         // "percent" | "fixed"
+  split_headcount?: number | null;   // 均分人數
+  prorate_ratio?: number | null;     // 在職比例
 }
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
