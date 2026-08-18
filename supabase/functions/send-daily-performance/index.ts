@@ -527,10 +527,19 @@ Deno.serve(async (req) => {
           "加盟訂房年累積": fmtMoney(franchiseBookingYear),
         };
 
-        const tpl = (s.email_template && String(s.email_template).trim().length > 0)
+        // ── 載入該館通報模板（方案 B：多模板）──────────────
+        const { data: tplRows } = await supabase
+          .from("performance_notification_templates")
+          .select("id, name, body, is_primary, include_modified_notice, enabled, display_order")
+          .eq("accommodation_id", accId)
+          .eq("enabled", true)
+          .order("display_order", { ascending: true });
+        const templates = (tplRows ?? []) as any[];
+        const primaryTpl = templates.find((t) => t.is_primary) ?? null;
+
+        const fallbackBody = (s.email_template && String(s.email_template).trim().length > 0)
           ? String(s.email_template)
           : defaultTemplate(hasFranchise);
-        let body = applyVars(tpl, vars);
 
         // ── 異動提醒：今日 updated_at 在範圍內，但 order_date 不在範圍內，且未取消 ──
         const { data: modifiedOrders } = await supabase
@@ -545,40 +554,83 @@ Deno.serve(async (req) => {
           if (!od) return true;
           return od < todayStartUtc || od >= tomorrowStartUtc;
         });
-        if (modifiedList.length > 0) {
-          const nums = modifiedList
-            .map((o: any) => o.order_number)
-            .filter((n: any) => !!n)
-            .join("、");
-          body += `\n\n⚠️ 今日有 ${modifiedList.length} 筆歷史訂單異動（不計入今日訂單）\n訂單編號：${nums}`;
-        }
+        const modifiedNotice = modifiedList.length > 0
+          ? `\n\n⚠️ 今日有 ${modifiedList.length} 筆歷史訂單異動（不計入今日訂單）\n訂單編號：${
+            modifiedList.map((o: any) => o.order_number).filter((n: any) => !!n).join("、")
+          }`
+          : "";
 
+        const renderTemplate = (tpl: any | null): string => {
+          const raw = tpl && String(tpl.body || "").trim().length > 0
+            ? String(tpl.body)
+            : fallbackBody;
+          const withNotice = !tpl || tpl.include_modified_notice !== false;
+          return applyVars(raw, vars) + (withNotice ? modifiedNotice : "");
+        };
+
+        // Email：固定只寄「完整版」(is_primary)，一館一天一封
+        const body = renderTemplate(primaryTpl);
         const subject = `【${accName}紀錄報表】${dateLabel}`;
-
         await sendEmail(subject, body);
 
-        // Also push to LINE (failure does not affect email flow)
+        // ── LINE：依群組所選模板分組推播（失敗不影響 Email）────
         try {
-          const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${serviceKey}`,
-              apikey: serviceKey,
-            },
-            body: JSON.stringify({
-              event_type: "daily_performance",
-              accommodation_id: accId,
-              message: body,
-            }),
+          const { data: pushTargets } = await supabase
+            .from("line_push_targets")
+            .select("target_id, event_types, accommodation_ids, custom_venue_ids, custom_venue_names, performance_template_id")
+            .eq("is_active", true)
+            .contains("event_types", ["daily_performance"]);
+
+          // 只取涵蓋本館的群組（空範圍 = 全部館別）
+          const matched = (pushTargets ?? []).filter((t: any) => {
+            if (!t.target_id) return false;
+            const accIds: string[] = t.accommodation_ids ?? [];
+            const venueIds: string[] = t.custom_venue_ids ?? [];
+            const venueNames: string[] = t.custom_venue_names ?? [];
+            const isAllVenues =
+              accIds.length === 0 && venueIds.length === 0 && venueNames.length === 0;
+            return isAllVenues || accIds.includes(accId);
           });
-          if (!pushRes.ok) {
-            const t = await pushRes.text().catch(() => "");
-            console.error(`[send-daily-performance] line-push ${accId} failed: ${pushRes.status} ${t}`);
+
+          // 依 template_id 分組（null → 完整版）
+          const groups = new Map<string, string[]>();
+          for (const t of matched) {
+            const key = (t as any).performance_template_id ?? "__primary__";
+            const arr = groups.get(key) ?? [];
+            arr.push((t as any).target_id);
+            groups.set(key, arr);
+          }
+
+          for (const [key, targets] of groups) {
+            const tpl = key === "__primary__"
+              ? primaryTpl
+              : (templates.find((t) => t.id === key) ?? primaryTpl);
+            const message = renderTemplate(tpl);
+            // LINE 單則上限 5000 字 → 過長切成多則
+            const chunks: string[] = [];
+            for (let i = 0; i < message.length; i += 4500) {
+              chunks.push(message.slice(i, i + 4500));
+            }
+            for (const chunk of chunks) {
+              const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${serviceKey}`,
+                  apikey: serviceKey,
+                },
+                body: JSON.stringify({ targets, message: chunk }),
+              });
+              if (!pushRes.ok) {
+                const t = await pushRes.text().catch(() => "");
+                console.error(`[send-daily-performance] line-push ${accId} tpl=${key} failed: ${pushRes.status} ${t}`);
+              }
+            }
           }
         } catch (pushErr) {
           console.error(`[send-daily-performance] line-push ${accId} error:`, pushErr);
         }
+
 
         results.push({ accommodation_id: accId, ok: true });
       } catch (err) {
