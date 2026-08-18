@@ -162,7 +162,7 @@ export default function TeamNotification() {
   const [settingsMap, setSettingsMap] = useState<Record<string, SettingsRow>>({});
   const [selectedId, setSelectedId] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const templateRef = useRef<HTMLTextAreaElement>(null);
+  
 
   useEffect(() => {
     if (!canAccess) return;
