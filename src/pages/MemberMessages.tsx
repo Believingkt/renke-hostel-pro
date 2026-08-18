@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { getPushPermissionState, initPushNotifications } from "@/lib/pushNotifications";
+import { initPushNotifications, isPushEnabled } from "@/lib/pushNotifications";
 import {
   MessageSquare,
   ClipboardList,
