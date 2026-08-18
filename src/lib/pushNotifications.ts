@@ -53,24 +53,52 @@ async function loadPlugin() {
   }
 }
 
-async function saveToken(token: string) {
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if (userErr) {
-    console.error("[push] getUser failed", userErr);
-    debugToast("取得登入狀態失敗", userErr);
-    return;
+async function getCurrentOrHydratedSession() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (data.session?.user) return data.session;
+
+  console.log("[push] session not hydrated yet; waiting for auth state once");
+  return await new Promise<typeof data.session>((resolve) => {
+    let settled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+    const finish = (session: typeof data.session) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      subscription?.unsubscribe();
+      resolve(session);
+    };
+    const timer = window.setTimeout(() => finish(null), 10000);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) finish(session);
+    });
+    subscription = listener.subscription;
+  });
+}
+
+async function saveToken(token: string): Promise<boolean> {
+  let session;
+  try {
+    session = await getCurrentOrHydratedSession();
+  } catch (error) {
+    console.error("[push] getSession failed", error);
+    const message = error instanceof Error ? error.message : String(error);
+    toast.error(message, { duration: 15000 });
+    return false;
   }
-  if (!user) {
-    console.warn("[push] no session, token not saved");
-    toast.error("尚未登入會員，推播 token 未寫入（請登入後重開 App）", { duration: 12000 });
-    return;
+  if (!session?.user) {
+    const message = "No active member session after waiting for auth hydration";
+    console.error(`[push] ${message}`);
+    toast.error(message, { duration: 15000 });
+    return false;
   }
   const platform = /android/i.test(navigator.userAgent) ? "android" : "ios";
   const { error } = await supabase
     .from("device_tokens")
     .upsert(
       {
-        user_id: user.id,
+        user_id: session.user.id,
         token,
         platform,
         is_active: true,
@@ -81,18 +109,17 @@ async function saveToken(token: string) {
     );
   if (error) {
     console.error("[push] upsert device_token failed", error);
-    debugToast(
-      "寫入 device token 失敗",
-      `${error.message}${(error as any).code ? ` (code ${(error as any).code})` : ""}${(error as any).hint ? ` / ${(error as any).hint}` : ""}`,
-    );
-    return;
+    toast.error(error.message, { duration: 15000 });
+    return false;
   }
   console.log("[push] device token saved", token.slice(0, 8));
-  toast.success(`[push] device token saved ${token.slice(0, 8)}`, { duration: 8000 });
+  toast.success(`saved(${token.slice(0, 4)})`, { duration: 8000 });
+  return true;
 }
 
 
 let listenersBound = false;
+const registrationWaiters = new Set<(saved: boolean) => void>();
 
 /**
  * App 啟動或會員登入後呼叫：
@@ -128,12 +155,11 @@ export async function initPushNotifications(
 
     if (!listenersBound) {
       listenersBound = true;
-      PushNotifications.addListener("registration", (t) => {
+      PushNotifications.addListener("registration", async (t) => {
         console.log("[push] APNs token received (len)", t.value?.length);
-        saveToken(t.value).catch((e) => {
-          console.error("[push] save token failed", e);
-          debugToast("儲存 device token 失敗", e);
-        });
+        const saved = await saveToken(t.value);
+        registrationWaiters.forEach((resolve) => resolve(saved));
+        registrationWaiters.clear();
       });
       PushNotifications.addListener("registrationError", (err) => {
         console.error(
@@ -142,10 +168,21 @@ export async function initPushNotifications(
           JSON.stringify(err ?? {}),
         );
         debugToast("APNs 註冊失敗", (err as any)?.error ?? err);
+        registrationWaiters.forEach((resolve) => resolve(false));
+        registrationWaiters.clear();
       });
     }
+    const saveCompleted = new Promise<boolean>((resolve) => {
+      registrationWaiters.add(resolve);
+      window.setTimeout(() => {
+        if (!registrationWaiters.delete(resolve)) return;
+        toast.error("APNs registration timed out before token upsert", { duration: 15000 });
+        resolve(false);
+      }, 15000);
+    });
     await PushNotifications.register();
     console.log("[push] register() called");
+    await saveCompleted;
     return "granted";
   } catch (e) {
     console.error("[push] init failed", e);
