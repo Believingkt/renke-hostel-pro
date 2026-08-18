@@ -558,7 +558,11 @@ function GroupsTab({ hideGroupId = false, canManage = true }: { hideGroupId?: bo
       event_types: form.event_types,
       accommodation_ids: form.accommodation_ids,
       custom_venue_ids: form.custom_venue_ids,
+      performance_template_id: form.event_types.includes("daily_performance")
+        ? form.performance_template_id
+        : null,
       is_active: form.is_active,
+
     };
     // 允許同一個 (target_type, target_id) 有多筆訂閱規則
     // → 沒有 id 時直接 insert（建立新訂閱規則），有 id 時 update（修改該筆）
