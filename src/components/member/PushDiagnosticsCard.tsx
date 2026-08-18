@@ -79,6 +79,7 @@ const PushDiagnosticsCard = () => {
       }
 
       // 5
+      let tokenValue = "";
       const result = await new Promise<{ kind: string; detail: string }>((resolve) => {
         let done = false;
         const finish = (kind: string, detail: string) => {
@@ -88,7 +89,8 @@ const PushDiagnosticsCard = () => {
         };
         let h1: any, h2: any;
         PushNotifications.addListener("registration", (t: any) => {
-          finish("registration", `token 前 8 碼 = ${String(t?.value ?? "").slice(0, 8)} (len=${String(t?.value ?? "").length})`);
+          tokenValue = String(t?.value ?? "");
+          finish("registration", `token 前 8 碼 = ${tokenValue.slice(0, 8)} (len=${tokenValue.length})`);
         }).then((h: any) => (h1 = h));
         PushNotifications.addListener("registrationError", (err: any) => {
           finish("registrationError", safe((err as any)?.error ?? err));
@@ -105,24 +107,41 @@ const PushDiagnosticsCard = () => {
       });
       push(`5. 結果：${result.kind} → ${result.detail}`);
 
-      // 6
+      // 6 — 真正執行 upsert，把原始錯誤顯示出來
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           push(`6. device_tokens upsert → 略過（無登入會員）`);
+        } else if (result.kind !== "registration" || !tokenValue) {
+          push(`6. device_tokens upsert → 略過（未取得 token）`);
         } else {
-          const tokenMatch = result.detail.match(/= ([A-Za-z0-9]+) /);
-          if (result.kind !== "registration") {
-            push(`6. device_tokens upsert → 略過（未取得 token）`);
+          const platform = /android/i.test(navigator.userAgent) ? "android" : "ios";
+          const { error } = await supabase.from("device_tokens").upsert(
+            {
+              user_id: user.id,
+              token: tokenValue,
+              platform,
+              is_active: true,
+              last_seen_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "token" },
+          );
+          if (error) {
+            push(
+              `6. device_tokens upsert → 失敗: ${error.message}` +
+                `${(error as any).code ? ` | code=${(error as any).code}` : ""}` +
+                `${(error as any).details ? ` | details=${(error as any).details}` : ""}` +
+                `${(error as any).hint ? ` | hint=${(error as any).hint}` : ""}`,
+            );
           } else {
-            push(`6. 取得 token 前綴 ${tokenMatch?.[1] ?? "?"}，實際 upsert 由 pushNotifications.ts 執行`);
-            const { error } = await supabase
-              .from("device_tokens")
-              .select("token")
-              .eq("user_id", user.id)
-              .limit(1);
-            push(`   device_tokens 讀取測試 → ${error ? `錯誤: ${error.message}` : "ok"}`);
+            push(`6. device_tokens upsert → 成功（token 前 8 碼 ${tokenValue.slice(0, 8)}）`);
           }
+          const { count, error: readErr } = await supabase
+            .from("device_tokens")
+            .select("token", { count: "exact", head: true })
+            .eq("user_id", user.id);
+          push(`   本帳號 device_tokens 筆數 → ${readErr ? `錯誤: ${readErr.message}` : count}`);
         }
       } catch (e) {
         push(`6. device_tokens 檢查例外 → ${safe(e)}`);
