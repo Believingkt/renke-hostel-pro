@@ -3,6 +3,7 @@
 // Rate-limited: fail_count++ on bad inputs, lock 1h after 5.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
+import { upsertCustomerForOrder } from "../_shared/customerUpsert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -443,6 +444,17 @@ Deno.serve(async (req) => {
       }
     }
 
+
+    // 補單完成 → 寫入/更新顧客資料（以 phone、其次 email 比對），並回填 orders.customer_id
+    await upsertCustomerForOrder(admin, {
+      accommodationId: accId,
+      name: guestName,
+      phone: guestPhone,
+      email: guestEmail || null,
+      firstOrderDate: finalCheckIn,
+      orderId: inserted!.id,
+      incrementVisit: !updatedExisting,
+    });
 
     // Mark staging promoted + token used
     await admin.from("owlting_email_parsed_staging").update({
