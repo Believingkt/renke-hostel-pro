@@ -300,22 +300,23 @@ export default function PerformanceTemplatesSection({
                   <Label className="text-xs">狀態</Label>
                   <div className="flex items-center gap-4 flex-wrap min-h-10">
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Switch
                         checked={active.enabled}
                         disabled={active.is_primary}
                         onCheckedChange={(v) => patchActive({ enabled: v })}
                       />
-                      <span className="text-sm">啟用</span>
+                      <span className="text-sm whitespace-nowrap">啟用</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Switch
                         checked={active.include_modified_notice}
                         onCheckedChange={(v) => patchActive({ include_modified_notice: v })}
                       />
-                      <span className="text-sm">附加歷史訂單異動提醒</span>
+                      <span className="text-sm whitespace-nowrap">附加歷史訂單異動提醒</span>
                     </div>
                   </div>
+
                 </div>
               </div>
 
