@@ -234,3 +234,18 @@ export function canViewBonusRate(key: string, roles: TeamRole[]): boolean {
 export function isRateAdmin(roles: TeamRole[]): boolean {
   return roles.some((r) => RATE_ADMIN_ROLES.includes(r));
 }
+
+/**
+ * 該使用者是否「應該看到」此獎金項目本身（非費率）。
+ * 一般成員只看自己的角色，主管可看所轄角色，管理員／財務全部可見。
+ */
+export function isBonusItemInScope(key: string, roles: TeamRole[]): boolean {
+  if (roles.some((r) => RATE_ADMIN_ROLES.includes(r))) return true;
+  const meta = BONUS_RATE_META[key];
+  if (!meta) return false;
+  const scoped = new Set<TeamRole>(roles);
+  for (const r of roles) {
+    for (const extra of MANAGER_SCOPE[r] ?? []) scoped.add(extra);
+  }
+  return meta.viewerRoles.some((r) => scoped.has(r));
+}

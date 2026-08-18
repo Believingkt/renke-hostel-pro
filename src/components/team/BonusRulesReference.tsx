@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { groupedBonusFormulas, type BonusFormula } from "@/lib/bonusFormulas";
-import { BONUS_RATE_META, canViewBonusRate, isRateAdmin } from "@/lib/bonusRateMeta";
+import { BONUS_RATE_META, canViewBonusRate, isBonusItemInScope, isRateAdmin } from "@/lib/bonusRateMeta";
 import { useCurrentBonusRates, type VenueRate } from "@/hooks/use-current-bonus-rates";
 import { useTeam } from "@/components/team/TeamContext";
 
@@ -118,9 +118,15 @@ function FormulaLine({
  * 結算規則說明：由 bonusFormulas registry 自動渲染，
  * 每個項目卡片同時顯示公式（含當前設定值）、口徑、發放日／結算區間與 gates。
  */
-export function BonusRulesReference() {
-  const groups = groupedBonusFormulas();
+export function BonusRulesReference({ scopedOnly = false }: { scopedOnly?: boolean } = {}) {
+  const allGroups = groupedBonusFormulas();
   const { roles, userId } = useTeam();
+  // 一般成員：只保留自己（含主管所轄）角色的獎金項目
+  const groups = scopedOnly
+    ? allGroups
+        .map((g) => ({ ...g, items: g.items.filter((f) => isBonusItemInScope(f.key, roles)) }))
+        .filter((g) => g.items.length > 0)
+    : allGroups;
   const { globalRates, venueRates } = useCurrentBonusRates(roles, userId);
   const admin = isRateAdmin(roles);
 
@@ -212,6 +218,11 @@ export function BonusRulesReference() {
         不一定等於某個資料月（獎金發放月份）實際採用的版本；已凍結的快照仍以快照當時的費率為準。
         此處僅供快速釐清公式的計算邏輯。除特別註明外，各項獎金皆為每月 10 日發放。
       </div>
+      {groups.length === 0 && (
+        <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">
+          目前沒有與您角色相關的獎金項目說明
+        </div>
+      )}
       {groups.map((g) => (
         <Card key={g.category}>
           <CardHeader>

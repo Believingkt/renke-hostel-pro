@@ -131,7 +131,11 @@ export default function TeamCommission() {
   const { roles } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const isFinance = roles.includes("finance");
-  const canAccess = isAdmin || isFinance;
+  const showAdminTabs = isAdmin || isFinance;
+  // 一般團隊成員（任一 team 角色）僅能唯讀檢視「結算規則」Tab，
+  // 且只看得到自己（含主管所轄）角色的獎金說明。
+  const rulesOnly = !showAdminTabs && roles.length > 0;
+  const canAccess = showAdminTabs || rulesOnly;
   // finance 在其他設定 Tab 仍為唯讀（不能新增/刪除規則、加倍活動）
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
@@ -140,7 +144,7 @@ export default function TeamCommission() {
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("tab") || "payouts"
       : "payouts";
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(rulesOnly ? "payout" : initialTab);
 
   if (!canAccess) {
     return (
@@ -155,7 +159,14 @@ export default function TeamCommission() {
     );
   }
 
-  const showAdminTabs = isAdmin || isFinance;
+  if (rulesOnly) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">結算規則</h2>
+        <PayoutRulesBlock readOnly scopedOnly />
+      </div>
+    );
+  }
 
 
 
@@ -224,7 +235,14 @@ interface PayoutRuleRow {
   effective_from: string;
 }
 
-function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
+function PayoutRulesBlock({
+  readOnly = false,
+  scopedOnly = false,
+}: {
+  readOnly?: boolean;
+  /** 一般成員：只顯示自己（含主管所轄）角色的獎金說明 */
+  scopedOnly?: boolean;
+}) {
   void readOnly;
   return (
     <Card>
@@ -251,7 +269,7 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
         </div>
         <div className="space-y-3">
           <div className="font-medium">各獎金項目公式（由系統 registry 自動產生，與實際計算同源）</div>
-          <BonusRulesReference />
+          <BonusRulesReference scopedOnly={scopedOnly} />
         </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
           ⚠️ 如需調整結算週期或發放日，請聯繫系統管理員。變更涉及 Edge Function 排程與多處計算邏輯，需整體評估後執行。
@@ -281,6 +299,11 @@ interface SourceItem {
   base_revenue?: number | null; // 該館別計算基準營收（抽成類獎金）
   range_note?: string | null;   // 非整月合作期間提醒
   order_number?: string | null; // 訂單編號
+  // 快照凍結的費率資訊（僅團隊獎金逐館明細有值），用於驗算當期金額
+  rate_value?: number | null;
+  rate_kind?: string | null;         // "percent" | "fixed"
+  split_headcount?: number | null;   // 均分人數
+  prorate_ratio?: number | null;     // 在職比例
 }
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
@@ -597,6 +620,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           order_number?: string | null;
           base_revenue?: number | null;
           range_note?: string | null;
+          rate_value?: number | null;
+          rate_kind?: string | null;
+          split_headcount?: number | null;
+          prorate_ratio?: number | null;
         },
       ) => {
         if (!amount || amount === 0) return;
@@ -617,6 +644,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           base_revenue: extra?.base_revenue ?? null,
           range_note: extra?.range_note ?? null,
           order_number: extra?.order_number ?? null,
+          rate_value: extra?.rate_value ?? null,
+          rate_kind: extra?.rate_kind ?? null,
+          split_headcount: extra?.split_headcount ?? null,
+          prorate_ratio: extra?.prorate_ratio ?? null,
         });
       };
 
@@ -777,12 +808,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         .filter(Boolean);
       const linesBySnapshot = new Map<
         string,
-        { accId: string | null; name: string; revenue: number | null; amount: number }[]
+        {
+          accId: string | null;
+          name: string;
+          revenue: number | null;
+          amount: number;
+          rateValue: number | null;
+          rateKind: string | null;
+          splitHeadcount: number | null;
+          prorateRatio: number | null;
+        }[]
       >();
       if (snapIdList.length > 0) {
         const { data: snapLines } = await supabase
           .from("teamcommission_bonus_snapshot_lines")
-          .select("snapshot_id, accommodation_id, accommodation_name, revenue_base, amount")
+          .select(
+            "snapshot_id, accommodation_id, accommodation_name, revenue_base, amount, rate_value, rate_kind, split_headcount, prorate_ratio",
+          )
           .in("snapshot_id", snapIdList);
         for (const l of (snapLines ?? []) as any[]) {
           const sid = String(l.snapshot_id);
@@ -792,6 +834,16 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             name: String(l.accommodation_name ?? "其他"),
             revenue: l.revenue_base === null ? null : Number(l.revenue_base),
             amount: Math.round(Number(l.amount ?? 0)),
+            rateValue: l.rate_value === null || l.rate_value === undefined ? null : Number(l.rate_value),
+            rateKind: l.rate_kind ? String(l.rate_kind) : null,
+            splitHeadcount:
+              l.split_headcount === null || l.split_headcount === undefined
+                ? null
+                : Number(l.split_headcount),
+            prorateRatio:
+              l.prorate_ratio === null || l.prorate_ratio === undefined
+                ? null
+                : Number(l.prorate_ratio),
           });
           linesBySnapshot.set(sid, arr);
         }
@@ -827,7 +879,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               label,
               detail,
               l.amount,
-              { venue_name: l.name, base_revenue: l.revenue ? Math.round(l.revenue) : null },
+              {
+                venue_name: l.name,
+                base_revenue: l.revenue ? Math.round(l.revenue) : null,
+                rate_value: l.rateValue,
+                rate_kind: l.rateKind,
+                split_headcount: l.splitHeadcount,
+                prorate_ratio: l.prorateRatio,
+              },
             );
           });
           continue;
@@ -1521,6 +1580,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                               label: "基準營收",
                                               value: it?.base_revenue ?? undefined,
                                             },
+                                            {
+                                              label: "本次費率",
+                                              value:
+                                                src.items.find(
+                                                  (i) =>
+                                                    i.rate_value !== null && i.rate_value !== undefined,
+                                                )?.rate_value ?? undefined,
+                                            },
                                           ]}
                                         />
                                       );
@@ -1547,6 +1614,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                       <TableRow>
                                         <TableHead>館別</TableHead>
                                         <TableHead className="w-[120px] text-right">營收</TableHead>
+                                        <TableHead className="w-[150px] text-right">本次費率</TableHead>
                                         <TableHead className="w-[90px] text-right">筆數</TableHead>
                                         <TableHead className="text-right w-[120px]">小計</TableHead>
                                         <TableHead className="w-[120px]">狀態</TableHead>
@@ -1603,6 +1671,45 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                                                     0,
                                                   );
                                                   return rev > 0 ? formatMoney(rev) : "—";
+                                                })()}
+                                              </TableCell>
+                                              <TableCell className="text-right tabular-nums text-xs text-muted-foreground whitespace-nowrap">
+                                                {(() => {
+                                                  const withRate = vItems.find(
+                                                    (i) => i.rate_value !== null && i.rate_value !== undefined,
+                                                  );
+                                                  if (!withRate) return "—";
+                                                  const rate = Number(withRate.rate_value);
+                                                  if (withRate.rate_kind === "fixed") {
+                                                    return `固定 ${formatMoney(rate)}／館`;
+                                                  }
+                                                  const hc =
+                                                    withRate.split_headcount && withRate.split_headcount > 1
+                                                      ? withRate.split_headcount
+                                                      : null;
+                                                  const ratio =
+                                                    withRate.prorate_ratio !== null &&
+                                                    withRate.prorate_ratio !== undefined &&
+                                                    withRate.prorate_ratio < 1
+                                                      ? withRate.prorate_ratio
+                                                      : null;
+                                                  const pct = (v: number) =>
+                                                    `${(v * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+                                                  const parts = [pct(rate)];
+                                                  if (hc) parts.push(`÷ ${hc} 人`);
+                                                  if (ratio !== null)
+                                                    parts.push(`× 在職 ${(ratio * 100).toFixed(0)}%`);
+                                                  const eff = (rate / (hc ?? 1)) * (ratio ?? 1);
+                                                  return (
+                                                    <>
+                                                      <div>{parts.join(" ")}</div>
+                                                      {hc || ratio !== null ? (
+                                                        <div className="text-[11px] leading-tight">
+                                                          ＝ 每人 {pct(eff)}
+                                                        </div>
+                                                      ) : null}
+                                                    </>
+                                                  );
                                                 })()}
                                               </TableCell>
                                               <TableCell className="text-right tabular-nums text-sm">{vItems.length}</TableCell>
