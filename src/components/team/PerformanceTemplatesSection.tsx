@@ -254,11 +254,11 @@ export default function PerformanceTemplatesSection({
                   {t.is_primary && <Badge variant="success" className="shrink-0">完整版</Badge>}
                   {!t.enabled && <Badge variant="secondary" className="shrink-0">停用</Badge>}
                 </div>
-                <div className="flex items-center justify-between gap-1 flex-wrap">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {groupsUsing(t.id).length} 個群組使用
-                  </span>
-                  <div className="flex items-center shrink-0">
+                <div className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                  {groupsUsing(t.id).length} 個群組使用
+                </div>
+                <div className="flex items-center justify-end">
+
 
                     <Button variant="ghost" size="icon" className="h-6 w-6"
                       onClick={(e) => { e.stopPropagation(); void move(t, -1); }} disabled={i === 0}>
