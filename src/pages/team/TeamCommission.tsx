@@ -131,7 +131,11 @@ export default function TeamCommission() {
   const { roles } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const isFinance = roles.includes("finance");
-  const canAccess = isAdmin || isFinance;
+  const showAdminTabs = isAdmin || isFinance;
+  // 一般團隊成員（任一 team 角色）僅能唯讀檢視「結算規則」Tab，
+  // 且只看得到自己（含主管所轄）角色的獎金說明。
+  const rulesOnly = !showAdminTabs && roles.length > 0;
+  const canAccess = showAdminTabs || rulesOnly;
   // finance 在其他設定 Tab 仍為唯讀（不能新增/刪除規則、加倍活動）
   const financeReadOnly = isFinance && !isAdmin;
   // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
@@ -140,7 +144,7 @@ export default function TeamCommission() {
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("tab") || "payouts"
       : "payouts";
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(rulesOnly ? "payout" : initialTab);
 
   if (!canAccess) {
     return (
@@ -155,7 +159,14 @@ export default function TeamCommission() {
     );
   }
 
-  const showAdminTabs = isAdmin || isFinance;
+  if (rulesOnly) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">結算規則</h2>
+        <PayoutRulesBlock readOnly scopedOnly />
+      </div>
+    );
+  }
 
 
 
