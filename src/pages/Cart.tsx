@@ -13,6 +13,7 @@ import {
   buildCheckoutLines,
   cartSubtotal,
   cartTotal,
+  clearCart,
   readCart,
   stageTripCheckout,
   writeCart,
@@ -28,6 +29,7 @@ export default function Cart() {
   const t = tripText(lang);
   const navigate = useNavigate();
   const [cart, setCart] = useState<TripCart>({ tripId: null, items: [] });
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     setCart(readCart());
@@ -53,6 +55,8 @@ export default function Cart() {
   const stay = cart.items.find((i): i is Extract<CartItem, { kind: "stay" }> => i.kind === "stay");
 
   const checkout = async () => {
+    if (checkingOut) return;
+    setCheckingOut(true);
     // 無住宿列時，以品項所屬民宿導向訂房頁挑選房型／日期，不再直接擋下
     let accommodationId = stay?.accommodationId || null;
     if (!accommodationId) {
@@ -72,6 +76,55 @@ export default function Cart() {
 
     // 仍找不到館別 → 保留加購列，導向訂房入口讓客人自行挑選住宿
     if (!accommodationId) {
+      const productLines = buildCheckoutLines(cart.items);
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (userData.user && productLines.length > 0) {
+        const { data, error } = await supabase.rpc(
+          "attach_trip_products_to_recent_order" as never,
+          {
+            p_items: productLines.map((line) => ({
+              product_id: line.product_id,
+              count: line.count,
+            })),
+            p_trip_id: cart.tripId,
+          } as never,
+        );
+        const result = data as unknown as {
+          ok?: boolean;
+          reason?: string;
+          order_number?: string;
+          added_total?: number;
+        } | null;
+
+        if (!error && result?.ok && result.order_number) {
+          clearCart();
+          toast.success(
+            lang === "ja"
+              ? "最近の宿泊予約に追加しました"
+              : lang === "en"
+                ? "Added to your latest stay"
+                : "已加入最近的住宿訂單",
+          );
+          navigate(`/member/orders/${result.order_number}`);
+          return;
+        }
+
+        if (error) {
+          const message = error.message || "";
+          const knownMessage = message.includes("PRODUCT_ALREADY_ATTACHED")
+            ? "此行程商品已加入該住宿訂單"
+            : message.includes("PRODUCT_OUT_OF_STOCK")
+              ? "行程商品名額不足，請調整數量"
+              : message.includes("PRODUCT_UNAVAILABLE")
+                ? "行程商品已下架，請重新選擇"
+                : "加入住宿訂單失敗，請稍後再試";
+          toast.error(knownMessage);
+          setCheckingOut(false);
+          return;
+        }
+      }
+
       stageTripCheckout({
         tripId: cart.tripId,
         accommodationId: null,
@@ -109,6 +162,7 @@ export default function Cart() {
         hash: stay ? undefined : "rooms",
       }),
     );
+    setCheckingOut(false);
   };
 
 
@@ -180,7 +234,7 @@ export default function Cart() {
               NT$ {cartTotal(cart.items).toLocaleString()}
             </p>
           </div>
-          <Button onClick={checkout} disabled={cart.items.length === 0} className="min-w-32">
+          <Button onClick={checkout} disabled={cart.items.length === 0 || checkingOut} className="min-w-32">
             {t.cta}
           </Button>
         </div>
