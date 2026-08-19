@@ -493,7 +493,51 @@ export default function GroupBuyCampaign() {
                 {campaign.subtitle || campaign.title}
               </p>
             )}
+            {campaign.stay_start_date || campaign.stay_end_date ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                可入住期間{" "}
+                <span className="font-medium text-foreground tabular-nums">
+                  {campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
+                </span>
+              </p>
+            ) : null}
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-full px-3.5 text-sm"
+                onClick={() => goTo("gb-venue")}
+              >
+                <Images className="mr-1.5 h-4 w-4" /> 查看住宿照片
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-9 rounded-full px-3.5 text-sm text-primary hover:bg-primary/10"
+                onClick={() => goTo("gb-venue")}
+              >
+                查看民宿介紹
+              </Button>
+            </div>
+            {previewPhotos.length >= 3 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {previewPhotos.slice(0, 3).map((url, i) => (
+                  <button
+                    key={url + i}
+                    type="button"
+                    onClick={() => goTo("gb-venue")}
+                    className="h-20 overflow-hidden rounded-xl sm:h-24"
+                    aria-label="查看住宿照片"
+                  >
+                    <img src={url} alt={`${venueName || campaign.title} 照片 ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </header>
 
