@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Megaphone } from "lucide-react";
+import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -301,6 +303,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [showRepushDialog, setShowRepushDialog] = useState(false);
+  const [showMetaDrawer, setShowMetaDrawer] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
@@ -2251,6 +2254,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                 <Button variant="outline" onClick={startEditing} className="text-sm">
                   <Pencil className="h-4 w-4 mr-2" />編輯
                 </Button>
+                <Button variant="outline" onClick={() => setShowMetaDrawer(true)} className="text-sm">
+                  <Megaphone className="h-4 w-4 mr-2" />行銷／獎金
+                </Button>
                 {order.guest_email && (
                   <Button variant="outline" onClick={handleResendConfirmation} disabled={isSendingEmail} className="text-sm">
                     <Mail className="h-4 w-4 mr-2" />{isSendingEmail ? "發送中..." : "重發確認信"}
@@ -2305,6 +2311,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                         <Pencil className="mr-2 h-4 w-4" />編輯訂單
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => setShowMetaDrawer(true)} className="py-3">
+                      <Megaphone className="mr-2 h-4 w-4" />行銷／獎金
+                    </DropdownMenuItem>
                     {order.guest_email && (
                       <DropdownMenuItem disabled={isSendingEmail} onClick={handleResendConfirmation} className="py-3">
                         <Mail className="mr-2 h-4 w-4" />{isSendingEmail ? "發送中..." : "重發確認信"}
@@ -4103,6 +4112,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <OrderMetaDrawer
+        orderId={showMetaDrawer ? order.id : null}
+        open={showMetaDrawer}
+        onClose={() => setShowMetaDrawer(false)}
+      />
       {kolQuotaPrompt && (
         <KolQuotaConfirmDialog
           open
