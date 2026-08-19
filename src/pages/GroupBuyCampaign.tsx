@@ -1115,6 +1115,59 @@ export default function GroupBuyCampaign() {
         )}
       </main>
 
+      {/* ── 民宿詳細資訊：完全共用一般訂房頁的既有元件與資料來源 ── */}
+      {accInfo && (
+        <div className="mx-auto w-full max-w-[1040px] [&_section]:py-8 sm:[&_section]:py-10">
+          {accInfo.show_facilities_section !== false &&
+            ((secondaryData?.facilities?.length || 0) > 0 ||
+              (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
+              (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
+              <FacilitiesSection
+                facilities={secondaryData?.facilities || []}
+                wholeFacilities={
+                  (accInfo as any).show_room_facilities_whole !== false
+                    ? secondaryData?.roomScopeFacilities?.whole || []
+                    : []
+                }
+                singleFacilities={
+                  (accInfo as any).show_room_facilities_single !== false
+                    ? secondaryData?.roomScopeFacilities?.single || []
+                    : []
+                }
+              />
+            )}
+
+          {accInfo.show_location_section !== false && (
+            <LocationSection
+              address={accInfo.address}
+              locationInfo={secondaryData?.locationInfo}
+              customTitle="交通資訊"
+            />
+          )}
+
+          {accInfo.show_reviews_section !== false && <ReviewsSection accommodationId={accInfo.id} />}
+
+          {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
+
+          {accInfo.show_booking_info_section !== false && (
+            <BookingInfoSection
+              bookingSettings={secondaryData?.bookingSettings}
+              checkInNotice={accInfo.check_in_notice}
+              customSections={secondaryData?.customBookingSections}
+            />
+          )}
+        </div>
+      )}
+
+      <BookingFooter
+        lineId={(accInfo as any)?.line_id}
+        facebookUrl={(accInfo as any)?.facebook_url}
+        instagramUrl={(accInfo as any)?.instagram_url}
+        threadsUrl={(accInfo as any)?.threads_url}
+        youtubeUrl={(accInfo as any)?.youtube_url}
+        tiktokUrl={(accInfo as any)?.tiktok_url}
+      />
+
       {selectedPkg && (
         <GroupBuyConfirmDialog
           open={confirmOpen}
