@@ -18,6 +18,13 @@ import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
 import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
+import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
+import FacilitiesSection from "@/components/FacilitiesSection";
+import LocationSection from "@/components/LocationSection";
+import ReviewsSection from "@/components/ReviewsSection";
+import FaqSection from "@/components/FaqSection";
+import BookingInfoSection from "@/components/BookingInfoSection";
+import BookingFooter from "@/components/BookingFooter";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Users } from "lucide-react";
 
 interface Campaign {
