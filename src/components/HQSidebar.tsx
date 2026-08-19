@@ -49,6 +49,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運分析", url: "/hq", icon: BarChart3, tab: "overview" },
+  { title: "AI 營運洞察", url: "/hq?tab=ai-insights", icon: Sparkles, tab: "ai-insights" },
   { 
     title: "金流拆帳", 
     url: "/hq?tab=split", 
