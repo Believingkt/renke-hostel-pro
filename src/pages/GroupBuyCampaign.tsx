@@ -753,19 +753,47 @@ export default function GroupBuyCampaign() {
               {nights > 0 && !dateBlocked && (
                 <>
                   <Separator className="my-7 bg-border/70" />
-                  <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  <div id="gb-form" className="scroll-mt-6">
+                    <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  </div>
                   <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div className="sm:col-span-2">
                       <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
-                      <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+                      <Input
+                        id="gb-name"
+                        value={guestName}
+                        aria-invalid={!!nameError || undefined}
+                        className={nameError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                      />
+                      {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
                     </div>
                     <div>
                       <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
-                      <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+                      <Input
+                        id="gb-phone"
+                        inputMode="tel"
+                        value={guestPhone}
+                        aria-invalid={!!phoneError || undefined}
+                        className={phoneError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                      />
+                      {phoneError && <p className="mt-1 text-sm text-destructive">{phoneError}</p>}
                     </div>
                     <div>
                       <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
-                      <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+                      <Input
+                        id="gb-email"
+                        type="email"
+                        value={guestEmail}
+                        aria-invalid={!!emailError || undefined}
+                        className={emailError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                      />
+                      {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
                     </div>
                     <div className="sm:col-span-2">
                       <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
@@ -776,36 +804,62 @@ export default function GroupBuyCampaign() {
                   </div>
 
                   <Separator className="my-7 bg-border/70" />
-                  <StepHeading step={4} title="確認訂房金額" />
-                  <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
-                    <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">
-                        <Users className="mr-1 inline h-4 w-4" />
-                        {nights} 晚 × {roomQuantity} 間
-                      </span>
-                      <span className="tabular-nums">{twd(total)}</span>
+                  <div id="gb-pay" className="scroll-mt-6">
+                    <StepHeading step={4} title="確認訂房內容與金額" />
+                  </div>
+                  <div className="mt-5 rounded-2xl border border-border/70 bg-muted/70 p-4 sm:p-5">
+                    <p className="text-sm font-semibold text-foreground">您的預訂</p>
+                    <div className="mt-2.5 space-y-1 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">方案</span>
+                        <span className="text-right font-medium">{selectedPkg.display_name}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">入住</span>
+                        <span className="tabular-nums">{checkIn}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">退房</span>
+                        <span className="tabular-nums">{checkOut}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">住宿</span>
+                        <span className="tabular-nums">{nights} 晚 × {roomQuantity} 間</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">
+                          <Users className="mr-1 inline h-4 w-4" />人數
+                        </span>
+                        <span className="tabular-nums">{guestCount} 人</span>
+                      </div>
                     </div>
+                    <Separator className="my-3 bg-border/70" />
                     <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">住宿金額</span>
+                      <span className="text-muted-foreground">方案總額</span>
                       <span className="text-base font-semibold tabular-nums">{twd(total)}</span>
                     </div>
-                    <Separator className="my-2.5 bg-border/70" />
-                    <div className="flex items-baseline justify-between py-1">
-                      <span className="text-base font-semibold text-foreground">應付訂金（{depositPct}%）</span>
+                    <div className="mt-1.5 flex items-baseline justify-between rounded-xl bg-accent/10 px-3 py-2.5">
+                      <span className="text-base font-semibold text-foreground">本次應付訂金（{depositPct}%）</span>
                       <span className="text-[1.75rem] font-bold leading-none tabular-nums text-accent">
                         {twd(deposit)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">入住現場付清</span>
+                    <div className="flex items-center justify-between py-1 pt-2 text-sm">
+                      <span className="text-muted-foreground">入住支付尾款</span>
                       <span className="tabular-nums">{twd(balance)}</span>
                     </div>
+                    {availability.ok === true && (
+                      <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-primary">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" /> 此日期目前可預訂
+                      </p>
+                    )}
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                       訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
                     </p>
                   </div>
                 </>
               )}
+
 
               {/* 付款流程說明：讓客人在按下按鈕前就知道下一步 */}
               <div className="mt-5 rounded-2xl border border-border/70 bg-background/60 p-4">
