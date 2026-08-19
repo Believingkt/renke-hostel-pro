@@ -4008,54 +4008,66 @@ export type Database = {
           created_at: string
           description: string | null
           display_name: string
+          excluded_dates: string[]
           group_buy_price: number
+          holiday_price: number | null
           id: string
           image_url: string | null
           is_active: boolean
           max_quantity: number | null
           original_price: number | null
           package_id: string | null
+          peak_price: number | null
           room_type_id: string | null
           room_type_ids: string[]
           short_summary: string | null
           sort_order: number
           updated_at: string
+          weekday_price: number | null
         }
         Insert: {
           campaign_id: string
           created_at?: string
           description?: string | null
           display_name: string
+          excluded_dates?: string[]
           group_buy_price: number
+          holiday_price?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           max_quantity?: number | null
           original_price?: number | null
           package_id?: string | null
+          peak_price?: number | null
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
           sort_order?: number
           updated_at?: string
+          weekday_price?: number | null
         }
         Update: {
           campaign_id?: string
           created_at?: string
           description?: string | null
           display_name?: string
+          excluded_dates?: string[]
           group_buy_price?: number
+          holiday_price?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           max_quantity?: number | null
           original_price?: number | null
           package_id?: string | null
+          peak_price?: number | null
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
           sort_order?: number
           updated_at?: string
+          weekday_price?: number | null
         }
         Relationships: [
           {
@@ -4229,6 +4241,7 @@ export type Database = {
           kol_profile_id: string | null
           note: string | null
           order_id: string
+          price_snapshot: Json | null
           revenue_base: number
           settled_at: string | null
           status: string
@@ -4243,6 +4256,7 @@ export type Database = {
           kol_profile_id?: string | null
           note?: string | null
           order_id: string
+          price_snapshot?: Json | null
           revenue_base?: number
           settled_at?: string | null
           status?: string
@@ -4257,6 +4271,7 @@ export type Database = {
           kol_profile_id?: string | null
           note?: string | null
           order_id?: string
+          price_snapshot?: Json | null
           revenue_base?: number
           settled_at?: string | null
           status?: string

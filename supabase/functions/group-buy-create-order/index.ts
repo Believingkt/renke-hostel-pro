@@ -16,6 +16,11 @@ import {
 } from "../_shared/groupBuy.ts";
 import { evaluateChildSelection, resolveChildRules } from "./childRules.ts";
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
+import {
+  GROUP_BUY_DAY_TYPE_LABEL,
+  calculateGroupBuyStayPrice,
+  findExcludedNight,
+} from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
 
 const FN = "group-buy-create-order";
@@ -114,6 +119,15 @@ Deno.serve(async (req) => {
       return json({ error: `此方案單筆最多預訂 ${pkg.max_quantity} 間` }, 400);
     }
 
+    // 2.5) 方案不適用日期（退房日不算住宿夜；server 端一律重驗）
+    const excludedDates: string[] = Array.isArray(pkg.excluded_dates)
+      ? (pkg.excluded_dates as unknown[]).map((d) => String(d).slice(0, 10))
+      : [];
+    const hitExcluded = findExcludedNight(checkInDate, checkOutDate, excludedDates);
+    if (hitExcluded) {
+      return json({ error: `此方案於 ${hitExcluded} 不適用，請調整住宿日期` }, 400);
+    }
+
     // 3) 房型（庫存判定必須要有房型；支援複選房型清單）
     const candidateRoomTypeIds: string[] = Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.length > 0
       ? (pkg.room_type_ids as string[])
@@ -181,9 +195,22 @@ Deno.serve(async (req) => {
       return json({ error: ROOM_SELECT_MESSAGES[failure] }, failure === "capacity" ? 400 : 409);
     }
 
-    // 5) 價格（server 端重算：團購價 × 晚數 × 1 間 ＋ 兒童加價）
-    const unit = Math.round(Number(pkg.group_buy_price) || 0);
-    const baseTotal = unit * n * roomQuantity;
+    // 5) 價格（server 端重算：逐晚日期分類取價 ＋ 兒童加價；完全不信任前端傳入金額）
+    const { data: holidayRows } = await admin
+      .from("public_holidays")
+      .select("holiday_date")
+      .eq("accommodation_id", campaign.accommodation_id)
+      .in("holiday_date", dates);
+    const holidays = new Set<string>(
+      ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
+    );
+    const stay = calculateGroupBuyStayPrice({
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      pkg: pkg as any,
+      holidays,
+    });
+    const baseTotal = stay.baseAccommodationTotal;
     const childExtraTotal = Math.round(childEval.extraFeeTotal);
     const total = baseTotal + childExtraTotal;
     if (total <= 0) return json({ error: "方案價格設定有誤，請聯繫客服" }, 400);
@@ -201,6 +228,9 @@ Deno.serve(async (req) => {
       campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
       `方案：${pkg.display_name} × ${roomQuantity} 間 × ${n} 晚`,
       `入住人數：${guestComposition}`,
+      `住宿費：${stay.nightlyBreakdown
+        .map((x) => `${x.date} ${GROUP_BUY_DAY_TYPE_LABEL[x.type]} ${x.price}`)
+        .join("／")}（小計 ${baseTotal} 元）`,
       childExtraTotal > 0 ? `兒童加價：${childExtraTotal} 元（房費 ${baseTotal} 元）` : null,
       `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
       guestNote ? `旅客備註：${guestNote}` : null,
@@ -290,6 +320,27 @@ Deno.serve(async (req) => {
       commission_rate: rate,
       commission_amount: Math.round((total * rate) / 100),
       status: "pending",
+      // 價格歷史快照：日後管理員調整方案價格，舊訂單仍可還原當時算法
+      price_snapshot: {
+        version: 1,
+        computed_at: new Date().toISOString(),
+        campaign_package_id: pkg.id,
+        package_name: pkg.display_name,
+        nights: stay.nights,
+        nightly_breakdown: stay.nightlyBreakdown,
+        base_accommodation_total: baseTotal,
+        child_extra_total: childExtraTotal,
+        grand_total: total,
+        deposit_percentage: campaign.deposit_percentage,
+        deposit,
+        balance,
+        prices_at_booking: {
+          group_buy_price: Number(pkg.group_buy_price) || 0,
+          weekday_price: pkg.weekday_price ?? null,
+          peak_price: pkg.peak_price ?? null,
+          holiday_price: pkg.holiday_price ?? null,
+        },
+      },
     });
 
     // 9) 匯款帳戶 + 通知信

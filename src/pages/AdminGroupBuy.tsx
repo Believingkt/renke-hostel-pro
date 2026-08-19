@@ -31,6 +31,8 @@ import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
+import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 
 
 interface EventRow {
@@ -128,6 +130,10 @@ interface PackageRow {
   short_summary: string | null;
   image_url: string | null;
   group_buy_price: number;
+  weekday_price: number | null;
+  peak_price: number | null;
+  holiday_price: number | null;
+  excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
   sort_order: number;
@@ -767,32 +773,28 @@ export default function AdminGroupBuy() {
                   </div>
 
 
-                  <div>
-                    <Label>團購價（每晚）</Label>
-                    <Input
-                      type="number"
-                      value={p.group_buy_price}
-                      onChange={(e) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, group_buy_price: Number(e.target.value) || 0 } : x)),
-                        )
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>原價（劃線顯示，可留空）</Label>
-                    <Input
-                      type="number"
-                      value={p.original_price ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, original_price: e.target.value === "" ? null : Number(e.target.value) } : x,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
+                  <GroupBuyPackagePricingFields
+                    value={{
+                      group_buy_price: p.group_buy_price,
+                      weekday_price: p.weekday_price,
+                      peak_price: p.peak_price,
+                      holiday_price: p.holiday_price,
+                      original_price: p.original_price,
+                    }}
+                    onChange={(patch) =>
+                      setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)))
+                    }
+                  />
+
+                  <GroupBuyExcludedDatesField
+                    value={p.excluded_dates ?? []}
+                    min={activeCampaign?.stay_start_date ?? null}
+                    max={activeCampaign?.stay_end_date ?? null}
+                    onChange={(dates) =>
+                      setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, excluded_dates: dates } : x)))
+                    }
+                  />
+
                   <div>
                     <Label>單筆最多間數（可留空）</Label>
                     <Input

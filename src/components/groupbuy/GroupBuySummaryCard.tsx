@@ -1,5 +1,6 @@
 import { CheckCircle2, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { GROUP_BUY_DAY_TYPE_LABEL, type NightPrice } from "@/lib/groupBuyPricing";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -13,6 +14,8 @@ interface Props {
   guestSummary: string;
   /** 方案房費小計（未含兒童加價） */
   baseTotal: number;
+  /** 逐晚計價明細（平日／旺日／假日） */
+  nightlyBreakdown?: NightPrice[];
   /** 兒童／幼兒加價總額 */
   childExtraTotal: number;
   total: number;
@@ -32,6 +35,7 @@ export function GroupBuySummaryCard({
   roomQuantity,
   guestSummary,
   baseTotal,
+  nightlyBreakdown,
   childExtraTotal,
   total,
   deposit,
@@ -76,6 +80,18 @@ export function GroupBuySummaryCard({
         <span className="text-muted-foreground">方案房費</span>
         <span className="font-medium tabular-nums">{twd(baseTotal)}</span>
       </div>
+      {(nightlyBreakdown?.length ?? 0) > 1 && (
+        <div className="mb-1 space-y-0.5 rounded-lg bg-background/60 px-2.5 py-2 text-xs text-muted-foreground">
+          {nightlyBreakdown!.map((n) => (
+            <div key={n.date} className="flex justify-between gap-3">
+              <span className="tabular-nums">
+                {n.date.slice(5).replace("-", "/")}・{GROUP_BUY_DAY_TYPE_LABEL[n.type]}
+              </span>
+              <span className="tabular-nums">{twd(n.price)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {childExtraTotal > 0 && (
         <div className="flex items-center justify-between py-1 text-sm">
           <span className="text-muted-foreground">兒童加價</span>
