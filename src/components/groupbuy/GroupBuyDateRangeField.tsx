@@ -43,6 +43,7 @@ export function GroupBuyDateRangeField({
   min,
   max,
   unavailableDates,
+  excludedDates,
   disabled,
   invalidCheckIn,
   invalidCheckOut,
