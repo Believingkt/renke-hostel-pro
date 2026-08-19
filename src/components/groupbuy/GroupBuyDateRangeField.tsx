@@ -90,14 +90,27 @@ export function GroupBuyDateRangeField({
     (minDate ? iso(d) < iso(minDate) : false) || (maxDate ? iso(d) > iso(maxDate) : false);
 
   const soldOut = (d: Date) => !!unavailableDates?.has(iso(d));
+  const excluded = (d: Date) => !!excludedDates?.has(iso(d));
 
   /** 選退房日階段：退房日不佔當晚庫存，僅擋活動期間外的日期 */
   const isCheckoutPhase = phase === 2 && !!from;
 
+  /** 住宿區間不可跨過不適用日期：退房日只能到「第一個不適用日期」當天為止 */
+  const crossesExcluded = (d: Date) => {
+    if (!from || !excludedDates?.size) return false;
+    const cur = new Date(from);
+    cur.setDate(cur.getDate() + 1);
+    while (cur < d) {
+      if (excludedDates.has(iso(cur))) return true;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return excludedDates.has(iso(from));
+  };
+
   const disabledDay = (d: Date) => {
     if (outOfBounds(d)) return true;
-    if (isCheckoutPhase) return false;
-    return soldOut(d);
+    if (isCheckoutPhase) return crossesExcluded(d);
+    return soldOut(d) || excluded(d);
   };
 
   const triggerClass = (active: boolean, filled: boolean, invalid?: boolean) =>
