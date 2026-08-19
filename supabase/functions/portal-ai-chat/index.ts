@@ -919,40 +919,48 @@ ${TRIP_CARD_PROMPT_RULE}`;
 
 
 
-    const toAnthropicMessages = (msgs: any[]) =>
+    const toChatMessages = (msgs: any[]) =>
       msgs.filter(m => m.role !== 'system').map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
       }));
 
-    const anthropicMessages = toAnthropicMessages(messages.slice(-12));
+    const openaiTools = tools.map(t => ({
+      type: "function",
+      function: { name: t.name, description: t.description, parameters: t.input_schema },
+    }));
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const chatMessages = toChatMessages(messages.slice(-12));
+
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: AI_MODEL,
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: anthropicMessages,
-        tools,
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        tools: openaiTools,
         stream: true,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
+      console.error("AI gateway error:", response.status, errorText);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "使用量超過限制" }), {
+        return new Response(JSON.stringify({ error: "使用量超過限制，請稍後再試" }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Anthropic API error");
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI 額度已用盡，請補充後再試" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("AI gateway error");
     }
 
     // Stream response - parse Anthropic SSE, convert to OpenAI-compatible format
