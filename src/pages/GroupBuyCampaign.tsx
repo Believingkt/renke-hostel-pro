@@ -384,6 +384,7 @@ export default function GroupBuyCampaign() {
           description: message ?? error?.message ?? "請稍後再試",
           variant: "destructive",
         });
+        setConfirmOpen(false);
         void checkAvailability();
         return;
       }
