@@ -598,6 +598,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     return Math.round(Number(base) * closerRate);
   }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
 
+  /** 查詢此訂單實際落在哪個發放期（取最新一筆快照） */
+  const fetchActualPayoutMonth = useCallback(async () => {
+    if (!orderId) return;
+    setCheckingPayout(true);
+    try {
+      const { data, error } = await supabase
+        .from("closer_commission_snapshots")
+        .select("payout_month, created_at")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      setActualPayoutMonth((data?.[0] as any)?.payout_month ?? null);
+    } catch {
+      setActualPayoutMonth(null);
+    } finally {
+      setCheckingPayout(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    if (open && orderId) fetchActualPayoutMonth();
+  }, [open, orderId, fetchActualPayoutMonth]);
+
   /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
   const handleResyncSnapshots = async () => {
     if (!snapshotMonthOfOrder) return;
@@ -615,6 +639,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         (acc: number, r: any) => acc + Number(r?.created ?? 0),
         0,
       );
+      await fetchActualPayoutMonth();
       toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
         description:
           created === undefined
@@ -627,6 +652,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setResyncing(false);
     }
   };
+
 
   const handleSkip = () => {
     if (saving) return;
