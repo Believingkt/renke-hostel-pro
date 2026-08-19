@@ -128,6 +128,7 @@ export default function GroupBuyCampaign() {
 
   const [result, setResult] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
