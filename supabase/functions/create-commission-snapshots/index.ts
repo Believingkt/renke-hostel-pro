@@ -153,7 +153,7 @@ serve(async (req) => {
       // 2) order_meta for these orders
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
-        .select("order_id, closer_id, video_creator_id, team_commission_price, is_excluded")
+        .select("order_id, closer_id, video_creator_id, team_commission_price, is_excluded, force_commission_eligible")
         .in("order_id", orderIds);
       if (metasErr) throw metasErr;
       const metaMap = new Map<string, any>();
@@ -205,8 +205,8 @@ serve(async (req) => {
         // 非台幣訂單不計入獎金（null 視為台幣）
         const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
         if (cur && cur !== "TWD") continue;
-        // 免抽成來源訂單不計入獎金
-        if (isExempt(o as any)) continue;
+        // 免抽成來源訂單不計入獎金（例外旗標可單筆覆寫）
+        if (!meta.force_commission_eligible && isExempt(o as any)) continue;
         // 訂單日不在館別合作期間內 → 不計入獎金
         if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
         // 當月營收未達抽成門檻 → 不計入獎金
@@ -325,7 +325,7 @@ serve(async (req) => {
 
       const { data: metas, error: metaErr } = await supabase
         .from("order_meta")
-        .select("order_id, team_commission_price, video_creator_id")
+        .select("order_id, team_commission_price, video_creator_id, force_commission_eligible")
         .in("order_id", orderIds);
       if (metaErr) throw metaErr;
       const metaMap = new Map<string, any>();
@@ -399,7 +399,7 @@ serve(async (req) => {
         // 取消單：若尚未有取消扣回補差，於此補產生（金額不再改寫）
         if (ord.order_status === "cancelled") {
           if (cancelledAdjSet.has(s.order_id as string)) continue;
-          if (isExemptR(ord)) continue;
+          if (!metaMap.get(s.order_id as string)?.force_commission_eligible && isExemptR(ord)) continue;
           const { error: insErr } = await supabase
             .from("closer_commission_adjustments")
             .insert({
@@ -438,7 +438,7 @@ serve(async (req) => {
           continue;
         }
 
-        if (isExemptR(ord)) {
+        if (!metaMap.get(s.order_id as string)?.force_commission_eligible && isExemptR(ord)) {
           await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
           continue;
         }
