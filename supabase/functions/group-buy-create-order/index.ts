@@ -14,8 +14,8 @@ import {
   splitDeposit,
   verifyInventory,
 } from "../_shared/groupBuy.ts";
-import { evaluateChildSelection, resolveChildRules } from "../_shared/childRules.ts";
-import { ROOM_SELECT_MESSAGES, selectRoomType } from "../_shared/groupBuyRoomSelect.ts";
+import { evaluateChildSelection, resolveChildRules } from "./childRules.ts";
+import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
 
 const FN = "group-buy-create-order";

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ROOM_SELECT_MESSAGES,
   selectRoomType,
-} from "../../../supabase/functions/_shared/groupBuyRoomSelect";
+} from "../../../supabase/functions/group-buy-create-order/groupBuyRoomSelect";
 
 const A = { id: "A", capacity: 4 };
 const B = { id: "B", capacity: 8 };
