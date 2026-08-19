@@ -745,7 +745,7 @@ export default function GroupBuyCampaign() {
               <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 <span className="text-sm text-muted-foreground">團購價</span>
                 <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
-                  {twd(lowestPkg.group_buy_price)}
+                  {twd(lowestEffectivePrice(lowestPkg))}
                 </span>
                 <span className="text-sm text-muted-foreground">起／晚</span>
                 {lowestPkg.original_price ? (
