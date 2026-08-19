@@ -36,7 +36,8 @@ export function TripCard({
 }) {
   const t = tripText(lang);
   const cover = typeof trip.cover_image_url === "string" ? trip.cover_image_url.trim() : "";
-  const to = `${trip.trip_url || `/trips/${trip.trip_id}`}?lang=${lang}`;
+  const base = trip.trip_url || `/trips/${trip.trip_id}`;
+  const to = `${base}${base.includes("?") ? "&" : "?"}lang=${lang}`;
 
   return (
     <Link
