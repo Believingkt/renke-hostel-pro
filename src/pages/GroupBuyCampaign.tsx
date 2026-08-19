@@ -688,29 +688,30 @@ export default function GroupBuyCampaign() {
                     <p className="text-[1.1875rem] font-bold leading-snug tracking-tight sm:text-[1.25rem]">
                       {p.display_name}
                     </p>
-                    {/* 第二層：方案內容摘要（長文收合，完整內容不刪除） */}
+                    {/* 第二層：方案短摘要（後台可設定；未設定時取方案內容前段） */}
+                    {(p.short_summary?.trim() || p.description) && (
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                        {p.short_summary?.trim() || p.description}
+                      </p>
+                    )}
+                    {/* 第三層：完整方案內容（預設收合，完整內容不刪除） */}
                     {p.description && (
                       <>
-                        <p
-                          className={`mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground ${
-                            expandedPkgs[p.id] ? "" : "line-clamp-3"
-                          }`}
-                        >
-                          {p.description}
-                        </p>
-                        {p.description.length > 60 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedPkgs((s) => ({ ...s, [p.id]: !s[p.id] }))
-                            }
-                            className="mt-1 text-sm font-medium text-primary underline underline-offset-4"
-                          >
-                            {expandedPkgs[p.id] ? "收合方案內容" : "查看完整方案內容"}
-                          </button>
+                        {expandedPkgs[p.id] && (
+                          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                            {p.description}
+                          </p>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPkgs((s) => ({ ...s, [p.id]: !s[p.id] }))}
+                          className="mt-1 text-sm font-medium text-primary underline underline-offset-4"
+                        >
+                          {expandedPkgs[p.id] ? "收合方案內容" : "查看完整方案內容"}
+                        </button>
                       </>
                     )}
+
                     {/* 第三／四層：團購價 → 原價與省下金額 */}
                     <div className="mt-3.5">
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
