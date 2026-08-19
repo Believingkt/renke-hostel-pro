@@ -443,6 +443,25 @@ serve(async (req) => {
             console.error("room cards failed", cardErr);
           }
 
+          // 串流結束後補上主題行程卡片區塊（資料全部來自資料庫 trips）
+          if (wantTripCards) {
+            try {
+              const tripBlock = buildTripCardsBlock(
+                await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3 }),
+              );
+              if (tripBlock) {
+                fullContent += tripBlock;
+                controller.enqueue(encoder.encode(
+                  `data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`,
+                ));
+              }
+            } catch (tripErr) {
+              console.error("trip cards failed", tripErr);
+            }
+          }
+
+
+
           controller.close();
         } catch (e) {
           controller.error(e);
