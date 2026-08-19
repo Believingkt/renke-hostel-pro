@@ -253,7 +253,7 @@ const PortalAIChatPanel = () => {
       }
 
       // 有搜尋意圖 → 直接跳到與手動搜尋相同的結果分頁
-      if (searchIntent?.checkIn && searchIntent?.checkOut) {
+      if (!isGuideTurn && searchIntent?.checkIn && searchIntent?.checkOut) {
         const params = new URLSearchParams();
         params.set("checkIn", searchIntent.checkIn);
         params.set("checkOut", searchIntent.checkOut);
@@ -283,6 +283,8 @@ const PortalAIChatPanel = () => {
     setMessages([]);
     setInput("");
     setShowWelcome(true);
+    setGuideActive(false);
+    setGuideAttrs(null);
   };
 
   const handleMicToggle = async () => {
