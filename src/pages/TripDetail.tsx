@@ -48,6 +48,7 @@ interface ProductRow {
   price: number | null;
   duration_min: number | null;
   cover_url?: string | null;
+  accommodation_id?: string | null;
   stock: number | null;
   available_slots: unknown;
   updated_at: string | null;
@@ -101,7 +102,7 @@ export default function TripDetail() {
         const { data: prods } = await supabase
           .from("trip_products")
           .select(
-            "id, type, name, description, price, duration_min, cover_url, stock, available_slots, updated_at",
+            "id, type, name, description, price, duration_min, cover_url, accommodation_id, stock, available_slots, updated_at",
           )
           .in("id", productIds);
         if (cancelled) return;
@@ -216,6 +217,7 @@ export default function TripDetail() {
           unitPrice: Number(p.price || 0),
           qty: item.qty || 1,
           coverUrl: p.cover_url ?? null,
+          accommodationId: p.accommodation_id ?? null,
         });
       }
     }

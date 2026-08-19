@@ -34,7 +34,10 @@ export interface CartProductItem {
   unitPrice: number;
   qty: number;
   coverUrl?: string | null;
+  /** 品項所屬民宿（無住宿列時作為結帳導向依據） */
+  accommodationId?: string | null;
 }
+
 
 export type CartItem = CartStayItem | CartProductItem;
 

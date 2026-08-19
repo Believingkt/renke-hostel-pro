@@ -20,6 +20,7 @@ import {
   type TripCart,
 } from "@/lib/tripCart";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Cart() {
   const [params] = useSearchParams();
@@ -51,29 +52,53 @@ export default function Cart() {
 
   const stay = cart.items.find((i): i is Extract<CartItem, { kind: "stay" }> => i.kind === "stay");
 
-  const checkout = () => {
-    if (!stay) {
-      toast.error(lang === "ja" ? "宿泊を追加してください" : lang === "en" ? "Please add a stay first" : "請先加入住宿");
+  const checkout = async () => {
+    // 無住宿列時，以品項所屬民宿導向訂房頁挑選房型／日期，不再直接擋下
+    let accommodationId = stay?.accommodationId || null;
+    if (!accommodationId) {
+      const product = cart.items.find(
+        (i): i is Extract<CartItem, { kind: "product" }> => i.kind === "product",
+      );
+      accommodationId = product?.accommodationId || null;
+      if (!accommodationId && product) {
+        const { data } = await supabase
+          .from("trip_products")
+          .select("accommodation_id")
+          .eq("id", product.productId)
+          .maybeSingle();
+        accommodationId = (data?.accommodation_id as string) || null;
+      }
+    }
+
+    if (!accommodationId) {
+      toast.error(
+        lang === "ja" ? "宿泊を追加してください" : lang === "en" ? "Please add a stay first" : "請先加入住宿",
+      );
       return;
     }
+
     stageTripCheckout({
       tripId: cart.tripId,
-      accommodationId: stay.accommodationId,
+      accommodationId,
       lines: buildCheckoutLines(cart.items),
     });
     navigate(
       bookingPath({
-        accommodationId: stay.accommodationId,
-        params: {
-          roomId: stay.roomTypeId,
-          checkIn: stay.checkIn,
-          checkOut: stay.checkOut,
-          rooms: stay.qty,
-          step: "payment",
-        },
+        accommodationId,
+        params: stay
+          ? {
+              roomId: stay.roomTypeId,
+              checkIn: stay.checkIn,
+              checkOut: stay.checkOut,
+              rooms: stay.qty,
+              step: "payment",
+            }
+          : undefined,
+        hash: stay ? undefined : "rooms",
       }),
     );
   };
+
 
   return (
     <div className="min-h-screen bg-background pb-32">
