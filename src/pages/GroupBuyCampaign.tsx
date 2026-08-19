@@ -146,6 +146,9 @@ export default function GroupBuyCampaign() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
+  /** 備註為次要欄位，預設收合（非必填，未變更任何驗證） */
+  const [noteOpen, setNoteOpen] = useState(false);
+
   /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
   const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
