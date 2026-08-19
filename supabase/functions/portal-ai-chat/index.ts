@@ -93,8 +93,10 @@ serve(async (req) => {
       if (msg.role === 'system') msg.role = 'user';
     }
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const AI_MODEL = "google/gemini-3.7-flash";
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -917,40 +919,48 @@ ${TRIP_CARD_PROMPT_RULE}`;
 
 
 
-    const toAnthropicMessages = (msgs: any[]) =>
+    const toChatMessages = (msgs: any[]) =>
       msgs.filter(m => m.role !== 'system').map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
       }));
 
-    const anthropicMessages = toAnthropicMessages(messages.slice(-12));
+    const openaiTools = tools.map(t => ({
+      type: "function",
+      function: { name: t.name, description: t.description, parameters: t.input_schema },
+    }));
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const chatMessages = toChatMessages(messages.slice(-12));
+
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: AI_MODEL,
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: anthropicMessages,
-        tools,
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        tools: openaiTools,
         stream: true,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
+      console.error("AI gateway error:", response.status, errorText);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "使用量超過限制" }), {
+        return new Response(JSON.stringify({ error: "使用量超過限制，請稍後再試" }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Anthropic API error");
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI 額度已用盡，請補充後再試" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("AI gateway error");
     }
 
     // Stream response - parse Anthropic SSE, convert to OpenAI-compatible format
@@ -984,33 +994,35 @@ ${TRIP_CARD_PROMPT_RULE}`;
             for (const line of lines) {
               if (!line.trim() || line.startsWith(':') || line.startsWith('event:')) continue;
               if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6).trim();
+              const isDone = payload === '[DONE]';
 
               try {
-                const parsed = JSON.parse(line.slice(6));
-                const eventType = parsed.type;
+                const parsed = isDone ? null : JSON.parse(payload);
+                const choice = parsed?.choices?.[0];
+                const delta = choice?.delta;
 
-                if (eventType === 'content_block_start') {
-                  const block = parsed.content_block;
-                  if (block?.type === 'tool_use') {
-                    toolCallsByIndex.set(parsed.index ?? toolCallsByIndex.size, {
-                      id: block.id, name: block.name, inputJson: '',
-                      inputObject: (block.input && typeof block.input === 'object') ? block.input : {},
-                    });
+                if (typeof delta?.content === 'string' && delta.content) {
+                  assistantText += delta.content;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.content } }] })}\n\n`));
+                }
+
+                if (Array.isArray(delta?.tool_calls)) {
+                  for (const tc of delta.tool_calls) {
+                    const idx = Number(tc.index ?? 0);
+                    const cur = toolCallsByIndex.get(idx) ?? { id: `call_${idx}`, name: '', inputJson: '', inputObject: {} };
+                    if (tc.id) cur.id = tc.id;
+                    if (tc.function?.name) cur.name = tc.function.name;
+                    if (typeof tc.function?.arguments === 'string') cur.inputJson += tc.function.arguments;
+                    toolCallsByIndex.set(idx, cur);
                   }
-                } else if (eventType === 'content_block_delta') {
-                  const delta = parsed.delta;
-                  if (delta?.type === 'text_delta' && delta.text) {
-                    assistantText += delta.text;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.text } }] })}\n\n`));
-                  } else if (delta?.type === 'input_json_delta') {
-                    const tc = toolCallsByIndex.get(parsed.index ?? -1);
-                    if (tc && typeof delta.partial_json === 'string') tc.inputJson += delta.partial_json;
-                  }
-                } else if (eventType === 'message_delta') {
-                  if (parsed.delta?.stop_reason === 'tool_use' && toolCallsByIndex.size > 0) {
-                    shouldExecuteToolCalls = true;
-                  }
-                } else if (eventType === 'message_stop' && shouldExecuteToolCalls && toolCallsByIndex.size > 0) {
+                }
+
+                if (choice?.finish_reason === 'tool_calls' && toolCallsByIndex.size > 0) {
+                  shouldExecuteToolCalls = true;
+                }
+
+                if ((isDone || !!choice?.finish_reason) && shouldExecuteToolCalls && toolCallsByIndex.size > 0) {
                   const completedToolCalls = Array.from(toolCallsByIndex.entries())
                     .sort(([a], [b]) => a - b)
                     .map(([, tc]) => ({ id: tc.id, function: { name: tc.name, arguments: tc.inputJson, fallbackInput: tc.inputObject } }));
@@ -1087,38 +1099,40 @@ ${TRIP_CARD_PROMPT_RULE}`;
                     }
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
                   } else {
-                    // Follow-up with Claude
+                    // Follow-up with the AI gateway
                     let followUpSent = false;
                     try {
                       const followUpMessages = [
-                        ...toAnthropicMessages(messages.slice(-6)),
+                        { role: "system", content: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}` },
+                        ...toChatMessages(messages.slice(-6)),
                         {
                           role: "assistant",
-                          content: completedToolCalls.map(tc => ({
-                            type: "tool_use", id: tc.id, name: tc.function.name,
-                            input: parseToolArgs(tc.function.arguments, tc.function.fallbackInput),
+                          content: null,
+                          tool_calls: completedToolCalls.map(tc => ({
+                            id: tc.id,
+                            type: "function",
+                            function: {
+                              name: tc.function.name,
+                              arguments: JSON.stringify(parseToolArgs(tc.function.arguments, tc.function.fallbackInput)),
+                            },
                           })),
                         },
-                        {
-                          role: "user",
-                          content: toolResults.map(tr => ({
-                            type: "tool_result", tool_use_id: tr.tool_call_id,
-                            content: JSON.stringify(tr.result),
-                          })),
-                        },
+                        ...toolResults.map(tr => ({
+                          role: "tool",
+                          tool_call_id: tr.tool_call_id,
+                          content: JSON.stringify(tr.result),
+                        })),
                       ];
 
-                      const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
+                      const followUpResponse = await fetch(AI_GATEWAY_URL, {
                         method: "POST",
                         headers: {
-                          "x-api-key": ANTHROPIC_API_KEY,
-                          "anthropic-version": "2023-06-01",
+                          Authorization: `Bearer ${LOVABLE_API_KEY}`,
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          model: "claude-sonnet-4-5-20250929",
+                          model: AI_MODEL,
                           max_tokens: 1024,
-                          system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}`,
                           messages: followUpMessages,
                           stream: true,
                         }),
@@ -1135,15 +1149,21 @@ ${TRIP_CARD_PROMPT_RULE}`;
                           followBuffer = fLines.pop() || '';
                           for (const fLine of fLines) {
                             if (!fLine.trim() || fLine.startsWith(':') || fLine.startsWith('event:') || !fLine.startsWith('data: ')) continue;
+                            const fPayload = fLine.slice(6).trim();
+                            if (fPayload === '[DONE]') continue;
                             try {
-                              const fParsed = JSON.parse(fLine.slice(6));
-                              if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
+                              const fParsed = JSON.parse(fPayload);
+                              const fText = fParsed?.choices?.[0]?.delta?.content;
+                              if (typeof fText === 'string' && fText) {
                                 followUpSent = true;
-                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: fParsed.delta.text } }] })}\n\n`));
+                                assistantText += fText;
+                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: fText } }] })}\n\n`));
                               }
                             } catch {}
                           }
                         }
+                      } else if (followUpResponse.body) {
+                        console.error('Follow-up gateway error', followUpResponse.status, await followUpResponse.text());
                       }
                     } catch (followErr) {
                       console.error('Follow-up failed:', followErr);
