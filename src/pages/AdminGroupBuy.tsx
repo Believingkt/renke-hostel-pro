@@ -30,6 +30,7 @@ import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary"
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
@@ -204,6 +205,8 @@ export default function AdminGroupBuy() {
   const [banks, setBanks] = useState<BankRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  /** 訂單價格快照（group_buy_commissions.price_snapshot），僅供稽核檢視 */
+  const [snapshots, setSnapshots] = useState<Record<string, PriceSnapshot | null>>({});
   const [auditTarget, setAuditTarget] = useState<OrderRow | null>(null);
   const [roomTypes, setRoomTypes] = useState<{ id: string; name: string }[]>([]);
   const [editing, setEditing] = useState<Partial<Campaign> | null>(null);
@@ -254,10 +257,13 @@ export default function AdminGroupBuy() {
     const [{ data: pkgs }, { data: bankRows }, { data: comms }] = await Promise.all([
       supabase.from("group_buy_campaign_packages").select("*").eq("campaign_id", activeId).order("sort_order"),
       supabase.from("group_buy_bank_accounts").select("*").eq("campaign_id", activeId).order("is_default", { ascending: false }),
-      supabase.from("group_buy_commissions").select("order_id").eq("campaign_id", activeId),
+      supabase.from("group_buy_commissions").select("order_id, price_snapshot").eq("campaign_id", activeId),
     ]);
     setPackages((pkgs ?? []) as unknown as PackageRow[]);
     setBanks((bankRows ?? []) as unknown as BankRow[]);
+    setSnapshots(
+      Object.fromEntries((comms ?? []).map((c: any) => [c.order_id, (c.price_snapshot ?? null) as PriceSnapshot | null])),
+    );
 
     const orderIds = (comms ?? []).map((c: any) => c.order_id);
     if (orderIds.length === 0) {
@@ -1280,6 +1286,11 @@ export default function AdminGroupBuy() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <div>
+              <p className="mb-1.5 text-sm font-semibold">訂單價格快照</p>
+              <GroupBuyPriceSnapshot snapshot={auditTarget ? snapshots[auditTarget.id] : null} />
+            </div>
+            <p className="text-sm font-semibold">狀態紀錄</p>
             {(auditTarget ? events.filter((e) => e.order_id === auditTarget.id) : []).map((e) => (
               <div key={e.id} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-2">

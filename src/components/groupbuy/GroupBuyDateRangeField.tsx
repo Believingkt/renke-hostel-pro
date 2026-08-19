@@ -223,7 +223,7 @@ export function GroupBuyDateRangeField({
           {isCheckoutPhase ? (
             <span className="flex min-w-0 items-start gap-1.5">
               <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-muted opacity-60" />
-              <span className="break-words">不可選（活動期間外）</span>
+              <span className="break-words">不可選</span>
             </span>
           ) : (
             <span className="flex min-w-0 items-start gap-1.5">
@@ -232,6 +232,12 @@ export function GroupBuyDateRangeField({
             </span>
           )}
         </div>
+
+        {isCheckoutPhase && (
+          <div className="border-t border-border/70 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            不可選日期可能因活動期間限制或住宿區間跨越方案不適用日期。
+          </div>
+        )}
 
       </PopoverContent>
     </Popover>

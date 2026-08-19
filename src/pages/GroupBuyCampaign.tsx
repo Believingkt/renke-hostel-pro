@@ -146,6 +146,8 @@ export default function GroupBuyCampaign() {
   const [selectedPkgId, setSelectedPkgId] = useState<string>("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  /** 切換方案導致原日期失效時的提示 */
+  const [dateResetNotice, setDateResetNotice] = useState("");
   /** 團購訂單一次固定只訂 1 間，前台不提供間數選擇 */
   const roomQuantity = 1;
   const [guests, setGuests] = useState<GuestCounts>(DEFAULT_GUEST_COUNTS);
@@ -663,6 +665,23 @@ export default function GroupBuyCampaign() {
   };
   const scrollToForm = () => goTo("gb-book");
   /**
+   * 切換方案：若目前已選日期對新方案不適用（住宿夜踩到新方案的不適用日期），
+   * 直接清空日期與價格摘要並提示重選；仍有效時保留日期，價格會自動依新方案重算。
+   */
+  const choosePackage = (p: CampaignPackage) => {
+    const nextExcluded = (p.excluded_dates ?? []).map((d) => String(d).slice(0, 10));
+    const invalid = !!checkIn && !!checkOut && !!findExcludedNight(checkIn, checkOut, nextExcluded);
+    setSelectedPkgId(p.id);
+    if (invalid) {
+      setCheckIn("");
+      setCheckOut("");
+      setDateResetNotice("此方案不適用原先選擇的住宿日期，請重新選擇入住日期。");
+    } else {
+      setDateResetNotice("");
+    }
+    setTimeout(scrollToForm, 60);
+  };
+  /**
    * 客服 LINE 來源：優先使用民宿既有的官方 LINE 設定（accommodation_info.line_id），
    * 沒有設定時才回退解析活動聯絡說明中的網址。不新增第二套客服資料。
    */
@@ -996,10 +1015,7 @@ export default function GroupBuyCampaign() {
                           type="button"
                           variant="outline"
                           className="h-11 w-full rounded-xl border-primary/40 text-base font-semibold text-primary hover:bg-primary/10 sm:w-auto sm:px-6"
-                          onClick={() => {
-                            setSelectedPkgId(p.id);
-                            setTimeout(scrollToForm, 60);
-                          }}
+                          onClick={() => choosePackage(p)}
                         >
                           選擇此方案
                         </Button>
@@ -1066,6 +1082,14 @@ export default function GroupBuyCampaign() {
             <div className="mt-5 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-7">
               {/* 左欄：日期 → 人數 → 訂房資料 */}
               <div className="min-w-0">
+                {!!dateResetNotice && (
+                  <p
+                    role="status"
+                    className="mb-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium text-foreground"
+                  >
+                    {dateResetNotice}
+                  </p>
+                )}
                 <GroupBuyDateRangeField
                   checkIn={checkIn}
                   checkOut={checkOut}
@@ -1078,6 +1102,7 @@ export default function GroupBuyCampaign() {
                   onChange={(ci, co) => {
                     setCheckIn(ci);
                     setCheckOut(co);
+                    if (ci) setDateResetNotice("");
                   }}
                 />
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
