@@ -174,6 +174,12 @@ const PortalAIChatPanel = () => {
 
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "guide_state") {
+              isGuideTurn = true;
+              setGuideAttrs(parsed.attrs ?? null);
+              setGuideActive(parsed.done !== true);
+              continue;
+            }
             if (parsed.type === "tool_calls_complete") {
               const hit = (parsed.results || []).find(
                 (r: any) => r?.name === "get_available_rooms" || r?.name === "get_packages",
