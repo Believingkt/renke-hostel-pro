@@ -34,3 +34,8 @@ type: feature
   `guest_reported`（旅客回報已匯款）、`admin_confirmed`（後台確認收訂金）、`expired`（逾期取消）。
   後台 `/admin/group-buy` 訂單列可開「稽核紀錄」時間軸（時間／操作者／金額／末五碼／備註）。
 - 自動化情境測試：`src/lib/__tests__/groupBuyIsolation.test.ts`（口徑分流不重複不遺漏、庫存雙向共用、包棟互斥、下訂前後雙重驗證）。
+
+## V3 前台結構（2026-08）
+- 團購頁分兩段：成交區（Hero → Stepper → 方案 → 快速照片 → 日期/人數 → 資料 → 摘要/付款 → 確認）與了解區（介紹、Gallery、設施、交通、景點、評價、FAQ、須知、Footer）。
+- 後台可設定欄位：group_buy_campaigns.highlight_points / featured_facilities / featured_photo_urls、group_buy_campaign_packages.short_summary（皆僅影響顯示）。
+- 團購 Footer 隱藏技術合作資訊（BookingFooter hidePartnershipInfo）；設施只在下方 FacilitiesSection 呈現一次；附近景點預設只顯示 3 個。
