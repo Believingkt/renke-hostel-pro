@@ -190,26 +190,31 @@ export function GroupBuyDateRangeField({
         />
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground sm:flex sm:flex-wrap sm:items-center sm:gap-x-4">
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm border border-border bg-background" />可預訂
+          <span className="flex min-w-0 items-start gap-1.5">
+            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm border border-border bg-background" />
+            <span className="break-words">可預訂</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-primary" />入住／退房日
+          <span className="flex min-w-0 items-start gap-1.5">
+            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-primary" />
+            <span className="break-words">入住／退房日</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-primary/25" />住宿區間
+          <span className="flex min-w-0 items-start gap-1.5">
+            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-primary/25" />
+            <span className="break-words">住宿區間</span>
           </span>
           {isCheckoutPhase ? (
-            <span className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-muted opacity-60" />不可選（活動期間外）
+            <span className="flex min-w-0 items-start gap-1.5">
+              <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-muted opacity-60" />
+              <span className="break-words">不可選（活動期間外）</span>
             </span>
           ) : (
-            <span className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-muted line-through" />
-              <span className="line-through">已滿房／不可入住</span>
+            <span className="flex min-w-0 items-start gap-1.5">
+              <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-muted line-through" />
+              <span className="break-words line-through">已滿房／不可入住</span>
             </span>
           )}
         </div>
+
       </PopoverContent>
     </Popover>
   );

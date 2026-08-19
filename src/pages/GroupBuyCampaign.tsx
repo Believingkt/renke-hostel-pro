@@ -22,7 +22,6 @@ import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDa
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
-import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
@@ -1234,7 +1233,6 @@ export default function GroupBuyCampaign() {
           )}
 
 
-          {accInfo.show_reviews_section !== false && <ReviewsSection accommodationId={accInfo.id} />}
 
           {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
 
