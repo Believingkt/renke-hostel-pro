@@ -4017,6 +4017,7 @@ export type Database = {
           package_id: string | null
           room_type_id: string | null
           room_type_ids: string[]
+          short_summary: string | null
           sort_order: number
           updated_at: string
         }
@@ -4034,6 +4035,7 @@ export type Database = {
           package_id?: string | null
           room_type_id?: string | null
           room_type_ids?: string[]
+          short_summary?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -4051,6 +4053,7 @@ export type Database = {
           package_id?: string | null
           room_type_id?: string | null
           room_type_ids?: string[]
+          short_summary?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -4092,7 +4095,10 @@ export type Database = {
           description_html: string | null
           discount_code: string | null
           discount_code_id: string | null
+          featured_facilities: string[]
+          featured_photo_urls: string[]
           gallery_urls: string[]
+          highlight_points: string[]
           id: string
           kol_display_name: string | null
           kol_profile_id: string | null
@@ -4122,7 +4128,10 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          featured_facilities?: string[]
+          featured_photo_urls?: string[]
           gallery_urls?: string[]
+          highlight_points?: string[]
           id?: string
           kol_display_name?: string | null
           kol_profile_id?: string | null
@@ -4152,7 +4161,10 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          featured_facilities?: string[]
+          featured_photo_urls?: string[]
           gallery_urls?: string[]
+          highlight_points?: string[]
           id?: string
           kol_display_name?: string | null
           kol_profile_id?: string | null
