@@ -155,6 +155,11 @@ interface OrderRow {
   check_in_date: string;
   check_out_date: string;
   room_quantity: number;
+  guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
+  toddler_count: number | null;
+  infant_count: number | null;
   final_price: number;
   deposit_amount: number;
   paid_amount: number | null;
@@ -257,7 +262,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
@@ -555,6 +560,7 @@ export default function AdminGroupBuy() {
                       <TableHead className="whitespace-nowrap">訂單編號</TableHead>
                       <TableHead className="whitespace-nowrap">旅客</TableHead>
                       <TableHead className="whitespace-nowrap">入住</TableHead>
+                      <TableHead className="whitespace-nowrap">人數</TableHead>
                       <TableHead className="whitespace-nowrap text-right tabular-nums">總額</TableHead>
                       <TableHead className="whitespace-nowrap text-right tabular-nums">訂金</TableHead>
                       <TableHead className="whitespace-nowrap">狀態</TableHead>
@@ -580,6 +586,17 @@ export default function AdminGroupBuy() {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {o.check_in_date} → {o.check_out_date}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {[
+                            `成人 ${o.adult_count ?? 0}`,
+                            (o.child_count ?? 0) > 0 ? `兒童 ${o.child_count}` : null,
+                            (o.toddler_count ?? 0) > 0 ? `幼兒 ${o.toddler_count}` : null,
+                            (o.infant_count ?? 0) > 0 ? `嬰兒 ${o.infant_count}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join("・")}
+                          <div className="text-xs text-muted-foreground">計價人數 {o.guest_count ?? 0}</div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{twd(o.final_price)}</TableCell>
                         <TableCell className="text-right tabular-nums">{twd(o.deposit_amount)}</TableCell>
@@ -641,7 +658,7 @@ export default function AdminGroupBuy() {
                     ))}
                     {orders.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                           尚無團購訂單
                         </TableCell>
                       </TableRow>
