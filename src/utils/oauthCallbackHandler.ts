@@ -25,6 +25,8 @@ export interface CallbackParams {
   // (AuthSessionMissingError). Skip setSession and hand the raw edge-function
   // tokens straight to `lakeze://auth-callback`.
   nativeMode?: boolean;
+  /** 等待期間的進度回饋（例如「登入處理中，請稍候…」） */
+  onProgress?: (message: string) => void;
 }
 
 
@@ -38,7 +40,12 @@ export interface CallbackResult {
 }
 
 const DEFAULT_REDIRECT = "/member/orders";
-const TIMEOUT_MS = 8000;
+/** 單次 exchange 嘗試上限（edge function 冷啟動可能 5–10 秒） */
+const ATTEMPT_TIMEOUT_MS = 12000;
+/** 整體上限：超過才判定登入逾時 */
+const TOTAL_TIMEOUT_MS = 32000;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 2000;
 
 export type SessionHandoffTokens = { access?: string; refresh?: string };
 
@@ -162,135 +169,166 @@ export async function buildRedirectWithSessionHandoff(
   return target;
 }
 
-export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
+/** 單次 exchange 嘗試（不含逾時控制） */
+async function attemptExchange(p: CallbackParams): Promise<CallbackResult> {
   const { tag, functionName, invokeBody, successLabel, returnUrlOverride, nativeMode } = p;
+  let rawAccess: string | undefined;
+  let rawRefresh: string | undefined;
+  try {
+    console.log(`[${tag} callback] exchange start →`, functionName, "native=", !!nativeMode);
+    const { data, error } = await supabase.functions.invoke(functionName, { body: invokeBody });
+    if (error) throw new Error(error.message || `${successLabel}授權碼交換失敗`);
+    if (!data?.access_token || !data?.refresh_token) {
+      throw new Error(data?.error || "未收到 Supabase session");
+    }
+    rawAccess = data.access_token as string;
+    rawRefresh = data.refresh_token as string;
 
-  // 8-second timeout fallback. Whatever happens, if a session exists when the
-  // timer fires, treat as success.
-  let timeoutHit = false;
-  const timeoutPromise = new Promise<CallbackResult>((resolve) => {
-    setTimeout(async () => {
-      timeoutHit = true;
-      console.warn(`[${tag} callback] exchange timeout (${TIMEOUT_MS}ms), re-checking session`);
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.user) {
-        console.log(`[${tag} callback] session present after timeout, navigating`);
-        resolve({
-          ok: true,
-          redirectTo: pickRedirect(returnUrlOverride),
-          successMessage: `${successLabel}登入成功`,
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
-        });
-      } else {
-        resolve({
-          ok: false,
-          redirectTo: "/member/auth",
-          errorMessage: `${successLabel}登入逾時，請重試`,
-        });
-      }
-    }, TIMEOUT_MS);
-  });
-
-  const exchangePromise: Promise<CallbackResult> = (async () => {
-    let rawAccess: string | undefined;
-    let rawRefresh: string | undefined;
-    try {
-      console.log(`[${tag} callback] exchange start →`, functionName, "native=", !!nativeMode);
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: invokeBody,
-      });
-      if (timeoutHit) {
-        // Timeout already resolved; ignore late result.
-        return { ok: false, redirectTo: "/member/auth" };
-      }
-      if (error) throw new Error(error.message || `${successLabel}授權碼交換失敗`);
-      if (!data?.access_token || !data?.refresh_token) {
-        throw new Error(data?.error || "未收到 Supabase session");
-      }
-      rawAccess = data.access_token as string;
-      rawRefresh = data.refresh_token as string;
-
-      // Native deep-link flow: never establish the session in this isolated
-      // in-app browser — hand the raw tokens back to the app instead. Both
-      // access_token and refresh_token are guaranteed present at this point.
-      if (nativeMode) {
-        console.log(`[${tag} callback] native mode — forwarding raw tokens without setSession`);
-        return {
-          ok: true,
-          redirectTo: pickRedirect(returnUrlOverride),
-          successMessage: `${successLabel}登入成功`,
-          accessToken: rawAccess,
-          refreshToken: rawRefresh,
-        };
-      }
-
-      console.log(`[${tag} callback] exchange success, calling setSession`);
-
-      const { error: setErr } = await supabase.auth.setSession({
-        access_token: rawAccess,
-        refresh_token: rawRefresh,
-      });
-      if (setErr) throw setErr;
-
-
-      // Confirm session is really there before navigating.
-      const { data: confirm } = await supabase.auth.getSession();
-      console.log(`[${tag} callback] session confirmed:`, !!confirm?.session?.user);
-      let confirmedSession = confirm?.session;
-      if (!confirmedSession?.user) {
-        await new Promise((r) => setTimeout(r, 200));
-        const { data: confirm2 } = await supabase.auth.getSession();
-        confirmedSession = confirm2?.session;
-        if (!confirmedSession?.user) {
-          throw new Error("Session 建立失敗，請重試");
-        }
-      }
-
+    // Native deep-link flow: never establish the session in this isolated
+    // in-app browser — hand the raw tokens back to the app instead.
+    if (nativeMode) {
+      console.log(`[${tag} callback] native mode — forwarding raw tokens without setSession`);
       return {
         ok: true,
         redirectTo: pickRedirect(returnUrlOverride),
         successMessage: `${successLabel}登入成功`,
-        // Use the confirmed client session tokens, not the raw edge-function
-        // tokens. setSession may rotate the refresh token; handing the old one
-        // to another origin makes that origin fall back to the login page.
-        accessToken: confirmedSession.access_token,
-        refreshToken: confirmedSession.refresh_token,
+        accessToken: rawAccess,
+        refreshToken: rawRefresh,
       };
-    } catch (err: any) {
-      console.error(`[${tag} callback] exchange error`, err);
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.user) {
-        console.log(`[${tag} callback] session present despite error, navigating`);
-        return {
-          ok: true,
-          redirectTo: pickRedirect(returnUrlOverride),
-          successMessage: `${successLabel}登入成功`,
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
-        };
-      }
-      // We already hold valid tokens from the edge function; only the local
-      // session write failed (common inside isolated in-app browsers). Forward
-      // them so the app / target origin can establish the session itself.
-      if (rawAccess && rawRefresh) {
-        console.warn(`[${tag} callback] setSession failed but raw tokens available — forwarding`);
-        return {
-          ok: true,
-          redirectTo: pickRedirect(returnUrlOverride),
-          successMessage: `${successLabel}登入成功`,
-          accessToken: rawAccess,
-          refreshToken: rawRefresh,
-        };
-      }
-      return {
-        ok: false,
-        redirectTo: "/member/auth",
-        errorMessage: err?.message || `${successLabel}登入失敗`,
-      };
-
     }
-  })();
 
-  return Promise.race([exchangePromise, timeoutPromise]);
+    console.log(`[${tag} callback] exchange success, calling setSession`);
+
+    const { error: setErr } = await supabase.auth.setSession({
+      access_token: rawAccess,
+      refresh_token: rawRefresh,
+    });
+    if (setErr) throw setErr;
+
+    // Confirm session is really there before navigating.
+    const { data: confirm } = await supabase.auth.getSession();
+    console.log(`[${tag} callback] session confirmed:`, !!confirm?.session?.user);
+    let confirmedSession = confirm?.session;
+    if (!confirmedSession?.user) {
+      await new Promise((r) => setTimeout(r, 200));
+      const { data: confirm2 } = await supabase.auth.getSession();
+      confirmedSession = confirm2?.session;
+      if (!confirmedSession?.user) {
+        throw new Error("Session 建立失敗，請重試");
+      }
+    }
+
+    return {
+      ok: true,
+      redirectTo: pickRedirect(returnUrlOverride),
+      successMessage: `${successLabel}登入成功`,
+      // Use the confirmed client session tokens, not the raw edge-function
+      // tokens. setSession may rotate the refresh token.
+      accessToken: confirmedSession.access_token,
+      refreshToken: confirmedSession.refresh_token,
+    };
+  } catch (err: any) {
+    console.error(`[${tag} callback] exchange error`, err);
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.user) {
+      console.log(`[${tag} callback] session present despite error, navigating`);
+      return {
+        ok: true,
+        redirectTo: pickRedirect(returnUrlOverride),
+        successMessage: `${successLabel}登入成功`,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    }
+    // We already hold valid tokens from the edge function; only the local
+    // session write failed (common inside isolated in-app browsers).
+    if (rawAccess && rawRefresh) {
+      console.warn(`[${tag} callback] setSession failed but raw tokens available — forwarding`);
+      return {
+        ok: true,
+        redirectTo: pickRedirect(returnUrlOverride),
+        successMessage: `${successLabel}登入成功`,
+        accessToken: rawAccess,
+        refreshToken: rawRefresh,
+      };
+    }
+    return {
+      ok: false,
+      redirectTo: "/member/auth",
+      errorMessage: err?.message || `${successLabel}登入失敗`,
+    };
+  }
 }
+
+/**
+ * Exchange with cold-start tolerance:
+ * - 每次嘗試最多 ATTEMPT_TIMEOUT_MS（edge function 冷啟動可能 5–10 秒）
+ * - 失敗或逾時自動重試（共 MAX_ATTEMPTS 次，間隔 RETRY_DELAY_MS），對使用者透明
+ * - 整體上限 TOTAL_TIMEOUT_MS，超過才判定逾時
+ * - 任何時間點若已有 session，一律視為成功
+ */
+export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
+  const { tag, successLabel, returnUrlOverride, onProgress } = p;
+  const deadline = Date.now() + TOTAL_TIMEOUT_MS;
+  let lastError: string | undefined;
+
+  const sessionSuccess = async (): Promise<CallbackResult | null> => {
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session?.user) return null;
+    return {
+      ok: true,
+      redirectTo: pickRedirect(returnUrlOverride),
+      successMessage: `${successLabel}登入成功`,
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    };
+  };
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    onProgress?.(
+      attempt === 1 ? "登入處理中，請稍候…" : `登入處理中，請稍候…（重試 ${attempt - 1}/${MAX_ATTEMPTS - 1}）`,
+    );
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+
+    const timeoutMs = Math.min(ATTEMPT_TIMEOUT_MS, remaining);
+    let timedOut = false;
+    const result = await Promise.race<CallbackResult | null>([
+      attemptExchange(p),
+      new Promise<null>((resolve) =>
+        setTimeout(() => {
+          timedOut = true;
+          resolve(null);
+        }, timeoutMs),
+      ),
+    ]);
+
+    if (result?.ok) return result;
+    if (timedOut) {
+      console.warn(`[${tag} callback] attempt ${attempt} timed out after ${timeoutMs}ms`);
+      lastError = `${successLabel}登入逾時，請重試`;
+    } else if (result) {
+      lastError = result.errorMessage;
+      console.warn(`[${tag} callback] attempt ${attempt} failed: ${lastError}`);
+    }
+
+    // 有些情況 session 其實已建立（例如晚到的回應）
+    const viaSession = await sessionSuccess();
+    if (viaSession) return viaSession;
+
+    if (attempt < MAX_ATTEMPTS && Date.now() + RETRY_DELAY_MS < deadline) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+
+  const viaSession = await sessionSuccess();
+  if (viaSession) return viaSession;
+
+  return {
+    ok: false,
+    redirectTo: "/member/auth",
+    errorMessage: lastError || `${successLabel}登入逾時，請重試`,
+  };
+}
+
