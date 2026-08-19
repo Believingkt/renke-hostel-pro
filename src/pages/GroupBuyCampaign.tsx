@@ -807,8 +807,17 @@ export default function GroupBuyCampaign() {
                 </>
               )}
 
+              {/* 付款流程說明：讓客人在按下按鈕前就知道下一步 */}
+              <div className="mt-5 rounded-2xl border border-border/70 bg-background/60 p-4">
+                <p className="text-sm font-semibold text-foreground">付款方式</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  訂房成立後將取得匯款資訊（不會立即扣款）。本次僅需支付 {depositPct}% 訂金
+                  {total > 0 ? `（${twd(deposit)}）` : ""}，尾款於入住時支付。
+                </p>
+              </div>
+
               <Button
-                className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
                 disabled={
                   submitting ||
                   availability.checking ||
@@ -820,22 +829,25 @@ export default function GroupBuyCampaign() {
                   !guestName.trim() ||
                   !guestPhone.trim() ||
                   !guestEmail.trim() ||
+                  !!emailError ||
                   guestCount < 1
                 }
-                onClick={submit}
+                onClick={() => setConfirmOpen(true)}
               >
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 確認訂房並取得匯款資訊
               </Button>
             </>
           )}
 
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            已下訂？
-            <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
-              查詢訂單／回報匯款
-            </Link>
-          </p>
+          <div className="mt-4 flex flex-col items-center gap-2.5">
+            <p className="text-sm text-muted-foreground">
+              已下訂？
+              <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
+                查詢訂單／回報匯款
+              </Link>
+            </p>
+          </div>
+
         </section>
 
         )}
