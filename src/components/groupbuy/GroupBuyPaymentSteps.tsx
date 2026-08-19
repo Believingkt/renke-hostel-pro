@@ -20,10 +20,10 @@ export function GroupBuyPaymentSteps({ depositPercentage, deadlineHours }: Props
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         訂房成立後將取得匯款資訊，不會立即扣款；尾款於入住時支付。
       </p>
-      <ol className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <ol className="mt-3 space-y-1.5">
         {steps.map(({ Icon, label }, i) => (
-          <li key={label} className="flex items-start gap-2 rounded-xl bg-muted/60 px-2.5 py-2">
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <li key={label} className="flex items-center gap-2 rounded-xl bg-muted/60 px-2.5 py-2">
+            <Icon className="h-4 w-4 shrink-0 text-primary" />
             <span className="text-xs leading-snug text-muted-foreground">
               <span className="mr-1 font-semibold text-foreground tabular-nums">{i + 1}</span>
               {label}
@@ -31,6 +31,7 @@ export function GroupBuyPaymentSteps({ depositPercentage, deadlineHours }: Props
           </li>
         ))}
       </ol>
+
     </div>
   );
 }
