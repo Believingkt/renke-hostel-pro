@@ -986,7 +986,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                     <div>
                       快照歸期：{snapshotMonthOfOrder || "-"}　→　發放期：
                       <span className="font-medium">{currentPayoutMonth}</span>
-                      （以重算當月為準）
+                      （每月 10 日發放，已過 10 日則歸次月）
                     </div>
                     <div>
                       預估獎金：
