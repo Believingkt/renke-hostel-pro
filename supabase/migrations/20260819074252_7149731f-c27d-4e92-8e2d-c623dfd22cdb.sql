@@ -1,0 +1,1 @@
+update public.orders set order_status='cancelled' where order_number='GX5E74Z7';
