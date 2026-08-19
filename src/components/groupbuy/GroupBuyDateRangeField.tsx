@@ -88,10 +88,12 @@ export function GroupBuyDateRangeField({
 
   const soldOut = (d: Date) => !!unavailableDates?.has(iso(d));
 
+  /** 選退房日階段：退房日不佔當晚庫存，僅擋活動期間外的日期 */
+  const isCheckoutPhase = phase === 2 && !!from;
+
   const disabledDay = (d: Date) => {
     if (outOfBounds(d)) return true;
-    // 選退房日階段：退房日不需佔用庫存，只擋活動期間外的日期
-    if (phase === 2 && from) return false;
+    if (isCheckoutPhase) return false;
     return soldOut(d);
   };
 
@@ -171,14 +173,14 @@ export function GroupBuyDateRangeField({
           selected={{ from, to }}
           defaultMonth={from ?? minDate}
           onDayClick={handleDayClick}
-          modifiers={{ soldout: (d) => soldOut(d) && !outOfBounds(d) }}
+          modifiers={{ soldout: (d) => !isCheckoutPhase && soldOut(d) && !outOfBounds(d) }}
           modifiersClassNames={{ soldout: "line-through" }}
           disabled={disabledDay}
           classNames={{
             day_today:
               "font-semibold underline decoration-dotted decoration-muted-foreground underline-offset-4 aria-selected:no-underline",
             day_range_middle: "!bg-primary/15 !text-foreground hover:!bg-primary/25",
-            day_disabled: "text-muted-foreground/50 opacity-60 line-through",
+            day_disabled: cn("text-muted-foreground/50 opacity-60", !isCheckoutPhase && "line-through"),
             cell:
               "h-10 w-10 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
             head_cell: "text-muted-foreground rounded-md w-10 font-normal text-[0.8rem]",
@@ -197,10 +199,16 @@ export function GroupBuyDateRangeField({
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm bg-primary/25" />住宿區間
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-muted line-through" />
-            <span className="line-through">已滿房／不可入住</span>
-          </span>
+          {isCheckoutPhase ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm bg-muted opacity-60" />不可選（活動期間外）
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm bg-muted line-through" />
+              <span className="line-through">已滿房／不可入住</span>
+            </span>
+          )}
         </div>
       </PopoverContent>
     </Popover>
