@@ -559,45 +559,97 @@ export default function GroupBuyCampaign() {
               </span>
               {saleBadge}
             </div>
+            {/* 1 民宿名稱 */}
             <h1 className="mt-2.5 text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
               {venueName || campaign.title}
             </h1>
+            {/* 2 一句話賣點 */}
             {(campaign.subtitle || (venueName && campaign.title)) && (
-              <p className="mt-1.5 text-base leading-[1.75] text-muted-foreground">
+              <p className="mt-1.5 line-clamp-2 text-base leading-[1.7] text-muted-foreground">
                 {campaign.subtitle || campaign.title}
               </p>
             )}
-            {campaign.stay_start_date || campaign.stay_end_date ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                可入住期間{" "}
-                <span className="font-medium text-foreground tabular-nums">
+
+            {/* 3 團購價格錨點 */}
+            {lowestPkg && (
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="text-sm text-muted-foreground">團購價</span>
+                <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
+                  {twd(lowestPkg.group_buy_price)}
+                </span>
+                <span className="text-sm text-muted-foreground">起／晚</span>
+                {lowestPkg.original_price ? (
+                  <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
+                    原價 {twd(lowestPkg.original_price)}
+                  </span>
+                ) : null}
+                {lowestSave > 0 && (
+                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                    最高現省 {twd(lowestSave)}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 4 活動主賣點（後台可設定，最多 3 點） */}
+            {highlightPoints.length > 0 && (
+              <ul className="mt-3 grid gap-1.5 sm:grid-cols-3">
+                {highlightPoints.map((h) => (
+                  <li key={h} className="flex items-start gap-1.5 text-sm leading-snug text-foreground">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* 5 活動核心條件（販售期限、可入住、訂金） */}
+            <div className="mt-3.5 flex flex-col gap-1.5 border-t border-border/60 pt-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+              <p className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">販售至</span>
+                <span className="font-medium tabular-nums">{fmtWindow(campaign.sale_end)}</span>
+              </p>
+              <p className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">可入住</span>
+                <span className="font-medium tabular-nums">
                   {campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
                 </span>
               </p>
-            ) : null}
-            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              <p className="flex items-center gap-1.5">
+                <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">本次僅付訂金</span>
+                <span className="font-medium tabular-nums">{depositPct}%</span>
+              </p>
+            </div>
+
+            {/* 6 主要行動 */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {!bookingLocked && (
+                <Button
+                  type="button"
+                  className="h-11 rounded-xl bg-accent px-6 text-base font-semibold text-accent-foreground hover:bg-accent/90"
+                  onClick={() => goTo("gb-plans")}
+                >
+                  立即選擇方案
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-full px-3.5 text-sm"
+                className="h-11 rounded-xl px-4 text-sm"
                 onClick={() => goTo("gb-venue")}
               >
-                <Images className="mr-1.5 h-4 w-4" /> 查看住宿照片
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-9 rounded-full px-3.5 text-sm text-primary hover:bg-primary/10"
-                onClick={() => goTo("gb-venue")}
-              >
-                查看民宿介紹
+                <Images className="mr-1.5 h-4 w-4" /> 查看住宿照片與介紹
               </Button>
             </div>
-            {previewPhotos.length >= 3 && (
+
+            {/* 7 精選照片（後台可指定，未指定時取民宿相簿） */}
+            {heroPhotoRow.length >= 3 && (
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {previewPhotos.slice(0, 3).map((url, i) => (
+                {heroPhotoRow.map((url, i) => (
                   <button
                     key={url + i}
                     type="button"
@@ -616,38 +668,14 @@ export default function GroupBuyCampaign() {
       </header>
 
       <main className={SHELL}>
-        {/* ── 活動資訊（線性排列，不做成表格） ── */}
-        <section className="mt-6 flex flex-col gap-2.5 border-b border-border/70 pb-6 text-[15px] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8">
-          <p className="flex items-center gap-2">
-            <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="text-muted-foreground">販售期間</span>
-            <span className="font-medium tabular-nums">
-              {fmtWindow(campaign.sale_start)} ~ {fmtWindow(campaign.sale_end)}
-            </span>
-          </p>
-          <p className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="text-muted-foreground">可入住期間</span>
-            <span className="font-medium tabular-nums">
-              {campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
-            </span>
-          </p>
-        </section>
         {bookingLocked && (
-          <p className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {sale === "ended"
               ? "此團購活動已結束，目前無法使用團購價格預訂。"
               : "此團購活動尚未開賣，目前無法下訂。"}
           </p>
         )}
 
-        {/* ── 團購優惠摘要（資料皆取自後台既有方案價格） ── */}
-        <GroupBuyDealSummary
-          packages={packages}
-          depositPercentage={depositPct}
-          stayStart={campaign.stay_start_date}
-          stayEnd={campaign.stay_end_date}
-        />
 
         {/* ── 訂房流程 Stepper ── */}
         {!bookingLocked && (
