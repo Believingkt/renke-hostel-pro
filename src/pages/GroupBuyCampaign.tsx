@@ -700,8 +700,15 @@ export default function GroupBuyCampaign() {
     );
 
   const goTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const el = document.getElementById(id);
+    if (!el) return;
+    // 扣掉 sticky 快速導覽列高度，避免標題被遮住
+    const nav = document.querySelector<HTMLElement>('nav[aria-label="頁內快速導覽"]');
+    const offset = (nav?.offsetHeight ?? 0) + 12;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
   };
+
   const scrollToForm = () => goTo("gb-book");
   /**
    * 切換方案：若目前已選日期對新方案不適用（住宿夜踩到新方案的不適用日期），
