@@ -72,7 +72,7 @@ const PushNotificationCard = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-medium">開啟訂單通知</div>
-            <Switch checked={enabled} onCheckedChange={onToggle} />
+            <Switch checked={enabled} disabled={busy} onCheckedChange={onToggle} />
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
             {enabled
