@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GroupBuyPageContentTab } from "@/components/admin/GroupBuyPageContentTab";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -98,6 +99,9 @@ const twd = (n: number) => `NT$ ${Math.round(Number(n) || 0).toLocaleString("en-
 
 interface Campaign {
   id: string;
+  /** 團購頁顯示用：指定 FAQ／訂房須知項目與順序（null＝全部顯示） */
+  faq_item_ids?: string[] | null;
+  booking_notice_keys?: string[] | null;
   accommodation_id: string;
   slug: string;
   title: string;
@@ -561,6 +565,7 @@ export default function AdminGroupBuy() {
             <TabsTrigger value="bank">匯款帳戶</TabsTrigger>
             <TabsTrigger value="analytics">銷售分析</TabsTrigger>
             <TabsTrigger value="venue">民宿介紹</TabsTrigger>
+            <TabsTrigger value="page-content">頁面內容</TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="space-y-3">
@@ -963,6 +968,18 @@ export default function AdminGroupBuy() {
 
           <TabsContent value="venue">
             {accommodationId && <GroupBuyVenueIntroEditor accommodationId={accommodationId} />}
+          </TabsContent>
+
+          <TabsContent value="page-content">
+            {accommodationId && (
+              <GroupBuyPageContentTab
+                campaignId={activeCampaign.id}
+                accommodationId={accommodationId}
+                faqItemIds={(activeCampaign as any).faq_item_ids ?? null}
+                bookingNoticeKeys={(activeCampaign as any).booking_notice_keys ?? null}
+                onSaved={() => void loadCampaigns()}
+              />
+            )}
           </TabsContent>
         </Tabs>
         </>
