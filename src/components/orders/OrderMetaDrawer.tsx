@@ -137,6 +137,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [closerRate, setCloserRate] = useState<number | null>(null);
   const [resyncing, setResyncing] = useState(false);
+  const [actualPayoutMonth, setActualPayoutMonth] = useState<string | null>(null);
+  const [checkingPayout, setCheckingPayout] = useState(false);
   const [saving, setSaving] = useState(false);
 
 
