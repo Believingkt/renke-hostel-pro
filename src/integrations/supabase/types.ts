@@ -6730,6 +6730,10 @@ export type Database = {
           exclusion_note: string | null
           filled_at: string | null
           filled_by: string | null
+          force_commission_at: string | null
+          force_commission_by: string | null
+          force_commission_eligible: boolean
+          force_commission_reason: string | null
           franchise_project: string | null
           id: string
           import_source: string | null
@@ -6771,6 +6775,10 @@ export type Database = {
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
+          force_commission_at?: string | null
+          force_commission_by?: string | null
+          force_commission_eligible?: boolean
+          force_commission_reason?: string | null
           franchise_project?: string | null
           id?: string
           import_source?: string | null
@@ -6812,6 +6820,10 @@ export type Database = {
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
+          force_commission_at?: string | null
+          force_commission_by?: string | null
+          force_commission_eligible?: boolean
+          force_commission_reason?: string | null
           franchise_project?: string | null
           id?: string
           import_source?: string | null

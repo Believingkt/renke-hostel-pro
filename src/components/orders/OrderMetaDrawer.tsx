@@ -128,7 +128,17 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
   const [lastConfirmedFinalPrice, setLastConfirmedFinalPrice] = useState<number | null>(null);
   const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
+  /** 例外：即使來源屬免抽成清單，仍計入成交組獎金 */
+  const [forceEligible, setForceEligible] = useState(false);
+  const [initialForceEligible, setInitialForceEligible] = useState(false);
+  const [forceReason, setForceReason] = useState("");
+  const [initialForceReason, setInitialForceReason] = useState("");
+  const [canForceCommission, setCanForceCommission] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [closerRate, setCloserRate] = useState<number | null>(null);
+  const [resyncing, setResyncing] = useState(false);
   const [saving, setSaving] = useState(false);
+
 
   // Inline add option inputs
   const [newTrafficSource, setNewTrafficSource] = useState("");
@@ -154,6 +164,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     addon_amount: Number(src.addon_amount ?? 0),
     nickname: src.nickname ?? null,
     deposit_confirm_date: src.deposit_confirm_date ?? null,
+    force_commission_eligible: Boolean(src.force_commission_eligible),
+    force_commission_reason: src.force_commission_reason ?? null,
     team_commission_price:
       src.team_commission_price === null || src.team_commission_price === undefined
         ? null
@@ -192,6 +204,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setLastConfirmedFinalPrice(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
+      setForceEligible(false);
+      setInitialForceEligible(false);
+      setForceReason("");
+      setInitialForceReason("");
+      setCloserRate(null);
     }
   }, [open, orderId]);
 
@@ -342,8 +359,33 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             roles.includes("hotel_admin") ||
             roles.includes("super_admin"),
         );
+        setIsSuperAdmin(roles.includes("super_admin"));
+        setCanForceCommission(
+          roles.includes("super_admin") ||
+            roles.includes("admin") ||
+            roles.includes("finance") ||
+            roles.includes("closer_manager"),
+        );
       } else {
         setCanEditCommissionPrice(false);
+        setIsSuperAdmin(false);
+        setCanForceCommission(false);
+      }
+
+      // 成交組費率（依訂單日取當時生效版本）— 供例外勾選的獎金預估使用
+      if (orderRowTyped?.accommodation_id) {
+        const { data: rateRows } = await supabase
+          .from("accommodation_commission_settings")
+          .select("closer_rate, effective_from")
+          .eq("accommodation_id", orderRowTyped.accommodation_id)
+          .lte("effective_from", String(orderRowTyped.order_date ?? "").slice(0, 10) || "9999-12-31")
+          .order("effective_from", { ascending: false })
+          .limit(1);
+        if (!cancelled) {
+          setCloserRate(
+            rateRows && rateRows.length > 0 ? Number((rateRows[0] as any).closer_rate ?? 0) : null,
+          );
+        }
       }
 
       if (existingMeta) {
@@ -368,6 +410,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setDepositConfirmDateVerified(Boolean((m as any).deposit_confirm_date_verified));
 
         setTcpIsManual(Boolean((m as any).team_commission_price_is_manual));
+        const fe = Boolean((m as any).force_commission_eligible);
+        setForceEligible(fe);
+        setInitialForceEligible(fe);
+        const fr = ((m as any).force_commission_reason as string) ?? "";
+        setForceReason(fr);
+        setInitialForceReason(fr);
         const tcp =
           m.team_commission_price === null || m.team_commission_price === undefined
             ? autoTcp
@@ -517,6 +565,52 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   };
 
+  /** 台北時區的年月（YYYY-MM） */
+  const taipeiMonthOf = (value?: string | Date | null) => {
+    const d = value ? new Date(value) : new Date();
+    if (Number.isNaN(d.getTime())) return "";
+    const f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+    });
+    return f.format(d).slice(0, 7);
+  };
+  /** 快照歸期＝訂單日所屬月；發放期＝執行當月 */
+  const snapshotMonthOfOrder = useMemo(() => taipeiMonthOf(orderDate), [orderDate]);
+  const currentPayoutMonth = useMemo(() => taipeiMonthOf(null), []);
+  const forceEstimateAmount = useMemo(() => {
+    const base = teamCommissionPrice ?? autoTeamCommissionPrice;
+    if (base === null || base === undefined || closerRate === null) return null;
+    return Math.round(Number(base) * closerRate);
+  }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
+
+  /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
+  const handleResyncSnapshots = async () => {
+    if (!snapshotMonthOfOrder) return;
+    setResyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-commission-snapshots", {
+        body: { test_mode: true, test_month: snapshotMonthOfOrder },
+      });
+      if (error) throw error;
+      const created = (data as any)?.results?.reduce?.(
+        (acc: number, r: any) => acc + Number(r?.created ?? 0),
+        0,
+      );
+      toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
+        description:
+          created === undefined
+            ? "請至發放管理確認結果"
+            : `新建 ${created} 筆，發放期 ${currentPayoutMonth}`,
+      });
+    } catch (e: any) {
+      toast.error(`重算失敗：${e?.message ?? "未知錯誤"}`);
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const handleSkip = () => {
     if (saving) return;
     onClose();
@@ -524,6 +618,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
   const handleSave = async () => {
     if (!orderId) return;
+    if (canForceCommission && forceEligible && !forceReason.trim()) {
+      toast.error("請填寫例外原因");
+      return;
+    }
     setSaving(true);
     try {
       // 抓 accommodation_id + 通知所需欄位
@@ -587,6 +685,18 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             : Number(teamCommissionPrice);
         payload.last_confirmed_final_price = finalPrice ?? null;
       }
+      if (canForceCommission) {
+        const forceChanged =
+          forceEligible !== initialForceEligible ||
+          forceReason.trim() !== initialForceReason.trim();
+        payload.force_commission_eligible = forceEligible;
+        payload.force_commission_reason = forceEligible ? forceReason.trim() || null : null;
+        if (forceChanged) {
+          payload.force_commission_by = forceEligible ? currentUserId : null;
+          payload.force_commission_at = forceEligible ? new Date().toISOString() : null;
+        }
+      }
+
       const depositDateChanged =
         (depositConfirmDate || null) !== (initialDepositConfirmDate || null);
       if (depositDateChanged) {
@@ -621,6 +731,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           nickname: "暱稱",
           deposit_confirm_date: "訂金確認日",
           team_commission_price: "分潤基準金額",
+          force_commission_eligible: "計入成交組獎金（例外）",
+          force_commission_reason: "例外原因",
         };
         const nameMap: Record<string, string> = {};
         [...closers, ...videoCreators].forEach((m) => {
@@ -632,7 +744,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           if (val === null || val === undefined || val === "") return null;
           if (key === "closer_id" || key === "video_creator_id") return nameMap[val] ?? val;
           if (key === "franchise_project") return fpMap[val] ?? val;
-          if (key === "is_excluded") return val ? "是" : "否";
+          if (key === "is_excluded" || key === "force_commission_eligible") return val ? "是" : "否";
           return val;
         };
         const changes = Object.keys(FIELD_LABELS)
@@ -827,6 +939,82 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               return null;
             })()}
           </div>
+
+          {/* 例外：計入成交組獎金 */}
+          {canForceCommission && (
+            <div className="space-y-2 p-3 rounded-md border border-dashed">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="force-commission"
+                  checked={forceEligible}
+                  onCheckedChange={(v) => setForceEligible(v === true)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="force-commission" className="text-sm">
+                    計入成交組獎金（例外）
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    來源屬免抽成清單（如 KOL）但客人自費時勾選；其餘獎金規則不變。
+                  </p>
+                </div>
+              </div>
+
+              {forceEligible && (
+                <div className="space-y-2">
+                  <Textarea
+                    value={forceReason}
+                    onChange={(e) => setForceReason(e.target.value)}
+                    placeholder="例外原因（必填，將寫入變更紀錄）"
+                    rows={2}
+                  />
+                  <div className="text-xs space-y-0.5 rounded-md bg-muted/40 p-2">
+                    <div>
+                      快照歸期：{snapshotMonthOfOrder || "-"}　→　發放期：
+                      <span className="font-medium">{currentPayoutMonth}</span>
+                      （以重算當月為準）
+                    </div>
+                    <div>
+                      預估獎金：
+                      <span className="font-medium">
+                        {forceEstimateAmount !== null
+                          ? `NT$ ${forceEstimateAmount.toLocaleString()}`
+                          : "—"}
+                      </span>
+                      {closerRate !== null && (
+                        <>
+                          （基準 NT${" "}
+                          {Number(teamCommissionPrice ?? autoTeamCommissionPrice ?? 0).toLocaleString()} ×{" "}
+                          {(closerRate * 100).toFixed(2)}%）
+                        </>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground">
+                      快照為 append-only，需重算該期後才會出現在發放管理。
+                    </div>
+                  </div>
+                  {isSuperAdmin ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
+                      onClick={handleResyncSnapshots}
+                    >
+                      {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      重算該期需由超級管理員執行。
+                    </p>
+                  )}
+                  {forceEligible !== initialForceEligible && (
+                    <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 1. 成交人 / 詢問日期 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
