@@ -136,8 +136,12 @@ export default function GroupBuyCampaign() {
   const [selectedPkgId, setSelectedPkgId] = useState<string>("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [roomQuantity, setRoomQuantity] = useState(1);
-  const [guestCount, setGuestCount] = useState(2);
+  /** 團購訂單一次固定只訂 1 間，前台不提供間數選擇 */
+  const roomQuantity = 1;
+  const [guests, setGuests] = useState<GuestCounts>(DEFAULT_GUEST_COUNTS);
+  /** 方案對應的兒童規則覆寫與房型容量（依既有民宿設定，不建立第二套資料） */
+  const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
+  const [roomCapacity, setRoomCapacity] = useState<number | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
