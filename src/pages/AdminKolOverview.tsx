@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { toast } from "sonner";
 import { Copy, Link2, Loader2, RefreshCw, Users } from "lucide-react";
 
@@ -67,6 +69,10 @@ export default function AdminKolOverview() {
   const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [codeIdByCode, setCodeIdByCode] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const monthLabel = selectedMonth === "all" ? "全部期間" : `${selectedMonth.replace("-", " / ")} `;
+
+
   const [savingId, setSavingId] = useState<string | null>(null);
   const [overrideDraft, setOverrideDraft] = useState<Record<string, string>>({});
 
@@ -124,7 +130,15 @@ export default function AdminKolOverview() {
     [commissions],
   );
 
-  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of orders) {
+      if (o.order_date) set.add(o.order_date.slice(0, 7));
+      if (o.check_out_date) set.add(o.check_out_date.slice(0, 7));
+    }
+    set.add(new Date().toISOString().slice(0, 7));
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [orders]);
 
   /** 每個 KOL 折扣碼的彙總（口徑沿用 kol-bonus-public 的分潤基準金額） */
   const perCode = useMemo(() => {
@@ -143,15 +157,15 @@ export default function AdminKolOverview() {
       cur.orders += 1;
       cur.revenue += Number(o.gross_revenue ?? 0);
       cur.commission += commission;
-      if (o.order_date?.startsWith(monthPrefix)) {
+      if (selectedMonth === "all" || o.order_date?.startsWith(selectedMonth)) {
         cur.monthOrders += 1;
         cur.monthRevenue += Number(o.gross_revenue ?? 0);
       }
-      if (o.check_out_date?.startsWith(monthPrefix)) cur.monthCommission += commission;
+      if (selectedMonth === "all" || o.check_out_date?.startsWith(selectedMonth)) cur.monthCommission += commission;
       map.set(code, cur);
     }
     return map;
-  }, [orders, getRate, monthPrefix]);
+  }, [orders, getRate, selectedMonth]);
 
   const ranking = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -160,9 +174,9 @@ export default function AdminKolOverview() {
         const stat = perCode.get((k.cid_code ?? "").toUpperCase());
         return {
           ...k,
-          orders: stat?.orders ?? 0,
-          revenue: stat?.revenue ?? 0,
-          commission: stat?.commission ?? 0,
+          orders: stat?.monthOrders ?? 0,
+          revenue: stat?.monthRevenue ?? 0,
+          commission: stat?.monthCommission ?? 0,
         };
       })
       .filter((k) =>
@@ -189,6 +203,7 @@ export default function AdminKolOverview() {
       pending: referrals.filter((r) => r.status !== "joined").length,
     };
   }, [perCode, kols, referrals]);
+
 
   const kolNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -302,18 +317,38 @@ export default function AdminKolOverview() {
             KOL 導流、分潤與邀約關係的統一檢視；金額口徑沿用既有折扣碼分潤計算（分潤基準＝實收金額扣加購，乘當期館別抽成）。
           </p>
         </div>
-        <Button variant="outline" onClick={fetchAll}>
-          <RefreshCw className="mr-2 h-4 w-4" /> 重新整理
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="選擇月份" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">全部期間</SelectItem>
+              {monthOptions.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m.replace("-", " / ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={fetchAll}>
+            <RefreshCw className="mr-2 h-4 w-4" /> 重新整理
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         {[
           { label: "KOL 總數（已配碼）", value: String(stats.kolCount), hint: "kol_profiles 有折扣碼者" },
-          { label: "本月導流訂單", value: `${stats.monthOrders} 筆`, hint: `金額 ${twd(stats.monthRevenue)}（依訂單日）` },
-          { label: "本月應付分潤", value: twd(stats.monthCommission), hint: "依退房月份歸屬" },
+          {
+            label: `${monthLabel}導流訂單`,
+            value: `${stats.monthOrders} 筆`,
+            hint: `金額 ${twd(stats.monthRevenue)}（依訂單日）`,
+          },
+          { label: `${monthLabel}應付分潤`, value: twd(stats.monthCommission), hint: "依退房月份歸屬" },
           { label: "邀約轉換", value: `${stats.joined} / ${stats.joined + stats.pending}`, hint: "已加入 / 總邀請" },
         ].map((s) => (
+
           <Card key={s.label}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
