@@ -12,6 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
+import {
+  calculateGroupBuyStayPrice,
+  findExcludedNight,
+  lowestEffectivePrice,
+} from "@/lib/groupBuyPricing";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
 import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
