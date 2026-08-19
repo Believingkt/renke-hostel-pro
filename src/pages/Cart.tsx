@@ -62,52 +62,65 @@ export default function Cart() {
     // 只要購物車沒有住宿列，登入會員一律先嘗試綁定最近的有效住宿訂單。
     // 商品是否帶 accommodationId 不應影響此流程；原本在商品有館別時會提早跳過 RPC。
     if (!stay && productLines.length > 0) {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: authError } = await supabase.auth.getUser();
 
-      if (userData.user) {
-        const { data, error } = await supabase.rpc(
-          "attach_trip_products_to_recent_order" as never,
-          {
-            p_items: productLines.map((line) => ({
-              product_id: line.product_id,
-              count: line.count,
-            })),
-            p_trip_id: cart.tripId,
-          } as never,
+      // 綁定既有住宿訂單必須先知道會員身分。舊流程在未登入時會靜默略過，
+      // 最後又顯示「請選擇住宿」，讓已有訂單的客人誤以為仍需重訂住宿。
+      if (authError || !userData.user) {
+        toast.info(
+          lang === "ja"
+            ? "宿泊予約に追加するにはログインしてください"
+            : lang === "en"
+              ? "Sign in to add this to your stay"
+              : "請先登入，以加入最近的住宿訂單",
         );
-        const result = data as unknown as {
-          ok?: boolean;
-          reason?: string;
-          order_number?: string;
-          added_total?: number;
-        } | null;
+        const returnPath = `/cart?lang=${encodeURIComponent(lang)}`;
+        navigate(`/member/auth?redirect=${encodeURIComponent(returnPath)}`);
+        return;
+      }
 
-        if (!error && result?.ok && result.order_number) {
-          clearCart();
-          toast.success(
-            lang === "ja"
-              ? "最近の宿泊予約に追加しました"
-              : lang === "en"
-                ? "Added to your latest stay"
-                : "已加入最近的住宿訂單",
-          );
-          navigate(`/member/orders/${result.order_number}`);
-          return;
-        }
+      const { data, error } = await supabase.rpc(
+        "attach_trip_products_to_recent_order" as never,
+        {
+          p_items: productLines.map((line) => ({
+            product_id: line.product_id,
+            count: line.count,
+          })),
+          p_trip_id: cart.tripId,
+        } as never,
+      );
+      const result = data as unknown as {
+        ok?: boolean;
+        reason?: string;
+        order_number?: string;
+        added_total?: number;
+      } | null;
 
-        if (error) {
-          const message = error.message || "";
-          const knownMessage = message.includes("PRODUCT_ALREADY_ATTACHED")
-            ? "此行程商品已加入該住宿訂單"
-            : message.includes("PRODUCT_OUT_OF_STOCK")
-              ? "行程商品名額不足，請調整數量"
-              : message.includes("PRODUCT_UNAVAILABLE")
-                ? "行程商品已下架，請重新選擇"
-                : "加入住宿訂單失敗，請稍後再試";
-          toast.error(knownMessage);
-          setCheckingOut(false);
-          return;
-        }
+      if (!error && result?.ok && result.order_number) {
+        clearCart();
+        toast.success(
+          lang === "ja"
+            ? "最近の宿泊予約に追加しました"
+            : lang === "en"
+              ? "Added to your latest stay"
+              : "已加入最近的住宿訂單",
+        );
+        navigate(`/member/orders/${result.order_number}`);
+        return;
+      }
+
+      if (error) {
+        const message = error.message || "";
+        const knownMessage = message.includes("PRODUCT_ALREADY_ATTACHED")
+          ? "此行程商品已加入該住宿訂單"
+          : message.includes("PRODUCT_OUT_OF_STOCK")
+            ? "行程商品名額不足，請調整數量"
+            : message.includes("PRODUCT_UNAVAILABLE")
+              ? "行程商品已下架，請重新選擇"
+              : "加入住宿訂單失敗，請稍後再試";
+        toast.error(knownMessage);
+        setCheckingOut(false);
+        return;
       }
     }
 
