@@ -35,6 +35,7 @@ export function GroupBuySummaryCard({
   roomQuantity,
   guestSummary,
   baseTotal,
+  nightlyBreakdown,
   childExtraTotal,
   total,
   deposit,
