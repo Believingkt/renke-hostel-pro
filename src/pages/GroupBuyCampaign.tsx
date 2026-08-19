@@ -1453,16 +1453,22 @@ export default function GroupBuyCampaign() {
 
 
 
-          {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
+          {showFaq && <FaqSection items={faqItems} formatPlainText />}
 
-          {accInfo.show_booking_info_section !== false && (
-            <GroupBuyBookingInfoCompact bookingSettings={secondaryData?.bookingSettings}>
-              <BookingInfoSection
+          {showBookingNotice && (
+            <div id="gb-notice" className="scroll-mt-16">
+              <GroupBuyBookingInfoCompact
                 bookingSettings={secondaryData?.bookingSettings}
-                checkInNotice={accInfo.check_in_notice}
-                customSections={secondaryData?.customBookingSections}
-              />
-            </GroupBuyBookingInfoCompact>
+                visibleKeys={campaign.booking_notice_keys ?? undefined}
+              >
+                <BookingInfoSection
+                  bookingSettings={secondaryData?.bookingSettings}
+                  checkInNotice={accInfo.check_in_notice}
+                  customSections={secondaryData?.customBookingSections}
+                  visibleKeys={campaign.booking_notice_keys ?? undefined}
+                />
+              </GroupBuyBookingInfoCompact>
+            </div>
           )}
 
         </div>
