@@ -187,7 +187,7 @@ export function GroupBuyDateRangeField({
           className="p-3 pointer-events-auto"
         />
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground sm:flex sm:flex-wrap sm:items-center sm:gap-x-4">
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm border border-border bg-background" />可預訂
           </span>
