@@ -25,6 +25,8 @@ export interface CallbackParams {
   // (AuthSessionMissingError). Skip setSession and hand the raw edge-function
   // tokens straight to `lakeze://auth-callback`.
   nativeMode?: boolean;
+  /** 等待期間的進度回饋（例如「登入處理中，請稍候…」） */
+  onProgress?: (message: string) => void;
 }
 
 
