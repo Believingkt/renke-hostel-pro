@@ -296,6 +296,41 @@ export default function GroupBuyCampaign() {
     return selectedPkg.room_type_id ? [selectedPkg.room_type_id] : [];
   }, [selectedPkg]);
 
+  /** 讀取方案兒童規則覆寫與房型容量（僅讀取既有設定） */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!selectedPkg) {
+        setPkgChildOverride(null);
+        setRoomCapacity(null);
+        return;
+      }
+      const [overrideRes, capRes] = await Promise.all([
+        selectedPkg.package_id
+          ? supabase
+              .from("accommodation_packages")
+              .select("child_age_rules_override")
+              .eq("id", selectedPkg.package_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        candidateRoomTypeIds.length > 0
+          ? supabase.from("room_types").select("id, capacity").in("id", candidateRoomTypeIds)
+          : Promise.resolve({ data: [] } as any),
+      ]);
+      if (cancelled) return;
+      setPkgChildOverride(((overrideRes as any)?.data?.child_age_rules_override as unknown) ?? null);
+      const caps = (((capRes as any)?.data ?? []) as Array<{ capacity: number | null }>)
+        .map((r) => Number(r.capacity ?? 0))
+        .filter((n) => n > 0);
+      setRoomCapacity(caps.length > 0 ? Math.max(...caps) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPkg, candidateRoomTypeIds]);
+
+
+
   /** 依活動可入住期間預先計算「該日期是否還有庫存」，無庫存日期於日曆停用 */
   useEffect(() => {
     let cancelled = false;
