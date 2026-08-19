@@ -269,7 +269,15 @@ export default function GroupBuyCampaign() {
   const guestCount = billableGuestCount(guests);
   const guestSummary = formatGuestComposition(guests, childRules);
 
-  const baseTotal = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
+  /** 逐晚計價（平日／旺日／假日；國定假日優先）。最終金額仍以後端重算為準 */
+  const stayPrice = useMemo(
+    () =>
+      selectedPkg
+        ? calculateGroupBuyStayPrice({ checkIn, checkOut, pkg: selectedPkg, holidays })
+        : { nights: 0, nightlyBreakdown: [], baseAccommodationTotal: 0 },
+    [selectedPkg, checkIn, checkOut, holidays],
+  );
+  const baseTotal = stayPrice.baseAccommodationTotal * roomQuantity;
   const childExtraTotal = selectedPkg && nights > 0 ? childEval.extraFeePerNight * nights : 0;
   const total = baseTotal + childExtraTotal;
   const depositPct = campaign?.deposit_percentage ?? 30;
@@ -280,9 +288,19 @@ export default function GroupBuyCampaign() {
     () => (campaign ? validateStayRange(campaign, checkIn, checkOut) : {}),
     [campaign, checkIn, checkOut],
   );
+  /** 方案不適用日期（住宿夜踩到即不可預訂；退房日不算住宿夜） */
+  const packageExcludedDates = useMemo(
+    () => new Set((selectedPkg?.excluded_dates ?? []).map((d) => String(d).slice(0, 10))),
+    [selectedPkg],
+  );
+  const excludedHit = useMemo(
+    () => findExcludedNight(checkIn, checkOut, packageExcludedDates),
+    [checkIn, checkOut, packageExcludedDates],
+  );
+  const excludedError = excludedHit ? `此方案於 ${excludedHit} 不適用，請調整住宿日期` : "";
   const sale = campaign ? saleState(campaign) : "on_sale";
   const bookingLocked = sale !== "on_sale";
-  const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
+  const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut) || !!excludedError;
 
   /** 表單欄位錯誤（顯示在對應欄位下方） */
   const nameError = touched.name && !guestName.trim() ? "請填寫訂房人姓名" : "";
