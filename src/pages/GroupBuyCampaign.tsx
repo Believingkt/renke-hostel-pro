@@ -1160,6 +1160,7 @@ export default function GroupBuyCampaign() {
       )}
 
       <BookingFooter
+        hidePartnershipInfo
         lineId={(accInfo as any)?.line_id}
         facebookUrl={(accInfo as any)?.facebook_url}
         instagramUrl={(accInfo as any)?.instagram_url}
@@ -1167,6 +1168,7 @@ export default function GroupBuyCampaign() {
         youtubeUrl={(accInfo as any)?.youtube_url}
         tiktokUrl={(accInfo as any)?.tiktok_url}
       />
+
 
       {selectedPkg && (
         <GroupBuyConfirmDialog
