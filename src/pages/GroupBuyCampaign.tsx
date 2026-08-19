@@ -677,11 +677,28 @@ export default function GroupBuyCampaign() {
                     <p className="text-[1.1875rem] font-bold leading-snug tracking-tight sm:text-[1.25rem]">
                       {p.display_name}
                     </p>
-                    {/* 第二層：方案內容摘要 */}
+                    {/* 第二層：方案內容摘要（長文收合，完整內容不刪除） */}
                     {p.description && (
-                      <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                        {p.description}
-                      </p>
+                      <>
+                        <p
+                          className={`mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground ${
+                            expandedPkgs[p.id] ? "" : "line-clamp-3"
+                          }`}
+                        >
+                          {p.description}
+                        </p>
+                        {p.description.length > 60 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedPkgs((s) => ({ ...s, [p.id]: !s[p.id] }))
+                            }
+                            className="mt-1 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            {expandedPkgs[p.id] ? "收合方案內容" : "查看完整方案內容"}
+                          </button>
+                        )}
+                      </>
                     )}
                     {/* 第三／四層：團購價 → 原價與省下金額 */}
                     <div className="mt-3.5">
