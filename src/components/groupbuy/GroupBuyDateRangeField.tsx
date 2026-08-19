@@ -90,7 +90,8 @@ export function GroupBuyDateRangeField({
 
   const disabledDay = (d: Date) => {
     if (outOfBounds(d)) return true;
-    if (phase === 2 && from) return iso(d) <= iso(from) ? false : false || outOfBounds(d);
+    // 選退房日階段：退房日不需佔用庫存，只擋活動期間外的日期
+    if (phase === 2 && from) return false;
     return soldOut(d);
   };
 
