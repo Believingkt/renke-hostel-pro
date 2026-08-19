@@ -14,6 +14,8 @@ interface Props {
   guestSummary: string;
   /** 方案房費小計（未含兒童加價） */
   baseTotal: number;
+  /** 逐晚計價明細（平日／旺日／假日） */
+  nightlyBreakdown?: NightPrice[];
   /** 兒童／幼兒加價總額 */
   childExtraTotal: number;
   total: number;
