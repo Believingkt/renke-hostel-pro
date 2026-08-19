@@ -1159,20 +1159,37 @@ export default function GroupBuyCampaign() {
             ((secondaryData?.facilities?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
-              <FacilitiesSection
-                facilities={secondaryData?.facilities || []}
-                wholeFacilities={
-                  (accInfo as any).show_room_facilities_whole !== false
-                    ? secondaryData?.roomScopeFacilities?.whole || []
-                    : []
+              <GroupBuyFacilitiesCompact
+                highlights={
+                  (featuredFacilities.length > 0
+                    ? featuredFacilities
+                    : (secondaryData?.facilities || []).map((f: any) => f.facility_name)
+                  )
+                    .filter(Boolean)
+                    .slice(0, 9)
                 }
-                singleFacilities={
-                  (accInfo as any).show_room_facilities_single !== false
-                    ? secondaryData?.roomScopeFacilities?.single || []
-                    : []
+                totalCount={
+                  (secondaryData?.facilities?.length || 0) +
+                  (secondaryData?.roomScopeFacilities?.whole?.length || 0) +
+                  (secondaryData?.roomScopeFacilities?.single?.length || 0)
                 }
-              />
+              >
+                <FacilitiesSection
+                  facilities={secondaryData?.facilities || []}
+                  wholeFacilities={
+                    (accInfo as any).show_room_facilities_whole !== false
+                      ? secondaryData?.roomScopeFacilities?.whole || []
+                      : []
+                  }
+                  singleFacilities={
+                    (accInfo as any).show_room_facilities_single !== false
+                      ? secondaryData?.roomScopeFacilities?.single || []
+                      : []
+                  }
+                />
+              </GroupBuyFacilitiesCompact>
             )}
+
 
           {accInfo.show_location_section !== false && (
             <LocationSection
