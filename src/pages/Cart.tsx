@@ -283,9 +283,17 @@ export default function Cart() {
               NT$ {cartTotal(cart.items).toLocaleString()}
             </p>
           </div>
-          <Button onClick={checkout} disabled={cart.items.length === 0 || checkingOut} className="min-w-32">
-            {t.cta}
+          <Button onClick={checkout} disabled={(cart.items.length === 0 && !checkingOut) || checkingOut} className="min-w-32">
+            {checkingOut ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {lang === "ja" ? "作成中…" : lang === "en" ? "Processing…" : "正在建立訂單…"}
+              </span>
+            ) : (
+              t.cta
+            )}
           </Button>
+
         </div>
       </div>
     </div>
