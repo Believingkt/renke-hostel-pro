@@ -2279,12 +2279,14 @@ const BookingFlow = () => {
   /** 行程購物車帶入的加購列（僅在購物車結帳且館別相符時生效，不影響既有 /booking 行為） */
   const tripCheckoutLines = useMemo(() => {
     const staged = readTripCheckout();
-    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return [];
+    if (!staged || !accommodationId) return [];
+    if (staged.accommodationId && staged.accommodationId !== accommodationId) return [];
     return staged.lines || [];
   }, [accommodationId]);
   const tripCheckoutTripId = useMemo(() => {
     const staged = readTripCheckout();
-    if (!staged || !accommodationId || staged.accommodationId !== accommodationId) return null;
+    if (!staged || !accommodationId) return null;
+    if (staged.accommodationId && staged.accommodationId !== accommodationId) return null;
     return staged.tripId;
   }, [accommodationId]);
   const tripAddonTotal = tripCheckoutLines.reduce((sum, l) => sum + (Number(l.total) || 0), 0);
