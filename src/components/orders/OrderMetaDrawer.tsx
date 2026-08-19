@@ -137,6 +137,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [closerRate, setCloserRate] = useState<number | null>(null);
   const [resyncing, setResyncing] = useState(false);
+  const [actualPayoutMonth, setActualPayoutMonth] = useState<string | null>(null);
+  const [checkingPayout, setCheckingPayout] = useState(false);
   const [saving, setSaving] = useState(false);
 
 
@@ -596,6 +598,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     return Math.round(Number(base) * closerRate);
   }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
 
+  /** 查詢此訂單實際落在哪個發放期（取最新一筆快照） */
+  const fetchActualPayoutMonth = useCallback(async () => {
+    if (!orderId) return;
+    setCheckingPayout(true);
+    try {
+      const { data, error } = await supabase
+        .from("closer_commission_snapshots")
+        .select("payout_month, created_at")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      setActualPayoutMonth((data?.[0] as any)?.payout_month ?? null);
+    } catch {
+      setActualPayoutMonth(null);
+    } finally {
+      setCheckingPayout(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    if (open && orderId) fetchActualPayoutMonth();
+  }, [open, orderId, fetchActualPayoutMonth]);
+
   /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
   const handleResyncSnapshots = async () => {
     if (!snapshotMonthOfOrder) return;
@@ -613,6 +639,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         (acc: number, r: any) => acc + Number(r?.created ?? 0),
         0,
       );
+      await fetchActualPayoutMonth();
       toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
         description:
           created === undefined
@@ -625,6 +652,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setResyncing(false);
     }
   };
+
 
   const handleSkip = () => {
     if (saving) return;
@@ -1007,25 +1035,40 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                       快照為 append-only，需重算該期後才會出現在發放管理。
                     </div>
                   </div>
-                  {isSuperAdmin ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
-                      onClick={handleResyncSnapshots}
-                    >
-                      {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
-                    </Button>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      重算該期需由超級管理員執行。
-                    </p>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isSuperAdmin ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
+                        onClick={handleResyncSnapshots}
+                      >
+                        {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        重算該期需由超級管理員執行。
+                      </p>
+                    )}
+                    <span className="text-xs">
+                      {checkingPayout ? (
+                        <span className="text-muted-foreground">查詢發放期中…</span>
+                      ) : actualPayoutMonth ? (
+                        <>
+                          實際發放期：
+                          <span className="font-medium text-green-700">{actualPayoutMonth}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">尚未產生快照</span>
+                      )}
+                    </span>
+                  </div>
                   {forceEligible !== initialForceEligible && (
                     <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
                   )}
+
                 </div>
               )}
             </div>
