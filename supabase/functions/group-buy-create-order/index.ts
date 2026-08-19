@@ -195,9 +195,22 @@ Deno.serve(async (req) => {
       return json({ error: ROOM_SELECT_MESSAGES[failure] }, failure === "capacity" ? 400 : 409);
     }
 
-    // 5) 價格（server 端重算：團購價 × 晚數 × 1 間 ＋ 兒童加價）
-    const unit = Math.round(Number(pkg.group_buy_price) || 0);
-    const baseTotal = unit * n * roomQuantity;
+    // 5) 價格（server 端重算：逐晚日期分類取價 ＋ 兒童加價；完全不信任前端傳入金額）
+    const { data: holidayRows } = await admin
+      .from("public_holidays")
+      .select("holiday_date")
+      .eq("accommodation_id", campaign.accommodation_id)
+      .in("holiday_date", dates);
+    const holidays = new Set<string>(
+      ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
+    );
+    const stay = calculateGroupBuyStayPrice({
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      pkg: pkg as any,
+      holidays,
+    });
+    const baseTotal = stay.baseAccommodationTotal;
     const childExtraTotal = Math.round(childEval.extraFeeTotal);
     const total = baseTotal + childExtraTotal;
     if (total <= 0) return json({ error: "方案價格設定有誤，請聯繫客服" }, 400);
