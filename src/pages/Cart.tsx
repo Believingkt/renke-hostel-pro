@@ -30,12 +30,33 @@ export default function Cart() {
   const navigate = useNavigate();
   const [cart, setCart] = useState<TripCart>({ tripId: null, items: [] });
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guest, setGuest] = useState({ name: "", phone: "", email: "" });
 
   useEffect(() => {
     setCart(readCart());
     const onUpdate = () => setCart(readCart());
     window.addEventListener("trip-cart-updated", onUpdate);
     return () => window.removeEventListener("trip-cart-updated", onUpdate);
+  }, []);
+
+  // 已登入會員自動帶入聯絡資料（未登入則走訪客結帳，不強制註冊）
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) return;
+      const { data: member } = await supabase
+        .from("platform_members")
+        .select("name, phone, email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setGuest((prev) => ({
+        name: prev.name || member?.name || "",
+        phone: prev.phone || member?.phone || "",
+        email: prev.email || member?.email || user.email || "",
+      }));
+    })();
   }, []);
 
   const update = (next: TripCart) => {
@@ -54,129 +75,76 @@ export default function Cart() {
 
   const stay = cart.items.find((i): i is Extract<CartItem, { kind: "stay" }> => i.kind === "stay");
 
-  const checkout = async () => {
+  /** 行程商品獨立付款：不需要住宿訂單、不需要認領，直接建立行程訂單並進既有 TapPay 付款頁 */
+  const payTripOnly = async () => {
     if (checkingOut) return;
-    setCheckingOut(true);
     const productLines = buildCheckoutLines(cart.items);
-
-    // 只要購物車沒有住宿列，登入會員一律先嘗試綁定最近的有效住宿訂單。
-    // 商品是否帶 accommodationId 不應影響此流程；原本在商品有館別時會提早跳過 RPC。
-    if (!stay && productLines.length > 0) {
-      const { data: userData, error: authError } = await supabase.auth.getUser();
-
-      // 綁定既有住宿訂單必須先知道會員身分。舊流程在未登入時會靜默略過，
-      // 最後又顯示「請選擇住宿」，讓已有訂單的客人誤以為仍需重訂住宿。
-      if (authError || !userData.user) {
-        toast.info(
-          lang === "ja"
-            ? "宿泊予約に追加するにはログインしてください"
-            : lang === "en"
-              ? "Sign in to add this to your stay"
-              : "請先登入，以加入最近的住宿訂單",
-        );
-        const returnPath = `/cart?lang=${encodeURIComponent(lang)}`;
-        navigate(`/member/auth?redirect=${encodeURIComponent(returnPath)}`);
-        return;
-      }
-
-      const { data, error } = await supabase.rpc(
-        "attach_trip_products_to_recent_order" as never,
-        {
-          p_items: productLines.map((line) => ({
-            product_id: line.product_id,
-            count: line.count,
-          })),
-          p_trip_id: cart.tripId,
-        } as never,
+    if (!productLines.length) return;
+    if (!guest.name.trim() || !guest.phone.trim()) {
+      setShowGuestForm(true);
+      toast.info(
+        lang === "ja" ? "お名前と電話番号をご入力ください" : lang === "en" ? "Enter your name and phone" : "請填寫姓名與電話",
       );
-      const result = data as unknown as {
-        ok?: boolean;
-        reason?: string;
+      return;
+    }
+    setCheckingOut(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-trip-order", {
+        body: {
+          items: productLines.map((l) => ({ product_id: l.product_id, count: l.count })),
+          tripId: cart.tripId,
+          guest: { name: guest.name.trim(), phone: guest.phone.trim(), email: guest.email.trim() || null },
+        },
+      });
+      const result = data as {
+        success?: boolean;
+        message?: string;
         order_number?: string;
-        added_total?: number;
+        amount?: number;
+        accommodation_id?: string;
       } | null;
-
-      if (!error && result?.ok && result.order_number) {
-        clearCart();
-        toast.success(
-          lang === "ja"
-            ? "最近の宿泊予約に追加しました"
-            : lang === "en"
-              ? "Added to your latest stay"
-              : "已加入最近的住宿訂單",
-        );
-        const payParams = new URLSearchParams({ order_number: result.order_number });
-        if (result.added_total && result.added_total > 0) {
-          payParams.set("amount", String(Math.round(result.added_total)));
-        }
-        navigate(`/pay/order?${payParams.toString()}`);
-        return;
-      }
-
-      if (error) {
-        const message = error.message || "";
-        const knownMessage = message.includes("PRODUCT_ALREADY_ATTACHED")
-          ? "此行程商品已加入該住宿訂單"
-          : message.includes("PRODUCT_OUT_OF_STOCK")
-            ? "行程商品名額不足，請調整數量"
-            : message.includes("PRODUCT_UNAVAILABLE")
-              ? "行程商品已下架，請重新選擇"
-              : "加入住宿訂單失敗，請稍後再試";
-        toast.error(knownMessage);
+      if (error || !result?.success || !result.order_number) {
+        toast.error(result?.message || "建立行程訂單失敗，請稍後再試");
         setCheckingOut(false);
         return;
       }
+      clearCart();
+      const payParams = new URLSearchParams({
+        order_number: result.order_number,
+        amount: String(Math.round(Number(result.amount) || 0)),
+      });
+      if (result.accommodation_id) payParams.set("acc", result.accommodation_id);
+      navigate(`/pay/order?${payParams.toString()}`);
+    } catch (e) {
+      console.error("[Cart] trip order failed", e);
+      toast.error("建立行程訂單失敗，請稍後再試");
+      setCheckingOut(false);
     }
+  };
 
-    // 沒有可綁定的住宿訂單時，不可直接導向一般訂房頁；那會讓已有住宿、但尚未
-    // 綁定會員的客人誤以為必須再訂一次。改走既有的安全認領流程，完成後回購物車重試。
+  const checkout = async () => {
+    if (checkingOut) return;
+    const productLines = buildCheckoutLines(cart.items);
+
+    // 沒有住宿列 → 行程商品獨立購買，直接付款
     if (!stay && productLines.length > 0) {
-      toast.info(
-        lang === "ja"
-          ? "予約をアカウントに連携してから、もう一度追加してください"
-          : lang === "en"
-            ? "Link your existing booking first, then add this item again"
-            : "請先認領您已完成的住宿訂單，完成後即可加入行程",
-      );
-      const returnPath = `/cart?lang=${encodeURIComponent(lang)}`;
-      navigate(`/member/orders?claim=1&returnTo=${encodeURIComponent(returnPath)}`);
+      await payTripOnly();
       return;
     }
 
-    // 購物車本身已有住宿列時，以該住宿館別進入既有結帳流程
-    let accommodationId = stay?.accommodationId || null;
-    if (!accommodationId) {
-      const product = cart.items.find(
-        (i): i is Extract<CartItem, { kind: "product" }> => i.kind === "product",
-      );
-      accommodationId = product?.accommodationId || null;
-      if (!accommodationId && product) {
-        const { data } = await supabase
-          .from("trip_products")
-          .select("accommodation_id")
-          .eq("id", product.productId)
-          .maybeSingle();
-        accommodationId = (data?.accommodation_id as string) || null;
-      }
-    }
+    setCheckingOut(true);
 
-    // 住宿列資料異常且找不到館別時，才回訂房入口
+    // 購物車本身已有住宿列時，以該住宿館別進入既有結帳流程
+    const accommodationId = stay?.accommodationId || null;
+
     if (!accommodationId) {
-      stageTripCheckout({
-        tripId: cart.tripId,
-        accommodationId: null,
-        lines: productLines,
-      });
       toast.info(
-        lang === "ja"
-          ? "有効なご予約が見つかりません。宿泊をお選びください"
-          : lang === "en"
-            ? "No upcoming stay found — please pick a stay first"
-            : "查無您名下即將入住的訂單，請先選擇住宿",
+        lang === "ja" ? "宿泊をお選びください" : lang === "en" ? "Please pick a stay first" : "請先選擇住宿",
       );
       navigate("/booking");
       return;
     }
+
 
 
     stageTripCheckout({
