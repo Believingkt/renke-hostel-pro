@@ -160,6 +160,7 @@ const MemberFacebookCallback = () => {
         successLabel: LABEL,
         returnUrlOverride: returnFromState,
         nativeMode: nativeFlow,
+        onProgress: setMessage,
       });
 
       cleanup();
