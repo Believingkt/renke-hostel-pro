@@ -187,6 +187,9 @@ export default function GroupBuyCampaign() {
     };
   }, [slug]);
 
+  /** 共用一般訂房頁的民宿資料（設施／交通／訂房須知／社群連結），不另外建立第二份資料 */
+  const { info: accInfo, secondaryData } = useAccommodationCache(campaign?.accommodation_id ?? null);
+
   const selectedPkg = useMemo(
     () => packages.find((p) => p.id === selectedPkgId) ?? null,
     [packages, selectedPkgId],
