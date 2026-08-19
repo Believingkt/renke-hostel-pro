@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
-import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
+import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
 import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
@@ -214,6 +214,16 @@ export default function GroupBuyCampaign() {
     [packages, selectedPkgId],
   );
   const nights = nightsBetween(checkIn, checkOut);
+  /** 日期選擇完成後的顯示文字（純顯示，不影響任何計算） */
+  const stayLabel = useMemo(() => {
+    if (!checkIn || !checkOut) return "";
+    const fmt = (v: string) => {
+      const d = new Date(`${v}T00:00:00`);
+      const w = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+      return `${d.getMonth() + 1}/${d.getDate()}（${w}）`;
+    };
+    return `${fmt(checkIn)} → ${fmt(checkOut)}`;
+  }, [checkIn, checkOut]);
   const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
@@ -851,10 +861,8 @@ export default function GroupBuyCampaign() {
           </div>
         </section>
 
-        {/* ── 住宿快速確認（代表照片＋核心特色，完整內容仍在下方介紹） ── */}
+        {/* ── 住宿亮點（僅文字，照片交由首屏 Hero 與下方完整相簿） ── */}
         <GroupBuyQuickPreview
-          venueName={venueName || campaign.title}
-          photos={heroPhotos.length > 0 ? heroPhotos : previewPhotos}
           facilities={featuredFacilities.length > 0 ? featuredFacilities : previewFacilities}
           totalPhotos={previewPhotos.length}
           onViewAll={() => goTo("gb-venue")}
@@ -906,34 +914,23 @@ export default function GroupBuyCampaign() {
             <div className="mt-5 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-7">
               {/* 左欄：日期 → 人數 → 訂房資料 */}
               <div className="min-w-0">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                  <div>
-                    <Label htmlFor="gb-checkin" className="text-sm font-medium text-foreground">入住日</Label>
-                    <GroupBuyDateField
-                      id="gb-checkin"
-                      value={checkIn}
-                      min={campaign.stay_start_date}
-                      max={campaign.stay_end_date}
-                      placeholder="選擇入住日"
-                      invalid={!!checkIn && !!stayErrors.checkIn}
-                      unavailableDates={unavailableDates}
-                      onChange={setCheckIn}
-                    />
-                    {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="gb-checkout" className="text-sm font-medium text-foreground">退房日</Label>
-                    <GroupBuyDateField
-                      id="gb-checkout"
-                      value={checkOut}
-                      min={checkIn || campaign.stay_start_date}
-                      max={campaign.stay_end_date}
-                      placeholder="選擇退房日"
-                      invalid={!!checkOut && !!stayErrors.checkOut}
-                      onChange={setCheckOut}
-                    />
-                    {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
-                  </div>
+                <GroupBuyDateRangeField
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  min={campaign.stay_start_date}
+                  max={campaign.stay_end_date}
+                  unavailableDates={unavailableDates}
+                  invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
+                  invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
+                  onChange={(ci, co) => {
+                    setCheckIn(ci);
+                    setCheckOut(co);
+                  }}
+                />
+                {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
+                {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
+
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                   <div>
                     <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
                     <Input
@@ -965,14 +962,19 @@ export default function GroupBuyCampaign() {
                       </p>
                     )}
                     {!availability.checking && availability.ok === true && (
-                      <p className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary">
-                        <CheckCircle2 className="h-4 w-4 shrink-0" /> {availability.message}
-                      </p>
+                      <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>
+                          {stayLabel}
+                          <span className="mt-0.5 block font-normal">共 {nights} 晚・{availability.message}</span>
+                        </span>
+                      </div>
                     )}
                     {!availability.checking && availability.ok === false && (
-                      <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
-                        {availability.message}
-                      </p>
+                      <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+                        {stayLabel}
+                        <span className="mt-0.5 block">共 {nights} 晚・{availability.message}</span>
+                      </div>
                     )}
                   </div>
                 )}
