@@ -35,6 +35,12 @@ type: feature
   後台 `/admin/group-buy` 訂單列可開「稽核紀錄」時間軸（時間／操作者／金額／末五碼／備註）。
 - 自動化情境測試：`src/lib/__tests__/groupBuyIsolation.test.ts`（口徑分流不重複不遺漏、庫存雙向共用、包棟互斥、下訂前後雙重驗證）。
 
+## 方案三段價與不適用日期（2026-08）
+- `group_buy_campaign_packages`：`weekday_price`（一～四）／`peak_price`（五、日）／`holiday_price`（六、國定假日）／`excluded_dates date[]`；三段價留空自動 fallback `group_buy_price`。
+- 分類與計價共用 `src/lib/groupBuyPricing.ts`（Edge Function 內有同檔複本），國定假日一律讀 `public_holidays`（各館別設定）且優先於星期分類。
+- 不適用日期只擋「住宿夜」，退房日可落在不適用日期；住宿區間不可跨過不適用日期。僅方案層設定，不影響一般訂房與房型庫存。
+- 後端 `group-buy-create-order` 一律重驗日期與逐晚重算金額，並將計價快照寫入 `group_buy_commissions.price_snapshot`（含逐晚明細與當時價格）。
+
 ## V3 前台結構（2026-08）
 - 團購頁分兩段：成交區（Hero → Stepper → 方案 → 快速照片 → 日期/人數 → 資料 → 摘要/付款 → 確認）與了解區（介紹、Gallery、設施、交通、景點、評價、FAQ、須知、Footer）。
 - 後台可設定欄位：group_buy_campaigns.highlight_points / featured_facilities / featured_photo_urls、group_buy_campaign_packages.short_summary（皆僅影響顯示）。
