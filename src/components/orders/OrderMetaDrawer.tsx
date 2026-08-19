@@ -565,6 +565,52 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   };
 
+  /** 台北時區的年月（YYYY-MM） */
+  const taipeiMonthOf = (value?: string | Date | null) => {
+    const d = value ? new Date(value) : new Date();
+    if (Number.isNaN(d.getTime())) return "";
+    const f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+    });
+    return f.format(d).slice(0, 7);
+  };
+  /** 快照歸期＝訂單日所屬月；發放期＝執行當月 */
+  const snapshotMonthOfOrder = useMemo(() => taipeiMonthOf(orderDate), [orderDate]);
+  const currentPayoutMonth = useMemo(() => taipeiMonthOf(null), []);
+  const forceEstimateAmount = useMemo(() => {
+    const base = teamCommissionPrice ?? autoTeamCommissionPrice;
+    if (base === null || base === undefined || closerRate === null) return null;
+    return Math.round(Number(base) * closerRate);
+  }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
+
+  /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
+  const handleResyncSnapshots = async () => {
+    if (!snapshotMonthOfOrder) return;
+    setResyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-commission-snapshots", {
+        body: { test_mode: true, test_month: snapshotMonthOfOrder },
+      });
+      if (error) throw error;
+      const created = (data as any)?.results?.reduce?.(
+        (acc: number, r: any) => acc + Number(r?.created ?? 0),
+        0,
+      );
+      toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
+        description:
+          created === undefined
+            ? "請至發放管理確認結果"
+            : `新建 ${created} 筆，發放期 ${currentPayoutMonth}`,
+      });
+    } catch (e: any) {
+      toast.error(`重算失敗：${e?.message ?? "未知錯誤"}`);
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const handleSkip = () => {
     if (saving) return;
     onClose();
@@ -889,6 +935,82 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               return null;
             })()}
           </div>
+
+          {/* 例外：計入成交組獎金 */}
+          {canForceCommission && (
+            <div className="space-y-2 p-3 rounded-md border border-dashed">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="force-commission"
+                  checked={forceEligible}
+                  onCheckedChange={(v) => setForceEligible(v === true)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="force-commission" className="text-sm">
+                    計入成交組獎金（例外）
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    來源屬免抽成清單（如 KOL）但客人自費時勾選；其餘獎金規則不變。
+                  </p>
+                </div>
+              </div>
+
+              {forceEligible && (
+                <div className="space-y-2">
+                  <Textarea
+                    value={forceReason}
+                    onChange={(e) => setForceReason(e.target.value)}
+                    placeholder="例外原因（必填，將寫入變更紀錄）"
+                    rows={2}
+                  />
+                  <div className="text-xs space-y-0.5 rounded-md bg-muted/40 p-2">
+                    <div>
+                      快照歸期：{snapshotMonthOfOrder || "-"}　→　發放期：
+                      <span className="font-medium">{currentPayoutMonth}</span>
+                      （以重算當月為準）
+                    </div>
+                    <div>
+                      預估獎金：
+                      <span className="font-medium">
+                        {forceEstimateAmount !== null
+                          ? `NT$ ${forceEstimateAmount.toLocaleString()}`
+                          : "—"}
+                      </span>
+                      {closerRate !== null && (
+                        <>
+                          （基準 NT${" "}
+                          {Number(teamCommissionPrice ?? autoTeamCommissionPrice ?? 0).toLocaleString()} ×{" "}
+                          {(closerRate * 100).toFixed(2)}%）
+                        </>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground">
+                      快照為 append-only，需重算該期後才會出現在發放管理。
+                    </div>
+                  </div>
+                  {isSuperAdmin ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
+                      onClick={handleResyncSnapshots}
+                    >
+                      {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      重算該期需由超級管理員執行。
+                    </p>
+                  )}
+                  {forceEligible !== initialForceEligible && (
+                    <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 1. 成交人 / 詢問日期 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
