@@ -63,6 +63,18 @@ const PortalAIChatPanel = () => {
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [defaultLocation, setDefaultLocation] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("宜蘭");
+  // 動態行旅導引（七項旅遊屬性）
+  const [guideActive, setGuideActive] = useState(false);
+  const [guideAttrs, setGuideAttrs] = useState<Record<string, unknown> | null>(null);
+  const lang = (() => {
+    const l = new URLSearchParams(window.location.search).get("lang");
+    return l === "ja" || l === "en" ? l : "zh";
+  })();
+  const GUIDE_CHIP: Record<string, string> = {
+    zh: "動態行旅導引",
+    ja: "旅程ガイド",
+    en: "Plan my trip",
+  };
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
@@ -118,7 +130,8 @@ const PortalAIChatPanel = () => {
             check_out_date: format(checkOut, "yyyy-MM-dd"),
             guest_count: defaultGuests,
           },
-
+          lang,
+          guide: { active: guideActive, attrs: guideAttrs },
         }),
       });
 
@@ -139,6 +152,7 @@ const PortalAIChatPanel = () => {
       let assistantMessage = "";
       let textBuffer = "";
       let searchIntent: { checkIn?: string; checkOut?: string; guests?: number } | null = null;
+      let isGuideTurn = false;
 
       setMessages((prev) => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
@@ -160,6 +174,12 @@ const PortalAIChatPanel = () => {
 
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "guide_state") {
+              isGuideTurn = true;
+              setGuideAttrs(parsed.attrs ?? null);
+              setGuideActive(parsed.done !== true);
+              continue;
+            }
             if (parsed.type === "tool_calls_complete") {
               const hit = (parsed.results || []).find(
                 (r: any) => r?.name === "get_available_rooms" || r?.name === "get_packages",
@@ -203,7 +223,8 @@ const PortalAIChatPanel = () => {
       }
 
       // 沒有工具結果時，直接從使用者輸入辨識日期／人數（只給入住日 → 預設住 1 晚）
-      if (!searchIntent?.checkIn) {
+      // 導引中不做搜尋跳轉，避免離開對話串
+      if (!isGuideTurn && !searchIntent?.checkIn) {
         const text = content.trim();
         const dates = [...text.matchAll(/(\d{1,2})\s*[\/\-月]\s*(\d{1,2})/g)].map((m) => {
           const mo = Number(m[1]);
@@ -232,7 +253,7 @@ const PortalAIChatPanel = () => {
       }
 
       // 有搜尋意圖 → 直接跳到與手動搜尋相同的結果分頁
-      if (searchIntent?.checkIn && searchIntent?.checkOut) {
+      if (!isGuideTurn && searchIntent?.checkIn && searchIntent?.checkOut) {
         const params = new URLSearchParams();
         params.set("checkIn", searchIntent.checkIn);
         params.set("checkOut", searchIntent.checkOut);
@@ -262,6 +283,8 @@ const PortalAIChatPanel = () => {
     setMessages([]);
     setInput("");
     setShowWelcome(true);
+    setGuideActive(false);
+    setGuideAttrs(null);
   };
 
   const handleMicToggle = async () => {
@@ -438,7 +461,26 @@ const PortalAIChatPanel = () => {
           )}
         </div>
 
+        {/* 快速選單：動態行旅導引 */}
+        <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/60 px-3 pt-2 flex flex-wrap gap-2">
+          <button
+            onClick={() => sendMessage(GUIDE_CHIP[lang])}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 rounded-full border border-[hsl(25,60%,75%)] bg-white px-3 py-1.5 text-xs font-medium text-[hsl(25,70%,40%)] hover:bg-[hsl(25,80%,95%)] disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {GUIDE_CHIP[lang]}
+          </button>
+          {guideActive && (
+            <span className="inline-flex items-center rounded-full bg-[hsl(25,80%,95%)] px-3 py-1.5 text-xs text-[hsl(25,70%,40%)]">
+              {lang === "en" ? "Guiding…" : lang === "ja" ? "ガイド中…" : "導引中…"}
+            </span>
+          )}
+        </div>
+
         {/* Bottom input bar */}
+
+
 
         <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/80 backdrop-blur px-3 py-2.5 flex gap-2 items-center">
           <Input

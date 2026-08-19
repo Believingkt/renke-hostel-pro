@@ -11828,6 +11828,7 @@ export type Database = {
       }
       traveler_attributes: {
         Row: {
+          accommodation_id: string | null
           budget: number | null
           companion_type: string | null
           created_at: string
@@ -11837,10 +11838,12 @@ export type Database = {
           party_size: number | null
           purpose: string | null
           session_id: string | null
+          source: string | null
           trip_duration: string | null
           user_id: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           budget?: number | null
           companion_type?: string | null
           created_at?: string
@@ -11850,10 +11853,12 @@ export type Database = {
           party_size?: number | null
           purpose?: string | null
           session_id?: string | null
+          source?: string | null
           trip_duration?: string | null
           user_id?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           budget?: number | null
           companion_type?: string | null
           created_at?: string
@@ -11863,10 +11868,19 @@ export type Database = {
           party_size?: number | null
           purpose?: string | null
           session_id?: string | null
+          source?: string | null
           trip_duration?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "traveler_attributes_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       traveler_profiles: {
         Row: {

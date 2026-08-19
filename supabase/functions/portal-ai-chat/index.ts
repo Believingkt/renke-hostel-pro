@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
 
 const corsHeaders = {
@@ -103,6 +104,81 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // ===== 動態行旅導引（與 /trips/guide 共用 _shared/travelerGuide.ts 同一份提示詞與擷取邏輯） =====
+    {
+      const guideBody = body?.guide && typeof body.guide === 'object' ? body.guide : null;
+      const guideLang: GuideLang = ['zh', 'ja', 'en'].includes(body?.lang) ? body.lang : 'zh';
+      const latestUserText = (() => {
+        const m = [...messages].reverse().find((x: any) => x.role === 'user');
+        return typeof m?.content === 'string' ? m.content : '';
+      })();
+      const guideActive = guideBody?.active === true || isGuideTrigger(latestUserText);
+
+      if (guideActive) {
+        let turn: Awaited<ReturnType<typeof runGuideTurn>> | null = null;
+        try {
+          turn = await runGuideTurn({ messages, known: guideBody?.attrs ?? null, lang: guideLang });
+        } catch (guideErr) {
+          console.error('guide turn failed', guideErr);
+        }
+
+        // 導引中途問別的（房況／設施）→ 交回一般對話流程，導引狀態由前端保留
+        if (turn && !turn.offtopic) {
+          const mergedAttrs = mergeAttrs(guideBody?.attrs ?? null, turn.extracted);
+          const encoder = new TextEncoder();
+          const stream = new ReadableStream({
+            async start(controller) {
+              const push = (payload: unknown) =>
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+              try {
+                push({ type: 'guide_state', attrs: mergedAttrs, done: turn!.done });
+
+                const reply = turn!.reply || '';
+                for (let i = 0; i < reply.length; i += 12) {
+                  push({ choices: [{ delta: { content: reply.slice(i, i + 12) } }] });
+                }
+
+                if (turn!.done) {
+                  try {
+                    const cards = await generateGuideTripCards(supabase, mergedAttrs, {
+                      lang: guideLang,
+                      source: 'portal_chat',
+                    });
+                    const block = buildTripCardsBlock(cards as any);
+                    if (block) push({ choices: [{ delta: { content: block } }] });
+                  } catch (genErr) {
+                    console.error('guide trip generation failed', genErr);
+                  }
+                  await archiveGuideAttributes(supabase, {
+                    attrs: mergedAttrs,
+                    sessionId: typeof session_id === 'string' ? session_id.slice(0, 100) : null,
+                    userId: null,
+                    accommodationId: typeof context?.accommodation_id === 'string' ? context.accommodation_id : null,
+                    source: 'portal_chat_guide',
+                  });
+                }
+              } catch (e) {
+                console.error('guide stream error', e);
+              } finally {
+                try { controller.enqueue(encoder.encode('data: [DONE]\n\n')); } catch { /* ignore */ }
+                controller.close();
+              }
+            },
+          });
+
+          return new Response(stream, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        }
+      }
+    }
+
+
 
     // 效能：提示詞設定／知識庫／範例／樣板與民宿清單一次並行取回（原為序列查詢）
     const t0 = Date.now();

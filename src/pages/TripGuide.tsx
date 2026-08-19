@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 
 const GUIDE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/traveler-guide`;
@@ -96,7 +95,7 @@ const TripGuide = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: history, known }),
+        body: JSON.stringify({ messages: history, known, session_id: sessionId }),
       });
 
       if (resp.status === 429) {
@@ -126,25 +125,15 @@ const TripGuide = () => {
   };
 
   const saveAttributes = async (value: Attrs) => {
+    // 後端 traveler-guide 完成時已保底寫入 traveler_attributes（含來源標記），
+    // 這裡僅保留本機快取供 /trips/generate 使用。
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("traveler_attributes").insert({
-        user_id: auth.user?.id ?? null,
-        session_id: sessionId,
-        ...value,
-      });
-      if (error) throw error;
-      try {
-        localStorage.setItem("traveler_attributes", JSON.stringify(value));
-      } catch {
-        /* 無痕模式等情境忽略 */
-      }
-      setSaved(true);
-      toast({ title: "旅遊屬性已歸檔", description: "接著可以挑選情境生成推薦行程" });
-    } catch (e) {
-      console.error("save traveler attributes failed", e);
-      toast({ title: "屬性儲存失敗", description: "請稍後再試一次", variant: "destructive" });
+      localStorage.setItem("traveler_attributes", JSON.stringify(value));
+    } catch {
+      /* 無痕模式等情境忽略 */
     }
+    setSaved(true);
+    toast({ title: "旅遊屬性已歸檔", description: "接著可以挑選情境生成推薦行程" });
   };
 
 
