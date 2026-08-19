@@ -374,7 +374,7 @@ export default function TripDetail() {
       <PriceBar
         label={t.total}
         amount={Number(trip.total_price || 0)}
-        ctaLabel={t.cta}
+        ctaLabel={t.confirmTrip}
         onCta={addToCart}
       />
     </div>
