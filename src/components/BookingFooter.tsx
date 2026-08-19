@@ -11,6 +11,8 @@ interface BookingFooterProps {
   threadsUrl?: string;
   youtubeUrl?: string;
   tiktokUrl?: string;
+  /** 隱藏「技術合作」等合作品牌資訊（團購前台使用） */
+  hidePartnershipInfo?: boolean;
 }
 
 const BookingFooter = ({
@@ -20,7 +22,9 @@ const BookingFooter = ({
   threadsUrl,
   youtubeUrl,
   tiktokUrl,
+  hidePartnershipInfo,
 }: BookingFooterProps = {}) => {
+
   const navigate = useNavigate();
 
   const scrollToTop = () => {
