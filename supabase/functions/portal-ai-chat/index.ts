@@ -777,7 +777,7 @@ serve(async (req) => {
       replaceVars(dbPrompt.system_prompt || ''),
       dbPrompt.tone_rules ? `\n## 語氣規則：\n${replaceVars(dbPrompt.tone_rules)}` : '',
       dbPrompt.forbidden_topics ? `\n## 禁止主題：\n${dbPrompt.forbidden_topics.split('|').map((s: string) => `- ${s.trim()}`).join('\n')}` : '',
-      dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${k.content}`).join('\n---\n')}` : '',
+      dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${String(k.content || '').slice(0, 600)}`).join('\n---\n')}` : '',
       dbExamples && dbExamples.length ? `\n【參考對話】\n${dbExamples.map(e => `[${e.scenario}]\n使用者：${e.user_message}\n小安：${e.ideal_response}`).join('\n---\n')}` : '',
     ].filter(Boolean).join('\n') : '';
 
