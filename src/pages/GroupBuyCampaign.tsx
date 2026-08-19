@@ -12,8 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
+import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
+import { GroupBuyDealSummary } from "@/components/groupbuy/GroupBuyDealSummary";
+import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
+import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
+import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
-import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Users } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -122,6 +127,11 @@ export default function GroupBuyCampaign() {
   const [submitting, setSubmitting] = useState(false);
 
   const [result, setResult] = useState<any>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
+  /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
+  const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+  const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
   /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
   const [venueName, setVenueName] = useState("");
 
@@ -164,6 +174,12 @@ export default function GroupBuyCampaign() {
         .maybeSingle();
       if (!cancelled && acc?.name) setVenueName(acc.name);
 
+      const intro = await fetchGroupBuyVenueIntro(c.accommodation_id);
+      if (!cancelled && intro && intro.is_visible !== false) {
+        setPreviewPhotos(intro.gallery_urls.slice(0, 12));
+        setPreviewFacilities(intro.facilities);
+      }
+
     })();
     return () => {
       cancelled = true;
@@ -187,6 +203,25 @@ export default function GroupBuyCampaign() {
   const sale = campaign ? saleState(campaign) : "on_sale";
   const bookingLocked = sale !== "on_sale";
   const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
+
+  /** 表單欄位錯誤（顯示在對應欄位下方） */
+  const nameError = touched.name && !guestName.trim() ? "請填寫訂房人姓名" : "";
+  const phoneError = touched.phone && !guestPhone.trim() ? "請填寫聯絡電話" : "";
+  const emailError = !guestEmail.trim()
+    ? touched.email
+      ? "請填寫 Email"
+      : ""
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())
+      ? ""
+      : "Email 格式不正確";
+
+  /** 訂房流程步驟狀態（純顯示） */
+  const step1Done = !!selectedPkg;
+  const step2Done = step1Done && nights > 0 && !dateBlocked;
+  const step3Done =
+    step2Done && !!guestName.trim() && !!guestPhone.trim() && !!guestEmail.trim() && !emailError;
+  const currentStep = !step1Done ? 1 : !step2Done ? 2 : !step3Done ? 3 : 4;
+  const completedSteps = [step1Done ? 1 : 0, step2Done ? 2 : 0, step3Done ? 3 : 0].filter(Boolean) as number[];
 
   /** 方案綁定的候選房型（順序即為分配優先順序） */
   const candidateRoomTypeIds = useMemo(() => {
@@ -453,9 +488,18 @@ export default function GroupBuyCampaign() {
       </span>
     );
 
-  const scrollToForm = () => {
-    document.getElementById("gb-book")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const scrollToForm = () => goTo("gb-book");
+  const scrollToNextStep = () =>
+    goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
+  const readyToConfirm =
+    !!selectedPkg &&
+    !bookingLocked &&
+    step3Done &&
+    availability.ok === true &&
+    !availability.checking;
 
   return (
     <div className="gb-theme min-h-screen bg-background pb-28 text-foreground sm:pb-16">
