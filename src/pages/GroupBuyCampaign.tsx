@@ -1159,6 +1159,7 @@ export default function GroupBuyCampaign() {
                         guestSummary={guestSummary}
                         childExtraTotal={childExtraTotal}
                         baseTotal={baseTotal}
+                        nightlyBreakdown={stayPrice.nightlyBreakdown}
                         total={total}
                         deposit={deposit}
                         balance={balance}
