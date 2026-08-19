@@ -110,18 +110,20 @@ export default function Cart() {
         setCheckingOut(false);
         return;
       }
-      clearCart();
+      // 先導向付款頁，購物車在導向之後才清空，避免 /cart 閃現空狀態
       const payParams = new URLSearchParams({
         order_number: result.order_number,
         amount: String(Math.round(Number(result.amount) || 0)),
       });
       if (result.accommodation_id) payParams.set("acc", result.accommodation_id);
-      navigate(`/pay/order?${payParams.toString()}`);
+      navigate(`/pay/order?${payParams.toString()}`, { replace: true });
+      setTimeout(() => clearCart(), 0);
     } catch (e) {
       console.error("[Cart] trip order failed", e);
       toast.error("建立行程訂單失敗，請稍後再試");
       setCheckingOut(false);
     }
+
   };
 
   const checkout = async () => {
