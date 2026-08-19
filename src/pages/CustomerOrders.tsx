@@ -172,6 +172,7 @@ const CustomerOrders = () => {
       booking: { label: "Booking", variant: "outline" },
       trip: { label: "Trip", variant: "outline" },
        travel_agency: { label: "旅行社", variant: "outline" },
+       peer_trade: { label: "同業", variant: "outline" },
        kol: { label: "KOL互惠", variant: "outline" },
        points_starchain: { label: "星鏈會員", variant: "outline" },
        official_use: { label: "公務使用", variant: "outline" },
