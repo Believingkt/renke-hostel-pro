@@ -124,7 +124,22 @@ export default function Cart() {
       }
     }
 
-    // 沒有可綁定的住宿訂單時，以品項所屬民宿導向訂房頁挑選房型／日期
+    // 沒有可綁定的住宿訂單時，不可直接導向一般訂房頁；那會讓已有住宿、但尚未
+    // 綁定會員的客人誤以為必須再訂一次。改走既有的安全認領流程，完成後回購物車重試。
+    if (!stay && productLines.length > 0) {
+      toast.info(
+        lang === "ja"
+          ? "予約をアカウントに連携してから、もう一度追加してください"
+          : lang === "en"
+            ? "Link your existing booking first, then add this item again"
+            : "請先認領您已完成的住宿訂單，完成後即可加入行程",
+      );
+      const returnPath = `/cart?lang=${encodeURIComponent(lang)}`;
+      navigate(`/member/orders?claim=1&returnTo=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+
+    // 購物車本身已有住宿列時，以該住宿館別進入既有結帳流程
     let accommodationId = stay?.accommodationId || null;
     if (!accommodationId) {
       const product = cart.items.find(
@@ -141,7 +156,7 @@ export default function Cart() {
       }
     }
 
-    // 仍找不到館別 → 保留加購列，導向訂房入口讓客人自行挑選住宿
+    // 住宿列資料異常且找不到館別時，才回訂房入口
     if (!accommodationId) {
       stageTripCheckout({
         tripId: cart.tripId,

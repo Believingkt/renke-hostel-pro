@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +90,7 @@ const ORANGE = "hsl(24,100%,50%)";
 
 const MemberOrders = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<MemberOrder[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("all");
@@ -102,6 +103,10 @@ const MemberOrders = () => {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("claim") === "1") setClaimOpen(true);
+  }, [searchParams]);
 
   // TapPay 付款回呼寫回 orders 後，即時反映到列表
   useOrderRealtime(
@@ -265,6 +270,11 @@ const MemberOrders = () => {
       setClaimOrderNumber("");
       setClaimGuestName("");
       setClaimPhoneLast4("");
+      const returnTo = searchParams.get("returnTo");
+      if (returnTo?.startsWith("/")) {
+        navigate(returnTo);
+        return;
+      }
       setLoading(true);
       await loadOrders();
     } catch {
