@@ -700,8 +700,15 @@ export default function GroupBuyCampaign() {
     );
 
   const goTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const el = document.getElementById(id);
+    if (!el) return;
+    // 扣掉 sticky 快速導覽列高度，避免標題被遮住
+    const nav = document.querySelector<HTMLElement>('nav[aria-label="頁內快速導覽"]');
+    const offset = (nav?.offsetHeight ?? 0) + 12;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
   };
+
   const scrollToForm = () => goTo("gb-book");
   /**
    * 切換方案：若目前已選日期對新方案不適用（住宿夜踩到新方案的不適用日期），
@@ -740,14 +747,26 @@ export default function GroupBuyCampaign() {
       campaign.booking_notice_keys === undefined ||
       campaign.booking_notice_keys.length > 0);
 
+  /** 設施 / 交通資訊區塊是否存在（與下方實際渲染條件一致） */
+  const showFacilitiesSection =
+    !!accInfo &&
+    (accInfo as any).show_facilities_section !== false &&
+    ((secondaryData?.facilities?.length || 0) > 0 ||
+      (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
+      (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0);
+  const showLocationSection = !!accInfo && (accInfo as any).show_location_section !== false;
+
   /** 頁內快速導覽（只列出實際存在的區塊） */
   const quickNavItems: QuickNavItem[] = [
     { id: "gb-plans", label: "選擇方案" },
     { id: "gb-book", label: "選擇日期" },
     { id: "gb-venue", label: "民宿介紹" },
+    ...(showFacilitiesSection ? [{ id: "gb-facilities", label: "設施" }] : []),
+    ...(showLocationSection ? [{ id: "gb-transport", label: "交通資訊" }] : []),
     ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
     ...(showBookingNotice ? [{ id: "gb-notice", label: "訂房須知" }] : []),
   ];
+
 
 
   const scrollToNextStep = () =>
@@ -913,8 +932,10 @@ export default function GroupBuyCampaign() {
         </div>
       </header>
 
+      <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
+
       <main className={SHELL}>
-        <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
+
         {bookingLocked && (
           <p className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {sale === "ended"
@@ -1430,6 +1451,7 @@ export default function GroupBuyCampaign() {
             ((secondaryData?.facilities?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
+              <div id="gb-facilities" className="scroll-mt-16">
               <GroupBuyFacilitiesCompact
                 highlights={
                   (featuredFacilities.length > 0
@@ -1459,17 +1481,21 @@ export default function GroupBuyCampaign() {
                   }
                 />
               </GroupBuyFacilitiesCompact>
+              </div>
             )}
 
 
           {accInfo.show_location_section !== false && (
-            <LocationSection
-              address={accInfo.address}
-              locationInfo={secondaryData?.locationInfo}
-              customTitle="交通資訊"
-              initialAttractionCount={3}
-            />
+            <div id="gb-transport" className="scroll-mt-16">
+              <LocationSection
+                address={accInfo.address}
+                locationInfo={secondaryData?.locationInfo}
+                customTitle="交通資訊"
+                initialAttractionCount={3}
+              />
+            </div>
           )}
+
 
 
 
