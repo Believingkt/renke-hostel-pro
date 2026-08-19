@@ -515,6 +515,22 @@ export default function GroupBuyCampaign() {
     availability.ok === true &&
     !availability.checking;
 
+  /** 首屏顯示用資料（皆為後台可設定欄位，未設定時自動回退既有資料） */
+  const highlightPoints = (campaign.highlight_points ?? []).filter((s) => !!s?.trim()).slice(0, 3);
+  const featuredFacilities = (campaign.featured_facilities ?? []).filter((s) => !!s?.trim());
+  const heroPhotos = (campaign.featured_photo_urls ?? []).filter(Boolean).slice(0, 4);
+  const heroPhotoRow = (heroPhotos.length > 0 ? heroPhotos : previewPhotos).slice(0, 3);
+  /** 首屏價格錨點：取所有方案中的最低團購價與對應原價 */
+  const lowestPkg = packages.reduce<CampaignPackage | null>(
+    (best, p) => (!best || p.group_buy_price < best.group_buy_price ? p : best),
+    null,
+  );
+  const lowestSave =
+    lowestPkg?.original_price && lowestPkg.original_price > lowestPkg.group_buy_price
+      ? Math.round(lowestPkg.original_price - lowestPkg.group_buy_price)
+      : 0;
+
+
   return (
     <div className="gb-theme min-h-screen bg-background pb-28 text-foreground sm:pb-16">
       {/* ── Hero ── */}
