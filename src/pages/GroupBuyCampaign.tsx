@@ -161,6 +161,8 @@ export default function GroupBuyCampaign() {
     message: "",
   });
   const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
+  /** 該館別國定假日（決定假日價；資料來自後台「國定假日」設定） */
+  const [holidays, setHolidays] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
   const [result, setResult] = useState<any>(null);
