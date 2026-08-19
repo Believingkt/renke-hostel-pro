@@ -944,7 +944,7 @@ ${TRIP_CARD_PROMPT_RULE}`;
       function: { name: t.name, description: t.description, parameters: t.input_schema },
     }));
 
-    const chatMessages = toChatMessages(messages.slice(-12));
+    const chatMessages = toChatMessages(messages.slice(-8));
 
     const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
