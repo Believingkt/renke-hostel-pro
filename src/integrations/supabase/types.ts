@@ -12413,6 +12413,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      attach_trip_products_to_recent_order: {
+        Args: { p_items: Json; p_trip_id?: string }
+        Returns: Json
+      }
       bulk_upsert_room_inventory_pricing:
         | { Args: { p_rows: Json }; Returns: undefined }
         | { Args: { p_rows: Json; p_source?: string }; Returns: undefined }
