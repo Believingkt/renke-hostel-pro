@@ -1045,17 +1045,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                         disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
                         onClick={handleResyncSnapshots}
                       >
-
-                      {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
-                    </Button>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      重算該期需由超級管理員執行。
-                    </p>
-                  )}
+                        {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        重算該期需由超級管理員執行。
+                      </p>
+                    )}
+                    <span className="text-xs">
+                      {checkingPayout ? (
+                        <span className="text-muted-foreground">查詢發放期中…</span>
+                      ) : actualPayoutMonth ? (
+                        <>
+                          實際發放期：
+                          <span className="font-medium text-green-700">{actualPayoutMonth}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">尚未產生快照</span>
+                      )}
+                    </span>
+                  </div>
                   {forceEligible !== initialForceEligible && (
                     <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
                   )}
+
                 </div>
               )}
             </div>
