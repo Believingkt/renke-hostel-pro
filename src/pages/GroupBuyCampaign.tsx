@@ -516,8 +516,18 @@ export default function GroupBuyCampaign() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const scrollToForm = () => goTo("gb-book");
-  /** 從活動聯絡說明中取出 LINE 連結（若沒有連結則僅顯示文字，不新增任何資料欄位） */
-  const lineUrl = campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "";
+  /**
+   * 客服 LINE 來源：優先使用民宿既有的官方 LINE 設定（accommodation_info.line_id），
+   * 沒有設定時才回退解析活動聯絡說明中的網址。不新增第二套客服資料。
+   */
+  const accLineId = ((accInfo as any)?.line_id ?? "").trim();
+  const officialLineUrl = accLineId
+    ? /^https?:\/\//i.test(accLineId)
+      ? accLineId
+      : `https://line.me/R/ti/p/${accLineId.startsWith("@") ? accLineId : `@${accLineId}`}`
+    : "";
+  const lineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
+
   const scrollToNextStep = () =>
     goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
   const readyToConfirm =
