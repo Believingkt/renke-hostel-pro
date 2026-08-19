@@ -183,7 +183,7 @@ export function AiOpsInsights({ accommodations }: { accommodations: Accommodatio
 
   const updateCard = async (id: string, patch: Record<string, any>) => {
     setBusyCardId(id);
-    const { error } = await supabase.from("ai_insight_cards").update(patch).eq("id", id);
+    const { error } = await (supabase.from("ai_insight_cards") as any).update(patch).eq("id", id);
     setBusyCardId(null);
     if (error) {
       toast({ title: "更新失敗", description: error.message, variant: "destructive" });
