@@ -26,7 +26,10 @@ import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
-import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Wallet } from "lucide-react";
+import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
+import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
+
 
 interface Campaign {
   id: string;
@@ -143,6 +146,9 @@ export default function GroupBuyCampaign() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
+  /** 備註為次要欄位，預設收合（非必填，未變更任何驗證） */
+  const [noteOpen, setNoteOpen] = useState(false);
+
   /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
   const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
@@ -510,8 +516,18 @@ export default function GroupBuyCampaign() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const scrollToForm = () => goTo("gb-book");
-  /** 從活動聯絡說明中取出 LINE 連結（若沒有連結則僅顯示文字，不新增任何資料欄位） */
-  const lineUrl = campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "";
+  /**
+   * 客服 LINE 來源：優先使用民宿既有的官方 LINE 設定（accommodation_info.line_id），
+   * 沒有設定時才回退解析活動聯絡說明中的網址。不新增第二套客服資料。
+   */
+  const accLineId = ((accInfo as any)?.line_id ?? "").trim();
+  const officialLineUrl = accLineId
+    ? /^https?:\/\//i.test(accLineId)
+      ? accLineId
+      : `https://line.me/R/ti/p/${accLineId.startsWith("@") ? accLineId : `@${accLineId}`}`
+    : "";
+  const lineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
+
   const scrollToNextStep = () =>
     goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
   const readyToConfirm =
@@ -531,10 +547,12 @@ export default function GroupBuyCampaign() {
     (best, p) => (!best || p.group_buy_price < best.group_buy_price ? p : best),
     null,
   );
-  const lowestSave =
-    lowestPkg?.original_price && lowestPkg.original_price > lowestPkg.group_buy_price
-      ? Math.round(lowestPkg.original_price - lowestPkg.group_buy_price)
-      : 0;
+  /** 最高現省：遍歷所有上架方案，取 MAX(原價 - 團購價)，忽略沒有原價的方案 */
+  const maxSave = packages.reduce(
+    (m, p) => (p.original_price ? Math.max(m, Math.round(p.original_price - p.group_buy_price)) : m),
+    0,
+  );
+
 
 
   return (
@@ -589,9 +607,9 @@ export default function GroupBuyCampaign() {
                     原價 {twd(lowestPkg.original_price)}
                   </span>
                 ) : null}
-                {lowestSave > 0 && (
+                {maxSave > 0 && (
                   <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                    最高現省 {twd(lowestSave)}
+                    最高現省 {twd(maxSave)}
                   </span>
                 )}
               </div>
@@ -653,8 +671,8 @@ export default function GroupBuyCampaign() {
             </div>
 
             {/* 7 精選照片（後台可指定，未指定時取民宿相簿） */}
-            {heroPhotoRow.length >= 3 && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
+            {heroPhotoRow.length > 0 && (
+              <div className={`mt-3 grid gap-2 ${heroPhotoRow.length === 1 ? "grid-cols-1" : heroPhotoRow.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
                 {heroPhotoRow.map((url, i) => (
                   <button
                     key={url + i}
@@ -693,7 +711,7 @@ export default function GroupBuyCampaign() {
               { no: 1, label: "選擇方案", targetId: "gb-plans" },
               { no: 2, label: "選擇日期", targetId: "gb-book" },
               { no: 3, label: "填寫資料", targetId: "gb-form" },
-              { no: 4, label: "付款資訊", targetId: "gb-pay" },
+              { no: 4, label: "完成預訂", targetId: "gb-pay" },
             ]}
           />
         )}
@@ -1005,11 +1023,24 @@ export default function GroupBuyCampaign() {
                         {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
                       </div>
                       <div className="sm:col-span-2">
-                        <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
-                          備註（民宿將盡力配合，但無法保證能滿足所有需求）
-                        </Label>
-                        <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                        {!noteOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => setNoteOpen(true)}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            <Plus className="h-4 w-4" /> 有特殊需求？
+                          </button>
+                        ) : (
+                          <>
+                            <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
+                              備註（民宿將盡力配合，但無法保證能滿足所有需求）
+                            </Label>
+                            <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                          </>
+                        )}
                       </div>
+
                     </div>
                   </>
                 )}
@@ -1131,9 +1162,11 @@ export default function GroupBuyCampaign() {
           />
         )}
 
-        {campaign.contact_note && (
+        {(campaign.contact_note || lineUrl) && (
           <section className="mt-8 rounded-2xl border border-border/70 bg-card p-4 text-center sm:p-5">
-            <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            {campaign.contact_note && (
+              <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            )}
             {lineUrl && (
               <Button
                 asChild
@@ -1147,6 +1180,7 @@ export default function GroupBuyCampaign() {
             )}
           </section>
         )}
+
       </main>
 
       {/* ── 民宿詳細資訊：完全共用一般訂房頁的既有元件與資料來源 ── */}
@@ -1156,20 +1190,37 @@ export default function GroupBuyCampaign() {
             ((secondaryData?.facilities?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
-              <FacilitiesSection
-                facilities={secondaryData?.facilities || []}
-                wholeFacilities={
-                  (accInfo as any).show_room_facilities_whole !== false
-                    ? secondaryData?.roomScopeFacilities?.whole || []
-                    : []
+              <GroupBuyFacilitiesCompact
+                highlights={
+                  (featuredFacilities.length > 0
+                    ? featuredFacilities
+                    : (secondaryData?.facilities || []).map((f: any) => f.facility_name)
+                  )
+                    .filter(Boolean)
+                    .slice(0, 9)
                 }
-                singleFacilities={
-                  (accInfo as any).show_room_facilities_single !== false
-                    ? secondaryData?.roomScopeFacilities?.single || []
-                    : []
+                totalCount={
+                  (secondaryData?.facilities?.length || 0) +
+                  (secondaryData?.roomScopeFacilities?.whole?.length || 0) +
+                  (secondaryData?.roomScopeFacilities?.single?.length || 0)
                 }
-              />
+              >
+                <FacilitiesSection
+                  facilities={secondaryData?.facilities || []}
+                  wholeFacilities={
+                    (accInfo as any).show_room_facilities_whole !== false
+                      ? secondaryData?.roomScopeFacilities?.whole || []
+                      : []
+                  }
+                  singleFacilities={
+                    (accInfo as any).show_room_facilities_single !== false
+                      ? secondaryData?.roomScopeFacilities?.single || []
+                      : []
+                  }
+                />
+              </GroupBuyFacilitiesCompact>
             )}
+
 
           {accInfo.show_location_section !== false && (
             <LocationSection
@@ -1186,12 +1237,15 @@ export default function GroupBuyCampaign() {
           {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
 
           {accInfo.show_booking_info_section !== false && (
-            <BookingInfoSection
-              bookingSettings={secondaryData?.bookingSettings}
-              checkInNotice={accInfo.check_in_notice}
-              customSections={secondaryData?.customBookingSections}
-            />
+            <GroupBuyBookingInfoCompact bookingSettings={secondaryData?.bookingSettings}>
+              <BookingInfoSection
+                bookingSettings={secondaryData?.bookingSettings}
+                checkInNotice={accInfo.check_in_notice}
+                customSections={secondaryData?.customBookingSections}
+              />
+            </GroupBuyBookingInfoCompact>
           )}
+
         </div>
       )}
 

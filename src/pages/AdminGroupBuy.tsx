@@ -23,6 +23,8 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { GroupBuyVenueIntroEditor } from "@/components/admin/GroupBuyVenueIntroEditor";
+import { FeaturedFacilityPicker, FeaturedPhotoPicker } from "@/components/admin/GroupBuyFeaturedPickers";
+
 import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
@@ -1104,31 +1106,20 @@ export default function AdminGroupBuy() {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label>團購頁精選特色（每行一項，未填時自動取民宿設施）</Label>
-                <Textarea
-                  rows={3}
-                  value={(editing.featured_facilities ?? []).join("\n")}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      featured_facilities: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
-                    })
-                  }
+                <FeaturedFacilityPicker
+                  accommodationId={accommodationId}
+                  value={(editing.featured_facilities ?? []).filter(Boolean)}
+                  onChange={(next) => setEditing({ ...editing, featured_facilities: next })}
                 />
               </div>
               <div className="md:col-span-2">
-                <Label>首屏精選照片網址（每行一張，最多 4 張；未填時自動取民宿相簿）</Label>
-                <Textarea
-                  rows={3}
-                  value={(editing.featured_photo_urls ?? []).join("\n")}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      featured_photo_urls: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean).slice(0, 4),
-                    })
-                  }
+                <FeaturedPhotoPicker
+                  accommodationId={accommodationId}
+                  value={(editing.featured_photo_urls ?? []).filter(Boolean)}
+                  onChange={(next) => setEditing({ ...editing, featured_photo_urls: next })}
                 />
               </div>
+
               <div className="md:col-span-2">
                 <Label>活動文案（HTML）</Label>
                 <Textarea
