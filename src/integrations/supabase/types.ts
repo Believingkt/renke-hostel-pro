@@ -4217,6 +4217,7 @@ export type Database = {
       group_buy_campaigns: {
         Row: {
           accommodation_id: string
+          booking_notice_keys: string[] | null
           commission_note: string | null
           commission_rate: number
           contact_note: string | null
@@ -4228,6 +4229,7 @@ export type Database = {
           description_html: string | null
           discount_code: string | null
           discount_code_id: string | null
+          faq_item_ids: string[] | null
           featured_facilities: string[]
           featured_photo_urls: string[]
           gallery_urls: string[]
@@ -4250,6 +4252,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          booking_notice_keys?: string[] | null
           commission_note?: string | null
           commission_rate?: number
           contact_note?: string | null
@@ -4261,6 +4264,7 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          faq_item_ids?: string[] | null
           featured_facilities?: string[]
           featured_photo_urls?: string[]
           gallery_urls?: string[]
@@ -4283,6 +4287,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          booking_notice_keys?: string[] | null
           commission_note?: string | null
           commission_rate?: number
           contact_note?: string | null
@@ -4294,6 +4299,7 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          faq_item_ids?: string[] | null
           featured_facilities?: string[]
           featured_photo_urls?: string[]
           gallery_urls?: string[]

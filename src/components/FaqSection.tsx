@@ -7,20 +7,63 @@ import {
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import { looksLikeHtml, toPlainTextBlocks } from "@/lib/plainTextFormat";
 import { FileQuestion } from "lucide-react";
 
-interface FaqItem {
+export interface FaqItem {
   id: string;
   question: string;
   answer: string;
 }
 
-const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommodationId?: string; customTitle?: string; customSubtitle?: string }) => {
+interface FaqSectionProps {
+  accommodationId?: string;
+  customTitle?: string;
+  customSubtitle?: string;
+  /** 傳入時直接渲染這批 FAQ（不自行查詢）；未傳入時維持原本查詢行為 */
+  items?: FaqItem[];
+  /** 純文字答案是否格式化為條列／保留換行（預設 false＝維持原行為） */
+  formatPlainText?: boolean;
+}
+
+/** 答案內容：HTML 走既有 sanitize 流程；純文字（且開啟 formatPlainText）才做條列格式化 */
+function FaqAnswer({ answer, formatPlainText }: { answer: string; formatPlainText?: boolean }) {
+  if (!formatPlainText || looksLikeHtml(answer)) {
+    return <div dangerouslySetInnerHTML={createSanitizedHtml(answer)} />;
+  }
+  const blocks = toPlainTextBlocks(answer);
+  if (blocks.length === 0) return null;
+  return (
+    <div className="space-y-1.5 leading-[1.7]">
+      {blocks.map((b, i) =>
+        b.type === "li" ? (
+          <div key={i} className="flex items-start gap-2">
+            <span className="mt-[0.6em] h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+            <span className="min-w-0 break-words">{b.text}</span>
+          </div>
+        ) : (
+          <p key={i} className="break-words">
+            {b.text}
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+const FaqSection = ({
+  accommodationId,
+  customTitle,
+  customSubtitle,
+  items,
+  formatPlainText,
+}: FaqSectionProps) => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
 
   useEffect(() => {
+    if (items) return;
     if (!accommodationId) return;
-    
+
     const loadFaqs = async () => {
       try {
         const { data: faqData } = await supabase
@@ -41,9 +84,11 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
     };
 
     loadFaqs();
-  }, [accommodationId]);
+  }, [accommodationId, items]);
 
-  if (faqs.length === 0) {
+  const list = items ?? faqs;
+
+  if (list.length === 0) {
     return null;
   }
 
@@ -61,7 +106,7 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
 
           {/* 手機版：精簡扁平 Accordion，單一卡片內以分隔線分項 */}
           <Accordion type="single" collapsible className="w-full md:hidden rounded-2xl border border-border/50 bg-card divide-y divide-border/50 overflow-hidden">
-            {faqs.map((faq) => (
+            {list.map((faq) => (
               <AccordionItem
                 key={faq.id}
                 value={faq.id}
@@ -71,7 +116,7 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm pb-4 leading-relaxed">
-                  <div dangerouslySetInnerHTML={createSanitizedHtml(faq.answer)} />
+                  <FaqAnswer answer={faq.answer} formatPlainText={formatPlainText} />
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -79,7 +124,7 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
 
           {/* 桌面版：保留原本卡片樣式 */}
           <Accordion type="single" collapsible className="w-full hidden md:block space-y-4">
-            {faqs.map((faq) => (
+            {list.map((faq) => (
               <AccordionItem
                 key={faq.id}
                 value={faq.id}
@@ -89,7 +134,7 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm md:text-base pb-4">
-                  <div dangerouslySetInnerHTML={createSanitizedHtml(faq.answer)} />
+                  <FaqAnswer answer={faq.answer} formatPlainText={formatPlainText} />
                 </AccordionContent>
               </AccordionItem>
             ))}

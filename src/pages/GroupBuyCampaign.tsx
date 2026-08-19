@@ -34,6 +34,8 @@ import BookingFooter from "@/components/BookingFooter";
 import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
 import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
+import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/GroupBuyQuickNav";
+import { taipeiToday } from "@/lib/taipeiToday";
 import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
@@ -67,6 +69,10 @@ interface Campaign {
   highlight_points: string[] | null;
   featured_facilities: string[] | null;
   featured_photo_urls: string[] | null;
+  /** 後台指定要在團購頁顯示的 FAQ（依陣列順序）；null＝顯示全部 */
+  faq_item_ids: string[] | null;
+  /** 後台指定要在團購頁顯示的訂房須知 panel key（依陣列順序）；null＝顯示全部 */
+  booking_notice_keys: string[] | null;
 }
 
 interface CampaignPackage {
@@ -180,6 +186,40 @@ export default function GroupBuyCampaign() {
   const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
   /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
   const [venueName, setVenueName] = useState("");
+  /** 團購頁 FAQ（後台可指定顯示哪幾則與順序） */
+  const [faqItems, setFaqItems] = useState<{ id: string; question: string; answer: string }[]>([]);
+  /** 台灣今日：入住日不可早於今天（前端日曆與驗證共用，後端會再驗一次） */
+  const today = taipeiToday();
+
+  /** 讀取該館別已發布 FAQ；後台若有指定 faq_item_ids，依其順序過濾 */
+  useEffect(() => {
+    let cancelled = false;
+    const accId = campaign?.accommodation_id;
+    if (!accId) {
+      setFaqItems([]);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("faqs")
+        .select("id, question, answer")
+        .eq("accommodation_id", accId)
+        .eq("is_published", true)
+        .order("display_order");
+      if (cancelled) return;
+      const all = (data ?? []) as { id: string; question: string; answer: string }[];
+      const picked = campaign?.faq_item_ids;
+      if (Array.isArray(picked)) {
+        // 依後台排序；已刪除／已下架的 FAQ 自動略過
+        setFaqItems(picked.map((id) => all.find((f) => f.id === id)).filter(Boolean) as typeof all);
+      } else {
+        setFaqItems(all);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.accommodation_id, campaign?.faq_item_ids]);
 
 
   useEffect(() => {
@@ -307,8 +347,8 @@ export default function GroupBuyCampaign() {
   const balance = Math.max(0, total - deposit);
   /** 前台日期限制（可入住起迄）＋ 販售狀態 */
   const stayErrors = useMemo(
-    () => (campaign ? validateStayRange(campaign, checkIn, checkOut) : {}),
-    [campaign, checkIn, checkOut],
+    () => (campaign ? validateStayRange(campaign, checkIn, checkOut, today) : {}),
+    [campaign, checkIn, checkOut, today],
   );
   /** 方案不適用日期（住宿夜踩到即不可預訂；退房日不算住宿夜） */
   const packageExcludedDates = useMemo(
@@ -403,7 +443,6 @@ export default function GroupBuyCampaign() {
         setUnavailableDates(new Set());
         return;
       }
-      const today = new Date().toISOString().split("T")[0];
       const start = campaign.stay_start_date && campaign.stay_start_date > today ? campaign.stay_start_date : today;
       const endLimit = campaign.stay_end_date;
       const dates: string[] = [];
@@ -500,7 +539,7 @@ export default function GroupBuyCampaign() {
       toast({ title: sale === "not_started" ? "團購尚未開賣" : "團購已結束", variant: "destructive" });
       return;
     }
-    const errs = validateStayRange(campaign, checkIn, checkOut);
+    const errs = validateStayRange(campaign, checkIn, checkOut, today);
     const firstErr = errs.checkIn || errs.checkOut;
     if (firstErr) {
       toast({ title: "日期不符合活動規定", description: firstErr, variant: "destructive" });
@@ -693,6 +732,24 @@ export default function GroupBuyCampaign() {
     : "";
   const lineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
 
+  /** 常見問題 / 訂房須知：館別開關 + 後台團購頁選取結果（選 0 項＝不顯示） */
+  const showFaq = (accInfo as any)?.show_faq_section !== false && faqItems.length > 0;
+  const showBookingNotice =
+    (accInfo as any)?.show_booking_info_section !== false &&
+    (campaign.booking_notice_keys === null ||
+      campaign.booking_notice_keys === undefined ||
+      campaign.booking_notice_keys.length > 0);
+
+  /** 頁內快速導覽（只列出實際存在的區塊） */
+  const quickNavItems: QuickNavItem[] = [
+    { id: "gb-plans", label: "選擇方案" },
+    { id: "gb-book", label: "選擇日期" },
+    { id: "gb-venue", label: "民宿介紹" },
+    ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
+    ...(showBookingNotice ? [{ id: "gb-notice", label: "訂房須知" }] : []),
+  ];
+
+
   const scrollToNextStep = () =>
     goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
   const readyToConfirm =
@@ -857,6 +914,7 @@ export default function GroupBuyCampaign() {
       </header>
 
       <main className={SHELL}>
+        <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
         {bookingLocked && (
           <p className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {sale === "ended"
@@ -1097,6 +1155,7 @@ export default function GroupBuyCampaign() {
                   max={campaign.stay_end_date}
                   unavailableDates={unavailableDates}
                   excludedDates={packageExcludedDates}
+                  today={today}
                   invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
                   invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
                   onChange={(ci, co) => {
@@ -1414,16 +1473,22 @@ export default function GroupBuyCampaign() {
 
 
 
-          {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
+          {showFaq && <FaqSection items={faqItems} formatPlainText />}
 
-          {accInfo.show_booking_info_section !== false && (
-            <GroupBuyBookingInfoCompact bookingSettings={secondaryData?.bookingSettings}>
-              <BookingInfoSection
+          {showBookingNotice && (
+            <div id="gb-notice" className="scroll-mt-16">
+              <GroupBuyBookingInfoCompact
                 bookingSettings={secondaryData?.bookingSettings}
-                checkInNotice={accInfo.check_in_notice}
-                customSections={secondaryData?.customBookingSections}
-              />
-            </GroupBuyBookingInfoCompact>
+                visibleKeys={campaign.booking_notice_keys ?? undefined}
+              >
+                <BookingInfoSection
+                  bookingSettings={secondaryData?.bookingSettings}
+                  checkInNotice={accInfo.check_in_notice}
+                  customSections={secondaryData?.customBookingSections}
+                  visibleKeys={campaign.booking_notice_keys ?? undefined}
+                />
+              </GroupBuyBookingInfoCompact>
+            </div>
           )}
 
         </div>

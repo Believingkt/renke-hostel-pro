@@ -51,11 +51,17 @@ export function validateCampaignWindow(c: CampaignWindow): CampaignFieldErrors {
 
 export const hasErrors = (e: CampaignFieldErrors) => Object.keys(e).length > 0;
 
-/** 前台訂房日期驗證（入住 / 退房需落在活動可入住區間內） */
+export const PAST_CHECK_IN_MESSAGE = "入住日期不可早於今天。";
+
+/**
+ * 前台訂房日期驗證（入住 / 退房需落在活動可入住區間內）
+ * @param today 台灣今日（yyyy-MM-dd），由 taipeiToday() 提供；未傳入時不檢查過去日期（維持舊行為）
+ */
 export function validateStayRange(
   c: CampaignWindow,
   checkIn: string,
   checkOut: string,
+  today?: string | null,
 ): { checkIn?: string; checkOut?: string } {
   const errors: { checkIn?: string; checkOut?: string } = {};
   if (!checkIn) errors.checkIn = "請選擇入住日";
@@ -63,7 +69,10 @@ export function validateStayRange(
   if (errors.checkIn || errors.checkOut) return errors;
 
   if (checkOut <= checkIn) errors.checkOut = "退房日必須晚於入住日";
-  if (c.stay_start_date && checkIn < c.stay_start_date) {
+  if (today && checkIn < today) {
+    errors.checkIn = PAST_CHECK_IN_MESSAGE;
+  }
+  if (!errors.checkIn && c.stay_start_date && checkIn < c.stay_start_date) {
     errors.checkIn = `本團購可入住日自 ${c.stay_start_date} 起`;
   }
   if (c.stay_end_date && checkOut > c.stay_end_date) {

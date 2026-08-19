@@ -26,6 +26,8 @@ interface Props {
   unavailableDates?: Set<string>;
   /** 方案不適用日期（不可作為住宿夜，但可作為退房日） */
   excludedDates?: Set<string>;
+  /** 台灣今日（yyyy-MM-dd）：早於此日的日期一律停用；未傳入時不限制 */
+  today?: string | null;
   disabled?: boolean;
   invalidCheckIn?: boolean;
   invalidCheckOut?: boolean;
@@ -44,6 +46,7 @@ export function GroupBuyDateRangeField({
   max,
   unavailableDates,
   excludedDates,
+  today,
   disabled,
   invalidCheckIn,
   invalidCheckOut,
@@ -86,8 +89,11 @@ export function GroupBuyDateRangeField({
     setOpen(false);
   };
 
+  /** 今天以前一律不可選（入住日與退房日皆然，退房日本來就晚於入住日） */
+  const isPast = (d: Date) => (today ? iso(d) < today : false);
+
   const outOfBounds = (d: Date) =>
-    (minDate ? iso(d) < iso(minDate) : false) || (maxDate ? iso(d) > iso(maxDate) : false);
+    isPast(d) || (minDate ? iso(d) < iso(minDate) : false) || (maxDate ? iso(d) > iso(maxDate) : false);
 
   const soldOut = (d: Date) => !!unavailableDates?.has(iso(d));
   const excluded = (d: Date) => !!excludedDates?.has(iso(d));

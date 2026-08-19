@@ -3,21 +3,25 @@ import { ChevronDown } from "lucide-react";
 
 interface Props {
   bookingSettings?: any;
+  /** 後台指定顯示的 panel key；undefined＝全部顯示 */
+  visibleKeys?: string[];
   /** 展開後顯示的完整訂房須知（既有 BookingInfoSection） */
   children: ReactNode;
 }
 
 /** 團購頁「訂房須知」：第一層只顯示摘要，點擊後才展開完整內容 */
-export function GroupBuyBookingInfoCompact({ bookingSettings, children }: Props) {
+export function GroupBuyBookingInfoCompact({ bookingSettings, visibleKeys, children }: Props) {
   const [open, setOpen] = useState(false);
 
+  const shows = (key: string) => !visibleKeys || visibleKeys.includes(key);
+
   const rows: { label: string; value: string }[] = [];
-  if (bookingSettings?.check_in_time) rows.push({ label: "入住", value: `${bookingSettings.check_in_time} 後` });
-  if (bookingSettings?.check_out_time) rows.push({ label: "退房", value: `${bookingSettings.check_out_time} 前` });
-  if (Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0) {
+  if (shows("checkIn") && bookingSettings?.check_in_time) rows.push({ label: "入住", value: `${bookingSettings.check_in_time} 後` });
+  if (shows("checkIn") && bookingSettings?.check_out_time) rows.push({ label: "退房", value: `${bookingSettings.check_out_time} 前` });
+  if (shows("payment") && Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0) {
     rows.push({ label: "付款", value: bookingSettings.payment_methods.join("、") });
   }
-  if (bookingSettings?.cancellation_policy) rows.push({ label: "取消", value: "依取消政策" });
+  if (shows("cancellation") && bookingSettings?.cancellation_policy) rows.push({ label: "取消", value: "依取消政策" });
 
   return (
     <section className="py-8 sm:py-10">
