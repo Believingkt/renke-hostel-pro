@@ -732,6 +732,24 @@ export default function GroupBuyCampaign() {
     : "";
   const lineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
 
+  /** 常見問題 / 訂房須知：館別開關 + 後台團購頁選取結果（選 0 項＝不顯示） */
+  const showFaq = (accInfo as any)?.show_faq_section !== false && faqItems.length > 0;
+  const showBookingNotice =
+    (accInfo as any)?.show_booking_info_section !== false &&
+    (campaign.booking_notice_keys === null ||
+      campaign.booking_notice_keys === undefined ||
+      campaign.booking_notice_keys.length > 0);
+
+  /** 頁內快速導覽（只列出實際存在的區塊） */
+  const quickNavItems: QuickNavItem[] = [
+    { id: "gb-plans", label: "選擇方案" },
+    { id: "gb-book", label: "選擇日期" },
+    { id: "gb-venue", label: "民宿介紹" },
+    ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
+    ...(showBookingNotice ? [{ id: "gb-notice", label: "訂房須知" }] : []),
+  ];
+
+
   const scrollToNextStep = () =>
     goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
   const readyToConfirm =
