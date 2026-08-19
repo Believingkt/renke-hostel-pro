@@ -128,7 +128,17 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
   const [lastConfirmedFinalPrice, setLastConfirmedFinalPrice] = useState<number | null>(null);
   const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
+  /** 例外：即使來源屬免抽成清單，仍計入成交組獎金 */
+  const [forceEligible, setForceEligible] = useState(false);
+  const [initialForceEligible, setInitialForceEligible] = useState(false);
+  const [forceReason, setForceReason] = useState("");
+  const [initialForceReason, setInitialForceReason] = useState("");
+  const [canForceCommission, setCanForceCommission] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [closerRate, setCloserRate] = useState<number | null>(null);
+  const [resyncing, setResyncing] = useState(false);
   const [saving, setSaving] = useState(false);
+
 
   // Inline add option inputs
   const [newTrafficSource, setNewTrafficSource] = useState("");
