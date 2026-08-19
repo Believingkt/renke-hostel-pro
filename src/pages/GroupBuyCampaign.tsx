@@ -1189,12 +1189,15 @@ export default function GroupBuyCampaign() {
           {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
 
           {accInfo.show_booking_info_section !== false && (
-            <BookingInfoSection
-              bookingSettings={secondaryData?.bookingSettings}
-              checkInNotice={accInfo.check_in_notice}
-              customSections={secondaryData?.customBookingSections}
-            />
+            <GroupBuyBookingInfoCompact bookingSettings={secondaryData?.bookingSettings}>
+              <BookingInfoSection
+                bookingSettings={secondaryData?.bookingSettings}
+                checkInNotice={accInfo.check_in_notice}
+                customSections={secondaryData?.customBookingSections}
+              />
+            </GroupBuyBookingInfoCompact>
           )}
+
         </div>
       )}
 
