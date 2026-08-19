@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_deposit_confirm_date() FROM PUBLIC, anon, authenticated;
