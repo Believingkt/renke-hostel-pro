@@ -183,7 +183,7 @@ serve(async (req) => {
       anomalies,
       metrics,
       model: MODEL,
-      generated_at: saved?.generated_at ?? new Date().toISOString(),
+      generated_at: payload.generated_at,
     });
   } catch (e) {
     console.error("ai-ops-insights error:", e);
