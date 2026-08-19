@@ -547,10 +547,12 @@ export default function GroupBuyCampaign() {
     (best, p) => (!best || p.group_buy_price < best.group_buy_price ? p : best),
     null,
   );
-  const lowestSave =
-    lowestPkg?.original_price && lowestPkg.original_price > lowestPkg.group_buy_price
-      ? Math.round(lowestPkg.original_price - lowestPkg.group_buy_price)
-      : 0;
+  /** 最高現省：遍歷所有上架方案，取 MAX(原價 - 團購價)，忽略沒有原價的方案 */
+  const maxSave = packages.reduce(
+    (m, p) => (p.original_price ? Math.max(m, Math.round(p.original_price - p.group_buy_price)) : m),
+    0,
+  );
+
 
 
   return (
