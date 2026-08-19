@@ -1424,6 +1424,77 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_insight_cards: {
+        Row: {
+          accommodation_id: string | null
+          assignee_id: string | null
+          baseline_captured_at: string | null
+          baseline_snapshot: Json | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          followup_captured_at: string | null
+          followup_snapshot: Json | null
+          id: string
+          issue_summary: string
+          key_metrics: Json
+          period_days: number
+          recommended_action: string | null
+          root_cause: string | null
+          signal_key: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          assignee_id?: string | null
+          baseline_captured_at?: string | null
+          baseline_snapshot?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          followup_captured_at?: string | null
+          followup_snapshot?: Json | null
+          id?: string
+          issue_summary: string
+          key_metrics?: Json
+          period_days?: number
+          recommended_action?: string | null
+          root_cause?: string | null
+          signal_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          assignee_id?: string | null
+          baseline_captured_at?: string | null
+          baseline_snapshot?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          followup_captured_at?: string | null
+          followup_snapshot?: Json | null
+          id?: string
+          issue_summary?: string
+          key_metrics?: Json
+          period_days?: number
+          recommended_action?: string | null
+          root_cause?: string | null
+          signal_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insight_cards_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_knowledge: {
         Row: {
           accommodation_id: string | null
@@ -1465,6 +1536,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_ops_insight_cache: {
+        Row: {
+          accommodation_id: string | null
+          anomalies: Json
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          metrics: Json
+          model: string | null
+          period_days: number
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          anomalies?: Json
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          model?: string | null
+          period_days: number
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          anomalies?: Json
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          model?: string | null
+          period_days?: number
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_ops_insight_cache_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_prompts: {
         Row: {
@@ -12567,6 +12688,10 @@ export type Database = {
           date_value: string
           is_blocked: boolean
         }[]
+      }
+      get_ai_ops_metrics: {
+        Args: { _accommodation_id?: string; _days?: number }
+        Returns: Json
       }
       get_all_order_sources: { Args: never; Returns: string[] }
       get_amenity_daily_usage: {
