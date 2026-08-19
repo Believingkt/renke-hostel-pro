@@ -1055,6 +1055,7 @@ export default function GroupBuyCampaign() {
                   min={campaign.stay_start_date}
                   max={campaign.stay_end_date}
                   unavailableDates={unavailableDates}
+                  excludedDates={packageExcludedDates}
                   invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
                   invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
                   onChange={(ci, co) => {
