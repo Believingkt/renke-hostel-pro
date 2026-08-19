@@ -150,10 +150,10 @@ export default function Cart() {
       });
       toast.info(
         lang === "ja"
-          ? "宿泊を選んでください"
+          ? "有効なご予約が見つかりません。宿泊をお選びください"
           : lang === "en"
-            ? "Choose a stay to continue"
-            : "請選擇住宿以完成預約",
+            ? "No upcoming stay found — please pick a stay first"
+            : "查無您名下即將入住的訂單，請先選擇住宿",
       );
       navigate("/booking");
       return;
