@@ -79,12 +79,15 @@ export function GroupBuyPackagePricingFields({ value, onChange }: Props) {
           />
         </div>
         <div>
-          <Label>原價（劃線顯示，可留空）</Label>
+          <Label>一般原價／晚（可留空）</Label>
           <Input
             type="number"
             value={value.original_price ?? ""}
             onChange={(e) => onChange({ original_price: num(e.target.value) })}
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            指「一般訂房的每晚原價」，不是整趟總價或方案總價。用於前台原價刪除線與最高現省計算。
+          </p>
         </div>
       </div>
 
