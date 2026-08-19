@@ -7,6 +7,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -288,7 +290,16 @@ serve(async (req) => {
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
       + dateBlock + accInfo + roomList + liveAvailabilityBlock + knowledgeText + examplesText + tone + forbidden
-      + ROOM_CARD_PROMPT_RULE;
+      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE;
+
+    // 行程卡意圖判斷（以最後一則客人訊息為準）
+    const lastUserText = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === "user");
+      return typeof m?.content === "string" ? m.content : "";
+    })();
+    const wantTripCards = detectTripIntent(lastUserText);
+    const tripPersonalized = hasPersonalContext(lastUserText);
+
 
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
@@ -431,6 +442,25 @@ serve(async (req) => {
           } catch (cardErr) {
             console.error("room cards failed", cardErr);
           }
+
+          // 串流結束後補上主題行程卡片區塊（資料全部來自資料庫 trips）
+          if (wantTripCards) {
+            try {
+              const tripBlock = buildTripCardsBlock(
+                await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3 }),
+              );
+              if (tripBlock) {
+                fullContent += tripBlock;
+                controller.enqueue(encoder.encode(
+                  `data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`,
+                ));
+              }
+            } catch (tripErr) {
+              console.error("trip cards failed", tripErr);
+            }
+          }
+
+
 
           controller.close();
         } catch (e) {

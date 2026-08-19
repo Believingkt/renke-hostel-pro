@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -798,7 +800,9 @@ ${accListStr}
 ## 可用工具：
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
-- create_booking：建訂單`;
+- create_booking：建訂單
+${TRIP_CARD_PROMPT_RULE}`;
+
 
     // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
     const assistantTextRef = { value: '' };
@@ -1187,7 +1191,23 @@ ${accListStr}
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
+          // 主題行程圖文卡片（資料全部來自資料庫 trips，模型不參與）
+          try {
+            if (detectTripIntent(lastUserText)) {
+              const tripBlock = buildTripCardsBlock(
+                await fetchTripCards(supabase, { personalized: hasPersonalContext(lastUserText), limit: 3 }),
+              );
+              if (tripBlock) {
+                assistantText += tripBlock;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`));
+              }
+            }
+          } catch (tripErr) {
+            console.error('Trip cards failed:', tripErr);
+          }
+
           // B1: 附加動態推薦商品（失敗不影響對話）
+
           try {
             assistantTextRef.value = assistantText;
             const recommendedItems = await buildRecommendedItems(lastRoomsResult);

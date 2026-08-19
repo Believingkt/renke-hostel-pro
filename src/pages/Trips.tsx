@@ -2,11 +2,12 @@
  * /trips — 行程結果頁（行動優先）
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { MatchBadge } from "@/components/trips/MatchBadge";
+import { TripCard } from "@/components/trips/TripCard";
 import { LangSwitch } from "@/components/trips/LangSwitch";
-import { normalizeLang, pickLang, tripText, type TripLang } from "@/lib/tripI18n";
+import { normalizeLang, tripText, type TripLang } from "@/lib/tripI18n";
+
 
 interface TripRow {
   id: string;
@@ -74,39 +75,22 @@ export default function Trips() {
 
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4">
         {cards.map(({ trip, spotCount }) => (
-          <Link
+          <TripCard
             key={trip.id}
-            to={`/trips/${trip.id}?lang=${lang}`}
-            className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform active:scale-[0.99]"
-          >
-            {trip.cover_url && (
-              <img
-                src={trip.cover_url}
-                alt={pickLang(trip.title, lang)}
-                loading="lazy"
-                className="h-44 w-full object-cover"
-              />
-            )}
-            <div className="space-y-2 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-base font-bold text-foreground">
-                  {pickLang(trip.title, lang)}
-                </h2>
-                {trip.match_score != null && (
-                  <MatchBadge score={trip.match_score} label={t.match} />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{t.spots(spotCount)}</p>
-              <div className="flex items-baseline justify-between pt-1">
-                <span className="text-xs text-muted-foreground">{t.total}</span>
-                <span className="text-lg font-bold text-primary tabular-nums">
-                  NT$ {Number(trip.total_price || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </Link>
+            lang={lang}
+            trip={{
+              trip_id: trip.id,
+              title: trip.title,
+              cover_image_url: trip.cover_url,
+              match_score: trip.match_score,
+              spot_count: spotCount,
+              days: null,
+              total_price: Number(trip.total_price || 0),
+            }}
+          />
         ))}
       </main>
+
     </div>
   );
 }

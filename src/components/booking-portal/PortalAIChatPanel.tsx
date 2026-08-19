@@ -13,6 +13,7 @@ import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
 import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
+import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -238,7 +239,7 @@ const PortalAIChatPanel = () => {
         params.set("adults", String(searchIntent.guests || defaultGuests));
         params.set("ai", "1");
         params.set("aiQuery", content.trim().slice(0, 80));
-        const note = parseRoomCards(assistantMessage).text
+        const note = parseTripCards(parseRoomCards(assistantMessage).text).text
           .replace(/\[SUGGEST:\s*[^\]]+\]/g, "")
           .split("\n")
           .map((l) => l.trim())
@@ -286,7 +287,7 @@ const PortalAIChatPanel = () => {
     if (last.role !== "assistant" || !last.content) return;
     if (lastSpokenIndexRef.current === idx) return;
     lastSpokenIndexRef.current = idx;
-    const timer = setTimeout(() => playTTS(parseRoomCards(last.content).text, idx, { forceRestart: true }), 300);
+    const timer = setTimeout(() => playTTS(parseTripCards(parseRoomCards(last.content).text).text, idx, { forceRestart: true }), 300);
     return () => clearTimeout(timer);
   }, [isLoading, autoSpeak, messages.length]);
 
@@ -360,7 +361,9 @@ const PortalAIChatPanel = () => {
 
                       {msg.content ? (
                         (() => {
-                          const { text: cleanText, cards } = parseRoomCards(msg.content);
+                          const roomParsed = parseRoomCards(msg.content);
+                          const { text: cleanText, trips } = parseTripCards(roomParsed.text);
+                          const cards = roomParsed.cards;
                           const parsed = cleanText ? parseRoomListings(cleanText) : null;
                           if (parsed) {
                             return (
@@ -381,6 +384,7 @@ const PortalAIChatPanel = () => {
                                   </div>
                                 )}
                                 <RoomCardList cards={cards} />
+                                <TripCardList trips={trips} />
                               </div>
                             );
                           }
@@ -392,6 +396,7 @@ const PortalAIChatPanel = () => {
                                 </div>
                               )}
                               <RoomCardList cards={cards} />
+                              <TripCardList trips={trips} />
                             </>
                           );
                         })()

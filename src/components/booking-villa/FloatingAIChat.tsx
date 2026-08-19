@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "react-router-dom";
 import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
+import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 
 type Msg = { id?: string; role: "user" | "assistant"; content: string };
 
@@ -375,7 +376,11 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
 function MessageBubble({ role, content }: { role: "user" | "assistant"; content: string }) {
   const isUser = role === "user";
-  const { text, cards } = isUser ? { text: content, cards: [] as never[] } : parseRoomCards(content);
+  const room = isUser ? { text: content, cards: [] as never[] } : parseRoomCards(content);
+  const tripParsed = isUser ? { text: room.text, trips: [] as never[] } : parseTripCards(room.text);
+  const text = tripParsed.text;
+  const cards = room.cards;
+  const trips = tripParsed.trips;
 
   return (
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
@@ -392,6 +397,11 @@ function MessageBubble({ role, content }: { role: "user" | "assistant"; content:
       {!isUser && cards.length > 0 && (
         <div className="w-[86%] max-w-[300px]">
           <RoomCardList cards={cards} />
+        </div>
+      )}
+      {!isUser && trips.length > 0 && (
+        <div className="w-[86%] max-w-[300px]">
+          <TripCardList trips={trips} />
         </div>
       )}
     </div>
