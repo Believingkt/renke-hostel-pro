@@ -1142,8 +1142,10 @@ export default function GroupBuyCampaign() {
               address={accInfo.address}
               locationInfo={secondaryData?.locationInfo}
               customTitle="交通資訊"
+              initialAttractionCount={3}
             />
           )}
+
 
           {accInfo.show_reviews_section !== false && <ReviewsSection accommodationId={accInfo.id} />}
 
