@@ -24,6 +24,8 @@ interface Props {
   max?: string | null;
   /** 已無庫存、不可選為入住日的日期（yyyy-MM-dd） */
   unavailableDates?: Set<string>;
+  /** 方案不適用日期（不可作為住宿夜，但可作為退房日） */
+  excludedDates?: Set<string>;
   disabled?: boolean;
   invalidCheckIn?: boolean;
   invalidCheckOut?: boolean;
