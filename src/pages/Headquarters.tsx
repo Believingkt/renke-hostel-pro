@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   AlertCircle,
   BarChart3,
+  Sparkles,
   Users,
   TrendingUp,
   Settings,
