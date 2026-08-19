@@ -638,6 +638,17 @@ export default function GroupBuyCampaign() {
           </div>
         </section>
 
+        {/* ── 住宿快速確認（代表照片＋核心特色，完整內容仍在下方介紹） ── */}
+        <GroupBuyQuickPreview
+          venueName={venueName || campaign.title}
+          photos={previewPhotos}
+          facilities={previewFacilities}
+          totalPhotos={previewPhotos.length}
+          onViewAll={() => scrollTo("gb-venue")}
+        />
+
+
+
 
 
 
