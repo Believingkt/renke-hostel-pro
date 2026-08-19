@@ -1,5 +1,6 @@
 import { CheckCircle2, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { GROUP_BUY_DAY_TYPE_LABEL, type NightPrice } from "@/lib/groupBuyPricing";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
