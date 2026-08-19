@@ -150,49 +150,33 @@ serve(async (req) => {
     const summary = String(parsed.summary ?? "").slice(0, 2000);
     const anomalies = Array.isArray(parsed.anomalies) ? parsed.anomalies.slice(0, 8) : [];
 
-    const { data: saved, error: sErr } = await admin
-      .from("ai_ops_insight_cache")
-      .upsert(
-        {
-          accommodation_id: accommodationId,
-          period_days: periodDays,
-          summary,
-          anomalies,
-          metrics,
-          model: MODEL,
-          generated_by: user.id,
-          generated_at: new Date().toISOString(),
-        },
-        { onConflict: "accommodation_id,period_days", ignoreDuplicates: false },
-      )
-      .select()
-      .maybeSingle();
+    const payload = {
+      accommodation_id: accommodationId,
+      period_days: periodDays,
+      summary,
+      anomalies,
+      metrics,
+      model: MODEL,
+      generated_by: user.id,
+      generated_at: new Date().toISOString(),
+    };
 
-    if (sErr) {
-      // 唯一索引使用 COALESCE 表達式，upsert 可能無法命中 → 退回手動 update/insert
-      console.warn("cache upsert fallback:", sErr.message);
-      const { data: existing } = await admin
-        .from("ai_ops_insight_cache")
-        .select("id")
-        .eq("period_days", periodDays)
-        .eq("accommodation_id", accommodationId ?? NULL_UUID)
-        .maybeSingle();
-      const payload = {
-        accommodation_id: accommodationId,
-        period_days: periodDays,
-        summary,
-        anomalies,
-        metrics,
-        model: MODEL,
-        generated_by: user.id,
-        generated_at: new Date().toISOString(),
-      };
-      if (existing?.id) {
-        await admin.from("ai_ops_insight_cache").update(payload).eq("id", existing.id);
-      } else {
-        await admin.from("ai_ops_insight_cache").insert(payload);
-      }
+    // 唯一索引使用 COALESCE 表達式，PostgREST upsert 無法命中 → 手動 update / insert
+    let existingQuery = admin
+      .from("ai_ops_insight_cache")
+      .select("id")
+      .eq("period_days", periodDays);
+    existingQuery = accommodationId
+      ? existingQuery.eq("accommodation_id", accommodationId)
+      : existingQuery.is("accommodation_id", null);
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (existing?.id) {
+      await admin.from("ai_ops_insight_cache").update(payload).eq("id", existing.id);
+    } else {
+      await admin.from("ai_ops_insight_cache").insert(payload);
     }
+
 
     return jsonRes({
       summary,
