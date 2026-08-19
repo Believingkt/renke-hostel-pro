@@ -607,9 +607,9 @@ export default function GroupBuyCampaign() {
                     原價 {twd(lowestPkg.original_price)}
                   </span>
                 ) : null}
-                {lowestSave > 0 && (
+                {maxSave > 0 && (
                   <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                    最高現省 {twd(lowestSave)}
+                    最高現省 {twd(maxSave)}
                   </span>
                 )}
               </div>
