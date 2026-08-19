@@ -12,8 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
+import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
+import { GroupBuyDealSummary } from "@/components/groupbuy/GroupBuyDealSummary";
+import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
+import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
+import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
-import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Users } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -122,6 +127,11 @@ export default function GroupBuyCampaign() {
   const [submitting, setSubmitting] = useState(false);
 
   const [result, setResult] = useState<any>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
+  /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
+  const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+  const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
   /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
   const [venueName, setVenueName] = useState("");
 
@@ -164,6 +174,12 @@ export default function GroupBuyCampaign() {
         .maybeSingle();
       if (!cancelled && acc?.name) setVenueName(acc.name);
 
+      const intro = await fetchGroupBuyVenueIntro(c.accommodation_id);
+      if (!cancelled && intro && intro.is_visible !== false) {
+        setPreviewPhotos(intro.gallery_urls.slice(0, 12));
+        setPreviewFacilities(intro.facilities);
+      }
+
     })();
     return () => {
       cancelled = true;
@@ -187,6 +203,25 @@ export default function GroupBuyCampaign() {
   const sale = campaign ? saleState(campaign) : "on_sale";
   const bookingLocked = sale !== "on_sale";
   const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut);
+
+  /** 表單欄位錯誤（顯示在對應欄位下方） */
+  const nameError = touched.name && !guestName.trim() ? "請填寫訂房人姓名" : "";
+  const phoneError = touched.phone && !guestPhone.trim() ? "請填寫聯絡電話" : "";
+  const emailError = !guestEmail.trim()
+    ? touched.email
+      ? "請填寫 Email"
+      : ""
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())
+      ? ""
+      : "Email 格式不正確";
+
+  /** 訂房流程步驟狀態（純顯示） */
+  const step1Done = !!selectedPkg;
+  const step2Done = step1Done && nights > 0 && !dateBlocked;
+  const step3Done =
+    step2Done && !!guestName.trim() && !!guestPhone.trim() && !!guestEmail.trim() && !emailError;
+  const currentStep = !step1Done ? 1 : !step2Done ? 2 : !step3Done ? 3 : 4;
+  const completedSteps = [step1Done ? 1 : 0, step2Done ? 2 : 0, step3Done ? 3 : 0].filter(Boolean) as number[];
 
   /** 方案綁定的候選房型（順序即為分配優先順序） */
   const candidateRoomTypeIds = useMemo(() => {
@@ -349,6 +384,7 @@ export default function GroupBuyCampaign() {
           description: message ?? error?.message ?? "請稍後再試",
           variant: "destructive",
         });
+        setConfirmOpen(false);
         void checkAvailability();
         return;
       }
@@ -453,9 +489,20 @@ export default function GroupBuyCampaign() {
       </span>
     );
 
-  const scrollToForm = () => {
-    document.getElementById("gb-book")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const scrollToForm = () => goTo("gb-book");
+  /** 從活動聯絡說明中取出 LINE 連結（若沒有連結則僅顯示文字，不新增任何資料欄位） */
+  const lineUrl = campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "";
+  const scrollToNextStep = () =>
+    goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
+  const readyToConfirm =
+    !!selectedPkg &&
+    !bookingLocked &&
+    step3Done &&
+    availability.ok === true &&
+    !availability.checking;
 
   return (
     <div className="gb-theme min-h-screen bg-background pb-28 text-foreground sm:pb-16">
@@ -493,7 +540,51 @@ export default function GroupBuyCampaign() {
                 {campaign.subtitle || campaign.title}
               </p>
             )}
+            {campaign.stay_start_date || campaign.stay_end_date ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                可入住期間{" "}
+                <span className="font-medium text-foreground tabular-nums">
+                  {campaign.stay_start_date ?? "不限"} ~ {campaign.stay_end_date ?? "不限"}
+                </span>
+              </p>
+            ) : null}
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-full px-3.5 text-sm"
+                onClick={() => goTo("gb-venue")}
+              >
+                <Images className="mr-1.5 h-4 w-4" /> 查看住宿照片
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-9 rounded-full px-3.5 text-sm text-primary hover:bg-primary/10"
+                onClick={() => goTo("gb-venue")}
+              >
+                查看民宿介紹
+              </Button>
+            </div>
+            {previewPhotos.length >= 3 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {previewPhotos.slice(0, 3).map((url, i) => (
+                  <button
+                    key={url + i}
+                    type="button"
+                    onClick={() => goTo("gb-venue")}
+                    className="h-20 overflow-hidden rounded-xl sm:h-24"
+                    aria-label="查看住宿照片"
+                  >
+                    <img src={url} alt={`${venueName || campaign.title} 照片 ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </header>
 
@@ -523,9 +614,34 @@ export default function GroupBuyCampaign() {
           </p>
         )}
 
+        {/* ── 團購優惠摘要（資料皆取自後台既有方案價格） ── */}
+        <GroupBuyDealSummary
+          packages={packages}
+          depositPercentage={depositPct}
+          stayStart={campaign.stay_start_date}
+          stayEnd={campaign.stay_end_date}
+        />
+
+        {/* ── 訂房流程 Stepper ── */}
+        {!bookingLocked && (
+          <GroupBuyStepper
+            className="mt-6"
+            current={currentStep}
+            completed={completedSteps}
+            steps={[
+              { no: 1, label: "選擇方案", targetId: "gb-plans" },
+              { no: 2, label: "選擇日期", targetId: "gb-book" },
+              { no: 3, label: "填寫資料", targetId: "gb-form" },
+              { no: 4, label: "付款資訊", targetId: "gb-pay" },
+            ]}
+          />
+        )}
+
+
+
 
         {/* ── STEP 1 選擇專屬方案 ── */}
-        <section className="mt-12">
+        <section id="gb-plans" className="mt-10 scroll-mt-6">
           <StepHeading
             step={1}
             title="選擇專屬方案"
@@ -637,6 +753,17 @@ export default function GroupBuyCampaign() {
             {packages.length === 0 && <p className="text-muted-foreground">此活動尚未上架方案。</p>}
           </div>
         </section>
+
+        {/* ── 住宿快速確認（代表照片＋核心特色，完整內容仍在下方介紹） ── */}
+        <GroupBuyQuickPreview
+          venueName={venueName || campaign.title}
+          photos={previewPhotos}
+          facilities={previewFacilities}
+          totalPhotos={previewPhotos.length}
+          onViewAll={() => goTo("gb-venue")}
+        />
+
+
 
 
 
@@ -753,19 +880,47 @@ export default function GroupBuyCampaign() {
               {nights > 0 && !dateBlocked && (
                 <>
                   <Separator className="my-7 bg-border/70" />
-                  <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  <div id="gb-form" className="scroll-mt-6">
+                    <StepHeading step={3} title="填寫訂房資料" hint="請填寫可聯絡到您的資訊，匯款資訊將寄至此 Email。" />
+                  </div>
                   <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div className="sm:col-span-2">
                       <Label htmlFor="gb-name" className="text-sm font-medium text-foreground">訂房人姓名</Label>
-                      <Input id="gb-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+                      <Input
+                        id="gb-name"
+                        value={guestName}
+                        aria-invalid={!!nameError || undefined}
+                        className={nameError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                      />
+                      {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
                     </div>
                     <div>
                       <Label htmlFor="gb-phone" className="text-sm font-medium text-foreground">聯絡電話</Label>
-                      <Input id="gb-phone" inputMode="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+                      <Input
+                        id="gb-phone"
+                        inputMode="tel"
+                        value={guestPhone}
+                        aria-invalid={!!phoneError || undefined}
+                        className={phoneError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                      />
+                      {phoneError && <p className="mt-1 text-sm text-destructive">{phoneError}</p>}
                     </div>
                     <div>
                       <Label htmlFor="gb-email" className="text-sm font-medium text-foreground">Email（接收訂單確認及匯款資訊）</Label>
-                      <Input id="gb-email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+                      <Input
+                        id="gb-email"
+                        type="email"
+                        value={guestEmail}
+                        aria-invalid={!!emailError || undefined}
+                        className={emailError ? "border-destructive" : undefined}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                      />
+                      {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
                     </div>
                     <div className="sm:col-span-2">
                       <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
@@ -776,30 +931,55 @@ export default function GroupBuyCampaign() {
                   </div>
 
                   <Separator className="my-7 bg-border/70" />
-                  <StepHeading step={4} title="確認訂房金額" />
-                  <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
-                    <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">
-                        <Users className="mr-1 inline h-4 w-4" />
-                        {nights} 晚 × {roomQuantity} 間
-                      </span>
-                      <span className="tabular-nums">{twd(total)}</span>
+                  <div id="gb-pay" className="scroll-mt-6">
+                    <StepHeading step={4} title="確認訂房內容與金額" />
+                  </div>
+                  <div className="mt-5 rounded-2xl border border-border/70 bg-muted/70 p-4 sm:p-5">
+                    <p className="text-sm font-semibold text-foreground">您的預訂</p>
+                    <div className="mt-2.5 space-y-1 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">方案</span>
+                        <span className="text-right font-medium">{selectedPkg.display_name}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">入住</span>
+                        <span className="tabular-nums">{checkIn}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">退房</span>
+                        <span className="tabular-nums">{checkOut}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">住宿</span>
+                        <span className="tabular-nums">{nights} 晚 × {roomQuantity} 間</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">
+                          <Users className="mr-1 inline h-4 w-4" />人數
+                        </span>
+                        <span className="tabular-nums">{guestCount} 人</span>
+                      </div>
                     </div>
+                    <Separator className="my-3 bg-border/70" />
                     <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">住宿金額</span>
+                      <span className="text-muted-foreground">方案總額</span>
                       <span className="text-base font-semibold tabular-nums">{twd(total)}</span>
                     </div>
-                    <Separator className="my-2.5 bg-border/70" />
-                    <div className="flex items-baseline justify-between py-1">
-                      <span className="text-base font-semibold text-foreground">應付訂金（{depositPct}%）</span>
+                    <div className="mt-1.5 flex items-baseline justify-between rounded-xl bg-accent/10 px-3 py-2.5">
+                      <span className="text-base font-semibold text-foreground">本次應付訂金（{depositPct}%）</span>
                       <span className="text-[1.75rem] font-bold leading-none tabular-nums text-accent">
                         {twd(deposit)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between py-1 text-sm">
-                      <span className="text-muted-foreground">入住現場付清</span>
+                    <div className="flex items-center justify-between py-1 pt-2 text-sm">
+                      <span className="text-muted-foreground">入住支付尾款</span>
                       <span className="tabular-nums">{twd(balance)}</span>
                     </div>
+                    {availability.ok === true && (
+                      <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-primary">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" /> 此日期目前可預訂
+                      </p>
+                    )}
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                       訂單成立後 {campaign.payment_deadline_hours} 小時內未完成訂金匯款，系統將自動取消。
                     </p>
@@ -807,8 +987,18 @@ export default function GroupBuyCampaign() {
                 </>
               )}
 
+
+              {/* 付款流程說明：讓客人在按下按鈕前就知道下一步 */}
+              <div className="mt-5 rounded-2xl border border-border/70 bg-background/60 p-4">
+                <p className="text-sm font-semibold text-foreground">付款方式</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  訂房成立後將取得匯款資訊（不會立即扣款）。本次僅需支付 {depositPct}% 訂金
+                  {total > 0 ? `（${twd(deposit)}）` : ""}，尾款於入住時支付。
+                </p>
+              </div>
+
               <Button
-                className="mt-6 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
                 disabled={
                   submitting ||
                   availability.checking ||
@@ -820,22 +1010,25 @@ export default function GroupBuyCampaign() {
                   !guestName.trim() ||
                   !guestPhone.trim() ||
                   !guestEmail.trim() ||
+                  !!emailError ||
                   guestCount < 1
                 }
-                onClick={submit}
+                onClick={() => setConfirmOpen(true)}
               >
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 確認訂房並取得匯款資訊
               </Button>
             </>
           )}
 
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            已下訂？
-            <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
-              查詢訂單／回報匯款
-            </Link>
-          </p>
+          <div className="mt-4 flex flex-col items-center gap-2.5">
+            <p className="text-sm text-muted-foreground">
+              已下訂？
+              <Link to="/g/order" className="font-medium text-primary underline underline-offset-4">
+                查詢訂單／回報匯款
+              </Link>
+            </p>
+          </div>
+
         </section>
 
         )}
@@ -862,6 +1055,7 @@ export default function GroupBuyCampaign() {
           </div>
         )}
 
+        <div id="gb-venue" className="scroll-mt-6" />
         <GroupBuyVenueIntro
           accommodationId={campaign.accommodation_id}
           hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
@@ -876,30 +1070,71 @@ export default function GroupBuyCampaign() {
         )}
 
         {campaign.contact_note && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">{campaign.contact_note}</p>
+          <section className="mt-8 rounded-2xl border border-border/70 bg-card p-4 text-center sm:p-5">
+            <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            {lineUrl && (
+              <Button
+                asChild
+                variant="outline"
+                className="mt-3 h-11 rounded-xl border-primary/40 px-5 text-base font-medium text-primary hover:bg-primary/10"
+              >
+                <a href={lineUrl} target="_blank" rel="noreferrer">
+                  <MessageCircle className="mr-1.5 h-4 w-4" /> 有問題？LINE 詢問
+                </a>
+              </Button>
+            )}
+          </section>
         )}
       </main>
 
-      {/* ── 手機固定底部 CTA（只做捲動導引，不改動任何訂房邏輯） ── */}
+      {selectedPkg && (
+        <GroupBuyConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          submitting={submitting}
+          onConfirm={() => void submit()}
+          venueName={venueName || campaign.title}
+          packageName={selectedPkg.display_name}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          nights={nights}
+          roomQuantity={roomQuantity}
+          guestCount={guestCount}
+          total={total}
+          deposit={deposit}
+          balance={balance}
+          depositPct={depositPct}
+          guestName={guestName}
+          guestPhone={guestPhone}
+          guestEmail={guestEmail}
+        />
+      )}
+
+      {/* ── 手機固定底部 CTA（只做捲動導引 / 開啟確認層，不改動任何訂房邏輯） ── */}
       {selectedPkg && sale === "on_sale" && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.625rem)] pt-2.5 backdrop-blur sm:hidden">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs text-muted-foreground">{selectedPkg.display_name}</p>
-              <p className="text-xl font-bold leading-tight text-accent tabular-nums">
-                {twd(selectedPkg.group_buy_price)}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">／晚</span>
+              <p className="truncate text-xs text-muted-foreground">
+                {readyToConfirm ? `訂金（${depositPct}%）` : selectedPkg.display_name}
+              </p>
+              <p className="text-lg font-bold leading-tight text-accent tabular-nums">
+                {readyToConfirm ? twd(deposit) : nights > 0 ? twd(total) : twd(selectedPkg.group_buy_price)}
+                {!readyToConfirm && nights <= 0 && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">／晚</span>
+                )}
               </p>
             </div>
             <Button
-              onClick={scrollToForm}
-              className="h-12 shrink-0 rounded-xl bg-accent px-6 text-base font-semibold text-accent-foreground hover:bg-accent/90"
+              onClick={() => (readyToConfirm ? setConfirmOpen(true) : scrollToNextStep())}
+              className="h-11 shrink-0 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90"
             >
-              立即預訂
+              {readyToConfirm ? "確認訂房" : currentStep === 2 ? "選擇入住日期" : "繼續預訂"}
             </Button>
           </div>
         </div>
       )}
+
     </div>
   );
 
