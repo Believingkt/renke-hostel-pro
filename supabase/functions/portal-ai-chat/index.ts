@@ -32,6 +32,11 @@ const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 3000;
 const ALLOWED_ROLES = ['user', 'assistant', 'system'];
 
+// 設定快取（同 isolate 內共用，降低每次對話的資料庫往返）
+const CONFIG_TTL_MS = 60_000;
+const CONFIG_CACHE = new Map<string, { t: number; p: Promise<any> }>();
+
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -102,44 +107,53 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單一次並行取回（原為序列查詢）
+    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單並行取回，並以 isolate 記憶體快取（TTL 60s）
     const t0 = Date.now();
-    const accommodationsPromise = supabase
+    const cached = <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
+      const hit = CONFIG_CACHE.get(key);
+      if (hit && Date.now() - hit.t < CONFIG_TTL_MS) return hit.p as Promise<T>;
+      const p = fn().catch((e) => { CONFIG_CACHE.delete(key); throw e; });
+      CONFIG_CACHE.set(key, { t: Date.now(), p });
+      return p;
+    };
+
+    const accommodationsPromise = cached('accommodations', () => supabase
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
-      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r);
-    const knowledgePromise = supabase
+      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r));
+    const knowledgePromise = cached('knowledge', () => supabase
       .from('ai_knowledge')
       .select('title, content, priority')
       .eq('is_active', true)
       .order('priority', { ascending: false })
-      .limit(80).then(r => r);
-    const examplesPromise = supabase
+      .limit(24).then(r => r));
+    const examplesPromise = cached('examples', () => supabase
       .from('ai_examples')
       .select('scenario, user_message, ideal_response')
       .eq('is_active', true)
-      .limit(40).then(r => r);
-    const templatesPromise = supabase
+      .limit(10).then(r => r));
+    const templatesPromise = cached('templates', () => supabase
       .from('ai_reply_templates')
       .select('name, scenario, template')
       .eq('is_active', true)
       .order('sort', { ascending: true })
-      .limit(20).then(r => r);
-    const abTestPromise = supabase
+      .limit(8).then(r => r));
+    const abTestPromise = cached('abtest', () => supabase
       .from('ai_ab_tests')
       .select('version_a, version_b, traffic_split')
       .eq('is_active', true)
       .order('started_at', { ascending: false })
       .limit(1)
-      .maybeSingle().then(r => r);
-    const publishedPromptPromise = supabase
+      .maybeSingle().then(r => r));
+    const publishedPromptPromise = cached('published_prompt', () => supabase
       .from('ai_prompts')
       .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
       .eq('status', 'published')
       .order('version', { ascending: false })
       .limit(1)
-      .maybeSingle().then(r => r);
+      .maybeSingle().then(r => r));
+
 
     const { data: allAccommodations } = await accommodationsPromise;
 
@@ -763,7 +777,7 @@ serve(async (req) => {
       replaceVars(dbPrompt.system_prompt || ''),
       dbPrompt.tone_rules ? `\n## 語氣規則：\n${replaceVars(dbPrompt.tone_rules)}` : '',
       dbPrompt.forbidden_topics ? `\n## 禁止主題：\n${dbPrompt.forbidden_topics.split('|').map((s: string) => `- ${s.trim()}`).join('\n')}` : '',
-      dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${k.content}`).join('\n---\n')}` : '',
+      dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${String(k.content || '').slice(0, 600)}`).join('\n---\n')}` : '',
       dbExamples && dbExamples.length ? `\n【參考對話】\n${dbExamples.map(e => `[${e.scenario}]\n使用者：${e.user_message}\n小安：${e.ideal_response}`).join('\n---\n')}` : '',
     ].filter(Boolean).join('\n') : '';
 
@@ -930,7 +944,7 @@ ${TRIP_CARD_PROMPT_RULE}`;
       function: { name: t.name, description: t.description, parameters: t.input_schema },
     }));
 
-    const chatMessages = toChatMessages(messages.slice(-12));
+    const chatMessages = toChatMessages(messages.slice(-8));
 
     const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
