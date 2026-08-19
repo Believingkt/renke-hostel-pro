@@ -180,7 +180,7 @@ export function GroupBuyDateRangeField({
             day_today:
               "font-semibold underline decoration-dotted decoration-muted-foreground underline-offset-4 aria-selected:no-underline",
             day_range_middle: "!bg-primary/15 !text-foreground hover:!bg-primary/25",
-            day_disabled: "text-muted-foreground/50 opacity-60 line-through",
+            day_disabled: cn("text-muted-foreground/50 opacity-60", !isCheckoutPhase && "line-through"),
             cell:
               "h-10 w-10 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
             head_cell: "text-muted-foreground rounded-md w-10 font-normal text-[0.8rem]",
