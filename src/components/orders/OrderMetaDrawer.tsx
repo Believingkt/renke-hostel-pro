@@ -618,6 +618,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
   const handleSave = async () => {
     if (!orderId) return;
+    if (canForceCommission && forceEligible && !forceReason.trim()) {
+      toast.error("請填寫例外原因");
+      return;
+    }
     setSaving(true);
     try {
       // 抓 accommodation_id + 通知所需欄位
