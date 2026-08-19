@@ -88,10 +88,12 @@ export function GroupBuyDateRangeField({
 
   const soldOut = (d: Date) => !!unavailableDates?.has(iso(d));
 
+  /** 選退房日階段：退房日不佔當晚庫存，僅擋活動期間外的日期 */
+  const isCheckoutPhase = phase === 2 && !!from;
+
   const disabledDay = (d: Date) => {
     if (outOfBounds(d)) return true;
-    // 選退房日階段：退房日不需佔用庫存，只擋活動期間外的日期
-    if (phase === 2 && from) return false;
+    if (isCheckoutPhase) return false;
     return soldOut(d);
   };
 
