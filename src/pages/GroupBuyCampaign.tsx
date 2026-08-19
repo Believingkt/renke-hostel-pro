@@ -27,6 +27,15 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
+import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
+import {
+  DEFAULT_GUEST_COUNTS,
+  billableGuestCount,
+  formatGuestComposition,
+  toChildSelection,
+  type GuestCounts,
+} from "@/lib/groupBuyGuests";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
@@ -127,8 +136,12 @@ export default function GroupBuyCampaign() {
   const [selectedPkgId, setSelectedPkgId] = useState<string>("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [roomQuantity, setRoomQuantity] = useState(1);
-  const [guestCount, setGuestCount] = useState(2);
+  /** 團購訂單一次固定只訂 1 間，前台不提供間數選擇 */
+  const roomQuantity = 1;
+  const [guests, setGuests] = useState<GuestCounts>(DEFAULT_GUEST_COUNTS);
+  /** 方案對應的兒童規則覆寫與房型容量（依既有民宿設定，不建立第二套資料） */
+  const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
+  const [roomCapacity, setRoomCapacity] = useState<number | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -223,7 +236,28 @@ export default function GroupBuyCampaign() {
     };
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
-  const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
+  /** 兒童分齡規則：完全沿用民宿設定，方案有覆寫時以覆寫為準 */
+  const childRules = useMemo(
+    () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
+    [accInfo, pkgChildOverride],
+  );
+  const childEval = useMemo(
+    () => evaluateChildSelection(childRules, toChildSelection(guests), Math.max(1, nights), guests.adults),
+    [childRules, guests, nights],
+  );
+  /** 房型容量檢查：成人＋計入容量的兒童 */
+  const capacityHeadcount = guests.adults + childEval.capacityHeadcount;
+  const capacityError =
+    roomCapacity != null && roomCapacity > 0 && capacityHeadcount > roomCapacity
+      ? `此方案房型每間最多入住 ${roomCapacity} 位（目前 ${capacityHeadcount} 位）`
+      : "";
+  const guestError = childEval.blockReason || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
+  const guestCount = billableGuestCount(guests);
+  const guestSummary = formatGuestComposition(guests, childRules);
+
+  const baseTotal = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
+  const childExtraTotal = selectedPkg && nights > 0 ? childEval.extraFeePerNight * nights : 0;
+  const total = baseTotal + childExtraTotal;
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
   const balance = Math.max(0, total - deposit);
@@ -261,6 +295,41 @@ export default function GroupBuyCampaign() {
     if (selectedPkg.room_type_ids && selectedPkg.room_type_ids.length > 0) return selectedPkg.room_type_ids;
     return selectedPkg.room_type_id ? [selectedPkg.room_type_id] : [];
   }, [selectedPkg]);
+
+  /** 讀取方案兒童規則覆寫與房型容量（僅讀取既有設定） */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!selectedPkg) {
+        setPkgChildOverride(null);
+        setRoomCapacity(null);
+        return;
+      }
+      const [overrideRes, capRes] = await Promise.all([
+        selectedPkg.package_id
+          ? supabase
+              .from("accommodation_packages")
+              .select("child_age_rules_override")
+              .eq("id", selectedPkg.package_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        candidateRoomTypeIds.length > 0
+          ? supabase.from("room_types").select("id, capacity").in("id", candidateRoomTypeIds)
+          : Promise.resolve({ data: [] } as any),
+      ]);
+      if (cancelled) return;
+      setPkgChildOverride(((overrideRes as any)?.data?.child_age_rules_override as unknown) ?? null);
+      const caps = (((capRes as any)?.data ?? []) as Array<{ capacity: number | null }>)
+        .map((r) => Number(r.capacity ?? 0))
+        .filter((n) => n > 0);
+      setRoomCapacity(caps.length > 0 ? Math.max(...caps) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPkg, candidateRoomTypeIds]);
+
+
 
   /** 依活動可入住期間預先計算「該日期是否還有庫存」，無庫存日期於日曆停用 */
   useEffect(() => {
@@ -379,6 +448,10 @@ export default function GroupBuyCampaign() {
       toast({ title: "請選擇入住與退房日期", variant: "destructive" });
       return;
     }
+    if (guestError) {
+      toast({ title: "入住人數不符合規定", description: guestError, variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -390,6 +463,10 @@ export default function GroupBuyCampaign() {
           checkOutDate: checkOut,
           roomQuantity,
           guestCount,
+          adultCount: guests.adults,
+          childCount: guests.children,
+          toddlerCount: guests.toddlers,
+          infantCount: guests.infants,
           guestName,
           guestPhone,
           guestEmail,
@@ -929,29 +1006,25 @@ export default function GroupBuyCampaign() {
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
                 {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
 
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                  <div>
-                    <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
-                    <Input
-                      id="gb-rooms"
-                      type="number"
-                      min={1}
-                      max={selectedPkg?.max_quantity ?? 10}
-                      value={roomQuantity}
-                      onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
-                    <Input
-                      id="gb-guests"
-                      type="number"
-                      min={1}
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
-                    />
-                  </div>
+                <div className="mt-4">
+                  <GroupBuyGuestPicker
+                    value={guests}
+                    onChange={setGuests}
+                    rules={childRules}
+                    blockReason={guestError}
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    團購方案每筆訂單固定 1 間房。
+                    {childEval.extraFeePerNight > 0 && (
+                      <>
+                        {" "}
+                        兒童加價每晚 NT$
+                        {childEval.extraFeePerNight.toLocaleString("en-US")}。
+                      </>
+                    )}
+                  </p>
                 </div>
+
 
                 {nights > 0 && !dateBlocked && (
                   <div className="mt-4">
@@ -1061,7 +1134,9 @@ export default function GroupBuyCampaign() {
                         checkOut={checkOut}
                         nights={nights}
                         roomQuantity={roomQuantity}
-                        guestCount={guestCount}
+                        guestSummary={guestSummary}
+                        childExtraTotal={childExtraTotal}
+                        baseTotal={baseTotal}
                         total={total}
                         deposit={deposit}
                         balance={balance}
@@ -1098,7 +1173,8 @@ export default function GroupBuyCampaign() {
                     !guestPhone.trim() ||
                     !guestEmail.trim() ||
                     !!emailError ||
-                    guestCount < 1
+                    guestCount < 1 ||
+                    !!guestError
                   }
                   onClick={() => setConfirmOpen(true)}
                 >
@@ -1272,7 +1348,9 @@ export default function GroupBuyCampaign() {
           checkOut={checkOut}
           nights={nights}
           roomQuantity={roomQuantity}
-          guestCount={guestCount}
+          guestSummary={guestSummary}
+          baseTotal={baseTotal}
+          childExtraTotal={childExtraTotal}
           total={total}
           deposit={deposit}
           balance={balance}

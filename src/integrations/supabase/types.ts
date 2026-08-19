@@ -6873,6 +6873,7 @@ export type Database = {
       orders: {
         Row: {
           accommodation_id: string
+          adult_count: number
           atm_bank_transaction_id: string | null
           atm_expire_at: string | null
           atm_rec_trade_id: string | null
@@ -6887,6 +6888,7 @@ export type Database = {
           check_out_date: string
           checked_in_at: string | null
           checked_out_at: string | null
+          child_count: number
           confirmed_at: string | null
           created_at: string | null
           currency_at_booking: string | null
@@ -6919,6 +6921,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           import_project: string | null
+          infant_count: number
           internal_email_sent: boolean
           internal_email_sent_at: string | null
           is_pii_pending: boolean
@@ -6957,11 +6960,13 @@ export type Database = {
           room_charge_status: string | null
           room_quantity: number
           room_type_id: string | null
+          toddler_count: number
           total_price: number
           updated_at: string | null
         }
         Insert: {
           accommodation_id: string
+          adult_count?: number
           atm_bank_transaction_id?: string | null
           atm_expire_at?: string | null
           atm_rec_trade_id?: string | null
@@ -6976,6 +6981,7 @@ export type Database = {
           check_out_date: string
           checked_in_at?: string | null
           checked_out_at?: string | null
+          child_count?: number
           confirmed_at?: string | null
           created_at?: string | null
           currency_at_booking?: string | null
@@ -7008,6 +7014,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           import_project?: string | null
+          infant_count?: number
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
           is_pii_pending?: boolean
@@ -7046,11 +7053,13 @@ export type Database = {
           room_charge_status?: string | null
           room_quantity?: number
           room_type_id?: string | null
+          toddler_count?: number
           total_price: number
           updated_at?: string | null
         }
         Update: {
           accommodation_id?: string
+          adult_count?: number
           atm_bank_transaction_id?: string | null
           atm_expire_at?: string | null
           atm_rec_trade_id?: string | null
@@ -7065,6 +7074,7 @@ export type Database = {
           check_out_date?: string
           checked_in_at?: string | null
           checked_out_at?: string | null
+          child_count?: number
           confirmed_at?: string | null
           created_at?: string | null
           currency_at_booking?: string | null
@@ -7097,6 +7107,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           import_project?: string | null
+          infant_count?: number
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
           is_pii_pending?: boolean
@@ -7135,6 +7146,7 @@ export type Database = {
           room_charge_status?: string | null
           room_quantity?: number
           room_type_id?: string | null
+          toddler_count?: number
           total_price?: number
           updated_at?: string | null
         }

@@ -9,7 +9,12 @@ interface Props {
   checkOut: string;
   nights: number;
   roomQuantity: number;
-  guestCount: number;
+  /** 人數組成文字，如「2 成人・1 兒童」 */
+  guestSummary: string;
+  /** 方案房費小計（未含兒童加價） */
+  baseTotal: number;
+  /** 兒童／幼兒加價總額 */
+  childExtraTotal: number;
   total: number;
   deposit: number;
   balance: number;
@@ -25,7 +30,9 @@ export function GroupBuySummaryCard({
   checkOut,
   nights,
   roomQuantity,
-  guestCount,
+  guestSummary,
+  baseTotal,
+  childExtraTotal,
   total,
   deposit,
   balance,
@@ -59,16 +66,27 @@ export function GroupBuySummaryCard({
           <span className="text-muted-foreground">
             <Users className="mr-1 inline h-4 w-4" />人數
           </span>
-          <span className="tabular-nums">{guestCount} 人</span>
+          <span className="text-right">{guestSummary}</span>
         </div>
       </div>
 
       <Separator className="my-3 bg-border/70" />
 
       <div className="flex items-center justify-between py-1 text-sm">
+        <span className="text-muted-foreground">方案房費</span>
+        <span className="font-medium tabular-nums">{twd(baseTotal)}</span>
+      </div>
+      {childExtraTotal > 0 && (
+        <div className="flex items-center justify-between py-1 text-sm">
+          <span className="text-muted-foreground">兒童加價</span>
+          <span className="font-medium tabular-nums">{twd(childExtraTotal)}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-between py-1 text-sm">
         <span className="text-muted-foreground">方案總額</span>
         <span className="font-medium tabular-nums">{twd(total)}</span>
       </div>
+
 
       <div className="mt-1.5 rounded-xl bg-accent/10 px-3 py-3">
         <p className="text-sm font-semibold text-foreground">本次應付訂金（{depositPct}%）</p>

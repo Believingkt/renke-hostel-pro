@@ -14,6 +14,7 @@ import {
   splitDeposit,
   verifyInventory,
 } from "../_shared/groupBuy.ts";
+import { evaluateChildSelection, resolveChildRules } from "../_shared/childRules.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
 
 const FN = "group-buy-create-order";
@@ -60,8 +61,14 @@ Deno.serve(async (req) => {
     const campaignPackageId = String(body.campaignPackageId ?? "").trim();
     const checkInDate = String(body.checkInDate ?? "").trim();
     const checkOutDate = String(body.checkOutDate ?? "").trim();
-    const roomQuantity = Math.max(1, Math.min(20, Number(body.roomQuantity ?? 1) || 1));
-    const guestCount = Math.max(1, Math.min(60, Number(body.guestCount ?? 2) || 2));
+    // 團購訂單一次固定 1 間，忽略前端傳入的 roomQuantity
+    const roomQuantity = 1;
+    const adultCount = Math.max(1, Math.min(30, Math.round(Number(body.adultCount ?? 2) || 2)));
+    const childCount = Math.max(0, Math.min(30, Math.round(Number(body.childCount ?? 0) || 0)));
+    const toddlerCount = Math.max(0, Math.min(30, Math.round(Number(body.toddlerCount ?? 0) || 0)));
+    const infantCount = Math.max(0, Math.min(30, Math.round(Number(body.infantCount ?? 0) || 0)));
+    // guest_count = 成人＋兒童＋幼兒（不含嬰兒）
+    const guestCount = adultCount + childCount + toddlerCount;
     const guestName = String(body.guestName ?? "").trim();
     const guestPhone = String(body.guestPhone ?? "").trim();
     const guestEmail = String(body.guestEmail ?? "").trim();
@@ -146,20 +153,58 @@ Deno.serve(async (req) => {
     if (!roomTypeId) return json({ error: `預訂失敗：${preMessage}` }, 409);
 
 
-    // 5) 價格（server 端重算：團購價 × 晚數 × 間數）
+    // 4.5) 兒童規則與房型容量（沿用民宿 child_age_rules，方案覆寫優先）
+    const [{ data: accInfoRow }, { data: accPkgRow }, { data: rtRow }] = await Promise.all([
+      admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
+      pkg.package_id
+        ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      admin.from("room_types").select("capacity").eq("id", roomTypeId).maybeSingle(),
+    ]);
+    const childRules = resolveChildRules(
+      (accInfoRow as any)?.child_age_rules,
+      (accPkgRow as any)?.child_age_rules_override ?? null,
+    );
+    const childEval = evaluateChildSelection(
+      childRules,
+      { infants: infantCount, toddlers: toddlerCount, children: childCount },
+      n,
+      adultCount,
+    );
+    if (childEval.blocked) {
+      return json({ error: childEval.blockReason ?? "入住人數不符合民宿規定" }, 400);
+    }
+    const capacity = Number((rtRow as any)?.capacity ?? 0);
+    const capacityHeadcount = adultCount + childEval.capacityHeadcount;
+    if (capacity > 0 && capacityHeadcount > capacity) {
+      return json({ error: `此方案房型每間最多入住 ${capacity} 位（目前 ${capacityHeadcount} 位）` }, 400);
+    }
+
+    // 5) 價格（server 端重算：團購價 × 晚數 × 1 間 ＋ 兒童加價）
     const unit = Math.round(Number(pkg.group_buy_price) || 0);
-    const total = unit * n * roomQuantity;
+    const baseTotal = unit * n * roomQuantity;
+    const childExtraTotal = Math.round(childEval.extraFeeTotal);
+    const total = baseTotal + childExtraTotal;
     if (total <= 0) return json({ error: "方案價格設定有誤，請聯繫客服" }, 400);
     const { deposit, balance } = splitDeposit(total, campaign.deposit_percentage);
 
     // 6) 建單（order_number 由 DB trigger 產生）
+    const guestComposition = [
+      `成人 ${adultCount}`,
+      childCount > 0 ? `${childRules.tiers.child.label} ${childCount}` : null,
+      toddlerCount > 0 ? `${childRules.tiers.toddler.label} ${toddlerCount}` : null,
+      infantCount > 0 ? `${childRules.tiers.infant.label} ${infantCount}` : null,
+    ].filter(Boolean).join("／");
     const noteLines = [
       `【團購】${campaign.title}`,
       campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
       `方案：${pkg.display_name} × ${roomQuantity} 間 × ${n} 晚`,
+      `入住人數：${guestComposition}`,
+      childExtraTotal > 0 ? `兒童加價：${childExtraTotal} 元（房費 ${baseTotal} 元）` : null,
       `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
       guestNote ? `旅客備註：${guestNote}` : null,
     ].filter(Boolean);
+
 
     const { data: order, error: oErr } = await admin
       .from("orders")
@@ -172,6 +217,10 @@ Deno.serve(async (req) => {
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
         guest_count: guestCount,
+        adult_count: adultCount,
+        child_count: childCount,
+        toddler_count: toddlerCount,
+        infant_count: infantCount,
         guest_name: guestName,
         guest_phone: guestPhone,
         guest_email: guestEmail,

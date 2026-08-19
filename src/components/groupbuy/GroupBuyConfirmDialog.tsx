@@ -22,7 +22,9 @@ interface Props {
   checkOut: string;
   nights: number;
   roomQuantity: number;
-  guestCount: number;
+  guestSummary: string;
+  baseTotal: number;
+  childExtraTotal: number;
   total: number;
   deposit: number;
   balance: number;
@@ -45,7 +47,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 export function GroupBuyConfirmDialog(props: Props) {
   const {
     open, onOpenChange, submitting, onConfirm, venueName, packageName,
-    checkIn, checkOut, nights, roomQuantity, guestCount,
+    checkIn, checkOut, nights, roomQuantity, guestSummary, baseTotal, childExtraTotal,
     total, deposit, balance, depositPct, guestName, guestPhone, guestEmail,
   } = props;
 
@@ -63,8 +65,10 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="入住" value={checkIn} />
           <Row label="退房" value={checkOut} />
           <Row label="住宿" value={`${nights} 晚 × ${roomQuantity} 間`} />
-          <Row label="入住人數" value={`${guestCount} 人`} />
+          <Row label="入住人數" value={guestSummary} />
           <Separator className="my-2.5 bg-border/70" />
+          <Row label="方案房費" value={twd(baseTotal)} />
+          {childExtraTotal > 0 && <Row label="兒童加價" value={twd(childExtraTotal)} />}
           <Row label="方案總額" value={twd(total)} strong />
           <div className="flex items-baseline justify-between py-1">
             <span className="text-sm font-semibold text-foreground">本次應付訂金（{depositPct}%）</span>
@@ -72,6 +76,7 @@ export function GroupBuyConfirmDialog(props: Props) {
           </div>
           <Row label="入住支付尾款" value={twd(balance)} />
         </div>
+
 
         <div className="rounded-2xl border border-border/70 p-4">
           <Row label="訂房人" value={guestName} strong />
