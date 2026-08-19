@@ -33,18 +33,22 @@ interface LocationSectionProps {
   };
   customTitle?: string;
   customSubtitle?: string;
+  /** 第一層最多顯示幾個附近景點（未設定＝全部顯示，維持一般訂房頁行為） */
+  initialAttractionCount?: number;
 }
 
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
     description: string;
     image_url?: string;
   } | null>(null);
+  const [showAllAttractions, setShowAllAttractions] = useState(false);
+
 
   // 檢查是否有任何資料設定
   const hasAddress = address && address.trim() !== '';
@@ -60,7 +64,13 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
     return null;
   }
 
-  const nearbyAttractions = locationInfo?.nearby_attractions || [];
+  const allNearbyAttractions = locationInfo?.nearby_attractions || [];
+  const collapsedAttractions =
+    !!initialAttractionCount && !showAllAttractions && allNearbyAttractions.length > initialAttractionCount;
+  const nearbyAttractions = collapsedAttractions
+    ? allNearbyAttractions.slice(0, initialAttractionCount)
+    : allNearbyAttractions;
+
 
   return (
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
@@ -340,7 +350,16 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                     );
                   })}
                 </div>
+
+                {collapsedAttractions && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" size="sm" onClick={() => setShowAllAttractions(true)}>
+                      查看更多附近景點（共 {allNearbyAttractions.length} 個）
+                    </Button>
+                  </div>
+                )}
               </CardContent>
+
             </Card>
           )}
         </div>
