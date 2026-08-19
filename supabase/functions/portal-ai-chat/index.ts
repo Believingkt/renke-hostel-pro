@@ -800,7 +800,9 @@ ${accListStr}
 ## 可用工具：
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
-- create_booking：建訂單`;
+- create_booking：建訂單
+${TRIP_CARD_PROMPT_RULE}`;
+
 
     // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
     const assistantTextRef = { value: '' };
