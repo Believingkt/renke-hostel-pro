@@ -64,7 +64,13 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
     return null;
   }
 
-  const nearbyAttractions = locationInfo?.nearby_attractions || [];
+  const allNearbyAttractions = locationInfo?.nearby_attractions || [];
+  const collapsedAttractions =
+    !!initialAttractionCount && !showAllAttractions && allNearbyAttractions.length > initialAttractionCount;
+  const nearbyAttractions = collapsedAttractions
+    ? allNearbyAttractions.slice(0, initialAttractionCount)
+    : allNearbyAttractions;
+
 
   return (
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
