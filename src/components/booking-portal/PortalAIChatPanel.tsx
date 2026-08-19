@@ -130,7 +130,8 @@ const PortalAIChatPanel = () => {
             check_out_date: format(checkOut, "yyyy-MM-dd"),
             guest_count: defaultGuests,
           },
-
+          lang,
+          guide: { active: guideActive, attrs: guideAttrs },
         }),
       });
 
