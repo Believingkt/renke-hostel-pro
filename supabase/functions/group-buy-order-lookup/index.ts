@@ -161,12 +161,17 @@ Deno.serve(async (req) => {
         .select("display_name, description, image_url, group_buy_price, package_id, room_type_id, room_type_ids")
         .eq("campaign_id", campaign.id);
       const list = (pkgs ?? []) as any[];
-      pkg = list.find((p) => p.package_id && p.package_id === (order as any).package_id)
+      // 建單時會把方案名稱寫進 notes（「方案：XXX × N 間 × M 晚」），優先用它精準比對，
+      // 避免同活動多方案共用房型時抓錯方案。
+      const noteName = String((order as any).notes ?? "").match(/方案：(.+?)\s*×/)?.[1]?.trim() ?? "";
+      pkg = (noteName ? list.find((p) => p.display_name === noteName) : null)
+        ?? list.find((p) => p.package_id && p.package_id === (order as any).package_id)
         ?? list.find((p) =>
           p.room_type_id === (order as any).room_type_id ||
           (Array.isArray(p.room_type_ids) && p.room_type_ids.includes((order as any).room_type_id))
         )
         ?? (list.length === 1 ? list[0] : null);
+
     }
 
     const emailEvents = (events ?? []).filter((e: any) =>
