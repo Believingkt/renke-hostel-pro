@@ -522,6 +522,7 @@ export default function AIBooking() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    if ((e.nativeEvent as KeyboardEvent).isComposing || (e as any).keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
