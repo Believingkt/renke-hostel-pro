@@ -747,14 +747,26 @@ export default function GroupBuyCampaign() {
       campaign.booking_notice_keys === undefined ||
       campaign.booking_notice_keys.length > 0);
 
+  /** 設施 / 交通資訊區塊是否存在（與下方實際渲染條件一致） */
+  const showFacilitiesSection =
+    !!accInfo &&
+    (accInfo as any).show_facilities_section !== false &&
+    ((secondaryData?.facilities?.length || 0) > 0 ||
+      (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
+      (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0);
+  const showLocationSection = !!accInfo && (accInfo as any).show_location_section !== false;
+
   /** 頁內快速導覽（只列出實際存在的區塊） */
   const quickNavItems: QuickNavItem[] = [
     { id: "gb-plans", label: "選擇方案" },
     { id: "gb-book", label: "選擇日期" },
     { id: "gb-venue", label: "民宿介紹" },
+    ...(showFacilitiesSection ? [{ id: "gb-facilities", label: "設施" }] : []),
+    ...(showLocationSection ? [{ id: "gb-transport", label: "交通資訊" }] : []),
     ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
     ...(showBookingNotice ? [{ id: "gb-notice", label: "訂房須知" }] : []),
   ];
+
 
 
   const scrollToNextStep = () =>
