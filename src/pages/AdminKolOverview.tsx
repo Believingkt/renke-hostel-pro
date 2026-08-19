@@ -70,6 +70,8 @@ export default function AdminKolOverview() {
   const [codeIdByCode, setCodeIdByCode] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const monthLabel = selectedMonth === "all" ? "全部期間" : `${selectedMonth.replace("-", " / ")} `;
+
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [overrideDraft, setOverrideDraft] = useState<Record<string, string>>({});
