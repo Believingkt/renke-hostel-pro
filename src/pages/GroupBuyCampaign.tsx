@@ -236,7 +236,28 @@ export default function GroupBuyCampaign() {
     };
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
-  const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
+  /** 兒童分齡規則：完全沿用民宿設定，方案有覆寫時以覆寫為準 */
+  const childRules = useMemo(
+    () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
+    [accInfo, pkgChildOverride],
+  );
+  const childEval = useMemo(
+    () => evaluateChildSelection(childRules, toChildSelection(guests), Math.max(1, nights), guests.adults),
+    [childRules, guests, nights],
+  );
+  /** 房型容量檢查：成人＋計入容量的兒童 */
+  const capacityHeadcount = guests.adults + childEval.capacityHeadcount;
+  const capacityError =
+    roomCapacity != null && roomCapacity > 0 && capacityHeadcount > roomCapacity
+      ? `此方案房型每間最多入住 ${roomCapacity} 位（目前 ${capacityHeadcount} 位）`
+      : "";
+  const guestError = childEval.blockReason || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
+  const guestCount = billableGuestCount(guests);
+  const guestSummary = formatGuestComposition(guests, childRules);
+
+  const baseTotal = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
+  const childExtraTotal = selectedPkg && nights > 0 ? childEval.extraFeePerNight * nights : 0;
+  const total = baseTotal + childExtraTotal;
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
   const balance = Math.max(0, total - deposit);
