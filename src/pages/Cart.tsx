@@ -70,12 +70,24 @@ export default function Cart() {
       }
     }
 
+    // 仍找不到館別 → 保留加購列，導向訂房入口讓客人自行挑選住宿
     if (!accommodationId) {
-      toast.error(
-        lang === "ja" ? "宿泊を追加してください" : lang === "en" ? "Please add a stay first" : "請先加入住宿",
+      stageTripCheckout({
+        tripId: cart.tripId,
+        accommodationId: null,
+        lines: buildCheckoutLines(cart.items),
+      });
+      toast.info(
+        lang === "ja"
+          ? "宿泊を選んでください"
+          : lang === "en"
+            ? "Choose a stay to continue"
+            : "請選擇住宿以完成預約",
       );
+      navigate("/booking");
       return;
     }
+
 
     stageTripCheckout({
       tripId: cart.tripId,

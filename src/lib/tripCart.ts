@@ -98,7 +98,8 @@ export interface TripCheckoutLine {
 
 export interface TripCheckoutPayload {
   tripId: string | null;
-  accommodationId: string;
+  /** 尚未選定住宿時可為 null，之後在訂房頁選館時再套用 */
+  accommodationId: string | null;
   lines: TripCheckoutLine[];
 }
 
@@ -127,7 +128,7 @@ export function readTripCheckout(): TripCheckoutPayload | null {
     const raw = sessionStorage.getItem(TRIP_CHECKOUT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as TripCheckoutPayload;
-    if (!parsed?.accommodationId || !Array.isArray(parsed.lines)) return null;
+    if (!parsed || !Array.isArray(parsed.lines)) return null;
     return parsed;
   } catch {
     return null;
