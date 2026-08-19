@@ -492,6 +492,8 @@ export default function GroupBuyCampaign() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const scrollToForm = () => goTo("gb-book");
+  /** 從活動聯絡說明中取出 LINE 連結（若沒有連結則僅顯示文字，不新增任何資料欄位） */
+  const lineUrl = campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "";
   const scrollToNextStep = () =>
     goTo(currentStep <= 2 ? "gb-book" : currentStep === 3 ? "gb-form" : "gb-pay");
   const readyToConfirm =
@@ -1052,6 +1054,7 @@ export default function GroupBuyCampaign() {
           </div>
         )}
 
+        <div id="gb-venue" className="scroll-mt-6" />
         <GroupBuyVenueIntro
           accommodationId={campaign.accommodation_id}
           hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
@@ -1066,9 +1069,45 @@ export default function GroupBuyCampaign() {
         )}
 
         {campaign.contact_note && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">{campaign.contact_note}</p>
+          <section className="mt-8 rounded-2xl border border-border/70 bg-card p-4 text-center sm:p-5">
+            <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            {lineUrl && (
+              <Button
+                asChild
+                variant="outline"
+                className="mt-3 h-11 rounded-xl border-primary/40 px-5 text-base font-medium text-primary hover:bg-primary/10"
+              >
+                <a href={lineUrl} target="_blank" rel="noreferrer">
+                  <MessageCircle className="mr-1.5 h-4 w-4" /> 有問題？LINE 詢問
+                </a>
+              </Button>
+            )}
+          </section>
         )}
       </main>
+
+      {selectedPkg && (
+        <GroupBuyConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          submitting={submitting}
+          onConfirm={() => void submit()}
+          venueName={venueName || campaign.title}
+          packageName={selectedPkg.display_name}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          nights={nights}
+          roomQuantity={roomQuantity}
+          guestCount={guestCount}
+          total={total}
+          deposit={deposit}
+          balance={balance}
+          depositPct={depositPct}
+          guestName={guestName}
+          guestPhone={guestPhone}
+          guestEmail={guestEmail}
+        />
+      )}
 
       {/* ── 手機固定底部 CTA（只做捲動導引 / 開啟確認層，不改動任何訂房邏輯） ── */}
       {selectedPkg && sale === "on_sale" && (
