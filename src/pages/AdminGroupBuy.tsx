@@ -128,6 +128,10 @@ interface PackageRow {
   short_summary: string | null;
   image_url: string | null;
   group_buy_price: number;
+  weekday_price: number | null;
+  peak_price: number | null;
+  holiday_price: number | null;
+  excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
   sort_order: number;
