@@ -1169,7 +1169,8 @@ export default function GroupBuyCampaign() {
                     !guestPhone.trim() ||
                     !guestEmail.trim() ||
                     !!emailError ||
-                    guestCount < 1
+                    guestCount < 1 ||
+                    !!guestError
                   }
                   onClick={() => setConfirmOpen(true)}
                 >
