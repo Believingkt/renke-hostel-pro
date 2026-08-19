@@ -671,8 +671,8 @@ export default function GroupBuyCampaign() {
             </div>
 
             {/* 7 精選照片（後台可指定，未指定時取民宿相簿） */}
-            {heroPhotoRow.length >= 3 && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
+            {heroPhotoRow.length > 0 && (
+              <div className={`mt-3 grid gap-2 ${heroPhotoRow.length === 1 ? "grid-cols-1" : heroPhotoRow.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
                 {heroPhotoRow.map((url, i) => (
                   <button
                     key={url + i}
@@ -711,7 +711,7 @@ export default function GroupBuyCampaign() {
               { no: 1, label: "選擇方案", targetId: "gb-plans" },
               { no: 2, label: "選擇日期", targetId: "gb-book" },
               { no: 3, label: "填寫資料", targetId: "gb-form" },
-              { no: 4, label: "付款資訊", targetId: "gb-pay" },
+              { no: 4, label: "完成預訂", targetId: "gb-pay" },
             ]}
           />
         )}
