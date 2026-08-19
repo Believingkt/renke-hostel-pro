@@ -1342,6 +1342,7 @@ export default function GroupBuyCampaign() {
           checkIn={checkIn}
           checkOut={checkOut}
           nights={nights}
+          roomQuantity={roomQuantity}
           guestSummary={guestSummary}
           baseTotal={baseTotal}
           childExtraTotal={childExtraTotal}
