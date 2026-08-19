@@ -448,6 +448,10 @@ export default function GroupBuyCampaign() {
       toast({ title: "請選擇入住與退房日期", variant: "destructive" });
       return;
     }
+    if (guestError) {
+      toast({ title: "入住人數不符合規定", description: guestError, variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     try {
