@@ -252,12 +252,20 @@ export async function hasActiveDeviceToken(): Promise<boolean> {
 /**
  * 通知開關的真實狀態：系統權限 granted 且本裝置有有效 token → true
  * 供「訊息」與「我的帳號」兩顆開關共用，確保顯示一致。
+ * retries：token upsert 可能稍慢於 register() 回傳，允許短暫輪詢重查。
  */
-export async function isPushEnabled(): Promise<boolean> {
+export async function isPushEnabled(options?: { retries?: number; delayMs?: number }): Promise<boolean> {
   const state = await getPushPermissionState();
   if (state !== "granted") return false;
-  return await hasActiveDeviceToken();
+  const retries = options?.retries ?? 0;
+  const delayMs = options?.delayMs ?? 700;
+  for (let i = 0; i <= retries; i++) {
+    if (await hasActiveDeviceToken()) return true;
+    if (i < retries) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return false;
 }
+
 
 
 /** 登出時停用此裝置的 token（避免推播寄到別人的手機） */
