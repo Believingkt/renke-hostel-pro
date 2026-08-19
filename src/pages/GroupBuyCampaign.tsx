@@ -347,8 +347,8 @@ export default function GroupBuyCampaign() {
   const balance = Math.max(0, total - deposit);
   /** 前台日期限制（可入住起迄）＋ 販售狀態 */
   const stayErrors = useMemo(
-    () => (campaign ? validateStayRange(campaign, checkIn, checkOut) : {}),
-    [campaign, checkIn, checkOut],
+    () => (campaign ? validateStayRange(campaign, checkIn, checkOut, today) : {}),
+    [campaign, checkIn, checkOut, today],
   );
   /** 方案不適用日期（住宿夜踩到即不可預訂；退房日不算住宿夜） */
   const packageExcludedDates = useMemo(
@@ -539,7 +539,7 @@ export default function GroupBuyCampaign() {
       toast({ title: sale === "not_started" ? "團購尚未開賣" : "團購已結束", variant: "destructive" });
       return;
     }
-    const errs = validateStayRange(campaign, checkIn, checkOut);
+    const errs = validateStayRange(campaign, checkIn, checkOut, today);
     const firstErr = errs.checkIn || errs.checkOut;
     if (firstErr) {
       toast({ title: "日期不符合活動規定", description: firstErr, variant: "destructive" });
@@ -914,6 +914,7 @@ export default function GroupBuyCampaign() {
       </header>
 
       <main className={SHELL}>
+        <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
         {bookingLocked && (
           <p className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {sale === "ended"
@@ -1154,6 +1155,7 @@ export default function GroupBuyCampaign() {
                   max={campaign.stay_end_date}
                   unavailableDates={unavailableDates}
                   excludedDates={packageExcludedDates}
+                  today={today}
                   invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
                   invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
                   onChange={(ci, co) => {
