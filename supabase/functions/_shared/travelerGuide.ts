@@ -219,3 +219,71 @@ export async function archiveGuideAttributes(
     console.error("[traveler-guide] archive exception", e);
   }
 }
+
+/** 完成導引 → 走與 /trips/generate 相同的 trip-recommend 生成邏輯，回傳行程卡片資料（全部 DB 實價） */
+export async function generateGuideTripCards(
+  // deno-lint-ignore no-explicit-any
+  sb: any,
+  attrs: GuideAttrs,
+  opts?: { lang?: GuideLang; source?: string },
+  // deno-lint-ignore no-explicit-any
+): Promise<any[]> {
+  const scenario = scenarioFromAttrs(attrs);
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/trip-recommend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, apikey: key },
+    body: JSON.stringify({
+      scenario,
+      attributes: attrs,
+      fast: true,
+      persist: true,
+      source: opts?.source ?? "portal_chat",
+    }),
+  });
+  if (!r.ok) {
+    console.error("[traveler-guide] trip-recommend failed", r.status, (await r.text()).slice(0, 300));
+    return [];
+  }
+  const trip = await r.json();
+  if (!trip || trip.error || !Array.isArray(trip.items) || !trip.items.length) return [];
+
+  // deno-lint-ignore no-explicit-any
+  const items: any[] = trip.items;
+  const spotCount = items.filter((i) => i.ref_type !== "room").length;
+  const days = items.reduce((max: number, i) => Math.max(max, Number(i.day) || 1), 1);
+
+  let cover = "";
+  try {
+    const productIds = items.filter((i) => i.ref_type === "product").map((i) => String(i.ref_id));
+    if (productIds.length) {
+      const { data } = await sb.from("trip_products").select("id, cover_url").in("id", productIds);
+      const map = new Map((data ?? []).map((p: { id: string; cover_url: string | null }) => [p.id, p.cover_url]));
+      for (const id of productIds) {
+        const u = map.get(id);
+        if (typeof u === "string" && /^https?:\/\/\S+$/.test(u.trim())) {
+          cover = u.trim();
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[traveler-guide] cover lookup failed", e);
+  }
+
+  const lang = opts?.lang ?? "zh";
+  const snapshotId = typeof trip.snapshot_id === "string" ? trip.snapshot_id : "";
+
+  return [
+    {
+      trip_id: snapshotId || `${scenario}-${Date.now()}`,
+      title: trip.title,
+      cover_image_url: cover,
+      match_score: Number(trip.match_score) || null,
+      spot_count: spotCount,
+      days,
+      total_price: Number(trip.total_price) || 0,
+      trip_url: `/trips/generate?scenario=${scenario}&lang=${lang}${snapshotId ? `&trip=${snapshotId}` : ""}`,
+    },
+  ];
+}
