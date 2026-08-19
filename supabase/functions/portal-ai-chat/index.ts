@@ -945,8 +945,8 @@ ${TRIP_CARD_PROMPT_RULE}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 1024,
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 800,
         system: systemPrompt,
         messages: anthropicMessages,
         tools,
@@ -1128,8 +1128,8 @@ ${TRIP_CARD_PROMPT_RULE}`;
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          model: "claude-sonnet-4-5-20250929",
-                          max_tokens: 1024,
+                          model: "claude-haiku-4-5-20251001",
+                          max_tokens: 800,
                           system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}`,
                           messages: followUpMessages,
                           stream: true,
