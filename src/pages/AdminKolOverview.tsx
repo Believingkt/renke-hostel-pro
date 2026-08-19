@@ -313,18 +313,38 @@ export default function AdminKolOverview() {
             KOL 導流、分潤與邀約關係的統一檢視；金額口徑沿用既有折扣碼分潤計算（分潤基準＝實收金額扣加購，乘當期館別抽成）。
           </p>
         </div>
-        <Button variant="outline" onClick={fetchAll}>
-          <RefreshCw className="mr-2 h-4 w-4" /> 重新整理
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="選擇月份" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">全部期間</SelectItem>
+              {monthOptions.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m.replace("-", " / ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={fetchAll}>
+            <RefreshCw className="mr-2 h-4 w-4" /> 重新整理
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         {[
           { label: "KOL 總數（已配碼）", value: String(stats.kolCount), hint: "kol_profiles 有折扣碼者" },
-          { label: "本月導流訂單", value: `${stats.monthOrders} 筆`, hint: `金額 ${twd(stats.monthRevenue)}（依訂單日）` },
-          { label: "本月應付分潤", value: twd(stats.monthCommission), hint: "依退房月份歸屬" },
+          {
+            label: `${monthLabel}導流訂單`,
+            value: `${stats.monthOrders} 筆`,
+            hint: `金額 ${twd(stats.monthRevenue)}（依訂單日）`,
+          },
+          { label: `${monthLabel}應付分潤`, value: twd(stats.monthCommission), hint: "依退房月份歸屬" },
           { label: "邀約轉換", value: `${stats.joined} / ${stats.joined + stats.pending}`, hint: "已加入 / 總邀請" },
         ].map((s) => (
+
           <Card key={s.label}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
