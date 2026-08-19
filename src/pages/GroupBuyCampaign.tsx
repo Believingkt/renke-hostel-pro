@@ -930,10 +930,26 @@ export default function GroupBuyCampaign() {
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span className="text-sm text-muted-foreground">團購價</span>
                         <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
-                          {twd(p.group_buy_price)}
+                          {twd(lowestEffectivePrice(p))}
                         </span>
-                        <span className="text-sm text-muted-foreground">／晚</span>
+                        <span className="text-sm text-muted-foreground">起／晚</span>
                       </div>
+                      {(() => {
+                        const pr = effectivePrices(p);
+                        const varies = pr.weekday !== pr.peak || pr.peak !== pr.holiday;
+                        if (!varies) return null;
+                        return (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            平日 {twd(pr.weekday)}・旺日 {twd(pr.peak)}・假日 {twd(pr.holiday)}
+                          </p>
+                        );
+                      })()}
+                      {(p.excluded_dates?.length ?? 0) > 0 && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          不適用日期：{p.excluded_dates!.slice(0, 6).map((d) => d.slice(5).replace("-", "/")).join("、")}
+                          {p.excluded_dates!.length > 6 ? " 等" : ""}
+                        </p>
+                      )}
                       {(p.original_price || save > 0) && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           {p.original_price ? (
