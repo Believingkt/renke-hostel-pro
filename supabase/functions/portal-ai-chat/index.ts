@@ -1191,7 +1191,23 @@ ${TRIP_CARD_PROMPT_RULE}`;
         } catch (error) {
           console.error('Stream error:', error);
         } finally {
+          // 主題行程圖文卡片（資料全部來自資料庫 trips，模型不參與）
+          try {
+            if (detectTripIntent(lastUserText)) {
+              const tripBlock = buildTripCardsBlock(
+                await fetchTripCards(supabase, { personalized: hasPersonalContext(lastUserText), limit: 3 }),
+              );
+              if (tripBlock) {
+                assistantText += tripBlock;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`));
+              }
+            }
+          } catch (tripErr) {
+            console.error('Trip cards failed:', tripErr);
+          }
+
           // B1: 附加動態推薦商品（失敗不影響對話）
+
           try {
             assistantTextRef.value = assistantText;
             const recommendedItems = await buildRecommendedItems(lastRoomsResult);
