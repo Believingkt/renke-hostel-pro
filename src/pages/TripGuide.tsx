@@ -126,25 +126,15 @@ const TripGuide = () => {
   };
 
   const saveAttributes = async (value: Attrs) => {
+    // 後端 traveler-guide 完成時已保底寫入 traveler_attributes（含來源標記），
+    // 這裡僅保留本機快取供 /trips/generate 使用。
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("traveler_attributes").insert({
-        user_id: auth.user?.id ?? null,
-        session_id: sessionId,
-        ...value,
-      });
-      if (error) throw error;
-      try {
-        localStorage.setItem("traveler_attributes", JSON.stringify(value));
-      } catch {
-        /* 無痕模式等情境忽略 */
-      }
-      setSaved(true);
-      toast({ title: "旅遊屬性已歸檔", description: "接著可以挑選情境生成推薦行程" });
-    } catch (e) {
-      console.error("save traveler attributes failed", e);
-      toast({ title: "屬性儲存失敗", description: "請稍後再試一次", variant: "destructive" });
+      localStorage.setItem("traveler_attributes", JSON.stringify(value));
+    } catch {
+      /* 無痕模式等情境忽略 */
     }
+    setSaved(true);
+    toast({ title: "旅遊屬性已歸檔", description: "接著可以挑選情境生成推薦行程" });
   };
 
 
