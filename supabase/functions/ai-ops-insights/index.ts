@@ -17,7 +17,6 @@ const corsHeaders = {
 };
 
 const MODEL = "google/gemini-3.7-flash";
-const NULL_UUID = "00000000-0000-0000-0000-000000000000";
 
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
