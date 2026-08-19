@@ -18,6 +18,13 @@ import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
 import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
+import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
+import FacilitiesSection from "@/components/FacilitiesSection";
+import LocationSection from "@/components/LocationSection";
+import ReviewsSection from "@/components/ReviewsSection";
+import FaqSection from "@/components/FaqSection";
+import BookingInfoSection from "@/components/BookingInfoSection";
+import BookingFooter from "@/components/BookingFooter";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Users } from "lucide-react";
 
 interface Campaign {
@@ -128,6 +135,7 @@ export default function GroupBuyCampaign() {
 
   const [result, setResult] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   /** 住宿快速預覽用（僅顯示，資料與下方民宿介紹同源） */
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
@@ -185,6 +193,9 @@ export default function GroupBuyCampaign() {
       cancelled = true;
     };
   }, [slug]);
+
+  /** 共用一般訂房頁的民宿資料（設施／交通／訂房須知／社群連結），不另外建立第二份資料 */
+  const { info: accInfo, secondaryData } = useAccommodationCache(campaign?.accommodation_id ?? null);
 
   const selectedPkg = useMemo(
     () => packages.find((p) => p.id === selectedPkgId) ?? null,
@@ -677,11 +688,28 @@ export default function GroupBuyCampaign() {
                     <p className="text-[1.1875rem] font-bold leading-snug tracking-tight sm:text-[1.25rem]">
                       {p.display_name}
                     </p>
-                    {/* 第二層：方案內容摘要 */}
+                    {/* 第二層：方案內容摘要（長文收合，完整內容不刪除） */}
                     {p.description && (
-                      <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                        {p.description}
-                      </p>
+                      <>
+                        <p
+                          className={`mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground ${
+                            expandedPkgs[p.id] ? "" : "line-clamp-3"
+                          }`}
+                        >
+                          {p.description}
+                        </p>
+                        {p.description.length > 60 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedPkgs((s) => ({ ...s, [p.id]: !s[p.id] }))
+                            }
+                            className="mt-1 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            {expandedPkgs[p.id] ? "收合方案內容" : "查看完整方案內容"}
+                          </button>
+                        )}
+                      </>
                     )}
                     {/* 第三／四層：團購價 → 原價與省下金額 */}
                     <div className="mt-3.5">
@@ -1086,6 +1114,59 @@ export default function GroupBuyCampaign() {
           </section>
         )}
       </main>
+
+      {/* ── 民宿詳細資訊：完全共用一般訂房頁的既有元件與資料來源 ── */}
+      {accInfo && (
+        <div className="mx-auto w-full max-w-[1040px] [&_section]:py-8 sm:[&_section]:py-10">
+          {accInfo.show_facilities_section !== false &&
+            ((secondaryData?.facilities?.length || 0) > 0 ||
+              (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
+              (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
+              <FacilitiesSection
+                facilities={secondaryData?.facilities || []}
+                wholeFacilities={
+                  (accInfo as any).show_room_facilities_whole !== false
+                    ? secondaryData?.roomScopeFacilities?.whole || []
+                    : []
+                }
+                singleFacilities={
+                  (accInfo as any).show_room_facilities_single !== false
+                    ? secondaryData?.roomScopeFacilities?.single || []
+                    : []
+                }
+              />
+            )}
+
+          {accInfo.show_location_section !== false && (
+            <LocationSection
+              address={accInfo.address}
+              locationInfo={secondaryData?.locationInfo}
+              customTitle="交通資訊"
+            />
+          )}
+
+          {accInfo.show_reviews_section !== false && <ReviewsSection accommodationId={accInfo.id} />}
+
+          {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
+
+          {accInfo.show_booking_info_section !== false && (
+            <BookingInfoSection
+              bookingSettings={secondaryData?.bookingSettings}
+              checkInNotice={accInfo.check_in_notice}
+              customSections={secondaryData?.customBookingSections}
+            />
+          )}
+        </div>
+      )}
+
+      <BookingFooter
+        lineId={(accInfo as any)?.line_id}
+        facebookUrl={(accInfo as any)?.facebook_url}
+        instagramUrl={(accInfo as any)?.instagram_url}
+        threadsUrl={(accInfo as any)?.threads_url}
+        youtubeUrl={(accInfo as any)?.youtube_url}
+        tiktokUrl={(accInfo as any)?.tiktok_url}
+      />
 
       {selectedPkg && (
         <GroupBuyConfirmDialog

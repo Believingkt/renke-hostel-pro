@@ -47,12 +47,12 @@ export function GroupBuyStepper({ steps, current, completed, className }: Props)
                 onClick={() => go(s.targetId)}
                 aria-current={active ? "step" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium transition sm:w-full sm:justify-center sm:text-sm",
+                  "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition sm:w-full sm:justify-center sm:text-sm",
                   active
-                    ? "border-primary/50 bg-primary/10 text-primary"
+                    ? "border-primary bg-primary/10 font-semibold text-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.12)]"
                     : done
-                      ? "border-primary/25 bg-card text-foreground"
-                      : "border-border/70 bg-card text-muted-foreground",
+                      ? "border-primary/25 bg-card font-medium text-foreground"
+                      : "border-border/60 bg-card font-normal text-muted-foreground/70",
                 )}
               >
                 <span
@@ -62,7 +62,7 @@ export function GroupBuyStepper({ steps, current, completed, className }: Props)
                       ? "bg-primary text-primary-foreground"
                       : active
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground",
+                        : "bg-muted text-muted-foreground/70",
                   )}
                 >
                   {done ? <Check className="h-3 w-3" /> : String(s.no).padStart(2, "0")}
