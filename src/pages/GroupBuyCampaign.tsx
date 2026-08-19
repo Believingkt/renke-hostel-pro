@@ -1137,9 +1137,6 @@ export default function GroupBuyCampaign() {
                         deposit={deposit}
                         balance={balance}
                         depositPct={depositPct}
-                        deposit={deposit}
-                        balance={balance}
-                        depositPct={depositPct}
                         deadlineHours={campaign.payment_deadline_hours}
                         available={availability.ok === true}
                       />
