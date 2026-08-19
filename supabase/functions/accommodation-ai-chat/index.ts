@@ -290,7 +290,16 @@ serve(async (req) => {
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
       + dateBlock + accInfo + roomList + liveAvailabilityBlock + knowledgeText + examplesText + tone + forbidden
-      + ROOM_CARD_PROMPT_RULE;
+      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE;
+
+    // 行程卡意圖判斷（以最後一則客人訊息為準）
+    const lastUserText = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === "user");
+      return typeof m?.content === "string" ? m.content : "";
+    })();
+    const wantTripCards = detectTripIntent(lastUserText);
+    const tripPersonalized = hasPersonalContext(lastUserText);
+
 
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
