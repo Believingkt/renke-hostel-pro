@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 
 const GUIDE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/traveler-guide`;
@@ -96,7 +95,7 @@ const TripGuide = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: history, known }),
+        body: JSON.stringify({ messages: history, known, session_id: sessionId }),
       });
 
       if (resp.status === 429) {
