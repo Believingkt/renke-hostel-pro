@@ -932,8 +932,10 @@ export default function GroupBuyCampaign() {
         </div>
       </header>
 
+      <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
+
       <main className={SHELL}>
-        <GroupBuyQuickNav items={quickNavItems} onSelect={goTo} />
+
         {bookingLocked && (
           <p className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {sale === "ended"
