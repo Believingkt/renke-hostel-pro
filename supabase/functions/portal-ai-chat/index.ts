@@ -994,33 +994,35 @@ ${TRIP_CARD_PROMPT_RULE}`;
             for (const line of lines) {
               if (!line.trim() || line.startsWith(':') || line.startsWith('event:')) continue;
               if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6).trim();
+              const isDone = payload === '[DONE]';
 
               try {
-                const parsed = JSON.parse(line.slice(6));
-                const eventType = parsed.type;
+                const parsed = isDone ? null : JSON.parse(payload);
+                const choice = parsed?.choices?.[0];
+                const delta = choice?.delta;
 
-                if (eventType === 'content_block_start') {
-                  const block = parsed.content_block;
-                  if (block?.type === 'tool_use') {
-                    toolCallsByIndex.set(parsed.index ?? toolCallsByIndex.size, {
-                      id: block.id, name: block.name, inputJson: '',
-                      inputObject: (block.input && typeof block.input === 'object') ? block.input : {},
-                    });
+                if (typeof delta?.content === 'string' && delta.content) {
+                  assistantText += delta.content;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.content } }] })}\n\n`));
+                }
+
+                if (Array.isArray(delta?.tool_calls)) {
+                  for (const tc of delta.tool_calls) {
+                    const idx = Number(tc.index ?? 0);
+                    const cur = toolCallsByIndex.get(idx) ?? { id: `call_${idx}`, name: '', inputJson: '', inputObject: {} };
+                    if (tc.id) cur.id = tc.id;
+                    if (tc.function?.name) cur.name = tc.function.name;
+                    if (typeof tc.function?.arguments === 'string') cur.inputJson += tc.function.arguments;
+                    toolCallsByIndex.set(idx, cur);
                   }
-                } else if (eventType === 'content_block_delta') {
-                  const delta = parsed.delta;
-                  if (delta?.type === 'text_delta' && delta.text) {
-                    assistantText += delta.text;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.text } }] })}\n\n`));
-                  } else if (delta?.type === 'input_json_delta') {
-                    const tc = toolCallsByIndex.get(parsed.index ?? -1);
-                    if (tc && typeof delta.partial_json === 'string') tc.inputJson += delta.partial_json;
-                  }
-                } else if (eventType === 'message_delta') {
-                  if (parsed.delta?.stop_reason === 'tool_use' && toolCallsByIndex.size > 0) {
-                    shouldExecuteToolCalls = true;
-                  }
-                } else if (eventType === 'message_stop' && shouldExecuteToolCalls && toolCallsByIndex.size > 0) {
+                }
+
+                if (choice?.finish_reason === 'tool_calls' && toolCallsByIndex.size > 0) {
+                  shouldExecuteToolCalls = true;
+                }
+
+                if ((isDone || !!choice?.finish_reason) && shouldExecuteToolCalls && toolCallsByIndex.size > 0) {
                   const completedToolCalls = Array.from(toolCallsByIndex.entries())
                     .sort(([a], [b]) => a - b)
                     .map(([, tc]) => ({ id: tc.id, function: { name: tc.name, arguments: tc.inputJson, fallbackInput: tc.inputObject } }));
