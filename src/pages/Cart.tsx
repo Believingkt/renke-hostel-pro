@@ -187,11 +187,17 @@ export default function Cart() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-4">
-        {cart.items.length === 0 ? (
+        {checkingOut && cart.items.length === 0 ? (
+          <p className="flex items-center justify-center gap-2 py-16 text-center text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {lang === "ja" ? "注文を作成しています…" : lang === "en" ? "Creating your order…" : "正在建立訂單…"}
+          </p>
+        ) : cart.items.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">
             {lang === "ja" ? "カートは空です" : lang === "en" ? "Your cart is empty" : "購物車是空的"}
           </p>
         ) : (
+
           <ul className="space-y-3">
             {cart.items.map((item) => (
               <li key={item.key} className="flex gap-3 rounded-xl border border-border bg-card p-3">
