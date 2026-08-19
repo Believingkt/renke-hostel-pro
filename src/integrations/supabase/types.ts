@@ -12800,6 +12800,10 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_access_accommodation: {
+        Args: { _accommodation_id: string }
+        Returns: boolean
+      }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
