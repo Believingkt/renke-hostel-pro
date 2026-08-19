@@ -105,7 +105,11 @@ export default function Cart() {
               ? "Added to your latest stay"
               : "已加入最近的住宿訂單",
         );
-        navigate(`/member/orders/${result.order_number}`);
+        const payParams = new URLSearchParams({ order_number: result.order_number });
+        if (result.added_total && result.added_total > 0) {
+          payParams.set("amount", String(Math.round(result.added_total)));
+        }
+        navigate(`/pay/order?${payParams.toString()}`);
         return;
       }
 
