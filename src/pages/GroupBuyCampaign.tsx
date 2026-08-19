@@ -688,14 +688,14 @@ export default function GroupBuyCampaign() {
   const featuredFacilities = (campaign.featured_facilities ?? []).filter((s) => !!s?.trim());
   const heroPhotos = (campaign.featured_photo_urls ?? []).filter(Boolean).slice(0, 4);
   const heroPhotoRow = (heroPhotos.length > 0 ? heroPhotos : previewPhotos).slice(0, 3);
-  /** 首屏價格錨點：取所有方案中的最低團購價與對應原價 */
+  /** 首屏價格錨點：取所有方案中的最低有效團購價（三段價取最低）與對應原價 */
   const lowestPkg = packages.reduce<CampaignPackage | null>(
-    (best, p) => (!best || p.group_buy_price < best.group_buy_price ? p : best),
+    (best, p) => (!best || lowestEffectivePrice(p) < lowestEffectivePrice(best) ? p : best),
     null,
   );
-  /** 最高現省：遍歷所有上架方案，取 MAX(原價 - 團購價)，忽略沒有原價的方案 */
+  /** 最高現省：遍歷所有上架方案，取 MAX(原價 - 最低有效團購價)，忽略沒有原價的方案 */
   const maxSave = packages.reduce(
-    (m, p) => (p.original_price ? Math.max(m, Math.round(p.original_price - p.group_buy_price)) : m),
+    (m, p) => (p.original_price ? Math.max(m, Math.round(p.original_price - lowestEffectivePrice(p))) : m),
     0,
   );
 
