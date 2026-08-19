@@ -27,13 +27,15 @@ interface Props {
   accommodationId: string;
   /** 團購頁自身已有的圖片數量，若已有大量圖片則不重複展示民宿相簿 */
   hideGallery?: boolean;
+  /** 隱藏「房源特色」清單（團購頁改由下方「設施與服務」統一呈現，避免重複） */
+  hideFacilities?: boolean;
 }
 
 /**
  * 團購頁的民宿基本介紹（可於後台自訂，預設帶入官網內容）
  * 定位為「輔助資訊」，視覺權重低於團購方案。
  */
-export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
+export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilities }: Props) {
   const { toast } = useToast();
   const [info, setInfo] = useState<VenueIntroData | null>(null);
   const [index, setIndex] = useState(0);
@@ -154,7 +156,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery }: Props) {
         </div>
       )}
 
-      {info.facilities.length > 0 && (
+      {!hideFacilities && info.facilities.length > 0 && (
         <div className="mt-7">
           <h3 className="text-base font-semibold tracking-wide text-foreground">
             房源特色
