@@ -1234,7 +1234,6 @@ export default function GroupBuyCampaign() {
           )}
 
 
-          {accInfo.show_reviews_section !== false && <ReviewsSection accommodationId={accInfo.id} />}
 
           {accInfo.show_faq_section !== false && <FaqSection accommodationId={accInfo.id} />}
 
