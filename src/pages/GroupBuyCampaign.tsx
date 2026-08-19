@@ -525,7 +525,7 @@ export default function GroupBuyCampaign() {
 
 
         {/* ── STEP 1 選擇專屬方案 ── */}
-        <section className="mt-12">
+        <section id="gb-plans" className="mt-10 scroll-mt-6">
           <StepHeading
             step={1}
             title="選擇專屬方案"
@@ -644,7 +644,7 @@ export default function GroupBuyCampaign() {
           photos={previewPhotos}
           facilities={previewFacilities}
           totalPhotos={previewPhotos.length}
-          onViewAll={() => scrollTo("gb-venue")}
+          onViewAll={() => goTo("gb-venue")}
         />
 
 
