@@ -1008,11 +1008,24 @@ export default function GroupBuyCampaign() {
                         {emailError && <p className="mt-1 text-sm text-destructive">{emailError}</p>}
                       </div>
                       <div className="sm:col-span-2">
-                        <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
-                          備註（民宿將盡力配合，但無法保證能滿足所有需求）
-                        </Label>
-                        <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                        {!noteOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => setNoteOpen(true)}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4"
+                          >
+                            <Plus className="h-4 w-4" /> 有特殊需求？
+                          </button>
+                        ) : (
+                          <>
+                            <Label htmlFor="gb-note" className="text-sm font-medium text-foreground">
+                              備註（民宿將盡力配合，但無法保證能滿足所有需求）
+                            </Label>
+                            <Textarea id="gb-note" rows={3} value={guestNote} onChange={(e) => setGuestNote(e.target.value)} />
+                          </>
+                        )}
                       </div>
+
                     </div>
                   </>
                 )}
