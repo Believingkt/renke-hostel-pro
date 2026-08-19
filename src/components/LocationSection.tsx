@@ -350,7 +350,16 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
                     );
                   })}
                 </div>
+
+                {collapsedAttractions && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" size="sm" onClick={() => setShowAllAttractions(true)}>
+                      查看更多附近景點（共 {allNearbyAttractions.length} 個）
+                    </Button>
+                  </div>
+                )}
               </CardContent>
+
             </Card>
           )}
         </div>
