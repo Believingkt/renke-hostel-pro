@@ -133,28 +133,40 @@ const MemberMessages = () => {
   const [notifyOn, setNotifyOn] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
 
+  const refreshNotify = async (retries = 0) => {
+    const on = await isPushEnabled({ retries });
+    setNotifyOn(on);
+    return on;
+  };
+
   useEffect(() => {
-    void isPushEnabled().then(setNotifyOn);
+    void refreshNotify();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refreshNotify();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const handleNotificationToggle = async (checked: boolean) => {
-    toast.message(checked ? "正在開啟通知…" : "通知開關", { duration: 4000 });
-
     if (!checked) {
       toast.message("請至裝置系統設定關閉通知");
-      setNotifyOn(await isPushEnabled());
+      await refreshNotify();
       return;
     }
 
-    const state = await initPushNotifications({ force: true });
-    const enabled = await isPushEnabled();
-    setNotifyOn(enabled);
-    if (!enabled) {
-      toast.error(`通知未開啟：${state}`, { duration: 10000 });
-    } else {
-      toast.success("已開啟通知");
+    toast.message("正在開啟通知…", { duration: 4000 });
+    try {
+      const state = await initPushNotifications({ force: true });
+      const enabled = await refreshNotify(3);
+      if (enabled) toast.success("通知已開啟");
+      else toast.error(`通知未開啟：${state}`, { duration: 10000 });
+    } catch (e) {
+      await refreshNotify();
+      toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
     }
   };
+
 
 
   const renderList = (items: any[]) => (
