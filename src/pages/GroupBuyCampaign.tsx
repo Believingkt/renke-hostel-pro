@@ -879,7 +879,7 @@ export default function GroupBuyCampaign() {
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = !bookingLocked && p.id === selectedPkgId;
-              const save = p.original_price ? Math.round(p.original_price - p.group_buy_price) : 0;
+              const save = p.original_price ? Math.round(p.original_price - lowestEffectivePrice(p)) : 0;
               return (
                 <div
                   key={p.id}
