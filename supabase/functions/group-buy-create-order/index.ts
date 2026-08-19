@@ -119,6 +119,15 @@ Deno.serve(async (req) => {
       return json({ error: `此方案單筆最多預訂 ${pkg.max_quantity} 間` }, 400);
     }
 
+    // 2.5) 方案不適用日期（退房日不算住宿夜；server 端一律重驗）
+    const excludedDates: string[] = Array.isArray(pkg.excluded_dates)
+      ? (pkg.excluded_dates as unknown[]).map((d) => String(d).slice(0, 10))
+      : [];
+    const hitExcluded = findExcludedNight(checkInDate, checkOutDate, excludedDates);
+    if (hitExcluded) {
+      return json({ error: `此方案於 ${hitExcluded} 不適用，請調整住宿日期` }, 400);
+    }
+
     // 3) 房型（庫存判定必須要有房型；支援複選房型清單）
     const candidateRoomTypeIds: string[] = Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.length > 0
       ? (pkg.room_type_ids as string[])
