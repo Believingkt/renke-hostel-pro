@@ -181,7 +181,8 @@ export function GroupBuyDateRangeField({
             day_disabled: "text-muted-foreground/50 opacity-60 line-through",
             cell:
               "h-10 w-10 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: "h-10 w-10 p-0 font-normal rounded-md hover:bg-primary/10 hover:text-primary aria-selected:opacity-100",
+            head_cell: "text-muted-foreground rounded-md w-10 font-normal text-[0.8rem]",
+            day: "rdp-day h-10 w-10 p-0 font-normal rounded-md hover:bg-primary/10 hover:text-primary aria-selected:opacity-100",
           }}
           className="p-3 pointer-events-auto"
         />
