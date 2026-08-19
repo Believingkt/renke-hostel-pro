@@ -56,7 +56,9 @@ serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: userData } = await userClient.auth.getUser();
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr) console.error("getUser failed:", userErr.message);
     const user = userData?.user;
     if (!user) return jsonRes({ error: "未授權的請求" }, 401);
 
