@@ -34,6 +34,8 @@ import BookingFooter from "@/components/BookingFooter";
 import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
 import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
+import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/GroupBuyQuickNav";
+import { taipeiToday } from "@/lib/taipeiToday";
 import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
@@ -67,6 +69,10 @@ interface Campaign {
   highlight_points: string[] | null;
   featured_facilities: string[] | null;
   featured_photo_urls: string[] | null;
+  /** 後台指定要在團購頁顯示的 FAQ（依陣列順序）；null＝顯示全部 */
+  faq_item_ids: string[] | null;
+  /** 後台指定要在團購頁顯示的訂房須知 panel key（依陣列順序）；null＝顯示全部 */
+  booking_notice_keys: string[] | null;
 }
 
 interface CampaignPackage {
@@ -180,6 +186,40 @@ export default function GroupBuyCampaign() {
   const [previewFacilities, setPreviewFacilities] = useState<string[]>([]);
   /** Hero 主標題以「民宿名稱」為最高層級（僅顯示用，不影響任何訂房邏輯） */
   const [venueName, setVenueName] = useState("");
+  /** 團購頁 FAQ（後台可指定顯示哪幾則與順序） */
+  const [faqItems, setFaqItems] = useState<{ id: string; question: string; answer: string }[]>([]);
+  /** 台灣今日：入住日不可早於今天（前端日曆與驗證共用，後端會再驗一次） */
+  const today = taipeiToday();
+
+  /** 讀取該館別已發布 FAQ；後台若有指定 faq_item_ids，依其順序過濾 */
+  useEffect(() => {
+    let cancelled = false;
+    const accId = campaign?.accommodation_id;
+    if (!accId) {
+      setFaqItems([]);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("faqs")
+        .select("id, question, answer")
+        .eq("accommodation_id", accId)
+        .eq("is_published", true)
+        .order("display_order");
+      if (cancelled) return;
+      const all = (data ?? []) as { id: string; question: string; answer: string }[];
+      const picked = campaign?.faq_item_ids;
+      if (Array.isArray(picked)) {
+        // 依後台排序；已刪除／已下架的 FAQ 自動略過
+        setFaqItems(picked.map((id) => all.find((f) => f.id === id)).filter(Boolean) as typeof all);
+      } else {
+        setFaqItems(all);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.accommodation_id, campaign?.faq_item_ids]);
 
 
   useEffect(() => {
@@ -403,7 +443,6 @@ export default function GroupBuyCampaign() {
         setUnavailableDates(new Set());
         return;
       }
-      const today = new Date().toISOString().split("T")[0];
       const start = campaign.stay_start_date && campaign.stay_start_date > today ? campaign.stay_start_date : today;
       const endLimit = campaign.stay_end_date;
       const dates: string[] = [];

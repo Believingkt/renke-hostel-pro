@@ -27,6 +27,12 @@ interface BookingInfoSectionProps {
   customSections?: CustomSection[];
   customTitle?: string;
   customSubtitle?: string;
+  /**
+   * 只顯示指定的面板（依此陣列順序）。
+   * undefined＝原行為（全部顯示）；失效／不存在的 key 自動略過。
+   * key 值：checkIn / payment / cancellation / important / pet / other / custom-<uuid>
+   */
+  visibleKeys?: string[];
 }
 
 interface Panel {
@@ -46,6 +52,7 @@ const BookingInfoSection = ({
   customSections = [],
   customTitle,
   customSubtitle,
+  visibleKeys,
 }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
@@ -171,6 +178,14 @@ const BookingInfoSection = ({
     });
   });
 
+  // 指定顯示項目時：依 visibleKeys 順序過濾，失效／不存在的 key 自動略過
+  const visiblePanels = visibleKeys
+    ? (visibleKeys.map((k) => panels.find((p) => p.key === k)).filter(Boolean) as Panel[])
+    : panels;
+  if (visiblePanels.length === 0) return null;
+
+
+
   return (
     <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
@@ -187,7 +202,7 @@ const BookingInfoSection = ({
           {/* ── 手機版：Accordion 摺疊 ── */}
           <div className="md:hidden max-w-md mx-auto">
             <Accordion type="multiple" className="space-y-3">
-              {panels.map((panel) => {
+              {visiblePanels.map((panel) => {
                 const Icon = panel.icon;
                 return (
                   <AccordionItem
@@ -242,7 +257,7 @@ const BookingInfoSection = ({
 
           {/* ── 桌面版：原本卡片網格 ── */}
           <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
-            {panels.map((panel) => {
+            {visiblePanels.map((panel) => {
               const Icon = panel.icon;
               const longHtml = panel.html && panel.html.length > 200;
               return (

@@ -22,6 +22,7 @@ import {
   findExcludedNight,
 } from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { taipeiToday } from "../_shared/taipeiToday.ts";
 
 const FN = "group-buy-create-order";
 
@@ -99,6 +100,10 @@ Deno.serve(async (req) => {
     const now = new Date();
     if (campaign.sale_start && new Date(campaign.sale_start) > now) return json({ error: "團購尚未開賣" }, 400);
     if (campaign.sale_end && new Date(campaign.sale_end) < now) return json({ error: "團購已結束" }, 400);
+    // 入住日不可早於台灣今天（server-side 一律重驗，不依賴前端日曆停用）
+    if (checkInDate < taipeiToday(now)) {
+      return json({ error: "入住日期不可早於今天。" }, 400);
+    }
     if (campaign.stay_start_date && checkInDate < campaign.stay_start_date) {
       return json({ error: `本團購可入住日自 ${campaign.stay_start_date} 起` }, 400);
     }
