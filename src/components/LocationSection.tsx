@@ -33,18 +33,22 @@ interface LocationSectionProps {
   };
   customTitle?: string;
   customSubtitle?: string;
+  /** 第一層最多顯示幾個附近景點（未設定＝全部顯示，維持一般訂房頁行為） */
+  initialAttractionCount?: number;
 }
 
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
     description: string;
     image_url?: string;
   } | null>(null);
+  const [showAllAttractions, setShowAllAttractions] = useState(false);
+
 
   // 檢查是否有任何資料設定
   const hasAddress = address && address.trim() !== '';
