@@ -15,6 +15,7 @@ import {
   verifyInventory,
 } from "../_shared/groupBuy.ts";
 import { evaluateChildSelection, resolveChildRules } from "../_shared/childRules.ts";
+import { ROOM_SELECT_MESSAGES, selectRoomType } from "../_shared/groupBuyRoomSelect.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
 
 const FN = "group-buy-create-order";
@@ -133,33 +134,12 @@ Deno.serve(async (req) => {
     const n = calcNights(checkInDate, checkOutDate);
     const dates = nightDates(checkInDate, n);
 
-    // 4) 下訂前庫存驗證（含包棟互斥）：逐一比對，取第一個有空房的房型
-    let roomTypeId: string | null = null;
-    let preMessage = "此區間目前無足夠空房";
-    for (const rtId of candidateRoomTypeIds) {
-      const { data: invBefore, error: invErr } = await admin.rpc("get_adjusted_room_inventory_batch", {
-        p_room_type_id: rtId,
-        p_dates: dates,
-        p_accommodation_id: campaign.accommodation_id,
-      });
-      if (invErr) throw invErr;
-      const pre = verifyInventory(invBefore as any[], roomQuantity, false);
-      if (pre.ok) {
-        roomTypeId = rtId;
-        break;
-      }
-      preMessage = pre.message;
-    }
-    if (!roomTypeId) return json({ error: `預訂失敗：${preMessage}` }, 409);
-
-
-    // 4.5) 兒童規則與房型容量（沿用民宿 child_age_rules，方案覆寫優先）
-    const [{ data: accInfoRow }, { data: accPkgRow }, { data: rtRow }] = await Promise.all([
+    // 4) 兒童規則（沿用民宿 child_age_rules，方案覆寫優先）
+    const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
       admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
       pkg.package_id
         ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
         : Promise.resolve({ data: null } as any),
-      admin.from("room_types").select("capacity").eq("id", roomTypeId).maybeSingle(),
     ]);
     const childRules = resolveChildRules(
       (accInfoRow as any)?.child_age_rules,
@@ -174,10 +154,31 @@ Deno.serve(async (req) => {
     if (childEval.blocked) {
       return json({ error: childEval.blockReason ?? "入住人數不符合民宿規定" }, 400);
     }
-    const capacity = Number((rtRow as any)?.capacity ?? 0);
     const capacityHeadcount = adultCount + childEval.capacityHeadcount;
-    if (capacity > 0 && capacityHeadcount > capacity) {
-      return json({ error: `此方案房型每間最多入住 ${capacity} 位（目前 ${capacityHeadcount} 位）` }, 400);
+
+    // 4.5) 候選房型：capacity 與庫存必須「同時」成立才可指派
+    const { data: rtRows } = await admin
+      .from("room_types")
+      .select("id, capacity")
+      .in("id", candidateRoomTypeIds);
+    const capacityMap = new Map<string, number>(
+      ((rtRows as any[]) ?? []).map((r) => [String(r.id), Number(r.capacity ?? 0)]),
+    );
+    const candidates = candidateRoomTypeIds.map((id) => ({ id, capacity: capacityMap.get(id) ?? 0 }));
+
+    const selection = await selectRoomType(candidates, capacityHeadcount, async (rtId) => {
+      const { data: invBefore, error: invErr } = await admin.rpc("get_adjusted_room_inventory_batch", {
+        p_room_type_id: rtId,
+        p_dates: dates,
+        p_accommodation_id: campaign.accommodation_id,
+      });
+      if (invErr) throw invErr;
+      return verifyInventory(invBefore as any[], roomQuantity, false).ok;
+    });
+    const roomTypeId = selection.roomTypeId;
+    if (!roomTypeId) {
+      const failure = selection.failure ?? "inventory";
+      return json({ error: ROOM_SELECT_MESSAGES[failure] }, failure === "capacity" ? 400 : 409);
     }
 
     // 5) 價格（server 端重算：團購價 × 晚數 × 1 間 ＋ 兒童加價）

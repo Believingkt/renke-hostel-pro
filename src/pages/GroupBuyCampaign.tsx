@@ -141,7 +141,7 @@ export default function GroupBuyCampaign() {
   const [guests, setGuests] = useState<GuestCounts>(DEFAULT_GUEST_COUNTS);
   /** 方案對應的兒童規則覆寫與房型容量（依既有民宿設定，不建立第二套資料） */
   const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
-  const [roomCapacity, setRoomCapacity] = useState<number | null>(null);
+  const [roomCaps, setRoomCaps] = useState<Array<{ id: string; capacity: number }>>([]);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -245,11 +245,16 @@ export default function GroupBuyCampaign() {
     () => evaluateChildSelection(childRules, toChildSelection(guests), Math.max(1, nights), guests.adults),
     [childRules, guests, nights],
   );
-  /** 房型容量檢查：成人＋計入容量的兒童 */
+  /** 房型容量檢查：成人＋計入容量的兒童（與後端同一套規則） */
   const capacityHeadcount = guests.adults + childEval.capacityHeadcount;
+  /** 容量足夠的候選房型（capacity <= 0 視為未設限）；順序與後端分配順序一致 */
+  const fittingRoomTypeIds = useMemo(
+    () => roomCaps.filter((r) => r.capacity <= 0 || capacityHeadcount <= r.capacity).map((r) => r.id),
+    [roomCaps, capacityHeadcount],
+  );
   const capacityError =
-    roomCapacity != null && roomCapacity > 0 && capacityHeadcount > roomCapacity
-      ? `此方案房型每間最多入住 ${roomCapacity} 位（目前 ${capacityHeadcount} 位）`
+    roomCaps.length > 0 && fittingRoomTypeIds.length === 0
+      ? "目前可用房型無法容納此入住人數，請調整入住人數。"
       : "";
   const guestError = childEval.blockReason || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
   const guestCount = billableGuestCount(guests);
@@ -302,7 +307,7 @@ export default function GroupBuyCampaign() {
     (async () => {
       if (!selectedPkg) {
         setPkgChildOverride(null);
-        setRoomCapacity(null);
+        setRoomCaps([]);
         return;
       }
       const [overrideRes, capRes] = await Promise.all([
@@ -319,10 +324,16 @@ export default function GroupBuyCampaign() {
       ]);
       if (cancelled) return;
       setPkgChildOverride(((overrideRes as any)?.data?.child_age_rules_override as unknown) ?? null);
-      const caps = (((capRes as any)?.data ?? []) as Array<{ capacity: number | null }>)
-        .map((r) => Number(r.capacity ?? 0))
-        .filter((n) => n > 0);
-      setRoomCapacity(caps.length > 0 ? Math.max(...caps) : null);
+      const rows = ((capRes as any)?.data ?? []) as Array<{ id: string; capacity: number | null }>;
+      // 依候選順序排列，與後端分配順序一致
+      setRoomCaps(
+        candidateRoomTypeIds
+          .map((id) => {
+            const row = rows.find((r) => String(r.id) === id);
+            return row ? { id, capacity: Number(row.capacity ?? 0) } : null;
+          })
+          .filter(Boolean) as Array<{ id: string; capacity: number }>,
+      );
     })();
     return () => {
       cancelled = true;
@@ -331,11 +342,15 @@ export default function GroupBuyCampaign() {
 
 
 
+  /** 實際可分配的房型：容量足夠者優先，尚未取得容量時退回全部候選（最終仍以後端為準） */
+  const bookableRoomTypeIds = roomCaps.length > 0 ? fittingRoomTypeIds : candidateRoomTypeIds;
+  const bookableKey = bookableRoomTypeIds.join(",");
+
   /** 依活動可入住期間預先計算「該日期是否還有庫存」，無庫存日期於日曆停用 */
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!campaign || bookingLocked || candidateRoomTypeIds.length === 0) {
+      if (!campaign || bookingLocked || bookableRoomTypeIds.length === 0) {
         setUnavailableDates(new Set());
         return;
       }
@@ -354,7 +369,7 @@ export default function GroupBuyCampaign() {
         return;
       }
       const results = await Promise.all(
-        candidateRoomTypeIds.map((rtId) =>
+        bookableRoomTypeIds.map((rtId) =>
           supabase.rpc("get_adjusted_room_inventory_batch", {
             p_room_type_id: rtId,
             p_dates: dates,
@@ -383,16 +398,13 @@ export default function GroupBuyCampaign() {
     return () => {
       cancelled = true;
     };
-  }, [campaign, candidateRoomTypeIds, roomQuantity, bookingLocked]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign, bookableKey, roomQuantity, bookingLocked]);
 
 
   const checkAvailability = useCallback(async () => {
-    const roomTypeIds =
-      selectedPkg?.room_type_ids && selectedPkg.room_type_ids.length > 0
-        ? selectedPkg.room_type_ids
-        : selectedPkg?.room_type_id
-          ? [selectedPkg.room_type_id]
-          : [];
+    // 與後端一致：只檢查「容量足夠」的候選房型
+    const roomTypeIds = bookableRoomTypeIds;
     if (!campaign || roomTypeIds.length === 0 || nights <= 0 || dateBlocked) {
       setAvailability({ checking: false, ok: null, message: "" });
       return;
@@ -425,7 +437,8 @@ export default function GroupBuyCampaign() {
       return;
     }
     setAvailability({ checking: false, ok: false, message: lastMessage });
-  }, [campaign, selectedPkg, checkIn, nights, roomQuantity, dateBlocked]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign, bookableKey, checkIn, nights, roomQuantity, dateBlocked]);
 
   useEffect(() => {
     void checkAvailability();
