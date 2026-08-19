@@ -26,7 +26,10 @@ import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
-import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Wallet } from "lucide-react";
+import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
+import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
+
 
 interface Campaign {
   id: string;
