@@ -60,8 +60,14 @@ Deno.serve(async (req) => {
     const campaignPackageId = String(body.campaignPackageId ?? "").trim();
     const checkInDate = String(body.checkInDate ?? "").trim();
     const checkOutDate = String(body.checkOutDate ?? "").trim();
-    const roomQuantity = Math.max(1, Math.min(20, Number(body.roomQuantity ?? 1) || 1));
-    const guestCount = Math.max(1, Math.min(60, Number(body.guestCount ?? 2) || 2));
+    // 團購訂單一次固定 1 間，忽略前端傳入的 roomQuantity
+    const roomQuantity = 1;
+    const adultCount = Math.max(1, Math.min(30, Math.round(Number(body.adultCount ?? 2) || 2)));
+    const childCount = Math.max(0, Math.min(30, Math.round(Number(body.childCount ?? 0) || 0)));
+    const toddlerCount = Math.max(0, Math.min(30, Math.round(Number(body.toddlerCount ?? 0) || 0)));
+    const infantCount = Math.max(0, Math.min(30, Math.round(Number(body.infantCount ?? 0) || 0)));
+    // guest_count = 成人＋兒童＋幼兒（不含嬰兒）
+    const guestCount = adultCount + childCount + toddlerCount;
     const guestName = String(body.guestName ?? "").trim();
     const guestPhone = String(body.guestPhone ?? "").trim();
     const guestEmail = String(body.guestEmail ?? "").trim();
