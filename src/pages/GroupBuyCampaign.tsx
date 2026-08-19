@@ -1451,6 +1451,7 @@ export default function GroupBuyCampaign() {
             ((secondaryData?.facilities?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.whole?.length || 0) > 0 ||
               (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0) && (
+              <div id="gb-facilities" className="scroll-mt-16">
               <GroupBuyFacilitiesCompact
                 highlights={
                   (featuredFacilities.length > 0
@@ -1480,17 +1481,21 @@ export default function GroupBuyCampaign() {
                   }
                 />
               </GroupBuyFacilitiesCompact>
+              </div>
             )}
 
 
           {accInfo.show_location_section !== false && (
-            <LocationSection
-              address={accInfo.address}
-              locationInfo={secondaryData?.locationInfo}
-              customTitle="交通資訊"
-              initialAttractionCount={3}
-            />
+            <div id="gb-transport" className="scroll-mt-16">
+              <LocationSection
+                address={accInfo.address}
+                locationInfo={secondaryData?.locationInfo}
+                customTitle="交通資訊"
+                initialAttractionCount={3}
+              />
+            </div>
           )}
+
 
 
 
