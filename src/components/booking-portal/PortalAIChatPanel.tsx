@@ -152,6 +152,7 @@ const PortalAIChatPanel = () => {
       let assistantMessage = "";
       let textBuffer = "";
       let searchIntent: { checkIn?: string; checkOut?: string; guests?: number } | null = null;
+      let isGuideTurn = false;
 
       setMessages((prev) => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
