@@ -523,6 +523,31 @@ export default function GroupBuyCampaign() {
           </p>
         )}
 
+        {/* ── 團購優惠摘要（資料皆取自後台既有方案價格） ── */}
+        <GroupBuyDealSummary
+          packages={packages}
+          depositPercentage={depositPct}
+          stayStart={campaign.stay_start_date}
+          stayEnd={campaign.stay_end_date}
+        />
+
+        {/* ── 訂房流程 Stepper ── */}
+        {!bookingLocked && (
+          <GroupBuyStepper
+            className="mt-6"
+            current={currentStep}
+            completed={completedSteps}
+            steps={[
+              { no: 1, label: "選擇方案", targetId: "gb-plans" },
+              { no: 2, label: "選擇日期", targetId: "gb-book" },
+              { no: 3, label: "填寫資料", targetId: "gb-form" },
+              { no: 4, label: "付款資訊", targetId: "gb-pay" },
+            ]}
+          />
+        )}
+
+
+
 
         {/* ── STEP 1 選擇專屬方案 ── */}
         <section id="gb-plans" className="mt-10 scroll-mt-6">
