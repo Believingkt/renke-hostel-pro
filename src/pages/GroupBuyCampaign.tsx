@@ -962,7 +962,7 @@ export default function GroupBuyCampaign() {
                           </p>
                           <p className="mt-0.5 text-sm text-muted-foreground">
                             <span className="font-semibold text-accent tabular-nums">
-                              {twd(p.group_buy_price)}
+                              {twd(lowestEffectivePrice(p))} 起
                             </span>
                             ／晚 · 下一步：選擇入住日期
                           </p>
