@@ -31,6 +31,8 @@ import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
+import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 
 
 interface EventRow {
