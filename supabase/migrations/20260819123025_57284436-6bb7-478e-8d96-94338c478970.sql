@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.attach_trip_products_to_recent_order(jsonb, uuid) FROM PUBLIC, anon, sandbox_exec_dmafqwfynatdvnaeovhz;
+GRANT EXECUTE ON FUNCTION public.attach_trip_products_to_recent_order(jsonb, uuid) TO authenticated, service_role;
