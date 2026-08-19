@@ -1134,9 +1134,11 @@ export default function GroupBuyCampaign() {
           />
         )}
 
-        {campaign.contact_note && (
+        {(campaign.contact_note || lineUrl) && (
           <section className="mt-8 rounded-2xl border border-border/70 bg-card p-4 text-center sm:p-5">
-            <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            {campaign.contact_note && (
+              <p className="text-sm leading-relaxed text-muted-foreground">{campaign.contact_note}</p>
+            )}
             {lineUrl && (
               <Button
                 asChild
@@ -1150,6 +1152,7 @@ export default function GroupBuyCampaign() {
             )}
           </section>
         )}
+
       </main>
 
       {/* ── 民宿詳細資訊：完全共用一般訂房頁的既有元件與資料來源 ── */}
