@@ -232,6 +232,23 @@ export default function GroupBuyCampaign() {
   /** 共用一般訂房頁的民宿資料（設施／交通／訂房須知／社群連結），不另外建立第二份資料 */
   const { info: accInfo, secondaryData } = useAccommodationCache(campaign?.accommodation_id ?? null);
 
+  /** 讀取國定假日（僅顯示用途，後端建單時會再讀一次重算） */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!campaign?.accommodation_id) return;
+      const { data } = await supabase
+        .from("public_holidays")
+        .select("holiday_date")
+        .eq("accommodation_id", campaign.accommodation_id);
+      if (cancelled) return;
+      setHolidays(new Set(((data as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10))));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.accommodation_id]);
+
   const selectedPkg = useMemo(
     () => packages.find((p) => p.id === selectedPkgId) ?? null,
     [packages, selectedPkgId],
