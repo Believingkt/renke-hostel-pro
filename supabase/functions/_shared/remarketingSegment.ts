@@ -47,6 +47,15 @@ function fieldValue(p: TravelerRow, field: string): unknown {
   }
 }
 
+/** 將條件值展開成清單：支援陣列，或以逗號／頓號／分號／空白分隔的字串 */
+function toList(expected: unknown): string[] {
+  const raw = Array.isArray(expected) ? expected : [expected];
+  return raw
+    .flatMap((x) => String(x ?? "").split(/[,，、;；|/\s]+/))
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function matchRule(p: TravelerRow, rule: SegmentRule): boolean {
   const actual = fieldValue(p, rule.field);
   const op = rule.op;
@@ -54,13 +63,12 @@ function matchRule(p: TravelerRow, rule: SegmentRule): boolean {
 
   if (Array.isArray(actual)) {
     const list = actual.map((x) => String(x).toLowerCase());
-    const wanted = (Array.isArray(expected) ? expected : [expected])
-      .map((x) => String(x ?? "").trim().toLowerCase())
-      .filter(Boolean);
+    const wanted = toList(expected);
     if (!wanted.length) return true;
     const hit = wanted.some((w) => list.some((l) => l.includes(w)));
     return op === "not_contains" ? !hit : hit;
   }
+
 
   if (typeof actual === "boolean") {
     return op === "is_false" ? !actual : actual;
