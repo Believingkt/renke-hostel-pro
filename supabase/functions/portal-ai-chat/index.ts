@@ -102,44 +102,53 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單一次並行取回（原為序列查詢）
+    // 效能：提示詞設定／知識庫／範例／樣板與民宿清單並行取回，並以 isolate 記憶體快取（TTL 60s）
     const t0 = Date.now();
-    const accommodationsPromise = supabase
+    const cached = <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
+      const hit = CONFIG_CACHE.get(key);
+      if (hit && Date.now() - hit.t < CONFIG_TTL_MS) return hit.p as Promise<T>;
+      const p = fn().catch((e) => { CONFIG_CACHE.delete(key); throw e; });
+      CONFIG_CACHE.set(key, { t: Date.now(), p });
+      return p;
+    };
+
+    const accommodationsPromise = cached('accommodations', () => supabase
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
-      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r);
-    const knowledgePromise = supabase
+      .order('display_order', { ascending: true, nullsFirst: false }).then(r => r));
+    const knowledgePromise = cached('knowledge', () => supabase
       .from('ai_knowledge')
       .select('title, content, priority')
       .eq('is_active', true)
       .order('priority', { ascending: false })
-      .limit(80).then(r => r);
-    const examplesPromise = supabase
+      .limit(24).then(r => r));
+    const examplesPromise = cached('examples', () => supabase
       .from('ai_examples')
       .select('scenario, user_message, ideal_response')
       .eq('is_active', true)
-      .limit(40).then(r => r);
-    const templatesPromise = supabase
+      .limit(10).then(r => r));
+    const templatesPromise = cached('templates', () => supabase
       .from('ai_reply_templates')
       .select('name, scenario, template')
       .eq('is_active', true)
       .order('sort', { ascending: true })
-      .limit(20).then(r => r);
-    const abTestPromise = supabase
+      .limit(8).then(r => r));
+    const abTestPromise = cached('abtest', () => supabase
       .from('ai_ab_tests')
       .select('version_a, version_b, traffic_split')
       .eq('is_active', true)
       .order('started_at', { ascending: false })
       .limit(1)
-      .maybeSingle().then(r => r);
-    const publishedPromptPromise = supabase
+      .maybeSingle().then(r => r));
+    const publishedPromptPromise = cached('published_prompt', () => supabase
       .from('ai_prompts')
       .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
       .eq('status', 'published')
       .order('version', { ascending: false })
       .limit(1)
-      .maybeSingle().then(r => r);
+      .maybeSingle().then(r => r));
+
 
     const { data: allAccommodations } = await accommodationsPromise;
 
