@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
-import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
+import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
 import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
@@ -214,6 +214,16 @@ export default function GroupBuyCampaign() {
     [packages, selectedPkgId],
   );
   const nights = nightsBetween(checkIn, checkOut);
+  /** 日期選擇完成後的顯示文字（純顯示，不影響任何計算） */
+  const stayLabel = useMemo(() => {
+    if (!checkIn || !checkOut) return "";
+    const fmt = (v: string) => {
+      const d = new Date(`${v}T00:00:00`);
+      const w = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+      return `${d.getMonth() + 1}/${d.getDate()}（${w}）`;
+    };
+    return `${fmt(checkIn)} → ${fmt(checkOut)}`;
+  }, [checkIn, checkOut]);
   const total = selectedPkg ? Math.round(selectedPkg.group_buy_price) * nights * roomQuantity : 0;
   const depositPct = campaign?.deposit_percentage ?? 30;
   const deposit = Math.min(total, Math.round((total * depositPct) / 100));
