@@ -223,7 +223,8 @@ const PortalAIChatPanel = () => {
       }
 
       // 沒有工具結果時，直接從使用者輸入辨識日期／人數（只給入住日 → 預設住 1 晚）
-      if (!searchIntent?.checkIn) {
+      // 導引中不做搜尋跳轉，避免離開對話串
+      if (!isGuideTurn && !searchIntent?.checkIn) {
         const text = content.trim();
         const dates = [...text.matchAll(/(\d{1,2})\s*[\/\-月]\s*(\d{1,2})/g)].map((m) => {
           const mo = Number(m[1]);
