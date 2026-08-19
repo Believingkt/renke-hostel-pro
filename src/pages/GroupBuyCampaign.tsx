@@ -1064,6 +1064,7 @@ export default function GroupBuyCampaign() {
                 />
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
                 {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
+                {!!excludedError && <p className="mt-1 text-sm text-destructive">{excludedError}</p>}
 
                 <div className="mt-4">
                   <GroupBuyGuestPicker
