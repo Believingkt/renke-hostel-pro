@@ -461,7 +461,26 @@ const PortalAIChatPanel = () => {
           )}
         </div>
 
+        {/* 快速選單：動態行旅導引 */}
+        <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/60 px-3 pt-2 flex flex-wrap gap-2">
+          <button
+            onClick={() => sendMessage(GUIDE_CHIP[lang])}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 rounded-full border border-[hsl(25,60%,75%)] bg-white px-3 py-1.5 text-xs font-medium text-[hsl(25,70%,40%)] hover:bg-[hsl(25,80%,95%)] disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {GUIDE_CHIP[lang]}
+          </button>
+          {guideActive && (
+            <span className="inline-flex items-center rounded-full bg-[hsl(25,80%,95%)] px-3 py-1.5 text-xs text-[hsl(25,70%,40%)]">
+              {lang === "en" ? "Guiding…" : lang === "ja" ? "ガイド中…" : "導引中…"}
+            </span>
+          )}
+        </div>
+
         {/* Bottom input bar */}
+
+
 
         <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/80 backdrop-blur px-3 py-2.5 flex gap-2 items-center">
           <Input
