@@ -111,6 +111,9 @@ interface Campaign {
   commission_rate: number;
   contact_note: string | null;
   terms_html: string | null;
+  highlight_points: string[] | null;
+  featured_facilities: string[] | null;
+  featured_photo_urls: string[] | null;
 }
 
 interface PackageRow {
@@ -120,6 +123,7 @@ interface PackageRow {
   room_type_ids: string[] | null;
   display_name: string;
   description: string | null;
+  short_summary: string | null;
   image_url: string | null;
   group_buy_price: number;
   original_price: number | null;
@@ -797,6 +801,17 @@ export default function AdminGroupBuy() {
                   </div>
 
                   <div className="md:col-span-2">
+                    <Label>方案短摘要（團購頁方案卡第二行，建議 30 字內）</Label>
+                    <Input
+                      value={p.short_summary ?? ""}
+                      placeholder="例：2 大 2 小・含早餐・可帶寵物"
+                      onChange={(e) =>
+                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, short_summary: e.target.value } : x)))
+                      }
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
                     <Label>方案說明</Label>
                     <Textarea
                       rows={3}
@@ -1072,6 +1087,46 @@ export default function AdminGroupBuy() {
                   type="number"
                   value={editing.commission_rate ?? 0}
                   onChange={(e) => setEditing({ ...editing, commission_rate: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>活動主賣點（每行一點，前台首屏最多顯示 3 點）</Label>
+                <Textarea
+                  rows={3}
+                  placeholder={"包棟獨享\n含早餐\n免費停車"}
+                  value={(editing.highlight_points ?? []).join("\n")}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      highlight_points: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
+                    })
+                  }
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>團購頁精選特色（每行一項，未填時自動取民宿設施）</Label>
+                <Textarea
+                  rows={3}
+                  value={(editing.featured_facilities ?? []).join("\n")}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      featured_facilities: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
+                    })
+                  }
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>首屏精選照片網址（每行一張，最多 4 張；未填時自動取民宿相簿）</Label>
+                <Textarea
+                  rows={3}
+                  value={(editing.featured_photo_urls ?? []).join("\n")}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      featured_photo_urls: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean).slice(0, 4),
+                    })
+                  }
                 />
               </div>
               <div className="md:col-span-2">
