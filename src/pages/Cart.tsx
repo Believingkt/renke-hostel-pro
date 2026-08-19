@@ -57,29 +57,14 @@ export default function Cart() {
   const checkout = async () => {
     if (checkingOut) return;
     setCheckingOut(true);
-    // 無住宿列時，以品項所屬民宿導向訂房頁挑選房型／日期，不再直接擋下
-    let accommodationId = stay?.accommodationId || null;
-    if (!accommodationId) {
-      const product = cart.items.find(
-        (i): i is Extract<CartItem, { kind: "product" }> => i.kind === "product",
-      );
-      accommodationId = product?.accommodationId || null;
-      if (!accommodationId && product) {
-        const { data } = await supabase
-          .from("trip_products")
-          .select("accommodation_id")
-          .eq("id", product.productId)
-          .maybeSingle();
-        accommodationId = (data?.accommodation_id as string) || null;
-      }
-    }
+    const productLines = buildCheckoutLines(cart.items);
 
-    // 仍找不到館別 → 保留加購列，導向訂房入口讓客人自行挑選住宿
-    if (!accommodationId) {
-      const productLines = buildCheckoutLines(cart.items);
+    // 只要購物車沒有住宿列，登入會員一律先嘗試綁定最近的有效住宿訂單。
+    // 商品是否帶 accommodationId 不應影響此流程；原本在商品有館別時會提早跳過 RPC。
+    if (!stay && productLines.length > 0) {
       const { data: userData } = await supabase.auth.getUser();
 
-      if (userData.user && productLines.length > 0) {
+      if (userData.user) {
         const { data, error } = await supabase.rpc(
           "attach_trip_products_to_recent_order" as never,
           {
@@ -124,11 +109,31 @@ export default function Cart() {
           return;
         }
       }
+    }
 
+    // 沒有可綁定的住宿訂單時，以品項所屬民宿導向訂房頁挑選房型／日期
+    let accommodationId = stay?.accommodationId || null;
+    if (!accommodationId) {
+      const product = cart.items.find(
+        (i): i is Extract<CartItem, { kind: "product" }> => i.kind === "product",
+      );
+      accommodationId = product?.accommodationId || null;
+      if (!accommodationId && product) {
+        const { data } = await supabase
+          .from("trip_products")
+          .select("accommodation_id")
+          .eq("id", product.productId)
+          .maybeSingle();
+        accommodationId = (data?.accommodation_id as string) || null;
+      }
+    }
+
+    // 仍找不到館別 → 保留加購列，導向訂房入口讓客人自行挑選住宿
+    if (!accommodationId) {
       stageTripCheckout({
         tripId: cart.tripId,
         accommodationId: null,
-        lines: buildCheckoutLines(cart.items),
+        lines: productLines,
       });
       toast.info(
         lang === "ja"
@@ -145,7 +150,7 @@ export default function Cart() {
     stageTripCheckout({
       tripId: cart.tripId,
       accommodationId,
-      lines: buildCheckoutLines(cart.items),
+      lines: productLines,
     });
     navigate(
       bookingPath({
