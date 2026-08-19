@@ -13,9 +13,10 @@ import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
 import { GroupBuyDateField } from "@/components/groupbuy/GroupBuyDateField";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
-import { GroupBuyDealSummary } from "@/components/groupbuy/GroupBuyDealSummary";
 import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
+import { GroupBuySummaryCard } from "@/components/groupbuy/GroupBuySummaryCard";
+import { GroupBuyPaymentSteps } from "@/components/groupbuy/GroupBuyPaymentSteps";
 import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
 import { SALE_STATE_LABEL, saleState, validateStayRange } from "@/lib/groupBuyDateRules";
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
@@ -25,7 +26,7 @@ import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
-import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Wallet } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -45,12 +46,17 @@ interface Campaign {
   payment_deadline_hours: number;
   contact_note: string | null;
   terms_html: string | null;
+  /** 首屏顯示用（後台可設定，皆為選填） */
+  highlight_points: string[] | null;
+  featured_facilities: string[] | null;
+  featured_photo_urls: string[] | null;
 }
 
 interface CampaignPackage {
   id: string;
   display_name: string;
   description: string | null;
+  short_summary: string | null;
   image_url: string | null;
   group_buy_price: number;
   original_price: number | null;
