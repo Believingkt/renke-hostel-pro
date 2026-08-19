@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -110,18 +110,20 @@ export default function Cart() {
         setCheckingOut(false);
         return;
       }
-      clearCart();
+      // 先導向付款頁，購物車在導向之後才清空，避免 /cart 閃現空狀態
       const payParams = new URLSearchParams({
         order_number: result.order_number,
         amount: String(Math.round(Number(result.amount) || 0)),
       });
       if (result.accommodation_id) payParams.set("acc", result.accommodation_id);
-      navigate(`/pay/order?${payParams.toString()}`);
+      navigate(`/pay/order?${payParams.toString()}`, { replace: true });
+      setTimeout(() => clearCart(), 0);
     } catch (e) {
       console.error("[Cart] trip order failed", e);
       toast.error("建立行程訂單失敗，請稍後再試");
       setCheckingOut(false);
     }
+
   };
 
   const checkout = async () => {
@@ -185,11 +187,17 @@ export default function Cart() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-4">
-        {cart.items.length === 0 ? (
+        {checkingOut && cart.items.length === 0 ? (
+          <p className="flex items-center justify-center gap-2 py-16 text-center text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {lang === "ja" ? "注文を作成しています…" : lang === "en" ? "Creating your order…" : "正在建立訂單…"}
+          </p>
+        ) : cart.items.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">
             {lang === "ja" ? "カートは空です" : lang === "en" ? "Your cart is empty" : "購物車是空的"}
           </p>
         ) : (
+
           <ul className="space-y-3">
             {cart.items.map((item) => (
               <li key={item.key} className="flex gap-3 rounded-xl border border-border bg-card p-3">
@@ -275,9 +283,17 @@ export default function Cart() {
               NT$ {cartTotal(cart.items).toLocaleString()}
             </p>
           </div>
-          <Button onClick={checkout} disabled={cart.items.length === 0 || checkingOut} className="min-w-32">
-            {t.cta}
+          <Button onClick={checkout} disabled={(cart.items.length === 0 && !checkingOut) || checkingOut} className="min-w-32">
+            {checkingOut ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {lang === "ja" ? "作成中…" : lang === "en" ? "Processing…" : "正在建立訂單…"}
+              </span>
+            ) : (
+              t.cta
+            )}
           </Button>
+
         </div>
       </div>
     </div>
