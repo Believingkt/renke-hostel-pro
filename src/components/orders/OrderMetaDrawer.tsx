@@ -1035,15 +1035,17 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                       快照為 append-only，需重算該期後才會出現在發放管理。
                     </div>
                   </div>
-                  {isSuperAdmin ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
-                      onClick={handleResyncSnapshots}
-                    >
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isSuperAdmin ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
+                        onClick={handleResyncSnapshots}
+                      >
+
                       {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
                     </Button>
                   ) : (
