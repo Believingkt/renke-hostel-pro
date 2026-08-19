@@ -63,6 +63,18 @@ const PortalAIChatPanel = () => {
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [defaultLocation, setDefaultLocation] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("宜蘭");
+  // 動態行旅導引（七項旅遊屬性）
+  const [guideActive, setGuideActive] = useState(false);
+  const [guideAttrs, setGuideAttrs] = useState<Record<string, unknown> | null>(null);
+  const lang = (() => {
+    const l = new URLSearchParams(window.location.search).get("lang");
+    return l === "ja" || l === "en" ? l : "zh";
+  })();
+  const GUIDE_CHIP: Record<string, string> = {
+    zh: "動態行旅導引",
+    ja: "旅程ガイド",
+    en: "Plan my trip",
+  };
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
