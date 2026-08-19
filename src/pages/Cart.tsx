@@ -20,6 +20,7 @@ import {
   type TripCart,
 } from "@/lib/tripCart";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Cart() {
   const [params] = useSearchParams();
