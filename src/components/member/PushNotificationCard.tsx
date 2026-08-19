@@ -15,36 +15,53 @@ import {
 const PushNotificationCard = () => {
   const [state, setState] = useState<PushPermissionState>("unsupported");
   const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const refresh = async () => {
+  /** 重新查詢實際狀態（權限 granted 且本裝置有有效 token → 開） */
+  const refresh = async (retries = 0) => {
     const perm = await getPushPermissionState();
     setState(perm);
-    setEnabled(await isPushEnabled());
+    const on = await isPushEnabled({ retries });
+    setEnabled(on);
+    return on;
   };
 
   useEffect(() => {
     if (!isNativeApp()) return;
     void refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   if (!isNativeApp() || state === "unsupported") return null;
 
   const onToggle = async (checked: boolean) => {
-    toast.message(checked ? "正在開啟通知…" : "通知開關", { duration: 4000 });
+    if (busy) return;
     if (!checked) {
       toast.message("請至裝置系統設定「通知 → 人客多」關閉通知");
       await refresh();
       return;
     }
-    // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
-    const next = await initPushNotifications({ force: true });
-    console.log("[push] enable() result:", next);
-    setState(next);
-    const on = await isPushEnabled();
-    setEnabled(on);
-    if (on) toast.success("已開啟通知");
-    else toast.error(`通知未開啟：${next}`, { duration: 10000 });
+    setBusy(true);
+    toast.message("正在開啟通知…", { duration: 4000 });
+    try {
+      // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
+      const next = await initPushNotifications({ force: true });
+      console.log("[push] enable() result:", next);
+      const on = await refresh(3);
+      if (on) toast.success("通知已開啟");
+      else toast.error(`通知未開啟：${next}`, { duration: 10000 });
+    } catch (e) {
+      await refresh();
+      toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
+    } finally {
+      setBusy(false);
+    }
   };
+
 
   return (
     <Card className="p-4 border-orange-100">
