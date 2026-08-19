@@ -1087,7 +1087,9 @@ export default function GroupBuyCampaign() {
         <GroupBuyVenueIntro
           accommodationId={campaign.accommodation_id}
           hideGallery={(campaign.gallery_urls?.length ?? 0) >= 3}
+          hideFacilities
         />
+
 
 
         {campaign.terms_html && (
