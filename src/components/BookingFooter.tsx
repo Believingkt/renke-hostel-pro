@@ -87,18 +87,21 @@ const BookingFooter = ({
 
 
         {/* 聯名合作夥伴 */}
-        <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity">
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
-            技術合作
-          </span>
-          <div className="h-3 w-px bg-border" />
-          <img
-            src={owlnestLogo}
-            alt="OwlNest"
-            className="h-6 sm:h-7 w-auto object-contain"
-            loading="lazy"
-          />
-        </div>
+        {!hidePartnershipInfo && (
+          <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
+              技術合作
+            </span>
+            <div className="h-3 w-px bg-border" />
+            <img
+              src={owlnestLogo}
+              alt="OwlNest"
+              className="h-6 sm:h-7 w-auto object-contain"
+              loading="lazy"
+            />
+          </div>
+        )}
+
       </div>
 
       {/* 返回頂部按鈕 */}
