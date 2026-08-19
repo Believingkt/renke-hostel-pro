@@ -101,7 +101,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-    const AI_MODEL = "google/gemini-3.7-flash";
+    // 速度優先：小安對話多為查房／導引，改用輕量快速模型（保留工具呼叫能力）
+    const AI_MODEL = "google/gemini-3.1-flash-lite";
+
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -954,7 +956,9 @@ ${TRIP_CARD_PROMPT_RULE}`;
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 1024,
+        max_tokens: 700,
+        reasoning_effort: "none",
+
         messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
         tools: openaiTools,
         stream: true,
@@ -1146,7 +1150,9 @@ ${TRIP_CARD_PROMPT_RULE}`;
                         },
                         body: JSON.stringify({
                           model: AI_MODEL,
-                          max_tokens: 1024,
+                          max_tokens: 700,
+                          reasoning_effort: "none",
+
                           messages: followUpMessages,
                           stream: true,
                         }),
