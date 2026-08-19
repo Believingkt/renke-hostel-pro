@@ -576,9 +576,20 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     });
     return f.format(d).slice(0, 7);
   };
-  /** 快照歸期＝訂單日所屬月；發放期＝執行當月 */
+  /** 快照歸期＝訂單日所屬月；發放期＝下一個尚未發放的 10 日期 */
   const snapshotMonthOfOrder = useMemo(() => taipeiMonthOf(orderDate), [orderDate]);
-  const currentPayoutMonth = useMemo(() => taipeiMonthOf(null), []);
+  const currentPayoutMonth = useMemo(() => {
+    const f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const [y, m, d] = f.format(new Date()).split("-").map(Number);
+    // 每月 10 日發放：已過 10 日 → 補建的快照歸入次月發放期
+    const zero = y * 12 + (m - 1) + (d > 10 ? 1 : 0);
+    return `${Math.floor(zero / 12)}-${String((zero % 12) + 1).padStart(2, "0")}`;
+  }, []);
   const forceEstimateAmount = useMemo(() => {
     const base = teamCommissionPrice ?? autoTeamCommissionPrice;
     if (base === null || base === undefined || closerRate === null) return null;
@@ -591,7 +602,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     setResyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-commission-snapshots", {
-        body: { test_mode: true, test_month: snapshotMonthOfOrder },
+        body: {
+          test_mode: true,
+          test_month: snapshotMonthOfOrder,
+          payout_month: currentPayoutMonth,
+        },
       });
       if (error) throw error;
       const created = (data as any)?.results?.reduce?.(
