@@ -40,7 +40,7 @@ export interface CallbackResult {
 }
 
 const DEFAULT_REDIRECT = "/member/orders";
-const TIMEOUT_MS = 8000;
+/** 單次 exchange 嘗試上限（edge function 冷啟動可能 5–10 秒） */
 /** 單次 exchange 嘗試上限（edge function 冷啟動可能 5–10 秒） */
 const ATTEMPT_TIMEOUT_MS = 12000;
 /** 整體上限：超過才判定登入逾時 */
