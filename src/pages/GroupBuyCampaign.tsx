@@ -27,6 +27,15 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import { GroupBuyFacilitiesCompact } from "@/components/groupbuy/GroupBuyFacilitiesCompact";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
+import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
+import {
+  DEFAULT_GUEST_COUNTS,
+  billableGuestCount,
+  formatGuestComposition,
+  toChildSelection,
+  type GuestCounts,
+} from "@/lib/groupBuyGuests";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
