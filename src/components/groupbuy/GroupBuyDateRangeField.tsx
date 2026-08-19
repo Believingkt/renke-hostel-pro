@@ -199,10 +199,16 @@ export function GroupBuyDateRangeField({
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm bg-primary/25" />住宿區間
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-muted line-through" />
-            <span className="line-through">已滿房／不可入住</span>
-          </span>
+          {isCheckoutPhase ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm bg-muted opacity-60" />不可選（活動期間外）
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm bg-muted line-through" />
+              <span className="line-through">已滿房／不可入住</span>
+            </span>
+          )}
         </div>
       </PopoverContent>
     </Popover>
