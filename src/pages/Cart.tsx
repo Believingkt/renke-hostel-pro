@@ -229,7 +229,41 @@ export default function Cart() {
             ))}
           </ul>
         )}
+
+        {!stay && cart.items.length > 0 && (
+          <div className="mt-4 space-y-3 rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold text-foreground">
+              {lang === "ja" ? "ご連絡先" : lang === "en" ? "Contact details" : "聯絡資料"}
+            </p>
+            <Input
+              value={guest.name}
+              onChange={(e) => setGuest({ ...guest, name: e.target.value })}
+              placeholder={lang === "ja" ? "お名前" : lang === "en" ? "Name" : "姓名"}
+              autoComplete="name"
+            />
+            <Input
+              value={guest.phone}
+              onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
+              placeholder={lang === "ja" ? "電話番号" : lang === "en" ? "Phone" : "手機號碼"}
+              inputMode="tel"
+              autoComplete="tel"
+            />
+            <Input
+              value={guest.email}
+              onChange={(e) => setGuest({ ...guest, email: e.target.value })}
+              placeholder="Email"
+              inputMode="email"
+              autoComplete="email"
+            />
+            {showGuestForm && (!guest.name.trim() || !guest.phone.trim()) && (
+              <p className="text-xs text-destructive">
+                {lang === "ja" ? "お名前と電話番号は必須です" : lang === "en" ? "Name and phone are required" : "請填寫姓名與電話"}
+              </p>
+            )}
+          </div>
+        )}
       </div>
+
 
       <div className="fixed inset-x-0 bottom-0 safe-bottom border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
