@@ -1392,7 +1392,7 @@ export default function GroupBuyCampaign() {
                 {readyToConfirm ? `訂金（${depositPct}%）` : selectedPkg.display_name}
               </p>
               <p className="text-lg font-bold leading-tight text-accent tabular-nums">
-                {readyToConfirm ? twd(deposit) : nights > 0 ? twd(total) : twd(selectedPkg.group_buy_price)}
+                {readyToConfirm ? twd(deposit) : nights > 0 ? twd(total) : twd(lowestEffectivePrice(selectedPkg))}
                 {!readyToConfirm && nights <= 0 && (
                   <span className="ml-1 text-xs font-normal text-muted-foreground">／晚</span>
                 )}
