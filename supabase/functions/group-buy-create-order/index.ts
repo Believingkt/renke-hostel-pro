@@ -320,6 +320,27 @@ Deno.serve(async (req) => {
       commission_rate: rate,
       commission_amount: Math.round((total * rate) / 100),
       status: "pending",
+      // 價格歷史快照：日後管理員調整方案價格，舊訂單仍可還原當時算法
+      price_snapshot: {
+        version: 1,
+        computed_at: new Date().toISOString(),
+        campaign_package_id: pkg.id,
+        package_name: pkg.display_name,
+        nights: stay.nights,
+        nightly_breakdown: stay.nightlyBreakdown,
+        base_accommodation_total: baseTotal,
+        child_extra_total: childExtraTotal,
+        grand_total: total,
+        deposit_percentage: campaign.deposit_percentage,
+        deposit,
+        balance,
+        prices_at_booking: {
+          group_buy_price: Number(pkg.group_buy_price) || 0,
+          weekday_price: pkg.weekday_price ?? null,
+          peak_price: pkg.peak_price ?? null,
+          holiday_price: pkg.holiday_price ?? null,
+        },
+      },
     });
 
     // 9) 匯款帳戶 + 通知信
