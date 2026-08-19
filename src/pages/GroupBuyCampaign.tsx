@@ -998,29 +998,25 @@ export default function GroupBuyCampaign() {
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
                 {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
 
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                  <div>
-                    <Label htmlFor="gb-rooms" className="text-sm font-medium text-foreground">間數</Label>
-                    <Input
-                      id="gb-rooms"
-                      type="number"
-                      min={1}
-                      max={selectedPkg?.max_quantity ?? 10}
-                      value={roomQuantity}
-                      onChange={(e) => setRoomQuantity(Math.max(1, Number(e.target.value) || 1))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gb-guests" className="text-sm font-medium text-foreground">入住人數</Label>
-                    <Input
-                      id="gb-guests"
-                      type="number"
-                      min={1}
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value) || 1))}
-                    />
-                  </div>
+                <div className="mt-4">
+                  <GroupBuyGuestPicker
+                    value={guests}
+                    onChange={setGuests}
+                    rules={childRules}
+                    blockReason={guestError}
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    團購方案每筆訂單固定 1 間房。
+                    {childEval.extraFeePerNight > 0 && (
+                      <>
+                        {" "}
+                        兒童加價每晚 NT$
+                        {childEval.extraFeePerNight.toLocaleString("en-US")}。
+                      </>
+                    )}
+                  </p>
                 </div>
+
 
                 {nights > 0 && !dateBlocked && (
                   <div className="mt-4">
