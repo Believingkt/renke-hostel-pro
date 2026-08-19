@@ -1148,7 +1148,9 @@ ${TRIP_CARD_PROMPT_RULE}`;
                         },
                         body: JSON.stringify({
                           model: AI_MODEL,
-                          max_tokens: 1024,
+                          max_tokens: 700,
+                          reasoning_effort: "none",
+
                           messages: followUpMessages,
                           stream: true,
                         }),
