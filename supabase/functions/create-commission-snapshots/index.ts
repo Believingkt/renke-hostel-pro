@@ -116,7 +116,12 @@ serve(async (req) => {
     }
 
     const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
-    const payoutMonthStr = `${payoutYear}-${pad2(payoutMonth)}`;
+    // 允許（僅手動重算時）指定發放期；未指定時維持原本「執行當月」邏輯不變
+    const payoutMonthOverride =
+      testMode && typeof body?.payout_month === "string" && /^\d{4}-\d{2}$/.test(body.payout_month)
+        ? body.payout_month
+        : null;
+    const payoutMonthStr = payoutMonthOverride ?? `${payoutYear}-${pad2(payoutMonth)}`;
 
     const supabase = authRes.ctx.admin;
 
