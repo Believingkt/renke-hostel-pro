@@ -228,6 +228,9 @@ Deno.serve(async (req) => {
       campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
       `方案：${pkg.display_name} × ${roomQuantity} 間 × ${n} 晚`,
       `入住人數：${guestComposition}`,
+      `住宿費：${stay.nightlyBreakdown
+        .map((x) => `${x.date} ${GROUP_BUY_DAY_TYPE_LABEL[x.type]} ${x.price}`)
+        .join("／")}（小計 ${baseTotal} 元）`,
       childExtraTotal > 0 ? `兒童加價：${childExtraTotal} 元（房費 ${baseTotal} 元）` : null,
       `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
       guestNote ? `旅客備註：${guestNote}` : null,
