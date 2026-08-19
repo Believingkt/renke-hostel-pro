@@ -32,6 +32,11 @@ const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 3000;
 const ALLOWED_ROLES = ['user', 'assistant', 'system'];
 
+// 設定快取（同 isolate 內共用，降低每次對話的資料庫往返）
+const CONFIG_TTL_MS = 60_000;
+const CONFIG_CACHE = new Map<string, { t: number; p: Promise<any> }>();
+
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
