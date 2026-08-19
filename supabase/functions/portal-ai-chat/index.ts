@@ -947,7 +947,7 @@ ${TRIP_CARD_PROMPT_RULE}`;
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 800,
-        system: systemPrompt,
+        system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         messages: anthropicMessages,
         tools,
         stream: true,
