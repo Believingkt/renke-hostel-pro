@@ -1099,38 +1099,40 @@ ${TRIP_CARD_PROMPT_RULE}`;
                     }
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
                   } else {
-                    // Follow-up with Claude
+                    // Follow-up with the AI gateway
                     let followUpSent = false;
                     try {
                       const followUpMessages = [
-                        ...toAnthropicMessages(messages.slice(-6)),
+                        { role: "system", content: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}` },
+                        ...toChatMessages(messages.slice(-6)),
                         {
                           role: "assistant",
-                          content: completedToolCalls.map(tc => ({
-                            type: "tool_use", id: tc.id, name: tc.function.name,
-                            input: parseToolArgs(tc.function.arguments, tc.function.fallbackInput),
+                          content: null,
+                          tool_calls: completedToolCalls.map(tc => ({
+                            id: tc.id,
+                            type: "function",
+                            function: {
+                              name: tc.function.name,
+                              arguments: JSON.stringify(parseToolArgs(tc.function.arguments, tc.function.fallbackInput)),
+                            },
                           })),
                         },
-                        {
-                          role: "user",
-                          content: toolResults.map(tr => ({
-                            type: "tool_result", tool_use_id: tr.tool_call_id,
-                            content: JSON.stringify(tr.result),
-                          })),
-                        },
+                        ...toolResults.map(tr => ({
+                          role: "tool",
+                          tool_call_id: tr.tool_call_id,
+                          content: JSON.stringify(tr.result),
+                        })),
                       ];
 
-                      const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
+                      const followUpResponse = await fetch(AI_GATEWAY_URL, {
                         method: "POST",
                         headers: {
-                          "x-api-key": ANTHROPIC_API_KEY,
-                          "anthropic-version": "2023-06-01",
+                          Authorization: `Bearer ${LOVABLE_API_KEY}`,
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          model: "claude-sonnet-4-5-20250929",
+                          model: AI_MODEL,
                           max_tokens: 1024,
-                          system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。${buildDateBlock()}`,
                           messages: followUpMessages,
                           stream: true,
                         }),
@@ -1147,15 +1149,21 @@ ${TRIP_CARD_PROMPT_RULE}`;
                           followBuffer = fLines.pop() || '';
                           for (const fLine of fLines) {
                             if (!fLine.trim() || fLine.startsWith(':') || fLine.startsWith('event:') || !fLine.startsWith('data: ')) continue;
+                            const fPayload = fLine.slice(6).trim();
+                            if (fPayload === '[DONE]') continue;
                             try {
-                              const fParsed = JSON.parse(fLine.slice(6));
-                              if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
+                              const fParsed = JSON.parse(fPayload);
+                              const fText = fParsed?.choices?.[0]?.delta?.content;
+                              if (typeof fText === 'string' && fText) {
                                 followUpSent = true;
-                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: fParsed.delta.text } }] })}\n\n`));
+                                assistantText += fText;
+                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: fText } }] })}\n\n`));
                               }
                             } catch {}
                           }
                         }
+                      } else if (followUpResponse.body) {
+                        console.error('Follow-up gateway error', followUpResponse.status, await followUpResponse.text());
                       }
                     } catch (followErr) {
                       console.error('Follow-up failed:', followErr);
