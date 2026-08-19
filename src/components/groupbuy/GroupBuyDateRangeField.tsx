@@ -189,7 +189,9 @@ export function GroupBuyDateRangeField({
           selected={{ from, to }}
           defaultMonth={from ?? minDate}
           onDayClick={handleDayClick}
-          modifiers={{ soldout: (d) => !isCheckoutPhase && soldOut(d) && !outOfBounds(d) }}
+          modifiers={{
+            soldout: (d) => !isCheckoutPhase && (soldOut(d) || excluded(d)) && !outOfBounds(d),
+          }}
           modifiersClassNames={{ soldout: "line-through" }}
           disabled={disabledDay}
           classNames={{
