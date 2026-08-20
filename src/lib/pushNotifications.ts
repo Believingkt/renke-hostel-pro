@@ -190,11 +190,11 @@ export async function bootstrapPushForExistingSession(): Promise<void> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
+      console.log("[push] 啟動註冊略過：尚未登入會員");
       return;
     }
     const state = await initPushNotifications();
-    if (state !== "granted") {
-    }
+    console.log("[push] 啟動註冊完成：權限", state);
   } catch (e) {
     console.error("[push] bootstrap failed", e);
     debugLog("推播啟動檢查失敗", e);
