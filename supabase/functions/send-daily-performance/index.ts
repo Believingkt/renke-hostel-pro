@@ -288,16 +288,14 @@ Deno.serve(async (req) => {
         };
 
         // ── General booking metrics ────────────────────────
-        // 非天送：與 PMS「成交大師」列表一致 —— 期間以 order_date 為準，
-        //          並排除「保留單」與 final_price <= 0 的訂單；
-        // 天送：維持既有 order_date 區間 + 團媽/票卷訂房排除（獨立邏輯，不修改）。
+        // 全館別一致：期間以 order_date 為準，並排除「保留單」與 final_price <= 0 的訂單。
+        // 天送另加：團媽/票卷訂房排除。
         const applyBookingFilters = <T extends any>(qb: T): T => {
           let q: any = applyTiansongExclusions(qb as any);
-          if (!isTiansong) {
-            q = q.neq("order_status", "hold").gt("final_price", 0);
-          }
+          q = q.neq("order_status", "hold").gt("final_price", 0);
           return q as T;
         };
+
         const applyPeriodFilter = <T extends any>(qb: T, startDay: string, endDay: string): T => {
           let q: any = qb;
           if (isTiansong) {
@@ -476,6 +474,9 @@ Deno.serve(async (req) => {
                 .select("id, final_price, order_date, order_status")
                 .in("id", metaOrderIds)
                 .neq("order_status", "cancelled")
+                .neq("order_status", "hold")
+                .gt("final_price", 0)
+
                 .gte("order_date", yearStartUtc)
                 .lt("order_date", yearEndUtc);
               for (const o of bookingYear ?? []) {
