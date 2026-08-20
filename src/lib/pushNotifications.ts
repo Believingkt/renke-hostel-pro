@@ -2,10 +2,9 @@
 // 網頁版完全不受影響：所有動作都會先檢查是否在原生 App 環境。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
-import { toast } from "sonner";
 
-/** 暫時除錯用：把 catch 到的錯誤完整顯示出來（同時保留 console log） */
-function debugToast(label: string, e: unknown) {
+/** 內部除錯紀錄：只寫 console，不打擾使用者 */
+function debugLog(label: string, e: unknown) {
   let detail = "";
   try {
     detail =
@@ -16,7 +15,7 @@ function debugToast(label: string, e: unknown) {
   } catch {
     detail = String(e);
   }
-  toast.error(`${label}: ${detail || "unknown error"}`, { duration: 15000 });
+  console.error(`[push] ${label}: ${detail || "unknown error"}`);
 }
 
 const DENIED_KEY = "push_permission_denied";
