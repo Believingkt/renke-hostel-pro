@@ -474,6 +474,9 @@ Deno.serve(async (req) => {
                 .select("id, final_price, order_date, order_status")
                 .in("id", metaOrderIds)
                 .neq("order_status", "cancelled")
+                .neq("order_status", "hold")
+                .gt("final_price", 0)
+
                 .gte("order_date", yearStartUtc)
                 .lt("order_date", yearEndUtc);
               for (const o of bookingYear ?? []) {
