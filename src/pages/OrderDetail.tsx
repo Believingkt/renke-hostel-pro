@@ -4130,6 +4130,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         open={showMetaDrawer}
         onClose={() => setShowMetaDrawer(false)}
       />
+      {isSuperAdmin && (
+        <DealDateEditDialog
+          open={dealDateOpen}
+          onOpenChange={setDealDateOpen}
+          orderId={order.id}
+          orderNumber={order.order_number}
+          accommodationId={(order as any).accommodation_id ?? null}
+          currentOrderDate={order.order_date}
+          onSaved={() => { fetchOrder(); }}
+        />
       {kolQuotaPrompt && (
         <KolQuotaConfirmDialog
           open
