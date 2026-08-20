@@ -87,10 +87,15 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilitie
       </div>
 
       {info.description && (
-        <p className="mt-3 whitespace-pre-line text-base leading-[1.9] text-muted-foreground">
-          {info.description}
-        </p>
+        <GroupBuyExpandableText
+          text={info.description}
+          className="mt-3 text-base leading-[1.9] text-muted-foreground"
+          clampClass="line-clamp-4 sm:line-clamp-6"
+          moreLabel="查看更多民宿介紹"
+          lessLabel="收合民宿介紹"
+        />
       )}
+
 
       {total > 0 && (
         <div className="mt-4">
