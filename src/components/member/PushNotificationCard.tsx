@@ -58,7 +58,7 @@ const PushNotificationCard = () => {
       // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
       const next = await initPushNotifications({ force: true });
       console.log("[push] enable() result:", next);
-      const on = await refresh(3);
+      const on = await refresh(3, false);
       if (on) toast.success("通知已開啟");
       else toast.error(`通知未開啟：${next}`, { duration: 10000 });
     } catch (e) {
