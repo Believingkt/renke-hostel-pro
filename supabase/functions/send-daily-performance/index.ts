@@ -542,11 +542,14 @@ Deno.serve(async (req) => {
           : defaultTemplate(hasFranchise);
 
         // ── 異動提醒：今日 updated_at 在範圍內，但 order_date 不在範圍內，且未取消 ──
+        //    排除保留單（hold）與 0 元單，避免未成交訂單被列入通報
         const { data: modifiedOrders } = await supabase
           .from("orders")
           .select("order_number, order_date, order_status")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
+          .neq("order_status", "hold")
+          .gt("final_price", 0)
           .gte("updated_at", todayStartUtc)
           .lt("updated_at", tomorrowStartUtc);
         // 同一訂單當日多次修改：查詢結果本就是最終狀態，再依訂單編號去重一次
