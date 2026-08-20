@@ -14,8 +14,6 @@ import {
   Heart,
   ClipboardList,
   ShieldCheck,
-  Trash2,
-  HelpCircle,
   Sparkles,
   Crown,
   Settings,
@@ -282,10 +280,9 @@ const MemberProfile = () => {
       <div>
         <div className="px-1 pb-2 text-sm font-medium text-muted-foreground">關於及條款</div>
         <MenuGroup>
-          <MenuRow icon={HelpCircle} label="常見問題" onClick={() => window.open("/faq", "_blank")} />
-          <MenuRow icon={ShieldCheck} label="隱私權政策" onClick={() => window.open("/privacy", "_blank")} />
-          <MenuRow icon={Trash2} label="資料刪除" onClick={() => window.open("/data-deletion", "_blank")} last />
+          <MenuRow icon={ShieldCheck} label="隱私權政策" onClick={() => navigate("/privacy")} last />
         </MenuGroup>
+
       </div>
 
       {/* 刪除帳號（Apple Guideline 5.1.1） */}
