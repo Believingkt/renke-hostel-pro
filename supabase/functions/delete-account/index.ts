@@ -39,11 +39,18 @@ serve(async (req) => {
     // 找出會員資料
     const { data: member } = await admin
       .from("platform_members")
-      .select("id")
+      .select("id, email")
       .eq("user_id", userId)
       .maybeSingle();
 
     const memberId: string | null = member?.id ?? null;
+    const emails = Array.from(
+      new Set(
+        [user.email, (member as { email?: string | null } | null)?.email]
+          .filter((e): e is string => !!e && e.includes("@"))
+          .map((e) => e.toLowerCase()),
+      ),
+    );
     const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10); // 台北日期
 
     // 1) 檢查是否有未來即將入住的有效訂單
