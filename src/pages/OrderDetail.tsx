@@ -304,6 +304,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [showRepushDialog, setShowRepushDialog] = useState(false);
   const [showMetaDrawer, setShowMetaDrawer] = useState(false);
+  const [dealDateOpen, setDealDateOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
