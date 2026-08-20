@@ -9100,6 +9100,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_brand_partners: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          link_url: string | null
+          logo_url: string
+          name: string
+          scopes: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          link_url?: string | null
+          logo_url: string
+          name: string
+          scopes?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          link_url?: string | null
+          logo_url?: string
+          name?: string
+          scopes?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_coupons: {
         Row: {
           accommodation_id: string | null
