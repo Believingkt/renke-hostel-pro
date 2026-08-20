@@ -302,6 +302,9 @@ const MemberProfile = () => {
         </MenuGroup>
       </div>
 
+      {/* 刪除帳號（Apple Guideline 5.1.1） */}
+      <DeleteAccountSection />
+
       <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
         <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
         <div className="mt-1 opacity-70">Build {buildTimestamp}</div>
