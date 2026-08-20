@@ -2,10 +2,9 @@
 // 網頁版完全不受影響：所有動作都會先檢查是否在原生 App 環境。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
-import { toast } from "sonner";
 
-/** 暫時除錯用：把 catch 到的錯誤完整顯示出來（同時保留 console log） */
-function debugToast(label: string, e: unknown) {
+/** 內部除錯紀錄：只寫 console，不打擾使用者 */
+function debugLog(label: string, e: unknown) {
   let detail = "";
   try {
     detail =
@@ -16,7 +15,7 @@ function debugToast(label: string, e: unknown) {
   } catch {
     detail = String(e);
   }
-  toast.error(`${label}: ${detail || "unknown error"}`, { duration: 15000 });
+  console.error(`[push] ${label}: ${detail || "unknown error"}`);
 }
 
 const DENIED_KEY = "push_permission_denied";
@@ -48,7 +47,7 @@ async function loadPlugin() {
     return mod.PushNotifications;
   } catch (e) {
     console.warn("[push] plugin unavailable", e);
-    debugToast("推播外掛載入失敗", e);
+    debugLog("推播外掛載入失敗", e);
     return null;
   }
 }
@@ -83,14 +82,11 @@ async function saveToken(token: string): Promise<boolean> {
     session = await getCurrentOrHydratedSession();
   } catch (error) {
     console.error("[push] getSession failed", error);
-    const message = error instanceof Error ? error.message : String(error);
-    toast.error(message, { duration: 15000 });
     return false;
   }
   if (!session?.user) {
     const message = "No active member session after waiting for auth hydration";
     console.error(`[push] ${message}`);
-    toast.error(message, { duration: 15000 });
     return false;
   }
   const platform = /android/i.test(navigator.userAgent) ? "android" : "ios";
@@ -109,11 +105,9 @@ async function saveToken(token: string): Promise<boolean> {
     );
   if (error) {
     console.error("[push] upsert device_token failed", error);
-    toast.error(error.message, { duration: 15000 });
     return false;
   }
   console.log("[push] device token saved", token.slice(0, 8));
-  toast.success(`saved(${token.slice(0, 4)})`, { duration: 8000 });
   return true;
 }
 
@@ -167,7 +161,7 @@ export async function initPushNotifications(
           (err as any)?.error ?? err,
           JSON.stringify(err ?? {}),
         );
-        debugToast("APNs 註冊失敗", (err as any)?.error ?? err);
+        debugLog("APNs 註冊失敗", (err as any)?.error ?? err);
         registrationWaiters.forEach((resolve) => resolve(false));
         registrationWaiters.clear();
       });
@@ -176,7 +170,6 @@ export async function initPushNotifications(
       registrationWaiters.add(resolve);
       window.setTimeout(() => {
         if (!registrationWaiters.delete(resolve)) return;
-        toast.error("APNs registration timed out before token upsert", { duration: 15000 });
         resolve(false);
       }, 15000);
     });
@@ -186,7 +179,7 @@ export async function initPushNotifications(
     return "granted";
   } catch (e) {
     console.error("[push] init failed", e);
-    debugToast("推播初始化失敗", e);
+    debugLog("推播初始化失敗", e);
     return "unsupported";
   }
 }
@@ -197,17 +190,14 @@ export async function bootstrapPushForExistingSession(): Promise<void> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
-      toast.message("[push] 啟動註冊略過：尚未登入會員", { duration: 8000 });
+      console.log("[push] 啟動註冊略過：尚未登入會員");
       return;
     }
-    toast.message("[push] 啟動註冊開始…", { duration: 5000 });
     const state = await initPushNotifications();
-    if (state !== "granted") {
-      toast.error(`[push] 啟動註冊未完成：權限 ${state}`, { duration: 10000 });
-    }
+    console.log("[push] 啟動註冊完成：權限", state);
   } catch (e) {
     console.error("[push] bootstrap failed", e);
-    debugToast("推播啟動檢查失敗", e);
+    debugLog("推播啟動檢查失敗", e);
   }
 }
 
@@ -222,7 +212,7 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
     return "prompt";
   } catch (e) {
     console.error("[push] checkPermissions failed", e);
-    debugToast("查詢通知權限失敗", e);
+    debugLog("查詢通知權限失敗", e);
     return "unsupported";
   }
 }
