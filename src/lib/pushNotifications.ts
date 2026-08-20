@@ -212,7 +212,26 @@ export async function initPushNotifications(
         registrationWaiters.forEach((resolve) => resolve(false));
         registrationWaiters.clear();
       });
+      // 前景收到推播：系統橫幅由 presentationOptions 呈現，這裡只同步未讀狀態
+      PushNotifications.addListener("pushNotificationReceived", (n) => {
+        emitReceived({
+          title: n.title ?? "",
+          body: n.body ?? "",
+          data: (n.data ?? {}) as Record<string, unknown>,
+          receivedAt: new Date().toISOString(),
+        });
+      });
+      // 使用者點開推播（背景／鎖屏）：同樣視為有新訊息
+      PushNotifications.addListener("pushNotificationActionPerformed", (a) => {
+        emitReceived({
+          title: a.notification?.title ?? "",
+          body: a.notification?.body ?? "",
+          data: (a.notification?.data ?? {}) as Record<string, unknown>,
+          receivedAt: new Date().toISOString(),
+        });
+      });
     }
+
     const saveCompleted = new Promise<boolean>((resolve) => {
       registrationWaiters.add(resolve);
       window.setTimeout(() => {
