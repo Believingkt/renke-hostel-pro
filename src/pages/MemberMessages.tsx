@@ -141,6 +141,10 @@ const MemberMessages = () => {
   const [notifyOn, setNotifyOn] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
+  const [livePushItems, setLivePushItems] = useState<
+    { title: string; subtitle: string; time: string; unread: boolean }[]
+  >([]);
+  const [hasNewPush, setHasNewPush] = useState(() => hasUnreadPush());
 
   /** 統一狀態來源：pushNotifications.isPushEnabled（與「我的帳號」共用） */
   const refreshNotify = async (retries = 0, silent = true) => {
@@ -165,6 +169,35 @@ const MemberMessages = () => {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
+
+  /** 前景收到推播：即時把訊息插到訂單通知最上方並標記未讀 */
+  useEffect(() => {
+    return subscribePushReceived((p: ReceivedPush) => {
+      setHasNewPush(true);
+      setLivePushItems((prev) => [
+        {
+          title: p.title || "新通知",
+          subtitle: p.body || "",
+          time: new Date(p.receivedAt).toLocaleTimeString("zh-TW", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
+          unread: true,
+        },
+        ...prev,
+      ]);
+    });
+  }, []);
+
+  /** 開啟「訂單」分頁即視為已讀 */
+  useEffect(() => {
+    if (activeTab === "order" && hasNewPush) {
+      markPushRead();
+      setHasNewPush(false);
+    }
+  }, [activeTab, hasNewPush]);
+
 
   const handleNotificationToggle = async (checked: boolean) => {
     if (notifyBusy) return;
