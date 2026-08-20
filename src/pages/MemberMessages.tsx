@@ -224,6 +224,8 @@ const MemberMessages = () => {
 
 
 
+  const mergedOrderItems = [...livePushItems, ...orderItems];
+
   const renderList = (items: any[]) => (
     <div>
       {items.map((it, i) => (
@@ -336,7 +338,7 @@ const MemberMessages = () => {
               </button>
             }
           >
-            {renderList(orderItems.slice(0, 3))}
+            {renderList(mergedOrderItems.slice(0, 3))}
           </SectionCard>
 
           <SectionCard title="精選優惠" action={
@@ -350,7 +352,7 @@ const MemberMessages = () => {
       )}
 
       {activeTab === "chat" && <SectionCard title="對話">{renderList(chatItems)}</SectionCard>}
-      {activeTab === "order" && <SectionCard title="訂單通知">{renderList(orderItems)}</SectionCard>}
+      {activeTab === "order" && <SectionCard title="訂單通知">{renderList(mergedOrderItems)}</SectionCard>}
       {activeTab === "reward" && <SectionCard title="紅利獎勵">{renderList(rewardItems)}</SectionCard>}
       {activeTab === "promo" && <SectionCard title="推廣優惠">{renderList(promoItems)}</SectionCard>}
       {activeTab === "interact" && <SectionCard title="互動">{renderList(interactItems)}</SectionCard>}
