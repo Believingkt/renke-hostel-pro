@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
 import { getOrderStatusConfig } from "@/utils/orderHelpers";
+import { isHoldOrder } from "@/lib/holdOrder";
 
 interface OrderStatusDialogProps {
   order: Order | null;
