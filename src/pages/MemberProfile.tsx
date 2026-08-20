@@ -14,8 +14,6 @@ import {
   Heart,
   ClipboardList,
   ShieldCheck,
-  Trash2,
-  HelpCircle,
   Sparkles,
   Crown,
   Settings,
