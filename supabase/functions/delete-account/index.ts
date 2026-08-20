@@ -122,7 +122,6 @@ serve(async (req) => {
           address: null,
           gender: null,
           nationality: null,
-          user_id: null,
         })
         .eq("id", memberId);
       if (memErr) console.error("anonymize platform_members failed", memErr.message);
