@@ -69,7 +69,7 @@ export function AppSidebar() {
               scope="admin"
               label="民宿"
               partnerLogoClassName="h-7"
-              className="gap-3 animate-in fade-in-0 slide-in-from-left-5 duration-300"
+              className="animate-in fade-in-0 slide-in-from-left-5 duration-300"
             />
           )}
         </PreloadLink>
