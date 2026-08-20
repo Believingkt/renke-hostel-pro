@@ -14,7 +14,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      <header className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-4 flex items-center justify-between gap-4">
+      <header className="safe-top max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-4 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2" aria-label="返回人客多首頁">
           <img src={lakezeLogo} alt="Lakeze 人客多" className="h-12 sm:h-14 object-contain" />
         </Link>
