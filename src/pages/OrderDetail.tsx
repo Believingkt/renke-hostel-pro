@@ -2371,7 +2371,19 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
-              <span className="font-medium text-base md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
+              <span className="font-medium text-base md:text-base text-right inline-flex items-center gap-1.5">
+                {format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}
+                {isSuperAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setDealDateOpen(true)}
+                  >
+                    修改
+                  </Button>
+                )}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
