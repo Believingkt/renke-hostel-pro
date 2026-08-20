@@ -24,6 +24,8 @@ interface FaqSectionProps {
   items?: FaqItem[];
   /** 純文字答案是否格式化為條列／保留換行（預設 false＝維持原行為） */
   formatPlainText?: boolean;
+  /** 手機版初始顯示題數，其餘點擊後展開（預設全部顯示） */
+  mobileInitialCount?: number;
 }
 
 /** 答案內容：HTML 走既有 sanitize 流程；純文字（且開啟 formatPlainText）才做條列格式化 */
@@ -57,8 +59,10 @@ const FaqSection = ({
   customSubtitle,
   items,
   formatPlainText,
+  mobileInitialCount,
 }: FaqSectionProps) => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [showAllMobile, setShowAllMobile] = useState(false);
 
   useEffect(() => {
     if (items) return;
@@ -106,7 +110,7 @@ const FaqSection = ({
 
           {/* 手機版：精簡扁平 Accordion，單一卡片內以分隔線分項 */}
           <Accordion type="single" collapsible className="w-full md:hidden rounded-2xl border border-border/50 bg-card divide-y divide-border/50 overflow-hidden">
-            {list.map((faq) => (
+            {(mobileInitialCount && !showAllMobile ? list.slice(0, mobileInitialCount) : list).map((faq) => (
               <AccordionItem
                 key={faq.id}
                 value={faq.id}
@@ -121,6 +125,15 @@ const FaqSection = ({
               </AccordionItem>
             ))}
           </Accordion>
+          {!!mobileInitialCount && !showAllMobile && list.length > mobileInitialCount && (
+            <button
+              type="button"
+              onClick={() => setShowAllMobile(true)}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 md:hidden"
+            >
+              查看全部 {list.length} 個常見問題
+            </button>
+          )}
 
           {/* 桌面版：保留原本卡片樣式 */}
           <Accordion type="single" collapsible className="w-full hidden md:block space-y-4">

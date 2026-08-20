@@ -1,4 +1,5 @@
-import { CheckCircle2, Users } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, ChevronDown, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { GROUP_BUY_DAY_TYPE_LABEL, type NightPrice } from "@/lib/groupBuyPricing";
 
@@ -44,6 +45,7 @@ export function GroupBuySummaryCard({
   deadlineHours,
   available,
 }: Props) {
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   return (
     <div className="rounded-2xl border border-border/70 bg-muted/70 p-4 sm:p-5">
       <p className="text-sm font-semibold text-foreground">您的預訂</p>
@@ -77,21 +79,34 @@ export function GroupBuySummaryCard({
       <Separator className="my-3 bg-border/70" />
 
       <div className="flex items-center justify-between py-1 text-sm">
-        <span className="text-muted-foreground">方案房費</span>
+        <span className="text-muted-foreground">方案房費（共 {nights} 晚）</span>
         <span className="font-medium tabular-nums">{twd(baseTotal)}</span>
       </div>
       {(nightlyBreakdown?.length ?? 0) > 1 && (
-        <div className="mb-1 space-y-0.5 rounded-lg bg-background/60 px-2.5 py-2 text-xs text-muted-foreground">
-          {nightlyBreakdown!.map((n) => (
-            <div key={n.date} className="flex justify-between gap-3">
-              <span className="tabular-nums">
-                {n.date.slice(5).replace("-", "/")}・{GROUP_BUY_DAY_TYPE_LABEL[n.type]}
-              </span>
-              <span className="tabular-nums">{twd(n.price)}</span>
+        <>
+          <button
+            type="button"
+            onClick={() => setBreakdownOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-4"
+          >
+            {breakdownOpen ? "收合價格明細" : "查看價格明細"}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${breakdownOpen ? "rotate-180" : ""}`} />
+          </button>
+          {breakdownOpen && (
+            <div className="mb-1 mt-1 space-y-0.5 rounded-lg bg-background/60 px-2.5 py-2 text-xs text-muted-foreground">
+              {nightlyBreakdown!.map((n) => (
+                <div key={n.date} className="flex justify-between gap-3">
+                  <span className="tabular-nums">
+                    {n.date.slice(5).replace("-", "/")}・{GROUP_BUY_DAY_TYPE_LABEL[n.type]}
+                  </span>
+                  <span className="tabular-nums">{twd(n.price)}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
+
       {childExtraTotal > 0 && (
         <div className="flex items-center justify-between py-1 text-sm">
           <span className="text-muted-foreground">兒童加價</span>

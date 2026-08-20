@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
+import { GroupBuyCollapsibleHtml } from "@/components/groupbuy/GroupBuyCollapsibleHtml";
+import { GroupBuyPhotoGrid } from "@/components/groupbuy/GroupBuyPhotoGrid";
 import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
 import {
   calculateGroupBuyStayPrice,
@@ -1387,24 +1389,17 @@ export default function GroupBuyCampaign() {
 
         {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
         {campaign.description_html && (
-          <div
+          <GroupBuyCollapsibleHtml
+            html={sanitizeHtml(campaign.description_html)}
             className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.description_html) }}
+            moreLabel="展開完整介紹"
+            lessLabel="收合介紹"
           />
         )}
 
-        {campaign.gallery_urls?.length > 0 && (
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {campaign.gallery_urls.map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt={venueName || campaign.title}
-                loading="lazy"
-                className="aspect-[4/3] w-full rounded-xl object-cover"
-              />
-            ))}
-          </div>
+        {/* 活動相簿：僅在張數足夠時顯示，避免與下方民宿相簿重複 */}
+        {(campaign.gallery_urls?.length ?? 0) >= 3 && (
+          <GroupBuyPhotoGrid urls={campaign.gallery_urls} alt={venueName || campaign.title} />
         )}
 
         <div id="gb-venue" className="scroll-mt-6" />
@@ -1417,11 +1412,18 @@ export default function GroupBuyCampaign() {
 
 
         {campaign.terms_html && (
-          <div
-            className="prose prose-sm mt-6 max-w-none text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.terms_html) }}
-          />
+          <div className="mt-6">
+            <h2 className="mb-2 text-base font-semibold text-foreground">團購活動注意事項</h2>
+            <GroupBuyCollapsibleHtml
+              html={sanitizeHtml(campaign.terms_html)}
+              collapsedHeight={160}
+              className="prose prose-sm max-w-none text-muted-foreground"
+              moreLabel="展開注意事項"
+              lessLabel="收合注意事項"
+            />
+          </div>
         )}
+
 
         {(campaign.contact_note || lineUrl) && (
           <section className="mt-8 rounded-2xl border border-border/70 bg-card p-4 text-center sm:p-5">
@@ -1491,7 +1493,8 @@ export default function GroupBuyCampaign() {
                 address={accInfo.address}
                 locationInfo={secondaryData?.locationInfo}
                 customTitle="交通資訊"
-                initialAttractionCount={3}
+                compact
+                initialAttractionCount={2}
               />
             </div>
           )}
@@ -1499,7 +1502,7 @@ export default function GroupBuyCampaign() {
 
 
 
-          {showFaq && <FaqSection items={faqItems} formatPlainText />}
+          {showFaq && <FaqSection items={faqItems} formatPlainText mobileInitialCount={5} />}
 
           {showBookingNotice && (
             <div id="gb-notice" className="scroll-mt-16">
@@ -1512,6 +1515,7 @@ export default function GroupBuyCampaign() {
                   checkInNotice={accInfo.check_in_notice}
                   customSections={secondaryData?.customBookingSections}
                   visibleKeys={campaign.booking_notice_keys ?? undefined}
+                  mobileSingleAccordion
                 />
               </GroupBuyBookingInfoCompact>
             </div>

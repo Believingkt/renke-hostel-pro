@@ -23,13 +23,17 @@ export function GroupBuyFacilitiesCompact({ highlights, totalCount, children }: 
           <>
             <p className="mt-1 text-sm text-muted-foreground">熱門設施</p>
             <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
-              {highlights.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-foreground">
+              {highlights.map((f, i) => (
+                <li
+                  key={f}
+                  className={`items-start gap-2 text-sm text-foreground ${i >= 6 ? "hidden sm:flex" : "flex"}`}
+                >
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} />
                   <span className="leading-snug">{f}</span>
                 </li>
               ))}
             </ul>
+
           </>
         )}
 

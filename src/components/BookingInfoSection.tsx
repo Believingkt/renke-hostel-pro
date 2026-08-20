@@ -33,6 +33,8 @@ interface BookingInfoSectionProps {
    * key 值：checkIn / payment / cancellation / important / pet / other / custom-<uuid>
    */
   visibleKeys?: string[];
+  /** 手機版一次只展開一項（團購頁用） */
+  mobileSingleAccordion?: boolean;
 }
 
 interface Panel {
@@ -53,6 +55,7 @@ const BookingInfoSection = ({
   customTitle,
   customSubtitle,
   visibleKeys,
+  mobileSingleAccordion,
 }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
@@ -201,7 +204,12 @@ const BookingInfoSection = ({
 
           {/* ── 手機版：Accordion 摺疊 ── */}
           <div className="md:hidden max-w-md mx-auto">
-            <Accordion type="multiple" className="space-y-3">
+            <Accordion
+              {...(mobileSingleAccordion
+                ? ({ type: "single", collapsible: true } as const)
+                : ({ type: "multiple" } as const))}
+              className="space-y-3"
+            >
               {visiblePanels.map((panel) => {
                 const Icon = panel.icon;
                 return (
