@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GroupBuyVenueIntro } from "@/components/groupbuy/GroupBuyVenueIntro";
+import { GroupBuyCollapsibleHtml } from "@/components/groupbuy/GroupBuyCollapsibleHtml";
+import { GroupBuyPhotoGrid } from "@/components/groupbuy/GroupBuyPhotoGrid";
 import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
 import {
   calculateGroupBuyStayPrice,
@@ -1512,6 +1514,7 @@ export default function GroupBuyCampaign() {
                   checkInNotice={accInfo.check_in_notice}
                   customSections={secondaryData?.customBookingSections}
                   visibleKeys={campaign.booking_notice_keys ?? undefined}
+                  mobileSingleAccordion
                 />
               </GroupBuyBookingInfoCompact>
             </div>
