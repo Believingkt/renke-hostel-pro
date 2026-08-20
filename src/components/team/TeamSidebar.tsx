@@ -56,7 +56,7 @@ export function TeamSidebar() {
     <Sidebar collapsible="icon" className="admin-theme border-r">
       {!collapsed && (
         <SidebarHeader className="border-b px-6 py-4">
-          <BrandLogoBar scope="team" label="行銷團隊" partnerLogoClassName="h-7" />
+          <BrandLogoBar scope="team" label="團隊" partnerLogoClassName="h-7" />
         </SidebarHeader>
       )}
 
