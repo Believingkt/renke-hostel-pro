@@ -131,12 +131,22 @@ const SectionCard = ({ title, action, children }: { title: string; action?: Reac
 const MemberMessages = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [notifyOn, setNotifyOn] = useState(false);
+  const [notifyBusy, setNotifyBusy] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
 
-  const refreshNotify = async (retries = 0) => {
-    const on = await isPushEnabled({ retries });
-    setNotifyOn(on);
-    return on;
+  /** 統一狀態來源：pushNotifications.isPushEnabled（與「我的帳號」共用） */
+  const refreshNotify = async (retries = 0, silent = true) => {
+    try {
+      const on = await isPushEnabled({ retries });
+      setNotifyOn(on);
+      return on;
+    } catch (e) {
+      console.error("[push] refreshNotify failed", e);
+      if (!silent) {
+        toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
+      }
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -149,21 +159,25 @@ const MemberMessages = () => {
   }, []);
 
   const handleNotificationToggle = async (checked: boolean) => {
+    if (notifyBusy) return;
     if (!checked) {
       toast.message("請至裝置系統設定關閉通知");
       await refreshNotify();
       return;
     }
 
+    setNotifyBusy(true);
     toast.message("正在開啟通知…", { duration: 4000 });
     try {
       const state = await initPushNotifications({ force: true });
-      const enabled = await refreshNotify(3);
+      const enabled = await refreshNotify(3, false);
       if (enabled) toast.success("通知已開啟");
       else toast.error(`通知未開啟：${state}`, { duration: 10000 });
     } catch (e) {
       await refreshNotify();
       toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
+    } finally {
+      setNotifyBusy(false);
     }
   };
 
@@ -203,7 +217,7 @@ const MemberMessages = () => {
             <p className="text-xs sm:text-sm text-foreground/80 flex-1">
               開啟通知以免錯過新訊息與訂單更新
             </p>
-            <Switch checked={notifyOn} onCheckedChange={handleNotificationToggle} />
+            <Switch checked={notifyOn} disabled={notifyBusy} onCheckedChange={handleNotificationToggle} />
           </div>
         </Card>
       )}

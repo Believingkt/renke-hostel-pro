@@ -18,12 +18,19 @@ const PushNotificationCard = () => {
   const [busy, setBusy] = useState(false);
 
   /** 重新查詢實際狀態（權限 granted 且本裝置有有效 token → 開） */
-  const refresh = async (retries = 0) => {
+  const refresh = async (retries = 0, silent = true) => {
     const perm = await getPushPermissionState();
     setState(perm);
-    const on = await isPushEnabled({ retries });
-    setEnabled(on);
-    return on;
+    try {
+      const on = await isPushEnabled({ retries });
+      setEnabled(on);
+      return on;
+    } catch (e) {
+      console.error("[push] refresh failed", e);
+      setEnabled(false);
+      if (!silent) toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -51,7 +58,7 @@ const PushNotificationCard = () => {
       // force：即使先前被拒絕過，也再嘗試一次系統詢問（iOS 已永久拒絕時會直接回 denied）
       const next = await initPushNotifications({ force: true });
       console.log("[push] enable() result:", next);
-      const on = await refresh(3);
+      const on = await refresh(3, false);
       if (on) toast.success("通知已開啟");
       else toast.error(`通知未開啟：${next}`, { duration: 10000 });
     } catch (e) {
