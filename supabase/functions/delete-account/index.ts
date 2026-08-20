@@ -135,6 +135,32 @@ serve(async (req) => {
       else touched.push("platform_members(去識別化)");
     }
 
+    // 5b) 寄信紀錄去識別化（保留寄信統計，移除 email 個資）
+    if (emails.length > 0) {
+      const DELETED_EMAIL = "deleted@deleted.lakeze.com";
+      let bookingTouched = false;
+      let sendTouched = false;
+      for (const email of emails) {
+        const { error: beErr } = await admin
+          .from("booking_email_log")
+          .update({ recipient: DELETED_EMAIL })
+          .ilike("recipient", email);
+        if (beErr) console.error("anonymize booking_email_log failed", beErr.message);
+        else bookingTouched = true;
+
+        const { error: esErr } = await admin
+          .from("email_send_log")
+          .update({ recipient_email: DELETED_EMAIL })
+          .ilike("recipient_email", email);
+        if (esErr) console.error("anonymize email_send_log failed", esErr.message);
+        else sendTouched = true;
+      }
+      if (bookingTouched) touched.push("booking_email_log(去識別化)");
+      if (sendTouched) touched.push("email_send_log(去識別化)");
+    }
+
+
+
     // 6) 刪除推播裝置 token
     const { error: devErr } = await admin.from("device_tokens").delete().eq("user_id", userId);
     if (devErr) console.error("delete device_tokens failed", devErr.message);
