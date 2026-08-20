@@ -227,32 +227,31 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
   }
 }
 
-/** 本裝置（目前登入會員）是否已有有效的推播 token */
+/**
+ * 本裝置（目前登入會員）是否已有有效的推播 token
+ * 查詢失敗時不再靜默當作「沒有 token」，而是丟出錯誤讓上層顯示 toast。
+ */
 export async function hasActiveDeviceToken(): Promise<boolean> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
-    const { data, error } = await supabase
-      .from("device_tokens")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .eq("is_active", true)
-      .limit(1);
-    if (error) {
-      console.warn("[push] hasActiveDeviceToken failed", error);
-      return false;
-    }
-    return (data?.length ?? 0) > 0;
-  } catch (e) {
-    console.warn("[push] hasActiveDeviceToken error", e);
-    return false;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return false;
+  const { data, error } = await supabase
+    .from("device_tokens")
+    .select("id")
+    .eq("user_id", session.user.id)
+    .eq("is_active", true)
+    .limit(1);
+  if (error) {
+    console.error("[push] hasActiveDeviceToken query failed", error);
+    throw new Error(`讀取通知狀態失敗：${error.message}`);
   }
+  return (data?.length ?? 0) > 0;
 }
 
 /**
  * 通知開關的真實狀態：系統權限 granted 且本裝置有有效 token → true
  * 供「訊息」與「我的帳號」兩顆開關共用，確保顯示一致。
  * retries：token upsert 可能稍慢於 register() 回傳，允許短暫輪詢重查。
+ * 查詢錯誤會往上拋，由 UI 顯示失敗 toast。
  */
 export async function isPushEnabled(options?: { retries?: number; delayMs?: number }): Promise<boolean> {
   const state = await getPushPermissionState();
