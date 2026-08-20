@@ -27,6 +27,7 @@ import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } fro
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import PushNotificationCard from "@/components/member/PushNotificationCard";
 import PushDiagnosticsCard from "@/components/member/PushDiagnosticsCard";
+import DeleteAccountSection from "@/components/member/DeleteAccountSection";
 
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
