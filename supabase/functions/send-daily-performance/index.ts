@@ -584,6 +584,8 @@ Deno.serve(async (req) => {
           .select("order_number, order_date, created_at, confirmed_at")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
+          .neq("order_status", "hold")
+          .gt("final_price", 0)
           .gte("created_at", todayStartUtc)
           .lt("created_at", tomorrowStartUtc);
         const backfillList = (createdToday ?? []).filter(
