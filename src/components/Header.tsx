@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
-import lokezeLogo from "@/assets/lokeze-logo.png";
 import { BrandLogoBar } from "@/components/BrandLogoBar";
 import { isPmsMode, pmsHref } from "@/lib/appMode";
 

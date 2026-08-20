@@ -18,7 +18,6 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import lokezeLogo from "@/assets/lokeze-logo.png";
 import { BrandLogoBar } from "@/components/BrandLogoBar";
 import { ADMIN_MENU_ITEMS } from "@/config/adminMenu";
 
