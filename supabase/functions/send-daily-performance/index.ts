@@ -549,14 +549,65 @@ Deno.serve(async (req) => {
           .neq("order_status", "cancelled")
           .gte("updated_at", todayStartUtc)
           .lt("updated_at", tomorrowStartUtc);
+        // 同一訂單當日多次修改：查詢結果本就是最終狀態，再依訂單編號去重一次
+        const modifiedSeen = new Set<string>();
         const modifiedList = (modifiedOrders ?? []).filter((o: any) => {
           const od = o.order_date as string | null;
-          if (!od) return true;
-          return od < todayStartUtc || od >= tomorrowStartUtc;
+          const inRange = od ? od >= todayStartUtc && od < tomorrowStartUtc : false;
+          if (inRange) return false;
+          const key = String(o.order_number ?? "");
+          if (key && modifiedSeen.has(key)) return false;
+          if (key) modifiedSeen.add(key);
+          return true;
         });
         const modifiedNotice = modifiedList.length > 0
-          ? `\n\n⚠️ 今日有 ${modifiedList.length} 筆歷史訂單異動（不計入今日訂單）\n訂單編號：${
+          ? `\n\n⚠️ 今日有 ${modifiedList.length} 筆歷史訂單異動（金額／成交日變更，不計入今日訂單）\n訂單編號：${
             modifiedList.map((o: any) => o.order_number).filter((n: any) => !!n).join("、")
+          }`
+          : "";
+
+        // ── 今日補登：created_at 為今日，但成交日（order_date）非今日 ──
+        const taipeiDayOf = (iso: string | null | undefined) =>
+          iso
+            ? new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Taipei",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(new Date(iso))
+            : "";
+        const { data: createdToday } = await supabase
+          .from("orders")
+          .select("order_number, order_date, created_at, confirmed_at")
+          .eq("accommodation_id", accId)
+          .neq("order_status", "cancelled")
+          .gte("created_at", todayStartUtc)
+          .lt("created_at", tomorrowStartUtc);
+        const backfillList = (createdToday ?? []).filter(
+          (o: any) => o.order_date && taipeiDayOf(o.order_date) !== todayStr,
+        );
+        const backfillNotice = backfillList.length > 0
+          ? `\n\n📝 今日補登 ${backfillList.length} 筆（依成交日計入該日業績）\n${
+            backfillList
+              .map((o: any) => `${o.order_number ?? "-"}（成交日 ${taipeiDayOf(o.order_date)}）`)
+              .join("、")
+          }`
+          : "";
+
+        // ── 保留轉正：今日轉正（confirmed_at 為今日）且建單日早於今日 ──
+        const { data: confirmedToday } = await supabase
+          .from("orders")
+          .select("order_number, created_at, confirmed_at, order_date")
+          .eq("accommodation_id", accId)
+          .neq("order_status", "cancelled")
+          .gte("confirmed_at", todayStartUtc)
+          .lt("confirmed_at", tomorrowStartUtc);
+        const holdConvertedList = (confirmedToday ?? []).filter(
+          (o: any) => o.created_at && taipeiDayOf(o.created_at) !== todayStr,
+        );
+        const holdConvertedNotice = holdConvertedList.length > 0
+          ? `\n\n🔁 保留轉正 ${holdConvertedList.length} 筆（成交日已更新為轉正日）\n${
+            holdConvertedList.map((o: any) => o.order_number ?? "-").join("、")
           }`
           : "";
 
