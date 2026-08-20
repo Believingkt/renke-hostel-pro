@@ -18,8 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
-import lokezeLogo from "@/assets/lokeze-logo.png";
-import owlnestLogo from "@/assets/owlnest-logo.png";
+import { BrandLogoBar } from "@/components/BrandLogoBar";
 import { isPmsMode, pmsHref } from "@/lib/appMode";
 
 export function Header() {
@@ -134,24 +133,12 @@ export function Header() {
           <SidebarTrigger className="h-10 w-10 flex-shrink-0" />
           {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 (手機版隱藏,避免與選擇器擠壓) */}
           {(!open || isMobile) && (
-            <div className="hidden sm:flex items-center gap-2 group min-w-0">
-              <img
-                src={lokezeLogo}
-                alt="Lakeze 人客多"
-                className="h-7 md:h-9 object-contain flex-shrink-0"
-              />
-              <div className="hidden sm:block h-5 md:h-6 w-px bg-border/60" />
-              <div className="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-all duration-200 hover:bg-muted cursor-default">
-                <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-muted-foreground/60 group-hover:text-foreground font-medium transition-colors">
-                  技術合作
-                </span>
-                <img
-                  src={owlnestLogo}
-                  alt="OwlNest 奧丁丁"
-                  className="h-5 md:h-6 object-contain opacity-50 group-hover:opacity-100 transition-opacity duration-200"
-                />
-              </div>
-            </div>
+            <BrandLogoBar
+              scope="admin"
+              className="hidden sm:flex group"
+              mainLogoClassName="h-7 md:h-9 flex-shrink-0"
+              partnerLogoClassName="h-5 md:h-6"
+            />
           )}
         </div>
         

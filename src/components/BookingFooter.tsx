@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowUp, Facebook, Instagram, Youtube, AtSign, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
-import owlnestLogo from "@/assets/owlnest-logo.png";
+import { BrandLogoBar } from "@/components/BrandLogoBar";
 
 interface BookingFooterProps {
   lineId?: string;
@@ -88,18 +88,12 @@ const BookingFooter = ({
 
         {/* 聯名合作夥伴 */}
         {!hidePartnershipInfo && (
-          <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
-              技術合作
-            </span>
-            <div className="h-3 w-px bg-border" />
-            <img
-              src={owlnestLogo}
-              alt="OwlNest"
-              className="h-6 sm:h-7 w-auto object-contain"
-              loading="lazy"
-            />
-          </div>
+          <BrandLogoBar
+            scope="portal"
+            hideMainLogo
+            partnerLogoClassName="h-6 sm:h-7 w-auto"
+            className="mt-4 pt-3 border-t border-border/50 justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity"
+          />
         )}
 
       </div>

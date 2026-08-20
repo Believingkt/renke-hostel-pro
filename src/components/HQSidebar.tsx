@@ -45,7 +45,7 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import lokezeLogo from "@/assets/lokeze-logo.png";
+import { BrandLogoBar } from "@/components/BrandLogoBar";
 
 const menuItems = [
   { title: "營運分析", url: "/hq", icon: BarChart3, tab: "overview" },
@@ -64,6 +64,7 @@ const menuItems = [
   { title: "設施管理", url: "/hq?tab=facilities", icon: Utensils, tab: "facilities" },
   { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { title: "合作夥伴", url: "/hq?tab=partners", icon: Handshake, tab: "partners" },
+  { title: "品牌夥伴", url: "/hq/brand-partners", icon: Sparkles, tab: "brand-partners" },
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
@@ -210,10 +211,7 @@ export function HQSidebar() {
             onClick={handleLinkClick}
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
           >
-            <div className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
-              <span className="text-sm font-medium text-muted-foreground">總部</span>
-            </div>
+            <BrandLogoBar scope="hq" label="總部" partnerLogoClassName="h-7" />
           </PreloadLink>
         </SidebarHeader>
       )}
