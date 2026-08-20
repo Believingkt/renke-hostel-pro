@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GroupBuyExpandableText } from "@/components/groupbuy/GroupBuyExpandableText";
 
 interface Props {
   accommodationId: string;
@@ -241,7 +242,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilitie
         <div className="mt-5 rounded-2xl bg-muted/70 p-4 sm:p-5">
           {noticeLines.length > 0 && (
             <ul className="mb-3 space-y-1.5">
-              {noticeLines.slice(0, 4).map((line, i) => (
+              {noticeLines.slice(0, 2).map((line, i) => (
                 <li key={i} className="flex gap-2 text-[15px] leading-[1.7] text-muted-foreground">
                   <Check className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-primary" />
                   <span>{line}</span>
