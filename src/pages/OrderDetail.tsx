@@ -1207,7 +1207,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Handle status timestamp updates
       if (editForm.order_status !== order.order_status) {
         if (editForm.order_status === "confirmed") {
-          updateData.confirmed_at = new Date().toISOString();
+          const confirmedAt = new Date().toISOString();
+          updateData.confirmed_at = confirmedAt;
+          // 保留單轉正：成交日改為轉正當下（confirmed_at 已含完整時分秒）
+          if (isHoldOrder(order)) {
+            updateData.order_date = confirmedAt;
+          }
         }
         if (editForm.order_status === "checked_in") {
           updateData.checked_in_at = new Date().toISOString();
