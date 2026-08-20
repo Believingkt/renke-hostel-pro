@@ -217,7 +217,7 @@ const MemberMessages = () => {
             <p className="text-xs sm:text-sm text-foreground/80 flex-1">
               開啟通知以免錯過新訊息與訂單更新
             </p>
-            <Switch checked={notifyOn} onCheckedChange={handleNotificationToggle} />
+            <Switch checked={notifyOn} disabled={notifyBusy} onCheckedChange={handleNotificationToggle} />
           </div>
         </Card>
       )}

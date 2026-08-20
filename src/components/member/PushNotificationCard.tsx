@@ -18,12 +18,19 @@ const PushNotificationCard = () => {
   const [busy, setBusy] = useState(false);
 
   /** 重新查詢實際狀態（權限 granted 且本裝置有有效 token → 開） */
-  const refresh = async (retries = 0) => {
+  const refresh = async (retries = 0, silent = true) => {
     const perm = await getPushPermissionState();
     setState(perm);
-    const on = await isPushEnabled({ retries });
-    setEnabled(on);
-    return on;
+    try {
+      const on = await isPushEnabled({ retries });
+      setEnabled(on);
+      return on;
+    } catch (e) {
+      console.error("[push] refresh failed", e);
+      setEnabled(false);
+      if (!silent) toast.error(e instanceof Error ? e.message : String(e), { duration: 10000 });
+      return false;
+    }
   };
 
   useEffect(() => {
