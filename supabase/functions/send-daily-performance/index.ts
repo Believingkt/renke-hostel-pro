@@ -605,6 +605,8 @@ Deno.serve(async (req) => {
           .select("order_number, created_at, confirmed_at, order_date")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
+          .neq("order_status", "hold")
+          .gt("final_price", 0)
           .gte("confirmed_at", todayStartUtc)
           .lt("confirmed_at", tomorrowStartUtc);
         const holdConvertedList = (confirmedToday ?? []).filter(
