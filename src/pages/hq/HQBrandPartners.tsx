@@ -347,16 +347,8 @@ export default function HQBrandPartners() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={addPartner}>
-            <Plus className="mr-1 h-4 w-4" />
-            新增夥伴
-          </Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? "儲存中…" : "儲存"}
-          </Button>
-        </div>
       </div>
+
 
       <Card>
         <CardHeader>
@@ -387,7 +379,7 @@ export default function HQBrandPartners() {
 
       <div className="space-y-3">
         {isLoading ? null : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">尚無品牌夥伴，點右上「新增夥伴」開始。</p>
+          <p className="text-sm text-muted-foreground">尚無品牌夥伴，點下方「新增夥伴」開始。</p>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
@@ -406,9 +398,20 @@ export default function HQBrandPartners() {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" onClick={addPartner}>
+          <Plus className="mr-1 h-4 w-4" />
+          新增夥伴
+        </Button>
+        <Button onClick={save} disabled={saving}>
+          {saving ? "儲存中…" : "儲存"}
+        </Button>
+      </div>
+
       <p className="text-xs text-muted-foreground">
         建議上傳去背 PNG／WebP，2MB 以內；系統會自動等比縮放（不裁切）並補上透明邊，確保多張 logo 並排時大小一致。
       </p>
+
     </div>
   );
 }
