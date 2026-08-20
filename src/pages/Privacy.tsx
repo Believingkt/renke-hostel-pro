@@ -93,7 +93,7 @@ export default function Privacy() {
               <a href="mailto:service@lakeze.com" className="text-[hsl(24,100%,40%)] underline mx-1">
                 service@lakeze.com
               </a>
-              ，我們將於合理期間內處理。
+              ，或使用 App 內「我的帳號」的刪除帳號功能，我們將於合理期間內處理。
             </p>
           </Section>
 
