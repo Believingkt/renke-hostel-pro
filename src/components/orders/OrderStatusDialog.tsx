@@ -58,7 +58,12 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
 
       // Set timestamps for status transitions
       if (selectedStatus === "confirmed" && order.order_status !== "confirmed") {
-        updateData.confirmed_at = new Date().toISOString();
+        const confirmedAt = new Date().toISOString();
+        updateData.confirmed_at = confirmedAt;
+        // 保留單轉正：成交日改為轉正當下
+        if (isHoldOrder(order)) {
+          updateData.order_date = confirmedAt;
+        }
       } else if (selectedStatus === "checked_in") {
         updateData.checked_in_at = new Date().toISOString();
       } else if (selectedStatus === "checked_out") {
