@@ -616,7 +616,8 @@ Deno.serve(async (req) => {
             ? String(tpl.body)
             : fallbackBody;
           const withNotice = !tpl || tpl.include_modified_notice !== false;
-          return applyVars(raw, vars) + (withNotice ? modifiedNotice : "");
+          return applyVars(raw, vars) +
+            (withNotice ? modifiedNotice + backfillNotice + holdConvertedNotice : "");
         };
 
         // Email：固定只寄「完整版」(is_primary)，一館一天一封
