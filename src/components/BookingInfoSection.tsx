@@ -204,8 +204,12 @@ const BookingInfoSection = ({
 
           {/* ── 手機版：Accordion 摺疊 ── */}
           <div className="md:hidden max-w-md mx-auto">
-            {mobileSingleAccordion ? (
-            <Accordion type="single" collapsible className="space-y-3">
+            <Accordion
+              {...(mobileSingleAccordion
+                ? ({ type: "single", collapsible: true } as const)
+                : ({ type: "multiple" } as const))}
+              className="space-y-3"
+            >
               {visiblePanels.map((panel) => {
                 const Icon = panel.icon;
                 return (
@@ -257,60 +261,6 @@ const BookingInfoSection = ({
                 );
               })}
             </Accordion>
-            ) : (
-            <Accordion type="multiple" className="space-y-3">
-              {visiblePanels.map((panel) => {
-                const Icon = panel.icon;
-                return (
-                  <AccordionItem
-                    key={panel.key}
-                    value={panel.key}
-                    className="border border-border/50 rounded-2xl bg-card px-4 overflow-hidden"
-                  >
-                    <AccordionTrigger className="hover:no-underline py-4">
-                      <div className="flex items-center gap-3 flex-1 text-left">
-                        <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-                          <Icon className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm text-foreground leading-tight">
-                            {panel.title}
-                          </h3>
-                          {panel.subtitle && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                              {panel.subtitle}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4">
-                      {panel.textRows && (
-                        <div className="space-y-1.5 text-sm text-muted-foreground">
-                          {panel.textRows.map((row, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              {row.label ? (
-                                <span className="font-medium text-foreground">{row.label}：</span>
-                              ) : (
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                              )}
-                              <span>{row.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {panel.html && (
-                        <div
-                          className="prose prose-sm max-w-none text-sm text-muted-foreground"
-                          dangerouslySetInnerHTML={createSanitizedHtml(panel.html)}
-                        />
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-            )}
           </div>
 
           {/* ── 桌面版：原本卡片網格 ── */}
