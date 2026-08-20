@@ -91,6 +91,7 @@ const BookingFooter = ({
           <BrandLogoBar
             scope="portal"
             hideMainLogo
+            showPartnerLabels
             partnerLogoClassName="h-6 sm:h-7 w-auto"
             className="mt-4 pt-3 border-t border-border/50 justify-center sm:justify-end gap-2 opacity-80 hover:opacity-100 transition-opacity"
           />

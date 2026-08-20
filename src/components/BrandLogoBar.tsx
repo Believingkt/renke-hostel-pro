@@ -16,6 +16,8 @@ interface BrandLogoBarProps {
   partnerLogoClassName?: string;
   /** 不顯示主 logo（例如訂房前台頁尾僅顯示合作夥伴） */
   hideMainLogo?: boolean;
+  /** 是否顯示夥伴的文字標註（例如「技術合作」）；側邊欄預設不顯示 */
+  showPartnerLabels?: boolean;
   /** 最多顯示幾個夥伴 logo */
   maxPartners?: number;
   className?: string;
@@ -33,7 +35,8 @@ export function BrandLogoBar({
   mainLogoClassName = "h-8",
   partnerLogoClassName = "h-8",
   hideMainLogo,
-  maxPartners = 3,
+  showPartnerLabels = false,
+  maxPartners = 8,
   className,
 }: BrandLogoBarProps) {
   const { data: partners = [] } = useBrandPartners(scope);
@@ -42,39 +45,62 @@ export function BrandLogoBar({
   return (
     <div className={cn("flex items-center gap-2 min-w-0", className)}>
       {!hideMainLogo && (
-        <img src={mainLogoSrc} alt={mainLogoAlt} className={cn("object-contain", mainLogoClassName)} />
+        <img
+          src={mainLogoSrc}
+          alt={mainLogoAlt}
+          className={cn("object-contain shrink-0", mainLogoClassName)}
+        />
       )}
       {label && (
-        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">{label}</span>
+        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap shrink-0">
+          {label}
+        </span>
       )}
-      {visible.map((p) => {
-        const logo = (
-          <span key={p.id} className="flex items-center gap-1.5 min-w-0">
-            {!hideMainLogo && <span className="h-5 w-px bg-border/60 shrink-0" aria-hidden />}
-            {p.label && (
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium whitespace-nowrap">
-                {p.label}
+      {visible.length > 0 && (
+        <div
+          className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          title={visible.map((p) => p.name).join("、")}
+        >
+          {visible.map((p, i) => {
+            const logo = (
+              <span className="flex items-center gap-1.5 shrink-0">
+                {(!hideMainLogo || i > 0) && (
+                  <span className="h-5 w-px bg-border/60 shrink-0" aria-hidden />
+                )}
+                {showPartnerLabels && p.label && (
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium whitespace-nowrap">
+                    {p.label}
+                  </span>
+                )}
+                <img
+                  src={p.logo_url}
+                  alt={p.name}
+                  loading="lazy"
+                  className={cn(
+                    "object-contain shrink-0 opacity-80 hover:opacity-100 transition-opacity",
+                    partnerLogoClassName
+                  )}
+                />
               </span>
-            )}
-            <img
-              src={p.logo_url}
-              alt={p.name}
-              loading="lazy"
-              className={cn(
-                "object-contain opacity-80 hover:opacity-100 transition-opacity",
-                partnerLogoClassName
-              )}
-            />
-          </span>
-        );
-        return p.link_url ? (
-          <a key={p.id} href={p.link_url} target="_blank" rel="noopener noreferrer" className="min-w-0">
-            {logo}
-          </a>
-        ) : (
-          logo
-        );
-      })}
+            );
+            return p.link_url ? (
+              <a
+                key={p.id}
+                href={p.link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0"
+              >
+                {logo}
+              </a>
+            ) : (
+              <span key={p.id} className="contents">
+                {logo}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

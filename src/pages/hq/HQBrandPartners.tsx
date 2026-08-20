@@ -372,7 +372,7 @@ export default function HQBrandPartners() {
           </div>
           <div className="rounded-md border p-4">
             <p className="mb-2 text-xs text-muted-foreground">訂房前台頁尾</p>
-            <BrandLogoBar scope="portal" hideMainLogo partnerLogoClassName="h-6 sm:h-7" />
+            <BrandLogoBar scope="portal" hideMainLogo showPartnerLabels partnerLogoClassName="h-6 sm:h-7" />
           </div>
         </CardContent>
       </Card>
