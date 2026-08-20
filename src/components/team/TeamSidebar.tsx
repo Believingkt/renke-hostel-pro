@@ -16,7 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import lokezeLogo from "@/assets/lokeze-logo.png";
+import { BrandLogoBar } from "@/components/BrandLogoBar";
 import { TEAM_MENU } from "./teamConfig";
 import { useTeam } from "./TeamContext";
 
@@ -56,12 +56,7 @@ export function TeamSidebar() {
     <Sidebar collapsible="icon" className="admin-theme border-r">
       {!collapsed && (
         <SidebarHeader className="border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
-            <span className="text-sm font-medium text-muted-foreground">
-              行銷團隊
-            </span>
-          </div>
+          <BrandLogoBar scope="team" label="行銷團隊" partnerLogoClassName="h-7" />
         </SidebarHeader>
       )}
 
