@@ -347,16 +347,8 @@ export default function HQBrandPartners() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={addPartner}>
-            <Plus className="mr-1 h-4 w-4" />
-            新增夥伴
-          </Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? "儲存中…" : "儲存"}
-          </Button>
-        </div>
       </div>
+
 
       <Card>
         <CardHeader>
