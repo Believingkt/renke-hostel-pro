@@ -1,4 +1,5 @@
-import { CheckCircle2, Users } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, ChevronDown, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { GROUP_BUY_DAY_TYPE_LABEL, type NightPrice } from "@/lib/groupBuyPricing";
 
@@ -44,6 +45,7 @@ export function GroupBuySummaryCard({
   deadlineHours,
   available,
 }: Props) {
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   return (
     <div className="rounded-2xl border border-border/70 bg-muted/70 p-4 sm:p-5">
       <p className="text-sm font-semibold text-foreground">您的預訂</p>
