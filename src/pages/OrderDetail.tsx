@@ -4140,6 +4140,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           currentOrderDate={order.order_date}
           onSaved={() => { fetchOrder(); }}
         />
+      )}
       {kolQuotaPrompt && (
         <KolQuotaConfirmDialog
           open
