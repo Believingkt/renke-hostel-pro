@@ -27,6 +27,7 @@ import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } fro
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import PushNotificationCard from "@/components/member/PushNotificationCard";
 import PushDiagnosticsCard from "@/components/member/PushDiagnosticsCard";
+import DeleteAccountSection from "@/components/member/DeleteAccountSection";
 
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
@@ -301,6 +302,9 @@ const MemberProfile = () => {
           <MenuRow icon={Trash2} label="資料刪除" onClick={() => window.open("/data-deletion", "_blank")} last />
         </MenuGroup>
       </div>
+
+      {/* 刪除帳號（Apple Guideline 5.1.1） */}
+      <DeleteAccountSection />
 
       <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
         <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
