@@ -20,21 +20,21 @@ export function GroupBuyCollapsibleHtml({
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const长 = html.replace(/<[^>]+>/g, "").trim().length > 200;
+  const isLong = html.replace(/<[^>]+>/g, "").trim().length > 200;
 
   return (
     <div>
       <div className="relative">
         <div
-          className={cn(className, !open &&长 && "overflow-hidden")}
-          style={!open &&长 ? { maxHeight: collapsedHeight } : undefined}
+          className={cn(className, !open &&isLong && "overflow-hidden")}
+          style={!open &&isLong ? { maxHeight: collapsedHeight } : undefined}
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        {!open &&长 && (
+        {!open &&isLong && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent" />
         )}
       </div>
-      {长 && (
+      {isLong && (
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
