@@ -4,6 +4,8 @@ import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircl
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Megaphone } from "lucide-react";
 import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
+import { DealDateEditDialog } from "@/components/orders/DealDateEditDialog";
+import { isHoldOrder } from "@/lib/holdOrder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -304,6 +306,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [isRepushingOwlting, setIsRepushingOwlting] = useState(false);
   const [showRepushDialog, setShowRepushDialog] = useState(false);
   const [showMetaDrawer, setShowMetaDrawer] = useState(false);
+  const [dealDateOpen, setDealDateOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
@@ -1205,7 +1208,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Handle status timestamp updates
       if (editForm.order_status !== order.order_status) {
         if (editForm.order_status === "confirmed") {
-          updateData.confirmed_at = new Date().toISOString();
+          const confirmedAt = new Date().toISOString();
+          updateData.confirmed_at = confirmedAt;
+          // 保留單轉正：成交日改為轉正當下（confirmed_at 已含完整時分秒）
+          if (isHoldOrder(order)) {
+            updateData.order_date = confirmedAt;
+          }
         }
         if (editForm.order_status === "checked_in") {
           updateData.checked_in_at = new Date().toISOString();
@@ -2371,7 +2379,19 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
-              <span className="font-medium text-base md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
+              <span className="font-medium text-base md:text-base text-right inline-flex items-center gap-1.5">
+                {format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}
+                {isSuperAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setDealDateOpen(true)}
+                  >
+                    修改
+                  </Button>
+                )}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
@@ -4117,6 +4137,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         open={showMetaDrawer}
         onClose={() => setShowMetaDrawer(false)}
       />
+      {isSuperAdmin && (
+        <DealDateEditDialog
+          open={dealDateOpen}
+          onOpenChange={setDealDateOpen}
+          orderId={order.id}
+          orderNumber={order.order_number}
+          accommodationId={(order as any).accommodation_id ?? null}
+          currentOrderDate={order.order_date}
+          onSaved={() => { fetchOrder(); }}
+        />
+      )}
       {kolQuotaPrompt && (
         <KolQuotaConfirmDialog
           open

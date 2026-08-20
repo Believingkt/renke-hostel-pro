@@ -15,6 +15,7 @@ const FIELD_LABELS: Record<string, string> = {
   guest_nationality: "國籍",
   guest_count: "人數",
   order_source: "訂單來源",
+  order_date: "訂購日期（成交日）",
   owner_direct: "業主直訂",
   lock_whole_building: "包棟鎖定",
   order_status: "訂單狀態",
