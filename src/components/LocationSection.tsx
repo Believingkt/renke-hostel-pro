@@ -35,12 +35,14 @@ interface LocationSectionProps {
   customSubtitle?: string;
   /** 第一層最多顯示幾個附近景點（未設定＝全部顯示，維持一般訂房頁行為） */
   initialAttractionCount?: number;
+  /** 精簡模式（團購頁手機版）：縮小標題間距、地圖高度 */
+  compact?: boolean;
 }
 
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount, compact }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
@@ -76,15 +78,15 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '交通地圖'}</h2>
-          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
+          <h2 className={`font-bold text-center ${compact ? "text-[1.375rem] md:text-3xl lg:text-4xl mb-3" : "text-3xl md:text-3xl lg:text-4xl mb-3 md:mb-3 lg:mb-4"}`}>{customTitle || '交通地圖'}</h2>
+          <p className={`text-center text-muted-foreground text-base md:text-base lg:text-lg max-w-3xl mx-auto ${compact ? "hidden md:block mb-8 md:mb-12 lg:mb-16" : "mb-8 md:mb-12 lg:mb-16"}`}>
             {customSubtitle || '多種交通方式輕鬆抵達，讓您的旅程更加便利'}
           </p>
 
           {/* 手機版：精簡單卡 + Accordion */}
           <div className="md:hidden mb-5">
             <Card className="border border-border/50 bg-card overflow-hidden">
-              <div className="h-[220px] bg-muted">
+              <div className={compact ? "h-[170px] bg-muted" : "h-[220px] bg-muted"}>
                 <iframe
                   src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
                   width="100%"

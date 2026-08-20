@@ -1493,7 +1493,8 @@ export default function GroupBuyCampaign() {
                 address={accInfo.address}
                 locationInfo={secondaryData?.locationInfo}
                 customTitle="交通資訊"
-                initialAttractionCount={3}
+                compact
+                initialAttractionCount={2}
               />
             </div>
           )}
@@ -1501,7 +1502,7 @@ export default function GroupBuyCampaign() {
 
 
 
-          {showFaq && <FaqSection items={faqItems} formatPlainText />}
+          {showFaq && <FaqSection items={faqItems} formatPlainText mobileInitialCount={5} />}
 
           {showBookingNotice && (
             <div id="gb-notice" className="scroll-mt-16">
