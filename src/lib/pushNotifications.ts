@@ -115,6 +115,53 @@ async function saveToken(token: string): Promise<boolean> {
 let listenersBound = false;
 const registrationWaiters = new Set<(saved: boolean) => void>();
 
+/* ---------- 前景收到推播：更新未讀狀態 ---------- */
+
+const UNREAD_KEY = "push_unread";
+
+export interface ReceivedPush {
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  receivedAt: string;
+}
+
+const PUSH_EVENT = "lakeze:push-received";
+
+/** 是否有未讀推播（前景收到後標記，開啟訊息頁可清除） */
+export function hasUnreadPush(): boolean {
+  try {
+    return localStorage.getItem(UNREAD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markPushRead() {
+  try {
+    localStorage.removeItem(UNREAD_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 訂閱前景推播（回傳取消訂閱函式） */
+export function subscribePushReceived(handler: (p: ReceivedPush) => void): () => void {
+  const listener = (e: Event) => handler((e as CustomEvent<ReceivedPush>).detail);
+  window.addEventListener(PUSH_EVENT, listener);
+  return () => window.removeEventListener(PUSH_EVENT, listener);
+}
+
+function emitReceived(payload: ReceivedPush) {
+  try {
+    localStorage.setItem(UNREAD_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new CustomEvent<ReceivedPush>(PUSH_EVENT, { detail: payload }));
+}
+
+
 /**
  * App 啟動或會員登入後呼叫：
  * - 已允許 → 直接 register()，每次啟動都 upsert token（token 可能輪替）
@@ -165,7 +212,26 @@ export async function initPushNotifications(
         registrationWaiters.forEach((resolve) => resolve(false));
         registrationWaiters.clear();
       });
+      // 前景收到推播：系統橫幅由 presentationOptions 呈現，這裡只同步未讀狀態
+      PushNotifications.addListener("pushNotificationReceived", (n) => {
+        emitReceived({
+          title: n.title ?? "",
+          body: n.body ?? "",
+          data: (n.data ?? {}) as Record<string, unknown>,
+          receivedAt: new Date().toISOString(),
+        });
+      });
+      // 使用者點開推播（背景／鎖屏）：同樣視為有新訊息
+      PushNotifications.addListener("pushNotificationActionPerformed", (a) => {
+        emitReceived({
+          title: a.notification?.title ?? "",
+          body: a.notification?.body ?? "",
+          data: (a.notification?.data ?? {}) as Record<string, unknown>,
+          receivedAt: new Date().toISOString(),
+        });
+      });
     }
+
     const saveCompleted = new Promise<boolean>((resolve) => {
       registrationWaiters.add(resolve);
       window.setTimeout(() => {
