@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircl
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Megaphone } from "lucide-react";
 import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
+import { DealDateEditDialog } from "@/components/orders/DealDateEditDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
