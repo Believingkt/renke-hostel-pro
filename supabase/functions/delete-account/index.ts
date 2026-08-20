@@ -39,11 +39,18 @@ serve(async (req) => {
     // 找出會員資料
     const { data: member } = await admin
       .from("platform_members")
-      .select("id")
+      .select("id, email")
       .eq("user_id", userId)
       .maybeSingle();
 
     const memberId: string | null = member?.id ?? null;
+    const emails = Array.from(
+      new Set(
+        [user.email, (member as { email?: string | null } | null)?.email]
+          .filter((e): e is string => !!e && e.includes("@"))
+          .map((e) => e.toLowerCase()),
+      ),
+    );
     const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10); // 台北日期
 
     // 1) 檢查是否有未來即將入住的有效訂單
@@ -127,6 +134,32 @@ serve(async (req) => {
       if (memErr) console.error("anonymize platform_members failed", memErr.message);
       else touched.push("platform_members(去識別化)");
     }
+
+    // 5b) 寄信紀錄去識別化（保留寄信統計，移除 email 個資）
+    if (emails.length > 0) {
+      const DELETED_EMAIL = "deleted@deleted.lakeze.com";
+      let bookingTouched = false;
+      let sendTouched = false;
+      for (const email of emails) {
+        const { error: beErr } = await admin
+          .from("booking_email_log")
+          .update({ recipient: DELETED_EMAIL })
+          .ilike("recipient", email);
+        if (beErr) console.error("anonymize booking_email_log failed", beErr.message);
+        else bookingTouched = true;
+
+        const { error: esErr } = await admin
+          .from("email_send_log")
+          .update({ recipient_email: DELETED_EMAIL })
+          .ilike("recipient_email", email);
+        if (esErr) console.error("anonymize email_send_log failed", esErr.message);
+        else sendTouched = true;
+      }
+      if (bookingTouched) touched.push("booking_email_log(去識別化)");
+      if (sendTouched) touched.push("email_send_log(去識別化)");
+    }
+
+
 
     // 6) 刪除推播裝置 token
     const { error: devErr } = await admin.from("device_tokens").delete().eq("user_id", userId);
