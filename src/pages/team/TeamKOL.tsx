@@ -1232,6 +1232,8 @@ function InvitationsTab({
   useEffect(() => {
     if (!sheetOpen) {
       setCidConflicts([]);
+      setCollabConfirmed(false);
+      setIgDupConfirmed(false);
       return;
     }
     const code = normalizeCode(form.cid_code);
