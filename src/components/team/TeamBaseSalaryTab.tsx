@@ -241,6 +241,19 @@ export default function TeamBaseSalaryTab() {
         <p className="text-sm text-muted-foreground tabular-nums">
           目前生效底薪合計 ${totalCurrent.toLocaleString()}
         </p>
+        <p className="text-sm text-muted-foreground">
+          以下職稱分類依 TeamMembers 的角色 role 為依據，
+          <a
+            href="https://pms.lakeze.com/team/members"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+          >
+            查看設定
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </p>
+
 
         {loading ? (
           <p className="text-sm text-muted-foreground">讀取中…</p>
