@@ -36,6 +36,7 @@ import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
 import KolSuggestInput from "@/components/team/KolSuggestInput";
+import { dedupeByContractGroup, CONTRACT_GROUP_CUTOFF } from "@/lib/contractGroup";
 import {
   validateInvite,
   FIELD_LABELS,
@@ -215,6 +216,7 @@ interface KolRow {
   follower_count: number | null;
   follower_count_updated_at: string | null;
   primary_profile_id?: string | null;
+  contract_group_id?: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -1272,6 +1274,7 @@ function InvitationsTab({
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
     });
+    setContractGroupId(row.contract_group_id ?? null);
     setDupWarning(null);
     setSheetOpen(true);
   };
@@ -1680,6 +1683,83 @@ function InvitationsTab({
       name: parentRow.name ?? "",
       igHandle: parentRow.ig_handle ?? "",
     });
+  };
+
+  // ===== 合約歸戶（contract_group_id）=====
+  // 一份合約＝一筆資格；同代碼／同檔期／同場域由系統自動歸為同一份合約，
+  // 跨場域的品牌聯名（例：星夢劇場 × 天使星夢度假村）則由此手動合併。
+  const [contractGroupId, setContractGroupId] = useState<string | null>(null);
+  const [contractSiblings, setContractSiblings] = useState<KolRow[]>([]);
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
+  const [groupResults, setGroupResults] = useState<KolRow[]>([]);
+  const [groupSaving, setGroupSaving] = useState(false);
+
+  // 讀取同一份合約的其他邀約
+  useEffect(() => {
+    if (!sheetOpen || !editingId || !contractGroupId) {
+      setContractSiblings([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("kol_profiles")
+        .select("id, name, cid_code, venue_name, check_in_date, kpi_month")
+        .eq("contract_group_id", contractGroupId)
+        .neq("id", editingId);
+      if (!cancelled) setContractSiblings(((data ?? []) as unknown) as KolRow[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sheetOpen, editingId, contractGroupId]);
+
+  // 合併對象搜尋
+  useEffect(() => {
+    if (!groupPickerOpen) {
+      setGroupResults([]);
+      return;
+    }
+    const q = groupSearch.trim();
+    if (!q) {
+      setGroupResults([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const { data } = await (supabase as any)
+        .from("kol_profiles")
+        .select("id, name, cid_code, venue_name, check_in_date, kpi_month, contract_group_id")
+        .not("contract_group_id", "is", null)
+        .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+        .or(`name.ilike.%${q}%,cid_code.ilike.%${q}%`)
+        .limit(20);
+      if (!cancelled) setGroupResults(((data ?? []) as unknown) as KolRow[]);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [groupPickerOpen, groupSearch, editingId]);
+
+  const updateContractGroup = async (gid: string) => {
+    if (!editingId) return;
+    setGroupSaving(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ contract_group_id: gid } as any)
+      .eq("id", editingId);
+    setGroupSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setContractGroupId(gid);
+    setGroupPickerOpen(false);
+    setGroupSearch("");
+    toast.success("已更新合約歸戶");
+    fetchRows();
   };
 
   // 搜尋可作為主要記錄的候選（只顯示 primary_profile_id IS NULL 且排除自己）
@@ -3377,6 +3457,64 @@ function InvitationsTab({
                 <Input value={form.kpi_qualified ? "符合資格" : "未確認"} readOnly className="bg-muted" />
               )}
             </Field>
+
+            {editingId && (
+              <Field label="合約歸戶">
+                {contractGroupId ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        合約 #{contractGroupId.slice(0, 8)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        共 {contractSiblings.length + 1} 筆邀約，資格計 1 件
+                      </span>
+                    </div>
+                    {contractSiblings.length > 0 && (
+                      <ul className="rounded-md border bg-muted/40 p-2 text-xs space-y-1">
+                        {contractSiblings.map((sb) => (
+                          <li key={sb.id} className="text-muted-foreground">
+                            {sb.name || "（未命名）"}
+                            {sb.cid_code ? ` ｜ ${sb.cid_code}` : ""}
+                            {sb.venue_name ? ` ｜ ${sb.venue_name}` : ""}
+                            {sb.check_in_date ? ` ｜ ${sb.check_in_date}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {isManager && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={groupSaving}
+                          onClick={() => setGroupPickerOpen(true)}
+                        >
+                          合併到其他邀約
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={groupSaving || contractSiblings.length === 0}
+                          onClick={() => updateContractGroup(crypto.randomUUID())}
+                        >
+                          拆分為獨立合約
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      同代碼／同檔期／同場域自動歸為一份合約；跨場域的品牌聯名（例：星夢劇場 × 天使星夢度假村）請用「合併到其他邀約」手動歸戶。
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    此筆合作檔期早於 {CONTRACT_GROUP_CUTOFF}，沿用舊口徑（一筆一件），不做合約歸戶。
+                  </p>
+                )}
+              </Field>
+            )}
           </div>
 
           <SheetFooter className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
@@ -3532,6 +3670,60 @@ function InvitationsTab({
               }}
             >
               {cancelling ? "處理中..." : "確認取消"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 合約歸戶：合併到其他邀約 */}
+      <Dialog
+        open={groupPickerOpen}
+        onOpenChange={(o) => {
+          setGroupPickerOpen(o);
+          if (!o) setGroupSearch("");
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>合併到同一份合約</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              選擇一筆同屬這份合約的邀約，本筆將併入對方的合約歸戶，資格只計 1 件。
+            </p>
+            <Input
+              value={groupSearch}
+              onChange={(e) => setGroupSearch(e.target.value)}
+              placeholder="輸入 KOL 名稱或折扣代碼"
+            />
+            <div className="max-h-72 overflow-y-auto rounded-md border divide-y">
+              {groupResults.length === 0 ? (
+                <p className="p-3 text-sm text-muted-foreground">
+                  {groupSearch.trim() ? "查無符合的邀約" : "請輸入關鍵字搜尋"}
+                </p>
+              ) : (
+                groupResults.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                    disabled={groupSaving}
+                    onClick={() => r.contract_group_id && updateContractGroup(r.contract_group_id)}
+                  >
+                    <span className="font-medium">{r.name || "（未命名）"}</span>
+                    <span className="text-muted-foreground">
+                      {r.cid_code ? ` ｜ ${r.cid_code}` : ""}
+                      {r.venue_name ? ` ｜ ${r.venue_name}` : ""}
+                      {r.check_in_date ? ` ｜ ${r.check_in_date}` : ""}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupPickerOpen(false)}>
+              取消
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -4651,20 +4843,20 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     if (venueNames.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name, rarity")
+        .select("scout_id, venue_name, rarity, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
-      kolData = data ?? [];
+      kolData = dedupeByContractGroup(data ?? []);
     }
 
     // 全部 kol_profiles 當月（給個人表用，含未在設定中的場域亦可顯示）
     const { data: allKolRaw } = await supabase
       .from("kol_profiles")
-      .select("scout_id, venue_name")
+      .select("scout_id, venue_name, created_at, contract_group_id")
       .eq("is_error", false)
       .eq("kpi_qualified", true)
       .eq("kpi_month", kpiMonthStr)
@@ -4681,7 +4873,9 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       return selectedYM < start;
     };
 
-    const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
+    const filteredAllKol = dedupeByContractGroup(((allKolRaw as any[]) ?? [])).filter((k) =>
+      isParttimeForMonth(k.scout_id),
+    );
     const allKol = filteredAllKol;
 
     // 團隊實際統計：正職 / 兼職共用同一目標，實際數為「兼職全量 ＋ 正職 SR↑」累加
@@ -5281,7 +5475,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     if (venueNames.length > 0 && eligibleFulltimeIds.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -5289,7 +5483,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .in("scout_id", eligibleFulltimeIds)
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
-      kolData = data ?? [];
+      kolData = dedupeByContractGroup(data ?? []);
     }
 
     const teamActual = new Map<string, number>();
@@ -5312,9 +5506,9 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     if (eligibleFulltimeIds.length === 0) {
       setPersonalRows([]);
     } else {
-      const { data: allKol } = await supabase
+      const { data: allKolRows } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -5322,7 +5516,8 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       const personalMap = new Map<string, number>();
-      ((allKol as any[]) ?? []).forEach((k) => {
+      const allKol = dedupeByContractGroup(((allKolRows as any[]) ?? []));
+      allKol.forEach((k) => {
         if (k.scout_id && k.venue_name) {
           const key = `${k.scout_id}|${k.venue_name}`;
           personalMap.set(key, (personalMap.get(key) ?? 0) + 1);

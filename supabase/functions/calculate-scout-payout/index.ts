@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { dedupeByContractGroup } from "../_shared/contractGroup.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -250,7 +251,7 @@ serve(async (req) => {
     const [periodInvitesRes, kpiMonthInvitesRes] = await Promise.all([
       supabase
         .from("kol_profiles")
-        .select("scout_id, accommodation_id, rarity, check_in_date, created_at")
+        .select("scout_id, accommodation_id, rarity, check_in_date, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .not("invited_at", "is", null)
@@ -258,7 +259,7 @@ serve(async (req) => {
         .lt("check_in_date", periodEnd),
       supabase
         .from("kol_profiles")
-        .select("scout_id, accommodation_id, rarity")
+        .select("scout_id, accommodation_id, rarity, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .not("invited_at", "is", null)
@@ -267,8 +268,9 @@ serve(async (req) => {
     if (periodInvitesRes.error) throw periodInvitesRes.error;
     if (kpiMonthInvitesRes.error) throw kpiMonthInvitesRes.error;
 
-    const allPeriodInvites = periodInvitesRes.data ?? [];
-    const allKpiMonthInvites = kpiMonthInvitesRes.data ?? [];
+    // 一份合約＝一筆資格：同一 contract_group_id 只計一次（2026-08-01 起生效）
+    const allPeriodInvites = dedupeByContractGroup(periodInvitesRes.data ?? []);
+    const allKpiMonthInvites = dedupeByContractGroup(kpiMonthInvitesRes.data ?? []);
 
     // 正職星探集合（employment_type='fulltime' 且 fulltime_start_yearmonth <= currentYM）
     // 只從 teamScouts 判斷；externalScouts 不視為正職
@@ -475,7 +477,18 @@ serve(async (req) => {
         .eq("kpi_qualified", true);
       if (cumErr) throw cumErr;
 
-      const tierCount = Number(cumulativeCount ?? 0);
+      // 扣掉合約歸戶後重複的件數（僅 2026-08-01 起的資料有 contract_group_id）
+      const { data: groupedRows, error: grpErr } = await supabase
+        .from("kol_profiles")
+        .select("contract_group_id, created_at")
+        .eq("scout_id", scoutId)
+        .eq("kpi_qualified", true)
+        .not("contract_group_id", "is", null);
+      if (grpErr) throw grpErr;
+      const groupedList = groupedRows ?? [];
+      const duplicateCount = groupedList.length - dedupeByContractGroup(groupedList).length;
+
+      const tierCount = Math.max(0, Number(cumulativeCount ?? 0) - duplicateCount);
       const commissionRate = commissionRateFor(tierCount);
 
       let kolCommission = 0;

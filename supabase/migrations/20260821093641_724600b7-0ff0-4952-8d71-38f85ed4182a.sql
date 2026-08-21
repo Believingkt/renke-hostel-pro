@@ -1,0 +1,1 @@
+ALTER VIEW public.kol_profiles_with_progress SET (security_invoker = true);
