@@ -2544,6 +2544,30 @@ function InvitationsTab({
                             <span className="text-muted-foreground">
                               入住：{sub.check_in_date ?? "-"}
                             </span>
+                            {sub.rarity && (
+                              <Badge variant="outline" className={RARITY_CLASS[sub.rarity as Rarity] ?? ""}>
+                                {sub.rarity}
+                              </Badge>
+                            )}
+                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                              符合資格：
+                              {sub.kpi_qualified ? (
+                                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                                  <Check className="h-3 w-3" />
+                                </Badge>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </span>
+                            <span className="text-muted-foreground">
+                              邀約人：{sub._scout_name ?? "-"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              訂單：{sub.order_number ?? "-"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                              狀態：{renderBookingStatusBadge(sub._effective_booking_status ?? sub.booking_status)}
+                            </span>
                             {sub.publish_date && (
                               <span className="text-muted-foreground">
                                 發布：{sub.publish_date}
@@ -2563,6 +2587,7 @@ function InvitationsTab({
                             )}
                           </div>
                         </TableCell>
+
                       </TableRow>
                     );
                   };
@@ -2688,7 +2713,9 @@ function InvitationsTab({
                 )}
               {viewingRow &&
                 canEditRow(viewingRow) &&
-                !viewingRow.primary_profile_id && (
+                !viewingRow.primary_profile_id &&
+                /* 已是主檔（底下有附屬記錄）就不能再被設為別人的附屬 */
+                !rows.some((x) => x.primary_profile_id === viewingRow.id) && (
                   <Button
                     size="sm"
                     variant="outline"
