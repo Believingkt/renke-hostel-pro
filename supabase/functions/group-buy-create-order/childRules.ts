@@ -88,16 +88,33 @@ export function selectionCount(sel: ChildSelection, key: ChildTierKey): number {
   return sel.children;
 }
 
+/** 逐 tier 的實際計算結果（建單當下套用後的結果，供 price_snapshot 還原歷史金額） */
+export interface ChildTierBreakdown {
+  key: ChildTierKey;
+  label: string;
+  count: number;
+  /** 以標準費率計價的人數 */
+  base_count: number;
+  fee_per_night: number;
+  /** 超出 max_count 後改以加價費率計價的人數 */
+  over_count: number;
+  over_limit_fee_per_night: number;
+  nights: number;
+  subtotal: number;
+  free: boolean;
+}
+
 export interface ChildEvaluation {
   blocked: boolean;
   blockedTiers: ChildTierKey[];
   extraFeePerNight: number;
   extraFeeTotal: number;
-  breakdown: Array<{ key: ChildTierKey; label: string; count: number; subtotal: number }>;
+  breakdown: ChildTierBreakdown[];
   capacityHeadcount: number;
   totalExceeded?: boolean;
   blockReason?: string;
 }
+
 
 export function evaluateChildSelection(
   rules: ChildAgeRules,
