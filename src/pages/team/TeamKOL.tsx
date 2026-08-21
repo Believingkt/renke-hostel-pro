@@ -1510,7 +1510,7 @@ function InvitationsTab({
         normCompanion
           ? supabase
               .from("kol_profiles")
-              .select("id, name, cid_code, companion_cid, accommodation_id, venue_id, check_in_date")
+              .select("id, name, cid_code, companion_cid, accommodation_id, venue_id, check_in_date, contract_group_id")
               .eq("cid_code", normCompanion)
               .eq("is_error", false)
               .maybeSingle()
@@ -1599,6 +1599,8 @@ function InvitationsTab({
         primary_profile_id: form.primary_profile_id ?? null,
         name_variant_existing: nameVariantExisting,
         name_variant_confirmed: nameVariantConfirmed,
+        contract_group_id: contractGroupId,
+
       },
       { companion, conflicts, isManager },
 

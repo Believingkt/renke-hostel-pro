@@ -88,6 +88,25 @@ async function fetchMetaMap(admin: any, ids: string[]) {
   return map;
 }
 
+/** 以 service_role 取館別名稱（含停用館別，避免公開頁因 RLS 取不到名字而 fallback 成別館名稱） */
+async function attachAccommodationNames(admin: any, orders: EnrichedOrder[]) {
+  const ids = Array.from(
+    new Set(orders.map((o) => o.accommodation_id).filter(Boolean)),
+  ) as string[];
+  if (ids.length === 0) return;
+  const { data, error } = await admin
+    .from("accommodation_info")
+    .select("id, name")
+    .in("id", ids);
+  if (error) throw error;
+  const nameMap = new Map<string, string>();
+  for (const a of data ?? []) nameMap.set(a.id as string, (a.name as string) ?? "");
+  for (const o of orders) {
+    o.accommodation_name = nameMap.get(String(o.accommodation_id ?? "")) ?? null;
+  }
+}
+
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -157,6 +176,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const metaMap = await fetchMetaMap(admin, (rows ?? []).map((o: any) => o.id));
       const { orders, nonTwdCount, addonExcludedTotal } = enrich(rows ?? [], metaMap);
+      await attachAccommodationNames(admin, orders);
+
 
       return new Response(
         JSON.stringify({
@@ -215,14 +236,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // 優先用 venue_id 從 kol_venues 取得顯示名稱；fallback 用 venue_name 欄位
+    // venue_accommodation_id：場域對應的 PMS 母館（房型級場域亦帶父館 id）；外部場域為 null
     let displayVenueName: string | null = null;
+    let venueAccommodationId: string | null = null;
     if (kol.venue_id) {
       const { data: kv } = await admin
         .from("kol_venues")
-        .select("name")
+        .select("name, accommodation_id")
         .eq("id", kol.venue_id)
         .maybeSingle();
       displayVenueName = (kv?.name as string | null) ?? null;
+      venueAccommodationId = (kv?.accommodation_id as string | null) ?? null;
     }
     displayVenueName = displayVenueName ?? (kol.venue_name as string | null);
 
@@ -232,6 +256,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       cid_code: kol.cid_code,
       venue_id: kol.venue_id,
       venue_name: displayVenueName,
+      venue_accommodation_id: venueAccommodationId,
       accommodation_id: kol.accommodation_id,
       token_expires_at: kol.token_expires_at,
       merged_into_primary: !!mergedIntoName,
@@ -239,6 +264,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       publish_url: (kol.publish_url as string | null) ?? null,
       ig_url: (kol.ig_url as string | null) ?? null,
     };
+
 
 
 
@@ -274,6 +300,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const metaMap = await fetchMetaMap(admin, filteredOrders.map((o: any) => o.id));
     const { orders, nonTwdCount, addonExcludedTotal } = enrich(filteredOrders, metaMap);
+    await attachAccommodationNames(admin, orders);
+
 
     const grossRevenue = orders.reduce((s, o) => s + Number(o.gross_revenue ?? 0), 0);
     const commissionBaseTotal = orders.reduce((s, o) => s + Number(o.commission_base ?? 0), 0);

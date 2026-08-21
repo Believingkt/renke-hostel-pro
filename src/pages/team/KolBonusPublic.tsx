@@ -32,6 +32,8 @@ interface KolInfo {
   name: string | null;
   cid_code: string | null;
   venue_name: string | null;
+  /** 場域對應的 PMS 母館；外部（非 PMS）場域為 null */
+  venue_accommodation_id?: string | null;
   accommodation_id: string | null;
   token_expires_at: string | null;
   merged_into_primary?: boolean;
@@ -39,6 +41,7 @@ interface KolInfo {
   publish_url?: string | null;
   ig_url?: string | null;
 }
+
 
 /** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱／IG 連結／合作場域／應付金額 */
 const RAGIC_PAY_FORM_BASE = "https://ap15.ragic.com/lakeze/ragicadministration/5";
@@ -93,6 +96,9 @@ interface OrderRow {
   final_price: number | null;
   order_status: string;
   accommodation_id: string | null;
+  /** 由 Edge Function 以 service_role 解析，含停用館別 */
+  accommodation_name?: string | null;
+
   gross_revenue?: number | null;
   commission_base?: number | null;
   addon_total?: number | null;
@@ -135,7 +141,7 @@ export default function KolBonusPublic() {
   const [kol, setKol] = useState<KolInfo | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
-  const [accNames, setAccNames] = useState<Record<string, string>>({});
+  
   const [totals, setTotals] = useState<Totals>({ addonExcludedTotal: 0, nonTwdCount: 0 });
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
@@ -171,26 +177,8 @@ export default function KolBonusPublic() {
         nonTwdCount: Number((data as any).non_twd_orders_count ?? 0),
       });
 
-      // Fetch accommodation names (public table)
-      const accIds = Array.from(
-        new Set(
-          [
-            ...((data as any).orders ?? []).map((o: OrderRow) => o.accommodation_id),
-            (data as any).kol?.accommodation_id,
-          ].filter(Boolean),
-        ),
-      ) as string[];
-      if (accIds.length > 0) {
-        const { data: accs } = await supabase
-          .from("accommodation_info")
-          .select("id, name")
-          .in("id", accIds);
-        const map: Record<string, string> = {};
-        (accs ?? []).forEach((a: any) => {
-          map[a.id] = a.name;
-        });
-        setAccNames(map);
-      }
+      // 館別名稱一律由 Edge Function（service_role）帶回，避免公開頁 RLS 取不到停用館別名稱
+
       setLoading(false);
     })();
   }, [token]);
@@ -283,6 +271,28 @@ export default function KolBonusPublic() {
     [kol, payableCommission],
   );
 
+  /**
+   * 館別一致性檢查（純顯示，不影響任何計算）
+   * - 明細出現 ≥2 種館別 → 標示為多館合計
+   * - 明細僅 1 種但與合作場域母館不同 → 提示不一致
+   * - 合作場域為外部（非 PMS）場域時無法比對，僅在多館時提示
+   */
+  const venueCheck = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of orders) {
+      if (o.accommodation_id) {
+        map.set(o.accommodation_id, o.accommodation_name || "未命名館別");
+      }
+    }
+    const names = Array.from(map.values());
+    const ids = Array.from(map.keys());
+    const venueAcc = kol?.venue_accommodation_id ?? null;
+    const multi = ids.length > 1;
+    const mismatch =
+      !multi && !!venueAcc && ids.length === 1 && ids[0] !== venueAcc;
+    return { multi, mismatch, names };
+  }, [orders, kol]);
+
 
 
   const computePayoutDate = (checkOut: string | null | undefined): string => {
@@ -360,13 +370,33 @@ export default function KolBonusPublic() {
             請由主檔統一填寫勞務報酬單，本頁不另提供請款入口，以免重複請款。
           </div>
         )}
+        {venueCheck.multi && (
+          <div className="rounded-md border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
+            本頁為<strong>多館合計</strong>：此折扣碼的訂單橫跨 {venueCheck.names.length} 間館別（
+            {venueCheck.names.join("、")}），已依各館費率分別計算後彙總。填寫勞報單時請以本頁總額為準。
+          </div>
+        )}
+        {venueCheck.mismatch && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            提醒：本清單的訂單屬於「{venueCheck.names[0]}」，與合作場域「{kol.venue_name || "—"}」不同。
+            若不符預期請聯繫星探確認，分潤仍依訂單實際館別費率計算。
+          </div>
+        )}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{kol.name || "—"}</CardTitle>
+            <CardTitle className="text-lg">
+              {kol.name || "—"}
+              {venueCheck.multi ? "（多館合計）" : ""}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               折扣碼 / CID：<span className="font-mono">{kol.cid_code || "—"}</span>
-              {kol.venue_name ? `　|　館別：${kol.venue_name}` : ""}
+              {venueCheck.multi
+                ? `　|　館別：${venueCheck.names.join("、")}`
+                : kol.venue_name
+                  ? `　|　館別：${kol.venue_name}`
+                  : ""}
             </p>
+
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -431,7 +461,8 @@ export default function KolBonusPublic() {
                       orderList.map((o) => (
                         <TableRow key={o.id}>
                           <TableCell className="whitespace-nowrap">
-                            {accNames[o.accommodation_id ?? ""] || kol.venue_name || "—"}
+                            {o.accommodation_name || "—"}
+
                           </TableCell>
                           <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
@@ -487,7 +518,7 @@ export default function KolBonusPublic() {
                         return (
                           <TableRow key={o.id}>
                             <TableCell className="whitespace-nowrap">
-                              {accNames[o.accommodation_id ?? ""] || kol.venue_name || "—"}
+                              {o.accommodation_name || "—"}
                             </TableCell>
                             <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                             <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
