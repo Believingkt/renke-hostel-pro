@@ -1569,7 +1569,10 @@ function InvitationsTab({
         orderBoundTo = boundRows[0]?.name ?? null;
       }
       companion = (companionRes?.data as CompanionProfile) ?? null;
-      conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
+      conflicts = ((conflictRes?.data as CodeConflict[]) ?? [])
+        .filter((c) => c.severity !== "info")
+        .map((c) => ({ ...c, venue_type: venueTypeOfAcc(c.accommodation_id) }));
+
       const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
       igDupName = igDup?.name ?? null;
       const existingName = ((nameRes?.data as any[]) ?? [])[0]?.name ?? null;
