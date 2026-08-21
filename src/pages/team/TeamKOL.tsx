@@ -1263,6 +1263,28 @@ function InvitationsTab({
     return () => clearTimeout(t);
   }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
 
+  // 名稱「僅全半形／大小寫／空白不同」即時偵測
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const key = kolNameKey(form.name);
+    const raw = form.name.trim();
+    if (!key) {
+      setNameVariant(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name")
+        .eq("name_normalized", key)
+        .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+        .limit(1);
+      const existing = ((data as any[]) ?? [])[0]?.name ?? null;
+      setNameVariant(existing && existing !== raw ? existing : null);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form.name, editingId, sheetOpen]);
+
   const handleSave = async () => {
     if (!form.accommodation_id && !form.venue_id) {
       toast.error("請選擇館別");
