@@ -279,10 +279,14 @@ export default function TeamBaseSalaryTab() {
                 <div key={m.user_id} className="rounded-lg border p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      目前底薪 {cur === null ? "未設定" : `$${cur.toLocaleString()}`}
+                    <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-sm font-semibold text-primary tabular-nums">
+                      目前底薪
+                      <span className="text-base">
+                        {cur === null ? "未設定" : `$${cur.toLocaleString()}`}
+                      </span>
                     </span>
                   </div>
+
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Input
