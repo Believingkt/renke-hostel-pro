@@ -2342,7 +2342,7 @@ function InvitationsTab({
               </TableHeader>
               <TableBody>
                 {(() => {
-                  const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean } = {}) => {
+                  const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean; isSub?: boolean } = {}) => {
                     const igUrl = r.ig_handle || null;
                     const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                     const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
