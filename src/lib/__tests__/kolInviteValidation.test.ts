@@ -4,6 +4,8 @@ import {
   isPmsOrderNumber,
   normalizeCode,
   normalizeIgHandle,
+  normalizeKolName,
+  kolNameKey,
   validateInvite,
   type CodeConflict,
   type CompanionProfile,
@@ -315,10 +317,10 @@ describe("normalizeKolName / kolNameKey", () => {
 });
 
 describe("名稱寫法防呆", () => {
-  const base = () => ({ ...baseForm(), name: "歐妮Ｏni" });
+  const nameForm = () => base({ name: "歐妮Ｏni" });
   it("既有同名不同寫法時阻擋，並建議套用既有寫法", () => {
     const r = validateInvite(
-      { ...base(), name_variant_existing: "歐妮Oni", name_variant_confirmed: false },
+      { ...nameForm(), name_variant_existing: "歐妮Oni", name_variant_confirmed: false },
       { companion: null, conflicts: [], isManager: true },
     );
     const issue = r.issues.find((i) => i.rule === "name.variant_existing");
@@ -327,13 +329,13 @@ describe("名稱寫法防呆", () => {
   });
   it("勾選確認為不同人後不再阻擋", () => {
     const r = validateInvite(
-      { ...base(), name_variant_existing: "歐妮Oni", name_variant_confirmed: true },
+      { ...nameForm(), name_variant_existing: "歐妮Oni", name_variant_confirmed: true },
       { companion: null, conflicts: [], isManager: true },
     );
     expect(r.issues.some((i) => i.rule === "name.variant_existing")).toBe(false);
   });
   it("無既有紀錄但寫法需正規化時只給警告", () => {
-    const r = validateInvite(base(), { companion: null, conflicts: [], isManager: true });
+    const r = validateInvite(nameForm(), { companion: null, conflicts: [], isManager: true });
     const issue = r.issues.find((i) => i.rule === "name.normalized");
     expect(issue?.level).toBe("warning");
     expect(issue?.expected).toBe("歐妮Oni");
