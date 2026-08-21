@@ -1678,20 +1678,29 @@ function InvitationsTab({
     setSheetOpen(true);
   };
 
+  // 新增附屬記錄前，先顯示功能說明
+  const [subsidiaryIntroTarget, setSubsidiaryIntroTarget] = useState<KolRow | null>(null);
+
   const openCreateSubsidiary = (parentRow: KolRow) => {
     if (!parentRow.accommodation_id) {
       toast.error("僅 PMS 館別的邀約才可新增附屬記錄");
       return;
     }
     setViewingRow(null);
+    setSubsidiaryIntroTarget(parentRow);
+  };
+
+  const proceedCreateSubsidiary = (parentRow: KolRow) => {
+    setSubsidiaryIntroTarget(null);
     openCreateSubsidiaryFromValues({
       primaryId: parentRow.id,
-      accommodationId: parentRow.accommodation_id,
+      accommodationId: parentRow.accommodation_id!,
       scoutId: parentRow.scout_id ?? "",
       name: parentRow.name ?? "",
       igHandle: parentRow.ig_handle ?? "",
     });
   };
+
 
   // ===== 合約歸戶（contract_group_id）=====
   // 一份合約＝一筆資格；同代碼／同檔期／同場域由系統自動歸為同一份合約，
