@@ -82,9 +82,17 @@ export function normalizeIgHandle(raw: string): string {
   return v;
 }
 
-/** 由 IG 帳號或網址組出可點擊的完整 IG 網址（無值回傳空字串） */
+/**
+ * 由 IG 帳號或網址組出可點擊的完整網址（無值回傳空字串）。
+ * 若填的是 IG／Threads 以外平台的完整網址（FB、TikTok 等），原樣回傳該網址。
+ */
 export function igProfileUrl(raw: string | null | undefined): string {
-  const h = normalizeIgHandle(raw ?? "");
+  const v = (raw ?? "").trim();
+  if (!v) return "";
+  const isOtherPlatformUrl =
+    /^https?:\/\//i.test(v) && !/^https?:\/\/(?:www\.)?(instagram\.com|threads\.net|threads\.com)\//i.test(v);
+  if (isOtherPlatformUrl) return v;
+  const h = normalizeIgHandle(v);
   if (!h) return "";
   return `https://www.instagram.com/${h}/`;
 }
