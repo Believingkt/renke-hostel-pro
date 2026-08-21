@@ -2698,18 +2698,48 @@ function InvitationsTab({
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <KolSuggestInput
+                  field="name"
+                  value={form.name}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                  onPick={(s) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      name: s.name ?? prev.name,
+                      ig_handle: prev.ig_handle || s.ig_handle || "",
+                      cid_code: prev.cid_code || s.cid_code || "",
+                    }))
+                  }
+                />
               </Field>
               <Field label="網紅帳號連結 *">
-                <Input value={form.ig_handle} onChange={(e) => setForm({ ...form, ig_handle: e.target.value })} />
+                <KolSuggestInput
+                  field="ig_handle"
+                  value={form.ig_handle}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, ig_handle: v })}
+                  onPick={(s) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      ig_handle: s.ig_handle ?? prev.ig_handle,
+                      name: prev.name || s.name || "",
+                    }))
+                  }
+                />
               </Field>
             </div>
 
             {dupWarning && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-                ⚠️ {dupWarning}（仍可繼續新增）
+                <div>⚠️ {dupWarning}</div>
+                <label className="mt-2 flex items-center gap-2">
+                  <Checkbox checked={igDupConfirmed} onCheckedChange={(c) => setIgDupConfirmed(!!c)} />
+                  <span>確認為不同人／二次合作</span>
+                </label>
               </div>
             )}
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="稀有度">
