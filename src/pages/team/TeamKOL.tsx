@@ -863,21 +863,55 @@ function InvitationsTab({
       q = q.gte("check_in_date", start).lt("check_in_date", end);
     }
     const s = search.trim();
+    let matchedParentIds: string[] = [];
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
-      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
+      // 搜尋也要命中「附屬記錄（子檔）」→ 先撈出命中的子檔，把它們的主檔一併帶進本頁
+      const { data: childHits } = await supabase
+        .from("kol_profiles")
+        .select("primary_profile_id")
+        .not("primary_profile_id", "is", null)
+        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`)
+        .limit(200);
+      matchedParentIds = Array.from(
+        new Set(
+          (childHits ?? [])
+            .map((c: any) => c.primary_profile_id as string | null)
+            .filter((v): v is string => !!v),
+        ),
+      );
+      const orParts = [
+        `name.ilike.%${esc}%`,
+        `ig_handle.ilike.%${esc}%`,
+        `cid_code.ilike.%${esc}%`,
+      ];
+      if (matchedParentIds.length > 0) orParts.push(`id.in.(${matchedParentIds.join(",")})`);
+      q = q.or(orParts.join(","));
     }
 
     const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
+
 
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
+    // 補撈本頁主檔底下的附屬記錄（子檔），讓列表／搜尋看得到（例如同住夥伴）
+    const primaryRows = ((data ?? []) as any[]);
+    let childRowsData: any[] = [];
+    if (primaryRows.length > 0) {
+      const { data: kids } = await supabase
+        .from("kol_profiles_with_progress" as any)
+        .select("*")
+        .eq("is_error", false)
+        .in("primary_profile_id", primaryRows.map((r) => r.id));
+      childRowsData = (kids ?? []) as any[];
+    }
     // 取 scout 姓名
-    const rowsData = ((data ?? []) as any[]);
+    const rowsData = [...primaryRows, ...childRowsData];
     const scoutIds = Array.from(new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]));
+
     let scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
@@ -934,6 +968,15 @@ function InvitationsTab({
       _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
     setRows(enriched);
+    // 搜尋命中子檔時，自動展開對應主檔，避免使用者以為搜不到
+    if (matchedParentIds.length > 0) {
+      setExpandedRows((prev) => {
+        const next = new Set(prev);
+        matchedParentIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+
     // 取得 PMS 已建立的折扣碼集合
     const { data: pmsCodes } = await supabase.from("discount_codes").select("code");
     const codesSet = new Set<string>(
@@ -1407,7 +1450,7 @@ function InvitationsTab({
         order_discount_code: orderDiscountCode,
         order_bound_to_other_profile: orderBoundTo,
         cid_code: form.cid_code,
-        companion_cid: form.companion_cid,
+        companion_cid: "",
         publish_url: form.publish_url,
         publish_date: form.publish_date,
         follower_count_original: form.follower_count_original,
@@ -1498,7 +1541,7 @@ function InvitationsTab({
       inventory_status: toNullable(form.inventory_status),
       booking_status: form.booking_status,
       cid_code: toNullable(form.cid_code),
-      companion_cid: normCompanion || null,
+      companion_cid: null,
       short_url: toNullable(form.short_url),
       contract_progress: toNullable(form.contract_progress),
       contract_file_url: toNullable(form.contract_file_url),
@@ -3192,14 +3235,24 @@ function InvitationsTab({
 
 
             <Field label="同住夥伴" anchorId="kolf-companion">
-              <CompanionSearch
-                value={form.companion_cid}
-                onChange={(cid) => setForm({ ...form, companion_cid: cid })}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                填寫同住夥伴後，本筆將不列入 KPI 與住宿間數，分潤一律歸主檔。
-              </p>
+              {form.primary_profile_id ? (
+                <div className="rounded-md border bg-muted/40 p-2 text-sm">
+                  已掛在主檔底下（附屬記錄）。本筆不列入 KPI 與住宿間數，分潤一律歸主檔。
+                  <button
+                    type="button"
+                    className="ml-2 underline underline-offset-2"
+                    onClick={() => setForm({ ...form, primary_profile_id: null })}
+                  >
+                    取消主檔關係
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  同住合拍請於上方「折扣碼 / CID」出現衝突提示時，點「設為主檔」建立關係（舊的「同住夥伴折扣碼」欄位已停用）。
+                </p>
+              )}
             </Field>
+
 
 
             <Field label="KOL購票連結">

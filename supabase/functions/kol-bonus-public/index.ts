@@ -178,25 +178,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const { data: kol, error: kolErr } = await admin
+    const { data: kolRow, error: kolErr } = await admin
       .from("kol_profiles")
-      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
+      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at, primary_profile_id")
       .eq("public_token", token)
       .maybeSingle();
 
     if (kolErr) throw kolErr;
-    if (!kol) {
+    if (!kolRow) {
       return new Response(
         JSON.stringify({ error: "invalid" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    if (!kol.token_expires_at || new Date(kol.token_expires_at).getTime() <= Date.now()) {
+    if (!kolRow.token_expires_at || new Date(kolRow.token_expires_at).getTime() <= Date.now()) {
       return new Response(
         JSON.stringify({ error: "expired" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // 同住合拍：附屬記錄一律導向主檔的資料，避免同一批訂單重複請款
+    let kol: any = kolRow;
+    let mergedIntoName: string | null = null;
+    if (kolRow.primary_profile_id) {
+      const { data: parent } = await admin
+        .from("kol_profiles")
+        .select("id, name, cid_code, venue_id, venue_name, accommodation_id, token_expires_at")
+        .eq("id", kolRow.primary_profile_id)
+        .maybeSingle();
+      if (parent) {
+        mergedIntoName = (parent.name as string | null) ?? null;
+        kol = { ...parent, token_expires_at: kolRow.token_expires_at };
+      }
     }
 
     // 優先用 venue_id 從 kol_venues 取得顯示名稱；fallback 用 venue_name 欄位
@@ -219,7 +234,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       venue_name: displayVenueName,
       accommodation_id: kol.accommodation_id,
       token_expires_at: kol.token_expires_at,
+      merged_into_primary: !!mergedIntoName,
+      primary_name: mergedIntoName,
     };
+
 
 
     const code = (kol.cid_code ?? "").trim();
