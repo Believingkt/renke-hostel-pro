@@ -1334,8 +1334,9 @@ export default function AdminGroupBuy() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="pending_refund">待退款（稍後於銀行退匯後登記）</SelectItem>
                     <SelectItem value="mark_refunded">已手動退款（銀行匯回）</SelectItem>
-                    <SelectItem value="no_refund">不退款（違約金／不可退方案）</SelectItem>
+                    <SelectItem value="no_refund">不需退款（違約金／不可退方案／未收款）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
