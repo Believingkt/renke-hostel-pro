@@ -388,10 +388,12 @@ export function validateInvite(
           suggestion: `請改填主檔的 CID：${companion.companion_cid}。`,
         });
       }
-      // 同一支折扣碼（CID）＝同一份合約：跨館與跨日只提醒，不阻擋
+      // 同一支折扣碼（CID）或同一 contract_group_id ＝ 同一份合約：跨館與跨日只提醒，不阻擋
       const sameContract =
-        !!normalizeCode(f.cid_code) &&
-        normalizeCode(companion.cid_code ?? "") === normalizeCode(f.cid_code);
+        (!!normalizeCode(f.cid_code) &&
+          normalizeCode(companion.cid_code ?? "") === normalizeCode(f.cid_code)) ||
+        (!!f.contract_group_id && f.contract_group_id === (companion.contract_group_id ?? null));
+
       const compAcc = companion.accommodation_id;
       if (compAcc && f.accommodation_id && compAcc !== f.accommodation_id) {
         add({
