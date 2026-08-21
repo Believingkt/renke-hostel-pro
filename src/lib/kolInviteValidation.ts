@@ -82,6 +82,13 @@ export function normalizeIgHandle(raw: string): string {
   return v;
 }
 
+/** 由 IG 帳號或網址組出可點擊的完整 IG 網址（無值回傳空字串） */
+export function igProfileUrl(raw: string | null | undefined): string {
+  const h = normalizeIgHandle(raw ?? "");
+  if (!h) return "";
+  return `https://www.instagram.com/${h}/`;
+}
+
 /** 折扣碼正規化：大寫去空白 */
 export const normalizeCode = (raw: string) => (raw ?? "").trim().toUpperCase();
 
