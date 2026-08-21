@@ -3198,6 +3198,24 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={blockMessages.length > 0} onOpenChange={(o) => !o && setBlockMessages([])}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>無法儲存，請先修正以下問題</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <ul className="list-disc space-y-1 pl-5 text-left">
+                {blockMessages.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setBlockMessages([])}>知道了</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 填錯 Dialog */}
       <Dialog open={!!errorTarget} onOpenChange={(o) => !o && setErrorTarget(null)}>
         <DialogContent className="overflow-x-hidden">
