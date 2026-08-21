@@ -30,9 +30,38 @@ interface KolInfo {
   id: string;
   name: string | null;
   cid_code: string | null;
+  ig_handle?: string | null;
+  ig_url?: string | null;
   venue_name: string | null;
   accommodation_id: string | null;
   token_expires_at: string | null;
+}
+
+/** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱與 IG 連結 */
+const RAGIC_PAY_FORM_BASE = "https://ap15.ragic.com/lakeze/ragicadministration/5";
+const RAGIC_FIXED_PARAMS: Record<string, string> = {
+  "ragic-web-embed": "true",
+  webaction: "form",
+  ver: "new",
+  version: "2",
+  pfv1000516: "人客多總部",
+  pfv1000502: "網紅星探",
+  pfv1000498: "KOL訂單分潤",
+  pfv3005530: "網紅分潤獎金",
+  pfv3005537: "匯款",
+  pfv3005523: "本國籍",
+};
+const RAGIC_FIELD_NICKNAME = "pfv1001024";
+const RAGIC_FIELD_IG_URL = "pfv1001025";
+
+function buildPayFormUrl(kol: Pick<KolInfo, "name" | "ig_handle" | "ig_url"> | null) {
+  const params = new URLSearchParams(RAGIC_FIXED_PARAMS);
+  const nickname = (kol?.name ?? "").trim();
+  if (nickname) params.set(RAGIC_FIELD_NICKNAME, nickname);
+  const handle = (kol?.ig_handle ?? "").trim().replace(/^@/, "");
+  const igUrl = (kol?.ig_url ?? "").trim() || (handle ? `https://instagram.com/${handle}` : "");
+  if (igUrl) params.set(RAGIC_FIELD_IG_URL, igUrl);
+  return `${RAGIC_PAY_FORM_BASE}?${params.toString()}&showSheetName`;
 }
 
 interface OrderRow {
@@ -93,6 +122,7 @@ export default function KolBonusPublic() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
   const { multiplierForDataMonth } = useBonusMultipliers();
+  const payFormUrl = useMemo(() => buildPayFormUrl(kol), [kol]);
 
   useEffect(() => {
     if (!token) {
@@ -271,7 +301,7 @@ export default function KolBonusPublic() {
           <Tooltip>
             <TooltipTrigger asChild>
               <a
-                href="https://lakeze.vip/%E4%BA%BA%E5%AE%A2%E5%A4%9AKOL%E5%8B%9E%E5%A0%B1%E5%96%AE"
+                href={payFormUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="填寫勞務報酬單（另開新分頁）"
@@ -455,7 +485,7 @@ export default function KolBonusPublic() {
         <p className="text-center text-sm text-muted-foreground">
           查詢完業績後，請前往
           <a
-            href="https://lakeze.vip/%E4%BA%BA%E5%AE%A2%E5%A4%9AKOL%E5%8B%9E%E5%A0%B1%E5%96%AE"
+            href={payFormUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="填寫勞務報酬單（另開新分頁）"

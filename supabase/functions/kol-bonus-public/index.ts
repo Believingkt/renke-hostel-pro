@@ -180,7 +180,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { data: kol, error: kolErr } = await admin
       .from("kol_profiles")
-      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
+      .select("id, name, cid_code, ig_handle, ig_url, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
       .eq("public_token", token)
       .maybeSingle();
 
@@ -211,10 +211,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
     displayVenueName = displayVenueName ?? (kol.venue_name as string | null);
 
+    // IG 連結：優先 ig_url，否則用 ig_handle 組出（去掉開頭 @）
+    const igHandle = (kol.ig_handle as string | null)?.trim() || null;
+    const igUrl =
+      ((kol.ig_url as string | null)?.trim() || null) ??
+      null;
+    const resolvedIgUrl =
+      igUrl ?? (igHandle ? `https://instagram.com/${igHandle.replace(/^@/, "")}` : null);
+
     const kolPayload = {
       id: kol.id,
       name: kol.name,
       cid_code: kol.cid_code,
+      ig_handle: igHandle,
+      ig_url: resolvedIgUrl,
       venue_id: kol.venue_id,
       venue_name: displayVenueName,
       accommodation_id: kol.accommodation_id,
