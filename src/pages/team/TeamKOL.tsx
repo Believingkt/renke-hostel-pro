@@ -2713,7 +2713,9 @@ function InvitationsTab({
                 )}
               {viewingRow &&
                 canEditRow(viewingRow) &&
-                !viewingRow.primary_profile_id && (
+                !viewingRow.primary_profile_id &&
+                /* 已是主檔（底下有附屬記錄）就不能再被設為別人的附屬 */
+                !rows.some((x) => x.primary_profile_id === viewingRow.id) && (
                   <Button
                     size="sm"
                     variant="outline"
