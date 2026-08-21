@@ -1228,6 +1228,28 @@ function InvitationsTab({
 
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
+  // 折扣碼即時衝突檢查
+  useEffect(() => {
+    if (!sheetOpen) {
+      setCidConflicts([]);
+      return;
+    }
+    const code = normalizeCode(form.cid_code);
+    if (!code) {
+      setCidConflicts([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc("check_discount_code_conflict", {
+        _code: code,
+        _accommodation_id: form.accommodation_id || null,
+        _exclude_profile_id: editingId,
+      });
+      setCidConflicts(((data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info"));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
+
   const handleSave = async () => {
     if (!form.accommodation_id && !form.venue_id) {
       toast.error("請選擇館別");
