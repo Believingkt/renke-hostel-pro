@@ -428,6 +428,18 @@ export default function KolBonusPublic() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
+          <p className="text-sm text-muted-foreground">查詢完業績後，請前往填寫勞務報酬單</p>
+          <a
+            href="https://lakeze.vip/%E4%BA%BA%E5%AE%A2%E5%A4%9AKOL%E5%8B%9E%E5%A0%B1%E5%96%AE"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            填寫勞報單
+          </a>
+        </div>
       </main>
     </div>
   );
