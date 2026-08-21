@@ -1678,20 +1678,29 @@ function InvitationsTab({
     setSheetOpen(true);
   };
 
+  // 新增附屬記錄前，先顯示功能說明
+  const [subsidiaryIntroTarget, setSubsidiaryIntroTarget] = useState<KolRow | null>(null);
+
   const openCreateSubsidiary = (parentRow: KolRow) => {
     if (!parentRow.accommodation_id) {
       toast.error("僅 PMS 館別的邀約才可新增附屬記錄");
       return;
     }
     setViewingRow(null);
+    setSubsidiaryIntroTarget(parentRow);
+  };
+
+  const proceedCreateSubsidiary = (parentRow: KolRow) => {
+    setSubsidiaryIntroTarget(null);
     openCreateSubsidiaryFromValues({
       primaryId: parentRow.id,
-      accommodationId: parentRow.accommodation_id,
+      accommodationId: parentRow.accommodation_id!,
       scoutId: parentRow.scout_id ?? "",
       name: parentRow.name ?? "",
       igHandle: parentRow.ig_handle ?? "",
     });
   };
+
 
   // ===== 合約歸戶（contract_group_id）=====
   // 一份合約＝一筆資格；同代碼／同檔期／同場域由系統自動歸為同一份合約，
@@ -2342,7 +2351,7 @@ function InvitationsTab({
               </TableHeader>
               <TableBody>
                 {(() => {
-                  const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean } = {}) => {
+                  const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean; isSub?: boolean } = {}) => {
                     const igUrl = r.ig_handle || null;
                     const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                     const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
@@ -2357,10 +2366,21 @@ function InvitationsTab({
                     const hasSubs = subs.length > 0;
                     const expanded = expandedRows.has(r.id);
                     return (
-                      <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
+                      <TableRow
+                        key={r.id}
+                        className={`cursor-pointer hover:bg-muted/50 ${opts.isSub ? "bg-muted/20" : ""}`}
+                        onClick={() => setViewingRow(r)}
+                      >
                         <TableCell className="max-w-[200px]">
                           <div className="flex items-center gap-1 max-w-[200px]">
-                            {hasSubs ? (
+                            {opts.isSub ? (
+                              <>
+                                <span className="inline-block w-4 shrink-0" />
+                                <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300 shrink-0">
+                                  附屬
+                                </Badge>
+                              </>
+                            ) : hasSubs ? (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}
@@ -2436,7 +2456,14 @@ function InvitationsTab({
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>{r._accommodation_name}</TableCell>
+                        <TableCell>{(() => {
+                          const vRow = r.venue_id ? venueByIdAll.get(r.venue_id) : null;
+                          let name = r._accommodation_name || vRow?.name || r.venue_name || "-";
+                          if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+                            name = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? name;
+                          }
+                          return name;
+                        })()}</TableCell>
                         <TableCell>{r.check_in_date ?? "-"}</TableCell>
                         <TableCell>{r.day_of_week ?? "-"}</TableCell>
                         <TableCell>{r._scout_name}</TableCell>
@@ -2522,75 +2549,9 @@ function InvitationsTab({
                     );
                   };
 
-                  const renderSubRow = (sub: KolRow) => {
-                    const vRow = sub.venue_id ? venueByIdAll.get(sub.venue_id) : null;
-                    let subVenueName = vRow?.name ?? sub.venue_name ?? "-";
-                    if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
-                      subVenueName = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? subVenueName;
-                    }
-                    const contractStatus = computeContractProgress(sub.publish_url, sub.publish_date, sub.contract_file_url);
-                    return (
-                      <TableRow
-                        key={sub.id}
-                        className="cursor-pointer hover:bg-muted/50 bg-muted/20"
-                        onClick={() => setViewingRow(sub)}
-                      >
-                        <TableCell colSpan={16} className="whitespace-normal">
-                          <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
-                            <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
-                              附屬
-                            </Badge>
-                            <span className="font-medium">{subVenueName}</span>
-                            <span className="text-muted-foreground">
-                              入住：{sub.check_in_date ?? "-"}
-                            </span>
-                            {sub.rarity && (
-                              <Badge variant="outline" className={RARITY_CLASS[sub.rarity as Rarity] ?? ""}>
-                                {sub.rarity}
-                              </Badge>
-                            )}
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              符合資格：
-                              {sub.kpi_qualified ? (
-                                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                                  <Check className="h-3 w-3" />
-                                </Badge>
-                              ) : (
-                                <span>-</span>
-                              )}
-                            </span>
-                            <span className="text-muted-foreground">
-                              邀約人：{sub._scout_name ?? "-"}
-                            </span>
-                            <span className="text-muted-foreground">
-                              訂單：{sub.order_number ?? "-"}
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              狀態：{renderBookingStatusBadge(sub._effective_booking_status ?? sub.booking_status)}
-                            </span>
-                            {sub.publish_date && (
-                              <span className="text-muted-foreground">
-                                發布：{sub.publish_date}
-                              </span>
-                            )}
-                            {contractStatus && !contractStatus.empty && (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  contractStatus.done
-                                    ? "bg-green-100 text-green-700 border-green-200"
-                                    : "bg-orange-100 text-orange-700 border-orange-200"
-                                }
-                              >
-                                {contractStatus.label}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
+                  // 附屬記錄：與主檔使用完全相同的欄位版型，僅加上「附屬」標記與底色
+                  const renderSubRow = (sub: KolRow) => renderMainRow(sub, { isSub: true });
 
-                      </TableRow>
-                    );
-                  };
 
                   const nodes: React.ReactNode[] = [];
                   for (const p of groupedRows.primaries) {
@@ -3836,6 +3797,38 @@ function InvitationsTab({
             <AlertDialogCancel disabled={linkSubmitting}>取消</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmLinkSubsidiary} disabled={linkSubmitting}>
               {linkSubmitting ? "處理中..." : "確認"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 新增附屬記錄：功能說明 */}
+      <AlertDialog open={!!subsidiaryIntroTarget} onOpenChange={(o) => !o && setSubsidiaryIntroTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>什麼是「附屬記錄」？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left text-sm">
+                <p>
+                  接下來會以「{subsidiaryIntroTarget?.name ?? ""}」為主要記錄，建立一筆掛在它底下的附屬記錄，
+                  用於同一位 KOL 在同一次合作中的第二個館別／第二個入住日。
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>KOL 名稱、網紅帳號連結、邀約人會自動沿用主要記錄，仍可修改。</li>
+                  <li>附屬記錄<strong>不會</strong>另外計入累積資格與住宿間數，一份合約仍只算一筆資格。</li>
+                  <li>相關分潤與獎金一律歸屬於主要記錄，不會重複計算。</li>
+                  <li>館別、入住日期、折扣碼、訂單編號、發布連結等仍可各自填寫。</li>
+                  <li>之後可在附屬記錄的明細中「取消附屬關係」，讓它恢復為獨立的主要記錄。</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => subsidiaryIntroTarget && proceedCreateSubsidiary(subsidiaryIntroTarget)}
+            >
+              我了解，繼續新增
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
