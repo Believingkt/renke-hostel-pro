@@ -33,6 +33,8 @@ interface KolInfo {
   venue_name: string | null;
   accommodation_id: string | null;
   token_expires_at: string | null;
+  merged_into_primary?: boolean;
+  primary_name?: string | null;
 }
 
 /** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱（IG／影片連結由 KOL 自行填寫） */
@@ -292,6 +294,7 @@ export default function KolBonusPublic() {
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-40 px-4 md:px-6 h-14 md:h-16 flex items-center gap-3">
         <img src={lokezeLogo} alt="Lakeze" className="h-8 md:h-9 w-auto" />
         <h1 className="text-base md:text-lg font-semibold">KOL 業績查詢</h1>
+        {!kol.merged_into_primary && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -311,11 +314,18 @@ export default function KolBonusPublic() {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        )}
 
       </header>
 
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {kol.merged_into_primary && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            本次為同住合拍，業績與分潤已併入主檔「{kol.primary_name || "—"}」計算，以下為合併後的完整明細。
+            請由主檔統一填寫勞務報酬單，本頁不另提供請款入口，以免重複請款。
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{kol.name || "—"}</CardTitle>
@@ -477,6 +487,7 @@ export default function KolBonusPublic() {
           </CardContent>
         </Card>
 
+        {!kol.merged_into_primary && (
         <p className="text-center text-sm text-muted-foreground">
           查詢完業績後，請前往
           <a
@@ -491,6 +502,7 @@ export default function KolBonusPublic() {
           </a>
           （或點右上角按鈕，皆會另開新分頁）
         </p>
+        )}
 
       </main>
     </div>
