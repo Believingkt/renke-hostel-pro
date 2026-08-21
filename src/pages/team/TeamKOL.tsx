@@ -1374,14 +1374,47 @@ function InvitationsTab({
       { companion, conflicts, isManager },
     );
 
+    const auditSnapshot = {
+      name: form.name,
+      ig_handle: normIg,
+      cid_code: normCid,
+      companion_cid: normCompanion,
+      order_number: orderNo,
+      accommodation_id: form.accommodation_id || null,
+      venue_id: form.venue_id || null,
+      venue_parent_accommodation_id: venueParentAcc,
+      check_in_date: form.check_in_date || null,
+      check_out_date: form.check_out_date || null,
+      scout_id: form.scout_id || null,
+      editing_id: editingId,
+    };
+    const logValidation = (outcome: string) => {
+      void supabase.from("kol_invite_validation_logs").insert({
+        user_id: currentUserId,
+        profile_id: editingId,
+        accommodation_id: form.accommodation_id || null,
+        outcome,
+        rules: issues.map((i) => i.rule),
+        blocks: issues.filter((i) => i.level === "block") as any,
+        warnings: issues.filter((i) => i.level === "warning") as any,
+        conflicts: conflicts as any,
+        submitted_values: auditSnapshot as any,
+      });
+    };
+
     if (blocks.length > 0) {
-      setBlockMessages(blocks);
+      setBlockIssues(issues.filter((i) => i.level === "block"));
+      logValidation("blocked");
       return;
     }
-    setBlockMessages([]);
+    setBlockIssues([]);
     if (warnings.length > 0) {
       const ok = window.confirm(`請確認以下事項：\n\n${warnings.map((w) => `• ${w}`).join("\n")}\n\n仍要繼續儲存嗎？`);
-      if (!ok) return;
+      if (!ok) {
+        logValidation("warned_cancelled");
+        return;
+      }
+      logValidation("warned_accepted");
     }
 
     setSaving(true);
