@@ -407,7 +407,35 @@ export function validateInvite(
           actual: `${normalizeCode(f.cid_code)} / ${c.owner_name}`,
           suggestion: "請改為編輯既有那筆邀約，而不是新增一筆。",
         });
+      } else if (sameName) {
+        // 同一位 KOL、不同館別：預設各自獨立算資格；僅旅行日系列或非民宿場域才視為同一份合約。
+        const sameContract = isSameContractScope({
+          selfAccName: f.accommodation_label,
+          otherAccName: c.accommodation_name,
+          selfVenueType: f.accommodation_venue_type,
+          otherVenueType: c.venue_type,
+        });
+        if (sameContract) {
+          add({
+            level: "warning",
+            rule: "cid.same_person_same_contract",
+            field: "cid_code",
+            message: `「${c.owner_name}」在${where || "其他館別"}已用同一支 CID；依規則屬同一份合約，只計 1 個資格。`,
+            expected: "同 CID 的旅行日系列／非民宿場域合作歸為同一份合約",
+            actual: `${normalizeCode(f.cid_code)} / ${c.owner_name}`,
+            suggestion: "儲存後請在列表使用「合併為同一份合約」，或將本筆設為對方的附屬紀錄。",
+          });
+        } else {
+          add({
+            level: "info",
+            rule: "cid.same_person_other_accommodation",
+            field: "cid_code",
+            message: `同一位 KOL 於${where || "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格。`,
+            suggestion: "無需處理；若兩筆其實是同一份合約，才需要合併或設為附屬。",
+          });
+        }
       } else if (!sameName) {
+
         // 同住合拍必須有「實際的主檔關聯」才算數：
         // 本筆掛在對方底下，或對方掛在本筆底下（或以 companion_cid 互指）。
         const otherId = c.detail?.profile_id ?? null;
