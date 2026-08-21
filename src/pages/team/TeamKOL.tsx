@@ -38,9 +38,12 @@ import { Link } from "react-router-dom";
 import KolSuggestInput from "@/components/team/KolSuggestInput";
 import {
   validateInvite,
+  FIELD_LABELS,
+  FIELD_ANCHORS,
   normalizeIgHandle,
   normalizeCode,
   type CodeConflict,
+  type ValidationIssue,
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
 
