@@ -176,6 +176,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const metaMap = await fetchMetaMap(admin, (rows ?? []).map((o: any) => o.id));
       const { orders, nonTwdCount, addonExcludedTotal } = enrich(rows ?? [], metaMap);
+      await attachAccommodationNames(admin, orders);
+
 
       return new Response(
         JSON.stringify({
