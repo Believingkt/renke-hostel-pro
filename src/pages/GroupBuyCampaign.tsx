@@ -15,11 +15,20 @@ import { GroupBuyCollapsibleHtml } from "@/components/groupbuy/GroupBuyCollapsib
 import { GroupBuyPhotoGrid } from "@/components/groupbuy/GroupBuyPhotoGrid";
 import { GroupBuyDateRangeField } from "@/components/groupbuy/GroupBuyDateRangeField";
 import {
+  GROUP_BUY_DAY_TYPE_LABEL,
   calculateGroupBuyStayPrice,
   effectivePrices,
+  enabledDateTypes,
+  findDisabledTypeNight,
   findExcludedNight,
+  getGroupBuyDateType,
+  isDateTypeEnabled,
   lowestEffectivePrice,
+  lowestEnabledPrice,
+  type GroupBuyDayType,
 } from "@/lib/groupBuyPricing";
+import { GroupBuyPackageGallery } from "@/components/groupbuy/GroupBuyPackageGallery";
+import { GroupBuyRichContent } from "@/components/groupbuy/GroupBuyRichContent";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
 import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
@@ -83,10 +92,12 @@ interface CampaignPackage {
   description: string | null;
   short_summary: string | null;
   image_url: string | null;
+  image_urls: string[] | null;
   group_buy_price: number;
   weekday_price: number | null;
   peak_price: number | null;
   holiday_price: number | null;
+  disabled_date_types: GroupBuyDayType[] | null;
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
@@ -110,6 +121,13 @@ const fmtWindow = (iso?: string | null) =>
     : "不限";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
+
+/** 方案圖片：優先多圖，退回舊的單張 image_url；兩者皆無時回傳空陣列（前台不顯示空圖框） */
+function packagePhotos(p: { image_urls?: string[] | null; image_url?: string | null }): string[] {
+  const many = (p.image_urls ?? []).filter(Boolean);
+  if (many.length > 0) return many;
+  return p.image_url ? [p.image_url] : [];
+}
 
 /** 全頁統一的內容寬度（桌機約 1040px，兩側保留舒服留白） */
 const SHELL = "mx-auto w-full max-w-[1040px] px-5 sm:px-6";
@@ -362,9 +380,23 @@ export default function GroupBuyCampaign() {
     [checkIn, checkOut, packageExcludedDates],
   );
   const excludedError = excludedHit ? `此方案於 ${excludedHit} 不適用，請調整住宿日期` : "";
+  /** 方案不適用的日期類型（住宿夜踩到即不可預訂；退房日不算住宿夜） */
+  const disabledTypeHit = useMemo(
+    () => (selectedPkg ? findDisabledTypeNight(checkIn, checkOut, selectedPkg, holidays) : null),
+    [selectedPkg, checkIn, checkOut, holidays],
+  );
+  const disabledTypeError = disabledTypeHit
+    ? `此方案於${GROUP_BUY_DAY_TYPE_LABEL[disabledTypeHit.type]}不適用（${disabledTypeHit.date}），請調整住宿日期`
+    : "";
+  /** 日曆用：該日期是否因「不適用的日期類型」而不可作為住宿夜 */
+  const isBlockedNight = useCallback(
+    (key: string) => (selectedPkg ? !isDateTypeEnabled(selectedPkg, getGroupBuyDateType(key, holidays)) : false),
+    [selectedPkg, holidays],
+  );
   const sale = campaign ? saleState(campaign) : "on_sale";
   const bookingLocked = sale !== "on_sale";
-  const dateBlocked = !!(stayErrors.checkIn || stayErrors.checkOut) || !!excludedError;
+  const dateBlocked =
+    !!(stayErrors.checkIn || stayErrors.checkOut) || !!excludedError || !!disabledTypeError;
 
   /** 表單欄位錯誤（顯示在對應欄位下方） */
   const nameError = touched.name && !guestName.trim() ? "請填寫訂房人姓名" : "";
@@ -718,7 +750,11 @@ export default function GroupBuyCampaign() {
    */
   const choosePackage = (p: CampaignPackage) => {
     const nextExcluded = (p.excluded_dates ?? []).map((d) => String(d).slice(0, 10));
-    const invalid = !!checkIn && !!checkOut && !!findExcludedNight(checkIn, checkOut, nextExcluded);
+    const invalid =
+      !!checkIn &&
+      !!checkOut &&
+      (!!findExcludedNight(checkIn, checkOut, nextExcluded) ||
+        !!findDisabledTypeNight(checkIn, checkOut, p, holidays));
     setSelectedPkgId(p.id);
     if (invalid) {
       setCheckIn("");
@@ -786,15 +822,19 @@ export default function GroupBuyCampaign() {
   const heroPhotos = (campaign.featured_photo_urls ?? []).filter(Boolean).slice(0, 4);
   const heroPhotoRow = (heroPhotos.length > 0 ? heroPhotos : previewPhotos).slice(0, 3);
   /** 首屏價格錨點：取所有方案中的最低有效團購價（三段價取最低）與對應原價 */
-  const lowestPkg = packages.reduce<CampaignPackage | null>(
-    (best, p) => (!best || lowestEffectivePrice(p) < lowestEffectivePrice(best) ? p : best),
+  /** 只納入「仍有適用日期類型」的方案；全部日期類型不適用的方案不參與比價 */
+  const bookablePackages = packages.filter((p) => enabledDateTypes(p).length > 0);
+  const lowestPkg = bookablePackages.reduce<CampaignPackage | null>(
+    (best, p) =>
+      !best || (lowestEnabledPrice(p) ?? Infinity) < (lowestEnabledPrice(best) ?? Infinity) ? p : best,
     null,
   );
-  /** 最高現省：遍歷所有上架方案，取 MAX(原價 - 最低有效團購價)，忽略沒有原價的方案 */
-  const maxSave = packages.reduce(
-    (m, p) => (p.original_price ? Math.max(m, Math.round(p.original_price - lowestEffectivePrice(p))) : m),
-    0,
-  );
+  const lowestPkgPrice = lowestPkg ? lowestEnabledPrice(lowestPkg) : null;
+  /** 最高現省：遍歷所有可預訂方案，取 MAX(原價 - 最低有效團購價)，忽略沒有原價的方案 */
+  const maxSave = bookablePackages.reduce((m, p) => {
+    const low = lowestEnabledPrice(p);
+    return p.original_price && low != null ? Math.max(m, Math.round(p.original_price - low)) : m;
+  }, 0);
 
 
 
@@ -838,11 +878,11 @@ export default function GroupBuyCampaign() {
             )}
 
             {/* 3 團購價格錨點 */}
-            {lowestPkg && (
+            {lowestPkg && lowestPkgPrice != null && (
               <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 <span className="text-sm text-muted-foreground">團購價</span>
                 <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
-                  {twd(lowestEffectivePrice(lowestPkg))}
+                  {twd(lowestPkgPrice)}
                 </span>
                 <span className="text-sm text-muted-foreground">起／晚</span>
                 {lowestPkg.original_price ? (
@@ -979,7 +1019,11 @@ export default function GroupBuyCampaign() {
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = !bookingLocked && p.id === selectedPkgId;
-              const save = p.original_price ? Math.round(p.original_price - lowestEffectivePrice(p)) : 0;
+              const pkgTypes = enabledDateTypes(p);
+              const pkgSoldOut = pkgTypes.length === 0;
+              const pkgLowest = lowestEnabledPrice(p) ?? lowestEffectivePrice(p);
+              const save = p.original_price ? Math.round(p.original_price - pkgLowest) : 0;
+              const photos = packagePhotos(p);
               return (
                 <div
                   key={p.id}
@@ -989,12 +1033,11 @@ export default function GroupBuyCampaign() {
                       : "border-border/70 bg-card"
                   } ${bookingLocked ? "opacity-70" : ""}`}
                 >
-                  {p.image_url && (
-                    <img
-                      src={p.image_url}
+                  {photos.length > 0 && (
+                    <GroupBuyPackageGallery
+                      urls={photos}
                       alt={p.display_name}
-                      loading="lazy"
-                      className="h-40 w-full shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
+                      className="w-full shrink-0 sm:w-48"
                     />
                   )}
                   <div className="min-w-0 flex-1">
@@ -1031,19 +1074,21 @@ export default function GroupBuyCampaign() {
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span className="text-sm text-muted-foreground">團購價</span>
                         <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
-                          {twd(lowestEffectivePrice(p))}
+                          {twd(pkgLowest)}
                         </span>
                         <span className="text-sm text-muted-foreground">起／晚</span>
                       </div>
                       {(() => {
                         const pr = effectivePrices(p);
-                        const varies = pr.weekday !== pr.peak || pr.peak !== pr.holiday;
-                        if (!varies) return null;
-                        return (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            平日 {twd(pr.weekday)}・旺日 {twd(pr.peak)}・假日 {twd(pr.holiday)}
-                          </p>
+                        const parts = (["weekday", "peak", "holiday"] as GroupBuyDayType[]).map((t) =>
+                          isDateTypeEnabled(p, t)
+                            ? `${GROUP_BUY_DAY_TYPE_LABEL[t]} ${twd(pr[t])}`
+                            : `${GROUP_BUY_DAY_TYPE_LABEL[t]} 不適用`,
                         );
+                        const varies =
+                          pr.weekday !== pr.peak || pr.peak !== pr.holiday || pkgTypes.length < 3;
+                        if (!varies) return null;
+                        return <p className="mt-1 text-xs text-muted-foreground">{parts.join("・")}</p>;
                       })()}
                       {(p.excluded_dates?.length ?? 0) > 0 && (
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -1068,7 +1113,11 @@ export default function GroupBuyCampaign() {
                     </div>
                     {/* 第五層：選擇方案 */}
                     <div className="mt-4">
-                      {bookingLocked ? (
+                      {pkgSoldOut ? (
+                        <span className="text-sm font-medium text-muted-foreground">
+                          此方案暫不開放預訂
+                        </span>
+                      ) : bookingLocked ? (
                         <span className="text-sm text-muted-foreground">
                           {sale === "ended" ? "活動已結束" : "尚未開賣"}
                         </span>
@@ -1079,7 +1128,7 @@ export default function GroupBuyCampaign() {
                           </p>
                           <p className="mt-0.5 text-sm text-muted-foreground">
                             <span className="font-semibold text-accent tabular-nums">
-                              {twd(lowestEffectivePrice(p))} 起
+                              {twd(pkgLowest)} 起
                             </span>
                             ／晚 · 下一步：選擇入住日期
                           </p>
@@ -1178,6 +1227,7 @@ export default function GroupBuyCampaign() {
                   max={campaign.stay_end_date}
                   unavailableDates={unavailableDates}
                   excludedDates={packageExcludedDates}
+                  isBlockedNight={isBlockedNight}
                   today={today}
                   invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
                   invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
@@ -1190,6 +1240,9 @@ export default function GroupBuyCampaign() {
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
                 {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
                 {!!excludedError && <p className="mt-1 text-sm text-destructive">{excludedError}</p>}
+                {!!disabledTypeError && (
+                  <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
+                )}
 
                 <div className="mt-4">
                   <GroupBuyGuestPicker
@@ -1389,8 +1442,8 @@ export default function GroupBuyCampaign() {
 
         {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
         {campaign.description_html && (
-          <GroupBuyCollapsibleHtml
-            html={sanitizeHtml(campaign.description_html)}
+          <GroupBuyRichContent
+            html={campaign.description_html}
             className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
             moreLabel="展開完整介紹"
             lessLabel="收合介紹"
@@ -1414,8 +1467,8 @@ export default function GroupBuyCampaign() {
         {campaign.terms_html && (
           <div className="mt-6">
             <h2 className="mb-2 text-base font-semibold text-foreground">團購活動注意事項</h2>
-            <GroupBuyCollapsibleHtml
-              html={sanitizeHtml(campaign.terms_html)}
+            <GroupBuyRichContent
+              html={campaign.terms_html}
               collapsedHeight={160}
               className="prose prose-sm max-w-none text-muted-foreground"
               moreLabel="展開注意事項"

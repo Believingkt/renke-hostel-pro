@@ -34,6 +34,8 @@ import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
+import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 
 
@@ -134,10 +136,12 @@ interface PackageRow {
   description: string | null;
   short_summary: string | null;
   image_url: string | null;
+  image_urls: string[] | null;
   group_buy_price: number;
   weekday_price: number | null;
   peak_price: number | null;
   holiday_price: number | null;
+  disabled_date_types: ("weekday" | "peak" | "holiday")[] | null;
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
@@ -380,7 +384,9 @@ export default function AdminGroupBuy() {
   };
 
   const savePackage = async (row: PackageRow) => {
-    const { id, ...rest } = row;
+    // 主圖與多圖同步：image_url 保留為 image_urls[0]，避免其他未更新的讀取點壞掉
+    const urls = row.image_urls ?? [];
+    const { id, ...rest } = { ...row, image_url: urls.length > 0 ? urls[0] : row.image_url };
     const { error } = await supabase.from("group_buy_campaign_packages").update(rest as any).eq("id", id);
     if (error) toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
     else toast({ title: "方案已更新" });
@@ -791,6 +797,7 @@ export default function AdminGroupBuy() {
                       peak_price: p.peak_price,
                       holiday_price: p.holiday_price,
                       original_price: p.original_price,
+                      disabled_date_types: p.disabled_date_types ?? [],
                     }}
                     onChange={(patch) =>
                       setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)))
@@ -821,11 +828,15 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
-                    <Label>方案圖片</Label>
-                    <ImageUploadField
-                      value={p.image_url}
-                      onChange={(url) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, image_url: url } : x)))
+                    <Label>方案圖片（可多張，第一張為主圖）</Label>
+                    <MultiImageUploadField
+                      value={(p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [])}
+                      onChange={(urls) =>
+                        setPackages((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, image_urls: urls, image_url: urls[0] ?? null } : x,
+                          ),
+                        )
                       }
                       pathPrefix={`${accommodationId}/group-buy/package`}
                       aspect="aspect-[4/3]"
@@ -1163,19 +1174,21 @@ export default function AdminGroupBuy() {
               </div>
 
               <div className="md:col-span-2">
-                <Label>活動文案（HTML）</Label>
-                <Textarea
-                  rows={5}
+                <Label>活動文案</Label>
+                <RichTextEditor
+                  variant="simple"
+                  placeholder="輸入活動文案，可使用粗體、標題與條列整理段落…"
                   value={editing.description_html ?? ""}
-                  onChange={(e) => setEditing({ ...editing, description_html: e.target.value })}
+                  onChange={(html) => setEditing({ ...editing, description_html: html })}
                 />
               </div>
               <div className="md:col-span-2">
-                <Label>注意事項（HTML）</Label>
-                <Textarea
-                  rows={4}
+                <Label>團購活動注意事項</Label>
+                <RichTextEditor
+                  variant="simple"
+                  placeholder="輸入注意事項，建議以條列呈現…"
                   value={editing.terms_html ?? ""}
-                  onChange={(e) => setEditing({ ...editing, terms_html: e.target.value })}
+                  onChange={(html) => setEditing({ ...editing, terms_html: html })}
                 />
               </div>
               <div className="md:col-span-2">

@@ -6,6 +6,10 @@ import {
   getGroupBuyDateType,
   lowestEffectivePrice,
   stayNightDates,
+  enabledDateTypes,
+  isDateTypeEnabled,
+  lowestEnabledPrice,
+  findDisabledTypeNight,
 } from "@/lib/groupBuyPricing";
 
 // 2026-08：17(一) 18(二) 19(三) 20(四) 21(五) 22(六) 23(日)
@@ -93,5 +97,40 @@ describe("不適用日期", () => {
     expect(findExcludedNight("2026-08-19", "2026-08-21", ex)).toBeNull();
     expect(findExcludedNight("2026-08-19", "2026-08-22", ex)).toBe("2026-08-21");
     expect(findExcludedNight("2026-08-19", "2026-08-24", ex)).toBe("2026-08-21");
+  });
+});
+
+describe("方案不適用日期類型（disabled_date_types）", () => {
+  const holidays = new Set<string>(["2026-10-10"]);
+  const pkg = {
+    group_buy_price: 5000,
+    weekday_price: 4000,
+    peak_price: 5000,
+    holiday_price: 6000,
+    disabled_date_types: ["weekday"] as const,
+  };
+
+  it("未設定時三種日期類型皆適用（向下相容）", () => {
+    const legacy = { group_buy_price: 5000 };
+    expect(enabledDateTypes(legacy)).toEqual(["weekday", "peak", "holiday"]);
+    expect(isDateTypeEnabled(legacy, "weekday")).toBe(true);
+  });
+
+  it("設定不適用後對應類型關閉，其餘不受影響", () => {
+    expect(isDateTypeEnabled(pkg, "weekday")).toBe(false);
+    expect(isDateTypeEnabled(pkg, "holiday")).toBe(true);
+    expect(enabledDateTypes(pkg)).toEqual(["peak", "holiday"]);
+  });
+
+  it("起價排除不適用類型", () => {
+    expect(lowestEnabledPrice(pkg)).toBe(5000);
+    expect(lowestEnabledPrice({ ...pkg, disabled_date_types: ["weekday", "peak", "holiday"] })).toBeNull();
+  });
+
+  it("住宿夜踩到不適用類型會被攔截，退房日不算住宿夜", () => {
+    // 2026-03-02(一) 為平日 → 應被擋
+    expect(findDisabledTypeNight("2026-03-02", "2026-03-03", pkg, holidays)?.date).toBe("2026-03-02");
+    // 入住 2026-03-06(五,旺日) 退房 2026-03-07(六) → 只有一晚旺日，可預訂
+    expect(findDisabledTypeNight("2026-03-06", "2026-03-07", pkg, holidays)).toBeNull();
   });
 });

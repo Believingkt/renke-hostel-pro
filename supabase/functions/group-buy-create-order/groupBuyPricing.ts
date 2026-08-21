@@ -135,3 +135,67 @@ export function findExcludedNight(
   }
   return null;
 }
+
+/* ────────────────────────────────────────────────────────────────
+ * 日期類型「不適用」（disabled_date_types）
+ *
+ * 語意與「三段價留空」完全無關：
+ *   - 價格留空 → 沿用 group_buy_price（可預訂）
+ *   - 日期類型列入 disabled_date_types → 該類型的住宿夜完全不可預訂
+ * 舊方案 disabled_date_types = [] / null → 三種類型全部適用，行為與過往一致。
+ * ──────────────────────────────────────────────────────────────── */
+
+export const GROUP_BUY_DAY_TYPES: GroupBuyDayType[] = ["weekday", "peak", "holiday"];
+
+export interface GroupBuyPackageAvailabilityFields {
+  disabled_date_types?: GroupBuyDayType[] | string[] | null;
+}
+
+/** 該日期類型是否可預訂 */
+export function isDateTypeEnabled(
+  pkg: GroupBuyPackageAvailabilityFields,
+  type: GroupBuyDayType,
+): boolean {
+  const list = pkg.disabled_date_types;
+  if (!Array.isArray(list) || list.length === 0) return true;
+  return !list.includes(type);
+}
+
+/** 方案目前仍可預訂的日期類型清單（全部不適用時為空陣列） */
+export function enabledDateTypes(pkg: GroupBuyPackageAvailabilityFields): GroupBuyDayType[] {
+  return GROUP_BUY_DAY_TYPES.filter((t) => isDateTypeEnabled(pkg, t));
+}
+
+/**
+ * 只計算「仍適用日期類型」的最低有效價格。
+ * 三種類型全部不適用時回傳 null（呼叫端應顯示「暫不開放」）。
+ * 舊的 lowestEffectivePrice 維持原簽名不動，避免既有呼叫點受影響。
+ */
+export function lowestEnabledPrice(
+  pkg: GroupBuyPackagePriceFields & GroupBuyPackageAvailabilityFields,
+): number | null {
+  const types = enabledDateTypes(pkg);
+  if (types.length === 0) return null;
+  return Math.min(...types.map((t) => effectivePrice(pkg, t)));
+}
+
+export interface DisabledTypeHit {
+  date: string;
+  type: GroupBuyDayType;
+}
+
+/** 住宿夜是否踩到「不適用的日期類型」（退房日不算住宿夜） */
+export function findDisabledTypeNight(
+  checkIn: string,
+  checkOut: string,
+  pkg: GroupBuyPackageAvailabilityFields,
+  holidays: Set<string> | ReadonlySet<string>,
+): DisabledTypeHit | null {
+  const list = pkg.disabled_date_types;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  for (const date of stayNightDates(checkIn, checkOut)) {
+    const type = getGroupBuyDateType(date, holidays);
+    if (!isDateTypeEnabled(pkg, type)) return { date, type };
+  }
+  return null;
+}

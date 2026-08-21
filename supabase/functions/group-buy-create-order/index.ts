@@ -19,6 +19,8 @@ import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
 import {
   GROUP_BUY_DAY_TYPE_LABEL,
   calculateGroupBuyStayPrice,
+  enabledDateTypes,
+  findDisabledTypeNight,
   findExcludedNight,
 } from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
@@ -209,6 +211,20 @@ Deno.serve(async (req) => {
     const holidays = new Set<string>(
       ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
     );
+    // 5.1) 方案不適用的日期類型（平日／旺日／假日）：server 端一律重驗，退房日不算住宿夜
+    if (enabledDateTypes(pkg as any).length === 0) {
+      return json({ error: "此方案目前暫不開放預訂，請改選其他方案" }, 400);
+    }
+    const hitDisabledType = findDisabledTypeNight(checkInDate, checkOutDate, pkg as any, holidays);
+    if (hitDisabledType) {
+      return json(
+        {
+          error: `此方案於${GROUP_BUY_DAY_TYPE_LABEL[hitDisabledType.type]}不適用（${hitDisabledType.date}），請調整住宿日期`,
+        },
+        400,
+      );
+    }
+
     const stay = calculateGroupBuyStayPrice({
       checkIn: checkInDate,
       checkOut: checkOutDate,
@@ -343,6 +359,7 @@ Deno.serve(async (req) => {
           group_buy_price: Number(pkg.group_buy_price) || 0,
           weekday_price: pkg.weekday_price ?? null,
           peak_price: pkg.peak_price ?? null,
+          disabled_date_types: Array.isArray(pkg.disabled_date_types) ? pkg.disabled_date_types : [],
           holiday_price: pkg.holiday_price ?? null,
         },
       },

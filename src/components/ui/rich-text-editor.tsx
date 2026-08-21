@@ -13,7 +13,12 @@ import {
   Undo,
   Redo,
   Palette,
-  Check
+  Check,
+  Underline as UnderlineIcon,
+  Heading3,
+  Link2,
+  Link2Off,
+  RemoveFormatting
 } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
@@ -29,6 +34,12 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   error?: string;
+  /**
+   * 'default'（預設）＝維持既有工具列（含文字顏色），既有使用點行為完全不變。
+   * 'simple'  ＝精簡工具列：粗體／斜體／底線／H2／H3／條列／編號／超連結／復原／重做／清除格式，
+   *             不提供文字顏色等會破壞前台版型的樣式。
+   */
+  variant?: 'default' | 'simple';
 }
 
 // 預設顏色選項
@@ -50,8 +61,10 @@ export function RichTextEditor({
   onChange, 
   placeholder = "輸入內容...",
   className,
-  error 
+  error,
+  variant = 'default'
 }: RichTextEditorProps) {
+  const simple = variant === 'simple';
   const [colorOpen, setColorOpen] = useState(false);
 
   const editor = useEditor({
@@ -114,6 +127,22 @@ export function RichTextEditor({
     </Button>
   );
 
+  const handleSetLink = () => {
+    const prev = (editor.getAttributes('link') as { href?: string }).href ?? '';
+    const input = window.prompt('請輸入連結網址（留空可移除連結）', prev);
+    if (input === null) return;
+    const url = input.trim();
+    if (!url) {
+      (editor.chain().focus() as any).unsetLink().run();
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      window.alert('連結網址必須以 http:// 或 https:// 開頭');
+      return;
+    }
+    (editor.chain().focus() as any).extendMarkRange('link').setLink({ href: url }).run();
+  };
+
   const getCurrentColor = () => {
     return editor.getAttributes('textStyle').color || null;
   };
@@ -134,6 +163,78 @@ export function RichTextEditor({
         error && 'border-destructive'
       )}>
         <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap">
+          {simple ? (
+            <>
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleBold().run()}
+                isActive={editor.isActive('bold')}
+                icon={Bold}
+                title="粗體"
+              />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleItalic().run()}
+                isActive={editor.isActive('italic')}
+                icon={Italic}
+                title="斜體"
+              />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleUnderline().run()}
+                isActive={editor.isActive('underline')}
+                icon={UnderlineIcon}
+                title="底線"
+              />
+              <div className="w-px h-6 bg-border mx-1" />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleHeading({ level: 2 }).run()}
+                isActive={editor.isActive('heading', { level: 2 })}
+                icon={Heading2}
+                title="標題 H2"
+              />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleHeading({ level: 3 }).run()}
+                isActive={editor.isActive('heading', { level: 3 })}
+                icon={Heading3}
+                title="標題 H3"
+              />
+              <div className="w-px h-6 bg-border mx-1" />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleBulletList().run()}
+                isActive={editor.isActive('bulletList')}
+                icon={List}
+                title="項目符號"
+              />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).toggleOrderedList().run()}
+                isActive={editor.isActive('orderedList')}
+                icon={ListOrdered}
+                title="編號清單"
+              />
+              <div className="w-px h-6 bg-border mx-1" />
+              <MenuButton
+                onClick={handleSetLink}
+                isActive={editor.isActive('link')}
+                icon={Link2}
+                title="插入／編輯超連結"
+              />
+              {editor.isActive('link') && (
+                <MenuButton
+                  onClick={() => (editor.chain().focus() as any).unsetLink().run()}
+                  icon={Link2Off}
+                  title="移除超連結"
+                />
+              )}
+              <div className="w-px h-6 bg-border mx-1" />
+              <MenuButton
+                onClick={() => (editor.chain().focus() as any).unsetAllMarks().clearNodes().run()}
+                icon={RemoveFormatting}
+                title="清除格式"
+              />
+              <div className="w-px h-6 bg-border mx-1" />
+              <MenuButton onClick={() => editor.chain().focus().undo().run()} icon={Undo} title="復原" />
+              <MenuButton onClick={() => editor.chain().focus().redo().run()} icon={Redo} title="重做" />
+            </>
+          ) : (
+          <>
           <MenuButton
             onClick={() => (editor.chain().focus() as any).toggleBold().run()}
             isActive={editor.isActive('bold')}
@@ -234,6 +335,8 @@ export function RichTextEditor({
             icon={Redo}
             title="重做"
           />
+          </>
+          )}
         </div>
         <EditorContent editor={editor} />
       </div>
