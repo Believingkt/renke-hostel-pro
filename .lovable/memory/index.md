@@ -10,3 +10,4 @@
 - [OwlTing 官網信補單](mem://integrations/owlting-official-site-email.md) — 官網（OwlNest 直訂）信辨識、館名抽取、訂金計算與防重複回推規則；補單一律要判斷官網信。
 - [成交日 order_date 規則](mem://features/admin/order-deal-date-rules.md) — created_at 不可動、order_date 為成交日基準、保留單轉正、已結算期閘門。
 - [品牌夥伴 Logo](mem://features/hq/brand-partners.md) — platform_brand_partners + BrandLogoBar 同步 admin/team/hq/portal 五處 logo，HQ /hq/brand-partners 管理。
+- [KOL 跨館同 CID 資格判定](mem://features/admin/kol-cross-venue-contract-scope.md) — 旅行日系列／非民宿場域才算同一份合約，其餘跨館同 CID 各自計資格只給灰色提示。
