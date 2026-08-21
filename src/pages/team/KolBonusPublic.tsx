@@ -265,7 +265,16 @@ export default function KolBonusPublic() {
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-40 px-4 md:px-6 h-14 md:h-16 flex items-center gap-3">
         <img src={lokezeLogo} alt="Lakeze" className="h-8 md:h-9 w-auto" />
         <h1 className="text-base md:text-lg font-semibold">KOL 業績查詢</h1>
+        <a
+          href="https://lakeze.vip/%E4%BA%BA%E5%AE%A2%E5%A4%9AKOL%E5%8B%9E%E5%A0%B1%E5%96%AE"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto inline-flex flex-shrink-0 items-center justify-center rounded-md bg-primary px-3 md:px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+        >
+          填寫勞報單
+        </a>
       </header>
+
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <Card>
