@@ -2651,6 +2651,13 @@ function InvitationsTab({
                           )}
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
+                        <TableCell className="tabular-nums">
+                          {r.order_number ? (
+                            <span title={r.order_number}>{r.order_number}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {r.rarity && (
                             <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
