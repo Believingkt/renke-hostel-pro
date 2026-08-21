@@ -181,15 +181,34 @@ describe("折扣碼衝突回傳邏輯", () => {
     expect(r.blocks).toHaveLength(1);
   });
 
-  it("blocks a CID used by a different KOL unless collab is confirmed", () => {
-    const c = [conflict({ owner_name: "阿傑", detail: { check_in_date: "2026-08-10" } })];
+  it("blocks a CID used by a different KOL until a real primary link exists", () => {
+    const c = [
+      conflict({ owner_name: "阿傑", detail: { check_in_date: "2026-08-10", profile_id: "p-other" } }),
+    ];
     const blocked = run({ cid_code: "SELFE" }, { conflicts: c });
     expect(rules(blocked)).toContain("cid.used_by_other");
 
-    const confirmed = run({ cid_code: "SELFE", collab_confirmed: true }, { conflicts: c });
-    expect(rules(confirmed)).toContain("cid.collab_confirmed");
-    expect(confirmed.blocks).toHaveLength(0);
+    // 只勾「確認合拍」不算數，必須真的建立主檔關係
+    const onlyCheckbox = run({ cid_code: "SELFE", collab_confirmed: true }, { conflicts: c });
+    expect(rules(onlyCheckbox)).toContain("cid.used_by_other");
+
+    const linked = run({ cid_code: "SELFE", primary_profile_id: "p-other" }, { conflicts: c });
+    expect(rules(linked)).toContain("cid.collab_confirmed");
+    expect(linked.blocks).toHaveLength(0);
+
+    // 對方掛在本筆底下也算已建立關係
+    const child = run(
+      { cid_code: "SELFE", self_id: "p-self" },
+      {
+        conflicts: [
+          conflict({ owner_name: "阿傑", detail: { profile_id: "p-other", primary_profile_id: "p-self" } }),
+        ],
+      },
+    );
+    expect(rules(child)).toContain("cid.collab_confirmed");
+    expect(child.blocks).toHaveLength(0);
   });
+
 
   it("treats a mutual companion pair as a warning without confirmation", () => {
     const r = run(
