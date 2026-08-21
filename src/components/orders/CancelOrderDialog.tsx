@@ -25,6 +25,7 @@ interface Props {
     id: string;
     order_number: string;
     paid_amount: number | null;
+    order_source?: string | null;
     payment_method: string | null;
     deposit_payment_method: string | null;
     balance_payment_method: string | null;
