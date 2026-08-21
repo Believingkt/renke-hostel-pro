@@ -676,7 +676,6 @@ function InvitationsTab({
 
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
-  const [detailFromCreate, setDetailFromCreate] = useState(false);
 
   // 稀有度版本 & 標籤字典
   const [rarities, setRarities] = useState<RaritySetting[]>([]);
