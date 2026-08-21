@@ -35,6 +35,14 @@ import { KolStatsTab } from "@/components/team/KolStatsTab";
 import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
+import KolSuggestInput from "@/components/team/KolSuggestInput";
+import {
+  validateInvite,
+  normalizeIgHandle,
+  normalizeCode,
+  type CodeConflict,
+  type CompanionProfile,
+} from "@/lib/kolInviteValidation";
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
