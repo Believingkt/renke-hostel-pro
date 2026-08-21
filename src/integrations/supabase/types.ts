@@ -12971,6 +12971,18 @@ export type Database = {
           room_type_id: string
         }[]
       }
+      list_orphan_kol_discount_codes: {
+        Args: { _accommodation_ids?: string[] }
+        Returns: {
+          accommodation_id: string
+          accommodation_name: string
+          code: string
+          code_name: string
+          created_at: string
+          discount_code_id: string
+          is_active: boolean
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

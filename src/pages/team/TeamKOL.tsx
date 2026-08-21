@@ -49,6 +49,8 @@ import {
   type ValidationIssue,
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
+import { describeKolSaveError } from "@/lib/kolSaveErrors";
+
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
@@ -1161,6 +1163,29 @@ function InvitationsTab({
     return groups;
   }, [sortedRows]);
 
+  // 稽核提醒：PMS 有折扣碼、但該館沒有對應邀約（孤兒折扣碼）
+  const [orphanCodes, setOrphanCodes] = useState<
+    { discount_code_id: string; code: string; code_name: string | null; accommodation_id: string; accommodation_name: string | null; created_at: string }[]
+  >([]);
+  const [orphanDismissed, setOrphanDismissed] = useState(false);
+  useEffect(() => {
+    const accIds = accommodations.map((a) => a.id);
+    if (accIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("list_orphan_kol_discount_codes" as any, {
+        _accommodation_ids: accIds,
+      });
+      if (cancelled || error) return;
+      setOrphanCodes((data as any[]) ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodations]);
+
+
+
 
 
 
@@ -1691,9 +1716,12 @@ function InvitationsTab({
     }
     if (err) {
       setSaving(false);
-      toast.error(err.message);
+      const issue = describeKolSaveError(err.message);
+      setBlockIssues([issue]);
+      toast.error(issue.message);
       return;
     }
+
 
     // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
     if (!editingId && prospectLink && newId) {
@@ -2451,6 +2479,46 @@ function InvitationsTab({
           </div>
         </div>
       </div>
+
+      {/* 稽核提醒：PMS 有折扣碼但查無對應邀約 */}
+      {!orphanDismissed && orphanCodes.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                PMS 有折扣碼、但這些館別查無對應邀約（{orphanCodes.length} 筆）
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setOrphanDismissed(true)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              同一支折扣碼在別的館別已有邀約，但這一館只有折扣碼、沒有邀約紀錄。請確認是否為未使用到的重複代碼，並回報成交組主管移除。
+            </p>
+            <ul className="space-y-1">
+              {orphanCodes.map((o) => (
+                <li key={o.discount_code_id} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-mono font-medium">{o.code}</span>
+                  <span className="text-muted-foreground">{o.accommodation_name ?? "—"}</span>
+                  {o.code_name && <span className="text-xs text-muted-foreground">（{o.code_name}）</span>}
+                  <Link
+                    to={`/admin/discount-codes/${o.discount_code_id}/detail?accId=${o.accommodation_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+                  >
+                    查看明細
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+
 
 
       {/* 結果 */}
