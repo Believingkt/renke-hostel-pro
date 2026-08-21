@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
 
 interface SalaryVersion {
   id: string;
@@ -241,6 +241,19 @@ export default function TeamBaseSalaryTab() {
         <p className="text-sm text-muted-foreground tabular-nums">
           目前生效底薪合計 ${totalCurrent.toLocaleString()}
         </p>
+        <p className="text-sm text-muted-foreground">
+          以下職稱分類依 TeamMembers 的角色 role 為依據，
+          <a
+            href="https://pms.lakeze.com/team/members"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+          >
+            查看設定
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </p>
+
 
         {loading ? (
           <p className="text-sm text-muted-foreground">讀取中…</p>
@@ -266,10 +279,14 @@ export default function TeamBaseSalaryTab() {
                 <div key={m.user_id} className="rounded-lg border p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      目前底薪 {cur === null ? "未設定" : `$${cur.toLocaleString()}`}
+                    <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-sm font-semibold text-primary tabular-nums">
+                      目前底薪
+                      <span className="text-base">
+                        {cur === null ? "未設定" : `$${cur.toLocaleString()}`}
+                      </span>
                     </span>
                   </div>
+
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Input
@@ -309,18 +326,23 @@ export default function TeamBaseSalaryTab() {
                   </div>
 
                   {list.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <ul className="mt-3 space-y-1.5 text-sm">
                       {list.map((v) => {
                         const future = v.effective_from > today;
                         return (
-                          <li key={v.id} className="flex flex-wrap items-center gap-2">
-                            <span className="tabular-nums">
+                          <li
+                            key={v.id}
+                            className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-muted/30 px-2.5 py-1.5"
+                          >
+                            <span className="font-medium tabular-nums">
                               {v.effective_from} 起 ${Number(v.amount).toLocaleString()}
                             </span>
-                            {future && <span className="text-primary">（未生效）</span>}
-                            {v.note && <span>· {v.note}</span>}
-                            <span>
-                              · 由 {v.created_by_email ?? "未知"} 於 {fmtTime(v.created_at)} 設定
+                            {future && <span className="text-primary text-xs">（未生效）</span>}
+                            <span className="text-muted-foreground">
+                              備註：{v.note || "無"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              （由 {v.created_by_email ?? "未知"} 於 {fmtTime(v.created_at)} 設定）
                             </span>
                             {future && (
                               <Button
@@ -337,6 +359,7 @@ export default function TeamBaseSalaryTab() {
                       })}
                     </ul>
                   )}
+
                 </div>
               );
                 })}
