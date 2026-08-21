@@ -32,6 +32,8 @@ interface KolInfo {
   name: string | null;
   cid_code: string | null;
   venue_name: string | null;
+  /** 場域對應的 PMS 母館；外部（非 PMS）場域為 null */
+  venue_accommodation_id?: string | null;
   accommodation_id: string | null;
   token_expires_at: string | null;
   merged_into_primary?: boolean;
@@ -39,6 +41,7 @@ interface KolInfo {
   publish_url?: string | null;
   ig_url?: string | null;
 }
+
 
 /** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱／IG 連結／合作場域／應付金額 */
 const RAGIC_PAY_FORM_BASE = "https://ap15.ragic.com/lakeze/ragicadministration/5";
