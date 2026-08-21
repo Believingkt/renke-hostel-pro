@@ -2642,20 +2642,23 @@ function InvitationsTab({
                         </TableCell>
                         <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
                         <TableCell className="min-w-[240px] max-w-[280px] align-top">
-                          {r.ig_handle ? (
-                            <a
-                              href={igProfileUrl(r.ig_handle)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
-                              title={r.ig_handle}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {r.ig_handle}
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                          {(() => {
+                            const link = r.ig_url || igProfileUrl(r.ig_handle);
+                            return link ? (
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
+                                title={link}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {link}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                         <TableCell>
