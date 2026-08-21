@@ -277,10 +277,21 @@ describe("同住夥伴", () => {
 
     const diffDate = run(
       { cid_code: "MEIMEI", companion_cid: "SELFE" },
-      { companion: companion({ check_in_date: "2026-08-12" }) },
+      { companion: companion({ check_in_date: "2026-08-20" }) },
     );
     expect(rules(diffDate)).toContain("companion.different_checkin");
   });
+
+  it("同一支折扣碼視為同一份合約：跨館與 30 天內只警告不擋", () => {
+    const r = run(
+      { cid_code: "SELFE", companion_cid: "SELFE2" },
+      { companion: companion({ cid_code: "SELFE", accommodation_id: ACC_B, check_in_date: "2026-08-25" }) },
+    );
+    expect(rules(r)).toContain("companion.cross_accommodation_same_contract");
+    expect(rules(r)).toContain("companion.adjacent_checkin");
+    expect(r.blocks).toHaveLength(0);
+  });
+
 
   it("passes for a valid companion", () => {
     const r = run({ cid_code: "MEIMEI", companion_cid: "SELFE" }, { companion: companion() });
