@@ -4651,20 +4651,20 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     if (venueNames.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name, rarity")
+        .select("scout_id, venue_name, rarity, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
-      kolData = data ?? [];
+      kolData = dedupeByContractGroup(data ?? []);
     }
 
     // 全部 kol_profiles 當月（給個人表用，含未在設定中的場域亦可顯示）
     const { data: allKolRaw } = await supabase
       .from("kol_profiles")
-      .select("scout_id, venue_name")
+      .select("scout_id, venue_name, created_at, contract_group_id")
       .eq("is_error", false)
       .eq("kpi_qualified", true)
       .eq("kpi_month", kpiMonthStr)
@@ -4681,7 +4681,9 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       return selectedYM < start;
     };
 
-    const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
+    const filteredAllKol = dedupeByContractGroup(((allKolRaw as any[]) ?? [])).filter((k) =>
+      isParttimeForMonth(k.scout_id),
+    );
     const allKol = filteredAllKol;
 
     // 團隊實際統計：正職 / 兼職共用同一目標，實際數為「兼職全量 ＋ 正職 SR↑」累加
@@ -5281,7 +5283,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     if (venueNames.length > 0 && eligibleFulltimeIds.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -5289,7 +5291,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .in("scout_id", eligibleFulltimeIds)
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
-      kolData = data ?? [];
+      kolData = dedupeByContractGroup(data ?? []);
     }
 
     const teamActual = new Map<string, number>();
@@ -5312,9 +5314,9 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     if (eligibleFulltimeIds.length === 0) {
       setPersonalRows([]);
     } else {
-      const { data: allKol } = await supabase
+      const { data: allKolRows } = await supabase
         .from("kol_profiles")
-        .select("scout_id, venue_name")
+        .select("scout_id, venue_name, created_at, contract_group_id")
         .eq("is_error", false)
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
@@ -5322,7 +5324,8 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       const personalMap = new Map<string, number>();
-      ((allKol as any[]) ?? []).forEach((k) => {
+      const allKol = dedupeByContractGroup(((allKolRows as any[]) ?? []));
+      allKol.forEach((k) => {
         if (k.scout_id && k.venue_name) {
           const key = `${k.scout_id}|${k.venue_name}`;
           personalMap.set(key, (personalMap.get(key) ?? 0) + 1);
