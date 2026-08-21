@@ -25,6 +25,7 @@ interface Props {
     id: string;
     order_number: string;
     paid_amount: number | null;
+    order_source?: string | null;
     payment_method: string | null;
     deposit_payment_method: string | null;
     balance_payment_method: string | null;
@@ -119,6 +120,15 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
             ｜ 已收金額：<span className="font-medium text-foreground">NT${paidAmount.toLocaleString()}</span>
           </DialogDescription>
         </DialogHeader>
+
+        {order.order_source === "group_buy" && (
+          <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            這是團購訂單（銀行匯款人工對帳）。請改到「訂單資訊 → 網紅團購」的訂單列使用「取消／退款」與「處理退款」，
+            才會同步寫入團購稽核紀錄與分潤狀態。
+          </div>
+        )}
+
+
 
         {!hasPayment ? (
           <div className="text-sm text-muted-foreground py-2">

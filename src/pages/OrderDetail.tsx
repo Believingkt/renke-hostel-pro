@@ -3933,6 +3933,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             id: order.id,
             order_number: order.order_number,
             paid_amount: order.paid_amount,
+            order_source: (order as any).order_source,
             payment_method: (order as any).payment_method,
             deposit_payment_method: (order as any).deposit_payment_method,
             balance_payment_method: (order as any).balance_payment_method,

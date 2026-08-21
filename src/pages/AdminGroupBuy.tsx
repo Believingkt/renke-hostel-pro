@@ -30,7 +30,18 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import {
+  DEPOSIT_STATE_LABEL,
+  DEPOSIT_STATE_VARIANT,
+  REFUND_STATE_LABEL,
+  REFUND_STATE_VARIANT,
+  canProcessRefund,
+  depositState,
+  paymentProviderLabel,
+  refundState,
+  remainingRefundable,
+} from "@/lib/groupBuyPayment";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
@@ -119,6 +130,7 @@ interface Campaign {
   status: string;
   deposit_percentage: number;
   payment_deadline_hours: number;
+  payment_method: string | null;
   commission_rate: number;
   contact_note: string | null;
   terms_html: string | null;
@@ -184,6 +196,7 @@ interface OrderRow {
   refund_status: string | null;
   refunded_amount: number | null;
   refunded_at: string | null;
+  payment_provider?: string | null;
   campaign_id?: string | null;
   reported?: boolean;
   confirmed?: boolean;
@@ -224,10 +237,15 @@ export default function AdminGroupBuy() {
   const [confirmNote, setConfirmNote] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
-  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "no_refund">("mark_refunded");
+  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "pending_refund" | "no_refund">("pending_refund");
   const [cancelRefundAmount, setCancelRefundAmount] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  /** 人工退款（已取消訂單補登退款） */
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundNote, setRefundNote] = useState("");
+  const [refunding, setRefunding] = useState(false);
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
@@ -282,7 +300,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
@@ -398,6 +416,21 @@ export default function AdminGroupBuy() {
     await loadDetails();
   };
 
+  /** 複製方案：同活動內建立副本，預設下架，需確認內容後再上架 */
+  const duplicatePackage = async (row: PackageRow) => {
+    const { id, created_at, updated_at, ...rest } = row as any;
+    const { error } = await supabase.from("group_buy_campaign_packages").insert({
+      ...rest,
+      display_name: `${row.display_name}（複製）`,
+      sort_order: (Number(row.sort_order) || 0) + 1,
+      is_active: false,
+    } as any);
+    if (error) toast({ title: "複製失敗", description: error.message, variant: "destructive" });
+    else toast({ title: "已複製方案", description: "副本預設為下架，確認內容後再上架" });
+    await loadDetails();
+  };
+
+
   const addBank = async () => {
     if (!activeId) return;
     const { error } = await supabase.from("group_buy_bank_accounts").insert({
@@ -454,13 +487,49 @@ export default function AdminGroupBuy() {
   };
 
   const openCancel = (o: OrderRow) => {
-    const refundable = Math.max(0, Number(o.paid_amount || 0) - Number(o.refunded_amount || 0));
+    const refundable = remainingRefundable(o);
     setCancelTarget(o);
-    setCancelRefundAction(refundable > 0 ? "mark_refunded" : "no_refund");
+    setCancelRefundAction(refundable > 0 ? "pending_refund" : "no_refund");
     setCancelRefundAmount(String(refundable));
     const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
     setCancelReason(req?.note ?? "");
 
+  };
+
+  const openRefund = (o: OrderRow) => {
+    setRefundTarget(o);
+    setRefundAmount(String(remainingRefundable(o)));
+    setRefundNote("");
+  };
+
+  /** 人工退款登記：管理員於銀行端完成退匯後才按下確認；server 端會重新讀 orders 驗證金額 */
+  const processRefund = async () => {
+    if (!refundTarget) return;
+    const amt = Math.round(Number(refundAmount) || 0);
+    const max = remainingRefundable(refundTarget);
+    if (!(amt > 0) || amt > max) {
+      toast({ title: "退款金額不正確", description: `可退範圍 1 ~ ${twd(max)}`, variant: "destructive" });
+      return;
+    }
+    setRefunding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
+        body: { orderId: refundTarget.id, mode: "refund", refundAmount: amt, reason: refundNote },
+      });
+      const payload: any = data;
+      if (error || payload?.error) {
+        toast({ title: "退款登記失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "已登記退款",
+        description: `本次 ${twd(payload.refundAmount)}，累計 ${twd(payload.totalRefunded)}`,
+      });
+      setRefundTarget(null);
+      await loadDetails();
+    } finally {
+      setRefunding(false);
+    }
   };
 
   const cancelWithRefund = async () => {
@@ -470,8 +539,9 @@ export default function AdminGroupBuy() {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
         body: {
           orderId: cancelTarget.id,
+          mode: "cancel",
           refundAction: cancelRefundAction,
-          refundAmount: cancelRefundAction === "no_refund" ? 0 : Number(cancelRefundAmount) || 0,
+          refundAmount: cancelRefundAction === "mark_refunded" ? Number(cancelRefundAmount) || 0 : 0,
           reason: cancelReason,
         },
       });
@@ -482,7 +552,11 @@ export default function AdminGroupBuy() {
       }
       toast({
         title: "訂單已取消",
-        description: payload?.refundAmount > 0 ? `已記錄退款 ${twd(payload.refundAmount)}` : "未退款，已寫入稽核紀錄",
+        description: payload?.refundAmount > 0
+          ? `已登記退款 ${twd(payload.refundAmount)}`
+          : payload?.refundStatus === "pending"
+            ? "已標記為待退款，請於銀行退匯後按「處理退款」登記"
+            : "不需退款，已寫入稽核紀錄",
       });
       setCancelTarget(null);
       await loadDetails();
@@ -493,19 +567,20 @@ export default function AdminGroupBuy() {
 
   const stats = useMemo(() => {
     const valid = orders.filter((o) => o.order_status !== "cancelled");
-    const paid = valid.filter((o) => o.confirmed);
+    const paid = valid.filter((o) => depositState(o) !== "unpaid");
     return {
       total: orders.length,
       valid: valid.length,
       cancelled: orders.length - valid.length,
-      pendingTransfer: valid.filter((o) => !o.confirmed).length,
-      awaitingCheck: valid.filter((o) => o.reported && !o.confirmed).length,
+      pendingTransfer: valid.filter((o) => depositState(o) === "unpaid").length,
+      awaitingCheck: valid.filter((o) => o.reported && depositState(o) === "unpaid").length,
       revenue: valid.reduce((s, o) => s + Number(o.final_price || 0), 0),
       collected: paid.reduce((s, o) => s + Number(o.paid_amount || 0), 0),
       commission: Math.round(
         (valid.reduce((s, o) => s + Number(o.final_price || 0), 0) * Number(activeCampaign?.commission_rate || 0)) / 100,
       ),
     };
+
   }, [orders, activeCampaign]);
 
   const publicUrl = activeCampaign ? `${window.location.origin}/g/${activeCampaign.slug}` : "";
@@ -583,15 +658,19 @@ export default function AdminGroupBuy() {
                       <TableHead className="whitespace-nowrap">訂單編號</TableHead>
                       <TableHead className="whitespace-nowrap">旅客</TableHead>
                       <TableHead className="whitespace-nowrap">入住</TableHead>
-                      <TableHead className="whitespace-nowrap">人數</TableHead>
-                      <TableHead className="whitespace-nowrap text-right tabular-nums">總額</TableHead>
-                      <TableHead className="whitespace-nowrap text-right tabular-nums">訂金</TableHead>
-                      <TableHead className="whitespace-nowrap">狀態</TableHead>
+                      <TableHead className="whitespace-nowrap text-right tabular-nums">訂單總額</TableHead>
+                      <TableHead className="whitespace-nowrap">應付訂金</TableHead>
+                      <TableHead className="whitespace-nowrap">訂單狀態</TableHead>
+                      <TableHead className="whitespace-nowrap">退款狀態</TableHead>
                       <TableHead className="whitespace-nowrap">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((o) => (
+                    {orders.map((o) => {
+                      const dState = depositState(o);
+                      const rState = refundState(o);
+                      const showRefundBtn = canProcessRefund(o);
+                      return (
                       <TableRow key={o.id}>
                         <TableCell className="whitespace-nowrap font-medium">
                           <Link
@@ -601,6 +680,7 @@ export default function AdminGroupBuy() {
                             {o.order_number}
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
+                          <div className="text-xs text-muted-foreground">{paymentProviderLabel(o)}</div>
                         </TableCell>
 
                         <TableCell className="whitespace-nowrap">
@@ -610,47 +690,41 @@ export default function AdminGroupBuy() {
                         <TableCell className="whitespace-nowrap">
                           {o.check_in_date} → {o.check_out_date}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {[
-                            `成人 ${o.adult_count ?? 0}`,
-                            (o.child_count ?? 0) > 0 ? `兒童 ${o.child_count}` : null,
-                            (o.toddler_count ?? 0) > 0 ? `幼兒 ${o.toddler_count}` : null,
-                            (o.infant_count ?? 0) > 0 ? `嬰兒 ${o.infant_count}` : null,
-                          ]
-                            .filter(Boolean)
-                            .join("・")}
-                          <div className="text-xs text-muted-foreground">計價人數 {o.guest_count ?? 0}</div>
-                        </TableCell>
                         <TableCell className="text-right tabular-nums">{twd(o.final_price)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{twd(o.deposit_amount)}</TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {o.order_status === "cancelled" ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              <Badge variant="destructive">已取消</Badge>
-                              {Number(o.refunded_amount || 0) > 0 ? (
-                                <Badge variant="secondary">
-                                  {o.refund_status === "partial_refunded" ? "部分退款" : "已退款"} {twd(o.refunded_amount || 0)}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">未退款</Badge>
-                              )}
+                          <div className="flex items-center gap-2">
+                            <span className="tabular-nums">{twd(o.deposit_amount)}</span>
+                            <Badge variant={DEPOSIT_STATE_VARIANT[dState]}>{DEPOSIT_STATE_LABEL[dState]}</Badge>
+                          </div>
+                          {Number(o.paid_amount || 0) > 0 && (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              已收 {twd(o.paid_amount || 0)}
                             </div>
-                          ) : o.cancelRequested ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              <Badge variant="destructive">旅客申請取消</Badge>
-                              {o.confirmed ? <Badge variant="secondary">已收訂金</Badge> : null}
-                            </div>
-                          ) : o.confirmed ? (
-                            <Badge className="bg-primary">已收訂金</Badge>
-                          ) : o.reported ? (
-                            <Badge variant="secondary">旅客已回報</Badge>
-                          ) : (
-                            <Badge variant="outline">待匯款</Badge>
-
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {o.order_status !== "cancelled" && !o.confirmed && (
+                          {o.order_status === "cancelled" ? (
+                            <Badge variant="destructive">已取消</Badge>
+                          ) : o.cancelRequested ? (
+                            <Badge variant="destructive">旅客申請取消</Badge>
+                          ) : o.reported && dState === "unpaid" ? (
+                            <Badge variant="secondary">旅客已回報</Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              {o.order_status === "confirmed" ? "已確認" : "待處理"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={REFUND_STATE_VARIANT[rState]}>{REFUND_STATE_LABEL[rState]}</Badge>
+                          {Number(o.refunded_amount || 0) > 0 && (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              已退 {twd(o.refunded_amount || 0)}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {o.order_status !== "cancelled" && dState !== "paid" && (
                             <Button
                               size="sm"
                               onClick={() => {
@@ -667,6 +741,12 @@ export default function AdminGroupBuy() {
                               取消／退款
                             </Button>
                           )}
+                          {showRefundBtn && (
+                            <Button size="sm" variant="outline" className="ml-1" onClick={() => openRefund(o)}>
+                              <Banknote className="mr-1 h-4 w-4" />
+                              處理退款
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -678,7 +758,8 @@ export default function AdminGroupBuy() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                     {orders.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
@@ -691,6 +772,7 @@ export default function AdminGroupBuy() {
               </CardContent>
             </Card>
           </TabsContent>
+
 
           <TabsContent value="packages" className="space-y-3">
             <Button size="sm" onClick={addPackage}>
@@ -876,6 +958,9 @@ export default function AdminGroupBuy() {
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm" onClick={() => deletePackage(p.id)}>
                       <Trash2 className="mr-1 h-4 w-4" /> 刪除
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => duplicatePackage(p)}>
+                      <CopyPlus className="mr-1 h-4 w-4" /> 複製方案
                     </Button>
                     <Button size="sm" onClick={() => savePackage(p)}>
                       儲存
@@ -1144,6 +1229,23 @@ export default function AdminGroupBuy() {
                   onChange={(e) => setEditing({ ...editing, commission_rate: Number(e.target.value) || 0 })}
                 />
               </div>
+              <div>
+                <Label>付款方式</Label>
+                <Select
+                  value={editing.payment_method ?? "manual_bank_transfer"}
+                  onValueChange={(v) => setEditing({ ...editing, payment_method: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual_bank_transfer">銀行匯款（人工對帳）</SelectItem>
+                    <SelectItem value="tappay">線上刷卡 TapPay（尚未開放）</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">目前僅支援銀行匯款；選擇 TapPay 不會改變前台流程。</p>
+              </div>
+
               <div className="md:col-span-2">
                 <Label>活動主賣點（每行一點，前台首屏最多顯示 3 點）</Label>
                 <Textarea
@@ -1268,8 +1370,9 @@ export default function AdminGroupBuy() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="pending_refund">待退款（稍後於銀行退匯後登記）</SelectItem>
                     <SelectItem value="mark_refunded">已手動退款（銀行匯回）</SelectItem>
-                    <SelectItem value="no_refund">不退款（違約金／不可退方案）</SelectItem>
+                    <SelectItem value="no_refund">不需退款（違約金／不可退方案／未收款）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1305,6 +1408,58 @@ export default function AdminGroupBuy() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 人工退款登記（已取消訂單） */}
+      <Dialog open={!!refundTarget} onOpenChange={(o) => !o && setRefundTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>處理退款</DialogTitle>
+            <DialogDescription>
+              團購為銀行匯款（人工對帳），請於銀行端實際完成退匯後再登記。
+            </DialogDescription>
+          </DialogHeader>
+          {refundTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                <div className="text-muted-foreground">訂單編號</div>
+                <div className="text-right font-medium">{refundTarget.order_number}</div>
+                <div className="text-muted-foreground">旅客</div>
+                <div className="text-right font-medium">{refundTarget.guest_name}</div>
+                <div className="text-muted-foreground">已付款金額</div>
+                <div className="text-right tabular-nums">{twd(refundTarget.paid_amount || 0)}</div>
+                <div className="text-muted-foreground">已退款金額</div>
+                <div className="text-right tabular-nums">{twd(refundTarget.refunded_amount || 0)}</div>
+                <div className="text-muted-foreground">尚可退款金額</div>
+                <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
+              </div>
+              <div>
+                <Label>退款金額</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={remainingRefundable(refundTarget)}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>退款備註（會寫入稽核紀錄）</Label>
+                <Textarea rows={3} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundTarget(null)}>
+              返回
+            </Button>
+            <Button onClick={processRefund} disabled={refunding}>
+              {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認已完成退款
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* 訂單狀態稽核紀錄 */}
       <Dialog open={!!auditTarget} onOpenChange={(v) => !v && setAuditTarget(null)}>

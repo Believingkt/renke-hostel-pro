@@ -3,8 +3,22 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GROUP_BUY_DAY_TYPE_LABEL, type GroupBuyDayType } from "@/lib/groupBuyPricing";
 
+export interface ChildTierBreakdownSnapshot {
+  key: string;
+  label: string;
+  count: number;
+  base_count?: number;
+  fee_per_night?: number;
+  over_count?: number;
+  over_limit_fee_per_night?: number;
+  nights?: number;
+  subtotal: number;
+  free?: boolean;
+}
+
 export interface PriceSnapshot {
   nightly_breakdown?: Array<{ date: string; type: GroupBuyDayType; price: number }> | null;
+  child_breakdown?: ChildTierBreakdownSnapshot[] | null;
   prices_at_booking?: {
     group_buy_price?: number | null;
     weekday_price?: number | null;
@@ -47,6 +61,24 @@ export function GroupBuyPriceSnapshot({ snapshot }: { snapshot?: PriceSnapshot |
     <div className="space-y-2 rounded-lg border p-3">
       {row("住宿費", snapshot.base_accommodation_total)}
       {row("兒童加價", snapshot.child_extra_total)}
+      {(snapshot.child_breakdown ?? []).length > 0 && (
+        <div className="space-y-1 rounded-md bg-muted/50 p-2 text-xs">
+          {(snapshot.child_breakdown ?? []).map((c) => (
+            <div key={c.key} className="flex items-center justify-between gap-3">
+              <span>
+                {c.label} × {c.count}
+                {c.over_count ? `（含超額 ${c.over_count} 位）` : ""}
+              </span>
+              <span className="text-muted-foreground tabular-nums">
+                {c.free
+                  ? "免費"
+                  : `${twd(c.fee_per_night)}/人/晚 × ${c.base_count ?? c.count} 位 × ${c.nights ?? 1} 晚`}
+              </span>
+              <span className="tabular-nums font-medium">{twd(c.subtotal)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {row("訂單總額", snapshot.grand_total)}
       {row("訂金", snapshot.deposit)}
       {row("尾款", snapshot.balance)}

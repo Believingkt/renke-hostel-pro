@@ -24,6 +24,7 @@ import {
   findExcludedNight,
 } from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { resolveCampaignPayment } from "../_shared/paymentAdapter.ts";
 import { taipeiToday } from "../_shared/taipeiToday.ts";
 
 const FN = "group-buy-create-order";
@@ -98,6 +99,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (cErr) throw cErr;
     if (!campaign || campaign.status !== "active") return json({ error: "團購活動不存在或已結束" }, 404);
+
+    // 付款方式：活動層設定（目前僅 manual_bank_transfer 啟用；tappay 保留但尚未接上流程）
+    const campaignPayment = resolveCampaignPayment(campaign.payment_method);
+    if (campaignPayment.provider !== "manual") {
+      return json({ error: "此團購活動的線上付款方式尚未啟用，請聯繫客服" }, 400);
+    }
 
     const now = new Date();
     if (campaign.sale_start && new Date(campaign.sale_start) > now) return json({ error: "團購尚未開賣" }, 400);
@@ -246,6 +253,28 @@ Deno.serve(async (req) => {
       toddlerCount > 0 ? `${childRules.tiers.toddler.label} ${toddlerCount}` : null,
       infantCount > 0 ? `${childRules.tiers.infant.label} ${infantCount}` : null,
     ].filter(Boolean).join("／");
+    // 兒童加價明細（只列出人數 > 0 的 tier；免費者顯示「免費」而非 NT$0 × N）
+    const twdInt = (v: number) => `NT$${Math.round(Number(v) || 0).toLocaleString("en-US")}`;
+    const childDetailLines = childEval.breakdown.flatMap((b) => {
+      const head = `　${b.label} ${b.count} 位`;
+      if (b.free) return [head, "　　免費"];
+      const parts: string[] = [];
+      if (b.base_count > 0 && b.fee_per_night > 0) {
+        parts.push(
+          `　　${twdInt(b.fee_per_night)} × ${b.base_count} 位 × ${b.nights} 晚 = ${
+            twdInt(b.fee_per_night * b.base_count * b.nights)
+          }`,
+        );
+      }
+      if (b.over_count > 0) {
+        parts.push(
+          `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.over_count} 位 × ${b.nights} 晚 = ${
+            twdInt(b.over_limit_fee_per_night * b.over_count * b.nights)
+          }`,
+        );
+      }
+      return [head, ...parts];
+    });
     const noteLines = [
       `【團購】${campaign.title}`,
       campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
@@ -254,7 +283,9 @@ Deno.serve(async (req) => {
       `住宿費：${stay.nightlyBreakdown
         .map((x) => `${x.date} ${GROUP_BUY_DAY_TYPE_LABEL[x.type]} ${x.price}`)
         .join("／")}（小計 ${baseTotal} 元）`,
-      childExtraTotal > 0 ? `兒童加價：${childExtraTotal} 元（房費 ${baseTotal} 元）` : null,
+      childDetailLines.length > 0 ? "兒童加價：" : null,
+      ...(childDetailLines.length > 0 ? childDetailLines : []),
+      childDetailLines.length > 0 ? `兒童加價合計：${twdInt(childExtraTotal)}（房費 ${twdInt(baseTotal)}）` : null,
       `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
       guestNote ? `旅客備註：${guestNote}` : null,
     ].filter(Boolean);
@@ -285,7 +316,11 @@ Deno.serve(async (req) => {
         discount_code: campaign.discount_code ?? null,
         order_status: "pending",
         payment_status: "unpaid",
-        deposit_payment_method: "bank_transfer",
+        paid_amount: 0,
+        // 付款系統（provider）由活動設定推導；目前團購一律 manual_bank_transfer → manual
+        payment_provider: campaignPayment.provider,
+        payment_method: campaignPayment.paymentMethod,
+        deposit_payment_method: campaignPayment.paymentMethod,
         order_source: GROUP_BUY_ORDER_SOURCE,
         // 以活動 slug 作為「通路代號」，讓後台來源標籤可顯示各團購活動名稱
         ota_channel: campaign.slug ?? null,
@@ -353,6 +388,10 @@ Deno.serve(async (req) => {
         nightly_breakdown: stay.nightlyBreakdown,
         base_accommodation_total: baseTotal,
         child_extra_total: childExtraTotal,
+        // 建單當下「實際套用後」的兒童加價計算結果（不可用日後的民宿規則回推）
+        child_breakdown: childEval.breakdown,
+        payment_provider: campaignPayment.provider,
+        campaign_payment_method: campaign.payment_method ?? "manual_bank_transfer",
         grand_total: total,
         deposit_percentage: campaign.deposit_percentage,
         deposit,

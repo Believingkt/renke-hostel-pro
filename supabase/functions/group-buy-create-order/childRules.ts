@@ -88,16 +88,33 @@ export function selectionCount(sel: ChildSelection, key: ChildTierKey): number {
   return sel.children;
 }
 
+/** 逐 tier 的實際計算結果（建單當下套用後的結果，供 price_snapshot 還原歷史金額） */
+export interface ChildTierBreakdown {
+  key: ChildTierKey;
+  label: string;
+  count: number;
+  /** 以標準費率計價的人數 */
+  base_count: number;
+  fee_per_night: number;
+  /** 超出 max_count 後改以加價費率計價的人數 */
+  over_count: number;
+  over_limit_fee_per_night: number;
+  nights: number;
+  subtotal: number;
+  free: boolean;
+}
+
 export interface ChildEvaluation {
   blocked: boolean;
   blockedTiers: ChildTierKey[];
   extraFeePerNight: number;
   extraFeeTotal: number;
-  breakdown: Array<{ key: ChildTierKey; label: string; count: number; subtotal: number }>;
+  breakdown: ChildTierBreakdown[];
   capacityHeadcount: number;
   totalExceeded?: boolean;
   blockReason?: string;
 }
+
 
 export function evaluateChildSelection(
   rules: ChildAgeRules,
@@ -136,7 +153,19 @@ export function evaluateChildSelection(
     const overPerNight = (tier.over_limit_fee_per_night || 0) * overCount;
     extraFeePerNight += basePerNight + overPerNight;
     const subtotal = (basePerNight + overPerNight) * safeNights;
-    if (subtotal > 0) breakdown.push({ key, label: tier.label, count, subtotal });
+    // 免費 tier（例如嬰兒）也保留於 breakdown，供備註／快照顯示「免費」
+    breakdown.push({
+      key,
+      label: tier.label,
+      count,
+      base_count: baseCount,
+      fee_per_night: Math.max(0, tier.fee_per_night || 0),
+      over_count: overCount,
+      over_limit_fee_per_night: Math.max(0, tier.over_limit_fee_per_night || 0),
+      nights: safeNights,
+      subtotal,
+      free: subtotal <= 0,
+    });
   }
 
   let totalExceeded = false;
