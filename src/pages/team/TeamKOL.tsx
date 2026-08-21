@@ -1379,10 +1379,10 @@ function InvitationsTab({
         orderNo
           ? supabase
               .from("kol_profiles")
-              .select("id, name")
+              .select("id, name, primary_profile_id")
               .eq("order_number", orderNo)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
-              .limit(1)
+              .limit(5)
           : Promise.resolve({ data: [] } as any),
         normCompanion
           ? supabase
@@ -1419,7 +1419,15 @@ function InvitationsTab({
       if (orderNo) {
         orderExists = !!orderRes?.data;
         orderDiscountCode = (orderRes?.data as any)?.discount_code ?? null;
-        orderBoundTo = (boundRes?.data as any[])?.[0]?.name ?? null;
+        // 同住合拍（主檔／附屬同一家族）可共用同一張訂單，不視為重複綁定
+        const selfPrimary = form.primary_profile_id ?? null;
+        const boundRows = ((boundRes?.data as any[]) ?? []).filter((r) => {
+          const rPrimary = r.primary_profile_id ?? null;
+          if (selfPrimary && (r.id === selfPrimary || rPrimary === selfPrimary)) return false;
+          if (editingId && rPrimary === editingId) return false;
+          return true;
+        });
+        orderBoundTo = boundRows[0]?.name ?? null;
       }
       companion = (companionRes?.data as CompanionProfile) ?? null;
       conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
