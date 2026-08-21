@@ -177,26 +177,8 @@ export default function KolBonusPublic() {
         nonTwdCount: Number((data as any).non_twd_orders_count ?? 0),
       });
 
-      // Fetch accommodation names (public table)
-      const accIds = Array.from(
-        new Set(
-          [
-            ...((data as any).orders ?? []).map((o: OrderRow) => o.accommodation_id),
-            (data as any).kol?.accommodation_id,
-          ].filter(Boolean),
-        ),
-      ) as string[];
-      if (accIds.length > 0) {
-        const { data: accs } = await supabase
-          .from("accommodation_info")
-          .select("id, name")
-          .in("id", accIds);
-        const map: Record<string, string> = {};
-        (accs ?? []).forEach((a: any) => {
-          map[a.id] = a.name;
-        });
-        setAccNames(map);
-      }
+      // 館別名稱一律由 Edge Function（service_role）帶回，避免公開頁 RLS 取不到停用館別名稱
+
       setLoading(false);
     })();
   }, [token]);
