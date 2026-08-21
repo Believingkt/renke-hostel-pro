@@ -1252,6 +1252,11 @@ function InvitationsTab({
     }
   }, [form.order_number]); // eslint-disable-line
 
+  // 換一筆／關閉表單時，重置「確定就是帳號連結」的確認狀態
+  useEffect(() => {
+    setIgContentUrlAck(false);
+  }, [sheetOpen, editingId]);
+
   // ig_handle 即時重複檢查
   useEffect(() => {
     const ig = form.ig_handle.trim();
