@@ -300,6 +300,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const metaMap = await fetchMetaMap(admin, filteredOrders.map((o: any) => o.id));
     const { orders, nonTwdCount, addonExcludedTotal } = enrich(filteredOrders, metaMap);
+    await attachAccommodationNames(admin, orders);
+
 
     const grossRevenue = orders.reduce((s, o) => s + Number(o.gross_revenue ?? 0), 0);
     const commissionBaseTotal = orders.reduce((s, o) => s + Number(o.commission_base ?? 0), 0);
