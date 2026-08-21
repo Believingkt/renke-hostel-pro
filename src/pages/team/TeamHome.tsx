@@ -2017,11 +2017,23 @@ export default function TeamHome() {
       />
 
       {loading && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-center gap-2.5 text-base font-medium text-primary">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          正在讀取並計算 {activePeriod.label} 的獎金資料…
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border-2 border-primary/40 bg-primary/10 shadow-sm px-4 py-4 sm:px-6 sm:py-5 flex items-center gap-3 sm:gap-4 animate-pulse"
+        >
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 animate-spin text-primary" />
+          <div className="min-w-0">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary leading-snug">
+              正在讀取並計算 {activePeriod.label} 的獎金資料…
+            </div>
+            <div className="text-sm sm:text-base text-primary/70 mt-0.5">
+              資料量較大時需要數秒，請稍候
+            </div>
+          </div>
         </div>
       )}
+
 
 
       {!loading && cards.length === 0 ? (
