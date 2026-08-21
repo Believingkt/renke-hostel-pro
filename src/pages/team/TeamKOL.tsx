@@ -1292,9 +1292,11 @@ function InvitationsTab({
     let companion: CompanionProfile = null;
     let conflicts: CodeConflict[] = [];
     let igDupName: string | null = null;
+    let nameVariantExisting: string | null = null;
+    const nameKey = kolNameKey(form.name);
 
     try {
-      const [orderRes, boundRes, companionRes, conflictRes, igRes] = await Promise.all([
+      const [orderRes, boundRes, companionRes, conflictRes, igRes, nameRes] = await Promise.all([
         orderNo
           ? supabase.from("orders").select("id, discount_code").eq("order_number", orderNo).maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -1328,6 +1330,14 @@ function InvitationsTab({
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
               .limit(5)
           : Promise.resolve({ data: [] } as any),
+        nameKey
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name")
+              .eq("name_normalized", nameKey)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(1)
+          : Promise.resolve({ data: [] } as any),
       ]);
 
       if (orderNo) {
@@ -1339,6 +1349,8 @@ function InvitationsTab({
       conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
       const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
       igDupName = igDup?.name ?? null;
+      const existingName = ((nameRes?.data as any[]) ?? [])[0]?.name ?? null;
+      nameVariantExisting = existingName && existingName !== form.name.trim() ? existingName : null;
     } catch {
       // 查詢失敗不阻擋儲存，僅略過進階檢查
     }
