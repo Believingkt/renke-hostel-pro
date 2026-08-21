@@ -53,7 +53,7 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
         .from("kol_profiles")
         .select("id, name, ig_handle, cid_code, venue_name, check_in_date, name_normalized")
         .order("check_in_date", { ascending: false, nullsFirst: false })
-        .limit(30);
+        .limit(60);
       if (filter) query = query.or(filter);
       else query = query.ilike(field, `%${esc(q)}%`);
       if (excludeId) query = query.neq("id", excludeId);
