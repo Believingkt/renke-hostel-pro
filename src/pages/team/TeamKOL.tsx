@@ -2480,6 +2480,46 @@ function InvitationsTab({
         </div>
       </div>
 
+      {/* 稽核提醒：PMS 有折扣碼但查無對應邀約 */}
+      {!orphanDismissed && orphanCodes.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                PMS 有折扣碼、但這些館別查無對應邀約（{orphanCodes.length} 筆）
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setOrphanDismissed(true)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              同一支折扣碼在別的館別已有邀約，但這一館只有折扣碼、沒有邀約紀錄。請確認是否為未使用到的重複代碼，並回報成交組主管移除。
+            </p>
+            <ul className="space-y-1">
+              {orphanCodes.map((o) => (
+                <li key={o.discount_code_id} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-mono font-medium">{o.code}</span>
+                  <span className="text-muted-foreground">{o.accommodation_name ?? "—"}</span>
+                  {o.code_name && <span className="text-xs text-muted-foreground">（{o.code_name}）</span>}
+                  <Link
+                    to={`/admin/discount-codes/${o.discount_code_id}/detail?accId=${o.accommodation_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+                  >
+                    查看明細
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+
+
 
       {/* 結果 */}
       {loading ? null : filtered.length === 0 ? (
