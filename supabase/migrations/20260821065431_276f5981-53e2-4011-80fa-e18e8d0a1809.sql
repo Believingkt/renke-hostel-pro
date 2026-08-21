@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.kol_profiles_normalize_before_write() FROM PUBLIC, anon, authenticated;
