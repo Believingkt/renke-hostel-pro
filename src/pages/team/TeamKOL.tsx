@@ -691,6 +691,10 @@ function InvitationsTab({
   const [blockIssues, setBlockIssues] = useState<ValidationIssue[]>([]);
   const [collabConfirmed, setCollabConfirmed] = useState(false);
   const [igDupConfirmed, setIgDupConfirmed] = useState(false);
+  /** 名稱僅全半形／大小寫不同時，確認為不同人（不套用既有寫法） */
+  const [nameVariantConfirmed, setNameVariantConfirmed] = useState(false);
+  /** 既有的同名不同寫法（供表單即時提示） */
+  const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
 
   // 填錯 Dialog
