@@ -34,7 +34,7 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
 
   useEffect(() => {
     const q = value.trim();
-    if (!touched || q.length < 2) {
+    if (!touched || q.length < 1) {
       setItems([]);
       return;
     }
