@@ -24,6 +24,7 @@ import {
   findExcludedNight,
 } from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { resolveCampaignPayment } from "../_shared/paymentAdapter.ts";
 import { taipeiToday } from "../_shared/taipeiToday.ts";
 
 const FN = "group-buy-create-order";
