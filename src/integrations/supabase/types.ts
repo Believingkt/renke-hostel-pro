@@ -4977,6 +4977,8 @@ export type Database = {
           kpi_qualified: boolean | null
           lihi_url: string | null
           name: string | null
+          name_normalized: string | null
+          name_original: string | null
           notes: string | null
           order_id: string | null
           order_number: string | null
@@ -5029,6 +5031,8 @@ export type Database = {
           kpi_qualified?: boolean | null
           lihi_url?: string | null
           name?: string | null
+          name_normalized?: string | null
+          name_original?: string | null
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
@@ -5081,6 +5085,8 @@ export type Database = {
           kpi_qualified?: boolean | null
           lihi_url?: string | null
           name?: string | null
+          name_normalized?: string | null
+          name_original?: string | null
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
@@ -12936,6 +12942,7 @@ export type Database = {
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
       is_team_salary_manager: { Args: never; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
+      kol_name_key: { Args: { _raw: string }; Returns: string }
       list_kol_quota_audit_logs: {
         Args: { _accommodation_id: string; _limit?: number }
         Returns: {
@@ -12969,6 +12976,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_kol_name: { Args: { _raw: string }; Returns: string }
       normalize_owlting_name: { Args: { p_name: string }; Returns: string }
       owlting_is_inbound_owned: {
         Args: {
