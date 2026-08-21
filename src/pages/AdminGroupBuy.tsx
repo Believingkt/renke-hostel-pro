@@ -34,6 +34,8 @@ import { Copy, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
+import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 
 
