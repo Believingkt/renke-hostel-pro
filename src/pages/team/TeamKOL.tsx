@@ -1691,9 +1691,12 @@ function InvitationsTab({
     }
     if (err) {
       setSaving(false);
-      toast.error(err.message);
+      const issue = describeKolSaveError(err.message);
+      setBlockIssues([issue]);
+      toast.error(issue.message);
       return;
     }
+
 
     // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
     if (!editingId && prospectLink && newId) {
