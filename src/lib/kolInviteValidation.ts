@@ -128,7 +128,14 @@ export type CompanionProfile = {
   accommodation_id: string | null;
   venue_id: string | null;
   check_in_date: string | null;
+  contract_group_id?: string | null;
 } | null;
+
+/** 同一份合約的入住日上限（天）；跨檔期超過此上限才擋下 */
+export const SAME_CONTRACT_DATE_LIMIT_DAYS = 365;
+/** 折扣碼不同時沿用的相鄰入住上限（天） */
+export const DIFF_CONTRACT_DATE_LIMIT_DAYS = 3;
+
 
 export type CodeConflict = {
   source: string;
