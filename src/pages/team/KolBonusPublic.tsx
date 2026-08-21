@@ -25,6 +25,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 interface KolInfo {
   id: string;
