@@ -3585,32 +3585,66 @@ function InvitationsTab({
             {showCid && (
               <Field label="折扣碼 / CID" anchorId="kolf-cid">
                 {cidConflicts.length > 0 && (() => {
+                  const selfAccName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? "";
+                  const selfVenueType = form.venue_id
+                    ? (venues.find((v) => v.id === form.venue_id)?.type ?? "民宿")
+                    : venueTypeOfAcc(form.accommodation_id);
+                  const isLinked = (c: CodeConflict) =>
+                    form.primary_profile_id === (c.detail?.profile_id ?? null) ||
+                    (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId);
                   const kolHits = cidConflicts.filter((c) => c.source === "kol_profiles");
-                  const linked = kolHits.some(
-                    (c) =>
-                      form.primary_profile_id === (c.detail?.profile_id ?? null) ||
-                      (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId),
-                  );
-                  const unresolved = kolHits.length > 0 && !linked;
+                  const linked = kolHits.some(isLinked);
+
+                  type Lv = "block" | "warning" | "info";
+                  const levelOf = (c: CodeConflict): Lv => {
+                    if (c.source === "scout_discount_codes") return "block";
+                    if (c.source !== "kol_profiles") return "warning";
+                    if (isLinked(c)) return "warning";
+                    const samePerson = (c.owner_name ?? "").trim() === (form.name ?? "").trim();
+                    if (!samePerson) return "block";
+                    if (c.accommodation_id && c.accommodation_id === form.accommodation_id) return "block";
+                    return isSameContractScope({
+                      selfAccName,
+                      otherAccName: c.accommodation_name,
+                      selfVenueType,
+                      otherVenueType: venueTypeOfAcc(c.accommodation_id),
+                    })
+                      ? "warning"
+                      : "info";
+                  };
+                  const marks: Record<Lv, string> = { block: "⛔", warning: "⚠️", info: "ℹ️" };
+                  const levels = cidConflicts.map(levelOf);
+                  const tone = levels.includes("block")
+                    ? "border-destructive bg-destructive/10 text-destructive"
+                    : levels.includes("warning")
+                      ? "border-amber-300 bg-amber-50 text-amber-900"
+                      : "border-border bg-muted text-muted-foreground";
+                  // 需要處理的只有「不同人、尚未建立主檔關係」的同 CID 命中
+                  const needsPrimary = kolHits.filter((c) => levelOf(c) === "block" && !isLinked(c));
                   return (
-                    <div
-                      className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${
-                        unresolved
-                          ? "border-destructive bg-destructive/10 text-destructive"
-                          : "border-amber-300 bg-amber-50 text-amber-900"
-                      }`}
-                    >
-                      {cidConflicts.map((c, i) => (
-                        <div key={i}>
-                          {unresolved ? "⛔" : "⚠️"}{" "}
-                          {c.source === "scout_discount_codes"
-                            ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
-                            : c.source === "kol_profiles"
-                              ? `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
-                              : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
-                        </div>
-                      ))}
-                      {kolHits.length > 0 && (
+                    <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
+                      {cidConflicts.map((c, i) => {
+                        const lv = levels[i];
+                        const isSamePersonOther =
+                          c.source === "kol_profiles" &&
+                          (c.owner_name ?? "").trim() === (form.name ?? "").trim() &&
+                          c.accommodation_id !== form.accommodation_id;
+                        return (
+                          <div key={i}>
+                            {marks[lv]}{" "}
+                            {c.source === "scout_discount_codes"
+                              ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
+                              : c.source === "kol_profiles"
+                                ? isSamePersonOther
+                                  ? lv === "warning"
+                                    ? `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}已用同一支 CID；依規則屬同一份合約，只計 1 個資格。`
+                                    : `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格，無需處理。`
+                                  : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
+                                : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
+                          </div>
+                        );
+                      })}
+                      {kolHits.length > 0 && (linked || needsPrimary.length > 0) && (
                         <div className="pt-1">
                           {linked ? (
                             <span>已建立同住合拍關係：分潤與 KPI 只算主檔，本筆不重複計分。</span>
@@ -3620,7 +3654,7 @@ function InvitationsTab({
                                 同 CID 必須先建立「同住主檔」關係才能儲存；若不是同住夥伴，請改用本人的專屬碼。
                               </div>
                               <div className="mt-1 flex flex-wrap gap-2">
-                                {kolHits
+                                {needsPrimary
                                   .filter((c) => c.detail?.profile_id && !c.detail?.primary_profile_id)
                                   .map((c) => (
                                     <Button
@@ -3652,6 +3686,7 @@ function InvitationsTab({
                     </div>
                   );
                 })()}
+
                 <KolSuggestInput
                   field="cid_code"
                   value={form.cid_code}
