@@ -180,7 +180,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { data: kolRow, error: kolErr } = await admin
       .from("kol_profiles")
-      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at, primary_profile_id")
+      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at, primary_profile_id, publish_url, ig_url")
       .eq("public_token", token)
       .maybeSingle();
 
@@ -205,7 +205,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (kolRow.primary_profile_id) {
       const { data: parent } = await admin
         .from("kol_profiles")
-        .select("id, name, cid_code, venue_id, venue_name, accommodation_id, token_expires_at")
+        .select("id, name, cid_code, venue_id, venue_name, accommodation_id, token_expires_at, publish_url, ig_url")
         .eq("id", kolRow.primary_profile_id)
         .maybeSingle();
       if (parent) {
@@ -236,6 +236,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       token_expires_at: kol.token_expires_at,
       merged_into_primary: !!mergedIntoName,
       primary_name: mergedIntoName,
+      publish_url: (kol.publish_url as string | null) ?? null,
+      ig_url: (kol.ig_url as string | null) ?? null,
     };
 
 

@@ -25,6 +25,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 interface KolInfo {
   id: string;
@@ -35,9 +36,11 @@ interface KolInfo {
   token_expires_at: string | null;
   merged_into_primary?: boolean;
   primary_name?: string | null;
+  publish_url?: string | null;
+  ig_url?: string | null;
 }
 
-/** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱（IG／影片連結由 KOL 自行填寫） */
+/** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱／IG 連結／合作場域／應付金額 */
 const RAGIC_PAY_FORM_BASE = "https://ap15.ragic.com/lakeze/ragicadministration/5";
 const RAGIC_FIXED_PARAMS: Record<string, string> = {
   "ragic-web-embed": "true",
@@ -52,13 +55,31 @@ const RAGIC_FIXED_PARAMS: Record<string, string> = {
   pfv3005523: "本國籍",
 };
 const RAGIC_FIELD_NICKNAME = "pfv1001024";
+const RAGIC_FIELD_IG_URL = "pfv1001025";
+const RAGIC_FIELD_VENUE = "pfv1000508";
+const RAGIC_FIELD_AMOUNT = "pfv3005533";
 
-function buildPayFormUrl(kol: Pick<KolInfo, "name"> | null) {
+function buildPayFormUrl(
+  kol: Pick<KolInfo, "name" | "publish_url" | "ig_url" | "venue_name"> | null,
+  payableAmount: number,
+) {
   const params = new URLSearchParams(RAGIC_FIXED_PARAMS);
   const nickname = (kol?.name ?? "").trim();
   if (nickname) params.set(RAGIC_FIELD_NICKNAME, nickname);
+
+  // IG 連結：優先帶 publish_url（發布連結），沒有才用 ig_url，兩者皆無則留空
+  const link = (kol?.publish_url ?? "").trim() || (kol?.ig_url ?? "").trim();
+  if (link) params.set(RAGIC_FIELD_IG_URL, link);
+
+  const venue = (kol?.venue_name ?? "").trim();
+  if (venue) params.set(RAGIC_FIELD_VENUE, venue);
+
+  const amount = Math.round(Number(payableAmount) || 0);
+  if (amount > 0) params.set(RAGIC_FIELD_AMOUNT, String(amount));
+
   return `${RAGIC_PAY_FORM_BASE}?${params.toString()}&showSheetName`;
 }
+
 
 
 interface OrderRow {
@@ -119,7 +140,7 @@ export default function KolBonusPublic() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
   const { multiplierForDataMonth } = useBonusMultipliers();
-  const payFormUrl = useMemo(() => buildPayFormUrl(kol), [kol]);
+  
 
   useEffect(() => {
     if (!token) {
@@ -250,6 +271,19 @@ export default function KolBonusPublic() {
   const commissionMultiplier = useMemo(() => {
     return isYearAll ? 1 : multiplierForDataMonth("kol_commission", prefix);
   }, [isYearAll, prefix, multiplierForDataMonth]);
+
+  /** 應付金額：目前篩選期間「已完成業績」的總分潤（含加倍活動） */
+  const payableCommission = useMemo(
+    () => Math.round(boostedAmount(completedTotals.commission, commissionMultiplier)),
+    [completedTotals.commission, commissionMultiplier],
+  );
+
+  const payFormUrl = useMemo(
+    () => buildPayFormUrl(kol, payableCommission),
+    [kol, payableCommission],
+  );
+
+
 
   const computePayoutDate = (checkOut: string | null | undefined): string => {
     if (!checkOut) return "—";
