@@ -4244,6 +4244,7 @@ export type Database = {
           kol_display_name: string | null
           kol_profile_id: string | null
           payment_deadline_hours: number
+          payment_method: string
           public_token: string
           sale_end: string | null
           sale_start: string | null
@@ -4279,6 +4280,7 @@ export type Database = {
           kol_display_name?: string | null
           kol_profile_id?: string | null
           payment_deadline_hours?: number
+          payment_method?: string
           public_token?: string
           sale_end?: string | null
           sale_start?: string | null
@@ -4314,6 +4316,7 @@ export type Database = {
           kol_display_name?: string | null
           kol_profile_id?: string | null
           payment_deadline_hours?: number
+          payment_method?: string
           public_token?: string
           sale_end?: string | null
           sale_start?: string | null
@@ -7155,6 +7158,7 @@ export type Database = {
           paid_amount: number | null
           payment_link_created_at: string | null
           payment_method: string | null
+          payment_provider: string
           payment_status: string
           pet_count: number | null
           pet_plan_price: number | null
@@ -7248,6 +7252,7 @@ export type Database = {
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
+          payment_provider?: string
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
@@ -7341,6 +7346,7 @@ export type Database = {
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
+          payment_provider?: string
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
