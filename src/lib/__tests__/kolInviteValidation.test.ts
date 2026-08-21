@@ -244,7 +244,59 @@ describe("折扣碼衝突回傳邏輯", () => {
     expect(r.blocks).toHaveLength(0);
     expect(r.warnings).toHaveLength(0);
   });
+
+  it("同一位 KOL 跨館（皆為民宿、非旅行日系列）只給資訊提示，不擋也不警告", () => {
+    const r = run(
+      { cid_code: "SUMMER168", name: "莊巧綾", accommodation_label: "森山" },
+      {
+        conflicts: [
+          conflict({
+            owner_name: "莊巧綾",
+            accommodation_id: ACC_B,
+            accommodation_name: "雲岫海景渡假會館",
+            venue_type: "民宿",
+          }),
+        ],
+      },
+    );
+    const issue = r.issues.find((i) => i.rule === "cid.same_person_other_accommodation")!;
+    expect(issue.level).toBe("info");
+    expect(r.blocks).toHaveLength(0);
+    expect(r.warnings).toHaveLength(0);
+  });
+
+  it("同一位 KOL 跨館但皆為旅行日系列時，視為同一份合約（警告建議歸戶）", () => {
+    const r = run(
+      { cid_code: "SUMMER168", name: "莊巧綾", accommodation_label: "旅行日-光" },
+      {
+        conflicts: [
+          conflict({
+            owner_name: "莊巧綾",
+            accommodation_id: ACC_B,
+            accommodation_name: "旅行日-艾屋吉屋",
+            venue_type: "民宿",
+          }),
+        ],
+      },
+    );
+    expect(rules(r)).toContain("cid.same_person_same_contract");
+    expect(r.blocks).toHaveLength(0);
+  });
+
+  it("對方場域類別非民宿（餐廳／農場／其他）時視為同一份合約", () => {
+    const r = run(
+      { cid_code: "SUMMER168", name: "莊巧綾", accommodation_label: "森山" },
+      {
+        conflicts: [
+          conflict({ owner_name: "莊巧綾", accommodation_id: ACC_B, accommodation_name: "某某餐廳", venue_type: "餐廳" }),
+        ],
+      },
+    );
+    expect(rules(r)).toContain("cid.same_person_same_contract");
+    expect(r.blocks).toHaveLength(0);
+  });
 });
+
 
 describe("同住夥伴", () => {
   const companion = (over: Partial<NonNullable<CompanionProfile>> = {}): CompanionProfile => ({
