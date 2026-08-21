@@ -166,6 +166,9 @@ export type InviteFormSnapshot = {
   ig_duplicate_confirmed: boolean;
   ig_duplicate_name: string | null;
   collab_confirmed: boolean;
+  /** 既有紀錄中「僅全半形／大小寫／空白不同」的同名寫法（若有） */
+  name_variant_existing?: string | null;
+  name_variant_confirmed?: boolean;
 };
 
 export function validateInvite(
