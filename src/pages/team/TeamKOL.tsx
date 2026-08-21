@@ -3156,6 +3156,52 @@ function InvitationsTab({
               </div>
             )}
 
+            {similarMatches.length > 0 && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 space-y-2">
+                <div className="font-medium">⚠️ 同館別已有相似邀約，請先確認是否為同一份合約</div>
+                <ul className="space-y-1">
+                  {similarMatches.map((m) => (
+                    <li key={m.id} className="flex flex-wrap items-center gap-2">
+                      <span>
+                        {m.name}
+                        {m.cid_code ? `（${m.cid_code}）` : ""}
+                        {m.check_in_date ? ` · 入住 ${m.check_in_date}` : ""}
+                        {m.booking_status ? ` · ${m.booking_status}` : ""}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="link"
+                        className="h-auto p-0 text-xs"
+                        onClick={() => {
+                          const full = rows.find((r) => r.id === m.id) ?? m;
+                          setSheetOpen(false);
+                          setViewingRow(full);
+                        }}
+                      >
+                        查看明細
+                      </Button>
+                      {!form.primary_profile_id && !editingId && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="link"
+                          className="h-auto p-0 text-xs"
+                          onClick={() => setForm((prev) => ({ ...prev, primary_profile_id: m.id }))}
+                        >
+                          設為此筆的附屬
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-[11px] text-amber-700">
+                  若確認是不同合約（不同期間／不同專案），可直接繼續建立，系統不會阻擋。
+                </div>
+              </div>
+            )}
+
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="稀有度">
