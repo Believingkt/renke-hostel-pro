@@ -236,7 +236,7 @@ export default function AdminGroupBuy() {
   const [confirmNote, setConfirmNote] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
-  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "no_refund">("mark_refunded");
+  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "pending_refund" | "no_refund">("pending_refund");
   const [cancelRefundAmount, setCancelRefundAmount] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
