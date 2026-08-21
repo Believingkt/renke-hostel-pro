@@ -12484,6 +12484,7 @@ export type Database = {
           collab_progress: string | null
           companion_cid: string | null
           contract_file_url: string | null
+          contract_group_id: string | null
           contract_progress: string | null
           corrected_at: string | null
           corrected_by: string | null
