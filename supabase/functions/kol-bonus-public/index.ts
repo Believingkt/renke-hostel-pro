@@ -88,6 +88,25 @@ async function fetchMetaMap(admin: any, ids: string[]) {
   return map;
 }
 
+/** 以 service_role 取館別名稱（含停用館別，避免公開頁因 RLS 取不到名字而 fallback 成別館名稱） */
+async function attachAccommodationNames(admin: any, orders: EnrichedOrder[]) {
+  const ids = Array.from(
+    new Set(orders.map((o) => o.accommodation_id).filter(Boolean)),
+  ) as string[];
+  if (ids.length === 0) return;
+  const { data, error } = await admin
+    .from("accommodation_info")
+    .select("id, name")
+    .in("id", ids);
+  if (error) throw error;
+  const nameMap = new Map<string, string>();
+  for (const a of data ?? []) nameMap.set(a.id as string, (a.name as string) ?? "");
+  for (const o of orders) {
+    o.accommodation_name = nameMap.get(String(o.accommodation_id ?? "")) ?? null;
+  }
+}
+
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
