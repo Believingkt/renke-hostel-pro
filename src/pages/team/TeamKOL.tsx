@@ -1628,6 +1628,10 @@ function InvitationsTab({
         name_variant_existing: nameVariantExisting,
         name_variant_confirmed: nameVariantConfirmed,
         contract_group_id: contractGroupId,
+        accommodation_venue_type: form.venue_id
+          ? (venues.find((v) => v.id === form.venue_id)?.type ?? "民宿")
+          : venueTypeOfAcc(form.accommodation_id),
+
 
       },
       { companion, conflicts, isManager },
