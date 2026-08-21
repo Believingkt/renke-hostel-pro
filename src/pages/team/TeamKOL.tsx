@@ -881,7 +881,7 @@ function InvitationsTab({
         .from("kol_profiles")
         .select("primary_profile_id")
         .not("primary_profile_id", "is", null)
-        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`)
+        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%,order_number.ilike.%${esc}%`)
         .limit(200);
       matchedParentIds = Array.from(
         new Set(
@@ -894,7 +894,9 @@ function InvitationsTab({
         `name.ilike.%${esc}%`,
         `ig_handle.ilike.%${esc}%`,
         `cid_code.ilike.%${esc}%`,
+        `order_number.ilike.%${esc}%`,
       ];
+
       if (matchedParentIds.length > 0) orParts.push(`id.in.(${matchedParentIds.join(",")})`);
       q = q.or(orParts.join(","));
     }
