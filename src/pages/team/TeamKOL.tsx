@@ -610,6 +610,18 @@ function InvitationsTab({
   const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
 
+  // accommodation_id → 場域類別（民宿／餐廳／農場／其他）；PMS 母館預設為民宿
+  const venueTypeByAcc = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const v of venues) {
+      if (v.accommodation_id && !v.room_type_id) m.set(v.accommodation_id, v.type || "民宿");
+    }
+    return m;
+  }, [venues]);
+  const venueTypeOfAcc = (accId?: string | null) => (accId ? (venueTypeByAcc.get(accId) ?? "民宿") : null);
+
+
+
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
     // 從 kol_venues 建立 accommodation_id → venue_id 的映射（PMS 母館）
