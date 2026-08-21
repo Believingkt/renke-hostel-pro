@@ -419,7 +419,8 @@ export default function KolBonusPublic() {
                       orderList.map((o) => (
                         <TableRow key={o.id}>
                           <TableCell className="whitespace-nowrap">
-                            {accNames[o.accommodation_id ?? ""] || kol.venue_name || "—"}
+                            {o.accommodation_name || "—"}
+
                           </TableCell>
                           <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
@@ -475,7 +476,7 @@ export default function KolBonusPublic() {
                         return (
                           <TableRow key={o.id}>
                             <TableCell className="whitespace-nowrap">
-                              {accNames[o.accommodation_id ?? ""] || kol.venue_name || "—"}
+                              {o.accommodation_name || "—"}
                             </TableCell>
                             <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                             <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
