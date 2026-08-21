@@ -1227,6 +1227,7 @@ export default function GroupBuyCampaign() {
                   max={campaign.stay_end_date}
                   unavailableDates={unavailableDates}
                   excludedDates={packageExcludedDates}
+                  isBlockedNight={isBlockedNight}
                   today={today}
                   invalidCheckIn={!!checkIn && !!stayErrors.checkIn}
                   invalidCheckOut={!!checkOut && !!stayErrors.checkOut}
@@ -1239,6 +1240,9 @@ export default function GroupBuyCampaign() {
                 {!!checkIn && stayErrors.checkIn && <p className="mt-1 text-sm text-destructive">{stayErrors.checkIn}</p>}
                 {!!checkOut && stayErrors.checkOut && <p className="mt-1 text-sm text-destructive">{stayErrors.checkOut}</p>}
                 {!!excludedError && <p className="mt-1 text-sm text-destructive">{excludedError}</p>}
+                {!!disabledTypeError && (
+                  <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
+                )}
 
                 <div className="mt-4">
                   <GroupBuyGuestPicker
@@ -1438,8 +1442,8 @@ export default function GroupBuyCampaign() {
 
         {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
         {campaign.description_html && (
-          <GroupBuyCollapsibleHtml
-            html={sanitizeHtml(campaign.description_html)}
+          <GroupBuyRichContent
+            html={campaign.description_html}
             className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
             moreLabel="展開完整介紹"
             lessLabel="收合介紹"
@@ -1463,8 +1467,8 @@ export default function GroupBuyCampaign() {
         {campaign.terms_html && (
           <div className="mt-6">
             <h2 className="mb-2 text-base font-semibold text-foreground">團購活動注意事項</h2>
-            <GroupBuyCollapsibleHtml
-              html={sanitizeHtml(campaign.terms_html)}
+            <GroupBuyRichContent
+              html={campaign.terms_html}
               collapsedHeight={160}
               className="prose prose-sm max-w-none text-muted-foreground"
               moreLabel="展開注意事項"
