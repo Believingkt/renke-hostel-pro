@@ -2541,7 +2541,6 @@ function InvitationsTab({
                   <TableHead>粉絲數</TableHead>
                   <TableHead>KOL連結</TableHead>
                   <TableHead>折扣碼 / CID</TableHead>
-                  <TableHead>訂單編號</TableHead>
                   <SortableHead field="rarity">稀有度</SortableHead>
                   <SortableHead field="qualified">符合資格</SortableHead>
                   <SortableHead field="accommodation">館別</SortableHead>
@@ -2549,7 +2548,9 @@ function InvitationsTab({
                   <TableHead>星期</TableHead>
                   <SortableHead field="scout">邀約人</SortableHead>
                   <SortableHead field="booking_status">狀態</SortableHead>
+                  <TableHead>訂單編號</TableHead>
                   <SortableHead field="contract_progress">合約進度</SortableHead>
+
 
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
@@ -2651,13 +2652,6 @@ function InvitationsTab({
                           )}
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
-                        <TableCell className="tabular-nums">
-                          {r.order_number ? (
-                            <span title={r.order_number}>{r.order_number}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
                         <TableCell>
                           {r.rarity && (
                             <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
@@ -2686,6 +2680,14 @@ function InvitationsTab({
                         <TableCell>{r.day_of_week ?? "-"}</TableCell>
                         <TableCell>{r._scout_name}</TableCell>
                         <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
+                        <TableCell className="tabular-nums">
+                          {r.order_number ? (
+                            <span title={r.order_number}>{r.order_number}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
                         <TableCell>
                           {contractStatus && !contractStatus.empty ? (
                             contractStatus.plain ? (
