@@ -309,7 +309,11 @@ Deno.serve(async (req) => {
         discount_code: campaign.discount_code ?? null,
         order_status: "pending",
         payment_status: "unpaid",
-        deposit_payment_method: "bank_transfer",
+        paid_amount: 0,
+        // 付款系統（provider）由活動設定推導；目前團購一律 manual_bank_transfer → manual
+        payment_provider: campaignPayment.provider,
+        payment_method: campaignPayment.paymentMethod,
+        deposit_payment_method: campaignPayment.paymentMethod,
         order_source: GROUP_BUY_ORDER_SOURCE,
         // 以活動 slug 作為「通路代號」，讓後台來源標籤可顯示各團購活動名稱
         ota_channel: campaign.slug ?? null,
@@ -377,6 +381,10 @@ Deno.serve(async (req) => {
         nightly_breakdown: stay.nightlyBreakdown,
         base_accommodation_total: baseTotal,
         child_extra_total: childExtraTotal,
+        // 建單當下「實際套用後」的兒童加價計算結果（不可用日後的民宿規則回推）
+        child_breakdown: childEval.breakdown,
+        payment_provider: campaignPayment.provider,
+        campaign_payment_method: campaign.payment_method ?? "manual_bank_transfer",
         grand_total: total,
         deposit_percentage: campaign.deposit_percentage,
         deposit,
