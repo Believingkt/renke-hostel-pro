@@ -36,6 +36,7 @@ import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
 import KolSuggestInput from "@/components/team/KolSuggestInput";
+import { dedupeByContractGroup, CONTRACT_GROUP_CUTOFF } from "@/lib/contractGroup";
 import {
   validateInvite,
   FIELD_LABELS,
