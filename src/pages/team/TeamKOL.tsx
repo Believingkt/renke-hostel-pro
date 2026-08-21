@@ -3457,6 +3457,64 @@ function InvitationsTab({
                 <Input value={form.kpi_qualified ? "符合資格" : "未確認"} readOnly className="bg-muted" />
               )}
             </Field>
+
+            {editingId && (
+              <Field label="合約歸戶">
+                {contractGroupId ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        合約 #{contractGroupId.slice(0, 8)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        共 {contractSiblings.length + 1} 筆邀約，資格計 1 件
+                      </span>
+                    </div>
+                    {contractSiblings.length > 0 && (
+                      <ul className="rounded-md border bg-muted/40 p-2 text-xs space-y-1">
+                        {contractSiblings.map((sb) => (
+                          <li key={sb.id} className="text-muted-foreground">
+                            {sb.name || "（未命名）"}
+                            {sb.cid_code ? ` ｜ ${sb.cid_code}` : ""}
+                            {sb.venue_name ? ` ｜ ${sb.venue_name}` : ""}
+                            {sb.check_in_date ? ` ｜ ${sb.check_in_date}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {isManager && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={groupSaving}
+                          onClick={() => setGroupPickerOpen(true)}
+                        >
+                          合併到其他邀約
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={groupSaving || contractSiblings.length === 0}
+                          onClick={() => updateContractGroup(crypto.randomUUID())}
+                        >
+                          拆分為獨立合約
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      同代碼／同檔期／同場域自動歸為一份合約；跨場域的品牌聯名（例：星夢劇場 × 天使星夢度假村）請用「合併到其他邀約」手動歸戶。
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    此筆合作檔期早於 {CONTRACT_GROUP_CUTOFF}，沿用舊口徑（一筆一件），不做合約歸戶。
+                  </p>
+                )}
+              </Field>
+            )}
           </div>
 
           <SheetFooter className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
