@@ -122,7 +122,11 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
       />
       {open && items.length > 0 && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+          <div className="border-b bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+            相符的歷史紀錄 {items.length} 筆{items.length >= 12 ? "（僅顯示前 12 筆，請再多打幾個字縮小範圍）" : ""}
+          </div>
           <div className="max-h-56 overflow-y-auto">
+
             {items.map((s) => (
               <button
                 key={s.id}
