@@ -122,6 +122,7 @@ export default function KolBonusPublic() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
   const { multiplierForDataMonth } = useBonusMultipliers();
+  const payFormUrl = useMemo(() => buildPayFormUrl(kol), [kol]);
 
   useEffect(() => {
     if (!token) {
