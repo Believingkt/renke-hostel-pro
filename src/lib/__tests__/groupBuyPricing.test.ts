@@ -10,6 +10,7 @@ import {
   isDateTypeEnabled,
   lowestEnabledPrice,
   findDisabledTypeNight,
+  type GroupBuyDayType,
 } from "@/lib/groupBuyPricing";
 
 // 2026-08：17(一) 18(二) 19(三) 20(四) 21(五) 22(六) 23(日)
@@ -107,11 +108,11 @@ describe("方案不適用日期類型（disabled_date_types）", () => {
     weekday_price: 4000,
     peak_price: 5000,
     holiday_price: 6000,
-    disabled_date_types: ["weekday"] as const,
+    disabled_date_types: ["weekday"] as GroupBuyDayType[],
   };
 
   it("未設定時三種日期類型皆適用（向下相容）", () => {
-    const legacy = { group_buy_price: 5000 };
+    const legacy = { group_buy_price: 5000, disabled_date_types: null };
     expect(enabledDateTypes(legacy)).toEqual(["weekday", "peak", "holiday"]);
     expect(isDateTypeEnabled(legacy, "weekday")).toBe(true);
   });
