@@ -141,7 +141,7 @@ export default function KolBonusPublic() {
   const [kol, setKol] = useState<KolInfo | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
-  const [accNames, setAccNames] = useState<Record<string, string>>({});
+  
   const [totals, setTotals] = useState<Totals>({ addonExcludedTotal: 0, nonTwdCount: 0 });
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
