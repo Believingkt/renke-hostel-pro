@@ -1442,6 +1442,7 @@ function InvitationsTab({
         .from("kol_profiles")
         .select("id, name")
         .eq("name_normalized", key)
+        .eq("is_error", false)
         .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
         .limit(1);
       const existing = ((data as any[]) ?? [])[0]?.name ?? null;
