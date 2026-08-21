@@ -2447,7 +2447,14 @@ function InvitationsTab({
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>{r._accommodation_name}</TableCell>
+                        <TableCell>{(() => {
+                          const vRow = r.venue_id ? venueByIdAll.get(r.venue_id) : null;
+                          let name = r._accommodation_name || vRow?.name || r.venue_name || "-";
+                          if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+                            name = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? name;
+                          }
+                          return name;
+                        })()}</TableCell>
                         <TableCell>{r.check_in_date ?? "-"}</TableCell>
                         <TableCell>{r.day_of_week ?? "-"}</TableCell>
                         <TableCell>{r._scout_name}</TableCell>
