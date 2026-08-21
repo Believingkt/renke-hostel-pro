@@ -271,6 +271,28 @@ export default function KolBonusPublic() {
     [kol, payableCommission],
   );
 
+  /**
+   * 館別一致性檢查（純顯示，不影響任何計算）
+   * - 明細出現 ≥2 種館別 → 標示為多館合計
+   * - 明細僅 1 種但與合作場域母館不同 → 提示不一致
+   * - 合作場域為外部（非 PMS）場域時無法比對，僅在多館時提示
+   */
+  const venueCheck = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of orders) {
+      if (o.accommodation_id) {
+        map.set(o.accommodation_id, o.accommodation_name || "未命名館別");
+      }
+    }
+    const names = Array.from(map.values());
+    const ids = Array.from(map.keys());
+    const venueAcc = kol?.venue_accommodation_id ?? null;
+    const multi = ids.length > 1;
+    const mismatch =
+      !multi && !!venueAcc && ids.length === 1 && ids[0] !== venueAcc;
+    return { multi, mismatch, names };
+  }, [orders, kol]);
+
 
 
   const computePayoutDate = (checkOut: string | null | undefined): string => {
