@@ -3233,20 +3233,48 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={blockMessages.length > 0} onOpenChange={(o) => !o && setBlockMessages([])}>
-        <AlertDialogContent>
+      <AlertDialog open={blockIssues.length > 0} onOpenChange={(o) => !o && setBlockIssues([])}>
+        <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>無法儲存，請先修正以下問題</AlertDialogTitle>
+            <AlertDialogTitle>無法儲存，請先修正以下 {blockIssues.length} 個問題</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <ul className="list-disc space-y-1 pl-5 text-left">
-                {blockMessages.map((m, i) => (
-                  <li key={i}>{m}</li>
+              <div className="space-y-3 text-left">
+                {blockIssues.map((issue, i) => (
+                  <div key={i} className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-destructive">
+                        {FIELD_LABELS[issue.field]}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          setBlockIssues([]);
+                          setTimeout(() => {
+                            const el = document.getElementById(FIELD_ANCHORS[issue.field]);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            (el?.querySelector("input, textarea, button") as HTMLElement | null)?.focus();
+                          }, 120);
+                        }}
+                      >
+                        前往欄位 <ChevronRight className="ml-0.5 h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-sm text-foreground">{issue.message}</p>
+                    <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
+                      {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
+                      {issue.suggestion && <div>💡 建議做法：{issue.suggestion}</div>}
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setBlockMessages([])}>知道了</AlertDialogAction>
+            <AlertDialogAction onClick={() => setBlockIssues([])}>知道了</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
