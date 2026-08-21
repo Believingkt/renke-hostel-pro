@@ -1524,6 +1524,11 @@ function InvitationsTab({
     if (isManager) {
       payload.kpi_qualified = form.kpi_qualified;
     }
+    // 掛在主檔底下的同住夥伴一律不列入 KPI（分潤只算主檔）
+    if (form.primary_profile_id) {
+      payload.kpi_qualified = false;
+    }
+
 
     let err;
     let newId: string | null = null;
