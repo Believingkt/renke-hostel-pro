@@ -100,6 +100,12 @@ Deno.serve(async (req) => {
     if (cErr) throw cErr;
     if (!campaign || campaign.status !== "active") return json({ error: "團購活動不存在或已結束" }, 404);
 
+    // 付款方式：活動層設定（目前僅 manual_bank_transfer 啟用；tappay 保留但尚未接上流程）
+    const campaignPayment = resolveCampaignPayment(campaign.payment_method);
+    if (campaignPayment.provider !== "manual") {
+      return json({ error: "此團購活動的線上付款方式尚未啟用，請聯繫客服" }, 400);
+    }
+
     const now = new Date();
     if (campaign.sale_start && new Date(campaign.sale_start) > now) return json({ error: "團購尚未開賣" }, 400);
     if (campaign.sale_end && new Date(campaign.sale_end) < now) return json({ error: "團購已結束" }, 400);
