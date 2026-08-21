@@ -17,7 +17,8 @@ export type IssueField =
   | "scout";
 
 export type ValidationIssue = {
-  level: "block" | "warning";
+  level: "block" | "warning" | "info";
+
   /** 規則代碼，用於審計比對 */
   rule: string;
   field: IssueField;
@@ -190,6 +191,34 @@ export const SAME_CONTRACT_DATE_LIMIT_DAYS = 365;
 export const DIFF_CONTRACT_DATE_LIMIT_DAYS = 3;
 
 
+/**
+ * 「旅行日系列」判定：沿用全站獎金計算口徑（accommodation_info.name 以「旅行日」開頭）。
+ * 見 TeamHome / TeamCommission / create-team-bonus-snapshots。
+ */
+export function isTravelSeriesAccommodation(name?: string | null): boolean {
+  return (name ?? "").trim().startsWith("旅行日");
+}
+
+/** 場域類別為「民宿」以外（餐廳／農場／其他）者，同 CID 視為同一份合約 */
+export const LODGING_VENUE_TYPE = "民宿";
+export const isNonLodgingVenueType = (t?: string | null) => !!(t ?? "").trim() && (t ?? "").trim() !== LODGING_VENUE_TYPE;
+
+/**
+ * 同一位 KOL、同一支 CID、不同館別時，是否應視為「同一份合約（僅計 1 資格）」：
+ * 1. 兩邊皆為旅行日系列館別；或
+ * 2. 任一邊的場域類別非「民宿」。
+ * 其餘情況（皆為民宿、非旅行日系列）＝ 各自獨立的合作，算多個資格。
+ */
+export function isSameContractScope(a: {
+  selfAccName?: string | null;
+  otherAccName?: string | null;
+  selfVenueType?: string | null;
+  otherVenueType?: string | null;
+}): boolean {
+  const bothTravel = isTravelSeriesAccommodation(a.selfAccName) && isTravelSeriesAccommodation(a.otherAccName);
+  return bothTravel || isNonLodgingVenueType(a.selfVenueType) || isNonLodgingVenueType(a.otherVenueType);
+}
+
 export type CodeConflict = {
   source: string;
   severity: string;
@@ -198,7 +227,10 @@ export type CodeConflict = {
   accommodation_name: string | null;
   owner_name: string | null;
   detail: any;
+  /** 對方館別的場域類別（民宿／餐廳／農場／其他），由前端以 kol_venues 補上 */
+  venue_type?: string | null;
 };
+
 
 export type InviteFormSnapshot = {
   name: string;
@@ -235,6 +267,9 @@ export type InviteFormSnapshot = {
   name_variant_confirmed?: boolean;
   /** 合約歸戶識別碼；與夥伴相同時視為同一份合約 */
   contract_group_id?: string | null;
+  /** 本筆所選館別／場域的類別（民宿／餐廳／農場／其他） */
+  accommodation_venue_type?: string | null;
+
 
 };
 
@@ -372,7 +407,35 @@ export function validateInvite(
           actual: `${normalizeCode(f.cid_code)} / ${c.owner_name}`,
           suggestion: "請改為編輯既有那筆邀約，而不是新增一筆。",
         });
+      } else if (sameName) {
+        // 同一位 KOL、不同館別：預設各自獨立算資格；僅旅行日系列或非民宿場域才視為同一份合約。
+        const sameContract = isSameContractScope({
+          selfAccName: f.accommodation_label,
+          otherAccName: c.accommodation_name,
+          selfVenueType: f.accommodation_venue_type,
+          otherVenueType: c.venue_type,
+        });
+        if (sameContract) {
+          add({
+            level: "warning",
+            rule: "cid.same_person_same_contract",
+            field: "cid_code",
+            message: `「${c.owner_name}」在${where || "其他館別"}已用同一支 CID；依規則屬同一份合約，只計 1 個資格。`,
+            expected: "同 CID 的旅行日系列／非民宿場域合作歸為同一份合約",
+            actual: `${normalizeCode(f.cid_code)} / ${c.owner_name}`,
+            suggestion: "儲存後請在列表使用「合併為同一份合約」，或將本筆設為對方的附屬紀錄。",
+          });
+        } else {
+          add({
+            level: "info",
+            rule: "cid.same_person_other_accommodation",
+            field: "cid_code",
+            message: `同一位 KOL 於${where || "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格。`,
+            suggestion: "無需處理；若兩筆其實是同一份合約，才需要合併或設為附屬。",
+          });
+        }
       } else if (!sameName) {
+
         // 同住合拍必須有「實際的主檔關聯」才算數：
         // 本筆掛在對方底下，或對方掛在本筆底下（或以 companion_cid 互指）。
         const otherId = c.detail?.profile_id ?? null;
