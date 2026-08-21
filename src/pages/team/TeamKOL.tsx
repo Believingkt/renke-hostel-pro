@@ -897,9 +897,21 @@ function InvitationsTab({
       setLoading(false);
       return;
     }
+    // 補撈本頁主檔底下的附屬記錄（子檔），讓列表／搜尋看得到（例如同住夥伴）
+    const primaryRows = ((data ?? []) as any[]);
+    let childRowsData: any[] = [];
+    if (primaryRows.length > 0) {
+      const { data: kids } = await supabase
+        .from("kol_profiles_with_progress" as any)
+        .select("*")
+        .eq("is_error", false)
+        .in("primary_profile_id", primaryRows.map((r) => r.id));
+      childRowsData = (kids ?? []) as any[];
+    }
     // 取 scout 姓名
-    const rowsData = ((data ?? []) as any[]);
+    const rowsData = [...primaryRows, ...childRowsData];
     const scoutIds = Array.from(new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]));
+
     let scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
