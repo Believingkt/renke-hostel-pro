@@ -300,7 +300,7 @@ export default function KolBonusPublic() {
           <Tooltip>
             <TooltipTrigger asChild>
               <a
-                href="https://lakeze.vip/%E4%BA%BA%E5%AE%A2%E5%A4%9AKOL%E5%8B%9E%E5%A0%B1%E5%96%AE"
+                href={payFormUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="填寫勞務報酬單（另開新分頁）"
