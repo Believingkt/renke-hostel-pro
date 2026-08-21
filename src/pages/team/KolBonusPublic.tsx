@@ -271,6 +271,19 @@ export default function KolBonusPublic() {
     return isYearAll ? 1 : multiplierForDataMonth("kol_commission", prefix);
   }, [isYearAll, prefix, multiplierForDataMonth]);
 
+  /** 應付金額：目前篩選期間「已完成業績」的總分潤（含加倍活動） */
+  const payableCommission = useMemo(
+    () => Math.round(boostedAmount(completedTotals.commission, commissionMultiplier)),
+    [completedTotals.commission, commissionMultiplier],
+  );
+
+  const payFormUrl = useMemo(
+    () => buildPayFormUrl(kol, payableCommission),
+    [kol, payableCommission],
+  );
+
+
+
   const computePayoutDate = (checkOut: string | null | undefined): string => {
     if (!checkOut) return "—";
     const [ys, ms] = checkOut.slice(0, 10).split("-");
