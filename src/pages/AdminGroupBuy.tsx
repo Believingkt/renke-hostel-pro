@@ -130,6 +130,7 @@ interface Campaign {
   status: string;
   deposit_percentage: number;
   payment_deadline_hours: number;
+  payment_method: string | null;
   commission_rate: number;
   contact_note: string | null;
   terms_html: string | null;
@@ -414,6 +415,21 @@ export default function AdminGroupBuy() {
     await supabase.from("group_buy_campaign_packages").delete().eq("id", id);
     await loadDetails();
   };
+
+  /** 複製方案：同活動內建立副本，預設下架，需確認內容後再上架 */
+  const duplicatePackage = async (row: PackageRow) => {
+    const { id, created_at, updated_at, ...rest } = row as any;
+    const { error } = await supabase.from("group_buy_campaign_packages").insert({
+      ...rest,
+      display_name: `${row.display_name}（複製）`,
+      sort_order: (Number(row.sort_order) || 0) + 1,
+      is_active: false,
+    } as any);
+    if (error) toast({ title: "複製失敗", description: error.message, variant: "destructive" });
+    else toast({ title: "已複製方案", description: "副本預設為下架，確認內容後再上架" });
+    await loadDetails();
+  };
+
 
   const addBank = async () => {
     if (!activeId) return;
