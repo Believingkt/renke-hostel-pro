@@ -42,6 +42,7 @@ import {
   FIELD_LABELS,
   FIELD_ANCHORS,
   normalizeIgHandle,
+  igProfileUrl,
   normalizeCode,
   normalizeKolName,
   kolNameKey,
@@ -1260,7 +1261,7 @@ function InvitationsTab({
       let q = supabase
         .from("kol_profiles")
         .select("id, scout_id, invited_at, booking_status, team_member_profiles:scout_id(display_name)")
-        .eq("ig_handle", ig)
+        .eq("ig_handle", normalizeIgHandle(ig))
         .eq("is_error", false);
       if (editingId) q = q.neq("id", editingId);
       const { data } = await q.limit(1);
@@ -1671,6 +1672,7 @@ function InvitationsTab({
       name: normalizeKolName(form.name),
       name_original: form.name.trim(),
       ig_handle: normIg,
+      ig_url: igProfileUrl(form.ig_handle) || null,
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
@@ -2565,7 +2567,7 @@ function InvitationsTab({
               <TableBody>
                 {(() => {
                   const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean; isSub?: boolean } = {}) => {
-                    const igUrl = r.ig_handle || null;
+                    const igUrl = igProfileUrl(r.ig_handle) || null;
                     const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                     const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                     const codeOrCid = codeOrCidValue ?? "-";
@@ -2642,7 +2644,7 @@ function InvitationsTab({
                         <TableCell className="min-w-[240px] max-w-[280px] align-top">
                           {r.ig_handle ? (
                             <a
-                              href={r.ig_handle}
+                              href={igProfileUrl(r.ig_handle)}
                               target="_blank"
                               rel="noreferrer"
                               className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
@@ -2945,7 +2947,7 @@ function InvitationsTab({
           {viewingRow &&
             (() => {
               const r = viewingRow;
-              const igUrl = r.ig_handle || null;
+              const igUrl = igProfileUrl(r.ig_handle) || null;
               const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
                 <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
                   <div className="text-xs text-muted-foreground">{label}</div>
