@@ -471,13 +471,49 @@ export default function AdminGroupBuy() {
   };
 
   const openCancel = (o: OrderRow) => {
-    const refundable = Math.max(0, Number(o.paid_amount || 0) - Number(o.refunded_amount || 0));
+    const refundable = remainingRefundable(o);
     setCancelTarget(o);
-    setCancelRefundAction(refundable > 0 ? "mark_refunded" : "no_refund");
+    setCancelRefundAction(refundable > 0 ? "pending_refund" : "no_refund");
     setCancelRefundAmount(String(refundable));
     const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
     setCancelReason(req?.note ?? "");
 
+  };
+
+  const openRefund = (o: OrderRow) => {
+    setRefundTarget(o);
+    setRefundAmount(String(remainingRefundable(o)));
+    setRefundNote("");
+  };
+
+  /** 人工退款登記：管理員於銀行端完成退匯後才按下確認；server 端會重新讀 orders 驗證金額 */
+  const processRefund = async () => {
+    if (!refundTarget) return;
+    const amt = Math.round(Number(refundAmount) || 0);
+    const max = remainingRefundable(refundTarget);
+    if (!(amt > 0) || amt > max) {
+      toast({ title: "退款金額不正確", description: `可退範圍 1 ~ ${twd(max)}`, variant: "destructive" });
+      return;
+    }
+    setRefunding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
+        body: { orderId: refundTarget.id, mode: "refund", refundAmount: amt, reason: refundNote },
+      });
+      const payload: any = data;
+      if (error || payload?.error) {
+        toast({ title: "退款登記失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "已登記退款",
+        description: `本次 ${twd(payload.refundAmount)}，累計 ${twd(payload.totalRefunded)}`,
+      });
+      setRefundTarget(null);
+      await loadDetails();
+    } finally {
+      setRefunding(false);
+    }
   };
 
   const cancelWithRefund = async () => {
@@ -487,8 +523,9 @@ export default function AdminGroupBuy() {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
         body: {
           orderId: cancelTarget.id,
+          mode: "cancel",
           refundAction: cancelRefundAction,
-          refundAmount: cancelRefundAction === "no_refund" ? 0 : Number(cancelRefundAmount) || 0,
+          refundAmount: cancelRefundAction === "mark_refunded" ? Number(cancelRefundAmount) || 0 : 0,
           reason: cancelReason,
         },
       });
@@ -499,7 +536,11 @@ export default function AdminGroupBuy() {
       }
       toast({
         title: "訂單已取消",
-        description: payload?.refundAmount > 0 ? `已記錄退款 ${twd(payload.refundAmount)}` : "未退款，已寫入稽核紀錄",
+        description: payload?.refundAmount > 0
+          ? `已登記退款 ${twd(payload.refundAmount)}`
+          : payload?.refundStatus === "pending"
+            ? "已標記為待退款，請於銀行退匯後按「處理退款」登記"
+            : "不需退款，已寫入稽核紀錄",
       });
       setCancelTarget(null);
       await loadDetails();
@@ -510,19 +551,20 @@ export default function AdminGroupBuy() {
 
   const stats = useMemo(() => {
     const valid = orders.filter((o) => o.order_status !== "cancelled");
-    const paid = valid.filter((o) => o.confirmed);
+    const paid = valid.filter((o) => depositState(o) !== "unpaid");
     return {
       total: orders.length,
       valid: valid.length,
       cancelled: orders.length - valid.length,
-      pendingTransfer: valid.filter((o) => !o.confirmed).length,
-      awaitingCheck: valid.filter((o) => o.reported && !o.confirmed).length,
+      pendingTransfer: valid.filter((o) => depositState(o) === "unpaid").length,
+      awaitingCheck: valid.filter((o) => o.reported && depositState(o) === "unpaid").length,
       revenue: valid.reduce((s, o) => s + Number(o.final_price || 0), 0),
       collected: paid.reduce((s, o) => s + Number(o.paid_amount || 0), 0),
       commission: Math.round(
         (valid.reduce((s, o) => s + Number(o.final_price || 0), 0) * Number(activeCampaign?.commission_rate || 0)) / 100,
       ),
     };
+
   }, [orders, activeCampaign]);
 
   const publicUrl = activeCampaign ? `${window.location.origin}/g/${activeCampaign.slug}` : "";
