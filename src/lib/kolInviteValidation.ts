@@ -69,7 +69,9 @@ export const isPmsOrderNumber = (v: string) => PMS_ORDER_RE.test((v ?? "").trim(
 export function normalizeIgHandle(raw: string): string {
   let v = (raw ?? "").trim();
   if (!v) return "";
-  const urlMatch = v.match(/^https?:\/\/(?:www\.)?(?:instagram\.com|threads\.net|threads\.com)\/([^/?#]+)/i);
+  const urlMatch = v.match(
+    /^(?:https?:\/\/)?(?:www\.)?(?:instagram\.com|threads\.net|threads\.com)\/([^/?#]+)/i,
+  );
   if (urlMatch) {
     v = urlMatch[1];
   } else {
