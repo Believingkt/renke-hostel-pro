@@ -17,7 +17,8 @@ export type IssueField =
   | "scout";
 
 export type ValidationIssue = {
-  level: "block" | "warning";
+  level: "block" | "warning" | "info";
+
   /** 規則代碼，用於審計比對 */
   rule: string;
   field: IssueField;
