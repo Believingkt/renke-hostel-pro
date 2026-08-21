@@ -326,18 +326,23 @@ export default function TeamBaseSalaryTab() {
                   </div>
 
                   {list.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <ul className="mt-3 space-y-1.5 text-sm">
                       {list.map((v) => {
                         const future = v.effective_from > today;
                         return (
-                          <li key={v.id} className="flex flex-wrap items-center gap-2">
-                            <span className="tabular-nums">
+                          <li
+                            key={v.id}
+                            className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-muted/30 px-2.5 py-1.5"
+                          >
+                            <span className="font-medium tabular-nums">
                               {v.effective_from} 起 ${Number(v.amount).toLocaleString()}
                             </span>
-                            {future && <span className="text-primary">（未生效）</span>}
-                            {v.note && <span>· {v.note}</span>}
-                            <span>
-                              · 由 {v.created_by_email ?? "未知"} 於 {fmtTime(v.created_at)} 設定
+                            {future && <span className="text-primary text-xs">（未生效）</span>}
+                            <span className="text-muted-foreground">
+                              備註：{v.note || "無"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              （由 {v.created_by_email ?? "未知"} 於 {fmtTime(v.created_at)} 設定）
                             </span>
                             {future && (
                               <Button
@@ -354,6 +359,7 @@ export default function TeamBaseSalaryTab() {
                       })}
                     </ul>
                   )}
+
                 </div>
               );
                 })}
