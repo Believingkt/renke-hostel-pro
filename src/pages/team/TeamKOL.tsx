@@ -3675,6 +3675,60 @@ function InvitationsTab({
         </DialogContent>
       </Dialog>
 
+      {/* 合約歸戶：合併到其他邀約 */}
+      <Dialog
+        open={groupPickerOpen}
+        onOpenChange={(o) => {
+          setGroupPickerOpen(o);
+          if (!o) setGroupSearch("");
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>合併到同一份合約</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              選擇一筆同屬這份合約的邀約，本筆將併入對方的合約歸戶，資格只計 1 件。
+            </p>
+            <Input
+              value={groupSearch}
+              onChange={(e) => setGroupSearch(e.target.value)}
+              placeholder="輸入 KOL 名稱或折扣代碼"
+            />
+            <div className="max-h-72 overflow-y-auto rounded-md border divide-y">
+              {groupResults.length === 0 ? (
+                <p className="p-3 text-sm text-muted-foreground">
+                  {groupSearch.trim() ? "查無符合的邀約" : "請輸入關鍵字搜尋"}
+                </p>
+              ) : (
+                groupResults.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                    disabled={groupSaving}
+                    onClick={() => r.contract_group_id && updateContractGroup(r.contract_group_id)}
+                  >
+                    <span className="font-medium">{r.name || "（未命名）"}</span>
+                    <span className="text-muted-foreground">
+                      {r.cid_code ? ` ｜ ${r.cid_code}` : ""}
+                      {r.venue_name ? ` ｜ ${r.venue_name}` : ""}
+                      {r.check_in_date ? ` ｜ ${r.check_in_date}` : ""}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupPickerOpen(false)}>
+              取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 設為附屬記錄：搜尋主要記錄 Dialog */}
       <Dialog
         open={!!linkSubsidiaryTarget}
