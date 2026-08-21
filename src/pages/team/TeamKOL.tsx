@@ -2965,7 +2965,31 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID">
-                <Input value={form.cid_code} onChange={(e) => setForm({ ...form, cid_code: e.target.value })} />
+                <KolSuggestInput
+                  field="cid_code"
+                  value={form.cid_code}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, cid_code: v })}
+                />
+                {cidConflicts.length > 0 && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 space-y-1">
+                    {cidConflicts.map((c, i) => (
+                      <div key={i}>
+                        ⚠️ {c.source === "scout_discount_codes"
+                          ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
+                          : c.source === "kol_profiles"
+                            ? `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
+                            : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
+                      </div>
+                    ))}
+                    {cidConflicts.some((c) => c.source === "kol_profiles") && (
+                      <label className="mt-1 flex items-center gap-2">
+                        <Checkbox checked={collabConfirmed} onCheckedChange={(c) => setCollabConfirmed(!!c)} />
+                        <span>確認為合拍同住（分潤歸主檔）</span>
+                      </label>
+                    )}
+                  </div>
+                )}
               </Field>
             )}
 
@@ -2974,6 +2998,9 @@ function InvitationsTab({
                 value={form.companion_cid}
                 onChange={(cid) => setForm({ ...form, companion_cid: cid })}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                填寫同住夥伴後，本筆將不列入 KPI 與住宿間數，分潤一律歸主檔。
+              </p>
             </Field>
 
 
