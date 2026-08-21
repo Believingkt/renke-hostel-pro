@@ -3997,6 +3997,43 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 列表疑似重複：一鍵合併 */}
+      <AlertDialog open={!!mergeConfirm} onOpenChange={(o) => !o && !mergeSubmitting && setMergeConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>合併疑似重複的邀約</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left text-sm">
+                <p>
+                  這兩筆為「同館別、同折扣碼」但尚未歸戶的邀約，系統判定可能是同一份合約被填寫了兩次。
+                </p>
+                <ul className="list-disc pl-5">
+                  <li>
+                    保留為主要記錄：{mergeConfirm?.parent.name ?? ""}
+                    {mergeConfirm?.parent.check_in_date ? `（入住 ${mergeConfirm.parent.check_in_date}）` : ""}
+                  </li>
+                  <li>
+                    改為附屬記錄：{mergeConfirm?.child.name ?? ""}
+                    {mergeConfirm?.child.check_in_date ? `（入住 ${mergeConfirm.child.check_in_date}）` : ""}
+                  </li>
+                </ul>
+                <p>
+                  合併後兩筆會歸入同一份合約，附屬那筆的「累積資格」會取消打勾，請款統計只會計算一次，
+                  但兩筆資料都會保留、不會被刪除，日後仍可拆分。
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mergeSubmitting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmMerge} disabled={mergeSubmitting}>
+              {mergeSubmitting ? "處理中..." : "確認合併"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       {/* 新增附屬記錄：功能說明 */}
       <AlertDialog open={!!subsidiaryIntroTarget} onOpenChange={(o) => !o && setSubsidiaryIntroTarget(null)}>
         <AlertDialogContent>
