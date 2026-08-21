@@ -180,7 +180,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { data: kol, error: kolErr } = await admin
       .from("kol_profiles")
-      .select("id, name, cid_code, ig_handle, ig_url, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
+      .select("id, name, cid_code, venue_id, venue_name, accommodation_id, public_token, token_expires_at")
       .eq("public_token", token)
       .maybeSingle();
 
