@@ -394,16 +394,36 @@ export function validateInvite(
         });
       }
       if (companion.check_in_date && f.check_in_date && companion.check_in_date !== f.check_in_date) {
-        add({
-          level: "block",
-          rule: "companion.different_checkin",
-          field: "companion_cid",
-          message: `同住夥伴「${companion.name ?? "-"}」的入住日與本筆不同。`,
-          expected: `與夥伴相同：${companion.check_in_date}`,
-          actual: f.check_in_date,
-          suggestion: `請把入住日改為 ${companion.check_in_date}，或改填正確的夥伴。`,
-        });
+        const diffDays = Math.round(
+          Math.abs(
+            new Date(`${f.check_in_date}T00:00:00`).getTime() -
+              new Date(`${companion.check_in_date}T00:00:00`).getTime(),
+          ) / 86400000,
+        );
+        // 同一份合約可能為了連住而有相鄰入住日（例如主檔 3/3、本筆 3/2），此情況只提醒不擋
+        if (diffDays <= 3) {
+          add({
+            level: "warning",
+            rule: "companion.adjacent_checkin",
+            field: "companion_cid",
+            message: `同住夥伴「${companion.name ?? "-"}」的入住日（${companion.check_in_date}）與本筆相差 ${diffDays} 天。`,
+            expected: "同一份合約連住（同一組折扣碼）視為正常",
+            actual: f.check_in_date,
+            suggestion: "若確為連住可直接儲存；若日期填錯請修正。",
+          });
+        } else {
+          add({
+            level: "block",
+            rule: "companion.different_checkin",
+            field: "companion_cid",
+            message: `同住夥伴「${companion.name ?? "-"}」的入住日與本筆相差 ${diffDays} 天。`,
+            expected: `與夥伴相同或相鄰（3 天內）：${companion.check_in_date}`,
+            actual: f.check_in_date,
+            suggestion: `請把入住日改為 ${companion.check_in_date}，或改填正確的夥伴。`,
+          });
+        }
       }
+
     }
   }
 
