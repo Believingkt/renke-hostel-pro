@@ -42,6 +42,7 @@ import {
   refundState,
   remainingRefundable,
 } from "@/lib/groupBuyPayment";
+import { nextCopyName } from "@/lib/groupBuyPackageCopy";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
