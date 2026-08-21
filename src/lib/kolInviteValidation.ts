@@ -83,12 +83,49 @@ export function normalizeIgHandle(raw: string): string {
 }
 
 /**
+ * 判斷輸入是否為「貼文／短影音內容連結」而非帳號連結。
+ * 例：https://www.instagram.com/reel/DNkq71ChXKC/ 這種網址不含帳號，無法正規化。
+ */
+export function isContentPostUrl(raw: string | null | undefined): boolean {
+  const v = (raw ?? "").trim();
+  if (!v) return false;
+  const withScheme = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  let path = "";
+  try {
+    path = new URL(withScheme).pathname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const segs = path.split("/").filter(Boolean);
+  if (segs.length === 0) return false;
+  const contentSegs = new Set([
+    "reel",
+    "reels",
+    "p",
+    "tv",
+    "stories",
+    "share",
+    "post",
+    "posts",
+    "video",
+    "videos",
+    "shorts",
+    "watch",
+    "photo",
+    "status",
+  ]);
+  return segs.some((s) => contentSegs.has(s));
+}
+
+/**
  * 由 IG 帳號或網址組出可點擊的完整網址（無值回傳空字串）。
  * 若填的是 IG／Threads 以外平台的完整網址（FB、TikTok 等），原樣回傳該網址。
+ * 若填的是貼文／Reels 內容連結，原樣回傳（不做帳號正規化，避免產生 instagram.com/reel 壞連結）。
  */
 export function igProfileUrl(raw: string | null | undefined): string {
   const v = (raw ?? "").trim();
   if (!v) return "";
+  if (isContentPostUrl(v)) return /^https?:\/\//i.test(v) ? v : `https://${v}`;
   const isOtherPlatformUrl =
     /^https?:\/\//i.test(v) && !/^https?:\/\/(?:www\.)?(instagram\.com|threads\.net|threads\.com)\//i.test(v);
   if (isOtherPlatformUrl) return v;
@@ -96,6 +133,7 @@ export function igProfileUrl(raw: string | null | undefined): string {
   if (!h) return "";
   return `https://www.instagram.com/${h}/`;
 }
+
 
 /** 折扣碼正規化：大寫去空白 */
 export const normalizeCode = (raw: string) => (raw ?? "").trim().toUpperCase();
