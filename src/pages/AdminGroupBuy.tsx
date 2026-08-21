@@ -42,6 +42,7 @@ import {
   refundState,
   remainingRefundable,
 } from "@/lib/groupBuyPayment";
+import { nextCopyName } from "@/lib/groupBuyPackageCopy";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { Link } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
@@ -199,7 +200,6 @@ interface OrderRow {
   payment_provider?: string | null;
   campaign_id?: string | null;
   reported?: boolean;
-  confirmed?: boolean;
   cancelRequested?: boolean;
 
 }
@@ -311,11 +311,10 @@ export default function AdminGroupBuy() {
         .order("created_at", { ascending: true }),
     ]);
     setEvents((events ?? []) as unknown as EventRow[]);
+    // 注意：付款狀態一律讀 orders（payment_status / paid_amount / deposit_amount）。
+    // 這裡只取「事件性」旗標，admin_confirmed 僅保留於稽核紀錄，不再轉成第二套付款狀態。
     const reportedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "guest_reported").map((e: any) => e.order_id),
-    );
-    const confirmedSet = new Set(
-      (events ?? []).filter((e: any) => e.event_type === "admin_confirmed").map((e: any) => e.order_id),
     );
     const cancelRequestedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "cancel_requested").map((e: any) => e.order_id),
@@ -324,7 +323,6 @@ export default function AdminGroupBuy() {
       ((orderRows ?? []) as unknown as OrderRow[]).map((o) => ({
         ...o,
         reported: reportedSet.has(o.id),
-        confirmed: confirmedSet.has(o.id),
         cancelRequested: cancelRequestedSet.has(o.id),
       })),
     );
@@ -419,14 +417,15 @@ export default function AdminGroupBuy() {
   /** 複製方案：同活動內建立副本，預設下架，需確認內容後再上架 */
   const duplicatePackage = async (row: PackageRow) => {
     const { id, created_at, updated_at, ...rest } = row as any;
+    const displayName = nextCopyName(row.display_name, packages.map((p) => p.display_name));
     const { error } = await supabase.from("group_buy_campaign_packages").insert({
       ...rest,
-      display_name: `${row.display_name}（複製）`,
+      display_name: displayName,
       sort_order: (Number(row.sort_order) || 0) + 1,
       is_active: false,
     } as any);
     if (error) toast({ title: "複製失敗", description: error.message, variant: "destructive" });
-    else toast({ title: "已複製方案", description: "副本預設為下架，確認內容後再上架" });
+    else toast({ title: "已複製方案", description: `已建立「${displayName}」，預設為下架` });
     await loadDetails();
   };
 
@@ -554,7 +553,7 @@ export default function AdminGroupBuy() {
         title: "訂單已取消",
         description: payload?.refundAmount > 0
           ? `已登記退款 ${twd(payload.refundAmount)}`
-          : payload?.refundStatus === "pending"
+          : payload?.refundStatus === "pending_manual" || payload?.refundStatus === "pending"
             ? "已標記為待退款，請於銀行退匯後按「處理退款」登記"
             : "不需退款，已寫入稽核紀錄",
       });
@@ -1240,7 +1239,7 @@ export default function AdminGroupBuy() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual_bank_transfer">銀行匯款（人工對帳）</SelectItem>
-                    <SelectItem value="tappay">線上刷卡 TapPay（尚未開放）</SelectItem>
+                    <SelectItem value="tappay" disabled>線上刷卡 TapPay（尚未開放）</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">目前僅支援銀行匯款；選擇 TapPay 不會改變前台流程。</p>
