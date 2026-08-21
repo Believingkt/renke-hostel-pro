@@ -3802,6 +3802,38 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 新增附屬記錄：功能說明 */}
+      <AlertDialog open={!!subsidiaryIntroTarget} onOpenChange={(o) => !o && setSubsidiaryIntroTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>什麼是「附屬記錄」？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left text-sm">
+                <p>
+                  接下來會以「{subsidiaryIntroTarget?.name ?? ""}」為主要記錄，建立一筆掛在它底下的附屬記錄，
+                  用於同一位 KOL 在同一次合作中的第二個館別／第二個入住日。
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>KOL 名稱、網紅帳號連結、邀約人會自動沿用主要記錄，仍可修改。</li>
+                  <li>附屬記錄<strong>不會</strong>另外計入累積資格與住宿間數，一份合約仍只算一筆資格。</li>
+                  <li>相關分潤與獎金一律歸屬於主要記錄，不會重複計算。</li>
+                  <li>館別、入住日期、折扣碼、訂單編號、發布連結等仍可各自填寫。</li>
+                  <li>之後可在附屬記錄的明細中「取消附屬關係」，讓它恢復為獨立的主要記錄。</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => subsidiaryIntroTarget && proceedCreateSubsidiary(subsidiaryIntroTarget)}
+            >
+              我了解，繼續新增
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 取消附屬關係確認 */}
       <AlertDialog open={!!unlinkTarget} onOpenChange={(o) => !o && !unlinkSubmitting && setUnlinkTarget(null)}>
         <AlertDialogContent>
