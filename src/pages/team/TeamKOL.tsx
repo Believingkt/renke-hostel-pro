@@ -1703,10 +1703,10 @@ function InvitationsTab({
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("kol_profiles")
         .select("id, name, cid_code, venue_name, check_in_date, kpi_month")
-        .eq("contract_group_id" as any, contractGroupId)
+        .eq("contract_group_id", contractGroupId)
         .neq("id", editingId);
       if (!cancelled) setContractSiblings(((data ?? []) as unknown) as KolRow[]);
     })();
@@ -1728,7 +1728,7 @@ function InvitationsTab({
     }
     let cancelled = false;
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("kol_profiles")
         .select("id, name, cid_code, venue_name, check_in_date, kpi_month, contract_group_id")
         .not("contract_group_id", "is", null)
