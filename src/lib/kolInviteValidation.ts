@@ -191,6 +191,34 @@ export const SAME_CONTRACT_DATE_LIMIT_DAYS = 365;
 export const DIFF_CONTRACT_DATE_LIMIT_DAYS = 3;
 
 
+/**
+ * 「旅行日系列」判定：沿用全站獎金計算口徑（accommodation_info.name 以「旅行日」開頭）。
+ * 見 TeamHome / TeamCommission / create-team-bonus-snapshots。
+ */
+export function isTravelSeriesAccommodation(name?: string | null): boolean {
+  return (name ?? "").trim().startsWith("旅行日");
+}
+
+/** 場域類別為「民宿」以外（餐廳／農場／其他）者，同 CID 視為同一份合約 */
+export const LODGING_VENUE_TYPE = "民宿";
+export const isNonLodgingVenueType = (t?: string | null) => !!(t ?? "").trim() && (t ?? "").trim() !== LODGING_VENUE_TYPE;
+
+/**
+ * 同一位 KOL、同一支 CID、不同館別時，是否應視為「同一份合約（僅計 1 資格）」：
+ * 1. 兩邊皆為旅行日系列館別；或
+ * 2. 任一邊的場域類別非「民宿」。
+ * 其餘情況（皆為民宿、非旅行日系列）＝ 各自獨立的合作，算多個資格。
+ */
+export function isSameContractScope(a: {
+  selfAccName?: string | null;
+  otherAccName?: string | null;
+  selfVenueType?: string | null;
+  otherVenueType?: string | null;
+}): boolean {
+  const bothTravel = isTravelSeriesAccommodation(a.selfAccName) && isTravelSeriesAccommodation(a.otherAccName);
+  return bothTravel || isNonLodgingVenueType(a.selfVenueType) || isNonLodgingVenueType(a.otherVenueType);
+}
+
 export type CodeConflict = {
   source: string;
   severity: string;
@@ -199,7 +227,10 @@ export type CodeConflict = {
   accommodation_name: string | null;
   owner_name: string | null;
   detail: any;
+  /** 對方館別的場域類別（民宿／餐廳／農場／其他），由前端以 kol_venues 補上 */
+  venue_type?: string | null;
 };
+
 
 export type InviteFormSnapshot = {
   name: string;
