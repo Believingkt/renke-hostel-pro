@@ -30,14 +30,12 @@ interface KolInfo {
   id: string;
   name: string | null;
   cid_code: string | null;
-  ig_handle?: string | null;
-  ig_url?: string | null;
   venue_name: string | null;
   accommodation_id: string | null;
   token_expires_at: string | null;
 }
 
-/** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱與 IG 連結 */
+/** Ragic 勞務報酬單：固定值 + 動態帶入 KOL 暱稱（IG／影片連結由 KOL 自行填寫） */
 const RAGIC_PAY_FORM_BASE = "https://ap15.ragic.com/lakeze/ragicadministration/5";
 const RAGIC_FIXED_PARAMS: Record<string, string> = {
   "ragic-web-embed": "true",
@@ -52,17 +50,14 @@ const RAGIC_FIXED_PARAMS: Record<string, string> = {
   pfv3005523: "本國籍",
 };
 const RAGIC_FIELD_NICKNAME = "pfv1001024";
-const RAGIC_FIELD_IG_URL = "pfv1001025";
 
-function buildPayFormUrl(kol: Pick<KolInfo, "name" | "ig_handle" | "ig_url"> | null) {
+function buildPayFormUrl(kol: Pick<KolInfo, "name"> | null) {
   const params = new URLSearchParams(RAGIC_FIXED_PARAMS);
   const nickname = (kol?.name ?? "").trim();
   if (nickname) params.set(RAGIC_FIELD_NICKNAME, nickname);
-  const handle = (kol?.ig_handle ?? "").trim().replace(/^@/, "");
-  const igUrl = (kol?.ig_url ?? "").trim() || (handle ? `https://instagram.com/${handle}` : "");
-  if (igUrl) params.set(RAGIC_FIELD_IG_URL, igUrl);
   return `${RAGIC_PAY_FORM_BASE}?${params.toString()}&showSheetName`;
 }
+
 
 interface OrderRow {
   id: string;
