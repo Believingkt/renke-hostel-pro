@@ -101,7 +101,7 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
               </button>
             ))}
           </div>
-          {!exactMatch && value.trim().length >= 2 && (
+          {!exactMatch && value.trim().length >= 1 && (
             <div className="border-t bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
               查無完全相同的資料，將建立新的寫法「{value.trim()}」
             </div>
