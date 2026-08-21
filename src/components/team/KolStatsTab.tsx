@@ -9,6 +9,7 @@ import { buildExemptResolver, commissionBaseFromOrder } from "@/lib/ownerExempt"
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
+import { dedupeByContractGroup } from "@/lib/contractGroup";
 
 
 
@@ -119,6 +120,7 @@ interface KolProfileRow {
   venue_name: string | null;
   invited_at: string | null;
   created_at: string | null;
+  contract_group_id: string | null;
 }
 
 interface ScoutStats {
@@ -355,7 +357,7 @@ export function KolStatsTab() {
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_id, venue_name, invited_at, created_at",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_id, venue_name, invited_at, created_at, contract_group_id",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
@@ -370,7 +372,14 @@ export function KolStatsTab() {
               .eq("scout_id", sid)
               .eq("kpi_qualified", true);
             if (error) throw error;
-            return [sid, Number(count ?? 0)] as const;
+            // 一份合約＝一筆資格：扣掉合約歸戶後重複的件數（2026-08-01 起生效）
+            const dupes = (() => {
+              const rows = (kolData ?? []).filter(
+                (r: any) => r.scout_id === sid && r.kpi_qualified === true && r.contract_group_id,
+              ) as KolProfileRow[];
+              return rows.length - dedupeByContractGroup(rows).length;
+            })();
+            return [sid, Math.max(0, Number(count ?? 0) - dupes)] as const;
           }),
         );
         const cumulativeMap = new Map<string, number>(cumulativeEntries);
@@ -520,8 +529,8 @@ export function KolStatsTab() {
           // 本期所有邀約（依 check_in_date 落在期別），含不計獎者，供明細解釋使用
           const periodAll = rows.filter((r) => inPeriod(r.check_in_date));
           // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
-          const periodQualified = periodAll.filter(
-            (r) => r.kpi_qualified === true && !r.is_error && !!r.invited_at,
+          const periodQualified = dedupeByContractGroup(
+            periodAll.filter((r) => r.kpi_qualified === true && !r.is_error && !!r.invited_at),
           );
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
