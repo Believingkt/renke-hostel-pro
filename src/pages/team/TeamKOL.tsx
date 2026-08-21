@@ -38,9 +38,12 @@ import { Link } from "react-router-dom";
 import KolSuggestInput from "@/components/team/KolSuggestInput";
 import {
   validateInvite,
+  FIELD_LABELS,
+  FIELD_ANCHORS,
   normalizeIgHandle,
   normalizeCode,
   type CodeConflict,
+  type ValidationIssue,
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
 
@@ -683,7 +686,7 @@ function InvitationsTab({
   const [newTagInput, setNewTagInput] = useState("");
   const [followerError, setFollowerError] = useState<string | null>(null);
   // 防呆：阻擋訊息 / 合拍同住確認 / IG 重複確認
-  const [blockMessages, setBlockMessages] = useState<string[]>([]);
+  const [blockIssues, setBlockIssues] = useState<ValidationIssue[]>([]);
   const [collabConfirmed, setCollabConfirmed] = useState(false);
   const [igDupConfirmed, setIgDupConfirmed] = useState(false);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
@@ -1344,7 +1347,7 @@ function InvitationsTab({
       ? (venues.find((v) => v.id === form.venue_id)?.accommodation_id ?? null)
       : null;
 
-    const { blocks, warnings } = validateInvite(
+    const { blocks, warnings, issues } = validateInvite(
       {
         name: form.name,
         ig_handle: normIg,
@@ -1374,14 +1377,47 @@ function InvitationsTab({
       { companion, conflicts, isManager },
     );
 
+    const auditSnapshot = {
+      name: form.name,
+      ig_handle: normIg,
+      cid_code: normCid,
+      companion_cid: normCompanion,
+      order_number: orderNo,
+      accommodation_id: form.accommodation_id || null,
+      venue_id: form.venue_id || null,
+      venue_parent_accommodation_id: venueParentAcc,
+      check_in_date: form.check_in_date || null,
+      check_out_date: form.check_out_date || null,
+      scout_id: form.scout_id || null,
+      editing_id: editingId,
+    };
+    const logValidation = (outcome: string) => {
+      void supabase.from("kol_invite_validation_logs").insert({
+        user_id: currentUserId,
+        profile_id: editingId,
+        accommodation_id: form.accommodation_id || null,
+        outcome,
+        rules: issues.map((i) => i.rule),
+        blocks: issues.filter((i) => i.level === "block") as any,
+        warnings: issues.filter((i) => i.level === "warning") as any,
+        conflicts: conflicts as any,
+        submitted_values: auditSnapshot as any,
+      });
+    };
+
     if (blocks.length > 0) {
-      setBlockMessages(blocks);
+      setBlockIssues(issues.filter((i) => i.level === "block"));
+      logValidation("blocked");
       return;
     }
-    setBlockMessages([]);
+    setBlockIssues([]);
     if (warnings.length > 0) {
       const ok = window.confirm(`請確認以下事項：\n\n${warnings.map((w) => `• ${w}`).join("\n")}\n\n仍要繼續儲存嗎？`);
-      if (!ok) return;
+      if (!ok) {
+        logValidation("warned_cancelled");
+        return;
+      }
+      logValidation("warned_accepted");
     }
 
     setSaving(true);
@@ -2721,7 +2757,7 @@ function InvitationsTab({
 
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="KOL 名稱 *">
+              <Field label="KOL 名稱 *" anchorId="kolf-name">
                 <KolSuggestInput
                   field="name"
                   value={form.name}
@@ -2737,7 +2773,7 @@ function InvitationsTab({
                   }
                 />
               </Field>
-              <Field label="網紅帳號連結 *">
+              <Field label="網紅帳號連結 *" anchorId="kolf-ig">
                 <KolSuggestInput
                   field="ig_handle"
                   value={form.ig_handle}
@@ -2883,7 +2919,7 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <Field label="粉絲數">
+            <Field label="粉絲數" anchorId="kolf-follower">
               <Input
                 value={form.follower_count_input}
                 placeholder="例如：57.7萬 或 57.7k 或 1226"
@@ -2895,7 +2931,7 @@ function InvitationsTab({
             </Field>
 
 
-            <Field label="邀約人">
+            <Field label="邀約人" anchorId="kolf-scout">
               {isManager ? (
                 <Select
                   value={form.scout_id || "none"}
@@ -2922,7 +2958,7 @@ function InvitationsTab({
               )}
             </Field>
 
-            <Field label="館別 *">
+            <Field label="館別 *" anchorId="kolf-venue">
               <Select
                 value={form.accommodation_select}
                 onValueChange={(v) => {
@@ -2957,7 +2993,7 @@ function InvitationsTab({
 
 
 
-            <Field label="入住日期">
+            <Field label="入住日期" anchorId="kolf-dates">
               <Input
                 type="date"
                 value={form.check_in_date}
@@ -2975,7 +3011,7 @@ function InvitationsTab({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="訂單編號">
+              <Field label="訂單編號" anchorId="kolf-order">
                 <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
               </Field>
               <Field label="訂房狀態（自動）">
@@ -2988,7 +3024,7 @@ function InvitationsTab({
             </div>
 
             {showCid && (
-              <Field label="折扣碼 / CID">
+              <Field label="折扣碼 / CID" anchorId="kolf-cid">
                 <KolSuggestInput
                   field="cid_code"
                   value={form.cid_code}
@@ -3017,7 +3053,7 @@ function InvitationsTab({
               </Field>
             )}
 
-            <Field label="同住夥伴">
+            <Field label="同住夥伴" anchorId="kolf-companion">
               <CompanionSearch
                 value={form.companion_cid}
                 onChange={(cid) => setForm({ ...form, companion_cid: cid })}
@@ -3108,7 +3144,7 @@ function InvitationsTab({
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="發布連結">
+              <Field label="發布連結" anchorId="kolf-publish">
                 <Input value={form.publish_url} onChange={(e) => setForm({ ...form, publish_url: e.target.value })} />
               </Field>
               <Field label="發布日期">
@@ -3200,20 +3236,48 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={blockMessages.length > 0} onOpenChange={(o) => !o && setBlockMessages([])}>
-        <AlertDialogContent>
+      <AlertDialog open={blockIssues.length > 0} onOpenChange={(o) => !o && setBlockIssues([])}>
+        <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>無法儲存，請先修正以下問題</AlertDialogTitle>
+            <AlertDialogTitle>無法儲存，請先修正以下 {blockIssues.length} 個問題</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <ul className="list-disc space-y-1 pl-5 text-left">
-                {blockMessages.map((m, i) => (
-                  <li key={i}>{m}</li>
+              <div className="space-y-3 text-left">
+                {blockIssues.map((issue, i) => (
+                  <div key={i} className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-destructive">
+                        {FIELD_LABELS[issue.field]}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          setBlockIssues([]);
+                          setTimeout(() => {
+                            const el = document.getElementById(FIELD_ANCHORS[issue.field]);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            (el?.querySelector("input, textarea, button") as HTMLElement | null)?.focus();
+                          }, 120);
+                        }}
+                      >
+                        前往欄位 <ChevronRight className="ml-0.5 h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-sm text-foreground">{issue.message}</p>
+                    <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
+                      {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
+                      {issue.suggestion && <div>💡 建議做法：{issue.suggestion}</div>}
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setBlockMessages([])}>知道了</AlertDialogAction>
+            <AlertDialogAction onClick={() => setBlockIssues([])}>知道了</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -3380,9 +3444,9 @@ function InvitationsTab({
   );
 }
 
-function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+function Field({ label, children, required, anchorId }: { label: string; children: React.ReactNode; required?: boolean; anchorId?: string }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 scroll-mt-24" id={anchorId}>
       <Label className="text-xs text-muted-foreground">
         {label}
         {required && <span className="text-destructive ml-0.5">*</span>}

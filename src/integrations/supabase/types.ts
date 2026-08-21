@@ -4901,6 +4901,48 @@ export type Database = {
           },
         ]
       }
+      kol_invite_validation_logs: {
+        Row: {
+          accommodation_id: string | null
+          blocks: Json
+          conflicts: Json
+          created_at: string
+          id: string
+          outcome: string
+          profile_id: string | null
+          rules: string[]
+          submitted_values: Json
+          user_id: string | null
+          warnings: Json
+        }
+        Insert: {
+          accommodation_id?: string | null
+          blocks?: Json
+          conflicts?: Json
+          created_at?: string
+          id?: string
+          outcome: string
+          profile_id?: string | null
+          rules?: string[]
+          submitted_values?: Json
+          user_id?: string | null
+          warnings?: Json
+        }
+        Update: {
+          accommodation_id?: string | null
+          blocks?: Json
+          conflicts?: Json
+          created_at?: string
+          id?: string
+          outcome?: string
+          profile_id?: string | null
+          rules?: string[]
+          submitted_values?: Json
+          user_id?: string | null
+          warnings?: Json
+        }
+        Relationships: []
+      }
       kol_profiles: {
         Row: {
           accommodation_id: string | null
