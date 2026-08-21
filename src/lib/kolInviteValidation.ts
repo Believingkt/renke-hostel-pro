@@ -85,6 +85,27 @@ export function normalizeIgHandle(raw: string): string {
 /** 折扣碼正規化：大寫去空白 */
 export const normalizeCode = (raw: string) => (raw ?? "").trim().toUpperCase();
 
+const CJK = "\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af";
+
+/**
+ * KOL 名稱正規化（與 DB 的 public.normalize_kol_name 規則一致）：
+ * 全形英數→半形、去除中英文之間多餘空白、英文單字首字大寫其餘小寫。
+ */
+export function normalizeKolName(raw: string): string {
+  let v = (raw ?? "").trim();
+  if (!v) return "";
+  // 全形英數與全形空白 → 半形
+  v = v.replace(/[\uff01-\uff5e]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\u3000/g, " ");
+  v = v.replace(/\s+/g, " ").trim();
+  v = v.replace(new RegExp(`([${CJK}])\\s+`, "g"), "$1");
+  v = v.replace(new RegExp(`\\s+([${CJK}])`, "g"), "$1");
+  v = v.replace(/[A-Za-z]+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  return v.trim();
+}
+
+/** 名稱比對鍵：正規化後轉小寫並移除空白 */
+export const kolNameKey = (raw: string) => normalizeKolName(raw).toLowerCase().replace(/\s+/g, "");
+
 const PUBLISH_DOMAINS = ["instagram.com", "threads.net", "threads.com", "youtube.com", "youtu.be", "tiktok.com"];
 
 export function isKnownPublishDomain(url: string): boolean {
