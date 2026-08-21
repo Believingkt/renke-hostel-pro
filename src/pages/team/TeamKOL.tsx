@@ -968,6 +968,15 @@ function InvitationsTab({
       _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
     setRows(enriched);
+    // 搜尋命中子檔時，自動展開對應主檔，避免使用者以為搜不到
+    if (matchedParentIds.length > 0) {
+      setExpandedRows((prev) => {
+        const next = new Set(prev);
+        matchedParentIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+
     // 取得 PMS 已建立的折扣碼集合
     const { data: pmsCodes } = await supabase.from("discount_codes").select("code");
     const codesSet = new Set<string>(
