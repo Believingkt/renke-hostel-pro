@@ -42,6 +42,8 @@ import {
   FIELD_ANCHORS,
   normalizeIgHandle,
   normalizeCode,
+  normalizeKolName,
+  kolNameKey,
   type CodeConflict,
   type ValidationIssue,
   type CompanionProfile,
