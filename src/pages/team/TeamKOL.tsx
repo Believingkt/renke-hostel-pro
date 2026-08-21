@@ -881,7 +881,7 @@ function InvitationsTab({
         .from("kol_profiles")
         .select("primary_profile_id")
         .not("primary_profile_id", "is", null)
-        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`)
+        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%,order_number.ilike.%${esc}%`)
         .limit(200);
       matchedParentIds = Array.from(
         new Set(
@@ -894,7 +894,9 @@ function InvitationsTab({
         `name.ilike.%${esc}%`,
         `ig_handle.ilike.%${esc}%`,
         `cid_code.ilike.%${esc}%`,
+        `order_number.ilike.%${esc}%`,
       ];
+
       if (matchedParentIds.length > 0) orParts.push(`id.in.(${matchedParentIds.join(",")})`);
       q = q.or(orParts.join(","));
     }
@@ -2069,7 +2071,7 @@ function InvitationsTab({
           {/* 第一排：搜尋 + 館別 + 邀約人 + 新增邀約 */}
           <div className="flex items-center gap-2">
             <Input
-              placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
+              placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID / 訂單編號"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 max-w-[320px]"
@@ -2276,7 +2278,7 @@ function InvitationsTab({
         {/* 手機版（md: 以下）單欄堆疊 */}
         <div className="md:hidden space-y-2">
           <Input
-            placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
+            placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID / 訂單編號"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full"
