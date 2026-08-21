@@ -216,6 +216,7 @@ interface KolRow {
   follower_count: number | null;
   follower_count_updated_at: string | null;
   primary_profile_id?: string | null;
+  contract_group_id?: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -1273,6 +1274,7 @@ function InvitationsTab({
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
     });
+    setContractGroupId(row.contract_group_id ?? null);
     setDupWarning(null);
     setSheetOpen(true);
   };
@@ -1681,6 +1683,83 @@ function InvitationsTab({
       name: parentRow.name ?? "",
       igHandle: parentRow.ig_handle ?? "",
     });
+  };
+
+  // ===== 合約歸戶（contract_group_id）=====
+  // 一份合約＝一筆資格；同代碼／同檔期／同場域由系統自動歸為同一份合約，
+  // 跨場域的品牌聯名（例：星夢劇場 × 天使星夢度假村）則由此手動合併。
+  const [contractGroupId, setContractGroupId] = useState<string | null>(null);
+  const [contractSiblings, setContractSiblings] = useState<KolRow[]>([]);
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
+  const [groupResults, setGroupResults] = useState<KolRow[]>([]);
+  const [groupSaving, setGroupSaving] = useState(false);
+
+  // 讀取同一份合約的其他邀約
+  useEffect(() => {
+    if (!sheetOpen || !editingId || !contractGroupId) {
+      setContractSiblings([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name, cid_code, venue_name, check_in_date, kpi_month")
+        .eq("contract_group_id" as any, contractGroupId)
+        .neq("id", editingId);
+      if (!cancelled) setContractSiblings(((data ?? []) as unknown) as KolRow[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sheetOpen, editingId, contractGroupId]);
+
+  // 合併對象搜尋
+  useEffect(() => {
+    if (!groupPickerOpen) {
+      setGroupResults([]);
+      return;
+    }
+    const q = groupSearch.trim();
+    if (!q) {
+      setGroupResults([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name, cid_code, venue_name, check_in_date, kpi_month, contract_group_id")
+        .not("contract_group_id", "is", null)
+        .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+        .or(`name.ilike.%${q}%,cid_code.ilike.%${q}%`)
+        .limit(20);
+      if (!cancelled) setGroupResults(((data ?? []) as unknown) as KolRow[]);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [groupPickerOpen, groupSearch, editingId]);
+
+  const updateContractGroup = async (gid: string) => {
+    if (!editingId) return;
+    setGroupSaving(true);
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ contract_group_id: gid } as any)
+      .eq("id", editingId);
+    setGroupSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setContractGroupId(gid);
+    setGroupPickerOpen(false);
+    setGroupSearch("");
+    toast.success("已更新合約歸戶");
+    fetchRows();
   };
 
   // 搜尋可作為主要記錄的候選（只顯示 primary_profile_id IS NULL 且排除自己）
