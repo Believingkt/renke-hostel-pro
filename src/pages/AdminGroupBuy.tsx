@@ -195,6 +195,7 @@ interface OrderRow {
   refund_status: string | null;
   refunded_amount: number | null;
   refunded_at: string | null;
+  payment_provider?: string | null;
   campaign_id?: string | null;
   reported?: boolean;
   confirmed?: boolean;
@@ -239,6 +240,11 @@ export default function AdminGroupBuy() {
   const [cancelRefundAmount, setCancelRefundAmount] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  /** 人工退款（已取消訂單補登退款） */
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundNote, setRefundNote] = useState("");
+  const [refunding, setRefunding] = useState(false);
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
@@ -293,7 +299,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
