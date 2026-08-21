@@ -2357,10 +2357,21 @@ function InvitationsTab({
                     const hasSubs = subs.length > 0;
                     const expanded = expandedRows.has(r.id);
                     return (
-                      <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
+                      <TableRow
+                        key={r.id}
+                        className={`cursor-pointer hover:bg-muted/50 ${opts.isSub ? "bg-muted/20" : ""}`}
+                        onClick={() => setViewingRow(r)}
+                      >
                         <TableCell className="max-w-[200px]">
                           <div className="flex items-center gap-1 max-w-[200px]">
-                            {hasSubs ? (
+                            {opts.isSub ? (
+                              <>
+                                <span className="inline-block w-4 shrink-0" />
+                                <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300 shrink-0">
+                                  附屬
+                                </Badge>
+                              </>
+                            ) : hasSubs ? (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}
